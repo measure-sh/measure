@@ -19,9 +19,9 @@ import (
 	"backend/api/metrics"
 	"backend/api/paginate"
 	"backend/api/platform"
-	"backend/api/replay"
 	"backend/api/server"
 	"backend/api/span"
+	"backend/api/timeline"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -1290,10 +1290,11 @@ func (a *App) getTeam(ctx context.Context) (*Team, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("team_id").
 		From("apps").
-		Where("id = ?", nil)
+		Where("id = ?", a.ID)
+
 	defer stmt.Close()
 
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), a.ID).Scan(&team.ID); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&team.ID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {
@@ -1302,6 +1303,24 @@ func (a *App) getTeam(ctx context.Context) (*Team, error) {
 	}
 
 	return team, nil
+}
+
+func (a *App) Populate(ctx context.Context) (err error) {
+	stmt := sqlf.PostgreSQL.From("apps").
+		Select("team_id::UUID").
+		Select("unique_identifier").
+		Select("app_name").
+		Select("platform").
+		Select("first_version").
+		Select("onboarded").
+		Select("onboarded_at").
+		Select("created_at").
+		Select("updated_at").
+		Where("id = ?", a.ID)
+
+	defer stmt.Close()
+
+	return server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&a.TeamId, &a.UniqueId, &a.AppName, &a.Platform, &a.FirstVersion, &a.Onboarded, &a.OnboardedAt, &a.CreatedAt, &a.UpdatedAt)
 }
 
 func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, platform, firstVersion string) error {
@@ -1361,22 +1380,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`toString(attribute.network_type)`,
 		`toString(attribute.network_generation)`,
 		`toString(attribute.network_provider)`,
-		`anr.fingerprint`,
-		`anr.foreground`,
-		`anr.exceptions`,
-		`anr.threads`,
-		`exception.handled`,
-		`exception.fingerprint`,
-		`exception.foreground`,
-		`exception.exceptions`,
-		`exception.threads`,
-		`toString(app_exit.reason)`,
-		`toString(app_exit.importance)`,
-		`app_exit.trace`,
-		`app_exit.process_name`,
-		`app_exit.pid`,
-		`toString(string.severity_text)`,
-		`string.string`,
+		`user_defined_attribute`,
 		`toString(gesture_long_click.target)`,
 		`toString(gesture_long_click.target_id)`,
 		`gesture_long_click.touch_down_time`,
@@ -1402,15 +1406,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`gesture_scroll.end_x`,
 		`gesture_scroll.end_y`,
 		`toString(gesture_scroll.direction)`,
-		`toString(lifecycle_activity.type)`,
-		`toString(lifecycle_activity.class_name)`,
-		`lifecycle_activity.intent`,
-		`lifecycle_activity.saved_instance_state`,
-		`toString(lifecycle_fragment.type)`,
-		`toString(lifecycle_fragment.class_name)`,
-		`lifecycle_fragment.parent_activity`,
-		`lifecycle_fragment.parent_fragment`,
-		`lifecycle_fragment.tag`,
 		`toString(lifecycle_app.type)`,
 		`cold_launch.process_start_uptime`,
 		`cold_launch.process_start_requested_uptime`,
@@ -1453,22 +1448,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`http.failure_reason`,
 		`http.failure_description`,
 		`toString(http.client)`,
-		`memory_usage.java_max_heap`,
-		`memory_usage.java_total_heap`,
-		`memory_usage.java_free_heap`,
-		`memory_usage.total_pss`,
-		`memory_usage.rss`,
-		`memory_usage.native_total_heap`,
-		`memory_usage.native_free_heap`,
-		`memory_usage.interval`,
-		`low_memory.java_max_heap`,
-		`low_memory.java_total_heap`,
-		`low_memory.java_free_heap`,
-		`low_memory.total_pss`,
-		`low_memory.rss`,
-		`low_memory.native_total_heap`,
-		`low_memory.native_free_heap`,
-		`toString(trim_memory.level)`,
 		`cpu_usage.num_cores`,
 		`cpu_usage.clock_speed`,
 		`cpu_usage.start_time`,
@@ -1479,12 +1458,68 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`cpu_usage.cstime`,
 		`cpu_usage.interval`,
 		`cpu_usage.percentage_usage`,
-		`toString(navigation.to)`,
-		`toString(navigation.from)`,
-		`toString(navigation.source)`,
 		`toString(screen_view.name) `,
-		`user_defined_attribute`,
 		`custom.name`,
+	}
+
+	switch a.Platform {
+	case platform.Android:
+		cols = append(cols, []string{
+			`anr.fingerprint`,
+			`anr.foreground`,
+			`anr.exceptions`,
+			`anr.threads`,
+			`exception.handled`,
+			`exception.fingerprint`,
+			`exception.foreground`,
+			`exception.exceptions`,
+			`exception.threads`,
+			`toString(app_exit.reason)`,
+			`toString(app_exit.importance)`,
+			`app_exit.trace`,
+			`app_exit.process_name`,
+			`app_exit.pid`,
+			`toString(string.severity_text)`,
+			`string.string`,
+			`toString(lifecycle_activity.type)`,
+			`toString(lifecycle_activity.class_name)`,
+			`lifecycle_activity.intent`,
+			`lifecycle_activity.saved_instance_state`,
+			`toString(lifecycle_fragment.type)`,
+			`toString(lifecycle_fragment.class_name)`,
+			`lifecycle_fragment.parent_activity`,
+			`lifecycle_fragment.parent_fragment`,
+			`lifecycle_fragment.tag`,
+			`memory_usage.java_max_heap`,
+			`memory_usage.java_total_heap`,
+			`memory_usage.java_free_heap`,
+			`memory_usage.total_pss`,
+			`memory_usage.rss`,
+			`memory_usage.native_total_heap`,
+			`memory_usage.native_free_heap`,
+			`memory_usage.interval`,
+			`low_memory.java_max_heap`,
+			`low_memory.java_total_heap`,
+			`low_memory.java_free_heap`,
+			`low_memory.total_pss`,
+			`low_memory.rss`,
+			`low_memory.native_total_heap`,
+			`low_memory.native_free_heap`,
+			`toString(trim_memory.level)`,
+			`toString(navigation.to)`,
+			`toString(navigation.from)`,
+			`toString(navigation.source)`,
+		}...)
+	case platform.IOS:
+		cols = append(cols, []string{
+			`toString(lifecycle_view_controller.type)`,
+			`toString(lifecycle_view_controller.class_name)`,
+			`toString(lifecycle_swift_ui.type)`,
+			`toString(lifecycle_swift_ui.class_name)`,
+			`memory_usage_absolute.max_memory`,
+			`memory_usage_absolute.used_memory`,
+			`memory_usage_absolute.interval`,
+		}...)
 	}
 
 	stmt := sqlf.From("default.events")
@@ -1541,6 +1576,10 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		var warmLaunchDuration uint32
 		var hotLaunchDuration uint32
 
+		var lifecycleViewController event.LifecycleViewController
+		var lifecycleSwiftUI event.LifecycleSwiftUI
+		var memoryUsageAbs event.MemoryUsageAbs
+
 		dest := []any{
 			&ev.ID,
 			&ev.Type,
@@ -1579,29 +1618,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&ev.Attribute.NetworkGeneration,
 			&ev.Attribute.NetworkProvider,
 
-			// anr
-			&anr.Fingerprint,
-			&anr.Foreground,
-			&anrExceptions,
-			&anrThreads,
-
-			// excpetion
-			&exception.Handled,
-			&exception.Fingerprint,
-			&exception.Foreground,
-			&exceptionExceptions,
-			&exceptionThreads,
-
-			// app exit
-			&appExit.Reason,
-			&appExit.Importance,
-			&appExit.Trace,
-			&appExit.ProcessName,
-			&appExit.PID,
-
-			// log string
-			&logString.SeverityText,
-			&logString.String,
+			// user defined attributes
+			&userDefAttr,
 
 			// gesture long click
 			&gestureLongClick.Target,
@@ -1633,19 +1651,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&gestureScroll.EndX,
 			&gestureScroll.EndY,
 			&gestureScroll.Direction,
-
-			// lifecycle activity
-			&lifecycleActivity.Type,
-			&lifecycleActivity.ClassName,
-			&lifecycleActivity.Intent,
-			&lifecycleActivity.SavedInstanceState,
-
-			// lifecycle fragment
-			&lifecycleFragment.Type,
-			&lifecycleFragment.ClassName,
-			&lifecycleFragment.ParentActivity,
-			&lifecycleFragment.ParentFragment,
-			&lifecycleFragment.Tag,
 
 			// lifecycle app
 			&lifecycleApp.Type,
@@ -1701,28 +1706,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&http.FailureDescription,
 			&http.Client,
 
-			// memory usage
-			&memoryUsage.JavaMaxHeap,
-			&memoryUsage.JavaTotalHeap,
-			&memoryUsage.JavaFreeHeap,
-			&memoryUsage.TotalPSS,
-			&memoryUsage.RSS,
-			&memoryUsage.NativeTotalHeap,
-			&memoryUsage.NativeFreeHeap,
-			&memoryUsage.Interval,
-
-			// low memory
-			&lowMemory.JavaMaxHeap,
-			&lowMemory.JavaTotalHeap,
-			&lowMemory.JavaFreeHeap,
-			&lowMemory.TotalPSS,
-			&lowMemory.RSS,
-			&lowMemory.NativeTotalHeap,
-			&lowMemory.NativeFreeHeap,
-
-			// trim memory
-			&trimMemory.Level,
-
 			// cpu usage
 			&cpuUsage.NumCores,
 			&cpuUsage.ClockSpeed,
@@ -1735,19 +1718,90 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&cpuUsage.Interval,
 			&cpuUsage.PercentageUsage,
 
-			// navigation
-			&navigation.To,
-			&navigation.From,
-			&navigation.Source,
-
 			// screen view
 			&screenView.Name,
 
-			// user defined attributes
-			&userDefAttr,
-
 			// custom
 			&custom.Name,
+		}
+
+		switch a.Platform {
+		case platform.Android:
+			dest = append(dest, []any{
+				// anr
+				&anr.Fingerprint,
+				&anr.Foreground,
+				&anrExceptions,
+				&anrThreads,
+
+				// excpetion
+				&exception.Handled,
+				&exception.Fingerprint,
+				&exception.Foreground,
+				&exceptionExceptions,
+				&exceptionThreads,
+
+				// app exit
+				&appExit.Reason,
+				&appExit.Importance,
+				&appExit.Trace,
+				&appExit.ProcessName,
+				&appExit.PID,
+
+				// log string
+				&logString.SeverityText,
+				&logString.String,
+
+				// lifecycle activity
+				&lifecycleActivity.Type,
+				&lifecycleActivity.ClassName,
+				&lifecycleActivity.Intent,
+				&lifecycleActivity.SavedInstanceState,
+
+				// lifecycle fragment
+				&lifecycleFragment.Type,
+				&lifecycleFragment.ClassName,
+				&lifecycleFragment.ParentActivity,
+				&lifecycleFragment.ParentFragment,
+				&lifecycleFragment.Tag,
+
+				// memory usage
+				&memoryUsage.JavaMaxHeap,
+				&memoryUsage.JavaTotalHeap,
+				&memoryUsage.JavaFreeHeap,
+				&memoryUsage.TotalPSS,
+				&memoryUsage.RSS,
+				&memoryUsage.NativeTotalHeap,
+				&memoryUsage.NativeFreeHeap,
+				&memoryUsage.Interval,
+
+				// low memory
+				&lowMemory.JavaMaxHeap,
+				&lowMemory.JavaTotalHeap,
+				&lowMemory.JavaFreeHeap,
+				&lowMemory.TotalPSS,
+				&lowMemory.RSS,
+				&lowMemory.NativeTotalHeap,
+				&lowMemory.NativeFreeHeap,
+
+				// trim memory
+				&trimMemory.Level,
+
+				// navigation
+				&navigation.To,
+				&navigation.From,
+				&navigation.Source,
+			}...)
+		case platform.IOS:
+			dest = append(dest, []any{
+				&lifecycleViewController.Type,
+				&lifecycleViewController.ClassName,
+				&lifecycleSwiftUI.Type,
+				&lifecycleSwiftUI.ClassName,
+				&memoryUsageAbs.MaxMemory,
+				&memoryUsageAbs.UsedMemory,
+				&memoryUsageAbs.Interval,
+			}...)
 		}
 
 		if err := rows.Scan(dest...); err != nil {
@@ -1849,6 +1903,15 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			session.Events = append(session.Events, ev)
 		case event.TypeCustom:
 			ev.Custom = &custom
+			session.Events = append(session.Events, ev)
+		case event.TypeLifecycleViewController:
+			ev.LifecycleViewController = &lifecycleViewController
+			session.Events = append(session.Events, ev)
+		case event.TypeLifecycleSwiftUI:
+			ev.LifecycleSwiftUI = &lifecycleSwiftUI
+			session.Events = append(session.Events, ev)
+		case event.TypeMemoryUsageAbs:
+			ev.MemoryUsageAbs = &memoryUsageAbs
 			session.Events = append(session.Events, ev)
 		default:
 			continue
@@ -4726,18 +4789,26 @@ func GetSession(c *gin.Context) {
 	app := &App{
 		ID: &appId,
 	}
-	team, err := app.getTeam(ctx)
-	if err != nil {
-		msg := `failed to fetch team from app`
+
+	if err := app.Populate(ctx); err != nil {
+		msg := `failed to fetch app details`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		status := http.StatusInternalServerError
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+			msg = fmt.Sprintf(`app with id %q does not exist`, app.ID)
+		}
+
+		c.JSON(status, gin.H{
+			"error": msg,
+		})
+
 		return
 	}
-	if team == nil {
-		msg := fmt.Sprintf(`no team exists for app id: %q`, app.ID)
-		fmt.Println(msg)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
+
+	team := &Team{
+		ID: &app.TeamId,
 	}
 
 	userId := c.GetString("userId")
@@ -4770,7 +4841,7 @@ func GetSession(c *gin.Context) {
 
 	session, err := app.GetSessionEvents(ctx, sessionId)
 	if err != nil {
-		msg := `failed to fetch session data for replay`
+		msg := `failed to fetch session data for timeline`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -4804,10 +4875,13 @@ func GetSession(c *gin.Context) {
 
 	duration := session.DurationFromEvents().Milliseconds()
 	cpuUsageEvents := session.EventsOfType(event.TypeCPUUsage)
-	cpuUsages := replay.ComputeCPUUsage(cpuUsageEvents)
+	cpuUsages := timeline.ComputeCPUUsage(cpuUsageEvents)
 
 	memoryUsageEvents := session.EventsOfType(event.TypeMemoryUsage)
-	memoryUsages := replay.ComputeMemoryUsage(memoryUsageEvents)
+	memoryUsages := timeline.ComputeMemoryUsage(memoryUsageEvents)
+
+	memoryUsageAbsEvents := session.EventsOfType(event.TypeMemoryUsageAbs)
+	memoryUsageAbsolutes := timeline.ComputeMemoryUsageAbs(memoryUsageAbsEvents)
 
 	typeList := []string{
 		event.TypeGestureClick,
@@ -4821,6 +4895,8 @@ func GetSession(c *gin.Context) {
 		event.TypeHotLaunch,
 		event.TypeLifecycleActivity,
 		event.TypeLifecycleFragment,
+		event.TypeLifecycleViewController,
+		event.TypeLifecycleSwiftUI,
 		event.TypeLifecycleApp,
 		event.TypeTrimMemory,
 		event.TypeLowMemory,
@@ -4833,130 +4909,144 @@ func GetSession(c *gin.Context) {
 	}
 
 	eventMap := session.EventsOfTypes(typeList...)
-	threads := make(replay.Threads)
+	threads := make(timeline.Threads)
 
 	gestureClickEvents := eventMap[event.TypeGestureClick]
 	if len(gestureClickEvents) > 0 {
-		gestureClicks := replay.ComputeGestureClicks(gestureClickEvents)
-		threadedGestureClicks := replay.GroupByThreads(gestureClicks)
+		gestureClicks := timeline.ComputeGestureClicks(gestureClickEvents)
+		threadedGestureClicks := timeline.GroupByThreads(gestureClicks)
 		threads.Organize(event.TypeGestureClick, threadedGestureClicks)
 	}
 
 	gestureLongClickEvents := eventMap[event.TypeGestureLongClick]
 	if len(gestureLongClickEvents) > 0 {
-		gestureLongClicks := replay.ComputeGestureLongClicks(gestureLongClickEvents)
-		threadedGestureLongClicks := replay.GroupByThreads(gestureLongClicks)
+		gestureLongClicks := timeline.ComputeGestureLongClicks(gestureLongClickEvents)
+		threadedGestureLongClicks := timeline.GroupByThreads(gestureLongClicks)
 		threads.Organize(event.TypeGestureLongClick, threadedGestureLongClicks)
 	}
 
 	gestureScrollEvents := eventMap[event.TypeGestureScroll]
 	if len(gestureScrollEvents) > 0 {
-		gestureScrolls := replay.ComputeGestureScrolls(gestureScrollEvents)
-		threadedGestureScrolls := replay.GroupByThreads(gestureScrolls)
+		gestureScrolls := timeline.ComputeGestureScrolls(gestureScrollEvents)
+		threadedGestureScrolls := timeline.GroupByThreads(gestureScrolls)
 		threads.Organize(event.TypeGestureScroll, threadedGestureScrolls)
 	}
 
 	navEvents := eventMap[event.TypeNavigation]
 	if len(navEvents) > 0 {
-		navs := replay.ComputeNavigation(navEvents)
-		threadedNavs := replay.GroupByThreads(navs)
+		navs := timeline.ComputeNavigation(navEvents)
+		threadedNavs := timeline.GroupByThreads(navs)
 		threads.Organize(event.TypeNavigation, threadedNavs)
 	}
 
 	screenViewEvents := eventMap[event.TypeScreenView]
 	if len(screenViewEvents) > 0 {
-		screenViews := replay.ComputeScreenViews(screenViewEvents)
-		threadedScreenViews := replay.GroupByThreads(screenViews)
+		screenViews := timeline.ComputeScreenViews(screenViewEvents)
+		threadedScreenViews := timeline.GroupByThreads(screenViews)
 		threads.Organize(event.TypeScreenView, threadedScreenViews)
 	}
 
 	customEvents := eventMap[event.TypeCustom]
 	if len(customEvents) > 0 {
-		customs := replay.ComputeCustom(customEvents)
-		threadedCustoms := replay.GroupByThreads(customs)
+		customs := timeline.ComputeCustom(customEvents)
+		threadedCustoms := timeline.GroupByThreads(customs)
 		threads.Organize(event.TypeCustom, threadedCustoms)
 	}
 
 	logEvents := eventMap[event.TypeString]
 	if len(logEvents) > 0 {
-		logs := replay.ComputeLogString(logEvents)
-		threadedLogs := replay.GroupByThreads(logs)
+		logs := timeline.ComputeLogString(logEvents)
+		threadedLogs := timeline.GroupByThreads(logs)
 		threads.Organize(event.TypeString, threadedLogs)
 	}
 
 	netChangeEvents := eventMap[event.TypeNetworkChange]
 	if len(netChangeEvents) > 0 {
-		netChanges := replay.ComputeNetworkChange(netChangeEvents)
-		threadedNetChanges := replay.GroupByThreads(netChanges)
+		netChanges := timeline.ComputeNetworkChange(netChangeEvents)
+		threadedNetChanges := timeline.GroupByThreads(netChanges)
 		threads.Organize(event.TypeNetworkChange, threadedNetChanges)
 	}
 
 	coldLaunchEvents := eventMap[event.TypeColdLaunch]
 	if len(coldLaunchEvents) > 0 {
-		coldLaunches := replay.ComputeColdLaunches(coldLaunchEvents)
-		threadedColdLaunches := replay.GroupByThreads(coldLaunches)
+		coldLaunches := timeline.ComputeColdLaunches(coldLaunchEvents)
+		threadedColdLaunches := timeline.GroupByThreads(coldLaunches)
 		threads.Organize(event.TypeColdLaunch, threadedColdLaunches)
 	}
 
 	warmLaunchEvents := eventMap[event.TypeWarmLaunch]
 	if len(warmLaunchEvents) > 0 {
-		warmLaunches := replay.ComputeWarmLaunches(warmLaunchEvents)
-		threadedWarmLaunches := replay.GroupByThreads(warmLaunches)
+		warmLaunches := timeline.ComputeWarmLaunches(warmLaunchEvents)
+		threadedWarmLaunches := timeline.GroupByThreads(warmLaunches)
 		threads.Organize(event.TypeWarmLaunch, threadedWarmLaunches)
 	}
 
 	hotLaunchEvents := eventMap[event.TypeHotLaunch]
 	if len(hotLaunchEvents) > 0 {
-		hotLaunches := replay.ComputeHotLaunches(hotLaunchEvents)
-		threadedHotLaunches := replay.GroupByThreads(hotLaunches)
+		hotLaunches := timeline.ComputeHotLaunches(hotLaunchEvents)
+		threadedHotLaunches := timeline.GroupByThreads(hotLaunches)
 		threads.Organize(event.TypeHotLaunch, threadedHotLaunches)
 	}
 
 	lifecycleActivityEvents := eventMap[event.TypeLifecycleActivity]
 	if len(lifecycleActivityEvents) > 0 {
-		lifecycleActivities := replay.ComputeLifecycleActivities(lifecycleActivityEvents)
-		threadedLifecycleActivities := replay.GroupByThreads(lifecycleActivities)
+		lifecycleActivities := timeline.ComputeLifecycleActivities(lifecycleActivityEvents)
+		threadedLifecycleActivities := timeline.GroupByThreads(lifecycleActivities)
 		threads.Organize(event.TypeLifecycleActivity, threadedLifecycleActivities)
 	}
 
 	lifecycleFragmentEvents := eventMap[event.TypeLifecycleFragment]
 	if len(lifecycleActivityEvents) > 0 {
-		lifecycleFragments := replay.ComputeLifecycleFragments(lifecycleFragmentEvents)
-		threadedLifecycleFragments := replay.GroupByThreads(lifecycleFragments)
+		lifecycleFragments := timeline.ComputeLifecycleFragments(lifecycleFragmentEvents)
+		threadedLifecycleFragments := timeline.GroupByThreads(lifecycleFragments)
 		threads.Organize(event.TypeLifecycleFragment, threadedLifecycleFragments)
+	}
+
+	lifecycleViewControllerEvents := eventMap[event.TypeLifecycleViewController]
+	if len(lifecycleViewControllerEvents) > 0 {
+		lifecycleViewControllers := timeline.ComputeLifecycleViewControllers(lifecycleViewControllerEvents)
+		threadedLifecycleViewControllers := timeline.GroupByThreads(lifecycleViewControllers)
+		threads.Organize(event.TypeLifecycleViewController, threadedLifecycleViewControllers)
+	}
+
+	lifecycleSwiftUIEvents := eventMap[event.TypeLifecycleSwiftUI]
+	if len(lifecycleSwiftUIEvents) > 0 {
+		lifecycleSwiftUIViews := timeline.ComputeLifecycleSwiftUIViews(lifecycleSwiftUIEvents)
+		threadedLifecycleSwiftUIViews := timeline.GroupByThreads(lifecycleSwiftUIViews)
+		threads.Organize(event.TypeLifecycleSwiftUI, threadedLifecycleSwiftUIViews)
 	}
 
 	lifecycleAppEvents := eventMap[event.TypeLifecycleApp]
 	if len(lifecycleActivityEvents) > 0 {
-		lifecycleApps := replay.ComputeLifecycleApps(lifecycleAppEvents)
-		threadedLifecycleApps := replay.GroupByThreads(lifecycleApps)
+		lifecycleApps := timeline.ComputeLifecycleApps(lifecycleAppEvents)
+		threadedLifecycleApps := timeline.GroupByThreads(lifecycleApps)
 		threads.Organize(event.TypeLifecycleApp, threadedLifecycleApps)
 	}
 
 	trimMemoryEvents := eventMap[event.TypeTrimMemory]
 	if len(trimMemoryEvents) > 0 {
-		trimMemories := replay.ComputeTrimMemories(trimMemoryEvents)
-		threadedTrimMemories := replay.GroupByThreads(trimMemories)
+		trimMemories := timeline.ComputeTrimMemories(trimMemoryEvents)
+		threadedTrimMemories := timeline.GroupByThreads(trimMemories)
 		threads.Organize(event.TypeTrimMemory, threadedTrimMemories)
 	}
 
 	lowMemoryEvents := eventMap[event.TypeLowMemory]
 	if len(lowMemoryEvents) > 0 {
-		lowMemories := replay.ComputeLowMemories(lowMemoryEvents)
-		threadedLowMemories := replay.GroupByThreads(lowMemories)
+		lowMemories := timeline.ComputeLowMemories(lowMemoryEvents)
+		threadedLowMemories := timeline.GroupByThreads(lowMemories)
 		threads.Organize(event.TypeLowMemory, threadedLowMemories)
 	}
 
 	appExitEvents := eventMap[event.TypeAppExit]
 	if len(appExitEvents) > 0 {
-		appExits := replay.ComputeAppExits(appExitEvents)
-		threadedAppExits := replay.GroupByThreads(appExits)
+		appExits := timeline.ComputeAppExits(appExitEvents)
+		threadedAppExits := timeline.GroupByThreads(appExits)
 		threads.Organize(event.TypeAppExit, threadedAppExits)
 	}
 
 	exceptionEvents := eventMap[event.TypeException]
 	if len(exceptionEvents) > 0 {
-		exceptions, err := replay.ComputeExceptions(c, app.ID, exceptionEvents)
+		exceptions, err := timeline.ComputeExceptions(c, app.ID, exceptionEvents)
 		if err != nil {
 			msg := fmt.Sprintf(`unable to compute exceptions for session %q for app %q`, sessionId, app.ID)
 			fmt.Println(msg, err)
@@ -4965,13 +5055,13 @@ func GetSession(c *gin.Context) {
 			})
 			return
 		}
-		threadedExceptions := replay.GroupByThreads(exceptions)
+		threadedExceptions := timeline.GroupByThreads(exceptions)
 		threads.Organize(event.TypeException, threadedExceptions)
 	}
 
 	anrEvents := eventMap[event.TypeANR]
 	if len(anrEvents) > 0 {
-		anrs, err := replay.ComputeANRs(c, app.ID, anrEvents)
+		anrs, err := timeline.ComputeANRs(c, app.ID, anrEvents)
 		if err != nil {
 			msg := fmt.Sprintf(`unable to compute ANRs for session %q for app %q`, sessionId, app.ID)
 			fmt.Println(msg, err)
@@ -4980,27 +5070,28 @@ func GetSession(c *gin.Context) {
 			})
 			return
 		}
-		threadedANRs := replay.GroupByThreads(anrs)
+		threadedANRs := timeline.GroupByThreads(anrs)
 		threads.Organize(event.TypeANR, threadedANRs)
 	}
 
 	httpEvents := eventMap[event.TypeHttp]
 	if len(httpEvents) > 0 {
-		httpies := replay.ComputeHttp(httpEvents)
-		threadedHttpies := replay.GroupByThreads(httpies)
+		httpies := timeline.ComputeHttp(httpEvents)
+		threadedHttpies := timeline.GroupByThreads(httpies)
 		threads.Organize(event.TypeHttp, threadedHttpies)
 	}
 
 	threads.Sort()
 
 	response := gin.H{
-		"session_id":   sessionId,
-		"attribute":    session.Attribute,
-		"app_id":       appId,
-		"duration":     duration,
-		"cpu_usage":    cpuUsages,
-		"memory_usage": memoryUsages,
-		"threads":      threads,
+		"session_id":            sessionId,
+		"attribute":             session.Attribute,
+		"app_id":                appId,
+		"duration":              duration,
+		"cpu_usage":             cpuUsages,
+		"memory_usage":          memoryUsages,
+		"memory_usage_absolute": memoryUsageAbsolutes,
+		"threads":               threads,
 	}
 
 	c.JSON(http.StatusOK, response)

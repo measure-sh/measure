@@ -1,4 +1,4 @@
-package replay
+package timeline
 
 import (
 	"backend/api/event"
@@ -10,7 +10,7 @@ import (
 var NominalColdLaunchThreshold = 30 * time.Second
 
 // ColdLaunch represents cold launch events
-// suitable for session replay.
+// suitable for session timeline.
 type ColdLaunch struct {
 	EventType   string             `json:"event_type"`
 	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
@@ -32,7 +32,7 @@ func (cl ColdLaunch) GetTimestamp() time.Time {
 }
 
 // WarmLaunch represents warm launch events
-// suitable for session replay.
+// suitable for session timeline.
 type WarmLaunch struct {
 	EventType        string             `json:"event_type"`
 	UDAttribute      *event.UDAttribute `json:"user_defined_attribute"`
@@ -57,7 +57,7 @@ func (wl WarmLaunch) GetTimestamp() time.Time {
 }
 
 // HotLaunch represents hot launch events
-// suitable for session replay.
+// suitable for session timeline.
 type HotLaunch struct {
 	EventType        string             `json:"event_type"`
 	UDAttribute      *event.UDAttribute `json:"user_defined_attribute"`
@@ -82,7 +82,7 @@ func (hl HotLaunch) GetTimestamp() time.Time {
 }
 
 // ComputeColdLaunches computes cold launch events
-// for session replay.
+// for session timeline.
 func ComputeColdLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		coldLaunches := ColdLaunch{
@@ -99,7 +99,7 @@ func ComputeColdLaunches(events []event.EventField) (result []ThreadGrouper) {
 }
 
 // ComputeWarmLaunches computes warm launch events
-// for session replay.
+// for session timeline.
 func ComputeWarmLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		warmLaunches := WarmLaunch{
@@ -119,7 +119,7 @@ func ComputeWarmLaunches(events []event.EventField) (result []ThreadGrouper) {
 }
 
 // ComputeHotLaunches computes hot launch events
-// for session replay.
+// for session timeline.
 func ComputeHotLaunches(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		hotLaunches := HotLaunch{

@@ -1,4 +1,4 @@
-package replay
+package timeline
 
 import (
 	"backend/api/event"
@@ -6,7 +6,7 @@ import (
 )
 
 // Navigation represents navigation events suitable
-// for session replay.
+// for session timeline.
 type Navigation struct {
 	EventType     string             `json:"event_type"`
 	UDAttribute   *event.UDAttribute `json:"user_defined_attribute"`
@@ -17,7 +17,7 @@ type Navigation struct {
 }
 
 // ScreenView represents screen view events suitable
-// for session replay.
+// for session timeline.
 type ScreenView struct {
 	EventType     string             `json:"event_type"`
 	UDAttribute   *event.UDAttribute `json:"user_defined_attribute"`
@@ -40,7 +40,7 @@ func (n Navigation) GetTimestamp() time.Time {
 }
 
 // ComputeNavigation computes navigation events
-// for session replay.
+// for session timeline.
 func ComputeNavigation(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		navs := Navigation{
@@ -58,7 +58,7 @@ func ComputeNavigation(events []event.EventField) (result []ThreadGrouper) {
 }
 
 // ComputeScreemViews computes screen view events
-// for session replay.
+// for session timeline.
 func ComputeScreenViews(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
 		sv := ScreenView{
