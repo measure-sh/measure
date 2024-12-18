@@ -12,6 +12,7 @@ public final class sh/measure/android/Measure {
 	public static final fun clearUserId ()V
 	public final fun createSpanBuilder (Ljava/lang/String;)Lsh/measure/android/tracing/SpanBuilder;
 	public final fun getCurrentTime ()J
+	public final fun getSessionId ()Ljava/lang/String;
 	public final fun getTraceParentHeaderKey ()Ljava/lang/String;
 	public final fun getTraceParentHeaderValue (Lsh/measure/android/tracing/Span;)Ljava/lang/String;
 	public static final fun init (Landroid/content/Context;)V
