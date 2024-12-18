@@ -26,10 +26,10 @@ type NodeiOS struct {
 	// lifecycle swift ui class name.
 	Name string
 
-	// IsUIKit indicates the node
+	// IsViewController indicates the node
 	// is of lifecycle view controller
 	// origin.
-	IsUIKit bool
+	IsViewController bool
 
 	// IsSwiftUI indicates the node
 	// is of lifecycle swift ui origin.
@@ -115,6 +115,97 @@ func (j *JourneyiOS) computeIssues() {
 // setting is true, then it establishes edges
 // in both forward and reverse directions.
 func (j *JourneyiOS) buildGraph() {
+	j.Graph = graph.New(len(j.nodelut))
+
+	if j.metalut == nil {
+		j.metalut = make(map[string]*set.UUIDSet)
+	}
+
+	// keep track of who should be parent
+	lastParent := -1
+
+	var nodeidxs []int
+
+	for i := range j.Nodes {
+		if j.Nodes[i].IsViewController || j.Nodes[i].IsSwiftUI {
+			nodeidxs = append(nodeidxs, i)
+		}
+	}
+
+	for _, i := range nodeidxs {
+		first := i == 0
+		last := i == len(j.Nodes)-1
+
+		if last {
+			break
+		}
+
+		currNode := j.Nodes[i]
+		nextNode := j.Nodes[i+1]
+		currEvent := j.Events[currNode.ID]
+		nextEvent := j.Events[nextNode.ID]
+		currSession := currEvent.SessionID
+		nextSession := nextEvent.SessionID
+
+		// assumption is first node will be
+		// an activity
+		if first {
+			lastParent = i
+		}
+
+		sameSession := currSession == nextSession
+
+		if currNode.IsViewController || currNode.IsSwiftUI {
+			lastParent = i
+		}
+
+		vkey := j.Nodes[lastParent].Name
+		wkey := nextNode.Name
+		v := j.nodelut[vkey]
+		w := j.nodelut[wkey]
+
+		// discard self node loops
+		if vkey == wkey {
+			continue
+		}
+
+		if nextNode.IsViewController || nextNode.IsSwiftUI {
+			j.addEdgeID(v.vertex, w.vertex, currSession)
+		}
+
+		// session has changed, so let's start over
+		if !sameSession {
+			continue
+		}
+
+		// collapse repeating alike events
+		shouldDiscard := false
+
+		if currEvent.IsLifecycleViewController() && nextEvent.IsLifecycleViewController() && currNode.Name == nextNode.Name {
+			shouldDiscard = true
+		}
+
+		if currEvent.IsLifecycleSwiftUI() && nextEvent.IsLifecycleSwiftUI() && currNode.Name == nextNode.Name {
+			shouldDiscard = true
+		}
+
+		if shouldDiscard {
+			continue
+		}
+
+		if nextNode.IsViewController || nextNode.IsSwiftUI {
+			if j.options.BiGraph {
+				if !j.Graph.Edge(v.vertex, w.vertex) {
+					j.Graph.Add(v.vertex, w.vertex)
+				}
+			} else {
+				if !j.Graph.Edge(w.vertex, v.vertex) {
+					j.Graph.Add(v.vertex, w.vertex)
+				}
+			}
+			continue
+		}
+	}
 }
 
 // addEdgeID adds the id to an edge from v to w.
@@ -246,7 +337,7 @@ func (j JourneyiOS) GetLastView(node *NodeiOS) (parent *NodeiOS) {
 			break
 		}
 
-		if j.Nodes[c].IsUIKit || j.Nodes[c].IsSwiftUI {
+		if j.Nodes[c].IsViewController || j.Nodes[c].IsSwiftUI {
 			return &j.Nodes[c]
 		}
 	}
@@ -256,6 +347,88 @@ func (j JourneyiOS) GetLastView(node *NodeiOS) (parent *NodeiOS) {
 
 // NewJourneyiOS creates a journey graph object
 // from a list of iOS specific events.
-func NewJourneyiOS(events []event.EventField, opts *Options) (journey JourneyiOS) {
+func NewJourneyiOS(events []event.EventField, opts *Options) (journey *JourneyiOS) {
+	journey = &JourneyiOS{}
+
+	journey.Events = events
+	journey.nodelut = make(map[string]*nodebag)
+	journey.nodelutinverse = make(map[int]string)
+	journey.options = opts
+
+	for i := range events {
+		var node NodeiOS
+		node.ID = i
+		viewController := events[i].IsLifecycleViewController()
+		swiftUI := events[i].IsLifecycleSwiftUI()
+		issue := i > 0 && events[i].IsUnhandledException()
+
+		if viewController {
+			node.Name = events[i].LifecycleViewController.ClassName
+			node.IsViewController = true
+		} else if swiftUI {
+			node.Name = events[i].LifecycleSwiftUI.ClassName
+			node.IsSwiftUI = true
+		} else if issue {
+			// find the previous view node and
+			// attach the issue to the node.
+			c := i
+			for {
+				c--
+
+				// reached the end, we're done
+				if c < 0 {
+					break
+				}
+
+				// we only add issues to view nodes
+				if journey.Nodes[i].IsViewController || journey.Nodes[i].IsSwiftUI {
+					addIssue := false
+
+					// only add exception if requested and if the issue exists
+					// because for crash overview page, we want to show journey
+					// with exceptions only.
+					if journey.options.ExceptionGroup != nil && journey.options.ExceptionGroup.EventExists(events[i].ID) {
+						addIssue = true
+					}
+
+					// if exception is not requested, then we want to add
+					// exceptions to the nodes because for the overview
+					// journey we want to show exceptions
+					if journey.options.ExceptionGroup == nil {
+						addIssue = true
+					}
+
+					if addIssue {
+						journey.Nodes[c].IssueEvents = append(journey.Nodes[c].IssueEvents, i)
+						break
+					}
+				}
+			}
+		}
+
+		journey.Nodes = append(journey.Nodes, node)
+
+		// let's construct lookup tables for this
+		// journey because we gonna need to do a bunch
+		// of lookups and inverse lookups at a later point
+		if node.IsViewController || node.IsSwiftUI {
+			_, ok := journey.nodelut[node.Name]
+			if !ok {
+				vertex := len(journey.nodelut)
+				journey.nodelut[node.Name] = &nodebag{
+					vertex:       vertex,
+					nodeid:       node.ID,
+					exceptionIds: set.NewUUIDSet(),
+					anrIds:       set.NewUUIDSet(),
+				}
+
+				journey.nodelutinverse[vertex] = node.Name
+			}
+		}
+	}
+
+	journey.computeIssues()
+	journey.buildGraph()
+
 	return
 }

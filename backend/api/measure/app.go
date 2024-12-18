@@ -2120,8 +2120,6 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("count journey events", len(journeyEvents))
-
 	var issueEvents []event.EventField
 
 	for i := range journeyEvents {
@@ -2133,52 +2131,7 @@ func GetAppJourney(c *gin.Context) {
 		}
 	}
 
-	journeyAndroid := journey.NewJourneyAndroid(journeyEvents, &journey.Options{
-		BiGraph: af.BiGraph,
-	})
-
-	if err := journeyAndroid.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
-		// do not hit database if no event ids
-		// to query
-		if len(eventIds) == 0 {
-			return
-		}
-
-		exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
-		if err != nil {
-			return
-		}
-
-		return
-	}); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if err := journeyAndroid.SetNodeANRGroups(func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error) {
-		// do not hit database if no event ids
-		// to query
-		if len(eventIds) == 0 {
-			return
-		}
-
-		anrGroups, err = group.GetANRGroupsFromANRIds(ctx, &af, eventIds)
-		if err != nil {
-			return
-		}
-
-		return
-	}); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
+	var journeyGraph journey.Journey
 	type Link struct {
 		Source string `json:"source"`
 		Target string `json:"target"`
@@ -2199,60 +2152,176 @@ func GetAppJourney(c *gin.Context) {
 	var nodes []Node
 	var links []Link
 
-	for v := range journeyAndroid.Graph.Order() {
-		journeyAndroid.Graph.Visit(v, func(w int, c int64) bool {
-			var link Link
-			link.Source = journeyAndroid.GetNodeName(v)
-			link.Target = journeyAndroid.GetNodeName(w)
-			link.Value = journeyAndroid.GetEdgeSessionCount(v, w)
-			links = append(links, link)
-			return false
+	switch app.Platform {
+	case platform.Android:
+		journeyGraph = journey.NewJourneyAndroid(journeyEvents, &journey.Options{
+			BiGraph: af.BiGraph,
+		})
+	case platform.IOS:
+		journeyGraph = journey.NewJourneyiOS(journeyEvents, &journey.Options{
+			BiGraph: af.BiGraph,
 		})
 	}
 
-	for _, v := range journeyAndroid.GetNodeVertices() {
-		var node Node
-		name := journeyAndroid.GetNodeName(v)
-		exceptionGroups := journeyAndroid.GetNodeExceptionGroups(name)
-		crashes := []Issue{}
-
-		for i := range exceptionGroups {
-			issue := Issue{
-				ID:    exceptionGroups[i].ID,
-				Title: exceptionGroups[i].GetDisplayTitle(),
-				Count: journeyAndroid.GetNodeExceptionCount(v, exceptionGroups[i].ID),
+	switch j := journeyGraph.(type) {
+	case *journey.JourneyAndroid:
+		if err := j.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
+			// do not hit database if no event ids
+			// to query
+			if len(eventIds) == 0 {
+				return
 			}
-			crashes = append(crashes, issue)
-		}
 
-		// crashes are shown in descending order
-		sort.Slice(crashes, func(i, j int) bool {
-			return crashes[i].Count > crashes[j].Count
-		})
-
-		anrGroups := journeyAndroid.GetNodeANRGroups(name)
-		anrs := []Issue{}
-
-		for i := range anrGroups {
-			issue := Issue{
-				ID:    anrGroups[i].ID,
-				Title: anrGroups[i].GetDisplayTitle(),
-				Count: journeyAndroid.GetNodeANRCount(v, anrGroups[i].ID),
+			exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
+			if err != nil {
+				return
 			}
-			anrs = append(anrs, issue)
+
+			return
+		}); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
 		}
 
-		// ANRs are shown in descending order
-		sort.Slice(anrs, func(i, j int) bool {
-			return anrs[i].Count > anrs[j].Count
-		})
+		if err := j.SetNodeANRGroups(func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error) {
+			// do not hit database if no event ids
+			// to query
+			if len(eventIds) == 0 {
+				return
+			}
 
-		node.ID = name
-		node.Issues = gin.H{
-			"crashes": crashes,
-			"anrs":    anrs,
+			anrGroups, err = group.GetANRGroupsFromANRIds(ctx, &af, eventIds)
+			if err != nil {
+				return
+			}
+
+			return
+		}); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
 		}
-		nodes = append(nodes, node)
+
+		for v := range j.Graph.Order() {
+			j.Graph.Visit(v, func(w int, c int64) bool {
+				var link Link
+				link.Source = j.GetNodeName(v)
+				link.Target = j.GetNodeName(w)
+				link.Value = j.GetEdgeSessionCount(v, w)
+				links = append(links, link)
+				return false
+			})
+		}
+
+		for _, v := range j.GetNodeVertices() {
+			var node Node
+			name := j.GetNodeName(v)
+			exceptionGroups := j.GetNodeExceptionGroups(name)
+			crashes := []Issue{}
+
+			for i := range exceptionGroups {
+				issue := Issue{
+					ID:    exceptionGroups[i].ID,
+					Title: exceptionGroups[i].GetDisplayTitle(),
+					Count: j.GetNodeExceptionCount(v, exceptionGroups[i].ID),
+				}
+				crashes = append(crashes, issue)
+			}
+
+			// crashes are shown in descending order
+			sort.Slice(crashes, func(i, j int) bool {
+				return crashes[i].Count > crashes[j].Count
+			})
+
+			anrGroups := j.GetNodeANRGroups(name)
+			anrs := []Issue{}
+
+			for i := range anrGroups {
+				issue := Issue{
+					ID:    anrGroups[i].ID,
+					Title: anrGroups[i].GetDisplayTitle(),
+					Count: j.GetNodeANRCount(v, anrGroups[i].ID),
+				}
+				anrs = append(anrs, issue)
+			}
+
+			// ANRs are shown in descending order
+			sort.Slice(anrs, func(i, j int) bool {
+				return anrs[i].Count > anrs[j].Count
+			})
+
+			node.ID = name
+			node.Issues = gin.H{
+				"crashes": crashes,
+				"anrs":    anrs,
+			}
+			nodes = append(nodes, node)
+		}
+	case *journey.JourneyiOS:
+		if err := j.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
+			// do not hit database if no event ids
+			// to query
+			if len(eventIds) == 0 {
+				return
+			}
+
+			exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
+			if err != nil {
+				return
+			}
+
+			return
+		}); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		for v := range j.Graph.Order() {
+			j.Graph.Visit(v, func(w int, c int64) bool {
+				var link Link
+				link.Source = j.GetNodeName(v)
+				link.Target = j.GetNodeName(w)
+				link.Value = j.GetEdgeSessionCount(v, w)
+				links = append(links, link)
+				return false
+			})
+		}
+
+		for _, v := range j.GetNodeVertices() {
+			var node Node
+			name := j.GetNodeName(v)
+			exceptionGroups := j.GetNodeExceptionGroups(name)
+			crashes := []Issue{}
+
+			for i := range exceptionGroups {
+				issue := Issue{
+					ID:    exceptionGroups[i].ID,
+					Title: exceptionGroups[i].GetDisplayTitle(),
+					Count: j.GetNodeExceptionCount(v, exceptionGroups[i].ID),
+				}
+				crashes = append(crashes, issue)
+			}
+
+			// crashes are shown in descending order
+			sort.Slice(crashes, func(i, j int) bool {
+				return crashes[i].Count > crashes[j].Count
+			})
+
+			node.ID = name
+			node.Issues = gin.H{
+				"crashes": crashes,
+				"anrs":    []Issue{},
+			}
+			nodes = append(nodes, node)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

@@ -486,10 +486,12 @@ func (j JourneyAndroid) GetLastActivity(node *NodeAndroid) (parent *NodeAndroid)
 
 // NewJourneyAndroid creates a journey graph object
 // from a list of Android specific events.
-func NewJourneyAndroid(events []event.EventField, opts *Options) (journey JourneyAndroid) {
+func NewJourneyAndroid(events []event.EventField, opts *Options) (journey *JourneyAndroid) {
 	if opts.ExceptionGroup != nil && opts.ANRGroup != nil {
 		panic("cannot accept exception & ANR group both.")
 	}
+
+	journey = &JourneyAndroid{}
 
 	journey.Events = events
 	journey.nodelut = make(map[string]*nodebag)
