@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add sample sessions
 - (**backend**): Ingest low power and thermal throttling attributes
 
+- (**frontend**): Clear span statuses in filters
 - (**frontend**): Improve custom event ui in session timeline
 - (**frontend**): Improve user def attrs spacing
 - (**frontend**): Adjust dropdown select popup position & width
