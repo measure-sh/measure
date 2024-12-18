@@ -55,7 +55,7 @@
     // Create the header view
     UIView *headerView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, 100)];
     
-    NSArray *buttonTitles = @[@"SwiftUI Controller", @"Swift Controller", @"Objc Controller", @"Collection Controller"];
+    NSArray *buttonTitles = @[@"SwiftUI Controller", @"Collection Controller"];
     
     // Create two vertical stack views
     UIStackView *verticalStackView1 = [[UIStackView alloc] init];
@@ -78,7 +78,7 @@
         button.tag = i;
         [button addTarget:self action:@selector(headerButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
         
-        if (i < 2) {
+        if (i % 2 == 0) {
             [verticalStackView1 addArrangedSubview:button];
         } else {
             [verticalStackView2 addArrangedSubview:button];
@@ -113,27 +113,11 @@
             [self navigateToSwiftUIView];
             break;
         case 1:
-            [self transitionToSwiftViewController];
-            break;
-        case 2:
-            [self transitionToObjcViewController];
-            break;
-        case 3:
             [self transitionToCollectionViewController];
             break;
         default:
             break;
     }
-}
-
--(void)transitionToObjcViewController {
-    ObjcDetailViewController *controller = [[ObjcDetailViewController alloc] init];
-    [self.navigationController pushViewController:controller animated:YES];
-}
-
--(void)transitionToSwiftViewController {
-    ViewController *controller = [[ViewController alloc] init];
-    [[self navigationController] pushViewController:controller animated:YES];
 }
 
 -(void)transitionToCollectionViewController {

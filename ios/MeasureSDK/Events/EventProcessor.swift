@@ -74,7 +74,7 @@ final class BaseEventProcessor: EventProcessor {
         attachments: [Attachment]?,
         sessionId: String?
     ) {
-        let threadName = ((Thread.current.name?.isEmpty) != nil) ? "unknown" : Thread.current.name
+        let threadName = OperationQueue.current?.underlyingQueue?.label ?? "unknown"
         let event = createEvent(
             data: data,
             timestamp: timestamp,
@@ -85,6 +85,7 @@ final class BaseEventProcessor: EventProcessor {
             sessionId: sessionId
         )
         event.attributes?.threadName = threadName
+        event.attributes?.deviceLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
         event.appendAttributes(self.attributeProcessors)
         if let attributes = event.attributes {
             self.crashDataPersistence.attribute = attributes

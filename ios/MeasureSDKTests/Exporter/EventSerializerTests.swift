@@ -447,7 +447,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
     }
 
     func testSwiftUILifecycleDataSerialization() {
-        let swiftUILifecycleData = SwiftUILifecycleData(type: .onAppear, viewName: "ContentView")
+        let swiftUILifecycleData = SwiftUILifecycleData(type: .onAppear, className: "ContentView")
 
         let event = Event(
             id: "swiftUILifecycleEventId",
@@ -474,7 +474,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
             if let swiftUILifecycleDataDict = jsonDict?["lifecycle_swift_ui"] as? [String: Any] {
                 XCTAssertEqual(swiftUILifecycleDataDict["type"] as? String, "on_appear")
-                XCTAssertEqual(swiftUILifecycleDataDict["view_name"] as? String, "ContentView")
+                XCTAssertEqual(swiftUILifecycleDataDict["class_name"] as? String, "ContentView")
             } else {
                 XCTFail("SwiftUI lifecycle data is not present in the serialized event.")
             }
