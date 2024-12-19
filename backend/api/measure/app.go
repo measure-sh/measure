@@ -4998,6 +4998,14 @@ func GetSession(c *gin.Context) {
 
 	threads.Sort()
 
+	sessionTraces, err := span.FetchTracesForSessionId(ctx, appId, sessionId)
+	if err != nil {
+		msg := `failed to fetch trace data for timeline`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
 	response := gin.H{
 		"session_id":            sessionId,
 		"attribute":             session.Attribute,
@@ -5007,6 +5015,7 @@ func GetSession(c *gin.Context) {
 		"memory_usage":          memoryUsages,
 		"memory_usage_absolute": memoryUsageAbsolutes,
 		"threads":               threads,
+		"traces":                sessionTraces,
 	}
 
 	c.JSON(http.StatusOK, response)

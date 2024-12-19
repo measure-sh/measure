@@ -3,6 +3,7 @@
 import { ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { formatDateToHumanReadableDateTime, formatMillisToHumanReadable } from '../utils/time_utils'
 
 type SessionReplayEventDetailsProps = {
   teamId: string
@@ -39,10 +40,17 @@ export default function SessionReplayEventDetails({
           } else if (value === "" || value === null || typeof value === "object") {
             return null // Skip empty or invalid values
           } else {
+            let valueString = value?.toString()
+            if (valueString !== null && valueString !== undefined && (key === "timestamp" || key === "start_time" || key === "end_time")) {
+              valueString = formatDateToHumanReadableDateTime(valueString)
+            }
+            if (valueString !== null && valueString !== undefined && key === "duration") {
+              valueString = formatMillisToHumanReadable(parseInt(valueString))
+            }
             return (
               <div className="flex flex-row" key={key}>
                 <p className={keyStyle}>{key}</p>
-                <p className={valueStyle}>{value?.toString()}</p>
+                <p className={valueStyle}>{valueString}</p>
               </div>
             )
           }
@@ -96,12 +104,24 @@ export default function SessionReplayEventDetails({
     }
   }
 
+  function getTraceDetailsLinkFromEventDetails(): ReactNode {
+    if (eventType === "trace") {
+      console.log("trace_id: " + eventDetails.trace_id)
+      return (
+        <div className='px-4 pt-8 pb-4'>
+          <Link key={eventDetails.id} href={`/${teamId}/traces/${appId}/${eventDetails.trace_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black rounded-md text-white hover:text-black font-display transition-colors duration-100 py-2 px-4">View Trace Details</Link>
+        </div>
+      )
+    }
+  }
+
   return (
     <div
       className="flex flex-col items-center bg-neutral-800 h-full selection:bg-yellow-200/50 font-display overflow-y-auto overscroll-y-contain break-words"
     >
       {getAttachmentsFromEventDetails()}
       {getExceptionOverviewLinkFromEventDetails()}
+      {getTraceDetailsLinkFromEventDetails()}
       {getBodyFromEventDetails(eventDetails)}
     </div>
   )
