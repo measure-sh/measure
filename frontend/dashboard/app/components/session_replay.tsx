@@ -23,6 +23,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
     let events: { eventType: string, timestamp: string, thread: string, details: any }[] = []
     let threads = new Set<string>()
     let eventTypes = new Set<string>()
+    const traceEventType = "trace"
 
     Object.keys(sessionReplay.threads).forEach(item => (
       // @ts-ignore
@@ -37,6 +38,20 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
         eventTypes.add(subItem.event_type)
       })
     ))
+
+    if (sessionReplay.traces !== null) {
+      eventTypes.add(traceEventType)
+      sessionReplay.traces.forEach((item: any) => {
+        events.push({
+          eventType: traceEventType,
+          timestamp: item.start_time,
+          thread: item.thread_name,
+          details: item
+        })
+
+        threads.add(item.thread_name)
+      })
+    }
 
     events.sort((a, b) => {
       const dateA = DateTime.fromISO(a.timestamp, { zone: 'utc' })

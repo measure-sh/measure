@@ -157,6 +157,15 @@ type TraceDisplay struct {
 	Spans              []SpanDisplay `json:"spans"  binding:"required"`
 }
 
+type TraceSessionTimelineDisplay struct {
+	TraceID    string        `json:"trace_id" binding:"required"`
+	TraceName  string        `json:"trace_name" binding:"required"`
+	ThreadName string        `json:"thread_name"`
+	StartTime  time.Time     `json:"start_time" binding:"required"`
+	EndTime    time.Time     `json:"end_time" binding:"required"`
+	Duration   time.Duration `json:"duration" binding:"required"`
+}
+
 type SpanMetricsPlotInstance struct {
 	Version  string   `json:"version"`
 	DateTime string   `json:"datetime"`
@@ -357,6 +366,47 @@ func FetchRootSpanNames(ctx context.Context, appId uuid.UUID) (traceNames []stri
 	err = rows.Err()
 	return
 
+}
+
+// FetchTracesForSessionId returns list of traces for a given app id and session id
+func FetchTracesForSessionId(ctx context.Context, appId uuid.UUID, sessionID uuid.UUID) (sessionTraces []TraceSessionTimelineDisplay, err error) {
+	stmt := sqlf.
+		Select("toString(span_name)").
+		Select("toString(trace_id)").
+		Select("toString(attribute.thread_name)").
+		Select("start_time").
+		Select("end_time").
+		From("spans").
+		Clause("prewhere app_id = toUUID(?) and session_id = ? and parent_id = ''", appId, sessionID).
+		OrderBy("start_time desc")
+
+	defer stmt.Close()
+
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	for rows.Next() {
+		sessionTrace := TraceSessionTimelineDisplay{}
+
+		if err = rows.Scan(&sessionTrace.TraceName, &sessionTrace.TraceID, &sessionTrace.ThreadName, &sessionTrace.StartTime, &sessionTrace.EndTime); err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		if err = rows.Err(); err != nil {
+			return
+		}
+
+		sessionTrace.Duration = time.Duration(sessionTrace.EndTime.Sub(sessionTrace.StartTime).Milliseconds())
+
+		sessionTraces = append(sessionTraces, sessionTrace)
+	}
+
+	err = rows.Err()
+
+	return
 }
 
 // GetSpanInstancesWithFilter provides list of span instances that matches various
