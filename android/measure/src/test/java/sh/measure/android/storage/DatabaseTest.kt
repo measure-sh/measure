@@ -55,11 +55,6 @@ class DatabaseTest {
             it.moveToNext()
             assertEquals(EventsBatchTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
-            assertEquals(
-                UserDefinedAttributesTable.TABLE_NAME,
-                it.getString(it.getColumnIndex("name")),
-            )
-            it.moveToNext()
             assertEquals(AppExitTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
             assertEquals(SpansTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))

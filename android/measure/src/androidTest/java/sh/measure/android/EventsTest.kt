@@ -620,8 +620,40 @@ class EventsTest {
         // Implementation would go here if we could reliably trigger trim memory in tests
     }
 
+    @Test
+    fun tracksCustomEvent() {
+        // Given
+        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        ActivityScenario.launch(TestActivity::class.java).use {
+            // When
+            robot.trackCustomEvent()
+            triggerExport()
+
+            // Then
+            assertEventTracked(EventType.CUSTOM)
+        }
+    }
+
+    @Test
+    fun tracksAttributesWithEvents() {
+        // Given
+        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        ActivityScenario.launch(TestActivity::class.java).use {
+            // When
+            robot.addAttribute("user_defined_attr_key", "user_defined_attr_value")
+            triggerExport()
+
+            // Then
+            assetAttribute("user_defined_attr_key", "user_defined_attr_value")
+        }
+    }
+
     private fun String.containsEvent(eventType: String): Boolean {
         return contains("\"type\":\"$eventType\"")
+    }
+
+    private fun String.containsAttribute(key: String, value: String): Boolean {
+        return contains("\"$key\":\"$value\"")
     }
 
     private fun triggerExport() {
@@ -673,6 +705,11 @@ class EventsTest {
     private fun assertEventNotTracked(eventType: String) {
         val body = getLastRequestBody()
         Assert.assertFalse(body.containsEvent(eventType))
+    }
+
+    private fun assetAttribute(key: String, value: String) {
+        val body = getLastRequestBody()
+        Assert.assertTrue(body.containsAttribute(key, value))
     }
 
     private fun getLastRequestBody(): String {

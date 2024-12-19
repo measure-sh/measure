@@ -23,4 +23,5 @@ internal object EventType {
     @Deprecated("This event type is deprecated and will be removed in the next version. Use SCREEN_VIEW instead.")
     const val NAVIGATION: String = "navigation"
     const val SCREEN_VIEW: String = "screen_view"
+    const val CUSTOM: String = "custom"
 }

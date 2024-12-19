@@ -1,5 +1,7 @@
 package sh.measure.android.events
 
+import sh.measure.android.attributes.AttributeValue
+
 /**
  * Represents an event in Measure. This object maps very closely to the event object in
  * the Measure API.
@@ -51,7 +53,7 @@ internal data class Event<T>(
      * Attributes set by the user in the event. The type of values in the map is set to Any here,
      * however, the allowed values can only be String, Int, Long, Double, Float or Boolean.
      */
-    val userDefinedAttributes: Map<String, Any?>,
+    val userDefinedAttributes: Map<String, AttributeValue>,
 ) {
     /**
      * Adds an attribute to the event.
@@ -65,8 +67,5 @@ internal data class Event<T>(
 
     fun addAttachment(attachment: Attachment) {
         attachments.add(attachment)
-    }
-
-    fun setUserDefinedAttributes() {
     }
 }

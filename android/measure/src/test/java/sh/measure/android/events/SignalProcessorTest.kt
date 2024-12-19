@@ -16,7 +16,6 @@ import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.FakeSignalStore
-import sh.measure.android.fakes.FakeUserDefinedAttribute
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
@@ -37,7 +36,6 @@ internal class SignalProcessorTest {
     private val eventTransformer = object : EventTransformer {
         override fun <T> transform(event: Event<T>): Event<T> = event
     }
-    private val userDefinedAttribute = FakeUserDefinedAttribute()
 
     private val signalProcessor = SignalProcessorImpl(
         logger = NoopLogger(),
@@ -50,7 +48,6 @@ internal class SignalProcessorTest {
         screenshotCollector = screenshotCollector,
         configProvider = configProvider,
         eventTransformer = eventTransformer,
-        userDefinedAttribute = userDefinedAttribute,
     )
 
     @Before
@@ -161,7 +158,6 @@ internal class SignalProcessorTest {
             screenshotCollector = screenshotCollector,
             configProvider = configProvider,
             eventTransformer = eventTransformer,
-            userDefinedAttribute = userDefinedAttribute,
         )
 
         // When
@@ -332,7 +328,6 @@ internal class SignalProcessorTest {
             screenshotCollector = screenshotCollector,
             configProvider = configProvider,
             eventTransformer = eventTransformer,
-            userDefinedAttribute = userDefinedAttribute,
         )
 
         // When
@@ -376,7 +371,6 @@ internal class SignalProcessorTest {
             screenshotCollector = screenshotCollector,
             configProvider = configProvider,
             eventTransformer = eventTransformer,
-            userDefinedAttribute = userDefinedAttribute,
         )
 
         // When
@@ -412,29 +406,6 @@ internal class SignalProcessorTest {
         )
 
         assertEquals(1, signalStore.trackedEvents.size)
-        assertEquals(expectedEvent, signalStore.trackedEvents.first())
-    }
-
-    @Test
-    fun `given user defined attributes available, adds them to event`() {
-        userDefinedAttribute.put("key", "value", false)
-        val data = TestData.getNavigationData()
-        val timestamp = 1710746412L
-        val eventType = EventType.NAVIGATION
-        val expectedEvent = data.toEvent(
-            type = eventType,
-            timestamp = timestamp.iso8601Timestamp(),
-            id = idProvider.id,
-            sessionId = sessionManager.getSessionId(),
-            userDefinedAttributes = mapOf("key" to "value"),
-        ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
-
-        signalProcessor.track(
-            data = data,
-            timestamp = timestamp,
-            type = eventType,
-        )
-
         assertEquals(expectedEvent, signalStore.trackedEvents.first())
     }
 

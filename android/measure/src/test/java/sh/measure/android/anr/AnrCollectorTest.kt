@@ -8,6 +8,7 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import sh.measure.android.NativeBridge
+import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
@@ -53,6 +54,7 @@ class AnrCollectorTest {
         val dataCaptor = argumentCaptor<ExceptionData>()
         val attributesCaptor = argumentCaptor<MutableMap<String, Any?>>()
         val attachmentsCaptor = argumentCaptor<MutableList<Attachment>>()
+        val userDefinedAttributeCaptor = argumentCaptor<Map<String, AttributeValue>>()
 
         // the arguments must be in the same order as the method signature, otherwise
         // argumentCaptor will not capture the correct value and verify will fail.
@@ -61,6 +63,7 @@ class AnrCollectorTest {
             timestamp = timestampCaptor.capture(),
             type = typeCaptor.capture(),
             attributes = attributesCaptor.capture(),
+            userDefinedAttributes = userDefinedAttributeCaptor.capture(),
             attachments = attachmentsCaptor.capture(),
         )
 

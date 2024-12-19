@@ -1,6 +1,7 @@
 package sh.measure.android
 
 import android.os.Build
+import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.lifecycle.AppLifecycleListener
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.tracing.Span
@@ -20,6 +21,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     val processInfoProvider by lazy { measureInitializer.processInfoProvider }
     val timeProvider by lazy { measureInitializer.timeProvider }
     private val spanCollector by lazy { measureInitializer.spanCollector }
+    private val customEventCollector by lazy { measureInitializer.customEventCollector }
     private val sessionManager by lazy { measureInitializer.sessionManager }
     private val userTriggeredEventCollector by lazy { measureInitializer.userTriggeredEventCollector }
     private val resumedActivityProvider by lazy { measureInitializer.resumedActivityProvider }
@@ -39,7 +41,6 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private val appExitCollector by lazy { measureInitializer.appExitCollector }
     private val periodicExporter by lazy { measureInitializer.periodicExporter }
     private val userAttributeProcessor by lazy { measureInitializer.userAttributeProcessor }
-    private val userDefinedAttribute by lazy { measureInitializer.userDefinedAttribute }
     private val configProvider by lazy { measureInitializer.configProvider }
     private val dataCleanupService by lazy { measureInitializer.dataCleanupService }
     private val powerStateProvider by lazy { measureInitializer.powerStateProvider }
@@ -120,6 +121,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         powerStateProvider.register()
         periodicExporter.resume()
         spanCollector.register()
+        customEventCollector.register()
     }
 
     override fun onAppForeground() {
@@ -175,31 +177,6 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         userTriggeredEventCollector.trackHandledException(throwable)
     }
 
-    fun putAttribute(key: String, value: Number, store: Boolean) {
-        userDefinedAttribute.put(key, value, store)
-    }
-
-    fun putAttribute(key: String, value: String, store: Boolean) {
-        userDefinedAttribute.put(key, value, store)
-    }
-
-    fun putAttribute(key: String, value: Boolean, store: Boolean) {
-        userDefinedAttribute.put(key, value, store)
-    }
-
-    fun removeAttribute(key: String) {
-        userDefinedAttribute.remove(key)
-    }
-
-    fun clearAttributes() {
-        userDefinedAttribute.clear()
-    }
-
-    fun clear() {
-        userAttributeProcessor.clearUserId()
-        userDefinedAttribute.clear()
-    }
-
     fun createSpan(name: String): SpanBuilder? {
         return spanCollector.createSpan(name)
     }
@@ -224,6 +201,10 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         }
     }
 
+    fun trackEvent(name: String, attributes: Map<String, AttributeValue>, timestamp: Long?) {
+        customEventCollector.trackEvent(name, attributes, timestamp)
+    }
+
     private fun unregisterCollectors() {
         unhandledExceptionCollector.unregister()
         anrCollector.unregister()
@@ -239,5 +220,6 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         powerStateProvider.unregister()
         periodicExporter.unregister()
         spanCollector.unregister()
+        customEventCollector.unregister()
     }
 }

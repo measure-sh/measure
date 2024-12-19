@@ -9,6 +9,7 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiDevice
 import okhttp3.Headers
+import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.config.MeasureConfig
 
 /**
@@ -88,9 +89,9 @@ class EventsTestRobot {
         if (network != null) {
             val capabilities = connectivityManager.getNetworkCapabilities(network)
             return capabilities != null && (
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || capabilities.hasTransport(
+                    NetworkCapabilities.TRANSPORT_CELLULAR,
+                ) || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
                 )
         }
         return false
@@ -116,5 +117,18 @@ class EventsTestRobot {
             Thread.currentThread(),
             RuntimeException("Test exception"),
         )
+    }
+
+    fun trackCustomEvent() {
+        Measure.trackEvent(
+            "custom_event",
+            AttributesBuilder().apply {
+                "custom_event_key" to "custom_event_value"
+            }.build(),
+        )
+    }
+
+    fun addAttribute(key: String, value: String) {
+        Measure.addAttribute("user_defined_attr_key", "user_defined_attr_value")
     }
 }

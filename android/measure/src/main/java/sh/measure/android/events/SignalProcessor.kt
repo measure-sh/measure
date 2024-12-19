@@ -3,7 +3,7 @@ package sh.measure.android.events
 import sh.measure.android.SessionManager
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
-import sh.measure.android.attributes.UserDefinedAttribute
+import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.attributes.appendAttributes
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.exceptions.ExceptionData
@@ -42,6 +42,7 @@ internal interface SignalProcessor {
         timestamp: Long,
         type: String,
         attributes: MutableMap<String, Any?> = mutableMapOf(),
+        userDefinedAttributes: Map<String, AttributeValue> = mapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
         threadName: String? = null,
         sessionId: String? = null,
@@ -63,6 +64,7 @@ internal interface SignalProcessor {
         timestamp: Long,
         type: String,
         attributes: MutableMap<String, Any?> = mutableMapOf(),
+        userDefinedAttributes: Map<String, AttributeValue> = mapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
     )
 
@@ -76,7 +78,6 @@ internal class SignalProcessorImpl(
     private val idProvider: IdProvider,
     private val sessionManager: SessionManager,
     private val attributeProcessors: List<AttributeProcessor>,
-    private val userDefinedAttribute: UserDefinedAttribute,
     private val eventTransformer: EventTransformer,
     private val exceptionExporter: ExceptionExporter,
     private val screenshotCollector: ScreenshotCollector,
@@ -85,11 +86,12 @@ internal class SignalProcessorImpl(
 
     override fun <T> trackUserTriggered(data: T, timestamp: Long, type: String) {
         track(
-            data,
-            timestamp,
-            type,
-            mutableMapOf(),
-            mutableListOf(),
+            data = data,
+            timestamp = timestamp,
+            type = type,
+            attributes = mutableMapOf(),
+            userDefinedAttributes = mutableMapOf(),
+            attachments = mutableListOf(),
             sessionId = null,
             threadName = null,
             userTriggered = true,
@@ -101,6 +103,7 @@ internal class SignalProcessorImpl(
         timestamp: Long,
         type: String,
         attributes: MutableMap<String, Any?>,
+        userDefinedAttributes: Map<String, AttributeValue>,
         attachments: MutableList<Attachment>,
         threadName: String?,
         sessionId: String?,
@@ -119,6 +122,7 @@ internal class SignalProcessorImpl(
                             attachments = attachments,
                             attributes = attributes,
                             userTriggered = userTriggered,
+                            userDefinedAttributes = userDefinedAttributes,
                             sessionId = sessionId,
                         )
                         applyAttributes(event, resolvedThreadName)
@@ -156,6 +160,7 @@ internal class SignalProcessorImpl(
         timestamp: Long,
         type: String,
         attributes: MutableMap<String, Any?>,
+        userDefinedAttributes: Map<String, AttributeValue>,
         attachments: MutableList<Attachment>,
     ) {
         val threadName = Thread.currentThread().name
@@ -166,6 +171,7 @@ internal class SignalProcessorImpl(
             attachments = attachments,
             attributes = attributes,
             userTriggered = false,
+            userDefinedAttributes = userDefinedAttributes,
         )
         if (configProvider.trackScreenshotOnCrash) {
             addScreenshotAsAttachment(event)
@@ -202,6 +208,7 @@ internal class SignalProcessorImpl(
         data: T,
         attachments: MutableList<Attachment>,
         attributes: MutableMap<String, Any?>,
+        userDefinedAttributes: Map<String, AttributeValue> = mutableMapOf(),
         userTriggered: Boolean,
         sessionId: String? = null,
     ): Event<T> {
@@ -216,7 +223,7 @@ internal class SignalProcessorImpl(
             attachments = attachments,
             attributes = attributes,
             userTriggered = userTriggered,
-            userDefinedAttributes = userDefinedAttribute.getAll(),
+            userDefinedAttributes = userDefinedAttributes,
         )
     }
 

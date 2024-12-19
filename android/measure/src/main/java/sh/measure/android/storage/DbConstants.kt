@@ -95,13 +95,6 @@ internal object SpansTable {
     const val COL_SAMPLED = "sampled"
 }
 
-internal object UserDefinedAttributesTable {
-    const val TABLE_NAME = "user_defined_attributes"
-    const val COL_KEY = "key"
-    const val COL_VALUE = "value"
-    const val COL_TYPE = "type"
-}
-
 internal object Sql {
     const val CREATE_EVENTS_TABLE = """
         CREATE TABLE IF NOT EXISTS ${EventTable.TABLE_NAME} (
@@ -217,14 +210,6 @@ internal object Sql {
 
     const val CREATE_SESSIONS_NEEDS_REPORTING_INDEX = """
         CREATE INDEX IF NOT EXISTS sessions_needs_reporting_index ON ${SessionsTable.TABLE_NAME} (${SessionsTable.COL_NEEDS_REPORTING})
-    """
-
-    const val CREATE_USER_DEFINED_ATTRIBUTES_TABLE = """
-        CREATE TABLE ${UserDefinedAttributesTable.TABLE_NAME} (
-            ${UserDefinedAttributesTable.COL_KEY} TEXT PRIMARY KEY,
-            ${UserDefinedAttributesTable.COL_VALUE} TEXT,
-            ${UserDefinedAttributesTable.COL_TYPE} TEXT NOT NULL
-        )
     """
 
     /**
@@ -367,16 +352,6 @@ internal object Sql {
             FROM ${AttachmentTable.TABLE_NAME}
             WHERE ${AttachmentTable.COL_EVENT_ID} IN (${eventIds.joinToString(", ") { "\'$it\'" }})
         """
-    }
-
-    fun getUserDefinedAttributes(): String {
-        return """
-            SELECT 
-                ${UserDefinedAttributesTable.COL_KEY}, 
-                ${UserDefinedAttributesTable.COL_VALUE}, 
-                ${UserDefinedAttributesTable.COL_TYPE}
-            FROM ${UserDefinedAttributesTable.TABLE_NAME}
-        """.trimIndent()
     }
 
     fun markSessionCrashed(sessionId: String): String {

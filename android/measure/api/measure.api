@@ -23,11 +23,123 @@ public final class sh/measure/android/Measure {
 	public final fun startSpan (Ljava/lang/String;)Lsh/measure/android/tracing/Span;
 	public final fun startSpan (Ljava/lang/String;J)Lsh/measure/android/tracing/Span;
 	public final fun stop ()V
+	public final fun trackEvent (Ljava/lang/String;Ljava/util/Map;Ljava/lang/Long;)V
+	public static synthetic fun trackEvent$default (Lsh/measure/android/Measure;Ljava/lang/String;Ljava/util/Map;Ljava/lang/Long;ILjava/lang/Object;)V
 	public static final fun trackHandledException (Ljava/lang/Throwable;)V
 	public static final fun trackNavigation (Ljava/lang/String;)V
 	public static final fun trackNavigation (Ljava/lang/String;Ljava/lang/String;)V
 	public static synthetic fun trackNavigation$default (Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
 	public static final fun trackScreenView (Ljava/lang/String;)V
+}
+
+public abstract interface class sh/measure/android/attributes/AttributeValue {
+	public static final field Companion Lsh/measure/android/attributes/AttributeValue$Companion;
+	public abstract fun getValue ()Ljava/lang/Object;
+}
+
+public final class sh/measure/android/attributes/AttributeValue$Companion {
+}
+
+public final class sh/measure/android/attributes/AttributesBuilder {
+	public static final field $stable I
+	public fun <init> ()V
+	public final fun build ()Ljava/util/Map;
+	public final fun put (Ljava/lang/String;D)Lsh/measure/android/attributes/AttributesBuilder;
+	public final fun put (Ljava/lang/String;F)Lsh/measure/android/attributes/AttributesBuilder;
+	public final fun put (Ljava/lang/String;I)Lsh/measure/android/attributes/AttributesBuilder;
+	public final fun put (Ljava/lang/String;J)Lsh/measure/android/attributes/AttributesBuilder;
+	public final fun put (Ljava/lang/String;Ljava/lang/String;)Lsh/measure/android/attributes/AttributesBuilder;
+	public final fun put (Ljava/lang/String;Z)Lsh/measure/android/attributes/AttributesBuilder;
+}
+
+public final class sh/measure/android/attributes/BooleanAttr : sh/measure/android/attributes/AttributeValue {
+	public static final synthetic fun box-impl (Z)Lsh/measure/android/attributes/BooleanAttr;
+	public static fun constructor-impl (Z)Z
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (ZLjava/lang/Object;)Z
+	public static final fun equals-impl0 (ZZ)Z
+	public fun getValue ()Ljava/lang/Boolean;
+	public synthetic fun getValue ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Z)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Z)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Z
+}
+
+public final class sh/measure/android/attributes/DoubleAttr : sh/measure/android/attributes/AttributeValue {
+	public static final synthetic fun box-impl (D)Lsh/measure/android/attributes/DoubleAttr;
+	public static fun constructor-impl (D)D
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (DLjava/lang/Object;)Z
+	public static final fun equals-impl0 (DD)Z
+	public fun getValue ()Ljava/lang/Double;
+	public synthetic fun getValue ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public static fun hashCode-impl (D)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (D)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()D
+}
+
+public final class sh/measure/android/attributes/FloatAttr : sh/measure/android/attributes/AttributeValue {
+	public static final synthetic fun box-impl (F)Lsh/measure/android/attributes/FloatAttr;
+	public static fun constructor-impl (F)F
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (FLjava/lang/Object;)Z
+	public static final fun equals-impl0 (FF)Z
+	public fun getValue ()Ljava/lang/Float;
+	public synthetic fun getValue ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public static fun hashCode-impl (F)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (F)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()F
+}
+
+public final class sh/measure/android/attributes/IntAttr : sh/measure/android/attributes/AttributeValue {
+	public static final synthetic fun box-impl (I)Lsh/measure/android/attributes/IntAttr;
+	public static fun constructor-impl (I)I
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (ILjava/lang/Object;)Z
+	public static final fun equals-impl0 (II)Z
+	public fun getValue ()Ljava/lang/Integer;
+	public synthetic fun getValue ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public static fun hashCode-impl (I)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (I)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()I
+}
+
+public final class sh/measure/android/attributes/LongAttr : sh/measure/android/attributes/AttributeValue {
+	public static final synthetic fun box-impl (J)Lsh/measure/android/attributes/LongAttr;
+	public static fun constructor-impl (J)J
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (JLjava/lang/Object;)Z
+	public static final fun equals-impl0 (JJ)Z
+	public fun getValue ()Ljava/lang/Long;
+	public synthetic fun getValue ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public static fun hashCode-impl (J)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (J)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()J
+}
+
+public final class sh/measure/android/attributes/StringAttr : sh/measure/android/attributes/AttributeValue {
+	public static final synthetic fun box-impl (Ljava/lang/String;)Lsh/measure/android/attributes/StringAttr;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public synthetic fun getValue ()Ljava/lang/Object;
+	public fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
 }
 
 public final class sh/measure/android/config/MeasureConfig : sh/measure/android/config/IMeasureConfig {
