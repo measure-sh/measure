@@ -46,6 +46,7 @@ final class MockMeasureInitializer: MeasureInitializer {
     let memoryUsageCalculator: MemoryUsageCalculator
     let sysCtl: SysCtl
     let appLaunchCollector: AppLaunchCollector
+    let httpEventCollector: HttpEventCollector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -155,5 +156,11 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                          userDefaultStorage: userDefaultStorage,
                                                          currentAppVersion: appVersion)
         self.client = client
+        self.httpEventCollector = BaseHttpEventCollector(logger: logger,
+                                                         eventProcessor: eventProcessor,
+                                                         timeProvider: timeProvider,
+                                                         urlSessionTaskSwizzler: URLSessionTaskSwizzler(),
+                                                         httpInterceptorCallbacks: HttpInterceptorCallbacks(),
+                                                         client: client)
     }
 }

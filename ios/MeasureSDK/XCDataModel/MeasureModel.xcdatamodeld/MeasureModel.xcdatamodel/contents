@@ -17,6 +17,7 @@
         <attribute name="gestureLongClick" optional="YES" attributeType="Binary"/>
         <attribute name="gestureScroll" optional="YES" attributeType="Binary"/>
         <attribute name="hotLaunch" optional="YES" attributeType="Binary"/>
+        <attribute name="http" optional="YES" attributeType="Binary"/>
         <attribute name="id" attributeType="String" defaultValueString=""/>
         <attribute name="lifecycleApp" optional="YES" attributeType="Binary"/>
         <attribute name="lifecycleSwiftUI" optional="YES" attributeType="Binary"/>

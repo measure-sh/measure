@@ -85,6 +85,14 @@ final class BaseConfigProvider: ConfigProvider {
         return getMergedConfig(\.cpuTrackingIntervalMs)
     }
 
+    var httpContentTypeAllowlist: [String] {
+        return getMergedConfig(\.httpContentTypeAllowlist)
+    }
+
+    var defaultHttpHeadersBlocklist: [String] {
+        return getMergedConfig(\.defaultHttpHeadersBlocklist)
+    }
+
     private func getMergedConfig<T>(_ keyPath: KeyPath<Config, T>) -> T {
         if let networkConfig = networkConfig {
             return networkConfig[keyPath: keyPath]

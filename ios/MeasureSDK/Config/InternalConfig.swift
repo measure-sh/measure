@@ -38,4 +38,10 @@ protocol InternalConfig {
 
     /// The interval at which memory related data is collected. Defaults to 2 seconds.
     var memoryTrackingIntervalMs: UnsignedNumber { get }
+
+    /// This determines whether to capture the body or not based on the content type of the request/response. Defaults to `application/json`.
+    var httpContentTypeAllowlist: [String] { get }
+
+    /// Default list of HTTP headers to not capture for network request and response.
+    var defaultHttpHeadersBlocklist: [String] { get }
 }
