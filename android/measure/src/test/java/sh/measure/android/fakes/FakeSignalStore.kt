@@ -15,4 +15,8 @@ internal class FakeSignalStore : SignalStore {
     override fun store(spanData: SpanData) {
         trackedSpans.add(spanData)
     }
+
+    override fun flush() {
+        // No-op
+    }
 }

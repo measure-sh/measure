@@ -7,7 +7,7 @@ plugins {
 measure {
     variantFilter {
         if (name.contains("debug")) {
-            enabled = true
+            enabled = false
         }
     }
 }

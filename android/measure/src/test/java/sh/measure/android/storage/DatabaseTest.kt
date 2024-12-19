@@ -893,8 +893,7 @@ class DatabaseTest {
         // given
         database.insertSession(TestData.getSessionEntity("session-id-1"))
         database.insertSession(TestData.getSessionEntity("session-id-2"))
-        val spanToDelete =
-            TestData.getSpanEntity(spanId = "span-id-1", sessionId = "session-id-1")
+        val spanToDelete = TestData.getSpanEntity(spanId = "span-id-1", sessionId = "session-id-1")
         val spanToNotDelete =
             TestData.getSpanEntity(spanId = "span-id-2", sessionId = "session-id-2")
         database.insertSpan(spanToDelete)
@@ -1083,6 +1082,49 @@ class DatabaseTest {
         queryAllAttachments(database.writableDatabase).use {
             assertEquals(0, it.count)
         }
+    }
+
+    @Test
+    fun `insertSignals inserts events, attachments, spans and returns success`() {
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        val span1 = TestData.getSpanEntity(sessionId = "session-id", spanId = "span-1")
+        val span2 = TestData.getSpanEntity(sessionId = "session-id", spanId = "span-2")
+        val attachment1 = TestData.getAttachmentEntity(id = "attachment-1")
+        val event1 = TestData.getEventEntity(
+            sessionId = "session-id",
+            eventId = "event-1",
+            attachmentEntities = listOf(attachment1),
+        )
+        val event2 = TestData.getEventEntity(sessionId = "session-id", eventId = "event-2")
+
+        val result = database.insertSignals(listOf(event1, event2), listOf(span1, span2))
+        assertTrue(result)
+        assertEquals(2, database.getEventsCount())
+        assertEquals(2, database.getSpansCount())
+        val attachments = database.getAttachmentsForEvents(listOf(event1.id, event2.id)).size
+        assertEquals(1, attachments)
+    }
+
+    @Test
+    fun `insertSignals rollback transaction if insertion fails and returns false`() {
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        val span1 = TestData.getSpanEntity(sessionId = "session-id", spanId = "span-1")
+        // span with duplicate ID
+        val duplicateSpan = TestData.getSpanEntity(sessionId = "session-id", spanId = "span-1")
+        val attachment1 = TestData.getAttachmentEntity(id = "attachment-1")
+        val event1 = TestData.getEventEntity(
+            sessionId = "session-id",
+            eventId = "event-1",
+            attachmentEntities = listOf(attachment1),
+        )
+        val event2 = TestData.getEventEntity(sessionId = "session-id", eventId = "event-2")
+
+        val result = database.insertSignals(listOf(event1, event2), listOf(span1, duplicateSpan))
+        assertFalse(result)
+        assertEquals(0, database.getEventsCount())
+        assertEquals(0, database.getSpansCount())
+        val attachments = database.getAttachmentsForEvents(listOf(event1.id, event2.id)).size
+        assertEquals(0, attachments)
     }
 
     private fun queryAllEvents(db: SQLiteDatabase): Cursor {
