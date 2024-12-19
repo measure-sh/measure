@@ -1,9 +1,9 @@
 package sh.measure.android.storage
 
-import android.database.sqlite.SQLiteException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import sh.measure.android.appexit.AppExit
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
@@ -12,10 +12,13 @@ import sh.measure.android.okhttp.HttpData
 import sh.measure.android.tracing.SpanData
 import sh.measure.android.utils.IdProvider
 import java.io.File
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface SignalStore {
     fun <T> store(event: Event<T>)
     fun store(spanData: SpanData)
+    fun flush()
 }
 
 /**
@@ -25,13 +28,24 @@ internal interface SignalStore {
  * While, smaller events are serialized and stored directly in the [Database].
  *
  * All event attachments are stored in the [FileStorage] and their paths are stored in the [Database].
+ *
+ * @see [PeriodicSignalStoreScheduler] all signals are buffered in memory. They are written to disk
+ * either when the buffer is full or when the periodic scheduler triggers a [flush].
  */
 internal class SignalStoreImpl(
     private val logger: Logger,
     private val fileStorage: FileStorage,
     private val database: Database,
     private val idProvider: IdProvider,
+    private val configProvider: ConfigProvider,
 ) : SignalStore {
+    private val eventQueue by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        LinkedBlockingQueue<EventEntity>(configProvider.maxInMemorySignalsQueueSize)
+    }
+    private val spanQueue by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        LinkedBlockingQueue<SpanEntity>(configProvider.maxInMemorySignalsQueueSize)
+    }
+    private val isFlushing = AtomicBoolean(false)
 
     override fun store(spanData: SpanData) {
         if (!spanData.isSampled) {
@@ -39,41 +53,80 @@ internal class SignalStoreImpl(
             return
         }
         val spanEntity = spanData.toSpanEntity()
-        val result = database.insertSpan(spanEntity)
-        if (!result) {
-            logger.log(LogLevel.Error, "Unable to store span(${spanData.name}) to database")
+        val isQueueFull = !spanQueue.offer(spanEntity)
+        if (isQueueFull) {
+            database.insertSpan(spanEntity)
+            flush()
         }
     }
 
     override fun <T> store(event: Event<T>) {
-        val serializedAttributes = event.serializeAttributes()
-        val serializedUserDefAttributes = event.serializeUserDefinedAttributes()
-        val attachmentEntities = event.createAttachmentEntities()
-        val serializedAttachments = serializeAttachmentEntities(attachmentEntities)
-        val attachmentsSize = calculateAttachmentsSize(attachmentEntities)
-        val serializedData = event.serializeDataToString()
-        val storeEventDataInFile = event.shouldStoreEventDataInFile()
-        val filePath = if (storeEventDataInFile) {
-            // return from the function if writing to the file failed
-            // this is to ensure that the event without data is never stored in the database
-            fileStorage.writeEventData(event.id, serializedData) ?: return
-        } else {
-            null
+        val eventEntity = event.toEventEntity()
+        if (eventEntity == null) {
+            logger.log(
+                LogLevel.Error,
+                "Failed to store event(${event.type}), event will be dropped.",
+            )
+            return
         }
+        val isCrashEvent =
+            eventEntity.type == EventType.ANR || eventEntity.type == EventType.EXCEPTION
 
-        val eventEntity = createEventEntity(
-            event,
-            serializedAttributes,
-            serializedUserDefAttributes,
-            attachmentEntities,
-            serializedAttachments,
-            attachmentsSize,
-            filePath,
-            serializedData,
-        )
-        val successfulInsert = insertEventToDatabase(eventEntity)
-        if (!successfulInsert) {
-            handleEventInsertionFailure(eventEntity)
+        when {
+            isCrashEvent -> {
+                val success = database.insertEvent(eventEntity)
+                flush()
+                if (!success) {
+                    handleEventInsertionFailure(eventEntity)
+                }
+            }
+
+            else -> {
+                val isQueueFull = !eventQueue.offer(eventEntity)
+                if (isQueueFull) {
+                    val success = database.insertEvent(eventEntity)
+                    flush()
+                    if (!success) {
+                        handleEventInsertionFailure(eventEntity)
+                    }
+                }
+            }
+        }
+    }
+
+    override fun flush() {
+        if (isFlushing.compareAndSet(false, true)) {
+            try {
+                val eventEntities = mutableListOf<EventEntity>()
+                eventQueue.drainTo(eventEntities)
+                val spanEntities = mutableListOf<SpanEntity>()
+                spanQueue.drainTo(spanEntities)
+
+                if (eventEntities.isEmpty() && spanEntities.isEmpty()) {
+                    return
+                }
+
+                val success = database.insertSignals(eventEntities, spanEntities)
+                if (!success) {
+                    logger.log(
+                        LogLevel.Error,
+                        "SignalStore: failed to insert ${eventEntities.size} events and ${spanEntities.size} spans",
+                    )
+                    handleEventsInsertionFailure(eventEntities)
+                } else {
+                    logger.log(
+                        LogLevel.Info,
+                        "SignalStore: successfully inserted ${eventEntities.size} events and ${spanEntities.size} spans",
+                    )
+                }
+            } finally {
+                isFlushing.set(false)
+            }
+        } else {
+            logger.log(
+                LogLevel.Info,
+                "SignalStore: a flush is already in progress, skipping this request",
+            )
         }
     }
 
@@ -92,6 +145,37 @@ internal class SignalStoreImpl(
 
             else -> false
         }
+    }
+
+    /**
+     * Serializes the event and writes the event attachments to disk if any.
+     * Returns null if event attachment could not be written to file.
+     */
+    private fun <T> Event<T>.toEventEntity(): EventEntity? {
+        val serializedAttributes = this.serializeAttributes()
+        val serializedUserDefAttributes = this.serializeUserDefinedAttributes()
+        val attachmentEntities = this.createAttachmentEntities()
+        val serializedAttachments = serializeAttachmentEntities(attachmentEntities)
+        val attachmentsSize = calculateAttachmentsSize(attachmentEntities)
+        val serializedData = this.serializeDataToString()
+        val storeEventDataInFile = this.shouldStoreEventDataInFile()
+        val filePath = if (storeEventDataInFile) {
+            // return from the function if writing to the file failed
+            // this is to ensure that the event without data is never stored in the database
+            fileStorage.writeEventData(this.id, serializedData) ?: return null
+        } else {
+            null
+        }
+        return createEventEntity(
+            this,
+            serializedAttributes,
+            serializedUserDefAttributes,
+            attachmentEntities,
+            serializedAttachments,
+            attachmentsSize,
+            filePath,
+            serializedData,
+        )
     }
 
     private fun <T> createEventEntity(
@@ -137,21 +221,22 @@ internal class SignalStoreImpl(
         }
     }
 
-    private fun insertEventToDatabase(eventEntity: EventEntity): Boolean {
-        return try {
-            database.insertEvent(eventEntity)
-        } catch (e: SQLiteException) {
-            false
-        }
-    }
-
-    private fun handleEventInsertionFailure(event: EventEntity) {
+    private fun handleEventsInsertionFailure(events: List<EventEntity>) {
         // TODO(android): handle event insertion failure for exception/ANR events
         // Event insertions typically fail due to cases we can't do much about.
         // However, given the way the SDK is setup, if the application crashes even before
         // the session can be inserted into the database, we'll miss out on capturing
         // the exception. This case needs to be handled.
-        logger.log(LogLevel.Error, "Failed to insert event into database, deleting related files")
+        logger.log(
+            LogLevel.Error,
+            "SignalStore: failed to insert event into database, deleting related files",
+        )
+        events.forEach { event ->
+            handleEventInsertionFailure(event)
+        }
+    }
+
+    private fun handleEventInsertionFailure(event: EventEntity) {
         fileStorage.deleteEventIfExist(
             event.id,
             event.attachmentEntities?.map { it.id } ?: emptyList(),
@@ -200,7 +285,7 @@ internal class SignalStoreImpl(
                 }
 
                 else -> {
-                    logger.log(LogLevel.Error, "Attachment has no path or bytes")
+                    logger.log(LogLevel.Error, "SignalStore: attachment has no path or bytes")
                     null
                 }
             }
@@ -216,7 +301,7 @@ internal class SignalStoreImpl(
             return try {
                 if (file.exists()) file.length() else 0
             } catch (e: SecurityException) {
-                logger.log(LogLevel.Error, "Failed to calculate attachment size", e)
+                logger.log(LogLevel.Error, "SignalStore: failed to calculate attachment size", e)
                 0
             }
         }

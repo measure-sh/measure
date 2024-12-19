@@ -39,17 +39,21 @@ internal class FakeConfigProvider : ConfigProvider {
     override val maxSpanNameLength: Int = 64
     override val maxCheckpointNameLength: Int = 64
     override val maxCheckpointsPerSpan: Int = 100
+    override var maxInMemorySignalsQueueSize: Int = 30
+    override val inMemorySignalsQueueFlushRateMs: Long = 3000
 
     var shouldTrackHttpBody = false
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         return shouldTrackHttpBody
     }
+
     var shouldTrackHttpUrl = false
 
     override fun shouldTrackHttpUrl(url: String): Boolean {
         return shouldTrackHttpUrl
     }
+
     var headerKeysToBlock = emptyList<String>()
 
     override fun shouldTrackHttpHeader(key: String): Boolean {

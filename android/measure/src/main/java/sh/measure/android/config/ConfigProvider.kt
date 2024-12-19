@@ -108,6 +108,10 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { customEventNameRegex }
     override val maxUserDefinedAttributesPerEvent: Int
         get() = getMergedConfig { maxUserDefinedAttributesPerEvent }
+    override val maxInMemorySignalsQueueSize: Int
+        get() = getMergedConfig { maxInMemorySignalsQueueSize }
+    override val inMemorySignalsQueueFlushRateMs: Long
+        get() = getMergedConfig { inMemorySignalsQueueFlushRateMs }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (!trackHttpBody) {

@@ -69,6 +69,7 @@ import sh.measure.android.storage.Database
 import sh.measure.android.storage.DatabaseImpl
 import sh.measure.android.storage.FileStorage
 import sh.measure.android.storage.FileStorageImpl
+import sh.measure.android.storage.PeriodicSignalStoreScheduler
 import sh.measure.android.storage.PrefsStorage
 import sh.measure.android.storage.PrefsStorageImpl
 import sh.measure.android.storage.SignalStore
@@ -228,6 +229,14 @@ internal class MeasureInitializerImpl(
         database = database,
         fileStorage = fileStorage,
         idProvider = idProvider,
+        configProvider = configProvider,
+    ),
+    override val periodicSignalStoreScheduler: PeriodicSignalStoreScheduler = PeriodicSignalStoreScheduler(
+        logger = logger,
+        defaultExecutor = executorServiceRegistry.defaultExecutor(),
+        ioExecutor = executorServiceRegistry.ioExecutor(),
+        signalStore = signalStore,
+        configProvider = configProvider,
     ),
     override val resumedActivityProvider: ResumedActivityProvider = ResumedActivityProviderImpl(
         application,
@@ -450,4 +459,5 @@ internal interface MeasureInitializer {
     val powerStateProvider: PowerStateProvider
     val spanCollector: SpanCollector
     val customEventCollector: CustomEventCollector
+    val periodicSignalStoreScheduler: PeriodicSignalStoreScheduler
 }
