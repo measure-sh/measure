@@ -103,6 +103,9 @@ final class MeasureInternal {
     private var appLaunchCollector: AppLaunchCollector {
         return measureInitializer.appLaunchCollector
     }
+    private var httpEventCollector: HttpEventCollector {
+        return measureInitializer.httpEventCollector
+    }
     private let lifecycleObserver: LifecycleObserver
 
     init(_ measureInitializer: MeasureInitializer) {
@@ -123,6 +126,8 @@ final class MeasureInternal {
         self.lifecycleCollector.enable()
         self.cpuUsageCollector.enable()
         self.memoryUsageCollector.enable()
+        self.periodicEventExporter.start()
+        self.httpEventCollector.enable()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let window = UIApplication.shared.windows.first {
                 self.gestureCollector.enable(for: window)
