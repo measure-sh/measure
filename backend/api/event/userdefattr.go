@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"regexp"
 	"slices"
@@ -464,7 +465,14 @@ func (u UDAttribute) MarshalJSON() (data []byte, err error) {
 			if err != nil {
 				return nil, err
 			}
-			u.rawAttrs[key] = value
+
+			// if value lies outside the bounds
+			// of int64, then parse as string
+			if value >= math.MaxInt64 || value <= math.MinInt64 {
+				u.rawAttrs[key] = strval
+			} else {
+				u.rawAttrs[key] = value
+			}
 		case AttrFloat64:
 			strval := u.rawAttrs[key].(string)
 			value, err := strconv.ParseFloat(strval, 64)
@@ -524,9 +532,15 @@ func (u *UDAttribute) Validate() (err error) {
 			u.keyTypes[k] = AttrBool
 		case float64:
 			if reflect.TypeOf(v).Kind() == reflect.Float64 {
-				if v == float64(int(value)) {
+				if v == float64(int64(value)) {
+					if value < math.MinInt64 || value > math.MaxInt64 {
+						return fmt.Errorf(`value of user defined attribute %q should be within int64 range >%d <%d`, k, math.MinInt64, math.MaxInt64)
+					}
 					u.keyTypes[k] = AttrInt64
 				} else {
+					if value > math.MaxFloat64 {
+						return fmt.Errorf(`value of user defined attribute %q should be within float64 range <%f`, k, math.MaxFloat64)
+					}
 					u.keyTypes[k] = AttrFloat64
 				}
 			}
@@ -548,8 +562,8 @@ func (u *UDAttribute) HasItems() bool {
 // Parameterize provides user defined attributes in a
 // compatible data structure that database query engines
 // can directly consume.
-func (u *UDAttribute) Parameterize() (attr map[string]any) {
-	attr = map[string]any{}
+func (u *UDAttribute) Parameterize() (attr map[string]string) {
+	attr = map[string]string{}
 
 	val := ""
 
@@ -558,8 +572,18 @@ func (u *UDAttribute) Parameterize() (attr map[string]any) {
 		case bool:
 			val = strconv.FormatBool(v)
 		case float64:
-			val = strconv.FormatFloat(v, 'g', -1, 64)
+			if math.Trunc(v) == v && v <= math.MaxInt64 && v >= math.MinInt64 {
+				// only base 10 numbers are supported
+				// right now
+				val = strconv.FormatInt(int64(v), 10)
+			} else {
+				val = strconv.FormatFloat(v, 'g', -1, 64)
+			}
 		case int64:
+			// usually, this case won't hit
+			// because numbers parsed from JSON
+			// will always be float64
+			// but let's handle it just in case
 			val = strconv.FormatInt(v, 10)
 		case string:
 			val = v

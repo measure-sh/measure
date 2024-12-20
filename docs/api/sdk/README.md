@@ -354,6 +354,8 @@ Events can optionally contain attributes defined by the SDK user. A `user_define
 - Key names must be unique in a user defined attribute key/value object.
 - Key names must only contain alphabets, numbers, underscores and hyphens.
 - Value can be regular String, Boolean or Number JSON types only.
+- Number values when integer should be within the range of typical **int64** type. `-9223372036854775808` and `9223372036854775807`.
+- Number values when float should not exceed maximum value of typical **float64** type. `1.7976931348623157e+308`.
 - String values should not exceed 256 characters.
 
 ```jsonc
@@ -808,7 +810,7 @@ Use the `custom` type for custom events.
 
 ### Traces
 
-A **span** is the fundamental building block of a *trace*. Spans have the following shape illustrated with an 
+A **span** is the fundamental building block of a *trace*. Spans have the following shape illustrated with an
 example of a `app_startup` span:
 
 ```jsonc
