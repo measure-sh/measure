@@ -36,7 +36,7 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           cache: 'gradle'
       - name: Check Gradle wrapper
-        uses: gradle/wrapper-validation-action@v1
+        uses: gradle/actions/wrapper-validation@v3
       - name: Run all checks
         run: ./gradlew check
 
@@ -56,7 +56,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'gradle'
       - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v1
+        uses: gradle/actions/wrapper-validation@v3
       - name: Assemble benchmarks
         run: ./gradlew clean :benchmarks:benchmark:assembleMeasureEnabled --no-daemon --no-parallel --no-configuration-cache --stacktrace
 
@@ -76,7 +76,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'gradle'
       - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v1
+        uses: gradle/actions/wrapper-validation@v3
       - name: Assemble benchmarks
         # disable the upload of build to measure
         run: ./gradlew clean :sample:assembleRelease --no-daemon --no-parallel --no-configuration-cache --stacktrace -x uploadReleaseBuildToMeasure
@@ -100,7 +100,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'gradle'
       - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v1
+        uses: gradle/actions/wrapper-validation@v3
       - name: Publish measure-android
         run: ./gradlew clean :measure:publish --no-daemon --no-parallel --no-configuration-cache --stacktrace
         env:
@@ -126,7 +126,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'gradle'
       - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v1
+        uses: gradle/actions/wrapper-validation@v3
       - name: Publish measure-android-gradle to gradle plugin portal
         run: ./gradlew clean :measure-android-gradle:publishPlugins -Pgradle.publish.key=$gradlePluginPortalKey -Pgradle.publish.secret=$gradlePluginPortalSecret --no-daemon --no-parallel --no-configuration-cache --stacktrace
         env:
