@@ -567,13 +567,16 @@ func (u *UDAttribute) Parameterize() (attr map[string]string) {
 
 	val := ""
 
+	fmt.Println("maxInt64", math.MaxInt64)
+	fmt.Println("minInt64", math.MinInt64)
+
 	for k, v := range u.rawAttrs {
 		switch v := v.(type) {
 		case bool:
 			val = strconv.FormatBool(v)
 		case float64:
 			var intVal int64
-			if math.Trunc(v) == v && v >= math.MinInt64 && v <= math.MaxInt64 {
+			if v == float64(int64(v)) && v >= math.MinInt64 && v <= math.MaxInt64 {
 				// if v >= math.MaxInt64 {
 				// 	intVal = math.MaxInt64
 				// } else if v <= math.MinInt64 {
