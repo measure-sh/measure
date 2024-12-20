@@ -575,24 +575,10 @@ func (u *UDAttribute) Parameterize() (attr map[string]string) {
 		case bool:
 			val = strconv.FormatBool(v)
 		case float64:
-			var intVal int64
-			if v == float64(int64(v)) && v >= math.MinInt64 && v <= math.MaxInt64 {
-				// if v >= math.MaxInt64 {
-				// 	intVal = math.MaxInt64
-				// } else if v <= math.MinInt64 {
-				// 	intVal = math.MinInt64
-				// } else {
-				// 	intVal = int64(v)
-				// }
-				// if (v >= math.MinInt64 && v <= math.MaxInt64)
-				// only base 10 numbers are supported
-				// right now
-				intVal = int64(v)
+			if intVal, ok := convertToInt64Safely(v); ok {
 				val = strconv.FormatInt(intVal, 10)
-				fmt.Println("int parsed", val)
 			} else {
 				val = strconv.FormatFloat(v, 'g', -1, 64)
-				fmt.Println("float parsed", val)
 			}
 		case int64:
 			// usually, this case won't hit
@@ -666,4 +652,48 @@ func GetUDAttrsOpMap() (opmap map[string][]string) {
 	}
 
 	return
+}
+
+// convertToInt64Safely converts float64 value to int64
+// in an architecture agnostic way while handling upper
+// and lower bounds of int64 type.
+func convertToInt64Safely(value float64) (int64, bool) {
+	// float64 value should be within int64 range
+	if value < float64(math.MinInt64) || value > float64(math.MaxInt64) {
+		return 0, false
+	}
+
+	// convert to int64 if an exact integer
+	if value == math.Trunc(value) {
+		intVal := int64(value)
+
+		// detect and saturate on overflow
+		//
+		// on amd64/x86 systems, converting a float64 -> int64
+		// may cause integer overflow. due to this, a value of
+		// math.MaxInt64 may be converted to math.MinInt64. that
+		// would be terribly terribly wrong. so, we detect if
+		// this kind of overflow happens and saturate it to the
+		// upper bound of int64 ourselves.
+		//
+		// aarch64/arm64 systems on the other hand are more
+		// "modern" in nature. they always saturate on overflow
+		// instead of rotating to the extreme lower bound.
+		//
+		// read more about this:
+		// 1. https://www.forrestthewoods.com/blog/perfect_prevention_of_int_overflows/
+		// 2. https://frama-c.com/2013/10/09/Overflow-float-integer.html
+		// 3. https://learn.arm.com/learning-paths/cross-platform/integer-vs-floats/integer-float-conversions/
+		// 4. https://go.dev/ref/spec#Conversions
+		// 5. https://github.com/golang/go/issues/45588
+		if value > 0 && intVal < 0 {
+			intVal = math.MaxInt64
+		}
+
+		return intVal, true
+	}
+
+	// can't be converted
+	// not an exact integer
+	return 0, false
 }
