@@ -195,6 +195,7 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 		// infra is self adapting.
 		matches := []string{
 			"user_id like ?",
+			"toString(session_id) like ?",
 			"arrayExists(x -> x ilike ?, unique_types)",
 			"arrayExists(x -> x ilike ?, unique_strings)",
 			"arrayExists(x -> x ilike ?, unique_view_classnames)",
@@ -396,6 +397,7 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		// infra is self adapting.
 		matches := []string{
 			"user_id like ?",
+			"toString(session_id) like ?",
 			"arrayExists(x -> x ilike ?, unique_types)",
 			"arrayExists(x -> x ilike ?, unique_strings)",
 			"arrayExists(x -> x ilike ?, unique_view_classnames)",
@@ -496,7 +498,7 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		sess.Duration = time.Duration(sess.LastEventTime.Sub(*sess.FirstEventTime).Milliseconds())
 
 		// set matched free text results
-		sess.MatchedFreeText = session.ExtractMatches(af.FreeText, sess.Attribute.UserID, uniqueTypes, uniqueStrings, uniqueViewClassnames, uniqueSubviewClassnames, uniqueExceptions, uniqueANRs, uniqueClickTargets, uniqueLongclickTargets, uniqueScrollTargets)
+		sess.MatchedFreeText = session.ExtractMatches(af.FreeText, sess.Attribute.UserID, sess.SessionID.String(), uniqueTypes, uniqueStrings, uniqueViewClassnames, uniqueSubviewClassnames, uniqueExceptions, uniqueANRs, uniqueClickTargets, uniqueLongclickTargets, uniqueScrollTargets)
 
 		sessions = append(sessions, sess)
 	}
