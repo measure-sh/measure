@@ -660,7 +660,7 @@ func TestAugmentExpression(t *testing.T) {
 }
 
 func TestParameterize(t *testing.T) {
-	udAttr := &UDAttribute{
+	udAttr := UDAttribute{
 		rawAttrs: map[string]any{
 			"max_int32":                float64(2147483647),
 			"min_int32":                float64(-2147483648),

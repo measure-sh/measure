@@ -572,12 +572,24 @@ func (u *UDAttribute) Parameterize() (attr map[string]string) {
 		case bool:
 			val = strconv.FormatBool(v)
 		case float64:
-			if math.Trunc(v) == v && v <= math.MaxInt64 && v >= math.MinInt64 {
+			var intVal int64
+			if math.Trunc(v) == v && v >= math.MinInt64 && v <= math.MaxInt64 {
+				// if v >= math.MaxInt64 {
+				// 	intVal = math.MaxInt64
+				// } else if v <= math.MinInt64 {
+				// 	intVal = math.MinInt64
+				// } else {
+				// 	intVal = int64(v)
+				// }
+				// if (v >= math.MinInt64 && v <= math.MaxInt64)
 				// only base 10 numbers are supported
 				// right now
-				val = strconv.FormatInt(int64(v), 10)
+				intVal = int64(v)
+				val = strconv.FormatInt(intVal, 10)
+				fmt.Println("int parsed", val)
 			} else {
 				val = strconv.FormatFloat(v, 'g', -1, 64)
+				fmt.Println("float parsed", val)
 			}
 		case int64:
 			// usually, this case won't hit
