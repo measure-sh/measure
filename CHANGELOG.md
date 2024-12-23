@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Dashboard no longer depends on api service (#1653)
 - (**backend**): Handle large numbers in user defined attributes gracefully (#1644)
 - (**backend**): Add session id to free text search
 - (**backend**): Handle checkpoint parsing in GetTrace
