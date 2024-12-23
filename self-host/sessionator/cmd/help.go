@@ -4,24 +4,15 @@ package cmd
 // as a formatted string.
 func DirTree() string {
 	return `
-.
-├── foo-app
-│  └── 1.2.3
+├── foo-app/
+│  └── 1.2.3/
+│     └── blobs/
+│        ├── 8e95922c-2212-49ea-a7ea-f7919c08543c
+│        ├── 1121ffce-e5e7-47af-b22d-1c40f889dc86
 │     ├── 54a0bbb9-e819-47f8-9168-5c201a3f3fc0.json
 │     ├── 203334e1-2a7a-466b-b968-506ec3e23615.json
 │     ├── build.toml
-│     └── mapping.txt
-│  └── 4.5.6
-│     ├── 54a0bbb9-e819-47f8-9168-5c201a3f3fc0.json
-│     ├── 5784a496-0655-4fb5-b51b-2afc23e26cef.json
-│     ├── 203334e1-2a7a-466b-b968-506ec3e23615.json
-│     ├── build.toml
-├── bar-app
-│  └── 1.2.3
-│     ├── 54a0bbb9-e819-47f8-9168-5c201a3f3fc0.json
-│     ├── 203334e1-2a7a-466b-b968-506ec3e23615.json
-│     ├── build.toml
-│     └── mapping.txt`
+│     ├── mapping.txt`
 }
 
 // ValidNote provides note about validity of files

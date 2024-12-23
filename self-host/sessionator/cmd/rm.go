@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sessionator/config"
 	"strings"
@@ -15,9 +16,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// janitor carries out housekeeping
-// during ingestion and performs
-// cleanup.
+// janitor cleans up resources.
 type janitor struct {
 	config *config.Config
 	appIds []uuid.UUID
@@ -36,7 +35,7 @@ func parameterize[T string | uuid.UUID](items []T) (string, []any) {
 	return strings.Join(placeholders, ", "), args
 }
 
-// deleteAllObjects paginates & deletes all objects of a bucket.
+// deleteAllObjects paginates & deletes all objects from a bucket.
 func deleteAllObjects(ctx context.Context, bucket *string, client *s3.Client) (err error) {
 	paginator := s3.NewListObjectsV2Paginator(client, &s3.ListObjectsV2Input{
 		Bucket: bucket,
@@ -80,9 +79,9 @@ func deleteAllObjects(ctx context.Context, bucket *string, client *s3.Client) (e
 	return
 }
 
-// rmEvents removes all data associated with
+// rmAppResources removes all resources associated with
 // the apps in config.
-func rmEventsAndSpans(ctx context.Context, c *config.Config) (err error) {
+func rmAppResources(ctx context.Context, c *config.Config) (err error) {
 	if dryRun {
 		return nil
 	}
@@ -90,6 +89,7 @@ func rmEventsAndSpans(ctx context.Context, c *config.Config) (err error) {
 	hasApps := len(c.Apps) > 0
 
 	if !hasApps {
+		err = errors.New("no apps found in config")
 		return
 	}
 
@@ -147,15 +147,35 @@ func rmEventsAndSpans(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
-	if err = j.rmAppEvents(ctx); err != nil {
+	if err = j.rmShortFilters(ctx, &tx); err != nil {
 		return
 	}
 
-	if err = j.rmAppSpans(ctx); err != nil {
+	if err = j.rmSessions(ctx); err != nil {
 		return
 	}
 
-	if err = j.rmAppFilters(ctx); err != nil {
+	if err = j.rmEventFilters(ctx); err != nil {
+		return
+	}
+
+	if err = j.rmEventMetrics(ctx); err != nil {
+		return
+	}
+
+	if err = j.rmEvents(ctx); err != nil {
+		return
+	}
+
+	if err = j.rmSpanFilters(ctx); err != nil {
+		return
+	}
+
+	if err = j.rmSpanMetrics(ctx); err != nil {
+		return
+	}
+
+	if err = j.rmSpans(ctx); err != nil {
 		return
 	}
 
@@ -166,8 +186,8 @@ func rmEventsAndSpans(ctx context.Context, c *config.Config) (err error) {
 	return
 }
 
-// rmAll removes all data regardless of apps configuration
-// in config.
+// rmAll removes all app resources regardless of apps
+// configuration in config.
 func rmAll(ctx context.Context, c *config.Config) (err error) {
 	if dryRun {
 		return nil
@@ -204,8 +224,8 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 	attachmentsClient := j.getAttachmentsClient()
 	attachmentsBucket := aws.String(j.config.Storage["attachments_s3_bucket"])
 
-	fmt.Println("removing all builds, events, spans and attachments")
-	_, err = tx.Exec(ctx, "truncate table unhandled_exception_groups, anr_groups, build_mappings, build_sizes, event_reqs")
+	fmt.Println("removing all app resources")
+	_, err = tx.Exec(ctx, "truncate table unhandled_exception_groups, anr_groups, build_mappings, build_sizes, event_reqs, short_filters")
 	if err != nil {
 		return
 	}
@@ -226,11 +246,11 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 		}
 	}()
 
-	if err = chconn.Exec(ctx, "truncate table events;"); err != nil {
+	if err = chconn.Exec(ctx, "truncate table sessions;"); err != nil {
 		return
 	}
 
-	if err = chconn.Exec(ctx, "truncate table spans;"); err != nil {
+	if err = chconn.Exec(ctx, "truncate table user_def_attrs;"); err != nil {
 		return
 	}
 
@@ -247,6 +267,22 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 	}
 
 	if err = deleteAllObjects(ctx, attachmentsBucket, attachmentsClient); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table events;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table span_filters;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table span_metrics;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table spans;"); err != nil {
 		return
 	}
 
@@ -351,6 +387,20 @@ func (j *janitor) rmIssueGroups(ctx context.Context, tx *pgx.Tx) (err error) {
 	return
 }
 
+// rmApps removes apps
+func (j *janitor) rmApps(ctx context.Context, tx *pgx.Tx) (err error) {
+	placeholders, args := parameterize(j.appIds)
+	deleteApps := fmt.Sprintf("delete from apps where id in (%s);", placeholders)
+
+	fmt.Println("removing apps")
+	_, err = (*tx).Exec(ctx, deleteApps, args...)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 // rmBuilds removes build info for apps
 // in config.
 func (j *janitor) rmBuilds(ctx context.Context, tx *pgx.Tx) (err error) {
@@ -410,9 +460,94 @@ func (j *janitor) rmEventReqs(ctx context.Context, tx *pgx.Tx) (err error) {
 	return
 }
 
-// rmAppEvents removes events and its attachments
+// rmShortFilters removes short filters for
+// apps in config.
+func (j *janitor) rmShortFilters(ctx context.Context, tx *pgx.Tx) (err error) {
+	placeholders, args := parameterize(j.appIds)
+	deleteShortFilters := fmt.Sprintf("delete from short_filters where app_id in (%s);", placeholders)
+
+	fmt.Println("removing short filters")
+	_, err = (*tx).Exec(ctx, deleteShortFilters, args...)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+// rmEventFilters removes app's event filters for
+// apps in config.
+func (j *janitor) rmEventFilters(ctx context.Context) (err error) {
+	deleteEventFilters := `delete from app_filters where app_id = toUUID(@app_id);`
+
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing event filters")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteEventFilters, namedAppId); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+// rmEventMetrics removes app's metrics for apps
+// in config.
+func (j *janitor) rmEventMetrics(ctx context.Context) (err error) {
+	deleteEventMetrics := `delete from app_metrics where app_id = toUUID(@app_id);`
+
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing event metrics")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteEventMetrics, namedAppId); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+// rmEvents removes events and its attachments
 // for apps in config.
-func (j *janitor) rmAppEvents(ctx context.Context) (err error) {
+func (j *janitor) rmEvents(ctx context.Context) (err error) {
 	selectAttachments := `select attachments from default.events where app_id = @app_id;`
 	deleteEvents := `delete from default.events where app_id = @app_id;`
 
@@ -461,9 +596,79 @@ func (j *janitor) rmAppEvents(ctx context.Context) (err error) {
 	return
 }
 
-// rmAppSpans removes spans
+// rmSpanFilters removes app's span filters for
+// apps in config.
+func (j *janitor) rmSpanFilters(ctx context.Context) (err error) {
+	deleteSpanFilters := `delete from span_filters where app_id = toUUID(@app_id);`
+
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing span filters")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteSpanFilters, namedAppId); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+// rmSpanMetrics removes app's span filters for
+// apps in config.
+func (j *janitor) rmSpanMetrics(ctx context.Context) (err error) {
+	deleteSpanMetrics := `delete from span_metrics where app_id = toUUID(@app_id);`
+
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing span metrics")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteSpanMetrics, namedAppId); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+// rmSpans removes spans
 // for apps in config.
-func (j *janitor) rmAppSpans(ctx context.Context) (err error) {
+func (j *janitor) rmSpans(ctx context.Context) (err error) {
 	deleteSpans := `delete from spans where app_id = @app_id;`
 
 	dsn := j.config.Storage["clickhouse_dsn"]
@@ -496,10 +701,10 @@ func (j *janitor) rmAppSpans(ctx context.Context) (err error) {
 	return
 }
 
-// rmAppFilters removes app's filters for apps
+// rmSessions removes app's sessions for apps
 // in config.
-func (j *janitor) rmAppFilters(ctx context.Context) (err error) {
-	deleteAppfilters := `delete from app_filters where app_id = toUUID(@app_id);`
+func (j *janitor) rmSessions(ctx context.Context) (err error) {
+	deleteSessions := `delete from sessions where app_id = toUUID(@app_id);`
 
 	dsn := j.config.Storage["clickhouse_dsn"]
 	opts, err := clickhouse.ParseDSN(dsn)
@@ -518,12 +723,47 @@ func (j *janitor) rmAppFilters(ctx context.Context) (err error) {
 		}
 	}()
 
-	fmt.Println("removing app filters")
+	fmt.Println("removing sessions")
 
 	for i := range j.appIds {
 		namedAppId := clickhouse.Named("app_id", j.appIds[i])
 
-		if err := conn.Exec(ctx, deleteAppfilters, namedAppId); err != nil {
+		if err := conn.Exec(ctx, deleteSessions, namedAppId); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+// rmUserDefAttrs removes app's user defined attributes
+// for apps in config.
+func (j *janitor) rmUserDefAttrs(ctx context.Context) (err error) {
+	deleteUserDefAttrs := `delete from user_def_attrs where app_id = toUUID(@app_id);`
+
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing user defined attributes")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteUserDefAttrs, namedAppId); err != nil {
 			return err
 		}
 	}
