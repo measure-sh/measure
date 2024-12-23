@@ -8,9 +8,17 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "measure",
-	Short: "measure dev cli",
+	Use:   "sessionator",
+	Short: "measure development cli",
 	Long:  "administer measure backend",
+}
+
+func init() {
+	rootCmd.AddCommand(ingestCmd)
+	rootCmd.AddCommand(recordCmd)
+	rootCmd.AddCommand(removeCmd)
+
+	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 }
 
 func Execute() {
