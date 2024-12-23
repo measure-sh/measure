@@ -34,13 +34,14 @@ func newRemoveAppsCmd() *cobra.Command {
 				uuid.MustParse(appId),
 			}
 
-			j := janitor{
-				appIds: appIds,
-			}
-
 			configData, err := config.Init(configLocation)
 			if err != nil {
 				log.Fatal(err)
+			}
+
+			j := janitor{
+				appIds: appIds,
+				config: configData,
 			}
 
 			fmt.Println("Validating config")

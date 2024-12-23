@@ -392,7 +392,8 @@ func (j *janitor) rmApps(ctx context.Context, tx *pgx.Tx) (err error) {
 	placeholders, args := parameterize(j.appIds)
 	deleteApps := fmt.Sprintf("delete from apps where id in (%s);", placeholders)
 
-	fmt.Println("removing apps")
+	fmt.Println("removing app(s)")
+	fmt.Printf("  %s\n", args)
 	_, err = (*tx).Exec(ctx, deleteApps, args...)
 	if err != nil {
 		return
