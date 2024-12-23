@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -102,8 +101,6 @@ func init() {
 		BoolVarP(&cleanAll, "clean-all", "X", false, "remove all builds, events & attachments before ingestion")
 
 	ingestCmd.Flags().SortFlags = false
-
-	rootCmd.AddCommand(ingestCmd)
 }
 
 // ValidateFlags validates the commmand line
@@ -557,8 +554,8 @@ func sendRequest(url, apiKey string, headers map[string]string, data []byte) (st
 
 var ingestCmd = &cobra.Command{
 	Use:   "ingest",
-	Short: "Ingest events",
-	Long: `Ingest events from a local directory.
+	Short: "Ingest events, spans & builds",
+	Long: `Ingest events, spans & builds from disk.
 
 Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -600,19 +597,19 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 			fmt.Printf("mapping file: %s\n\n", mapping)
 		}
 
-		if clean {
+		if clean || cleanAll {
 			if err := configData.ValidateStorage(); err != nil {
 				log.Fatal(err)
 			}
-			ctx := context.Background()
-			if err := rmEventsAndSpans(ctx, configData); err != nil {
+		}
+
+		ctx := cmd.Context()
+
+		if clean {
+			if err := rmAppResources(ctx, configData); err != nil {
 				log.Fatal("failed to clean old data", err)
 			}
 		} else if cleanAll {
-			if err := configData.ValidateStorage(); err != nil {
-				log.Fatal(err)
-			}
-			ctx := context.Background()
 			if err := rmAll(ctx, configData); err != nil {
 				log.Fatal("failed to clean all old data", err)
 			}

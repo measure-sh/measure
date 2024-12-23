@@ -44,10 +44,6 @@ services:
     volumes:
       - ../frontend/dashboard:/app
       - ../frontend/dashboard/public:/app/public
-    depends_on:
-      api:
-        condition: service_healthy
-        restart: false
 
   api:
     build:

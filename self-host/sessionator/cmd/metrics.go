@@ -3,7 +3,7 @@ package cmd
 import "time"
 
 // Metrics stores certain metrics used by the program
-// to keep track of progress of ingestion operations.
+// to track of progress of ingestion operations.
 type Metrics struct {
 	AppCount              int
 	EventAndSpanFileCount int

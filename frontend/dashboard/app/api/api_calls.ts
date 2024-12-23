@@ -684,7 +684,49 @@ export const emptySessionReplay = {
                 ]
             }
         ]
-    }
+    },
+    "traces": [
+        {
+            "trace_id": "847be6f84f004045d9deebea9b2fafe7",
+            "trace_name": "root",
+            "thread_name": "Thread-2",
+            "start_time": "2024-12-16T03:31:04.16Z",
+            "end_time": "2024-12-16T03:31:08.167Z",
+            "duration": 4007
+        },
+        {
+            "trace_id": "3dd7bb2600064eea1a595021d77cb3d5",
+            "trace_name": "activity.onCreate",
+            "thread_name": "main",
+            "start_time": "2024-12-16T03:30:57.915Z",
+            "end_time": "2024-12-16T03:30:58.195Z",
+            "duration": 280
+        },
+        {
+            "trace_id": "097d6c882be5f5ccacc0ef700b17b87a",
+            "trace_name": "SampleApp.onCreate",
+            "thread_name": "main",
+            "start_time": "2024-12-16T03:30:57.712Z",
+            "end_time": "2024-12-16T03:30:57.829Z",
+            "duration": 117
+        },
+        {
+            "trace_id": "7e5ccd666dc26dbb65f4ce92b543637e",
+            "trace_name": "activity.onCreate",
+            "thread_name": "main",
+            "start_time": "2024-12-16T03:26:48.27Z",
+            "end_time": "2024-12-16T03:26:48.351Z",
+            "duration": 81
+        },
+        {
+            "trace_id": "b0a9210cb6b5b98773e4ae6d98f65a8c",
+            "trace_name": "SampleApp.onCreate",
+            "thread_name": "main",
+            "start_time": "2024-12-16T03:26:48.18Z",
+            "end_time": "2024-12-16T03:26:48.232Z",
+            "duration": 52
+        }
+    ]
 }
 
 export const emptyTrace = {
@@ -1035,10 +1077,6 @@ export const fetchTraceFromServer = async (appId: string, traceId: string, route
 }
 
 export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filtersApiType: FiltersApiType, router: AppRouterInstance) => {
-    if (!selectedApp.onboarded) {
-        return { status: FiltersApiStatus.NotOnboarded, data: null }
-    }
-
     const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
     let url = `${origin}/apps/${selectedApp.id}/filters`
@@ -1063,7 +1101,11 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filte
         const data = await res.json()
 
         if (data.versions === null) {
-            return { status: FiltersApiStatus.NoData, data: null }
+            if (!selectedApp.onboarded) {
+                return { status: FiltersApiStatus.NotOnboarded, data: null }
+            } else {
+                return { status: FiltersApiStatus.NoData, data: null }
+            }
         }
 
         return { status: FiltersApiStatus.Success, data: data }

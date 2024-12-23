@@ -43,7 +43,22 @@ internal interface InternalConfig {
     val maxSessionDurationMs: Long
 
     /**
-     * The maximum length of user defined attribute key. Defaults to 64 chars.
+     * The maximum length of a custom event. Defaults to 64 chars.
+     */
+    val maxEventNameLength: Int
+
+    /**
+     * The maximum number of user defined attributes for an event. Defaults to 100.
+     */
+    val maxUserDefinedAttributesPerEvent: Int
+
+    /**
+     * The regex to validate a custom event name.
+     */
+    val customEventNameRegex: String
+
+    /**
+     * The maximum length of user defined attribute key. Defaults to 256 chars.
      */
     val maxUserDefinedAttributeKeyLength: Int
 
@@ -51,11 +66,6 @@ internal interface InternalConfig {
      * The maximum length of a user defined attribute value. Defaults to 256 chars.
      */
     val maxUserDefinedAttributeValueLength: Int
-
-    /**
-     * Whether user defined attribute keys can have spaces or not. Defaults to `false`.
-     */
-    val userDefinedAttributeKeyWithSpaces: Boolean
 
     /**
      * The color of the mask to apply to the screenshot. The value should be a hex color string.

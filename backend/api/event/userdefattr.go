@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"regexp"
 	"slices"
@@ -464,7 +465,14 @@ func (u UDAttribute) MarshalJSON() (data []byte, err error) {
 			if err != nil {
 				return nil, err
 			}
-			u.rawAttrs[key] = value
+
+			// if value lies outside the bounds
+			// of int64, then parse as string
+			if value >= math.MaxInt64 || value <= math.MinInt64 {
+				u.rawAttrs[key] = strval
+			} else {
+				u.rawAttrs[key] = value
+			}
 		case AttrFloat64:
 			strval := u.rawAttrs[key].(string)
 			value, err := strconv.ParseFloat(strval, 64)
@@ -524,9 +532,15 @@ func (u *UDAttribute) Validate() (err error) {
 			u.keyTypes[k] = AttrBool
 		case float64:
 			if reflect.TypeOf(v).Kind() == reflect.Float64 {
-				if v == float64(int(value)) {
+				if v == float64(int64(value)) {
+					if value < math.MinInt64 || value > math.MaxInt64 {
+						return fmt.Errorf(`value of user defined attribute %q should be within int64 range >%d <%d`, k, math.MinInt64, math.MaxInt64)
+					}
 					u.keyTypes[k] = AttrInt64
 				} else {
+					if value > math.MaxFloat64 {
+						return fmt.Errorf(`value of user defined attribute %q should be within float64 range <%f`, k, math.MaxFloat64)
+					}
 					u.keyTypes[k] = AttrFloat64
 				}
 			}
@@ -548,18 +562,29 @@ func (u *UDAttribute) HasItems() bool {
 // Parameterize provides user defined attributes in a
 // compatible data structure that database query engines
 // can directly consume.
-func (u *UDAttribute) Parameterize() (attr map[string]any) {
-	attr = map[string]any{}
+func (u *UDAttribute) Parameterize() (attr map[string]string) {
+	attr = map[string]string{}
 
 	val := ""
+
+	fmt.Println("maxInt64", math.MaxInt64)
+	fmt.Println("minInt64", math.MinInt64)
 
 	for k, v := range u.rawAttrs {
 		switch v := v.(type) {
 		case bool:
 			val = strconv.FormatBool(v)
 		case float64:
-			val = strconv.FormatFloat(v, 'g', -1, 64)
+			if intVal, ok := convertToInt64Safely(v); ok {
+				val = strconv.FormatInt(intVal, 10)
+			} else {
+				val = strconv.FormatFloat(v, 'g', -1, 64)
+			}
 		case int64:
+			// usually, this case won't hit
+			// because numbers parsed from JSON
+			// will always be float64
+			// but let's handle it just in case
 			val = strconv.FormatInt(v, 10)
 		case string:
 			val = v
@@ -627,4 +652,48 @@ func GetUDAttrsOpMap() (opmap map[string][]string) {
 	}
 
 	return
+}
+
+// convertToInt64Safely converts float64 value to int64
+// in an architecture agnostic way while handling upper
+// and lower bounds of int64 type.
+func convertToInt64Safely(value float64) (int64, bool) {
+	// float64 value should be within int64 range
+	if value < float64(math.MinInt64) || value > float64(math.MaxInt64) {
+		return 0, false
+	}
+
+	// convert to int64 if an exact integer
+	if value == math.Trunc(value) {
+		intVal := int64(value)
+
+		// detect and saturate on overflow
+		//
+		// on amd64/x86 systems, converting a float64 -> int64
+		// may cause integer overflow. due to this, a value of
+		// math.MaxInt64 may be converted to math.MinInt64. that
+		// would be terribly terribly wrong. so, we detect if
+		// this kind of overflow happens and saturate it to the
+		// upper bound of int64 ourselves.
+		//
+		// aarch64/arm64 systems on the other hand are more
+		// "modern" in nature. they always saturate on overflow
+		// instead of rotating to the extreme lower bound.
+		//
+		// read more about this:
+		// 1. https://www.forrestthewoods.com/blog/perfect_prevention_of_int_overflows/
+		// 2. https://frama-c.com/2013/10/09/Overflow-float-integer.html
+		// 3. https://learn.arm.com/learning-paths/cross-platform/integer-vs-floats/integer-float-conversions/
+		// 4. https://go.dev/ref/spec#Conversions
+		// 5. https://github.com/golang/go/issues/45588
+		if value > 0 && intVal < 0 {
+			intVal = math.MaxInt64
+		}
+
+		return intVal, true
+	}
+
+	// can't be converted
+	// not an exact integer
+	return 0, false
 }

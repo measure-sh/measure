@@ -5,6 +5,8 @@ import android.content.Context
 import androidx.annotation.VisibleForTesting
 import org.jetbrains.annotations.TestOnly
 import sh.measure.android.applaunch.LaunchState
+import sh.measure.android.attributes.AttributeValue
+import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventType
@@ -201,6 +203,43 @@ object Measure {
     }
 
     /**
+     * Tracks an event with optional attributes and timestamp.
+     *
+     * Event Attributes:
+     * - Maximum 100 attributes per event
+     * - Keys must be strings (max 256 characters)
+     * - Values can be one of: boolean, string, integer, long, double
+     * - Values of type string have maximum length of 256 characters
+     *
+     * Usage Notes:
+     * - Event names should be clear and consistent to aid in dashboard searches
+     * - Attributes can be built using [AttributesBuilder]:
+     *   ```kotlin
+     *   val attributes = AttributesBuilder()
+     *       .put("string", "string")
+     *       .put("integer", 10)
+     *       .put("long", 100000L)
+     *       .put("double", 10.9999)
+     *       .put("boolean", false)
+     *       .build()
+     *   Measure.trackEvent(name = "event-name", attributes = attributes)
+     *   ```
+     *
+     * @param name Name of the event (max 64 characters)
+     * @param attributes Key-value pairs providing additional context (defaults to empty map)
+     * @param timestamp Optional timestamp for the event, defaults to current time
+     */
+    fun trackEvent(
+        name: String,
+        attributes: Map<String, AttributeValue> = emptyMap(),
+        timestamp: Long? = null,
+    ) {
+        if (isInitialized.get()) {
+            measure.trackEvent(name, attributes, timestamp)
+        }
+    }
+
+    /**
      * Starts a new performance tracing span with the specified [name].
      *
      * @param name The name to identify this span. Follow the [naming convention guide](https://github.com/measure-sh/measure/blob/main/docs/android/features/feature_performance_tracing.md#span-names)
@@ -301,117 +340,6 @@ object Measure {
             measure.timeProvider.now()
         } else {
             System.currentTimeMillis()
-        }
-    }
-
-    /**
-     * Adds an attribute which will be collected along with every event in the session.
-     *
-     * Attributes are key-value pairs that provide additional context to the events. For example,
-     * you can add user's subscription status, plan, or any other relevant information to help
-     * debug issues with more context.
-     *
-     * Note that these attributes are not persisted across app launches. You need to set them
-     * each time the app starts.
-     *
-     * To be able to filter and search on these attributes on the Measure Dashboard, it is
-     * recommended to use consistent naming conventions and namespacing them with relevant context.
-     *
-     * Setting an attribute with different values overrides the previous value.
-     *
-     * @param key The key for the attribute.
-     * @param value The value for the attribute, can be an Integer, Long, Float or Double.
-     * @param store If true, the attribute will be stored on disk and persisted across app launches.
-     */
-    private fun putAttribute(key: String, value: Number, store: Boolean) {
-        if (isInitialized.get()) {
-            measure.putAttribute(key, value, store)
-        }
-    }
-
-    /**
-     * Adds an attribute which will be collected along with every event in the session.
-     *
-     * Attributes are key-value pairs that provide additional context to the events. For example,
-     * you can add user's subscription status, plan, or any other relevant information to help
-     * debug issues with more context.
-     *
-     * Note that these attributes are not persisted across app launches. You need to set them
-     * each time the app starts.
-     *
-     * To be able to filter and search on these attributes on the Measure Dashboard, it is
-     * recommended to use consistent naming conventions and namespacing them with relevant context.
-     *
-     * Setting an attribute with different values overrides the previous value.
-     *
-     * @param key The key for the attribute.
-     * @param value The value for the attribute.
-     * @param store If true, the attribute will be stored on disk and persisted across app launches.
-     */
-    private fun putAttribute(key: String, value: String, store: Boolean) {
-        if (isInitialized.get()) {
-            measure.putAttribute(key, value, store)
-        }
-    }
-
-    /**
-     * Adds an attribute which will be collected along with every event in the session.
-     *
-     * Attributes are key-value pairs that provide additional context to the events. For example,
-     * you can add user's subscription status, plan, or any other relevant information to help
-     * debug issues with more context.
-     *
-     * Note that these attributes are not persisted across app launches. You need to set them
-     * each time the app starts.
-     *
-     * To be able to filter and search on these attributes on the Measure Dashboard, it is
-     * recommended to use consistent naming conventions and namespacing them with relevant context.
-     *
-     * Setting an attribute with different values overrides the previous value.
-     *
-     * @param key The key for the attribute.
-     * @param value The value for the attribute.
-     * @param store If true, the attribute will be stored on disk and persisted across app launches.
-     */
-    private fun putAttribute(key: String, value: Boolean, store: Boolean) {
-        if (isInitialized.get()) {
-            measure.putAttribute(key, value, store)
-        }
-    }
-
-    /**
-     * Removes an attribute with the given key, if previously set by [putAttribute]. No-op if the
-     * key is not set. If the attribute was stored on disk, it will be removed from disk storage.
-     *
-     * @param key The key for the attribute to remove.
-     */
-    private fun removeAttribute(key: String) {
-        if (isInitialized.get()) {
-            measure.removeAttribute(key)
-        }
-    }
-
-    /**
-     * Clears the attributes set by [putAttribute], if any. No-op if no attributes are set. If the
-     * attributes were stored on disk, they will be removed from disk storage.
-     */
-    private fun clearAttributes() {
-        if (isInitialized.get()) {
-            measure.clearAttributes()
-        }
-    }
-
-    /**
-     * Clears the following data from memory and disk storage, if any:
-     * 1. User ID set by [setUserId].
-     * 2. Attributes set by [putAttribute].
-     *
-     * Note that this will not clear the events already collected by the SDK, such events will
-     * still be sent to the server without any change.
-     */
-    private fun clear() {
-        if (isInitialized.get()) {
-            measure.clear()
         }
     }
 

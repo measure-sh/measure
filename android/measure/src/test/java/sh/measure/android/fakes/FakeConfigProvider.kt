@@ -29,9 +29,11 @@ internal class FakeConfigProvider : ConfigProvider {
     override var defaultHttpHeadersBlocklist: List<String> = emptyList()
     override var sessionEndLastEventThresholdMs: Long = 20 * 60 * 1000 // 20 minutes
     override var maxSessionDurationMs: Long = 6 * 60 * 60 * 1000 // 6 hours
+    override var maxEventNameLength: Int = 64
+    override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+\$"
+    override val maxUserDefinedAttributesPerEvent: Int = 100
     override var maxUserDefinedAttributeKeyLength: Int = 64
     override var maxUserDefinedAttributeValueLength: Int = 256
-    override var userDefinedAttributeKeyWithSpaces: Boolean = false
     override val autoStart: Boolean = true
     override val traceSamplingRate: Float = 1.0f
     override val maxSpanNameLength: Int = 64

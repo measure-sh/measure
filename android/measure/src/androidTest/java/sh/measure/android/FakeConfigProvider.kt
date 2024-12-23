@@ -42,9 +42,11 @@ class FakeConfigProvider : ConfigProvider {
     override var defaultHttpHeadersBlocklist: List<String> = emptyList()
     override var sessionEndLastEventThresholdMs: Long = 1_000_000
     override var maxSessionDurationMs: Long = 6_000_000
-    override var maxUserDefinedAttributeKeyLength: Int = 1_000_000
-    override var maxUserDefinedAttributeValueLength: Int = 1_000_000
-    override var userDefinedAttributeKeyWithSpaces: Boolean = true
+    override var maxEventNameLength: Int = 64
+    override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+\$"
+    override val maxUserDefinedAttributesPerEvent: Int = 100
+    override var maxUserDefinedAttributeKeyLength: Int = 64
+    override var maxUserDefinedAttributeValueLength: Int = 256
     override var screenshotMaskHexColor: String = "#222222"
     override var screenshotCompressionQuality: Int = 100
     override var eventTypeExportAllowList: List<String> = emptyList()

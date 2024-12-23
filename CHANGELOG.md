@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Show traces in session timeline
 - (**backend**): Ios session timeline (#1624)
 - (**backend**): Support ios event ingestion (#1587)
 - (**backend**): Add span support
@@ -22,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Nil pointer dereference in remove apps (#1654)
+- (**backend**): Dashboard no longer depends on api service (#1653)
+- (**backend**): Handle large numbers in user defined attributes gracefully (#1644)
+- (**backend**): Add session id to free text search
 - (**backend**): Handle checkpoint parsing in GetTrace
 - (**backend**): Unexpected shortcodes gets created sometimes (#1603)
 - (**backend**): Improve ios support (#1599)
@@ -31,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Discard batch if it contains duplicate event or span ids (#1588)
 - (**backend**): Filter versions and os versions securely (#1563)
 
+- (**frontend**): Check onboarding status after filters api call
 - (**frontend**): Fix span sorting & null checkpoints handling
 - (**frontend**): Place span durations above bar
 - (**frontend**): Retain overflowing span name bg color
@@ -50,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add sample sessions
 - (**backend**): Ingest low power and thermal throttling attributes
 
+- (**frontend**): Clear span statuses in filters
 - (**frontend**): Improve custom event ui in session timeline
 - (**frontend**): Improve user def attrs spacing
 - (**frontend**): Adjust dropdown select popup position & width
@@ -61,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Remove unused code (#1545)
 
+- (**frontend**): Remove clarity
 - (**frontend**): Remove cursor pointer style
 - (**frontend**): Delete unused url filters code
 

@@ -11,6 +11,7 @@ Easily ingest test sessions during development.
   - [`--clean-all` flag](#--clean-all-flag)
   - [`--clean` flag](#--clean-flag)
 - [Uploading mappings \& attachments locally](#uploading-mappings--attachments-locally)
+- [Remove apps completely](#remove-apps-completely)
 
 ### Usage and Help
 
@@ -140,3 +141,12 @@ symbols_secret_access_key = "minio123"
 The mapping and attachment files can be either configured to be uploaded to a remote S3 bucket or a local S3-compatible storage service. Like [minio](https://min.io/).
 
 For this to work, make sure `self-host/.env` has the `AWS_ENDPOINT_URL` environment variable pointing to the minio host url. Also, the bucket name, region and access key/secret must be configured correctly. These settings are required for symbolication to work correctly.
+
+### Remove apps completely
+
+With `ingest --clean/--clean-all` commands, only the app's resources are removed, but the apps are not. If you wish to remove an app completely with all its resources also removed. Use the `remove apps` command.
+
+```sh
+# syntax, where xxxx is the id of the app
+go run . remove apps --id xxxx
+```

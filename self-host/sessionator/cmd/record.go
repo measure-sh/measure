@@ -41,13 +41,12 @@ func init() {
 	recordCmd.Flags().StringVarP(&outputDir, "path", "p", "../session-data", "path to store event requests")
 	recordCmd.Flags().StringVarP(&port, "port", "P", "8080", "port to run the server")
 	recordCmd.Flags().SortFlags = false
-	rootCmd.AddCommand(recordCmd)
 }
 
 var recordCmd = &cobra.Command{
 	Use:   "record",
-	Short: "Records events & builds",
-	Long: `Records events & builds to disk.
+	Short: "Record events, spans & builds",
+	Long: `Record events & builds to disk.
 
 Structue of "session-data" directory once written:` + "\n" + DirTree() + "\n" + ValidNote(),
 	Run: func(cmd *cobra.Command, args []string) {
