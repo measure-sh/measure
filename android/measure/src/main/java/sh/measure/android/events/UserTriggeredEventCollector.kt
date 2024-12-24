@@ -1,15 +1,12 @@
 package sh.measure.android.events
 
 import sh.measure.android.exceptions.ExceptionFactory
-import sh.measure.android.navigation.NavigationData
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface UserTriggeredEventCollector {
-    @Deprecated("Use trackScreenView instead")
-    fun trackNavigation(to: String, from: String?)
     fun trackHandledException(throwable: Throwable)
     fun trackScreenView(screenName: String)
     fun register()
@@ -29,22 +26,6 @@ internal class UserTriggeredEventCollectorImpl(
 
     override fun unregister() {
         enabled.compareAndSet(true, false)
-    }
-
-    @Deprecated("Use trackScreenView instead")
-    override fun trackNavigation(to: String, from: String?) {
-        if (!enabled.get()) {
-            return
-        }
-        signalProcessor.trackUserTriggered(
-            data = NavigationData(
-                to = to,
-                from = from,
-                source = null,
-            ),
-            timestamp = timeProvider.now(),
-            type = EventType.NAVIGATION,
-        )
     }
 
     override fun trackHandledException(throwable: Throwable) {

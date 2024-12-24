@@ -19,9 +19,6 @@ internal object EventType {
     const val MEMORY_USAGE: String = "memory_usage"
     const val TRIM_MEMORY: String = "trim_memory"
     const val CPU_USAGE: String = "cpu_usage"
-
-    @Deprecated("This event type is deprecated and will be removed in the next version. Use SCREEN_VIEW instead.")
-    const val NAVIGATION: String = "navigation"
     const val SCREEN_VIEW: String = "screen_view"
     const val CUSTOM: String = "custom"
 }

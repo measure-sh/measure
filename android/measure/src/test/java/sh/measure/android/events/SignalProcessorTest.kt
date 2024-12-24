@@ -388,9 +388,9 @@ internal class SignalProcessorTest {
 
     @Test
     fun `given a user triggered event, then stores the event`() {
-        val data = TestData.getNavigationData()
+        val data = TestData.getScreenViewData()
         val timestamp = 1710746412L
-        val eventType = EventType.NAVIGATION
+        val eventType = EventType.SCREEN_VIEW
         val expectedEvent = data.toEvent(
             type = eventType,
             timestamp = timestamp.iso8601Timestamp(),

@@ -121,43 +121,6 @@ object Measure {
     }
 
     /**
-     * Track a navigation event.
-     *
-     * Navigation events are important to understand user journey in the app. Measure SDK
-     * automatically collects navigation events from
-     * [Jetpack Navigation library](https://developer.android.com/jetpack/androidx/releases/navigation)
-     * along with Activity and Fragment lifecycle events. But if your app uses a custom navigation
-     * system, you can use this method to track navigation events to have more context when
-     * debugging issues.
-     *
-     * For more details on the automatically collected events, check the documentation.
-     *
-     * It is recommended to use consistent naming conventions for screen names and namespacing
-     * them with relevant context to make it easier to understand the user journey on the Measure
-     * Dashboard.
-     *
-     * Example usage:
-     *
-     * ```kotlin
-     * Measure.trackNavigation("Home", "Login")
-     * ```
-     *
-     * @param to The name of the destination screen or location.
-     * @param from The name of the source screen or location. Null by default.
-     */
-    @JvmStatic
-    @JvmOverloads
-    @Deprecated(
-        message = "This method will be removed in the next version, use trackScreenView instead",
-        replaceWith = ReplaceWith("Measure.trackScreenView(screenName)"),
-    )
-    fun trackNavigation(to: String, from: String? = null) {
-        if (isInitialized.get()) {
-            measure.trackNavigation(to, from)
-        }
-    }
-
-    /**
      * Call when a screen is viewed by the user.
      *
      * Measure SDK automatically collects screen view events from the Jetpack Navigation library

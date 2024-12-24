@@ -5,7 +5,7 @@
 * [Getting started](#getting-started)
 * [Custom events](#custom-events)
   * [Handled exceptions](#handled-exceptions)
-  * [Navigation](#navigation)
+  * [Screen view](#screen-view)
 * [Features](#features)
 * [Performance Impact](#performance-impact)
   * [Benchmarks](#benchmarks)
