@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.os.PowerManager
-import androidx.annotation.RequiresApi
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.SystemServiceProvider
@@ -15,7 +14,7 @@ internal interface PowerStateProvider {
     fun register()
     fun unregister()
     val lowPowerModeEnabled: Boolean?
-    val thermalThrottlingEnabled: Boolean?
+    val thermalThrottlingEnabled: Boolean
 }
 
 internal class PowerStateProviderImpl(
@@ -25,8 +24,16 @@ internal class PowerStateProviderImpl(
 ) : PowerStateProvider {
     override var lowPowerModeEnabled: Boolean? = null
         private set
-    override var thermalThrottlingEnabled: Boolean? = null
-        private set
+
+    override val thermalThrottlingEnabled: Boolean
+        get() = thermalStateManager.thermalThrottlingEnabled
+
+    private val thermalStateManager: ThermalStateManager =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ThermalStateManagerImpl()
+        } else {
+            NoopThermalStateManager()
+        }
 
     private val powerSaveReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -36,25 +43,12 @@ internal class PowerStateProviderImpl(
         }
     }
 
-    private val thermalListener = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        PowerManager.OnThermalStatusChangedListener { status ->
-            thermalThrottlingEnabled = isThermalThrottlingEnabled(status)
-        }
-    } else {
-        null
-    }
-
     override fun register() {
         try {
             updatePowerState()
-
             val filter = IntentFilter(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
             context.registerReceiver(powerSaveReceiver, filter)
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                systemServiceProvider.powerManager?.addThermalStatusListener(thermalListener!!)
-                updateThermalState()
-            }
+            thermalStateManager.register(systemServiceProvider.powerManager)
         } catch (e: Exception) {
             logger.log(LogLevel.Error, "Failed to register power state receiver", e)
         }
@@ -63,9 +57,7 @@ internal class PowerStateProviderImpl(
     override fun unregister() {
         try {
             context.unregisterReceiver(powerSaveReceiver)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                systemServiceProvider.powerManager?.removeThermalStatusListener(thermalListener!!)
-            }
+            thermalStateManager.unregister(systemServiceProvider.powerManager)
         } catch (e: Exception) {
             logger.log(LogLevel.Error, "Failed to unregister power state receiver", e)
         }
@@ -79,34 +71,5 @@ internal class PowerStateProviderImpl(
             logger.log(LogLevel.Error, "Failed to update power state", e)
             lowPowerModeEnabled = null
         }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.Q)
-    private fun updateThermalState() {
-        try {
-            val powerManager = systemServiceProvider.powerManager
-            val currentStatus = powerManager?.currentThermalStatus
-            thermalThrottlingEnabled = isThermalThrottlingEnabled(currentStatus)
-        } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Failed to update thermal state", e)
-            thermalThrottlingEnabled = null
-        }
-    }
-
-    /**
-     * Thermal throttling starts considerably affecting UX from "THERMAL_STATUS_SEVERE" status
-     * onwards.
-     *
-     * @return true if thermal status is severe or worse, false otherwise.
-     */
-    private fun isThermalThrottlingEnabled(status: Int?) = when (status) {
-        PowerManager.THERMAL_STATUS_NONE -> false
-        PowerManager.THERMAL_STATUS_LIGHT -> false
-        PowerManager.THERMAL_STATUS_MODERATE -> false
-        PowerManager.THERMAL_STATUS_SEVERE -> true
-        PowerManager.THERMAL_STATUS_CRITICAL -> true
-        PowerManager.THERMAL_STATUS_EMERGENCY -> true
-        PowerManager.THERMAL_STATUS_SHUTDOWN -> true
-        else -> null
     }
 }
