@@ -67,9 +67,9 @@ internal object AttributeValueSerializer : KSerializer<AttributeValue> {
             is StringAttr -> JsonPrimitive(value.value)
             is BooleanAttr -> JsonPrimitive(value.value)
             is IntAttr -> JsonPrimitive(value.value)
-            is LongAttr -> JsonPrimitive(value.value.toString())
+            is LongAttr -> JsonPrimitive(value.value)
             is FloatAttr -> JsonPrimitive(value.value)
-            is DoubleAttr -> JsonPrimitive(value.value.toString())
+            is DoubleAttr -> JsonPrimitive(value.value)
         }
         jsonEncoder.encodeJsonElement(jsonElement)
     }
