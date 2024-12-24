@@ -8,7 +8,7 @@ import org.mockito.kotlin.verify
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.TestData
-import sh.measure.android.navigation.NavigationData
+import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TestClock
@@ -25,18 +25,13 @@ class UserTriggeredEventCollectorImplTest {
     )
 
     @Test
-    fun `tracks navigation event`() {
-        val from = "from"
-        val to = "to"
+    fun `tracks screen view event`() {
+        val screenName = "screen-name"
         userTriggeredEventCollector.register()
-        userTriggeredEventCollector.trackNavigation(to, from)
+        userTriggeredEventCollector.trackScreenView(screenName)
         verify(signalProcessor).trackUserTriggered(
-            data = NavigationData(
-                source = null,
-                from = from,
-                to = to,
-            ),
-            type = EventType.NAVIGATION,
+            data = ScreenViewData(name = screenName),
+            type = EventType.SCREEN_VIEW,
             timestamp = timeProvider.now(),
         )
     }
@@ -58,8 +53,6 @@ class UserTriggeredEventCollectorImplTest {
     @Test
     fun `disables collection un unregistered`() {
         val exception = Exception()
-        val data = TestData.getExceptionData(handled = true, exception = exception)
-
         userTriggeredEventCollector.unregister()
         userTriggeredEventCollector.trackHandledException(exception)
         verify(signalProcessor, never()).trackUserTriggered(

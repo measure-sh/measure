@@ -167,11 +167,6 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         userAttributeProcessor.clearUserId()
     }
 
-    @Deprecated("Use trackScreenView instead")
-    fun trackNavigation(to: String, from: String?) {
-        userTriggeredEventCollector.trackNavigation(to, from)
-    }
-
     fun trackScreenView(screenName: String) {
         userTriggeredEventCollector.trackScreenView(screenName)
     }
