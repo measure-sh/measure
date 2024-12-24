@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Cleanup expired resources (#1655)
 - (**backend**): Add new sessions
 - (**backend**): Add span limits
 - (**backend**): Revert deletion of session data with spans
