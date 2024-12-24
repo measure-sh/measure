@@ -93,9 +93,6 @@ class EventExtensionsKtTest {
         val cpuUsageEvent = TestData.getCpuUsageData().toEvent(type = EventType.CPU_USAGE)
         assert(cpuUsageEvent.serializeDataToString().isNotEmpty())
 
-        val navigationEvent = TestData.getNavigationData().toEvent(type = EventType.NAVIGATION)
-        assert(navigationEvent.serializeDataToString().isNotEmpty())
-
         val screenViewEvent = TestData.getScreenViewData().toEvent(type = EventType.SCREEN_VIEW)
         assert(screenViewEvent.serializeDataToString().isNotEmpty())
     }

@@ -785,6 +785,10 @@ Use the `trim_memory` type for a trim memory event raised by Android.
 
 Use the `navigation` type for navigation events.
 
+> ![IMPORTANT]
+> This event is no longer tracked and will be removed in future versions.
+> Android SDK removed support for this event from v0.9.0 onwards.
+
 | Field  | Type   | Optional | Description                                                                                                                                                     |
 | ------ | ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | source | string | Yes      | Adds context on how the event was collected. Null if not set.<br/>Example: `androidx_navigation` if the event was collected from `androidx.navigation` library. |

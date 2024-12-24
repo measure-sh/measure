@@ -22,7 +22,6 @@ import sh.measure.android.gestures.ScrollData
 import sh.measure.android.lifecycle.ActivityLifecycleData
 import sh.measure.android.lifecycle.ApplicationLifecycleData
 import sh.measure.android.lifecycle.FragmentLifecycleData
-import sh.measure.android.navigation.NavigationData
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.networkchange.NetworkChangeData
 import sh.measure.android.okhttp.HttpData
@@ -147,10 +146,6 @@ internal fun <T> Event<T>.serializeDataToString(): String {
 
         EventType.CPU_USAGE -> {
             json.encodeToString(CpuUsageData.serializer(), data as CpuUsageData)
-        }
-
-        EventType.NAVIGATION -> {
-            json.encodeToString(NavigationData.serializer(), data as NavigationData)
         }
 
         EventType.CUSTOM -> {

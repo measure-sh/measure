@@ -22,7 +22,6 @@ import sh.measure.android.lifecycle.ApplicationLifecycleData
 import sh.measure.android.lifecycle.FragmentLifecycleData
 import sh.measure.android.lifecycle.FragmentLifecycleType
 import sh.measure.android.logger.Logger
-import sh.measure.android.navigation.NavigationData
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.networkchange.NetworkChangeData
 import sh.measure.android.networkchange.NetworkGeneration
@@ -279,14 +278,6 @@ internal object TestData {
         level: String = "TRIM_MEMORY_UI_HIDDEN",
     ): TrimMemoryData {
         return TrimMemoryData(level)
-    }
-
-    fun getNavigationData(
-        source: String? = "source",
-        to: String = "profile",
-        from: String = "home",
-    ): NavigationData {
-        return NavigationData(source = source, from = from, to = to)
     }
 
     fun getCpuUsageData(
