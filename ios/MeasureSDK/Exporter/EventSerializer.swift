@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct EventSerializer {
+struct EventSerializer { // swiftlint:disable:this type_body_length
     private func getSerialisedData(for event: EventEntity) -> String? { // swiftlint:disable:this cyclomatic_complexity function_body_length
         let eventType = EventType(rawValue: event.type)
         switch eventType {
@@ -126,6 +126,16 @@ struct EventSerializer {
                 do {
                     let decodedData = try JSONDecoder().decode(HotLaunchData.self, from: hotLaunchData)
                     return serialiseHotLaunchData(decodedData)
+                } catch {
+                    return nil
+                }
+            }
+            return nil
+        case .http:
+            if let httpData = event.http {
+                do {
+                    let decodedData = try JSONDecoder().decode(HttpData.self, from: httpData)
+                    return serialiseHttpData(decodedData)
                 } catch {
                     return nil
                 }
@@ -318,6 +328,55 @@ struct EventSerializer {
         result += "\"has_saved_state\":\(hotLaunchData.hasSavedState),"
         result += "\"intent_data\":\"\(hotLaunchData.intentData ?? "")\""
         result += "}"
+        return result
+    }
+
+    private func serialiseHttpData(_ httpData: HttpData) -> String {
+        var result = "{"
+        result += "\"url\":\"\(httpData.url)\","
+        result += "\"method\":\"\(httpData.method)\","
+
+        if let statusCode = httpData.statusCode {
+            result += "\"status_code\":\"\(statusCode)\","
+        }
+
+        if let startTime = httpData.startTime {
+            result += "\"start_time\":\"\(startTime)\","
+        }
+
+        if let endTime = httpData.endTime {
+            result += "\"end_time\":\"\(endTime)\","
+        }
+
+        if let failureReason = httpData.failureReason {
+            result += "\"failure_reason\":\"\(failureReason)\","
+        }
+
+        if let failureDescription = httpData.failureDescription {
+            result += "\"failure_description\":\"\(failureDescription)\","
+        }
+
+        if let requestHeaders = httpData.requestHeaders {
+            let headers = requestHeaders.map { "\"\($0.key)\":\"\($0.value)\"" }.joined(separator: ",")
+            result += "\"request_headers\":{\(headers)},"
+        }
+
+        if let responseHeaders = httpData.responseHeaders {
+            let headers = responseHeaders.map { "\"\($0.key)\":\"\($0.value)\"" }.joined(separator: ",")
+            result += "\"response_headers\":{\(headers)},"
+        }
+
+        if let requestBody = httpData.requestBody {
+            result += "\"request_body\":\"\(requestBody)\","
+        }
+
+        if let responseBody = httpData.responseBody {
+            result += "\"response_body\":\"\(responseBody)\","
+        }
+
+        result += "\"client\":\"\(httpData.client)\""
+        result += "}"
+
         return result
     }
 

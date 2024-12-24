@@ -23,6 +23,7 @@ final class BaseHttpClient: HttpClient {
         self.configProvider = configProvider
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = configProvider.timeoutIntervalForRequest
+//        NetworkInterceptor.enable(on: configuration)
         self.session = URLSession(configuration: configuration)
     }
 
