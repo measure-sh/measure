@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Update user defined attributes sample session
 - (**backend**): Cleanup expired resources (#1655)
 - (**backend**): Add new sessions
 - (**backend**): Add span limits
