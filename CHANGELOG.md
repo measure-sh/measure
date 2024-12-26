@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Duplicate sessions shown in sessions overview (#1668)
 - (**backend**): Nil pointer dereference in remove apps (#1654)
 - (**backend**): Dashboard no longer depends on api service (#1653)
 - (**backend**): Handle large numbers in user defined attributes gracefully (#1644)
