@@ -289,8 +289,13 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		Select("device_manufacturer").
 		Select("tupleElement(os_version, 1)").
 		Select("tupleElement(os_version, 2)").
-		Select("first_event_timestamp").
-		Select("last_event_timestamp").
+		// avoid duplicates using window functions
+		//
+		// we choose the least first_event_timestamp
+		// and most last_event_timestamp otherwise
+		// duplicate sessions will be selected
+		Select("first_value(first_event_timestamp) over (partition by session_id order by first_event_timestamp)").
+		Select("last_value(last_event_timestamp) over (partition by session_id)").
 		From("sessions").
 		Clause("prewhere app_id = toUUID(?) and first_event_timestamp >= ? and last_event_timestamp <= ?", af.AppID, af.From, af.To).
 		OrderBy("first_event_timestamp desc")
