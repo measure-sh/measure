@@ -155,7 +155,8 @@ class MeasurePluginTest {
                 Arguments.of(SemVer(8, 3, 2), GradleVersion.version("8.5")),
                 Arguments.of(SemVer(8, 4, 1), GradleVersion.version("8.6")),
                 Arguments.of(SemVer(8, 5, 2), GradleVersion.version("8.7")),
-                Arguments.of(SemVer(8, 6, 0), GradleVersion.version("8.7")),
+                Arguments.of(SemVer(8, 6, 1), GradleVersion.version("8.7")),
+                Arguments.of(SemVer(8, 7, 3), GradleVersion.version("8.9")),
             )
         }
     }
