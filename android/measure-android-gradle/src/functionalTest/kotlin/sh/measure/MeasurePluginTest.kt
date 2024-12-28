@@ -33,7 +33,8 @@ class MeasurePluginTest {
     @ParameterizedTest
     @MethodSource("versions")
     fun `assert tasks are created when assemble task is triggered`(
-        agpVersion: SemVer, gradleVersion: GradleVersion
+        agpVersion: SemVer,
+        gradleVersion: GradleVersion,
     ) {
         val project = MeasurePluginFixture(agpVersion, minifyEnabled = true).gradleProject
         val result = build(gradleVersion, project.rootDir, ":app:assembleRelease")
@@ -45,7 +46,8 @@ class MeasurePluginTest {
     @ParameterizedTest
     @MethodSource("versions")
     fun `assert tasks are created when bundle task is triggered`(
-        agpVersion: SemVer, gradleVersion: GradleVersion
+        agpVersion: SemVer,
+        gradleVersion: GradleVersion,
     ) {
         val project = MeasurePluginFixture(agpVersion, minifyEnabled = true).gradleProject
         val result = build(gradleVersion, project.rootDir, ":app:bundleRelease")
@@ -57,7 +59,8 @@ class MeasurePluginTest {
     @ParameterizedTest
     @MethodSource("versions")
     fun `assert tasks not created when measure is disabled using MeasurePluginExtension`(
-        agpVersion: SemVer, gradleVersion: GradleVersion
+        agpVersion: SemVer,
+        gradleVersion: GradleVersion,
     ) {
         val project = MeasurePluginFixture(agpVersion, minifyEnabled = true, enabled = false).gradleProject
         val assembleResult = build(gradleVersion, project.rootDir, ":app:assembleRelease")
@@ -74,7 +77,8 @@ class MeasurePluginTest {
     @ParameterizedTest
     @MethodSource("versions")
     fun `assert tasks are not created when a task other than assemble or bundle are triggered`(
-        agpVersion: SemVer, gradleVersion: GradleVersion
+        agpVersion: SemVer,
+        gradleVersion: GradleVersion,
     ) {
         val project = MeasurePluginFixture(agpVersion, minifyEnabled = false).gradleProject
         val result = build(gradleVersion, project.rootDir, ":app:test")
@@ -86,7 +90,8 @@ class MeasurePluginTest {
     @ParameterizedTest
     @MethodSource("versions")
     fun `API_KEY is set in manifest, assert upload request is created`(
-        agpVersion: SemVer, gradleVersion: GradleVersion
+        agpVersion: SemVer,
+        gradleVersion: GradleVersion,
     ) {
         server.enqueue(MockResponse().setResponseCode(200))
         server.start(8080)
@@ -98,7 +103,8 @@ class MeasurePluginTest {
     @ParameterizedTest
     @MethodSource("versions")
     fun `API_KEY is not set in manifest, assert logs error`(
-        agpVersion: SemVer, gradleVersion: GradleVersion
+        agpVersion: SemVer,
+        gradleVersion: GradleVersion,
     ) {
         val project = MeasurePluginFixture(agpVersion, setMeasureApiKey = false).gradleProject
         val result = build(gradleVersion, project.rootDir, ":app:assembleRelease")
@@ -108,7 +114,8 @@ class MeasurePluginTest {
     @ParameterizedTest
     @MethodSource("versions")
     fun `API_URL is not set in manifest, assert logs error`(
-        agpVersion: SemVer, gradleVersion: GradleVersion
+        agpVersion: SemVer,
+        gradleVersion: GradleVersion,
     ) {
         val project = MeasurePluginFixture(agpVersion, setMeasureApiUrl = false).gradleProject
         val result = build(gradleVersion, project.rootDir, ":app:assembleRelease")
@@ -118,8 +125,9 @@ class MeasurePluginTest {
     @ParameterizedTest
     @MethodSource("versions")
     fun `assert plugin does not break configuration cache`(
-        agpVersion: SemVer, gradleVersion: GradleVersion
-    )  {
+        agpVersion: SemVer,
+        gradleVersion: GradleVersion,
+    ) {
         server.enqueue(MockResponse().setResponseCode(200))
         server.enqueue(MockResponse().setResponseCode(200))
         server.start(8080)

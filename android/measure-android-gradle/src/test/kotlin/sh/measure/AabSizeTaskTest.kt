@@ -1,6 +1,5 @@
 package sh.measure
 
-import com.android.build.api.artifact.SingleArtifact
 import org.gradle.internal.impldep.org.junit.rules.TemporaryFolder
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.After

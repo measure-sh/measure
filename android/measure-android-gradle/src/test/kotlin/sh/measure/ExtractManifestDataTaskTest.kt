@@ -33,7 +33,7 @@ internal class ExtractManifestDataTaskTest {
         task.extractManifestData()
         val validManifestOutput = """
                 {"apiKey":"api-key","apiUrl":"api-url","versionCode":"100","appUniqueId":"sh.measure.sample","versionName":"1.0.0"}
-            """.trimIndent()
+        """.trimIndent()
         Assert.assertEquals(validManifestOutput, outputFile.readText())
     }
 
@@ -77,7 +77,7 @@ internal class ExtractManifestDataTaskTest {
                         android:value="api-url" />
                 </application>
             </manifest>
-        """.trimIndent()
+    """.trimIndent()
 
     private val manifestWithoutApiKey = """
             <?xml version="1.0" encoding="utf-8"?>
@@ -91,7 +91,7 @@ internal class ExtractManifestDataTaskTest {
                         android:value="api-url" />
                 </application>
             </manifest>
-        """.trimIndent()
+    """.trimIndent()
 
     private val manifestWithoutApiUrl = """
             <?xml version="1.0" encoding="utf-8"?>
@@ -105,5 +105,5 @@ internal class ExtractManifestDataTaskTest {
                         android:value="api-key" />
                 </application>
             </manifest>
-        """.trimIndent()
+    """.trimIndent()
 }
