@@ -216,7 +216,7 @@ internal object LayoutInspector {
         if (id != View.NO_ID && resources != null) {
             try {
                 val resourceName = resources.getResourceEntryName(id)
-                return "id:$resourceName"
+                return resourceName
             } catch (_: NotFoundException) {
                 // Ignore
             }
