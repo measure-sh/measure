@@ -15,7 +15,7 @@ class OkHttpClassVisitorTest {
     @Test
     fun `modified bytecode is valid`() {
         val inputStream = FileInputStream(
-            "src/test/resources/OkHttpClient.class"
+            "src/test/resources/OkHttpClient.class",
         )
         val classReader = ClassReader(inputStream)
         val classWriter = ClassWriter(classReader, ClassWriter.COMPUTE_FRAMES)

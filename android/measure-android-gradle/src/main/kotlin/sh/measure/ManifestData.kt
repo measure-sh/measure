@@ -8,6 +8,5 @@ data class ManifestData(
     val apiUrl: String,
     val versionCode: String,
     val appUniqueId: String,
-    val versionName: String
+    val versionName: String,
 )
-

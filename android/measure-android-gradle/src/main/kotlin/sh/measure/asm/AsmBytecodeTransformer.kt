@@ -40,7 +40,8 @@ abstract class AsmBytecodeTransformer : BytecodeTransformer {
         project: Project,
     ) {
         variant.instrumentation.transformClassesWith(
-            visitorFactoryClass, InstrumentationScope.ALL
+            visitorFactoryClass,
+            InstrumentationScope.ALL,
         ) {
             it.minVersion.set(minVersion)
             it.maxVersion.set(maxVersion)
@@ -53,7 +54,7 @@ abstract class AsmBytecodeTransformer : BytecodeTransformer {
                 }
         }
         variant.instrumentation.setAsmFramesComputationMode(
-            FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS
+            FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS,
         )
     }
 }
