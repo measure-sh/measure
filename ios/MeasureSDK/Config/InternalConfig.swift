@@ -38,4 +38,10 @@ protocol InternalConfig {
 
     /// The interval at which memory related data is collected. Defaults to 2 seconds.
     var memoryTrackingIntervalMs: UnsignedNumber { get }
+
+    /// The maximum length of a custom event. Defaults to 64 chars.
+    var maxEventNameLength: Int { get }
+
+    /// The regex to validate a custom event name.
+    var customEventNameRegex: String { get }
 }

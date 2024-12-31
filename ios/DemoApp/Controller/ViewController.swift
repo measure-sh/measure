@@ -44,6 +44,11 @@ import MeasureSDK
         view.addSubview(tableView)
     }
 
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        Measure.shared.trackEvent(name: "HomeVC-custom-event", timestamp: nil)
+    }
+
     // MARK: - Table Header View with Buttons
 
     func createTableHeaderView() -> UIView {

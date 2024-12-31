@@ -28,6 +28,8 @@ struct Config: InternalConfig, MeasureConfig {
     let maxSessionDurationMs: Number
     let cpuTrackingIntervalMs: UnsignedNumber
     let memoryTrackingIntervalMs: UnsignedNumber
+    let customEventNameRegex: String
+    let maxEventNameLength: Int
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   trackScreenshotOnCrash: Bool = DefaultConfig.trackScreenshotOnCrash,
@@ -45,5 +47,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.maxSessionDurationMs = 6 * 60 * 60 * 1000 // 6 hours
         self.cpuTrackingIntervalMs = 3 * 1000 // 3 seconds
         self.memoryTrackingIntervalMs = 2 * 1000 // 2 seconds
+        self.customEventNameRegex = "^[a-zA-Z0-9_-]"
+        self.maxEventNameLength = 64 // 64 chars
     }
 }

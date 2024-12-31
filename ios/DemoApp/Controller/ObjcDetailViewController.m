@@ -43,6 +43,7 @@
     
     UIView *headerView = [self createTableHeaderView];
     tableView.tableHeaderView = headerView;
+    [[Measure shared] trackEventWithName:@"event-name" timestamp:nil];
     
     [self setTitle:@"Objc View Controller"];
     
