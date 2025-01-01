@@ -89,7 +89,7 @@ func (s status) String() string {
 }
 
 // uploadAttachments prepares and uploads each attachment.
-func (e *eventreq) uploadAttachments() error {
+func (e *eventreq) uploadAttachments(ctx context.Context) error {
 	for id, attachment := range e.attachments {
 		ext := filepath.Ext(attachment.header.Filename)
 		key := attachment.id.String() + ext
@@ -107,14 +107,14 @@ func (e *eventreq) uploadAttachments() error {
 
 		eventAttachment.Reader = file
 
-		output, err := eventAttachment.Upload()
+		location, err := eventAttachment.Upload(ctx)
 		if err != nil {
 			return err
 		}
 
 		attachment.uploaded = true
 		attachment.key = key
-		attachment.location = output.Location
+		attachment.location = location
 	}
 
 	return nil
@@ -2157,7 +2157,7 @@ func PutEvents(c *gin.Context) {
 
 		defer uploadAttachmentSpan.End()
 
-		if err := eventReq.uploadAttachments(); err != nil {
+		if err := eventReq.uploadAttachments(ctx); err != nil {
 			msg := `failed to upload attachments`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
