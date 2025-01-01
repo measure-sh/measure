@@ -68,6 +68,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Truncate class names in session timeline event titles
 
 
+### :recycle: Refactor
+
+- (**backend**): Use aws-sdk-go-v2 for object uploads (#1675)
+
+
 ### :coffin: Removed
 
 - (**backend**): Remove unused code (#1545)
