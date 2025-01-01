@@ -169,42 +169,7 @@ func (bm *BuildMapping) checksum() error {
 	return nil
 }
 
-// func (bm *BuildMapping) upload() (*s3manager.UploadOutput, error) {
-// 	file, err := bm.File.Open()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	config := server.Server.Config
-// 	awsConfig := &aws.Config{
-// 		Region:      aws.String(config.SymbolsBucketRegion),
-// 		Credentials: credentials.NewStaticCredentials(config.SymbolsAccessKey, config.SymbolsSecretAccessKey, ""),
-// 	}
-
-// 	// if a custom endpoint was set, then most likely,
-// 	// we are in local development mode and should force
-// 	// path style instead of S3 virtual path styles.
-// 	if config.AWSEndpoint != "" {
-// 		awsConfig.S3ForcePathStyle = aws.Bool(true)
-// 		awsConfig.Endpoint = aws.String(config.AWSEndpoint)
-// 	}
-
-// 	if bm.Key == "" {
-// 		bm.Key = bm.GetKey()
-// 	}
-
-// 	metadata := map[string]*string{
-// 		"original_file_name": aws.String(bm.File.Filename),
-// 		"app_id":             aws.String(bm.AppID.String()),
-// 		"version_name":       aws.String(bm.VersionName),
-// 		"version_code":       aws.String(bm.VersionCode),
-// 		"mapping_type":       aws.String(bm.MappingType),
-// 	}
-
-// 	return uploadToStorage(awsConfig, config.SymbolsBucket, bm.Key, file, metadata)
-// }
-
-func (bm *BuildMapping) uploadTwo(ctx context.Context) (location *string, err error) {
+func (bm *BuildMapping) upload(ctx context.Context) (location *string, err error) {
 	file, err := bm.File.Open()
 	if err != nil {
 		return nil, err
@@ -386,7 +351,7 @@ func PutBuild(c *gin.Context) {
 		// start span to trace mapping file upload
 		mappingFileUploadTracer := otel.Tracer("mapping-file-upload-tracer")
 		_, mappingFileUploadSpan := mappingFileUploadTracer.Start(ctx, "mapping-file-upload")
-		location, err := bm.uploadTwo(ctx)
+		location, err := bm.upload(ctx)
 		if err != nil || location == nil {
 			fmt.Printf("failed to upload mapping file, key: %s with error, %v\n", bm.Key, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
