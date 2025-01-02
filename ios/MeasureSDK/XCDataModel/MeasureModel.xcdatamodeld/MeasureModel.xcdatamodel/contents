@@ -23,6 +23,7 @@
         <attribute name="lifecycleSwiftUI" optional="YES" attributeType="Binary"/>
         <attribute name="lifecycleViewController" optional="YES" attributeType="Binary"/>
         <attribute name="memoryUsage" optional="YES" attributeType="Binary"/>
+        <attribute name="networkChange" optional="YES" attributeType="Binary"/>
         <attribute name="sessionId" attributeType="String" defaultValueString=""/>
         <attribute name="timestamp" attributeType="String"/>
         <attribute name="timestampInMillis" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>

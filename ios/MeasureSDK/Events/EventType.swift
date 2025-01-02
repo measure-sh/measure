@@ -21,4 +21,5 @@ enum EventType: String, Codable {
     case warmLaunch = "warm_launch"
     case hotLaunch = "hot_launch"
     case http
+    case networkChange = "network_change"
 }

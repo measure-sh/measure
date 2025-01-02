@@ -141,6 +141,16 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
                 }
             }
             return nil
+        case .networkChange:
+            if let networkChangeData = event.networkChange {
+                do {
+                    let decodedData = try JSONDecoder().decode(NetworkChangeData.self, from: networkChangeData)
+                    return serialiseNetworkChangeData(decodedData)
+                } catch {
+                    return nil
+                }
+            }
+            return nil
         case nil:
             return nil
         }
@@ -377,6 +387,17 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
         result += "\"client\":\"\(httpData.client)\""
         result += "}"
 
+        return result
+    }
+
+    private func serialiseNetworkChangeData(_ networkChangeData: NetworkChangeData) -> String {
+        var result = "{"
+        result += "\"network_type\":\(networkChangeData.networkType),"
+        result += "\"network_provider\":\(networkChangeData.networkProvider),"
+        result += "\"network_generation\":\"\(networkChangeData.networkGeneration)\","
+        result += "\"previous_network_type\":\(networkChangeData.previousNetworkType),"
+        result += "\"previous_network_generation\":\"\(networkChangeData.previousNetworkGeneration)\""
+        result += "}"
         return result
     }
 

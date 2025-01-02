@@ -20,7 +20,7 @@ final class MeasureInternal {
     private var client: Client {
         return measureInitializer.client
     }
-    private var sessionManager: SessionManager {
+    var sessionManager: SessionManager {
         return measureInitializer.sessionManager
     }
     private var timeProvider: TimeProvider {
@@ -106,6 +106,9 @@ final class MeasureInternal {
     private var httpEventCollector: HttpEventCollector {
         return measureInitializer.httpEventCollector
     }
+    private var networkChangeCollector: NetworkChangeCollector {
+        return measureInitializer.networkChangeCollector
+    }
     private let lifecycleObserver: LifecycleObserver
 
     init(_ measureInitializer: MeasureInitializer) {
@@ -128,6 +131,7 @@ final class MeasureInternal {
         self.memoryUsageCollector.enable()
         self.periodicEventExporter.start()
         self.httpEventCollector.enable()
+        self.networkChangeCollector.enable()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let window = UIApplication.shared.windows.first {
                 self.gestureCollector.enable(for: window)
