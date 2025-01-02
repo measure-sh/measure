@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Duplicate sessions shown in sessions overview (#1668)
 - (**backend**): Nil pointer dereference in remove apps (#1654)
 - (**backend**): Dashboard no longer depends on api service (#1653)
 - (**backend**): Handle large numbers in user defined attributes gracefully (#1644)
@@ -36,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Discard batch if it contains duplicate event or span ids (#1588)
 - (**backend**): Filter versions and os versions securely (#1563)
 
+- (**frontend**): Made api key input read only to fix warnings (#1657)
 - (**frontend**): Check onboarding status after filters api call
 - (**frontend**): Fix span sorting & null checkpoints handling
 - (**frontend**): Place span durations above bar
@@ -48,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Update user defined attributes sample session
+- (**backend**): Cleanup expired resources (#1655)
 - (**backend**): Add new sessions
 - (**backend**): Add span limits
 - (**backend**): Revert deletion of session data with spans
@@ -62,6 +66,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Adjust dropdown select popup position & width
 - (**frontend**): Support attachments for gesture click
 - (**frontend**): Truncate class names in session timeline event titles
+
+
+### :recycle: Refactor
+
+- (**backend**): Use aws-sdk-go-v2 for object uploads (#1675)
 
 
 ### :coffin: Removed

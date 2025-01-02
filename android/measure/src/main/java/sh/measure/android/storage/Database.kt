@@ -189,6 +189,11 @@ internal interface Database : Closeable {
      * Returns the count of spans stored in spans table.
      */
     fun getSpansCount(): Int
+
+    /**
+     * Inserts a batch of events and spans in a single transaction.
+     */
+    fun insertSignals(eventEntities: List<EventEntity>, spanEntities: List<SpanEntity>): Boolean
 }
 
 /**
@@ -360,8 +365,7 @@ internal class DatabaseImpl(
                     put(SpansBatchTable.COL_BATCH_ID, batchEntity.batchId)
                     put(SpansBatchTable.COL_CREATED_AT, batchEntity.createdAt)
                 }
-                val result =
-                    writableDatabase.insert(SpansBatchTable.TABLE_NAME, null, spanBatches)
+                val result = writableDatabase.insert(SpansBatchTable.TABLE_NAME, null, spanBatches)
                 if (result == -1L) {
                     logger.log(LogLevel.Error, "Failed to insert batched span = $spanId")
                     return false
@@ -852,6 +856,90 @@ internal class DatabaseImpl(
             count = it.getInt(countIndex)
         }
         return count
+    }
+
+    override fun insertSignals(
+        eventEntities: List<EventEntity>,
+        spanEntities: List<SpanEntity>,
+    ): Boolean {
+        writableDatabase.beginTransaction()
+        try {
+            // Batch insert events
+            eventEntities.forEach { event ->
+                val values = ContentValues(11).apply {
+                    put(EventTable.COL_ID, event.id)
+                    put(EventTable.COL_TYPE, event.type)
+                    put(EventTable.COL_TIMESTAMP, event.timestamp)
+                    put(EventTable.COL_SESSION_ID, event.sessionId)
+                    put(EventTable.COL_USER_TRIGGERED, event.userTriggered)
+                    if (event.filePath != null) {
+                        put(EventTable.COL_DATA_FILE_PATH, event.filePath)
+                    } else if (event.serializedData != null) {
+                        put(EventTable.COL_DATA_SERIALIZED, event.serializedData)
+                    }
+                    put(EventTable.COL_ATTRIBUTES, event.serializedAttributes)
+                    put(EventTable.COL_USER_DEFINED_ATTRIBUTES, event.serializedUserDefAttributes)
+                    put(EventTable.COL_ATTACHMENT_SIZE, event.attachmentsSize)
+                    put(EventTable.COL_ATTACHMENTS, event.serializedAttachments)
+                }
+
+                if (writableDatabase.insert(EventTable.TABLE_NAME, null, values) == -1L) {
+                    return false
+                }
+
+                // Batch insert attachments for this event
+                event.attachmentEntities?.forEach { attachment ->
+                    val attachmentValues = ContentValues(7).apply {
+                        put(AttachmentTable.COL_ID, attachment.id)
+                        put(AttachmentTable.COL_EVENT_ID, event.id)
+                        put(AttachmentTable.COL_TYPE, attachment.type)
+                        put(AttachmentTable.COL_TIMESTAMP, event.timestamp)
+                        put(AttachmentTable.COL_SESSION_ID, event.sessionId)
+                        put(AttachmentTable.COL_FILE_PATH, attachment.path)
+                        put(AttachmentTable.COL_NAME, attachment.name)
+                    }
+
+                    if (writableDatabase.insert(
+                            AttachmentTable.TABLE_NAME,
+                            null,
+                            attachmentValues,
+                        ) == -1L
+                    ) {
+                        return false
+                    }
+                }
+            }
+
+            // Batch insert spans
+            spanEntities.forEach { span ->
+                val values = ContentValues(12).apply {
+                    put(SpansTable.COL_NAME, span.name)
+                    put(SpansTable.COL_SESSION_ID, span.sessionId)
+                    put(SpansTable.COL_SPAN_ID, span.spanId)
+                    put(SpansTable.COL_TRACE_ID, span.traceId)
+                    put(SpansTable.COL_PARENT_ID, span.parentId)
+                    put(SpansTable.COL_START_TIME, span.startTime)
+                    put(SpansTable.COL_END_TIME, span.endTime)
+                    put(SpansTable.COL_DURATION, span.duration)
+                    put(SpansTable.COL_SERIALIZED_ATTRS, span.serializedAttributes)
+                    put(SpansTable.COL_SERIALIZED_SPAN_EVENTS, span.serializedCheckpoints)
+                    put(SpansTable.COL_SAMPLED, span.sampled)
+                    put(SpansTable.COL_STATUS, span.status.value)
+                }
+
+                if (writableDatabase.insert(SpansTable.TABLE_NAME, null, values) == -1L) {
+                    return false
+                }
+            }
+
+            writableDatabase.setTransactionSuccessful()
+            return true
+        } catch (e: SQLiteException) {
+            logger.log(LogLevel.Error, "Failed to insert signals", e)
+            return false
+        } finally {
+            writableDatabase.endTransaction()
+        }
     }
 
     override fun getSessionForAppExit(pid: Int): AppExitCollector.Session? {

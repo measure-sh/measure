@@ -1,11 +1,12 @@
 # Measure Android SDK
 
 * [Minimum requirements](#minimum-requirements)
+* [Self host compatibility](#self-host-compatibility)
 * [Quick reference](#quick-reference)
 * [Getting started](#getting-started)
 * [Custom events](#custom-events)
   * [Handled exceptions](#handled-exceptions)
-  * [Navigation](#navigation)
+  * [Screen view](#screen-view)
 * [Features](#features)
 * [Performance Impact](#performance-impact)
   * [Benchmarks](#benchmarks)
@@ -20,6 +21,16 @@
 | Min SDK               | 21 (Lollipop) |
 | Target SDK            | 31            |
 
+# Self-host compatibility
+
+Before updating to Android SDK version 0.9.0, make sure the deployed self-host version is *atleast* 0.5.0. For more 
+details, checkout the [self-host guide](../hosting/README.md).
+
+| SDK version   | Minimum required self-host version |
+|---------------|------------------------------------|
+| 0.1.0 - 0.8.2 | 0.1.1                              |
+| 0.9.0         | 0.5.0                              |
+ 
 # Quick reference
 
 A quick reference to the entire public API for Measure Android SDK.

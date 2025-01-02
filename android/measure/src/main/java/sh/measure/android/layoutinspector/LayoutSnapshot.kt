@@ -1,6 +1,5 @@
 package sh.measure.android.layoutinspector
 
-import android.util.Log
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.AttachmentType
 import sh.measure.android.gestures.DetectedGesture
@@ -23,9 +22,6 @@ internal class LayoutSnapshot(private val nodes: List<Node>) {
             label = { "msr-generateSvgAttachment" },
             block = {
                 val svg = nodes.generateSvg(targetNode, width, height)
-                svg.chunked(4000).forEach {
-                    Log.i("SVG", it)
-                }
                 Attachment(
                     "snapshot.svg",
                     AttachmentType.LAYOUT_SNAPSHOT,

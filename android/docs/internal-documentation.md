@@ -18,9 +18,8 @@ SQLite database is configured with the following settings:
 * [journal_mode](https://sqlite.org/pragma.html#pragma_journal_mode): WAL
 * [foreign_keys](https://sqlite.org/pragma.html#pragma_foreign_keys): ON
 
-Events are written to the database & file storage (if needed) as soon as they are received. This can be 
-improved in future by adding a queue which batches the inserts. However, as WAL mode enabled, this optimization
-has been ignored for now.
+Batches of events and spans are inserted in database either every 3 seconds or if either the spans or events buffer reaches 30.
+At time of a crash, events and spans are immediately persisted to the db.
 
 # Batching & export
 

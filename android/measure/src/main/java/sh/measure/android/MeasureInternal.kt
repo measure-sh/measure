@@ -44,6 +44,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private val configProvider by lazy { measureInitializer.configProvider }
     private val dataCleanupService by lazy { measureInitializer.dataCleanupService }
     private val powerStateProvider by lazy { measureInitializer.powerStateProvider }
+    private val periodicSignalStoreScheduler by lazy { measureInitializer.periodicSignalStoreScheduler }
     private var isStarted: Boolean = false
     private var startLock = Any()
 
@@ -122,6 +123,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         periodicExporter.resume()
         spanCollector.register()
         customEventCollector.register()
+        periodicSignalStoreScheduler.register()
     }
 
     override fun onAppForeground() {
@@ -148,6 +150,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
                 periodicExporter.pause()
                 powerStateProvider.unregister()
                 networkChangesCollector.unregister()
+                periodicSignalStoreScheduler.onAppBackground()
                 dataCleanupService.clearStaleData()
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     appExitCollector.collect()
@@ -162,11 +165,6 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
 
     fun clearUserId() {
         userAttributeProcessor.clearUserId()
-    }
-
-    @Deprecated("Use trackScreenView instead")
-    fun trackNavigation(to: String, from: String?) {
-        userTriggeredEventCollector.trackNavigation(to, from)
     }
 
     fun trackScreenView(screenName: String) {
@@ -221,5 +219,6 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         periodicExporter.unregister()
         spanCollector.unregister()
         customEventCollector.unregister()
+        periodicSignalStoreScheduler.unregister()
     }
 }

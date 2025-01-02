@@ -3087,7 +3087,7 @@ func GetCrashDetailCrashes(c *gin.Context) {
 	for i := range eventExceptions {
 		if len(eventExceptions[i].Attachments) > 0 {
 			for j := range eventExceptions[i].Attachments {
-				if err := eventExceptions[i].Attachments[j].PreSignURL(); err != nil {
+				if err := eventExceptions[i].Attachments[j].PreSignURL(ctx); err != nil {
 					msg := `failed to generate URLs for attachment`
 					fmt.Println(msg, err)
 					c.JSON(http.StatusInternalServerError, gin.H{
@@ -4013,7 +4013,7 @@ func GetANRDetailANRs(c *gin.Context) {
 	for i := range eventANRs {
 		if len(eventANRs[i].Attachments) > 0 {
 			for j := range eventANRs[i].Attachments {
-				if err := eventANRs[i].Attachments[j].PreSignURL(); err != nil {
+				if err := eventANRs[i].Attachments[j].PreSignURL(ctx); err != nil {
 					msg := `failed to generate URLs for attachment`
 					fmt.Println(msg, err)
 					c.JSON(http.StatusInternalServerError, gin.H{
@@ -4931,7 +4931,7 @@ func GetSession(c *gin.Context) {
 			continue
 		}
 		for j := range session.Events[i].Attachments {
-			if err := session.Events[i].Attachments[j].PreSignURL(); err != nil {
+			if err := session.Events[i].Attachments[j].PreSignURL(ctx); err != nil {
 				msg := `failed to generate URLs for attachment`
 				fmt.Println(msg, err)
 				c.JSON(http.StatusInternalServerError, gin.H{

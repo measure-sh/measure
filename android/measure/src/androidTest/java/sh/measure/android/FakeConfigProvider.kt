@@ -55,4 +55,6 @@ class FakeConfigProvider : ConfigProvider {
     override val maxSpanNameLength: Int = 64
     override val maxCheckpointNameLength: Int = 64
     override val maxCheckpointsPerSpan: Int = 100
+    override val maxInMemorySignalsQueueSize: Int = 30
+    override val inMemorySignalsQueueFlushRateMs: Long = 3000
 }

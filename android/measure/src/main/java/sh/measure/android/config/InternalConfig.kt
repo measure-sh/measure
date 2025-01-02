@@ -106,4 +106,15 @@ internal interface InternalConfig {
      * Max checkpoints per span. Defaults to 100.
      */
     val maxCheckpointsPerSpan: Int
+
+    /**
+     * Maximum number of signals (events and spans) in the in memory queue. Defaults to 30.
+     */
+    val maxInMemorySignalsQueueSize: Int
+
+    /**
+     * The timeout after which signals are attempted to be flushed to disk in milliseconds.
+     * Defaults to 3000ms.
+     */
+    val inMemorySignalsQueueFlushRateMs: Long
 }
