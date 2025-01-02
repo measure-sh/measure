@@ -47,6 +47,7 @@ protocol MeasureInitializer {
     var memoryUsageCalculator: MemoryUsageCalculator { get }
     var sysCtl: SysCtl { get }
     var appLaunchCollector: AppLaunchCollector { get }
+    var networkChangeCollector: NetworkChangeCollector { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -128,6 +129,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let memoryUsageCalculator: MemoryUsageCalculator
     let sysCtl: SysCtl
     let appLaunchCollector: AppLaunchCollector
+    let networkChangeCollector: NetworkChangeCollector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -236,6 +238,9 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          sysCtl: sysCtl,
                                                          userDefaultStorage: userDefaultStorage,
                                                          currentAppVersion: appVersion)
+        self.networkChangeCollector = BaseNetworkChangeCollector(logger: logger,
+                                                                 eventProcessor: eventProcessor,
+                                                                 timeProvider: timeProvider)
         self.client = client
     }
 }

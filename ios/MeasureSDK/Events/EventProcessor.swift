@@ -95,6 +95,7 @@ final class BaseEventProcessor: EventProcessor {
         eventStore.insertEvent(event: eventEntity)
         sessionManager.onEventTracked(eventEntity)
         logger.log(level: .debug, message: "Event processed: \(type), \(event.id)", error: nil, data: data)
+        dump(data)
     }
 
     private func createEvent<T: Codable>( // swiftlint:disable:this function_parameter_count
