@@ -19,8 +19,9 @@ export default function SessionReplayEventDetails({
   eventDetails
 }: SessionReplayEventDetailsProps) {
 
-  function getBodyFromEventDetails(eventDetails: any): ReactNode {
-    const entries = Object.entries(eventDetails).filter(([key]) => key !== "user_defined_attribute")
+  function getBodyFromEventDetails(): ReactNode {
+    // Remove user defined attrs. In case of http event, remove start_time and end_time as well since they represent uptime in ms and not timestamps.
+    const entries = Object.entries(eventDetails).filter(([key]) => key !== "user_defined_attribute" && !(eventType === "http" && (key === "start_time" || key === "end_time")))
     const userDefinedAttributes = Object.entries(eventDetails).find(([key]) => key === "user_defined_attribute")?.[1]
     const keyStyle = "text-gray-400 w-1/3"
     const valueStyle = "w-2/3 pl-2"
@@ -34,6 +35,15 @@ export default function SessionReplayEventDetails({
                 <p className={keyStyle}>{key}:</p>
                 <p className="w-full p-1 text-xs rounded-md">
                   {value.replace(/\n/g, "\n\t")}
+                </p>
+              </div>
+            )
+          } else if (key === "request_headers" || key === "response_headers" && typeof value === "object") {
+            return (
+              <div className="flex flex-col" key={key}>
+                <p className={keyStyle}>{key}:</p>
+                <p className="w-full p-1 text-xs rounded-md whitespace-pre">
+                  {JSON.stringify(value, null, "\t")}
                 </p>
               </div>
             )
@@ -122,7 +132,7 @@ export default function SessionReplayEventDetails({
       {getAttachmentsFromEventDetails()}
       {getExceptionOverviewLinkFromEventDetails()}
       {getTraceDetailsLinkFromEventDetails()}
-      {getBodyFromEventDetails(eventDetails)}
+      {getBodyFromEventDetails()}
     </div>
   )
 }
