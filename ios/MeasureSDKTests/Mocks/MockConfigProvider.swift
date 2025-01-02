@@ -22,6 +22,8 @@ final class MockConfigProvider: ConfigProvider {
     var maxAttachmentSizeInEventsBatchInBytes: Number
     var maxEventsInBatch: Number
     var timeoutIntervalForRequest: TimeInterval
+    var customEventNameRegex: String
+    var maxEventNameLength: Int
 
     init(enableLogging: Bool = false,
          trackScreenshotOnCrash: Bool = true,
@@ -35,7 +37,9 @@ final class MockConfigProvider: ConfigProvider {
          timeoutIntervalForRequest: TimeInterval = 30,
          maxSessionDurationMs: Number = 60 * 60 * 1000,
          cpuTrackingIntervalMs: UnsignedNumber = 3000,
-         memoryTrackingIntervalMs: UnsignedNumber = 2000) {
+         memoryTrackingIntervalMs: UnsignedNumber = 2000,
+         customEventNameRegex: String = "^[a-zA-Z0-9_-]",
+         maxEventNameLength: Int = 64) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.sessionSamplingRate = sessionSamplingRate
@@ -49,6 +53,8 @@ final class MockConfigProvider: ConfigProvider {
         self.maxSessionDurationMs = maxSessionDurationMs
         self.cpuTrackingIntervalMs = cpuTrackingIntervalMs
         self.memoryTrackingIntervalMs = memoryTrackingIntervalMs
+        self.customEventNameRegex = customEventNameRegex
+        self.maxEventNameLength = 64 // 64 chars
     }
 
     func loadNetworkConfig() {}

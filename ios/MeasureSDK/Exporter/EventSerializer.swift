@@ -131,6 +131,16 @@ struct EventSerializer {
                 }
             }
             return nil
+        case .custom:
+            if let customEventData = event.customEvent {
+                do {
+                    let decodedData = try JSONDecoder().decode(CustomEventData.self, from: customEventData)
+                    return serialiseCustomEventData(decodedData)
+                } catch {
+                    return nil
+                }
+            }
+            return nil
         case nil:
             return nil
         }
@@ -317,6 +327,13 @@ struct EventSerializer {
         result += "\"launched_activity\":\"\(hotLaunchData.launchedActivity)\","
         result += "\"has_saved_state\":\(hotLaunchData.hasSavedState),"
         result += "\"intent_data\":\"\(hotLaunchData.intentData ?? "")\""
+        result += "}"
+        return result
+    }
+
+    private func serialiseCustomEventData(_ customEventData: CustomEventData) -> String {
+        var result = "{"
+        result += "\"custom\":\"\(customEventData.name)\""
         result += "}"
         return result
     }

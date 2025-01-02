@@ -106,6 +106,8 @@
 		52AE72032CABAE9000F2830A /* GestureEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AE71FD2CABAE9000F2830A /* GestureEvents.swift */; };
 		52AE72082CABAEAB00F2830A /* UIWindow+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AE72062CABAEAB00F2830A /* UIWindow+Extension.swift */; };
 		52AE72092CABAEAB00F2830A /* NSObject+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AE72072CABAEAB00F2830A /* NSObject+Extension.swift */; };
+		52B2A8772D1A790200C6B5CF /* CustomEventData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B2A8762D1A790200C6B5CF /* CustomEventData.swift */; };
+		52B2A8792D1A89EF00C6B5CF /* CustomEventCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B2A8782D1A89EF00C6B5CF /* CustomEventCollector.swift */; };
 		52BCF1DC2CB42026003102DF /* MeasureModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF1DA2CB42026003102DF /* MeasureModel.xcdatamodeld */; };
 		52BCF1DD2CB42383003102DF /* MeasureModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF1DA2CB42026003102DF /* MeasureModel.xcdatamodeld */; };
 		52BCF20A2CB59FBF003102DF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF2092CB59FBF003102DF /* AppDelegate.swift */; };
@@ -408,6 +410,8 @@
 		52AE71FD2CABAE9000F2830A /* GestureEvents.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GestureEvents.swift; sourceTree = "<group>"; };
 		52AE72062CABAEAB00F2830A /* UIWindow+Extension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIWindow+Extension.swift"; sourceTree = "<group>"; };
 		52AE72072CABAEAB00F2830A /* NSObject+Extension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSObject+Extension.swift"; sourceTree = "<group>"; };
+		52B2A8762D1A790200C6B5CF /* CustomEventData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomEventData.swift; sourceTree = "<group>"; };
+		52B2A8782D1A89EF00C6B5CF /* CustomEventCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomEventCollector.swift; sourceTree = "<group>"; };
 		52BCF1DB2CB42026003102DF /* MeasureModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MeasureModel.xcdatamodel; sourceTree = "<group>"; };
 		52BCF2072CB59FBF003102DF /* TestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		52BCF2092CB59FBF003102DF /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -591,6 +595,8 @@
 			children = (
 				5202BE732C8B117900A3496E /* Attachment.swift */,
 				5202BE742C8B117900A3496E /* AttachmentType.swift */,
+				52B2A8782D1A89EF00C6B5CF /* CustomEventCollector.swift */,
+				52B2A8762D1A790200C6B5CF /* CustomEventData.swift */,
 				5202BE752C8B117900A3496E /* Event.swift */,
 				5202BE762C8B117900A3496E /* EventProcessor.swift */,
 				5202BE772C8B117900A3496E /* EventType.swift */,
@@ -1353,6 +1359,7 @@
 				52AE72022CABAE9000F2830A /* GestureDetector.swift in Sources */,
 				52CC63C12C9C608E00F7CA0A /* CrashDataPersistence.swift in Sources */,
 				52EB380C2C8C7334002D63EC /* SignPost.swift in Sources */,
+				52B2A8792D1A89EF00C6B5CF /* CustomEventCollector.swift in Sources */,
 				52A8533E2C994CC200B2A39F /* ExceptionDetail.swift in Sources */,
 				526E30F62CE77BCB00F484B4 /* AppLaunchEvents.swift in Sources */,
 				52A853402C994D7900B2A39F /* Exception.swift in Sources */,
@@ -1375,6 +1382,7 @@
 				524576712CC1128600B288E5 /* BatchCreator.swift in Sources */,
 				52F93B9E2CAE6B3C00168AB4 /* GestureTargetFinder.swift in Sources */,
 				52D51ABB2CD0E5C9008F30A6 /* MsrMoniterView.swift in Sources */,
+				52B2A8772D1A790200C6B5CF /* CustomEventData.swift in Sources */,
 				524576732CC116DD00B288E5 /* BatchStore.swift in Sources */,
 				52816B6A2CCE399B00B160A4 /* LifecycleCollector.swift in Sources */,
 				528EAB962C84553500CB1574 /* LifecycleObserver.swift in Sources */,

@@ -723,4 +723,39 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         }
     }
 
+    func testCustomEventDataSerialization() {
+        let customEventData = CustomEventData(name: "TestEvent")
+
+        let event = Event(
+            id: "customEventId",
+            sessionId: "sessionId",
+            timestamp: "2024-10-22T10:02:00Z",
+            timestampInMillis: 123456791,
+            type: .custom,
+            data: customEventData,
+            attachments: [],
+            attributes: TestDataGenerator.generateAttributes(),
+            userTriggered: true
+        )
+
+        let eventEntity = EventEntity(event)
+
+        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+            XCTFail("getSerialisedEvent cannot be nil")
+            return
+        }
+
+        let jsonData = Data(jsonString.utf8)
+        do {
+            let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+
+            if let customDataDict = jsonDict?["custom"] as? [String: Any] {
+                XCTAssertEqual(customDataDict["custom"] as? String, "TestEvent", "The custom event name should match the expected value.")
+            } else {
+                XCTFail("Custom event data is not present in the serialized event.")
+            }
+        } catch {
+            XCTFail("Invalid JSON object: \(error.localizedDescription)")
+        }
+    }
 }

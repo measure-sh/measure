@@ -82,4 +82,29 @@ import Foundation
             }
         }
     }
+    
+    /// Tracks an event with optional timestamp.
+    ///
+    /// Usage Notes:
+    /// - Event names should be clear and consistent to aid in dashboard searches
+    ///
+    ///   /// - Example:
+    ///   - Swift:
+    ///   ```swift
+    ///   Measure.shared.trackEvent(name: "event-name", timestamp: nil)
+    ///   ```
+    ///   - Objective-C:
+    ///   ```objc
+    ///   [[Measure shared] trackEventWithName:@"event-name" timestamp:nil];
+    ///   
+    /// - Parameters:
+    ///   - name: Name of the event (max 64 characters)
+    ///   - timestamp: Optional timestamp for the event, defaults to current time
+    ///
+    @objc public func trackEvent(name: String, timestamp: NSNumber?) {
+        let timestampValue: Int64? = timestamp?.int64Value
+        guard let customEventCollector = measureInternal?.customEventCollector else { return }
+
+        customEventCollector.trackEvent(name: name, timestamp: timestampValue)
+    }
 }

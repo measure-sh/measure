@@ -12,6 +12,7 @@
         <attribute name="batchId" optional="YES" attributeType="String"/>
         <attribute name="coldLaunch" optional="YES" attributeType="Binary"/>
         <attribute name="cpuUsage" optional="YES" attributeType="Binary"/>
+        <attribute name="customEvent" optional="YES" attributeType="Binary"/>
         <attribute name="exception" optional="YES" attributeType="Binary"/>
         <attribute name="gestureClick" optional="YES" attributeType="Binary"/>
         <attribute name="gestureLongClick" optional="YES" attributeType="Binary"/>

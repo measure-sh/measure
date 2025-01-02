@@ -46,6 +46,7 @@ final class MockMeasureInitializer: MeasureInitializer {
     let memoryUsageCalculator: MemoryUsageCalculator
     let sysCtl: SysCtl
     let appLaunchCollector: AppLaunchCollector
+    let customEventCollector: CustomEventCollector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -154,6 +155,10 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                          sysCtl: sysCtl,
                                                          userDefaultStorage: userDefaultStorage,
                                                          currentAppVersion: appVersion)
+        self.customEventCollector = BaseCustomEventCollector(logger: logger,
+                                                             eventProcessor: eventProcessor,
+                                                             timeProvider: timeProvider,
+                                                             configProvider: configProvider)
         self.client = client
     }
 }

@@ -47,6 +47,7 @@ protocol MeasureInitializer {
     var memoryUsageCalculator: MemoryUsageCalculator { get }
     var sysCtl: SysCtl { get }
     var appLaunchCollector: AppLaunchCollector { get }
+    var customEventCollector: CustomEventCollector { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -81,6 +82,7 @@ protocol MeasureInitializer {
 /// - `gestureTargetFinder`: `GestureTargetFinder` object that determines which view is handling the gesture.
 /// - `cpuUsageCalculator`: `CpuUsageCalculator` object that generates CPU usage data.
 /// - `memoryUsageCalculator`: `MemoryUsageCalculator` object that generates memory usage data.
+/// - `customEventCollector`: `CustomEventCollector` object that triggers custom events.
 /// - `sysCtl`: `SysCtl` object which provides sysctl functionalities.
 /// - `httpClient`: `HttpClient` object that handles HTTP requests.
 /// - `networkClient`: `NetworkClient` object is responsible for initializing the network configuration and executing API requests.
@@ -128,6 +130,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let memoryUsageCalculator: MemoryUsageCalculator
     let sysCtl: SysCtl
     let appLaunchCollector: AppLaunchCollector
+    let customEventCollector: CustomEventCollector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -236,6 +239,10 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          sysCtl: sysCtl,
                                                          userDefaultStorage: userDefaultStorage,
                                                          currentAppVersion: appVersion)
+        self.customEventCollector = BaseCustomEventCollector(logger: logger,
+                                                             eventProcessor: eventProcessor,
+                                                             timeProvider: timeProvider,
+                                                             configProvider: configProvider)
         self.client = client
     }
 }
