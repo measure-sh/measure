@@ -98,7 +98,7 @@ var anrGroupOne = group.ANRGroup{
 }
 
 func TestNewJourneyAndroidOne(t *testing.T) {
-	events, err := readEvents("events_one.json")
+	events, err := readEvents("android_events_one.json")
 	if err != nil {
 		panic(err)
 	}
@@ -284,7 +284,7 @@ func TestNewJourneyAndroidOne(t *testing.T) {
 }
 
 func TestNewJourneyAndroidTwo(t *testing.T) {
-	events, err := readEvents("events_two.json")
+	events, err := readEvents("android_events_two.json")
 	if err != nil {
 		panic(err)
 	}
@@ -440,7 +440,7 @@ func TestNewJourneyAndroidTwo(t *testing.T) {
 }
 
 func TestNewJourneyAndroidThree(t *testing.T) {
-	events, err := readEvents("events_three.json")
+	events, err := readEvents("android_events_three.json")
 	if err != nil {
 		panic(err)
 	}
@@ -604,7 +604,7 @@ func TestNewJourneyAndroidThree(t *testing.T) {
 }
 
 func TestGetEdgeSessionsOne(t *testing.T) {
-	events, err := readEvents("events_one.json")
+	events, err := readEvents("android_events_one.json")
 	if err != nil {
 		panic(err)
 	}
@@ -693,7 +693,7 @@ func TestGetEdgeSessionsOne(t *testing.T) {
 }
 
 func TestGetEdgeSessionsTwo(t *testing.T) {
-	events, err := readEvents("events_two.json")
+	events, err := readEvents("android_events_two.json")
 	if err != nil {
 		panic(err)
 	}
@@ -757,7 +757,7 @@ func TestGetEdgeSessionsTwo(t *testing.T) {
 }
 
 func TestGetEdgeSessionsCountOne(t *testing.T) {
-	events, err := readEvents("events_one.json")
+	events, err := readEvents("android_events_one.json")
 	if err != nil {
 		panic(err)
 	}
@@ -822,7 +822,7 @@ func TestGetEdgeSessionsCountOne(t *testing.T) {
 }
 
 func TestGetEdgeSessionsCountTwo(t *testing.T) {
-	events, err := readEvents("events_two.json")
+	events, err := readEvents("android_events_two.json")
 	if err != nil {
 		panic(err)
 	}
@@ -869,7 +869,7 @@ func TestGetEdgeSessionsCountTwo(t *testing.T) {
 }
 
 func TestGetNodeName(t *testing.T) {
-	events, err := readEvents("events_one.json")
+	events, err := readEvents("android_events_one.json")
 	if err != nil {
 		panic(err)
 	}
@@ -887,7 +887,7 @@ func TestGetNodeName(t *testing.T) {
 }
 
 func TestExceptionGroupAccessors(t *testing.T) {
-	events, err := readEvents("events_one.json")
+	events, err := readEvents("android_events_one.json")
 	if err != nil {
 		panic(err)
 	}
@@ -929,7 +929,7 @@ func TestExceptionGroupAccessors(t *testing.T) {
 }
 
 func TestANRGroupAccessors(t *testing.T) {
-	events, err := readEvents("events_one.json")
+	events, err := readEvents("android_events_one.json")
 	if err != nil {
 		panic(err)
 	}
@@ -971,7 +971,7 @@ func TestANRGroupAccessors(t *testing.T) {
 }
 
 func TestGetNodeVertices(t *testing.T) {
-	events, err := readEvents("events_one.json")
+	events, err := readEvents("android_events_one.json")
 	if err != nil {
 		panic(err)
 	}
@@ -989,7 +989,7 @@ func TestGetNodeVertices(t *testing.T) {
 }
 
 func TestNewJourneyAndroidBigraphOne(t *testing.T) {
-	events, err := readEvents("events_one.json")
+	events, err := readEvents("android_events_one.json")
 	if err != nil {
 		panic(err)
 	}
@@ -1103,7 +1103,7 @@ func TestNewJourneyAndroidBigraphOne(t *testing.T) {
 }
 
 func TestNewJourneyAndroidExceptionsOne(t *testing.T) {
-	events, err := readEvents("events_one.json")
+	events, err := readEvents("android_events_one.json")
 	if err != nil {
 		panic(err)
 	}
@@ -1333,7 +1333,7 @@ func TestNewJourneyAndroidExceptionsOne(t *testing.T) {
 }
 
 func TestNewJourneyAndroidExceptionsTwo(t *testing.T) {
-	events, err := readEvents("events_two.json")
+	events, err := readEvents("android_events_two.json")
 	if err != nil {
 		panic(err)
 	}
@@ -1542,7 +1542,7 @@ func TestNewJourneyAndroidExceptionsTwo(t *testing.T) {
 }
 
 func TestNewJourneyAndroidExceptionsThree(t *testing.T) {
-	events, err := readEvents("events_three.json")
+	events, err := readEvents("android_events_three.json")
 	if err != nil {
 		panic(err)
 	}
@@ -1779,7 +1779,7 @@ func TestNewJourneyAndroidExceptionsThree(t *testing.T) {
 }
 
 func TestNewJourneyAndroidANRsOne(t *testing.T) {
-	events, err := readEvents("events_one.json")
+	events, err := readEvents("android_events_one.json")
 	if err != nil {
 		panic(err)
 	}
