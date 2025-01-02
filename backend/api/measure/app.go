@@ -700,8 +700,12 @@ func (a App) GetIssueFreeMetrics(
 ) {
 	crashFree = &metrics.CrashFreeSession{}
 	perceivedCrashFree = &metrics.PerceivedCrashFreeSession{}
-	anrFree = &metrics.ANRFreeSession{}
-	perceivedANRFree = &metrics.PerceivedANRFreeSession{}
+
+	switch a.Platform {
+	case platform.Android:
+		anrFree = &metrics.ANRFreeSession{}
+		perceivedANRFree = &metrics.PerceivedANRFreeSession{}
+	}
 
 	selectedVersions, err := af.VersionPairs()
 	if err != nil {
@@ -713,12 +717,19 @@ func (a App) GetIssueFreeMetrics(
 		Select("uniqMergeIf(unique_sessions, app_version not in (?)) as unselected_sessions", selectedVersions.Parameterize()).
 		Select("uniqMergeIf(crash_sessions, app_version in (?)) as selected_crash_sessions", selectedVersions.Parameterize()).
 		Select("uniqMergeIf(crash_sessions, app_version not in (?)) as unselected_crash_sessions", selectedVersions.Parameterize()).
-		Select("uniqMergeIf(anr_sessions, app_version in (?)) as selected_anr_sessions", selectedVersions.Parameterize()).
-		Select("uniqMergeIf(anr_sessions, app_version not in (?)) as unselected_anr_sessions", selectedVersions.Parameterize()).
 		Select("uniqMergeIf(perceived_crash_sessions, app_version in (?)) as selected_perceived_crash_sessions", selectedVersions.Parameterize()).
-		Select("uniqMergeIf(perceived_crash_sessions, app_version not in (?)) as unselected_perceived_crash_sessions", selectedVersions.Parameterize()).
-		Select("uniqMergeIf(perceived_anr_sessions, app_version in (?)) as selected_perceived_anr_sessions", selectedVersions.Parameterize()).
-		Select("uniqMergeIf(perceived_anr_sessions, app_version not in (?)) as unselected_perceived_anr_sessions", selectedVersions.Parameterize()).
+		Select("uniqMergeIf(perceived_crash_sessions, app_version not in (?)) as unselected_perceived_crash_sessions", selectedVersions.Parameterize())
+
+	switch a.Platform {
+	case platform.Android:
+		stmt.
+			Select("uniqMergeIf(anr_sessions, app_version in (?)) as selected_anr_sessions", selectedVersions.Parameterize()).
+			Select("uniqMergeIf(anr_sessions, app_version not in (?)) as unselected_anr_sessions", selectedVersions.Parameterize()).
+			Select("uniqMergeIf(perceived_anr_sessions, app_version in (?)) as selected_perceived_anr_sessions", selectedVersions.Parameterize()).
+			Select("uniqMergeIf(perceived_anr_sessions, app_version not in (?)) as unselected_perceived_anr_sessions", selectedVersions.Parameterize())
+	}
+
+	stmt.
 		Where("app_id = toUUID(?)", af.AppID).
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
@@ -727,8 +738,8 @@ func (a App) GetIssueFreeMetrics(
 	var (
 		selected, unselected                             uint64
 		crashSelected, crashUnselected                   uint64
-		anrSelected, anrUnselected                       uint64
 		perceivedCrashSelected, perceivedCrashUnselected uint64
+		anrSelected, anrUnselected                       uint64
 		perceivedANRSelected, perceivedANRUnselected     uint64
 		crashFreeUnselected                              float64
 		perceivedCrashFreeUnselected                     float64
@@ -736,43 +747,62 @@ func (a App) GetIssueFreeMetrics(
 		perceivedANRFreeUnselected                       float64
 	)
 
-	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
+	dest := []any{
 		&selected,
 		&unselected,
 		&crashSelected,
 		&crashUnselected,
-		&anrSelected,
-		&anrUnselected,
 		&perceivedCrashSelected,
 		&perceivedCrashUnselected,
-		&perceivedANRSelected,
-		&perceivedANRUnselected,
-	); err != nil {
+	}
+
+	switch a.Platform {
+	case platform.Android:
+		dest = append(dest, &anrSelected, &anrUnselected, &perceivedANRSelected, &perceivedANRUnselected)
+	}
+
+	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(dest...); err != nil {
 		return
 	}
 
 	if selected == 0 {
 		crashFree.CrashFreeSessions = math.NaN()
-		anrFree.ANRFreeSessions = math.NaN()
 		perceivedCrashFree.CrashFreeSessions = math.NaN()
-		perceivedANRFree.ANRFreeSessions = math.NaN()
+
+		switch a.Platform {
+		case platform.Android:
+			anrFree.ANRFreeSessions = math.NaN()
+			perceivedANRFree.ANRFreeSessions = math.NaN()
+		}
 	} else {
 		crashFree.CrashFreeSessions = math.Round(1-float64(crashSelected/selected)) * 100
-		anrFree.ANRFreeSessions = math.Round(1-float64(anrSelected/selected)) * 100
 		perceivedCrashFree.CrashFreeSessions = math.Round(1-float64(perceivedCrashSelected/selected)) * 100
-		perceivedANRFree.ANRFreeSessions = math.Round(1-float64(perceivedANRSelected/selected)) * 100
+
+		switch a.Platform {
+		case platform.Android:
+			anrFree.ANRFreeSessions = math.Round(1-float64(anrSelected/selected)) * 100
+			perceivedANRFree.ANRFreeSessions = math.Round(1-float64(perceivedANRSelected/selected)) * 100
+		}
 	}
 
 	if unselected == 0 {
 		crashFreeUnselected = math.NaN()
 		perceivedCrashFreeUnselected = math.NaN()
-		anrFreeUnselected = math.NaN()
-		perceivedANRFreeUnselected = math.NaN()
+
+		switch a.Platform {
+		case platform.Android:
+			anrFreeUnselected = math.NaN()
+			perceivedANRFreeUnselected = math.NaN()
+		}
 	} else {
 		crashFreeUnselected = math.Round(1-float64(crashUnselected/unselected)) * 100
 		perceivedCrashFreeUnselected = math.Round(1-float64(perceivedCrashUnselected/unselected)) * 100
-		anrFreeUnselected = math.Round(1-float64(anrUnselected/unselected)) * 100
-		perceivedANRFreeUnselected = math.Round(1-float64(perceivedANRUnselected/unselected)) * 100
+
+		switch a.Platform {
+		case platform.Android:
+			anrFreeUnselected = math.Round(1-float64(anrUnselected/unselected)) * 100
+			perceivedANRFreeUnselected = math.Round(1-float64(perceivedANRUnselected/unselected)) * 100
+		}
 	}
 
 	// compute delta
@@ -791,18 +821,21 @@ func (a App) GetIssueFreeMetrics(
 			perceivedCrashFree.Delta = 1
 		}
 
-		if anrFreeUnselected != 0 {
-			anrFree.Delta = math.Round(anrFree.ANRFreeSessions/anrFreeUnselected*100) / 100
-		} else {
-			anrFree.Delta = 1
+		switch a.Platform {
+		case platform.Android:
+			if anrFreeUnselected != 0 {
+				anrFree.Delta = math.Round(anrFree.ANRFreeSessions/anrFreeUnselected*100) / 100
+			} else {
+				anrFree.Delta = 1
+			}
+
+			if perceivedANRFreeUnselected != 0 {
+				perceivedANRFree.Delta = math.Round(perceivedANRFree.ANRFreeSessions/perceivedANRFreeUnselected*100) / 100
+			} else {
+				perceivedANRFree.Delta = 1
+			}
 		}
 
-		if perceivedANRFreeUnselected != 0 {
-			perceivedANRFree.Delta = math.Round(perceivedANRFree.ANRFreeSessions/perceivedANRFreeUnselected*100) / 100
-
-		} else {
-			perceivedANRFree.Delta = 1
-		}
 	} else {
 		// because if there are no unselected
 		// app versions, then:
@@ -816,19 +849,26 @@ func (a App) GetIssueFreeMetrics(
 			perceivedCrashFree.Delta = 1
 		}
 
-		if anrFree.ANRFreeSessions != 0 {
-			anrFree.Delta = 1
-		}
+		switch a.Platform {
+		case platform.Android:
+			if anrFree.ANRFreeSessions != 0 {
+				anrFree.Delta = 1
+			}
 
-		if perceivedANRFree.ANRFreeSessions != 0 {
-			perceivedANRFree.Delta = 1
+			if perceivedANRFree.ANRFreeSessions != 0 {
+				perceivedANRFree.Delta = 1
+			}
 		}
 	}
 
 	crashFree.SetNaNs()
 	perceivedCrashFree.SetNaNs()
-	anrFree.SetNaNs()
-	perceivedANRFree.SetNaNs()
+
+	switch a.Platform {
+	case platform.Android:
+		anrFree.SetNaNs()
+		perceivedANRFree.SetNaNs()
+	}
 
 	return
 }
@@ -2402,17 +2442,25 @@ func GetAppMetrics(c *gin.Context) {
 		ID: &id,
 	}
 
-	team, err := app.getTeam(ctx)
-	if err != nil {
-		msg := "failed to get team from app id"
+	if err := app.Populate(ctx); err != nil {
+		msg := `failed to fetch app details`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		status := http.StatusInternalServerError
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+			msg = fmt.Sprintf(`app with id %q does not exist`, app.ID)
+		}
+
+		c.JSON(status, gin.H{
+			"error": msg,
+		})
+
 		return
 	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
+
+	team := &Team{
+		ID: &app.TeamId,
 	}
 
 	userId := c.GetString("userId")
