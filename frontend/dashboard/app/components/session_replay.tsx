@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { LineCanvas } from '@nivo/line'
 import { emptySessionReplay } from '../api/api_calls'
 import { formatChartFormatTimestampToHumanReadable, formatTimestampToChartFormat } from '../utils/time_utils'
+import { kilobytesToMegabytes } from '../utils/number_utils'
 import DropdownSelect, { DropdownSelectType } from './dropdown_select'
 import { DateTime, Duration } from 'luxon'
 import SessionReplayEventDetails from './session_replay_event_details'
@@ -97,7 +98,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
-          y: item.java_free_heap
+          y: kilobytesToMegabytes(item.java_free_heap).toFixed(2)
         }))
     },
     {
@@ -106,7 +107,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
-          y: item.java_max_heap
+          y: kilobytesToMegabytes(item.java_max_heap).toFixed(2)
         }))
     },
     {
@@ -115,7 +116,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
-          y: item.java_total_heap
+          y: kilobytesToMegabytes(item.java_total_heap).toFixed(2)
         }))
     },
     {
@@ -124,7 +125,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
-          y: item.native_free_heap
+          y: kilobytesToMegabytes(item.native_free_heap).toFixed(2)
         }))
     },
     {
@@ -133,7 +134,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
-          y: item.native_total_heap
+          y: kilobytesToMegabytes(item.native_total_heap).toFixed(2)
         }))
     },
     {
@@ -142,7 +143,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
-          y: item.rss
+          y: kilobytesToMegabytes(item.rss).toFixed(2)
         }))
     },
     {
@@ -151,7 +152,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
-          y: item.total_pss
+          y: kilobytesToMegabytes(item.total_pss).toFixed(2)
         }))
     }
   ] : null
@@ -163,7 +164,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
-          y: item.max_memory
+          y: kilobytesToMegabytes(item.max_memory).toFixed(2)
         }))
     },
     {
@@ -172,7 +173,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
-          y: item.used_memory
+          y: kilobytesToMegabytes(item.used_memory).toFixed(2)
         }))
     },
   ] : null
@@ -317,7 +318,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
                   tickSize: 1,
                   tickPadding: 5,
                   tickValues: 5,
-                  legend: 'Memory in KB',
+                  legend: 'Memory in MB',
                   legendOffset: -80,
                   legendPosition: 'middle'
                 }}
@@ -329,7 +330,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
                       <div className="flex flex-col items-left px-4 py-1" key={point.id}>
                         <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
                         <div className="py-0.5" />
-                        <p>{point.serieId}: {point.data.y.toString()} KB</p>
+                        <p>{point.serieId}: {point.data.y.toString()} MB</p>
                       </div>
                     </div>
                   )
@@ -372,7 +373,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
                   tickSize: 1,
                   tickPadding: 5,
                   tickValues: 5,
-                  legend: 'Memory in KB',
+                  legend: 'Memory in MB',
                   legendOffset: -80,
                   legendPosition: 'middle'
                 }}
@@ -384,7 +385,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
                       <div className="flex flex-col items-left px-4 py-1" key={point.id}>
                         <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
                         <div className="py-0.5" />
-                        <p>{point.serieId}: {point.data.y.toString()} KB</p>
+                        <p>{point.serieId}: {point.data.y.toString()} MB</p>
                       </div>
                     </div>
                   )
