@@ -150,5 +150,6 @@ final class MeasureInternal {
 
     private func applicationWillTerminate() {
         self.sessionManager.applicationWillTerminate()
+        self.lifecycleCollector.applicationWillTerminate()
     }
 }
