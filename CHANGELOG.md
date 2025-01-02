@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Discard batch if it contains duplicate event or span ids (#1588)
 - (**backend**): Filter versions and os versions securely (#1563)
 
+- (**frontend**): Show memory usage in mbs in session timeline (#1679)
 - (**frontend**): Made api key input read only to fix warnings (#1657)
 - (**frontend**): Check onboarding status after filters api call
 - (**frontend**): Fix span sorting & null checkpoints handling
