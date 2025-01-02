@@ -12,6 +12,7 @@ import SwiftUI
 protocol LifecycleCollector {
     func applicationDidEnterBackground()
     func applicationWillEnterForeground()
+    func applicationWillTerminate()
     func processControllerLifecycleEvent(_ vcLifecycleType: VCLifecycleEventType, for viewController: UIViewController)
     func processSwiftUILifecycleEvent(_ swiftUILifecycleType: SwiftUILifecycleType, for viewName: String)
     func enable()
@@ -44,6 +45,15 @@ class BaseLifecycleCollector: LifecycleCollector {
 
     func applicationWillEnterForeground() {
         eventProcessor.track(data: ApplicationLifecycleData(type: .foreground),
+                             timestamp: timeProvider.now(),
+                             type: .lifecycleApp,
+                             attributes: nil,
+                             sessionId: nil,
+                             attachments: nil)
+    }
+
+    func applicationWillTerminate() {
+        eventProcessor.track(data: ApplicationLifecycleData(type: .terminated),
                              timestamp: timeProvider.now(),
                              type: .lifecycleApp,
                              attributes: nil,

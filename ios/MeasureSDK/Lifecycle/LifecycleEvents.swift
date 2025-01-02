@@ -10,6 +10,7 @@ import Foundation
 enum AppLifecycleType: String, Codable {
     case foreground
     case background
+    case terminated
 }
 
 struct ApplicationLifecycleData: Codable {

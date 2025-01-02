@@ -669,7 +669,7 @@ Use the `lifecycle_app` type for Android's app lifecycle events.
 
 | Field  | Type   | Optional | Comment                                                       |
 | ------ | ------ | -------- | ------------------------------------------------------------- |
-| `type` | string | No       | One of the following:<br />- `background`<br />- `foreground` |
+| `type` | string | No       | One of the following:<br />- `background`<br />- `foreground`<br />- `terminated` |
 
 #### **`cold_launch`**
 
