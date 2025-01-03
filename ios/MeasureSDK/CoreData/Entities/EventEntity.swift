@@ -26,6 +26,7 @@ struct EventEntity {
     let coldLaunch: Data?
     let warmLaunch: Data?
     let hotLaunch: Data?
+    let networkChange: Data?
     let userTriggered: Bool
     let attachmentSize: Number
     let timestampInMillis: Number
@@ -173,6 +174,16 @@ struct EventEntity {
             self.hotLaunch = nil
         }
 
+        if let networkChange = event.data as? NetworkChangeData {
+            do {
+                let data = try JSONEncoder().encode(networkChange)
+                self.networkChange = data
+            } catch {
+                self.networkChange = nil
+            }
+        } else {
+            self.networkChange = nil
+        }
         if let attributes = event.attributes {
             do {
                 let data = try JSONEncoder().encode(attributes)
@@ -213,7 +224,8 @@ struct EventEntity {
          memoryUsage: Data?,
          coldLaunch: Data?,
          warmLaunch: Data?,
-         hotLaunch: Data?) {
+         hotLaunch: Data?,
+         networkChange: Data?) {
         self.id = id
         self.sessionId = sessionId
         self.timestamp = timestamp
@@ -236,6 +248,7 @@ struct EventEntity {
         self.coldLaunch = coldLaunch
         self.warmLaunch = warmLaunch
         self.hotLaunch = hotLaunch
+        self.networkChange = networkChange
     }
 
     func getEvent<T: Codable>() -> Event<T> { // swiftlint:disable:this cyclomatic_complexity function_body_length
@@ -334,6 +347,14 @@ struct EventEntity {
             if let hotLaunchData = self.hotLaunch {
                 do {
                     decodedData = try JSONDecoder().decode(T.self, from: hotLaunchData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .networkChange:
+            if let networkChangeData = self.networkChange {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: networkChangeData)
                 } catch {
                     decodedData = nil
                 }
