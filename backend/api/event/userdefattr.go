@@ -567,9 +567,6 @@ func (u *UDAttribute) Parameterize() (attr map[string]string) {
 
 	val := ""
 
-	fmt.Println("maxInt64", math.MaxInt64)
-	fmt.Println("minInt64", math.MinInt64)
-
 	for k, v := range u.rawAttrs {
 		switch v := v.(type) {
 		case bool:
