@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
-import Journey, { JourneyType } from "@/app/components/journey_sankey";
+import Journey, { JourneyType } from "@/app/components/journey";
 import MetricsOverview from '@/app/components/metrics_overview';
 import { FiltersApiType } from '@/app/api/api_calls';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
