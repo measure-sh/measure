@@ -61,6 +61,7 @@ type attachment struct {
 type eventreq struct {
 	id                     uuid.UUID
 	appId                  uuid.UUID
+	status                 status
 	symbolicate            map[uuid.UUID]int
 	exceptionIds           []int
 	anrIds                 []int
@@ -69,6 +70,7 @@ type eventreq struct {
 	events                 []event.EventField
 	spans                  []span.SpanField
 	attachments            map[uuid.UUID]*attachment
+	createdAt              time.Time
 }
 
 // status defines the status of processing
@@ -322,6 +324,23 @@ func (e eventreq) getStatus(ctx context.Context) (s *status, err error) {
 	defer stmt.Close()
 
 	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&s)
+
+	return
+}
+
+// getRequest gets the details of an existing event request.
+func (e eventreq) getRequest(ctx context.Context) (r *eventreq, err error) {
+	r = &eventreq{}
+
+	stmt := sqlf.PostgreSQL.From(`event_reqs`).
+		Select("id").
+		Select("status").
+		Select("created_at").
+		Where("id = ? and app_id = ?", e.id, e.appId)
+
+	defer stmt.Close()
+
+	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&r.id, &r.status, &r.createdAt)
 
 	return
 }
@@ -1996,6 +2015,7 @@ func PutEvents(c *gin.Context) {
 		appId:       appId,
 		symbolicate: make(map[uuid.UUID]int),
 		attachments: make(map[uuid.UUID]*attachment),
+		createdAt:   time.Now(),
 	}
 
 	if err := eventReq.read(c, appId); err != nil {
@@ -2039,9 +2059,22 @@ func PutEvents(c *gin.Context) {
 		switch *rs {
 		case pending:
 			durStr := fmt.Sprintf("%d", int64(retryAfter.Seconds()))
+			prevReq, err := eventReq.getRequest(ctx)
+			if err != nil {
+				msg := "failed to query event request"
+				fmt.Println(msg, err)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
+				return
+			}
 			c.Header("Retry-After", durStr)
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"warning": fmt.Sprintf("a previous accepted request is in progress, retry after %s seconds", durStr),
+				"warning":                    fmt.Sprintf("a previous accepted request is in progress, retry after %s seconds", durStr),
+				"current_request_id":         eventReq.id,
+				"current_request_timestamp":  eventReq.createdAt,
+				"previous_request_id":        prevReq.id,
+				"previous_request_timestamp": prevReq.createdAt,
 			})
 			return
 		case done:
