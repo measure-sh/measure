@@ -78,6 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :coffin: Removed
 
+- (**backend**): Remove unneeded log lines (#1687)
 - (**backend**): Remove unused code (#1545)
 
 - (**frontend**): Remove clarity
