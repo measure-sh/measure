@@ -63,7 +63,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func addLogLabels() {
         if let logger = mockMeasureInitializer?.logger as? MockLogger {
             logger.onLog = { _, message, _, data in
-                if message.contains("gestureClick") || message.contains("gestureLongClick") || message.contains("gestureScroll") || message.contains("lifecycleViewController") || message.contains("coldLaunch") || message.contains("warmLaunch") || message.contains("hotLaunch") {
+                if message.contains("gestureClick") ||
+                   message.contains("gestureLongClick") ||
+                   message.contains("gestureScroll") ||
+                   message.contains("lifecycleViewController") ||
+                   message.contains("coldLaunch") ||
+                   message.contains("warmLaunch") ||
+                   message.contains("hotLaunch") {
                     if let data = data {
                         if let jsonData = try? JSONEncoder().encode(data) {
                             self.labelData.text = String(data: jsonData, encoding: .utf8)
