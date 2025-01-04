@@ -74,6 +74,10 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
     setSelected(items)
   };
 
+  const selectNone = () => {
+    setSelected([])
+  };
+
   const selectLatestAppVersion = () => {
     // find version with highest build number
     let versions = items as AppVersion[]
@@ -262,6 +266,13 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                   >
                     All
                   </button>
+                  <div className="px-1" />
+                  <button
+                    onClick={() => selectNone()}
+                    className={groupSelectButtonStyle}
+                  >
+                    None
+                  </button>
                 </div>}
                 {items.filter((item) => (item as string).toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item) => (
                   <div
@@ -312,6 +323,13 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                     className={groupSelectButtonStyle}
                   >
                     All
+                  </button>
+                  <div className="px-1" />
+                  <button
+                    onClick={() => selectNone()}
+                    className={groupSelectButtonStyle}
+                  >
+                    None
                   </button>
                 </div>}
                 {items.filter((item) => (item as OsVersion).displayName.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item, idx) => (
@@ -370,6 +388,13 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                     className={groupSelectButtonStyle}
                   >
                     Latest
+                  </button>
+                  <div className="px-1" />
+                  <button
+                    onClick={() => selectNone()}
+                    className={groupSelectButtonStyle}
+                  >
+                    None
                   </button>
                 </div>}
                 {items.filter((item) => (item as AppVersion).displayName.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item) => (
