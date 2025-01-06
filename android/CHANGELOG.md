@@ -1,5 +1,45 @@
 # measure-android
 
+# 0.9.0
+
+#### Important notes
+
+* This version of the SDK *must* be paired with v0.5.0 version of the server. Older server versions will drop events originating from v0.5.0.
+* Breaking changes:
+  * Deprecated `Measure.trackNavigation` method has been removed. Use `Measure.trackScreenView` instead.
+  * Config `sessionSamplingRate` renamed to `samplingRateForErrorFreeSessions` to be more precise.
+* Dependency updates:
+  * chore(android): upgrade AGP version by @abhaysood in https://github.com/measure-sh/measure/pull/1672
+  * chore(android): bump up curtains to 1.2.5 by @abhaysood in https://github.com/measure-sh/measure/pull/1536
+
+#### Features
+
+* feat(android): add low power and thermal throttling attributes by @abhaysood in https://github.com/measure-sh/measure/pull/1525
+* feat(android): expose APIs to start/stop SDK by @abhaysood in https://github.com/measure-sh/measure/pull/1533
+* feat(android): attach layout snapshots with gesture click events by @abhaysood in https://github.com/measure-sh/measure/pull/1551
+* feat(android): implement tracing for Android by @abhaysood in https://github.com/measure-sh/measure/pull/1405
+* feat(android): expose API to get current session ID by @abhaysood in https://github.com/measure-sh/measure/pull/1634
+* feat(android): support custom events and attributes by @abhaysood in https://github.com/measure-sh/measure/pull/1616
+
+
+#### Fixes
+
+* fix(android): initialization issues by @abhaysood in https://github.com/measure-sh/measure/pull/1538
+* fix(android): revert usage of reentrant lock for heartbeat and SDK initialization by @abhaysood in https://github.com/measure-sh/measure/pull/1539
+* fix(android): add keep rule for AndroidComposeView by @abhaysood in https://github.com/measure-sh/measure/pull/1540
+* fix(android): serialize numbers as numbers instead of string in user def attrs by @abhaysood in https://github.com/measure-sh/measure/pull/1667
+* fix(android): remove unneeded view id prefix in gesture events by @abhaysood in https://github.com/measure-sh/measure/pull/1673
+* chore(android): apply spotless to gradle plugin module by @abhaysood in https://github.com/measure-sh/measure/pull/1671
+
+
+#### Others
+
+* docs(android): update benchmarks & related information in README by @abhaysood in https://github.com/measure-sh/measure/pull/1537
+* refactor(android): implement batch insertions of events and spans in db by @abhaysood in https://github.com/measure-sh/measure/pull/1659
+* refactor(android): avoid accessing thermal status change for older APIs by @abhaysood in https://github.com/measure-sh/measure/pull/1661
+* docs(android): add minimum version compatibility by @abhaysood in https://github.com/measure-sh/measure/pull/1670
+
+
 # 0.8.2
 
 #### Features
