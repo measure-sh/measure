@@ -10,7 +10,7 @@ import VideoPlayButton from './components/video_play_button'
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
 
-type VideoName = 'journey' | 'appHealth' | 'exceptions' | 'session'
+type VideoName = 'session' | 'perf' | 'journey' | 'appHealth' | 'exceptions'
 
 type IsPlayingState = {
   [K in VideoName]: boolean;
@@ -23,17 +23,19 @@ type VideoRefs = {
 export default function Home() {
 
   const [isPlaying, setIsPlaying] = useState<IsPlayingState>({
+    session: false,
+    perf: false,
     journey: false,
     appHealth: false,
     exceptions: false,
-    session: false,
   })
 
   const videoRefs: VideoRefs = {
+    session: useRef<HTMLVideoElement>(null),
+    perf: useRef<HTMLVideoElement>(null),
     journey: useRef<HTMLVideoElement>(null),
     appHealth: useRef<HTMLVideoElement>(null),
     exceptions: useRef<HTMLVideoElement>(null),
-    session: useRef<HTMLVideoElement>(null),
   }
 
   const handlePlay = (videoName: VideoName) => {
@@ -61,7 +63,63 @@ export default function Home() {
         <div className='w-80 h-80 md:w-[56rem] md:h-[40rem]'>
           <Lottie animationData={landingHeroAnim} />
         </div>
-        <div className="py-4 md:py-24" />
+        <div className="py-12 md:py-32" />
+        <div className="flex flex-col md:w-full items-center">
+          <div className="flex flex-col items-center max-w-4xl">
+            <p className="text-6xl font-regular text-black font-display text-center">Session Timelines</p>
+            <div className="py-2" />
+            <p className="text-lg text-center leading-relaxed font-sans text-black">Debug issues easily with full session timelines. Get the complete context with automatic tracking for clicks, navigations, http calls and more.</p>
+          </div>
+          <div className="py-8" />
+          <div className='border border-cyan-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-cyan-200'>
+            <div className='relative flex bg-white rounded-3xl h-full border border-cyan-400 items-center justify-center overflow-hidden'>
+              <video
+                ref={videoRefs.session}
+                src="/videos/session.webm"
+                poster='/images/session_poster.png'
+                preload='none'
+                loop
+                muted
+                playsInline
+                className="w-full h-full rounded-3xl"
+                onPlay={() => setIsPlaying(prev => ({ ...prev, session: true }))}
+                onPause={() => setIsPlaying(prev => ({ ...prev, session: false }))}
+              />
+              {!isPlaying.session &&
+                <VideoPlayButton onClick={() => handlePlay('session')} />
+              }
+            </div>
+          </div>
+        </div>
+        <div className="py-12 md:py-16" />
+        <div className="flex flex-col md:w-full items-center">
+          <div className="flex flex-col items-center max-w-4xl">
+            <p className="text-6xl font-regular text-black font-display text-center">Performance Traces</p>
+            <div className="py-2" />
+            <p className="text-lg text-center leading-relaxed font-sans text-black">Analyze app performance with traces and spans. Break down complex issues and intelligently smoothen out bottlenecks.</p>
+          </div>
+          <div className="py-8" />
+          <div className='border border-pink-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-pink-200'>
+            <div className='relative flex bg-white rounded-3xl h-full border border-pink-400 items-center justify-center overflow-hidden'>
+              <video
+                ref={videoRefs.perf}
+                src="/videos/perf.webm"
+                poster='/images/perf_poster.png'
+                preload='none'
+                loop
+                muted
+                playsInline
+                className="w-full h-full rounded-3xl"
+                onPlay={() => setIsPlaying(prev => ({ ...prev, perf: true }))}
+                onPause={() => setIsPlaying(prev => ({ ...prev, perf: false }))}
+              />
+              {!isPlaying.perf &&
+                <VideoPlayButton onClick={() => handlePlay('perf')} />
+              }
+            </div>
+          </div>
+        </div>
+        <div className="py-12 md:py-16" />
         <div className="flex flex-col md:w-full items-center">
           <div className="flex flex-col items-center max-w-4xl">
             <p className="text-6xl font-regular text-black font-display text-center">User Journeys</p>
@@ -125,8 +183,8 @@ export default function Home() {
             <p className="text-lg text-center leading-relaxed font-sans text-black">Automatically track Crashes and ANRs. Dive deeper with screenshots, filters and detailed stacktraces.</p>
           </div>
           <div className="py-8" />
-          <div className='border border-cyan-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-cyan-200'>
-            <div className='relative flex bg-white rounded-3xl h-full border border-cyan-400 items-center justify-center overflow-hidden'>
+          <div className='border border-rose-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-rose-200'>
+            <div className='relative flex bg-white rounded-3xl h-full border border-rose-400 items-center justify-center overflow-hidden'>
               <video
                 ref={videoRefs.exceptions}
                 src="/videos/exceptions.webm"
@@ -141,34 +199,6 @@ export default function Home() {
               />
               {!isPlaying.exceptions &&
                 <VideoPlayButton onClick={() => handlePlay('exceptions')} />
-              }
-            </div>
-          </div>
-        </div>
-        <div className="py-12 md:py-16" />
-        <div className="flex flex-col md:w-full items-center">
-          <div className="flex flex-col items-center max-w-4xl">
-            <p className="text-6xl font-regular text-black font-display text-center">Session Timelines</p>
-            <div className="py-2" />
-            <p className="text-lg text-center leading-relaxed font-sans text-black">Debug issues easily with full session timelines. Get the complete context with automatic tracking for clicks, navigations, http calls and more.</p>
-          </div>
-          <div className="py-8" />
-          <div className='border border-pink-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-pink-200'>
-            <div className='relative flex bg-white rounded-3xl h-full border border-pink-400 items-center justify-center overflow-hidden'>
-              <video
-                ref={videoRefs.session}
-                src="/videos/session.webm"
-                poster='/images/session_poster.png'
-                preload='none'
-                loop
-                muted
-                playsInline
-                className="w-full h-full rounded-3xl"
-                onPlay={() => setIsPlaying(prev => ({ ...prev, session: true }))}
-                onPause={() => setIsPlaying(prev => ({ ...prev, session: false }))}
-              />
-              {!isPlaying.session &&
-                <VideoPlayButton onClick={() => handlePlay('session')} />
               }
             </div>
           </div>

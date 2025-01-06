@@ -21,6 +21,7 @@
 - [Quick start](#quick-start)
 - [Features](#features)
   - [Session Timelines](#session-timelines)
+  - [Performance Traces](#performance-traces)
   - [User Journeys](#user-journeys)
   - [App Health](#app-health)
   - [Crashes and ANRs](#crashes-and-anrs)
@@ -44,6 +45,12 @@ Measure is available as a self hosted platform that comes with a simple one line
 Debug issues easily with full session timelines. Get the complete context with automatic tracking for clicks, navigations, http calls and more.
 
 [Session Timelines demo](https://github.com/user-attachments/assets/e8bac17c-c8c7-4f19-81e3-1979c7e70969)
+
+### Performance Traces
+
+Analyze app performance with traces and spans. Break down complex issues and intelligently smoothen out bottlenecks. 
+
+[Performance Traces demo](https://github.com/user-attachments/assets/78b86961-ba76-4cc1-a301-8c676c75f6ed)
 
 ### User Journeys
 
