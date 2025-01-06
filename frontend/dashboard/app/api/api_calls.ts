@@ -327,7 +327,7 @@ export const emptyMetrics = {
     "anr_free_sessions": 0,
     "delta": 0,
     "nan": false
-  } || null,
+  },
   "cold_launch": {
     "delta": 0,
     "nan": false,
@@ -347,7 +347,7 @@ export const emptyMetrics = {
     "perceived_anr_free_sessions": 0,
     "delta": 0,
     "nan": false
-  } || null,
+  },
   "perceived_crash_free_sessions": {
     "perceived_crash_free_sessions": 0,
     "delta": 0,
