@@ -12,7 +12,8 @@
 - Capture Crashes and ANRs automatically
 - Monitor app health metrics such as launch times, crash rates and app sizes 
 - Get screenshots with exception reports
-- View full event timelines of error sessions with auto-tracked user clicks, navigation events, http calls, cpu usage, memory usage and more for deeper context
+- View full event timelines of sessions with auto-tracked user clicks, navigation events, http calls, cpu usage, memory usage and more for deeper context
+- Optimize performance with traces
 - Track custom events with additional business specific attributes
 - Self hosted and private. Your data stays in your servers
 
