@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Log email instead of sending to waitlist
 - (**backend**): Support `flutter` & `rn` in cliff config (#1705)
 - (**backend**): Add new scopes to commitlint (#1703)
 - (**deps**): Bump cross-spawn from 7.0.3 to 7.0.6 in /frontend/dashboard (#1711)
