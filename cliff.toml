@@ -62,7 +62,7 @@ commit_parsers = [
   { message = "^.*\\(android\\):", skip = true },
   { message = "^.*\\(ios\\):", skip = true },
   { message = "^.*\\(flutter\\):", skip = true },
-  { message = "^.*\\(react-native\\):", skip = true },
+  { message = "^.*\\(rn\\):", skip = true },
   { message = "^docs", group = "<!-- 7 -->:books: Documentation", default_scope = "other" },
   { message = "^feat", group = "<!-- 0 -->:sparkles: New features" },
   { message = "^test", group = "<!-- 3 -->:test_tube: Testing", skip = true },
@@ -82,7 +82,7 @@ tag_pattern = "v[0-9].*"
 # regex for skipping tags
 skip_tags = "v0.1.0-beta.1"
 # regex for ignoring tags
-ignore_tags = "^(android|ios|flutter|react-native)"
+ignore_tags = "^(android|ios|flutter|rn)"
 # sort the tags topologically
 topo_order = false
 # sort the commits inside sections by oldest/newest order
