@@ -73,6 +73,7 @@ struct TestDataGenerator {
         exception: Data? = nil,
         attachments: Data? = nil,
         attributes: Data? = nil,
+        userDefinedAttributes: String? = nil,
         gestureClick: Data? = nil,
         gestureLongClick: Data? = nil,
         gestureScroll: Data? = nil,
@@ -88,8 +89,9 @@ struct TestDataGenerator {
         coldLaunch: Data? = nil,
         warmLaunch: Data? = nil,
         hotLaunch: Data? = nil,
-        http: Data? = nil
-    ) -> EventEntity {
+        http: Data? = nil,
+        customEvent: Data? = nil,
+        networkChange: Data? = nil) -> EventEntity {
         return EventEntity(
             id: id,
             sessionId: sessionId,
@@ -98,6 +100,7 @@ struct TestDataGenerator {
             exception: exception,
             attachments: attachments,
             attributes: attributes,
+            userDefinedAttributes: userDefinedAttributes,
             gestureClick: gestureClick,
             gestureLongClick: gestureLongClick,
             gestureScroll: gestureScroll,
@@ -113,7 +116,9 @@ struct TestDataGenerator {
             coldLaunch: coldLaunch,
             warmLaunch: warmLaunch,
             hotLaunch: hotLaunch,
-            http: http
+            http: http,
+            networkChange: networkChange,
+            customEvent: customEvent
         )
     }
 

@@ -39,6 +39,7 @@ final class BaseEventStore: EventStore {
             eventOb.userTriggered = event.userTriggered
             eventOb.exception = event.exception
             eventOb.attributes = event.attributes
+            eventOb.userDefinedAttributes = event.userDefinedAttributes
             eventOb.attachments = event.attachments
             eventOb.gestureClick = event.gestureClick
             eventOb.gestureLongClick = event.gestureLongClick
@@ -53,6 +54,7 @@ final class BaseEventStore: EventStore {
             eventOb.hotLaunch = event.hotLaunch
             eventOb.http = event.http
             eventOb.networkChange = event.networkChange
+            eventOb.customEvent = event.customEvent
 
             do {
                 try context.saveIfNeeded()
@@ -81,6 +83,7 @@ final class BaseEventStore: EventStore {
                                 exception: eventOb.exception,
                                 attachments: eventOb.attachments,
                                 attributes: eventOb.attributes,
+                                userDefinedAttributes: eventOb.userDefinedAttributes,
                                 gestureClick: eventOb.gestureClick,
                                 gestureLongClick: eventOb.gestureLongClick,
                                 gestureScroll: eventOb.gestureScroll,
@@ -97,7 +100,8 @@ final class BaseEventStore: EventStore {
                                 warmLaunch: eventOb.warmLaunch,
                                 hotLaunch: eventOb.hotLaunch,
                                 http: eventOb.http,
-                                networkChange: eventOb.networkChange)
+                                networkChange: eventOb.networkChange,
+                                customEvent: eventOb.customEvent)
                 }
             } catch {
                 guard let self = self else { return }
@@ -124,6 +128,7 @@ final class BaseEventStore: EventStore {
                                 exception: eventOb.exception,
                                 attachments: eventOb.attachments,
                                 attributes: eventOb.attributes,
+                                userDefinedAttributes: eventOb.userDefinedAttributes,
                                 gestureClick: eventOb.gestureClick,
                                 gestureLongClick: eventOb.gestureLongClick,
                                 gestureScroll: eventOb.gestureScroll,
@@ -140,7 +145,8 @@ final class BaseEventStore: EventStore {
                                 warmLaunch: eventOb.warmLaunch,
                                 hotLaunch: eventOb.hotLaunch,
                                 http: eventOb.http,
-                                networkChange: eventOb.networkChange)
+                                networkChange: eventOb.networkChange,
+                                customEvent: eventOb.customEvent)
                 }
             } catch {
                 guard let self = self else { return }
@@ -186,6 +192,7 @@ final class BaseEventStore: EventStore {
                                               exception: eventOb.exception,
                                               attachments: eventOb.attachments,
                                               attributes: eventOb.attributes,
+                                              userDefinedAttributes: eventOb.userDefinedAttributes,
                                               gestureClick: eventOb.gestureClick,
                                               gestureLongClick: eventOb.gestureLongClick,
                                               gestureScroll: eventOb.gestureScroll,
@@ -202,7 +209,8 @@ final class BaseEventStore: EventStore {
                                               warmLaunch: eventOb.warmLaunch,
                                               hotLaunch: eventOb.hotLaunch,
                                               http: eventOb.http,
-                                              networkChange: eventOb.networkChange))
+                                              networkChange: eventOb.networkChange,
+                                              customEvent: eventOb.customEvent))
                 }
             } catch {
                 guard let self = self else {

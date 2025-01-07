@@ -36,7 +36,18 @@ final class Event<T: Codable>: Codable {
     /// A flag to indicate if the event is triggered by the user or the SDK.
     let userTriggered: Bool
 
-    init(id: String, sessionId: String, timestamp: String, timestampInMillis: Number, type: EventType, data: T?, attachments: [Attachment]?, attributes: Attributes?, userTriggered: Bool) {
+    /// Attributes set by the user in the event. The type of values in the map is set to Any here, however, the allowed values can only be String, Int, Long, Double, Float or Boolean.
+    let userDefinedAttributes: String?
+
+    init(id: String,
+         sessionId: String,
+         timestamp: String,
+         timestampInMillis: Number,
+         type: EventType, data: T?,
+         attachments: [Attachment]?,
+         attributes: Attributes?,
+         userTriggered: Bool,
+         userDefinedAttributes: String? = nil) {
         self.id = id
         self.sessionId = sessionId
         self.timestamp = timestamp
@@ -46,6 +57,7 @@ final class Event<T: Codable>: Codable {
         self.attributes = attributes
         self.userTriggered = userTriggered
         self.timestampInMillis = timestampInMillis
+        self.userDefinedAttributes = userDefinedAttributes
     }
 
     enum CodingKeys: String, CodingKey {
@@ -58,6 +70,7 @@ final class Event<T: Codable>: Codable {
         case attributes
         case userTriggered = "user_triggered"
         case timestampInMillis
+        case userDefinedAttributes = "user_defined_attributes"
     }
 
     func appendAttributes(_ attributeProcessors: [AttributeProcessor]) {

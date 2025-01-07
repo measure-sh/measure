@@ -12,6 +12,7 @@
         <attribute name="batchId" optional="YES" attributeType="String"/>
         <attribute name="coldLaunch" optional="YES" attributeType="Binary"/>
         <attribute name="cpuUsage" optional="YES" attributeType="Binary"/>
+        <attribute name="customEvent" optional="YES" attributeType="Binary"/>
         <attribute name="exception" optional="YES" attributeType="Binary"/>
         <attribute name="gestureClick" optional="YES" attributeType="Binary"/>
         <attribute name="gestureLongClick" optional="YES" attributeType="Binary"/>
@@ -28,6 +29,7 @@
         <attribute name="timestamp" attributeType="String"/>
         <attribute name="timestampInMillis" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="type" attributeType="String" defaultValueString=""/>
+        <attribute name="userDefinedAttributes" optional="YES" attributeType="String"/>
         <attribute name="userTriggered" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="warmLaunch" optional="YES" attributeType="Binary"/>
     </entity>

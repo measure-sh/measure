@@ -30,6 +30,11 @@ struct Config: InternalConfig, MeasureConfig {
     let memoryTrackingIntervalMs: UnsignedNumber
     let httpContentTypeAllowlist: [String]
     let defaultHttpHeadersBlocklist: [String]
+    let customEventNameRegex: String
+    let maxEventNameLength: Int
+    let maxUserDefinedAttributeKeyLength: Int
+    let maxUserDefinedAttributeValueLength: Int
+    let maxUserDefinedAttributesPerEvent: Int
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   trackScreenshotOnCrash: Bool = DefaultConfig.trackScreenshotOnCrash,
@@ -54,5 +59,10 @@ struct Config: InternalConfig, MeasureConfig {
                                             "Proxy-Authorization",
                                             "WWW-Authenticate",
                                             "X-Api-Key"]
+        self.customEventNameRegex = "^[a-zA-Z0-9_-]+$"
+        self.maxEventNameLength = 64 // 64 chars
+        self.maxUserDefinedAttributeKeyLength = 256 // 256 chars
+        self.maxUserDefinedAttributeValueLength = 256 // 256 chars
+        self.maxUserDefinedAttributesPerEvent = 100
     }
 }

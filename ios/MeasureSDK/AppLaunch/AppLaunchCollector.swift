@@ -50,7 +50,8 @@ final class BaseAppLaunchCollector: AppLaunchCollector {
                              type: .coldLaunch,
                              attributes: nil,
                              sessionId: nil,
-                             attachments: nil)
+                             attachments: nil,
+                             userDefinedAttributes: nil)
     }
 
     func onWarmLaunchCallback(_ data: WarmLaunchData) {
@@ -59,7 +60,8 @@ final class BaseAppLaunchCollector: AppLaunchCollector {
                              type: .warmLaunch,
                              attributes: nil,
                              sessionId: nil,
-                             attachments: nil)
+                             attachments: nil,
+                             userDefinedAttributes: nil)
     }
 
     func onHotLaunchCallback(_ data: HotLaunchData) {
@@ -68,6 +70,7 @@ final class BaseAppLaunchCollector: AppLaunchCollector {
                              type: .hotLaunch,
                              attributes: nil,
                              sessionId: nil,
-                             attachments: nil)
+                             attachments: nil,
+                             userDefinedAttributes: nil)
     }
 }

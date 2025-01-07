@@ -43,6 +43,13 @@
     
     UIView *headerView = [self createTableHeaderView];
     tableView.tableHeaderView = headerView;
+
+    NSDictionary *userAttributes = @{
+        @"user_name": @"Alice",
+        @"paid_user": @YES,
+        @"credit_balance": @1000,
+        @"latitude": @30.2661403415387};
+    [[Measure shared] trackEvent:@"event-name" attributes:userAttributes timestamp:nil];
     
     [self setTitle:@"Objc View Controller"];
     

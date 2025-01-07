@@ -38,6 +38,7 @@ final class BaseNetworkChangeCollector: NetworkChangeCollector {
                              type: .networkChange,
                              attributes: nil,
                              sessionId: nil,
-                             attachments: nil)
+                             attachments: nil,
+                             userDefinedAttributes: nil)
     }
 }

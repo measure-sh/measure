@@ -17,8 +17,17 @@ protocol EventProcessor {
         type: EventType,
         attributes: Attributes?,
         sessionId: String?,
-        attachments: [Attachment]?
-    )
+        attachments: [Attachment]?,
+        userDefinedAttributes: String?)
+
+    func trackUserTriggered<T: Codable>( // swiftlint:disable:this function_parameter_count
+        data: T,
+        timestamp: Number,
+        type: EventType,
+        attributes: Attributes?,
+        sessionId: String?,
+        attachments: [Attachment]?,
+        userDefinedAttributes: String?)
 }
 
 /// A concrete implementation of the `EventProcessor` protocol, responsible for tracking and
@@ -59,10 +68,37 @@ final class BaseEventProcessor: EventProcessor {
         type: EventType,
         attributes: Attributes?,
         sessionId: String?,
-        attachments: [Attachment]?
-    ) {
-        SignPost.trace(label: "") {
-            track(data: data, timestamp: timestamp, type: type, attributes: attributes, attachments: attachments, sessionId: sessionId)
+        attachments: [Attachment]?,
+        userDefinedAttributes: String?) {
+        SignPost.trace(label: "track-event") {
+            track(data: data,
+                  timestamp: timestamp,
+                  type: type,
+                  attributes: attributes,
+                  userTriggered: false,
+                  attachments: attachments,
+                  sessionId: sessionId,
+                  userDefinedAttributes: userDefinedAttributes)
+        }
+    }
+
+    func trackUserTriggered<T: Codable>( // swiftlint:disable:this function_parameter_count
+                                        data: T,
+                                        timestamp: Number,
+                                        type: EventType,
+                                        attributes: Attributes?,
+                                        sessionId: String?,
+                                        attachments: [Attachment]?,
+                                        userDefinedAttributes: String?) {
+        SignPost.trace(label: "track-event-user-triggered") {
+            track(data: data,
+                  timestamp: timestamp,
+                  type: type,
+                  attributes: attributes,
+                  userTriggered: true,
+                  attachments: attachments,
+                  sessionId: sessionId,
+                  userDefinedAttributes: userDefinedAttributes)
         }
     }
 
@@ -71,8 +107,10 @@ final class BaseEventProcessor: EventProcessor {
         timestamp: Number,
         type: EventType,
         attributes: Attributes?,
+        userTriggered: Bool,
         attachments: [Attachment]?,
-        sessionId: String?
+        sessionId: String?,
+        userDefinedAttributes: String?
     ) {
         let threadName = OperationQueue.current?.underlyingQueue?.label ?? "unknown"
         let event = createEvent(
@@ -81,8 +119,9 @@ final class BaseEventProcessor: EventProcessor {
             type: type,
             attachments: attachments,
             attributes: attributes ?? Attributes(),
-            userTriggered: false,
-            sessionId: sessionId
+            userTriggered: userTriggered,
+            sessionId: sessionId,
+            userDefinedAttributes: userDefinedAttributes
         )
         event.attributes?.threadName = threadName
         event.attributes?.deviceLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
@@ -104,7 +143,8 @@ final class BaseEventProcessor: EventProcessor {
         attachments: [Attachment]?,
         attributes: Attributes?,
         userTriggered: Bool,
-        sessionId: String?
+        sessionId: String?,
+        userDefinedAttributes: String?
     ) -> Event<T> {
         let id = idProvider.createId()
         let resolvedSessionId = sessionId ?? sessionManager.sessionId
@@ -117,7 +157,8 @@ final class BaseEventProcessor: EventProcessor {
             data: data,
             attachments: attachments,
             attributes: attributes,
-            userTriggered: userTriggered
+            userTriggered: userTriggered,
+            userDefinedAttributes: userDefinedAttributes
         )
     }
 }

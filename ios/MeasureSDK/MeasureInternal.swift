@@ -14,7 +14,7 @@ import UIKit
 ///
 final class MeasureInternal {
     var measureInitializer: MeasureInitializer
-    private var logger: Logger {
+    var logger: Logger {
         return measureInitializer.logger
     }
     private var client: Client {
@@ -109,6 +109,9 @@ final class MeasureInternal {
     private var networkChangeCollector: NetworkChangeCollector {
         return measureInitializer.networkChangeCollector
     }
+    var customEventCollector: CustomEventCollector {
+        return measureInitializer.customEventCollector
+    }
     private let lifecycleObserver: LifecycleObserver
 
     init(_ measureInitializer: MeasureInitializer) {
@@ -117,6 +120,7 @@ final class MeasureInternal {
         self.logger.log(level: .info, message: "Starting Measure SDK", error: nil, data: nil)
         self.sessionManager.setPreviousSessionCrashed(crashReportManager.hasPendingCrashReport)
         self.sessionManager.start()
+        self.customEventCollector.enable()
         self.appLaunchCollector.enable()
         self.lifecycleObserver.applicationDidEnterBackground = applicationDidEnterBackground
         self.lifecycleObserver.applicationWillEnterForeground = applicationWillEnterForeground

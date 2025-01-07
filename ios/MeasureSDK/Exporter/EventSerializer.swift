@@ -151,6 +151,16 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
                 }
             }
             return nil
+        case .custom:
+            if let customEventData = event.customEvent {
+                do {
+                    let decodedData = try JSONDecoder().decode(CustomEventData.self, from: customEventData)
+                    return serialiseCustomEventData(decodedData)
+                } catch {
+                    return nil
+                }
+            }
+            return nil
         case nil:
             return nil
         }
@@ -401,6 +411,13 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
         return result
     }
 
+    private func serialiseCustomEventData(_ customEventData: CustomEventData) -> String {
+        var result = "{"
+        result += "\"name\":\"\(customEventData.name)\""
+        result += "}"
+        return result
+    }
+
     private func getSerialisedAttributes(for event: EventEntity) -> String? {
         let decodedAttributes: Attributes?
         if let attributeData = event.attributes {
@@ -431,7 +448,7 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
                     result += "\"app_version\":\"\(decodedAttributes?.appVersion ?? "")\","
                     result += "\"app_build\":\"\(decodedAttributes?.appBuild ?? "")\","
                     result += "\"measure_sdk_version\":\"\(decodedAttributes?.measureSdkVersion ?? "")\","
-                    result += "\"device_low_power_mode\":\"\(decodedAttributes?.deviceLowPowerMode ?? false)\","
+                    result += "\"device_low_power_mode\":\(decodedAttributes?.deviceLowPowerMode ?? false),"
                     result += "\"app_unique_id\":\"\(decodedAttributes?.appUniqueId ?? "")\""
                     result += "}"
                 return result
@@ -455,7 +472,22 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
         result += "\"type\":\"\(event.type)\","
         result += "\"\(event.type)\":\(serialisedData),"
         result += "\"attribute\":\(serialisedAttributes),"
+        if let userDefinedAttributes = event.userDefinedAttributes {
+            result += "\"user_defined_attribute\":\(userDefinedAttributes),"
+        }
         result += "\"user_triggered\":\(event.userTriggered)"
+        result += "}"
+        return result
+    }
+
+    static func serializeUserDefinedAttribute(_ userDefinedAttribute: [String: AttributeValue]?) -> String? {
+        guard let userDefinedAttribute = userDefinedAttribute else { return nil }
+
+        var result = "{"
+        for (key, value) in userDefinedAttribute {
+            result += "\"\(key)\":\(value.serialize()),"
+        }
+        result = String(result.dropLast())
         result += "}"
         return result
     }

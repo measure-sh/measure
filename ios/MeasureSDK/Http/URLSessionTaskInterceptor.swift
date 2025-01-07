@@ -43,7 +43,7 @@ final class URLSessionTaskInterceptor {
         self.defaultHttpHeadersBlocklist = defaultHttpHeadersBlocklist
     }
 
-    func urlSessionTask(_ task: URLSessionTask, setState state: URLSessionTask.State) {
+    func urlSessionTask(_ task: URLSessionTask, setState state: URLSessionTask.State) { // swiftlint:disable:this cyclomatic_complexity
         guard !NetworkInterceptor.isEnabled else { return }
 
         guard let httpInterceptorCallbacks = self.httpInterceptorCallbacks,

@@ -723,7 +723,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         }
     }
 
-    func testHttpDataSerialization() {
+    func testHttpDataSerialization() { // swiftlint:disable:this function_body_length
         let httpData = HttpData(
             url: "https://example.com/api/v1/resource",
             method: "GET",
@@ -748,8 +748,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             data: httpData,
             attachments: [],
             attributes: TestDataGenerator.generateAttributes(),
-            userTriggered: false
-        )
+            userTriggered: false)
 
         let eventEntity = EventEntity(event)
 
@@ -793,6 +792,69 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             }
         } catch {
             XCTFail("Invalid JSON object: \(error.localizedDescription)")
+        }
+    }
+
+    func testCustomEventDataSerialization() { // swiftlint:disable:this function_body_length
+        let customEventData = CustomEventData(name: "TestEvent")
+
+        let event = Event(
+            id: "customEventId",
+            sessionId: "sessionId",
+            timestamp: "2024-10-22T10:02:00Z",
+            timestampInMillis: 123456791,
+            type: .custom,
+            data: customEventData,
+            attachments: [],
+            attributes: TestDataGenerator.generateAttributes(),
+            userTriggered: true)
+
+        let eventEntity = EventEntity(event)
+
+        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+            XCTFail("getSerialisedEvent cannot be nil")
+            return
+        }
+
+        let jsonData = Data(jsonString.utf8)
+        do {
+            let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+
+            if let customDataDict = jsonDict?["custom"] as? [String: String] {
+                XCTAssertEqual(customDataDict["name"], "TestEvent", "The custom event name should match the expected value.")
+            } else {
+                XCTFail("Custom event data is not present in the serialized event.")
+            }
+        } catch {
+            XCTFail("Invalid JSON object: \(error.localizedDescription)")
+        }
+
+        func testUserDefinedAttributesSerialization() {
+            let attributes: [String: AttributeValue] = ["string_data": .string("Alice"),
+                                                        "bool_data": .boolean(true),
+                                                        "int_data": .int(1000),
+                                                        "float_data": .float(1001.0),
+                                                        "long_data": .long(1000000000),
+                                                        "double_data": .double(30.2661403415387)]
+            guard let jsonString = EventSerializer.serializeUserDefinedAttribute(attributes) else {
+                XCTFail("serializeUserDefinedAttribute cannot be nil")
+                return
+            }
+            let jsonData = Data(jsonString.utf8)
+            do {
+                if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
+                    XCTAssertEqual(jsonDict["string_data"] as? String, "Alice", "The custom event name should match the expected value.")
+                    XCTAssertEqual(jsonDict["bool_data"] as? Bool, true, "The custom event name should match the expected value.")
+                    XCTAssertEqual(jsonDict["int_data"] as? Int, 1000, "The custom event name should match the expected value.")
+                    XCTAssertEqual(jsonDict["float_data"] as? Float, 1001.0, "The custom event name should match the expected value.")
+                    XCTAssertEqual(jsonDict["long_data"] as? Int64, 1000000000, "The custom event name should match the expected value.")
+                    XCTAssertEqual(jsonDict["double_data"] as? Double, 30.2661403415387, "The custom event name should match the expected value.")
+                } else {
+                    XCTFail("Could not deserizlize user defined attributes.")
+                }
+            } catch {
+                XCTFail("Invalid JSON object: \(error.localizedDescription)")
+            }
         }
     }
 } // swiftlint:disable:this file_length

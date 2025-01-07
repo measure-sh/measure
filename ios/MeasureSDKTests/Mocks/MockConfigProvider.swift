@@ -22,6 +22,13 @@ final class MockConfigProvider: ConfigProvider {
     var maxAttachmentSizeInEventsBatchInBytes: Number
     var maxEventsInBatch: Number
     var timeoutIntervalForRequest: TimeInterval
+    var customEventNameRegex: String
+    var maxEventNameLength: Int
+    var maxUserDefinedAttributeKeyLength: Int
+    var maxUserDefinedAttributeValueLength: Int
+    var maxUserDefinedAttributesPerEvent: Int
+    var httpContentTypeAllowlist: [String]
+    var defaultHttpHeadersBlocklist: [String]
 
     init(enableLogging: Bool = false,
          trackScreenshotOnCrash: Bool = true,
@@ -35,7 +42,19 @@ final class MockConfigProvider: ConfigProvider {
          timeoutIntervalForRequest: TimeInterval = 30,
          maxSessionDurationMs: Number = 60 * 60 * 1000,
          cpuTrackingIntervalMs: UnsignedNumber = 3000,
-         memoryTrackingIntervalMs: UnsignedNumber = 2000) {
+         memoryTrackingIntervalMs: UnsignedNumber = 2000,
+         customEventNameRegex: String = "^[a-zA-Z0-9_-]",
+         maxEventNameLength: Int = 64,
+         maxUserDefinedAttributeKeyLength: Int = 256,
+         maxUserDefinedAttributeValueLength: Int = 256,
+         maxUserDefinedAttributesPerEvent: Int = 100,
+         httpContentTypeAllowlist: [String] = ["application/json"],
+         defaultHttpHeadersBlocklist: [String] = ["Authorization",
+                                                  "Cookie",
+                                                  "Set-Cookie",
+                                                  "Proxy-Authorization",
+                                                  "WWW-Authenticate",
+                                                  "X-Api-Key"]) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.sessionSamplingRate = sessionSamplingRate
@@ -49,6 +68,13 @@ final class MockConfigProvider: ConfigProvider {
         self.maxSessionDurationMs = maxSessionDurationMs
         self.cpuTrackingIntervalMs = cpuTrackingIntervalMs
         self.memoryTrackingIntervalMs = memoryTrackingIntervalMs
+        self.customEventNameRegex = customEventNameRegex
+        self.maxEventNameLength = maxEventNameLength
+        self.maxUserDefinedAttributeKeyLength = maxUserDefinedAttributeKeyLength
+        self.maxUserDefinedAttributeValueLength = maxUserDefinedAttributeValueLength
+        self.maxUserDefinedAttributesPerEvent = maxUserDefinedAttributesPerEvent
+        self.httpContentTypeAllowlist = httpContentTypeAllowlist
+        self.defaultHttpHeadersBlocklist = defaultHttpHeadersBlocklist
     }
 
     func loadNetworkConfig() {}

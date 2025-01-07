@@ -134,7 +134,8 @@ final class EventProcessorTests: XCTestCase {
                              type: .exception,
                              attributes: nil,
                              sessionId: nil,
-                             attachments: [Attachment(name: "file-name", type: .screenshot, path: "file-path")])
+                             attachments: [Attachment(name: "file-name", type: .screenshot, path: "file-path")],
+                             userDefinedAttributes: nil)
 
         // Check if latest attributes are saved when an event is tracked
         XCTAssertEqual(crashDataPersistence.attribute, attributes)
@@ -233,7 +234,8 @@ final class EventProcessorTests: XCTestCase {
                              type: .exception,
                              attributes: attributes,
                              sessionId: "session-id-2",
-                             attachments: [Attachment(name: "file-name", type: .screenshot, path: "file-path")])
+                             attachments: [Attachment(name: "file-name", type: .screenshot, path: "file-path")],
+                             userDefinedAttributes: nil)
 
         // Check if latest attributes are saved when an event is tracked
         XCTAssertEqual(crashDataPersistence.attribute, updatedAttributes)

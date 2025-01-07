@@ -84,7 +84,8 @@ final class BaseCpuUsageCollector: CpuUsageCollector {
                                  type: .cpuUsage,
                                  attributes: nil,
                                  sessionId: nil,
-                                 attachments: nil)
+                                 attachments: nil,
+                                 userDefinedAttributes: nil)
         } else {
             logger.internalLog(level: .error, message: "Could not get CPU usage data.", error: nil, data: nil)
         }

@@ -66,7 +66,8 @@ final class CrashReportingManager: CrashReportManager {
                                       type: .exception,
                                       attributes: attributes,
                                       sessionId: sessionId,
-                                      attachments: nil)
+                                      attachments: nil,
+                                      userDefinedAttributes: nil)
         }
 
         crashReporter.clearCrashData()
