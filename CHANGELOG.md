@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add new scopes to commitlint (#1703)
+
 - (**frontend**): Update landing page + readme with perf traces
 
 
