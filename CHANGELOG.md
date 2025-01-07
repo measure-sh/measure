@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :sparkles: New features
+
+- (**frontend**): Add discord support link to dashboard nav
+
 ### :hammer: Misc
 
 - (**backend**): Log email instead of sending to waitlist
