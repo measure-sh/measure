@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Support `flutter` & `rn` in cliff config (#1705)
 - (**backend**): Add new scopes to commitlint (#1703)
+- (**deps**): Bump next from 14.2.13 to 14.2.22 in /frontend/dashboard (#1710)
 - (**deps**): Bump nanoid from 3.3.7 to 3.3.8 in /frontend/dashboard (#1708)
 - (**deps**): Bump golang.org/x/crypto in /backend/cleanup (#1707)
 - (**deps**): Bump golang.org/x/crypto in /backend/api (#1701)
