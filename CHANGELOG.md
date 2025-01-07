@@ -11,9 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Support `flutter` & `rn` in cliff config (#1705)
 - (**backend**): Add new scopes to commitlint (#1703)
-
 - (**frontend**): Update landing page + readme with perf traces
-
+- Improve automated changelog formatting (#1706)
 
 ### :books: Documentation
 
@@ -29,11 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add span support
 - (**backend**): Support custom events (#1554)
 - (**backend**): Support user defined attributes (#1529)
-
 - (**frontend**): Add memory usage absolute plot in session timeline (#1625)
 - (**frontend**): Make whole checkbox container clickable in dropdown select component
 - (**frontend**): Show user defined attrs in session timeline
-
 
 ### :bug: Bug fixes
 
@@ -51,7 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Validate required event & span attributes (#1590)
 - (**backend**): Discard batch if it contains duplicate event or span ids (#1588)
 - (**backend**): Filter versions and os versions securely (#1563)
-
 - (**frontend**): Handle incorrect http event display in session timeline
 - (**frontend**): Show memory usage in mbs in session timeline (#1679)
 - (**frontend**): Made api key input read only to fix warnings (#1657)
@@ -64,9 +60,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Handle empty user_defined_attrs in session timeline
 - (**frontend**): Don't update filters on selectedApp change
 
-
 ### :hammer: Misc
 
+- (**backend**): Remove unneeded log lines (#1687)
 - (**backend**): Update user defined attributes sample session
 - (**backend**): Cleanup expired resources (#1655)
 - (**backend**): Add new sessions
@@ -74,33 +70,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Revert deletion of session data with spans
 - (**backend**): Support layout_snapshot attachments for gesture click
 - (**backend**): Made span queries secure (#1566)
+- (**backend**): Remove unused code (#1545)
 - (**backend**): Add sample sessions
 - (**backend**): Ingest low power and thermal throttling attributes
-
+- (**frontend**): Remove "|| null" from empty metrics sample
+- (**frontend**): Remove old journey code
+- (**frontend**): Remove clarity
 - (**frontend**): Clear span statuses in filters
 - (**frontend**): Improve custom event ui in session timeline
 - (**frontend**): Improve user def attrs spacing
 - (**frontend**): Adjust dropdown select popup position & width
+- (**frontend**): Remove cursor pointer style
 - (**frontend**): Support attachments for gesture click
 - (**frontend**): Truncate class names in session timeline event titles
-
+- (**frontend**): Delete unused url filters code
 
 ### :recycle: Refactor
 
 - (**backend**): Use aws-sdk-go-v2 for object uploads (#1675)
-
-
-### :coffin: Removed
-
-- (**backend**): Remove unneeded log lines (#1687)
-- (**backend**): Remove unused code (#1545)
-
-- (**frontend**): Remove "|| null" from empty metrics sample
-- (**frontend**): Remove old journey code
-- (**frontend**): Remove clarity
-- (**frontend**): Remove cursor pointer style
-- (**frontend**): Delete unused url filters code
-
 
 ### :books: Documentation
 
@@ -113,7 +100,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Use specific clickhouse image version (#1517)
 
-
 ### :books: Documentation
 
 - (**backend**): Fix typos and missing info (#1513)
@@ -124,42 +110,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Use short codes for list filters
 
-
 ### :bug: Bug fixes
 
 - (**backend**): Validate limit to not be zero (#1500)
 - (**backend**): Incorrect pagination when no data (#1499)
 - (**backend**): Optimize session detail apis and overall loading experience (#1490)
-
 - (**frontend**): Handle no data case for sessions list
 - (**frontend**): Truncate matched free text
 - (**frontend**): Better pagination in session detail (#1491)
 - (**frontend**): Handle empty attr distributions
 
-
 ### :hammer: Misc
 
 - (**backend**): Add migration guide & script for next version (#1512)
+- (**backend**): Remove backfilling migrations (#1511)
 - (**backend**): Change postgres compose config (#1509)
 - (**backend**): Change index type in sessions table (#1505)
 - (**backend**): Add skip indexes for sessions table (#1492)
-
 - (**frontend**): Set default session type filter to all issues
 - (**frontend**): Update landing page exceptions video
 - (**frontend**): Standardise paginator UI
 - (**frontend**): Cancel in-flight requests
 - (**frontend**): Update exceptions landing video
 
-
-### :coffin: Removed
-
-- (**backend**): Remove backfilling migrations (#1511)
-
-
 ### :books: Documentation
 
 - (**backend**): Document sessions overview list api (#1502)
-
 - Update exceptions demo video in README
 - Update exceptions demo video in README
 
@@ -174,7 +150,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Use sankey graphs for journeys
 - (**frontend**): Add filters to urls
 
-
 ### :bug: Bug fixes
 
 - (**backend**): Improve crash/anr detail experience (#1451)
@@ -183,7 +158,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Increase app version character limit (#1342)
 - (**backend**): Increase thread name character limit (#1341)
 - (**backend**): Prevent duplicate ingestion of events (#1331)
-
 - (**frontend**): Crash detail not showing id (#1453)
 - (**frontend**): Hot launch metric was incorrectly showing warm launch metric (#1448)
 - (**frontend**): Some dashboard apis were failing due to lack of url encoding (#1449)
@@ -198,9 +172,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Update app name on selected app change
 - (**frontend**): Improve security posture (#1305)
 
-
 ### :hammer: Misc
 
+- (**backend**): Remove deprecated cliff feature (#1462)
 - (**backend**): Apply suitable restart policy (#1458)
 - (**backend**): Add data skipping indexes for fingerprints (#1455)
 - (**backend**): Prevent db statement leaks (#1318)
@@ -208,26 +182,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Integrate screen view event with session replay
 - (**backend**): Ingest screen view event
 - (**backend**): Add screen view sample sessions
-
 - (**frontend**): Improve exception details loading state
 - (**frontend**): Update default time filter to last 6 hours
 - (**frontend**): Update landing page videos
 - (**frontend**): Add loading states
+- (**frontend**): Remove legends & add versions in tooltips to exception & sessions overview plots
 - (**frontend**): Add loading spinners for plot components
 - (**frontend**): Go directly to dashboard if logged in
-
-
-### :coffin: Removed
-
-- (**backend**): Remove deprecated cliff feature (#1462)
-
-- (**frontend**): Remove legends & add versions in tooltips to exception & sessions overview plots
-
 
 ### :books: Documentation
 
 - (**backend**): Update incorrect json key name (#1363)
-
 - Improve spelling in readme (#1460)
 - Add videos to README
 - Add call to action for star to README
@@ -237,9 +202,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :bug: Bug fixes
 
 - (**backend**): Crash/anr details instances plot won't load sometimes (#1298)
-
 - (**frontend**): Add option to handle no data & not onboarded in filters
-
 
 ### :books: Documentation
 
@@ -253,7 +216,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Track email on new user sign in
 - (**backend**): Improve session explorer
 - (**backend**): Add session explorer with text search filter
-
 - (**frontend**): Add custom error page
 - (**frontend**): Add custom 404 page
 - (**frontend**): Update tooltips
@@ -263,7 +225,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Add filter for OS versions
 - (**frontend**): Add 'All', 'Latest' options + 'at least 1' enforcement
 - (**frontend**): Redesign apps page
-
 
 ### :bug: Bug fixes
 
@@ -275,36 +236,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Round crash and anr contribution percentage to 2 decimal places (#1221)
 - (**backend**): Addressed ingestion failures related to ip inspection (#1197)
 - (**backend**): Nil pointer dereference when ingesting `low_memory` events (#1190)
-
 - (**frontend**): Hide attachment data in session replay event body
 - (**frontend**): Only attempt to show attachments for crashes/anrs in sesion replay
 - (**frontend**): Add missing useEffect deps for journey
 - (**frontend**): Use whole int left axes for crash + anr instances plots
 
-
 ### :hammer: Misc
 
 - (**backend**): Capture more details in otel traces (#1289)
 - (**backend**): Add new sessions
+- (**backend**): Remove compose profile
 - (**backend**): Add os_page_size attribute
 - (**backend**): Additional log for anomalous cold launch duration (#1199)
 - (**backend**): Format log line (#1189)
-
 - (**frontend**): Use selected filters instead of expanded params
 - (**frontend**): Fix table column widths and move paginator to top right
 - (**frontend**): Refactor filter application to api calls
 - (**frontend**): Refactor time utils to have separate functions for human readable datetime, date only and time only
 
-
-### :coffin: Removed
-
-- (**backend**): Remove compose profile
-
-
 ### :books: Documentation
 
 - (**backend**): Add self host upgrade guide (#1291)
-
 - Update README.md
 - Improved language and formatting for working with databases (#1198)
 - Update discord link
@@ -321,28 +273,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**frontend**): Add "Copy AI context" button
 
-
 ### :bug: Bug fixes
 
 - (**backend**): Fix incorrect filter query for crash & anr groups
 - (**backend**): Proceed with event ingestion on symbolication failure
 - (**backend**): Handle exception/anr groups with no events
 
-
 ### :hammer: Misc
 
 - (**backend**): Reorder & cleanup postgres migrations (#1155)
-- (**backend**): Fix session data (#1141)
-
-- (**frontend**): Update landing hero animation
-
-
-### :coffin: Removed
-
 - (**backend**): Remove eventIds array from crash + anr groups
-
+- (**backend**): Fix session data (#1141)
 - (**frontend**): Remove commented code
-
+- (**frontend**): Update landing hero animation
+- Update root `package.json`
 
 ### :books: Documentation
 
@@ -390,7 +334,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Upload session attachments (#124)
 - (**backend**): Implement symbolicator with retrace (#126)
 - (**backend**): Add symbolication (#79)
-
 - (**webapp**): Enable retention period app setting
 - (**webapp**): Add date selection presets to filters
 - (**webapp**): Update exceptions overview list format
@@ -484,7 +427,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Add "Sign-in and sign-up with Google" (#163)
 - (**webapp**): Logout (#153)
 - (**webapp**): Add basic signup/in flow (#150)
-
 
 ### :bug: Bug fixes
 
@@ -591,9 +533,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Retrace symbolication algorithm (#93)
 - (**backend**): App_exit symbolication (#91)
 - (**backend**): Change names of exception columns (#52)
-
 - (**frontend**): Use node env for auth.ts jest test
-
 - (**webapp**): Remove env checks causing vercel build failure
 - (**webapp**): Import lottie dynamically to fix ssr error
 - (**webapp**): Incorrect landing page video borders
@@ -681,7 +621,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Set header z-index so it's always on top
 - (**webapp**): Center align section headers on small screens
 
-
 ### :hammer: Misc
 
 - (**backend**): Fix dashboard healthcheck
@@ -692,6 +631,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Fix dashboard docker compose
 - (**backend**): Update compose.yml
 - (**backend**): Update rigmarole script
+- (**backend**): Remove stale files
 - (**backend**): Update go.work.sum (#1050)
 - (**backend**): Move dashboard directory
 - (**backend**): Update cleanup deps
@@ -710,6 +650,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Rename web env vars
 - (**backend**): Consistent healthcheck (#997)
 - (**backend**): Add healthchecks (#989)
+- (**backend**): Remove example env (#985)
 - (**backend**): Add otel instrumentation to api server
 - (**backend**): Add new sessions with real cpu usage data
 - (**backend**): Add dummy percentage usage in session data
@@ -717,6 +658,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update cpu and memory usage events schema
 - (**backend**): Refactor cpu usage calculation for clarity
 - (**backend**): Rename msg column to message in anr/exception groups
+- (**backend**): Remove redundant parameter types
 - (**backend**): Make getDisplayTitle method to encapsulate exception group naming
 - (**backend**): Standardise migration file names
 - (**backend**): Store exception/anr group name in separate columns
@@ -746,6 +688,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update container naming
 - (**backend**): Update dockerfiles
 - (**backend**): Improve clickhouse close handling
+- (**backend**): Remove ipinfo env variable
 - (**backend**): Use local geoip db
 - (**backend**): Update dockerfile
 - (**backend**): Update dockerfile
@@ -758,11 +701,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Rename dockerfile
 - (**backend**): Consolidate env vars
 - (**backend**): Add gitignore
+- (**backend**): Remove example env file
 - (**backend**): Improve migrations
 - (**backend**): Mod compose
 - (**backend**): Change env vars
+- (**backend**): Remove put users endpoint
 - (**backend**): Add team id
 - (**backend**): Improve create team
+- (**backend**): Remove unused field
 - (**backend**): Add google signin
 - (**backend**): Update deps
 - (**backend**): Update dot env example
@@ -771,9 +717,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update cipher pkg
 - (**backend**): Revamp invite flow
 - (**backend**): Set last sign in time
+- (**backend**): Remove stale logic
 - (**backend**): Handle signups
 - (**backend**): Update postgres ddl
 - (**backend**): Refresh session automatically
+- (**backend**): Remove log
 - (**backend**): Update github callback
 - (**backend**): Add authn routes
 - (**backend**): Update deps
@@ -789,6 +737,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Tidy go mods
 - (**backend**): Update example config.toml
 - (**backend**): Add go mods
+- (**backend**): Remove mapping cache
 - (**backend**): Misc improvements
 - (**backend**): Change docker registry (#818)
 - (**backend**): Modify frame location method
@@ -797,6 +746,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Send exception display title
 - (**backend**): Anr location method
 - (**backend**): Exception location method
+- (**backend**): Remove unused code
 - (**backend**): Modify anr groups table
 - (**backend**): Set older event timestamp
 - (**backend**): Modify exception grouping
@@ -822,9 +772,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add query function
 - (**backend**): Rename methods
 - (**backend**): Update dependencies in symbolicator
+- (**backend**): Remove unused route
+- (**backend**): Remove unused route
 - (**backend**): Anr detail journey plot api
 - (**backend**): Minor refactor
 - (**backend**): Add full filter support
+- (**backend**): Remove unused code
 - (**backend**): Add crash detail journey plot
 - (**backend**): Add journey in filter pkg
 - (**backend**): Add journey options
@@ -834,6 +787,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Fix typo
 - (**backend**): Doc comments
 - (**backend**): Add doc comments
+- (**backend**): Remove hardcoded prefix
 - (**backend**): Modify response
 - (**backend**): Modify response
 - (**backend**): Change variable name
@@ -864,6 +818,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add graph pkg
 - (**backend**): Get journey events
 - (**backend**): Lifecycle events constants
+- (**backend**): Remove dead code
 - (**backend**): Update app metrics api
 - (**backend**): Validate app journey
 - (**backend**): Improve app metrics
@@ -873,11 +828,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update dashboard api docs (#644)
 - (**backend**): Update event validation
 - (**backend**): Fix app onboarding
+- (**backend**): Remove unused tables
 - (**backend**): Fix broken code
 - (**backend**): Fix context in get team
+- (**backend**): Remove unnecessary error return
 - (**backend**): Update schema.sql with alert_prefs table
 - (**backend**): Add missing sqlf statement close method
+- (**backend**): Remove print statement
 - (**backend**): Add doc comments
+- (**backend**): Remove old session api
+- (**backend**): Remove old app's get method
+- (**backend**): Remove old symbolicate
 - (**backend**): Update old symbolicate
 - (**backend**): Rewire session replay
 - (**backend**): Network events thread name
@@ -906,9 +867,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Context in app filters
 - (**backend**): Update get app filters api
 - (**backend**): Fix bucketting
+- (**backend**): Remove background context
+- (**backend**): Remove unused code
 - (**backend**): Format doc comments
 - (**backend**): Save event req to db
 - (**backend**): Idempotecy of request id
+- (**backend**): Remove extra newline
 - (**backend**): Add event_reqs db table
 - (**backend**): Modify events table schema
 - (**backend**): Fix event ingestion
@@ -926,6 +890,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add fresh events
 - (**backend**): Add event req id
 - (**backend**): Modify ingest to send events
+- (**backend**): Remove session from scanning
+- (**backend**): Remove session recording
 - (**backend**): Change scan logic to read blobs
 - (**backend**): Attribute as key name instead of attributes
 - (**backend**): Fix invalid json bug
@@ -938,9 +904,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update events table schema
 - (**backend**): Bucket exceptions, anrs
 - (**backend**): Rewire attachment processing
+- (**backend**): Remove unused code
 - (**backend**): Add new events route
 - (**backend**): Rewire symbolication
 - (**backend**): Update session
+- (**backend**): Delete old attachment
 - (**backend**): Add attachment
 - (**backend**): Rewire country lookup
 - (**backend**): Update event struct
@@ -949,6 +917,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update attribute validation
 - (**backend**): Define attributes
 - (**backend**): Wip - attribute
+- (**backend**): Remove `/events` route
 - (**backend**): Organize response
 - (**backend**): Sort only by version code (#569)
 - (**backend**): Format response
@@ -972,6 +941,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Version code in crash detail api
 - (**backend**): Version code in crash/anr groups
 - (**backend**): Add version code in app filter
+- (**backend**): Remove unneeded logs
 - (**backend**): Add pocket cast sessions
 - (**backend**): Update `cold_launch` event
 - (**backend**): Update `http` event
@@ -1006,6 +976,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Change job trigger file list (#450)
 - (**backend**): Change mapping file key query
 - (**backend**): Add `low_memory` event
+- (**backend**): Remove `app_exit.timestamp`
 - (**backend**): Handle updated `low_memory` events
 - (**backend**): Expand `low_memory` click schema
 - (**backend**): Bring back duration
@@ -1054,6 +1025,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update symbolicator-retrace's env file
 - (**backend**): Files now uploads locally
 - (**backend**): Update `.env.example`
+- (**backend**): Remove dead code
 - (**backend**): Upload files locally if in debug mode
 - (**backend**): Network_generations in anr groups anr
 - (**backend**): Network_types in anr groups anr
@@ -1096,7 +1068,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Upgrade uuid pkg
 - (**backend**): Modify grouping schema
 - (**backend**): Rearrange events table columns (#385)
+- (**backend**): Remove `key` query parameter
+- (**backend**): Remove `version` field from app filter
 - (**backend**): Add get anr group detail api
+- (**backend**): Remove unused code
 - (**backend**): Add get crash group detail api
 - (**backend**): Modify pagination behavior
 - (**backend**): Add keyset pagination
@@ -1105,6 +1080,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Omit fields from api response
 - (**backend**): Update list anr groups api
 - (**backend**): Update anr_groups table schema
+- (**backend**): Remove app version from exception grouping
+- (**backend**): Remove `app_version` field
 - (**backend**): Modify crash groups list api
 - (**backend**): Change event group field name
 - (**backend**): Change event group schemas
@@ -1112,6 +1089,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add trim method to resource
 - (**backend**): Add function to fetch exception group events
 - (**backend**): Add function expand filters
+- (**backend**): Remove unused app apis (#351)
 - (**backend**): Reorder event columns (#346)
 - (**backend**): Sort anr groups
 - (**backend**): Sort crash groups
@@ -1120,6 +1098,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add new methods to session
 - (**backend**): Modify anr group query
 - (**backend**): Modify exception group query
+- (**backend**): Delete unneeded code
 - (**backend**): Change handling of attribute map
 - (**backend**): Update help text of ingest command
 - (**backend**): Update ingest command
@@ -1130,6 +1109,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Use api keys from config
 - (**backend**): Add sample config file
 - (**backend**): Add toml package
+- (**backend**): Remove unwanted logging
 - (**backend**): Tests are being silently skipped (#302)
 - (**backend**): Add version filter support
 - (**backend**): Add `app_version` to `anr_groups` table
@@ -1162,7 +1142,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add `inet` package
 - (**backend**): Support querying unhandled exceptions
 - (**backend**): Add get filters api
+- (**backend**): Remove unused const (#282)
+- (**backend**): Remove `apps.first_seen_at` field
 - (**backend**): Set onboarded_at field
+- (**backend**): Remove latest version
 - (**backend**): Update clickhouse schema
 - (**backend**): Update apps after session save
 - (**backend**): Add platform package
@@ -1172,6 +1155,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Modify postgres schema
 - (**backend**): Update clickhouse schema dump
 - (**backend**): Add rigmarole.sh to clickhouse migrations
+- (**backend**): Remove all clickhouse migrations
+- (**backend**): Remove invitation related db modifications
+- (**backend**): Remove invitations relation sql
 - (**backend**): Add change member role api
 - (**backend**): Add method to validate role
 - (**backend**): Add remove team member api
@@ -1194,10 +1180,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Modify team_invitations schema
 - (**backend**): Add cipher package
 - (**backend**): Update get team apps api
+- (**backend**): Remove unneeded statements
 - (**backend**): Update get app details api
 - (**backend**): Increase access token expiration
 - (**backend**): Add app details api
 - (**backend**): Handle not found condition (#235)
+- (**backend**): Remove log line
 - (**backend**): Return apps from db
 - (**backend**): Wip get team apps api
 - (**backend**): Change name of app key
@@ -1212,6 +1200,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add env var (#220)
 - (**backend**): Rename migration files
 - (**backend**): Add github oauth redirection (#219)
+- (**backend**): Remove old sql files
 - (**backend**): Update docker compose
 - (**backend**): Drop old clickhouse table
 - (**backend**): Change a column in `mapping_files`
@@ -1234,12 +1223,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Modify docker compose (#128)
 - (**backend**): Count session payload size (#122)
 - (**backend**): Improve example dotenv files (#123)
-
 - (**frontend**): Revert google ux_mode
+- (**frontend**): Remove commented code
 - (**frontend**): Lazy load landing page videos
 - (**frontend**): Adjust landing hero anim dimensions
 - (**frontend**): Change android availability on landing page
-
+- (**frontend**): Remove unity section from landing page
+- Rename directory and service names
+- Update installation script (#1037)
+- Delete self host `.env.example` (#1033)
+- Update .commitlintrc.js
+- Update compose.yml (#1023)
+- Remove dotenv
+- Remove supabase
+- Update .gitignore (#850)
+- Update root go work sum
+- Report status and errors (#324)
+- Remove supabase dependency from root folder
+- Update supabase config (#216)
+- Move docker compose
+- Streamline self-host
+- Change commitlint config (#54)
+- Add husky & commitlint (#36)
+- Improve landing page copy
+- Expose clickhouse http port
+- Remove unused imports
+- Link contribution guidelines in README
+- Improve security
+- Add docker-compose script
+- Improve kdoc
+- Rearrange sinks to have DbSink initialized first
+- Rename package in test source
+- Abstract session ID management to separate class
+- Add measure SDK version to resource
+- Improve event validation
+- Fix incorrect data type
+- Update benchmark
+- Accepts arrays in events endpoint
+- Remove extra nesting
+- Restructure events request
+- Remove use of dotenv
+- Update events and deploy settings
+- Upgrade clickhouse-go
+- Add /events endpoint
+- Add api endpoints and sql statements
+- Add initial backend code
+- Rename bodyValue to value for brevity
+- Fix incorrect package name
 - (**webapp**): Limit filter pill width & show tooltip
 - (**webapp**): Update dockerfile
 - (**webapp**): Update landing page with new tagline
@@ -1257,7 +1287,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Add clarity instrumentation
 - (**webapp**): Update exceptions product video on landing page
 - (**webapp**): Change laneing page features to vertical layout
+- (**webapp**): Remove redudant if statement
 - (**webapp**): Ellipsize long session replay event titles
+- (**webapp**): Remove google auto sign in
 - (**webapp**): Update npm packages to latest
 - (**webapp**): Add dockerfile
 - (**webapp**): Change build settings
@@ -1268,6 +1300,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Update auth flow
 - (**webapp**): Update Accordion ui
 - (**webapp**): Update exceptions overview table ui
+- (**webapp**): Remove disabled states on link
 - (**webapp**): Adjust button margin
 - (**webapp**): Replace create app integration steps with integration guide link
 - (**webapp**): Update nivo packages
@@ -1278,18 +1311,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Update landing copy
 - (**webapp**): Add login button to landing page header
 - (**webapp**): Replace email waitlist with Github link
+- (**webapp**): Remove supabase packages
+- (**webapp**): Remove supabase related pieces
 - (**webapp**): Fix logout
 - (**webapp**): Revamp auth
+- (**webapp**): Remove auth routes
 - (**webapp**): Update auth callbacks
 - (**webapp**): Update auth
+- (**webapp**): Remove unused field
 - (**webapp**): Add google signin
 - (**webapp**): Add next parameter
+- (**webapp**): Remove unused code
 - (**webapp**): Revamp invite flow
+- (**webapp**): Remove unused code
 - (**webapp**): Revamp authn
 - (**webapp**): Add authn utils
 - (**webapp**): Use esnext
 - (**webapp**): Update landing page
 - (**webapp**): Hide alerts page from nav bar
+- (**webapp**): Remove console.log
 - (**webapp**): Rename variable for clarity
 - (**webapp**): Add flower brackets for if statement
 - (**webapp**): Update journey positive node colour
@@ -1300,20 +1340,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Make current page clickable in sidebar
 - (**webapp**): Improve quality and adjust size of screenshots
 - (**webapp**): Improve display of app metrics deltas
+- (**webapp**): Remove unused component
 - (**webapp**): Refactor 'crashOrAnr' to 'exceptions'
 - (**webapp**): Use correct types for exception plots states
+- (**webapp**): Remove console.log statement
 - (**webapp**): Add app versions only if present in api calls
 - (**webapp**): Update metrics tooltips & delta display
 - (**webapp**): Set exception title in session replay using updated api
 - (**webapp**): Select latest version only in overview on init
+- (**webapp**): Remove unused import
 - (**webapp**): Show app size metrics only on single app version selection
 - (**webapp**): Move app size metrics to last position
 - (**webapp**): Add custom tooltip to memory chart
+- (**webapp**): Remove semicolons
+- (**webapp**): Remove unused import
 - (**webapp**): Set mem & cpu chart precision to seconds instead of milliseconds
+- (**webapp**): Remove 0 padding from x-axis hours in mem & cpu charts
+- (**webapp**): Remove log statement
 - (**webapp**): Add custom tooltip for cpu chart
 - (**webapp**): Increase cpu chart size
+- (**webapp**): Remove semicolons
 - (**webapp**): Add time util function to format chart format timestamp to human readable
 - (**webapp**): Set tick rotation to 90 in exceptions overview & details charts
+- (**webapp**): Remove cpu & mem chart animations
 - (**webapp**): Update exception details plot endpoint
 - (**webapp**): Extract filters to a component
 - (**webapp**): Adjust tick padding in crash or anr group details plot
@@ -1322,10 +1371,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Add FilterPill component tests
 - (**webapp**): Add TeamSwitcher component tests
 - (**webapp**): Decouple TeamSwitcher component from API
+- (**webapp**): Remove unused import
 - (**webapp**): Add DangerConfirmationModal tests
 - (**webapp**): Add AlertDialogModal component tests
 - (**webapp**): Fix accordion test file name
 - (**webapp**): Add test for accordion component
+- (**webapp**): Remove unused import in auth utils test
 - (**webapp**): Add snapshot tests for accordion component
 - (**webapp**): Add webapp github action ci pipeline
 - (**webapp**): Add unit tests for scroll_utils
@@ -1345,14 +1396,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Fix string_utils test file extension
 - (**webapp**): Add unit tests for utils/string_utils
 - (**webapp**): Set up jest for testing with NextJs
+- (**webapp**): Remove unused state in journey component
 - (**webapp**): Handle no data cases in metrics API
 - (**webapp**): Handle new response metrics API response format
 - (**webapp**): Refactor multiple dropdown components into one
+- (**webapp**): Remove unused import
 - (**webapp**): Adjust spacing in session replay page
 - (**webapp**): Extract camel case formatting function to util file
+- (**webapp**): Remove unused imports
 - (**webapp**): Extract scroll direction detection into a util function
 - (**webapp**): Fix case  of ref variable in TeamSwitcher
 - (**webapp**): Fix typo in formatMillisToHumanReadable util function
+- (**webapp**): Remove empty line
 - (**webapp**): Extract utility function to format milliseconds to human readable format
 - (**webapp**): Refactor TeamSwitcher to handle loading & error states internally
 - (**webapp**): Improve team switcher title & arrow alignment
@@ -1360,6 +1415,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Upgrade to NexJs version 14
 - (**webapp**): Pass initial selected item instead of index in Dropdown component
 - (**webapp**): Refactor UI rendering in response to API statuses in Apps, Crashes & Overview pages
+- (**webapp**): Remove unused imports
 - (**webapp**): Extract team management APIs into centralised api calls file
 - (**webapp**): Extract crash groups API into centralised API calls file
 - (**webapp**): Extract metrics API into centralised API calls file
@@ -1372,15 +1428,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Fetch apps + filters from centralised APIs in Apps page
 - (**webapp**): Fetch apps + filters from centralised APIs in overview page
 - (**webapp**): Extract apps and filters fetch apis in separate file
+- (**webapp**): Remove unnecessary div
 - (**webapp**): Update supabase js npm package
+- (**webapp**): Remove unnecessary logout call from route
+- (**webapp**): Remove logs
+- (**webapp**): Remove unnecessary onAuthStateChanged method
+- (**webapp**): Remove unnecessary setSession call in github auth callback
 - (**webapp**): Refactor role names camel case conversions into a function
 - (**webapp**): Update change role/remove member error msg alignment in Team page
 - (**webapp**): Fetch members + authz roles from same API in teams page
+- (**webapp**): Remove unnecessary 'text-black' classes
 - (**webapp**): Handle invalid invites
 - (**webapp**): Rename variables for clarity
 - (**webapp**): Fetch team from API in Team page
 - (**webapp**): Format code
 - (**webapp**): Set session on invite redirect
+- (**webapp**): Remove old auth handler
 - (**webapp**): Add logout
 - (**webapp**): Modify github signin
 - (**webapp**): Modify supabase auth routes
@@ -1397,6 +1460,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Add example env var (#225)
 - (**webapp**): Improve sign-in flow error handling (#221)
 - (**webapp**): Handle error on logout (#222)
+- (**webapp**): Remove unused function
 - (**webapp**): Use env variable for API base URL
 - (**webapp**): Improve error message in UserFlow
 - (**webapp**): Fetch apps list in overview from API
@@ -1413,6 +1477,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Store & use app id + app name in overview app filter
 - (**webapp**): Update date filter pill format in overview page
 - (**webapp**): Save filter states in crashes and crash details pages
+- (**webapp**): Remove interactivity from FilterPills
 - (**webapp**): Save selected filter states in overview page
 - (**webapp**): Auth ui improvements (#173)
 - (**webapp**): Add google auth log (#172)
@@ -1422,7 +1487,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Fix indent
 - (**webapp**): Add landing page animation for app health section
 - (**webapp**): Update landing page hero animation
+- (**webapp**): Remove nav right border on small screens
 - (**webapp**): Add change team name field to Team page
+- (**webapp**): Remove text-center alignment from remove button in team page
 - (**webapp**): Fix width of role selector button in team page
 - (**webapp**): Fix dropdown components z-index so that they are always on top of other UI
 - (**webapp**): Add team page ui
@@ -1433,22 +1500,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Add multithread stack traces with accordiong to crash details
 - (**webapp**): Add exception count chart instead of rate chart to crash details
 - (**webapp**): Add user id to crash details session list
+- (**webapp**): Remove hover styling on session list table column
 - (**webapp**): Add crash details page
 - (**webapp**): Keep side nav link highlighted even when navigating to sub paths
 - (**webapp**): Fix user flow tooltip anr length check
 - (**webapp**): Fix crash details route
+- (**webapp**): Remove unused imports
 - (**webapp**): Add selected date filter pill to crashes
 - (**webapp**): Add selected filters pills to overview
 - (**webapp**): Change grid gap in overview filters
 - (**webapp**): Add selected filters pills to crashes
 - (**webapp**): Update search field text in crashes
+- (**webapp**): Remove network provider and type filter from crashes
 - (**webapp**): Add crash list to crashes page
 - (**webapp**): Add country, network provider, network type and free search filters to crashes
 - (**webapp**): Adjust crashes page padding and element sizes
 - (**webapp**): Adjusting overview page padding and element sizes
 - (**webapp**): Adjust crash rate chart positioning
 - (**webapp**): Add crash rate line chart and app version checkbox dropdown to crashes page
+- (**webapp**): Remove unnecessary items-center class on info circle flex wrap
 - (**webapp**): Reduce horiontal gap between info circles on smaller screens
+- (**webapp**): Remove unnecessary flex-1 from dashboard side nav
 - (**webapp**): Change main to div in overview page
 - (**webapp**): Make dashboard side nav stick on medium+ screen sizes
 - (**webapp**): Add app size info circle to overview
@@ -1472,7 +1544,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Add side nav with dashboard page links
 - (**webapp**): Adjust landing page spacing
 - (**webapp**): Add hero animation to landing page
-
 
 ### :recycle: Refactor
 
@@ -1552,109 +1623,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add measure pkg
 - (**backend**): Move server into its own package
 - (**backend**): Update team apps get api
-
 - (**webapp**): Format
-
-
-### :coffin: Removed
-
-- (**backend**): Remove stale files
-- (**backend**): Remove example env (#985)
-- (**backend**): Remove redundant parameter types
-- (**backend**): Remove ipinfo env variable
-- (**backend**): Remove example env file
-- (**backend**): Remove put users endpoint
-- (**backend**): Remove unused field
-- (**backend**): Remove stale logic
-- (**backend**): Remove log
-- (**backend**): Remove mapping cache
-- (**backend**): Remove unused code
-- (**backend**): Remove unused route
-- (**backend**): Remove unused route
-- (**backend**): Remove unused code
-- (**backend**): Remove hardcoded prefix
-- (**backend**): Remove dead code
-- (**backend**): Remove unused tables
-- (**backend**): Remove unnecessary error return
-- (**backend**): Remove print statement
-- (**backend**): Remove old session api
-- (**backend**): Remove old app's get method
-- (**backend**): Remove old symbolicate
-- (**backend**): Remove background context
-- (**backend**): Remove unused code
-- (**backend**): Remove extra newline
-- (**backend**): Remove session from scanning
-- (**backend**): Remove session recording
-- (**backend**): Remove unused code
-- (**backend**): Delete old attachment
-- (**backend**): Remove `/events` route
-- (**backend**): Remove unneeded logs
-- (**backend**): Remove `app_exit.timestamp`
-- (**backend**): Remove dead code
-- (**backend**): Remove `key` query parameter
-- (**backend**): Remove `version` field from app filter
-- (**backend**): Remove unused code
-- (**backend**): Remove app version from exception grouping
-- (**backend**): Remove `app_version` field
-- (**backend**): Remove unused app apis (#351)
-- (**backend**): Delete unneeded code
-- (**backend**): Remove unwanted logging
-- (**backend**): Remove unused const (#282)
-- (**backend**): Remove `apps.first_seen_at` field
-- (**backend**): Remove latest version
-- (**backend**): Remove all clickhouse migrations
-- (**backend**): Remove invitation related db modifications
-- (**backend**): Remove invitations relation sql
-- (**backend**): Remove unneeded statements
-- (**backend**): Remove log line
-- (**backend**): Remove old sql files
-
-- (**frontend**): Remove commented code
-- (**frontend**): Remove unity section from landing page
-
-- (**webapp**): Remove redudant if statement
-- (**webapp**): Remove google auto sign in
-- (**webapp**): Remove disabled states on link
-- (**webapp**): Remove supabase packages
-- (**webapp**): Remove supabase related pieces
-- (**webapp**): Remove auth routes
-- (**webapp**): Remove unused field
-- (**webapp**): Remove unused code
-- (**webapp**): Remove unused code
-- (**webapp**): Remove console.log
-- (**webapp**): Remove unused component
-- (**webapp**): Remove console.log statement
-- (**webapp**): Remove unused import
-- (**webapp**): Remove semicolons
-- (**webapp**): Remove unused import
-- (**webapp**): Remove 0 padding from x-axis hours in mem & cpu charts
-- (**webapp**): Remove log statement
-- (**webapp**): Remove semicolons
-- (**webapp**): Remove cpu & mem chart animations
-- (**webapp**): Remove unused import
-- (**webapp**): Remove unused import in auth utils test
-- (**webapp**): Remove unused state in journey component
-- (**webapp**): Remove unused import
-- (**webapp**): Remove unused imports
-- (**webapp**): Remove empty line
-- (**webapp**): Remove unused imports
-- (**webapp**): Remove unnecessary div
-- (**webapp**): Remove unnecessary logout call from route
-- (**webapp**): Remove logs
-- (**webapp**): Remove unnecessary onAuthStateChanged method
-- (**webapp**): Remove unnecessary setSession call in github auth callback
-- (**webapp**): Remove unnecessary 'text-black' classes
-- (**webapp**): Remove old auth handler
-- (**webapp**): Remove unused function
-- (**webapp**): Remove interactivity from FilterPills
-- (**webapp**): Remove nav right border on small screens
-- (**webapp**): Remove text-center alignment from remove button in team page
-- (**webapp**): Remove hover styling on session list table column
-- (**webapp**): Remove unused imports
-- (**webapp**): Remove network provider and type filter from crashes
-- (**webapp**): Remove unnecessary items-center class on info circle flex wrap
-- (**webapp**): Remove unnecessary flex-1 from dashboard side nav
-
 
 ### :books: Documentation
 
@@ -1746,7 +1715,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update self host guide
 - (**backend**): Add launch time metrics
 - (**backend**): Fix a mistake
-
 - Add team section to README
 - Update README.md
 - Update contributing.md (#1059)
@@ -1834,7 +1802,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add basic api docs
 - Update measure-go readme
 - Add contributing file
-
 - (**webapp**): Replace team/:id/invite docs with /auth/invite docs
 - (**webapp**): Add API docs for crash & ANR groups APIs
 
