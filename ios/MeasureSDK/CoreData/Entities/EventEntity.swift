@@ -26,6 +26,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
     let coldLaunch: Data?
     let warmLaunch: Data?
     let hotLaunch: Data?
+    let networkChange: Data?
     let userTriggered: Bool
     let attachmentSize: Number
     let timestampInMillis: Number
@@ -185,6 +186,17 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.http = nil
         }
 
+        if let networkChange = event.data as? NetworkChangeData {
+            do {
+                let data = try JSONEncoder().encode(networkChange)
+                self.networkChange = data
+            } catch {
+                self.networkChange = nil
+            }
+        } else {
+            self.networkChange = nil
+        }
+
         if let attributes = event.attributes {
             do {
                 let data = try JSONEncoder().encode(attributes)
@@ -226,7 +238,8 @@ struct EventEntity { // swiftlint:disable:this type_body_length
          coldLaunch: Data?,
          warmLaunch: Data?,
          hotLaunch: Data?,
-         http: Data?) {
+         http: Data?,
+         networkChange: Data?) {
         self.id = id
         self.sessionId = sessionId
         self.timestamp = timestamp
@@ -250,6 +263,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.warmLaunch = warmLaunch
         self.hotLaunch = hotLaunch
         self.http = http
+        self.networkChange = networkChange
     }
 
     func getEvent<T: Codable>() -> Event<T> { // swiftlint:disable:this cyclomatic_complexity function_body_length
@@ -356,6 +370,14 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             if let httpData = self.http {
                 do {
                     decodedData = try JSONDecoder().decode(T.self, from: httpData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .networkChange:
+            if let networkChangeData = self.networkChange {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: networkChangeData)
                 } catch {
                     decodedData = nil
                 }

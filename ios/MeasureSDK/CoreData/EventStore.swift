@@ -52,6 +52,7 @@ final class BaseEventStore: EventStore {
             eventOb.warmLaunch = event.warmLaunch
             eventOb.hotLaunch = event.hotLaunch
             eventOb.http = event.http
+            eventOb.networkChange = event.networkChange
 
             do {
                 try context.saveIfNeeded()
@@ -95,7 +96,8 @@ final class BaseEventStore: EventStore {
                                 coldLaunch: eventOb.coldLaunch,
                                 warmLaunch: eventOb.warmLaunch,
                                 hotLaunch: eventOb.hotLaunch,
-                                http: eventOb.http)
+                                http: eventOb.http,
+                                networkChange: eventOb.networkChange)
                 }
             } catch {
                 guard let self = self else { return }
@@ -137,7 +139,8 @@ final class BaseEventStore: EventStore {
                                 coldLaunch: eventOb.coldLaunch,
                                 warmLaunch: eventOb.warmLaunch,
                                 hotLaunch: eventOb.hotLaunch,
-                                http: eventOb.http)
+                                http: eventOb.http,
+                                networkChange: eventOb.networkChange)
                 }
             } catch {
                 guard let self = self else { return }
@@ -198,7 +201,8 @@ final class BaseEventStore: EventStore {
                                               coldLaunch: eventOb.coldLaunch,
                                               warmLaunch: eventOb.warmLaunch,
                                               hotLaunch: eventOb.hotLaunch,
-                                              http: eventOb.http))
+                                              http: eventOb.http,
+                                              networkChange: eventOb.networkChange))
                 }
             } catch {
                 guard let self = self else {

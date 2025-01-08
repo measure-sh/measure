@@ -172,6 +172,10 @@
 		52D51AA02CCFB0F6008F30A6 /* MSRViewController.h in Headers */ = {isa = PBXBuildFile; fileRef = 52D51A9C2CCFA917008F30A6 /* MSRViewController.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		52D51ABB2CD0E5C9008F30A6 /* MsrMoniterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D51ABA2CD0E5C9008F30A6 /* MsrMoniterView.swift */; };
 		52D51ABD2CD2060A008F30A6 /* LifecycleCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D51ABC2CD2060A008F30A6 /* LifecycleCollectorTests.swift */; };
+		52E303E02D1814BA008FE733 /* NetworkChangeData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52E303DF2D1814BA008FE733 /* NetworkChangeData.swift */; };
+		52E303E22D181519008FE733 /* NetworkChangeCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52E303E12D181519008FE733 /* NetworkChangeCollector.swift */; };
+		52E303E42D1818EA008FE733 /* NetworkChangeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52E303E32D1818EA008FE733 /* NetworkChangeDetector.swift */; };
+		52E303E62D191A05008FE733 /* NetworkChangeCallback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52E303E52D191A05008FE733 /* NetworkChangeCallback.swift */; };
 		52EB380C2C8C7334002D63EC /* SignPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52EB380B2C8C7334002D63EC /* SignPost.swift */; };
 		52F3773B2CB41DDF006147E8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F3773A2CB41DDF006147E8 /* AppDelegate.swift */; };
 		52F3773D2CB41DE0006147E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F3773C2CB41DDF006147E8 /* SceneDelegate.swift */; };
@@ -477,6 +481,10 @@
 		52D51A9D2CCFA917008F30A6 /* MSRViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MSRViewController.m; sourceTree = "<group>"; };
 		52D51ABA2CD0E5C9008F30A6 /* MsrMoniterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrMoniterView.swift; sourceTree = "<group>"; };
 		52D51ABC2CD2060A008F30A6 /* LifecycleCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleCollectorTests.swift; sourceTree = "<group>"; };
+		52E303DF2D1814BA008FE733 /* NetworkChangeData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkChangeData.swift; sourceTree = "<group>"; };
+		52E303E12D181519008FE733 /* NetworkChangeCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkChangeCollector.swift; sourceTree = "<group>"; };
+		52E303E32D1818EA008FE733 /* NetworkChangeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkChangeDetector.swift; sourceTree = "<group>"; };
+		52E303E52D191A05008FE733 /* NetworkChangeCallback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkChangeCallback.swift; sourceTree = "<group>"; };
 		52EB380B2C8C7334002D63EC /* SignPost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignPost.swift; sourceTree = "<group>"; };
 		52F377382CB41DDF006147E8 /* DemoApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DemoApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		52F3773A2CB41DDF006147E8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -746,6 +754,7 @@
 				52AE72002CABAE9000F2830A /* Gestures */,
 				5225D02D2D088B7100FD240D /* Http */,
 				52816B682CCE390800B160A4 /* Lifecycle */,
+				52E303DE2D1814A7008FE733 /* NetworkChange */,
 				52A3C0752CDB732F00C8F047 /* Performance */,
 				524CC5DB2C6A4B48001AB506 /* Utils */,
 				524CC5D52C6A4B48001AB506 /* XCDataModel */,
@@ -990,6 +999,17 @@
 				52D51A8B2CCE8601008F30A6 /* ContentView.swift */,
 			);
 			path = SwiftUIDemo;
+			sourceTree = "<group>";
+		};
+		52E303DE2D1814A7008FE733 /* NetworkChange */ = {
+			isa = PBXGroup;
+			children = (
+				52E303DF2D1814BA008FE733 /* NetworkChangeData.swift */,
+				52E303E12D181519008FE733 /* NetworkChangeCollector.swift */,
+				52E303E32D1818EA008FE733 /* NetworkChangeDetector.swift */,
+				52E303E52D191A05008FE733 /* NetworkChangeCallback.swift */,
+			);
+			path = NetworkChange;
 			sourceTree = "<group>";
 		};
 		52EB37FF2C8B3688002D63EC /* Frameworks */ = {
@@ -1353,6 +1373,7 @@
 				5242B2A02C7F4AF600BE19F7 /* ClientInfo.swift in Sources */,
 				52CC63C52C9D714200F7CA0A /* SystemFileManager.swift in Sources */,
 				5202BE3A2C895FC800A3496E /* Attribute.swift in Sources */,
+				52E303E02D1814BA008FE733 /* NetworkChangeData.swift in Sources */,
 				52CC63C72C9D870B00F7CA0A /* CrashReport.swift in Sources */,
 				52A1A93A2CA0702600461103 /* SessionEntity.swift in Sources */,
 				52CC63C92C9DE71300F7CA0A /* SystemCrashReporter.swift in Sources */,
@@ -1426,9 +1447,12 @@
 				52A8533C2C994BCE00B2A39F /* StackFrame.swift in Sources */,
 				5225D0332D088B7100FD240D /* URLSessionTaskSwizzler.swift in Sources */,
 				52CD911E2C7B397C000189BA /* BaseConfigProvider.swift in Sources */,
+				52E303E22D181519008FE733 /* NetworkChangeCollector.swift in Sources */,
 				52FA6A802CE212320091F089 /* SysCtl.swift in Sources */,
+				52E303E42D1818EA008FE733 /* NetworkChangeDetector.swift in Sources */,
 				52A853422C9983B900B2A39F /* CrashDataFormatter.swift in Sources */,
 				52A853372C983FFC00B2A39F /* CrashReportingManager.swift in Sources */,
+				52E303E62D191A05008FE733 /* NetworkChangeCallback.swift in Sources */,
 				52A3C0902CDC73AB00C8F047 /* MemoryUsageCollector.swift in Sources */,
 				52A1A9462CA1786A00461103 /* MeasureQueue.swift in Sources */,
 				52AE72092CABAEAB00F2830A /* NSObject+Extension.swift in Sources */,
