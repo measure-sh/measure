@@ -53,6 +53,11 @@ import MeasureSDK
         Measure.shared.trackEvent(name: "custom_event", attributes: attributes, timestamp: nil)
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        Measure.shared.trackScreenView("Home")
+    }
+
     // MARK: - Table Header View with Buttons
 
     func createTableHeaderView() -> UIView {

@@ -28,6 +28,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
     let warmLaunch: Data?
     let hotLaunch: Data?
     let networkChange: Data?
+    let screenView: Data?
     let userTriggered: Bool
     let attachmentSize: Number
     let timestampInMillis: Number
@@ -211,6 +212,17 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.customEvent = nil
         }
 
+        if let screenView = event.data as? ScreenViewData {
+            do {
+                let data = try JSONEncoder().encode(screenView)
+                self.screenView = data
+            } catch {
+                self.screenView = nil
+            }
+        } else {
+            self.screenView = nil
+        }
+
         if let attributes = event.attributes {
             do {
                 let data = try JSONEncoder().encode(attributes)
@@ -255,7 +267,8 @@ struct EventEntity { // swiftlint:disable:this type_body_length
          hotLaunch: Data?,
          http: Data?,
          networkChange: Data?,
-         customEvent: Data?) {
+         customEvent: Data?,
+         screenView: Data?) {
         self.id = id
         self.sessionId = sessionId
         self.timestamp = timestamp
@@ -282,6 +295,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.http = http
         self.networkChange = networkChange
         self.customEvent = customEvent
+        self.screenView = screenView
     }
 
     func getEvent<T: Codable>() -> Event<T> { // swiftlint:disable:this cyclomatic_complexity function_body_length
@@ -404,6 +418,14 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             if let customEventData = self.customEvent {
                 do {
                     decodedData = try JSONDecoder().decode(T.self, from: customEventData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .screenView:
+            if let screenViewData = self.screenView {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: screenViewData)
                 } catch {
                     decodedData = nil
                 }

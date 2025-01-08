@@ -42,7 +42,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.sessionSamplingRate = sessionSamplingRate
-        self.eventsBatchingIntervalMs = 30000 // 30 seconds
+        self.eventsBatchingIntervalMs = 3000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndLastEventThresholdMs = 20 * 60 * 1000 // 20 minitues
         self.timeoutIntervalForRequest = 30 // 30 seconds
