@@ -39,9 +39,9 @@ func extractToken(c *gin.Context) (token string) {
 	return
 }
 
-// logEmail logs email to std out
-func logEmail(email string) {
-	fmt.Println("Logged in user email: ", email)
+// logNewUserFirstLogin logs new user's first login to stdout
+func logNewUserFirstLogin() {
+	fmt.Println("New user logged in")
 }
 
 // ValidateAPIKey validates the Measure API key.
@@ -325,7 +325,7 @@ func SigninGitHub(c *gin.Context) {
 			}
 
 			// Once new user creation is done, track email
-			logEmail(ghUser.Email)
+			logNewUserFirstLogin()
 		} else {
 			// update user's last sign in at value
 			if err := msrUser.touchLastSignInAt(ctx); err != nil {
@@ -530,7 +530,7 @@ func SigninGoogle(c *gin.Context) {
 		}
 
 		// Once new user creation is done, track email
-		logEmail(googUser.Email)
+		logNewUserFirstLogin()
 	} else {
 		// update user's last sign in at value
 		if err := msrUser.touchLastSignInAt(ctx); err != nil {
