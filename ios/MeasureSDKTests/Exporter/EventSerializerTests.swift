@@ -723,4 +723,76 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         }
     }
 
-}
+    func testHttpDataSerialization() {
+        let httpData = HttpData(
+            url: "https://example.com/api/v1/resource",
+            method: "GET",
+            statusCode: 200,
+            startTime: 123456789,
+            endTime: 123456999,
+            failureReason: nil,
+            failureDescription: nil,
+            requestHeaders: ["Content-Type": "application/json", "Authorization": "Bearer token"],
+            responseHeaders: ["Server": "nginx", "Content-Length": "123"],
+            requestBody: "requestBody",
+            responseBody: "responseBody",
+            client: "TestClient"
+        )
+
+        let event = Event(
+            id: "httpEventId",
+            sessionId: "sessionId",
+            timestamp: "2024-12-14T10:00:00Z",
+            timestampInMillis: 123456789000,
+            type: .http,
+            data: httpData,
+            attachments: [],
+            attributes: TestDataGenerator.generateAttributes(),
+            userTriggered: false
+        )
+
+        let eventEntity = EventEntity(event)
+
+        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+            XCTFail("getSerialisedEvent cannot be nil")
+            return
+        }
+
+        let jsonData = Data(jsonString.utf8)
+        do {
+            let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+
+            if let httpDataDict = jsonDict?["http"] as? [String: Any] {
+                XCTAssertEqual(httpDataDict["url"] as? String, "https://example.com/api/v1/resource")
+                XCTAssertEqual(httpDataDict["method"] as? String, "GET")
+                XCTAssertEqual(httpDataDict["status_code"] as? String, "200")
+                XCTAssertEqual(httpDataDict["start_time"] as? String, "123456789")
+                XCTAssertEqual(httpDataDict["end_time"] as? String, "123456999")
+                XCTAssertNil(httpDataDict["failure_reason"])
+                XCTAssertNil(httpDataDict["failure_description"])
+
+                if let requestHeaders = httpDataDict["request_headers"] as? [String: String] {
+                    XCTAssertEqual(requestHeaders["Content-Type"], "application/json")
+                    XCTAssertEqual(requestHeaders["Authorization"], "Bearer token")
+                } else {
+                    XCTFail("Request headers are not serialized correctly.")
+                }
+
+                if let responseHeaders = httpDataDict["response_headers"] as? [String: String] {
+                    XCTAssertEqual(responseHeaders["Server"], "nginx")
+                    XCTAssertEqual(responseHeaders["Content-Length"], "123")
+                } else {
+                    XCTFail("Response headers are not serialized correctly.")
+                }
+
+                XCTAssertEqual(httpDataDict["request_body"] as? String, "requestBody")
+                XCTAssertEqual(httpDataDict["response_body"] as? String, "responseBody")
+                XCTAssertEqual(httpDataDict["client"] as? String, "TestClient")
+            } else {
+                XCTFail("HTTP data is not present in the serialized event.")
+            }
+        } catch {
+            XCTFail("Invalid JSON object: \(error.localizedDescription)")
+        }
+    }
+} // swiftlint:disable:this file_length

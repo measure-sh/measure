@@ -10,6 +10,7 @@ import Foundation
 protocol PeriodicEventExporter {
     func applicationDidEnterBackground()
     func applicationWillEnterForeground()
+    func start()
 }
 
 final class BasePeriodicEventExporter: PeriodicEventExporter, HeartbeatListener {
@@ -38,6 +39,10 @@ final class BasePeriodicEventExporter: PeriodicEventExporter, HeartbeatListener 
     }
 
     func applicationWillEnterForeground() {
+        start()
+    }
+
+    func start() {
         heartbeat.start(intervalMs: configProvider.eventsBatchingIntervalMs, initialDelayMs: 0)
     }
 

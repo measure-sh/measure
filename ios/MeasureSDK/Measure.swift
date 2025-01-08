@@ -35,6 +35,7 @@ import Foundation
         let instance = Measure()
         return instance
     }()
+    private var measureInitializerLock = NSLock()
     private var measureInternal: MeasureInternal?
     var meaureInitializerInternal: MeasureInitializer?
 
@@ -67,18 +68,20 @@ import Foundation
     ///   [[Measure shared] initializeWith:clientInfo config:config];
     ///   ```
     @objc public func initialize(with client: ClientInfo, config: BaseMeasureConfig? = nil) {
-        MeasureQueue.userInitiated.sync {
-            // Ensure initialization is done only once
-            guard measureInternal == nil else { return }
-            SignPost.trace(label: "Measure Initialisation") {
-                if let meaureInitializer = self.meaureInitializerInternal {
-                    measureInternal = MeasureInternal(meaureInitializer)
-                    meaureInitializer.logger.log(level: .info, message: "SDK enabled in testing mode.", error: nil, data: nil)
-                } else {
-                    let meaureInitializer = BaseMeasureInitializer(config: config ?? BaseMeasureConfig(),
-                                                                   client: client)
-                    measureInternal = MeasureInternal(meaureInitializer)
-                }
+        measureInitializerLock.lock()
+        defer { measureInitializerLock.unlock() }
+
+        // Ensure initialization is done only once
+        guard measureInternal == nil else { return }
+
+        SignPost.trace(label: "Measure Initialisation") {
+            if let meaureInitializer = self.meaureInitializerInternal {
+                measureInternal = MeasureInternal(meaureInitializer)
+                meaureInitializer.logger.log(level: .info, message: "SDK enabled in testing mode.", error: nil, data: nil)
+            } else {
+                let meaureInitializer = BaseMeasureInitializer(config: config ?? BaseMeasureConfig(),
+                                                               client: client)
+                measureInternal = MeasureInternal(meaureInitializer)
             }
         }
     }

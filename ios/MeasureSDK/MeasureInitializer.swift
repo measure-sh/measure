@@ -47,6 +47,7 @@ protocol MeasureInitializer {
     var memoryUsageCalculator: MemoryUsageCalculator { get }
     var sysCtl: SysCtl { get }
     var appLaunchCollector: AppLaunchCollector { get }
+    var httpEventCollector: HttpEventCollector { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -78,6 +79,7 @@ protocol MeasureInitializer {
 /// - `cpuUsageCollector`: `CpuUsageCollector` object which is responsible for detecting and saving CPU usage data.
 /// - `memoryUsageCollector`: `MemoryUsageCollector` object which is responsible for detecting and saving memory usage data.
 /// - `appLaunchCollector`: `AppLaunchCollector` object which is responsible for detecting and saving launch related events.
+/// - `httpEventCollector`: `HttpEventCollector` object that collects HTTP request data.
 /// - `gestureTargetFinder`: `GestureTargetFinder` object that determines which view is handling the gesture.
 /// - `cpuUsageCalculator`: `CpuUsageCalculator` object that generates CPU usage data.
 /// - `memoryUsageCalculator`: `MemoryUsageCalculator` object that generates memory usage data.
@@ -128,6 +130,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let memoryUsageCalculator: MemoryUsageCalculator
     let sysCtl: SysCtl
     let appLaunchCollector: AppLaunchCollector
+    var httpEventCollector: HttpEventCollector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -237,5 +240,12 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          userDefaultStorage: userDefaultStorage,
                                                          currentAppVersion: appVersion)
         self.client = client
+        self.httpEventCollector = BaseHttpEventCollector(logger: logger,
+                                                         eventProcessor: eventProcessor,
+                                                         timeProvider: timeProvider,
+                                                         urlSessionTaskSwizzler: URLSessionTaskSwizzler(),
+                                                         httpInterceptorCallbacks: HttpInterceptorCallbacks(),
+                                                         client: client,
+                                                         configProvider: configProvider)
     }
 }
