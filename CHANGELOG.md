@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Replace email with new user login log
 - (**backend**): Sync `go.work.sync` (#1717)
 - (**backend**): Log email instead of sending to waitlist
 - (**backend**): Support `flutter` & `rn` in cliff config (#1705)
