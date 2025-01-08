@@ -51,6 +51,7 @@ final class BaseEventStore: EventStore {
             eventOb.coldLaunch = event.coldLaunch
             eventOb.warmLaunch = event.warmLaunch
             eventOb.hotLaunch = event.hotLaunch
+            eventOb.http = event.http
 
             do {
                 try context.saveIfNeeded()
@@ -93,7 +94,8 @@ final class BaseEventStore: EventStore {
                                 memoryUsage: eventOb.memoryUsage,
                                 coldLaunch: eventOb.coldLaunch,
                                 warmLaunch: eventOb.warmLaunch,
-                                hotLaunch: eventOb.hotLaunch)
+                                hotLaunch: eventOb.hotLaunch,
+                                http: eventOb.http)
                 }
             } catch {
                 guard let self = self else { return }
@@ -134,7 +136,8 @@ final class BaseEventStore: EventStore {
                                 memoryUsage: eventOb.memoryUsage,
                                 coldLaunch: eventOb.coldLaunch,
                                 warmLaunch: eventOb.warmLaunch,
-                                hotLaunch: eventOb.hotLaunch)
+                                hotLaunch: eventOb.hotLaunch,
+                                http: eventOb.http)
                 }
             } catch {
                 guard let self = self else { return }
@@ -194,7 +197,8 @@ final class BaseEventStore: EventStore {
                                               memoryUsage: eventOb.memoryUsage,
                                               coldLaunch: eventOb.coldLaunch,
                                               warmLaunch: eventOb.warmLaunch,
-                                              hotLaunch: eventOb.hotLaunch))
+                                              hotLaunch: eventOb.hotLaunch,
+                                              http: eventOb.http))
                 }
             } catch {
                 guard let self = self else {

@@ -35,6 +35,7 @@ let recentSessionCrashedKey = "recent_session_crashed_key"
 let recentSessionVersionCodeKey = "recent_session_version_code"
 let recentLaunchAppVersion = "recent_launch_app_version"
 let recentLaunchTimeSinceLastBoot = "recent_launch_time_since_last_boot"
+let networkInterceptorHandledKey = "NetworkInterceptorHandled"
 
 struct AttributeConstants {
     static let deviceManufacturer = "Apple"

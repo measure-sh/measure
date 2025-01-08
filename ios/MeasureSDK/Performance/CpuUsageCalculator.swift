@@ -23,7 +23,7 @@ final class BaseCpuUsageCalculator: CpuUsageCalculator {
             return -1
         }
 
-        var threadList: thread_act_array_t? = UnsafeMutablePointer(mutating: [thread_act_t]())
+        var threadList: thread_act_array_t?
         var threadCount: mach_msg_type_number_t = 0
         defer {
             if let threadList = threadList {

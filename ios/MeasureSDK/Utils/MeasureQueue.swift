@@ -12,9 +12,4 @@ struct MeasureQueue {
         let queue = DispatchQueue(label: periodicEventExporterLabel, qos: .background)
         return queue
     }()
-
-    static let userInitiated: DispatchQueue = {
-        let queue = DispatchQueue(label: userInitiatedQueueLabel, qos: .userInitiated)
-        return queue
-    }()
 }

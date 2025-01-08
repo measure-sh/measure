@@ -87,7 +87,8 @@ struct TestDataGenerator {
         memoryUsage: Data? = nil,
         coldLaunch: Data? = nil,
         warmLaunch: Data? = nil,
-        hotLaunch: Data? = nil
+        hotLaunch: Data? = nil,
+        http: Data? = nil
     ) -> EventEntity {
         return EventEntity(
             id: id,
@@ -111,7 +112,8 @@ struct TestDataGenerator {
             memoryUsage: memoryUsage,
             coldLaunch: coldLaunch,
             warmLaunch: warmLaunch,
-            hotLaunch: hotLaunch
+            hotLaunch: hotLaunch,
+            http: http
         )
     }
 
