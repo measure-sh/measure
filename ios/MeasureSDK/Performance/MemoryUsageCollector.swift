@@ -75,7 +75,8 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
                                       type: .memoryUsageAbsolute,
                                       attributes: nil,
                                       sessionId: nil,
-                                      attachments: nil)
+                                      attachments: nil,
+                                      userDefinedAttributes: nil)
         } else {
             logger.internalLog(level: .error, message: "Could not get memory usage data.", error: nil, data: nil)
         }

@@ -96,4 +96,67 @@ import Foundation
 
         return sessionId
     }
+
+    /// Tracks an event with optional timestamp.
+    ///
+    /// Usage Notes:
+    /// - Event names should be clear and consistent to aid in dashboard searches
+    ///
+    ///   /// - Example:
+    ///   ```swift
+    ///   Measure.shared.trackEvent(name: "event-name", attributes:["user_name": .string("Alice")], timestamp: nil)
+    ///   ```
+    /// - Parameters:
+    ///   - name: Name of the event (max 64 characters)
+    ///   - attributes: Key-value pairs providing additional context
+    ///   - timestamp: Optional timestamp for the event, defaults to current time
+    ///
+    public func trackEvent(name: String, attributes: [String: AttributeValue], timestamp: Int64?) {
+        guard let customEventCollector = measureInternal?.customEventCollector else { return }
+
+        customEventCollector.trackEvent(name: name, attributes: attributes, timestamp: timestamp)
+    }
+
+    /// Tracks an event with optional timestamp.
+    ///
+    /// Usage Notes:
+    /// - Event names should be clear and consistent to aid in dashboard searches
+    ///
+    ///   /// - Example:
+    ///   ```objc
+    ///   [[Measure shared] trackEvent:@"event-name" attributes:@{@"user_name": @"Alice"} timestamp:nil];
+    ///   ```
+    /// - Parameters:
+    ///   - name: Name of the event (max 64 characters)
+    ///   - attributes: Key-value pairs providing additional context
+    ///   - timestamp: Optional timestamp for the event, defaults to current time
+    @objc public func trackEvent(_ name: String, attributes: [String: Any], timestamp: NSNumber?) {
+        guard let customEventCollector = measureInternal?.customEventCollector,
+              let logger = measureInternal?.logger else { return }
+        var transformedAttributes: [String: AttributeValue] = [:]
+
+        for (key, value) in attributes {
+            if let stringVal = value as? String {
+                transformedAttributes[key] = .string(stringVal)
+            } else if let boolVal = value as? Bool {
+                transformedAttributes[key] = .boolean(boolVal)
+            } else if let intVal = value as? Int {
+                transformedAttributes[key] = .int(intVal)
+            } else if let longVal = value as? Int64 {
+                transformedAttributes[key] = .long(longVal)
+            } else if let floatVal = value as? Float {
+                transformedAttributes[key] = .float(floatVal)
+            } else if let doubleVal = value as? Double {
+                transformedAttributes[key] = .double(doubleVal)
+            } else {
+                #if DEBUG
+                fatalError("Attribute value can only be a string, boolean, integer, or double.")
+                #else
+                logger.log(level: .fatal, message: "Attribute value can only be a string, boolean, integer, or double.", error: nil, data: nil)
+                #endif
+            }
+        }
+
+        customEventCollector.trackEvent(name: name, attributes: transformedAttributes, timestamp: timestamp?.int64Value)
+    }
 }

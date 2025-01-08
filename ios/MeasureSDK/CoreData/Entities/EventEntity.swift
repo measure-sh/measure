@@ -15,6 +15,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
     let exception: Data?
     let attachments: Data?
     let attributes: Data?
+    let userDefinedAttributes: String?
     let gestureClick: Data?
     let gestureLongClick: Data?
     let gestureScroll: Data?
@@ -32,6 +33,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
     let timestampInMillis: Number
     var batchId: String?
     let http: Data?
+    let customEvent: Data?
 
     init<T: Codable>(_ event: Event<T>) { // swiftlint:disable:this cyclomatic_complexity function_body_length
         self.id = event.id
@@ -42,6 +44,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.timestampInMillis = event.timestampInMillis ?? 0
         self.attachmentSize = 0
         self.batchId = nil
+        self.userDefinedAttributes = event.userDefinedAttributes
 
         if let exception = event.data as? Exception {
             do {
@@ -197,6 +200,17 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.networkChange = nil
         }
 
+        if let customEvent = event.data as? CustomEventData {
+            do {
+                let data = try JSONEncoder().encode(customEvent)
+                self.customEvent = data
+            } catch {
+                self.customEvent = nil
+            }
+        } else {
+            self.customEvent = nil
+        }
+
         if let attributes = event.attributes {
             do {
                 let data = try JSONEncoder().encode(attributes)
@@ -223,6 +237,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
          exception: Data?,
          attachments: Data?,
          attributes: Data?,
+         userDefinedAttributes: String?,
          gestureClick: Data?,
          gestureLongClick: Data?,
          gestureScroll: Data?,
@@ -239,7 +254,8 @@ struct EventEntity { // swiftlint:disable:this type_body_length
          warmLaunch: Data?,
          hotLaunch: Data?,
          http: Data?,
-         networkChange: Data?) {
+         networkChange: Data?,
+         customEvent: Data?) {
         self.id = id
         self.sessionId = sessionId
         self.timestamp = timestamp
@@ -247,6 +263,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.exception = exception
         self.attachments = attachments
         self.attributes = attributes
+        self.userDefinedAttributes = userDefinedAttributes
         self.userTriggered = userTriggered
         self.gestureClick = gestureClick
         self.gestureLongClick = gestureLongClick
@@ -264,6 +281,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.hotLaunch = hotLaunch
         self.http = http
         self.networkChange = networkChange
+        self.customEvent = customEvent
     }
 
     func getEvent<T: Codable>() -> Event<T> { // swiftlint:disable:this cyclomatic_complexity function_body_length
@@ -382,6 +400,14 @@ struct EventEntity { // swiftlint:disable:this type_body_length
                     decodedData = nil
                 }
             }
+        case .custom:
+            if let customEventData = self.customEvent {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: customEventData)
+                } catch {
+                    decodedData = nil
+                }
+            }
         case nil:
             decodedData = nil
         }
@@ -416,6 +442,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
                      data: decodedData,
                      attachments: decodedAttachments ?? [Attachment](),
                      attributes: decodedAttributes,
-                     userTriggered: self.userTriggered)
+                     userTriggered: self.userTriggered,
+                     userDefinedAttributes: self.userDefinedAttributes)
     }
 }

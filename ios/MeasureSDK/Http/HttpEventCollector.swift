@@ -55,6 +55,7 @@ final class BaseHttpEventCollector: HttpEventCollector {
                              type: .http,
                              attributes: nil,
                              sessionId: nil,
-                             attachments: nil)
+                             attachments: nil,
+                             userDefinedAttributes: nil)
     }
 }

@@ -44,6 +44,15 @@ import MeasureSDK
         view.addSubview(tableView)
     }
 
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        let attributes: [String: AttributeValue] = ["user_name": .string("Alice"),
+                                                    "paid_user": .boolean(true),
+                                                    "credit_balance": .int(1000),
+                                                    "latitude": .double(30.2661403415387)]
+        Measure.shared.trackEvent(name: "custom_event", attributes: attributes, timestamp: nil)
+    }
+
     // MARK: - Table Header View with Buttons
 
     func createTableHeaderView() -> UIView {

@@ -33,6 +33,26 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var maxUserDefinedAttributesPerEvent: Int {
+        return getMergedConfig(\.maxUserDefinedAttributesPerEvent)
+    }
+
+    var maxUserDefinedAttributeKeyLength: Int {
+        return getMergedConfig(\.maxUserDefinedAttributeKeyLength)
+    }
+
+    var maxUserDefinedAttributeValueLength: Int {
+        return getMergedConfig(\.maxUserDefinedAttributeValueLength)
+    }
+
+    var maxEventNameLength: Int {
+        return getMergedConfig(\.maxEventNameLength)
+    }
+
+    var customEventNameRegex: String {
+        return getMergedConfig(\.customEventNameRegex)
+    }
+
     var maxSessionDurationMs: Number {
         return getMergedConfig(\.maxSessionDurationMs)
     }

@@ -40,7 +40,8 @@ class BaseLifecycleCollector: LifecycleCollector {
                              type: .lifecycleApp,
                              attributes: nil,
                              sessionId: nil,
-                             attachments: nil)
+                             attachments: nil,
+                             userDefinedAttributes: nil)
     }
 
     func applicationWillEnterForeground() {
@@ -49,7 +50,8 @@ class BaseLifecycleCollector: LifecycleCollector {
                              type: .lifecycleApp,
                              attributes: nil,
                              sessionId: nil,
-                             attachments: nil)
+                             attachments: nil,
+                             userDefinedAttributes: nil)
     }
 
     func applicationWillTerminate() {
@@ -58,7 +60,8 @@ class BaseLifecycleCollector: LifecycleCollector {
                              type: .lifecycleApp,
                              attributes: nil,
                              sessionId: nil,
-                             attachments: nil)
+                             attachments: nil,
+                             userDefinedAttributes: nil)
     }
 
     func processControllerLifecycleEvent(_ vcLifecycleType: VCLifecycleEventType, for viewController: UIViewController) {
@@ -83,8 +86,8 @@ class BaseLifecycleCollector: LifecycleCollector {
                 type: .lifecycleViewController,
                 attributes: nil,
                 sessionId: nil,
-                attachments: nil
-            )
+                attachments: nil,
+                userDefinedAttributes: nil)
         }
     }
 
@@ -94,6 +97,7 @@ class BaseLifecycleCollector: LifecycleCollector {
                              type: .lifecycleSwiftUI,
                              attributes: nil,
                              sessionId: nil,
-                             attachments: nil)
+                             attachments: nil,
+                             userDefinedAttributes: nil)
     }
 }

@@ -47,6 +47,8 @@ final class MockMeasureInitializer: MeasureInitializer {
     let sysCtl: SysCtl
     let appLaunchCollector: AppLaunchCollector
     let httpEventCollector: HttpEventCollector
+    let customEventCollector: CustomEventCollector
+    let networkChangeCollector: NetworkChangeCollector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -155,12 +157,20 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                          sysCtl: sysCtl,
                                                          userDefaultStorage: userDefaultStorage,
                                                          currentAppVersion: appVersion)
+        self.customEventCollector = BaseCustomEventCollector(logger: logger,
+                                                             eventProcessor: eventProcessor,
+                                                             timeProvider: timeProvider,
+                                                             configProvider: configProvider)
+        self.networkChangeCollector = BaseNetworkChangeCollector(logger: logger,
+                                                                 eventProcessor: eventProcessor,
+                                                                 timeProvider: timeProvider)
         self.client = client
         self.httpEventCollector = BaseHttpEventCollector(logger: logger,
                                                          eventProcessor: eventProcessor,
                                                          timeProvider: timeProvider,
                                                          urlSessionTaskSwizzler: URLSessionTaskSwizzler(),
                                                          httpInterceptorCallbacks: HttpInterceptorCallbacks(),
-                                                         client: client)
+                                                         client: client,
+                                                         configProvider: configProvider)
     }
 }

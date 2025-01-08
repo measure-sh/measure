@@ -49,6 +49,7 @@ protocol MeasureInitializer {
     var appLaunchCollector: AppLaunchCollector { get }
     var httpEventCollector: HttpEventCollector { get }
     var networkChangeCollector: NetworkChangeCollector { get }
+    var customEventCollector: CustomEventCollector { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -84,6 +85,7 @@ protocol MeasureInitializer {
 /// - `gestureTargetFinder`: `GestureTargetFinder` object that determines which view is handling the gesture.
 /// - `cpuUsageCalculator`: `CpuUsageCalculator` object that generates CPU usage data.
 /// - `memoryUsageCalculator`: `MemoryUsageCalculator` object that generates memory usage data.
+/// - `customEventCollector`: `CustomEventCollector` object that triggers custom events.
 /// - `sysCtl`: `SysCtl` object which provides sysctl functionalities.
 /// - `httpClient`: `HttpClient` object that handles HTTP requests.
 /// - `networkClient`: `NetworkClient` object is responsible for initializing the network configuration and executing API requests.
@@ -133,6 +135,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let appLaunchCollector: AppLaunchCollector
     var httpEventCollector: HttpEventCollector
     let networkChangeCollector: NetworkChangeCollector
+    let customEventCollector: CustomEventCollector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -244,6 +247,10 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.networkChangeCollector = BaseNetworkChangeCollector(logger: logger,
                                                                  eventProcessor: eventProcessor,
                                                                  timeProvider: timeProvider)
+        self.customEventCollector = BaseCustomEventCollector(logger: logger,
+                                                             eventProcessor: eventProcessor,
+                                                             timeProvider: timeProvider,
+                                                             configProvider: configProvider)
         self.client = client
         self.httpEventCollector = BaseHttpEventCollector(logger: logger,
                                                          eventProcessor: eventProcessor,

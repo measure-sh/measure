@@ -44,4 +44,19 @@ protocol InternalConfig {
 
     /// Default list of HTTP headers to not capture for network request and response.
     var defaultHttpHeadersBlocklist: [String] { get }
+
+    /// The maximum length of a custom event. Defaults to 64 chars.
+    var maxEventNameLength: Int { get }
+
+    /// The regex to validate a custom event name.
+    var customEventNameRegex: String { get }
+
+    /// The maximum length of user defined attribute key. Defaults to 256 chars.
+    var maxUserDefinedAttributeKeyLength: Int { get }
+
+    /// The maximum length of a user defined attribute value. Defaults to 256 chars.
+    var maxUserDefinedAttributeValueLength: Int { get }
+
+    /// The maximum number of user defined attributes for an event. Defaults to 100.
+    var maxUserDefinedAttributesPerEvent: Int { get }
 }
