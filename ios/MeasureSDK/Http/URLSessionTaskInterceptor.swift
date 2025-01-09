@@ -10,7 +10,7 @@ import Foundation
 final class URLSessionTaskInterceptor {
     static let shared = URLSessionTaskInterceptor()
     private var httpInterceptorCallbacks: HttpInterceptorCallbacks?
-    private var taskStartTimes: [URLSessionTask: Int64] = [:]
+    private var taskStartTimes: [URLSessionTask: UInt64] = [:]
     private var timeProvider: TimeProvider?
     private var allowedDomains: [String]?
     private var ignoredDomains: [String]?
@@ -64,11 +64,11 @@ final class URLSessionTaskInterceptor {
         if let allowedDomains = self.allowedDomains.flatMap({ $0 }), !allowedDomains.isEmpty && !allowedDomains.contains(where: { url.contains($0) }) { return }
 
         if state == .running, taskStartTimes[task] == nil {
-            taskStartTimes[task] = timeProvider.millisTime
+            taskStartTimes[task] = UnsignedNumber(timeProvider.millisTime)
         }
 
         if state == .completed || state == .canceling {
-            let endTime: Int64? = timeProvider.millisTime
+            let endTime = timeProvider.millisTime
             let method = task.currentRequest?.httpMethod?.lowercased() ?? ""
             let requestHeaders = task.currentRequest?.allHTTPHeaderFields ?? [:]
 
@@ -98,7 +98,7 @@ final class URLSessionTaskInterceptor {
                 method: method,
                 statusCode: statusCode,
                 startTime: startTime,
-                endTime: endTime,
+                endTime: UnsignedNumber(endTime),
                 failureReason: failureReason,
                 failureDescription: failureDescription,
                 requestHeaders: requestHeaders.filter { !defaultHttpHeadersBlocklist.contains($0.key) },

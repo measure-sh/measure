@@ -39,6 +39,7 @@
 		5222C9E82D14605000B198DA /* NetworkInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5222C9E72D14605000B198DA /* NetworkInterceptor.swift */; };
 		5224ECE02C88057A00D1B1F7 /* FatalErrorUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5224ECDF2C88057A00D1B1F7 /* FatalErrorUtil.swift */; };
 		5224ECE32C880FA400D1B1F7 /* XCTextCase+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5224ECE22C880FA300D1B1F7 /* XCTextCase+Extension.swift */; };
+		522532CA2D295F3F001B5D7C /* AttributeValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 522532C92D295F3F001B5D7C /* AttributeValue.swift */; };
 		5225D02E2D088B7100FD240D /* HttpData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5225D0272D088B7100FD240D /* HttpData.swift */; };
 		5225D02F2D088B7100FD240D /* HttpEventCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5225D0282D088B7100FD240D /* HttpEventCollector.swift */; };
 		5225D0302D088B7100FD240D /* HttpInterceptorCallbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5225D0292D088B7100FD240D /* HttpInterceptorCallbacks.swift */; };
@@ -47,7 +48,6 @@
 		5225D0332D088B7100FD240D /* URLSessionTaskSwizzler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5225D02C2D088B7100FD240D /* URLSessionTaskSwizzler.swift */; };
 		5225D0352D0AEB1A00FD240D /* String+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5225D0342D0AEB1A00FD240D /* String+Extension.swift */; };
 		5225D0502D0FECFF00FD240D /* InputStream+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5225D04F2D0FECFF00FD240D /* InputStream+Extension.swift */; };
-		522532CA2D295F3F001B5D7C /* AttributeValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 522532C92D295F3F001B5D7C /* AttributeValue.swift */; };
 		5229D16E2CCB533C00EFFE44 /* RecentSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5229D16D2CCB533C00EFFE44 /* RecentSession.swift */; };
 		523287692C85E07B000EE268 /* LifecycleObserverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523287682C85E07B000EE268 /* LifecycleObserverTests.swift */; };
 		523287732C86195E000EE268 /* SessionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523287722C86195E000EE268 /* SessionManagerTests.swift */; };
@@ -357,6 +357,7 @@
 		5222C9E72D14605000B198DA /* NetworkInterceptor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkInterceptor.swift; sourceTree = "<group>"; };
 		5224ECDF2C88057A00D1B1F7 /* FatalErrorUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FatalErrorUtil.swift; sourceTree = "<group>"; };
 		5224ECE22C880FA300D1B1F7 /* XCTextCase+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTextCase+Extension.swift"; sourceTree = "<group>"; };
+		522532C92D295F3F001B5D7C /* AttributeValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributeValue.swift; sourceTree = "<group>"; };
 		5225D0272D088B7100FD240D /* HttpData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HttpData.swift; sourceTree = "<group>"; };
 		5225D0282D088B7100FD240D /* HttpEventCollector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HttpEventCollector.swift; sourceTree = "<group>"; };
 		5225D0292D088B7100FD240D /* HttpInterceptorCallbacks.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HttpInterceptorCallbacks.swift; sourceTree = "<group>"; };
@@ -365,7 +366,6 @@
 		5225D02C2D088B7100FD240D /* URLSessionTaskSwizzler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = URLSessionTaskSwizzler.swift; sourceTree = "<group>"; };
 		5225D0342D0AEB1A00FD240D /* String+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Extension.swift"; sourceTree = "<group>"; };
 		5225D04F2D0FECFF00FD240D /* InputStream+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InputStream+Extension.swift"; sourceTree = "<group>"; };
-		522532C92D295F3F001B5D7C /* AttributeValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributeValue.swift; sourceTree = "<group>"; };
 		5229D16D2CCB533C00EFFE44 /* RecentSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentSession.swift; sourceTree = "<group>"; };
 		523287682C85E07B000EE268 /* LifecycleObserverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleObserverTests.swift; sourceTree = "<group>"; };
 		523287722C86195E000EE268 /* SessionManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManagerTests.swift; sourceTree = "<group>"; };
