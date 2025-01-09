@@ -22,6 +22,7 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
     private let timeProvider: TimeProvider
     private let memoryUsageCalculator: MemoryUsageCalculator
     private var isTrackingInProgress = false
+    private var isEnabled = false
 
     init(logger: Logger, configProvider: ConfigProvider, eventProcessor: EventProcessor, timeProvider: TimeProvider, memoryUsageCalculator: MemoryUsageCalculator, sysCtl: SysCtl) {
         self.logger = logger
@@ -35,12 +36,13 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
     func enable() {
         guard timer == nil else { return }
 
+        isEnabled = true
         initializeTimer()
         logger.log(level: .info, message: "MemoryUsageCollector enabled.", error: nil, data: nil)
     }
 
     func resume() {
-        if timer == nil {
+        if isEnabled && timer == nil {
             initializeTimer()
             logger.log(level: .info, message: "MemoryUsageCollector resumed.", error: nil, data: nil)
         }
