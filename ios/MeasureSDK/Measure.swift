@@ -159,4 +159,24 @@ import Foundation
 
         customEventCollector.trackEvent(name: name, attributes: transformedAttributes, timestamp: timestamp?.int64Value)
     }
+
+    /// Call when a screen is viewed by the user.
+    ///
+    /// Measure SDK automatically collects screen view events for UIKit and SwiftUI navigation.
+    /// However, if your app uses a custom navigation system, you can use this method to track
+    /// screen view events and gain more context when debugging issues.
+    ///
+    /// Example usage:
+    /// ```swift
+    /// Measure.shared.trackScreenView("Home")
+    /// ```
+    ///
+    /// ```objc
+    /// [[Measure shared] trackScreenView:@"ObjcViewController"]
+    /// ```
+    @objc public func trackScreenView(_ screenName: String) {
+        guard let userTriggeredEventCollector = measureInternal?.userTriggeredEventCollector else { return }
+
+        userTriggeredEventCollector.trackScreenView(screenName)
+    }
 }

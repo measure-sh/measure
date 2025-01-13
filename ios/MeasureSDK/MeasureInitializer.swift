@@ -50,6 +50,7 @@ protocol MeasureInitializer {
     var httpEventCollector: HttpEventCollector { get }
     var networkChangeCollector: NetworkChangeCollector { get }
     var customEventCollector: CustomEventCollector { get }
+    var userTriggeredEventCollector: UserTriggeredEventCollector { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -82,6 +83,7 @@ protocol MeasureInitializer {
 /// - `memoryUsageCollector`: `MemoryUsageCollector` object which is responsible for detecting and saving memory usage data.
 /// - `appLaunchCollector`: `AppLaunchCollector` object which is responsible for detecting and saving launch related events.
 /// - `httpEventCollector`: `HttpEventCollector` object that collects HTTP request data.
+/// - `userTriggeredEventCollector`: `UserTriggeredEventCollector` object which is responsible for tracking user triggered events.
 /// - `gestureTargetFinder`: `GestureTargetFinder` object that determines which view is handling the gesture.
 /// - `cpuUsageCalculator`: `CpuUsageCalculator` object that generates CPU usage data.
 /// - `memoryUsageCalculator`: `MemoryUsageCalculator` object that generates memory usage data.
@@ -136,6 +138,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     var httpEventCollector: HttpEventCollector
     let networkChangeCollector: NetworkChangeCollector
     let customEventCollector: CustomEventCollector
+    let userTriggeredEventCollector: UserTriggeredEventCollector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -251,6 +254,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                              eventProcessor: eventProcessor,
                                                              timeProvider: timeProvider,
                                                              configProvider: configProvider)
+        self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(eventProcessor: eventProcessor,
+                                                                           timeProvider: timeProvider)
         self.client = client
         self.httpEventCollector = BaseHttpEventCollector(logger: logger,
                                                          eventProcessor: eventProcessor,

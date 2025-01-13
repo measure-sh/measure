@@ -55,6 +55,7 @@ final class BaseEventStore: EventStore {
             eventOb.http = event.http
             eventOb.networkChange = event.networkChange
             eventOb.customEvent = event.customEvent
+            eventOb.screenView = event.screenView
 
             do {
                 try context.saveIfNeeded()
@@ -101,7 +102,8 @@ final class BaseEventStore: EventStore {
                                 hotLaunch: eventOb.hotLaunch,
                                 http: eventOb.http,
                                 networkChange: eventOb.networkChange,
-                                customEvent: eventOb.customEvent)
+                                customEvent: eventOb.customEvent,
+                                screenView: eventOb.screenView)
                 }
             } catch {
                 guard let self = self else { return }
@@ -146,7 +148,8 @@ final class BaseEventStore: EventStore {
                                 hotLaunch: eventOb.hotLaunch,
                                 http: eventOb.http,
                                 networkChange: eventOb.networkChange,
-                                customEvent: eventOb.customEvent)
+                                customEvent: eventOb.customEvent,
+                                screenView: eventOb.screenView)
                 }
             } catch {
                 guard let self = self else { return }
@@ -210,7 +213,8 @@ final class BaseEventStore: EventStore {
                                               hotLaunch: eventOb.hotLaunch,
                                               http: eventOb.http,
                                               networkChange: eventOb.networkChange,
-                                              customEvent: eventOb.customEvent))
+                                              customEvent: eventOb.customEvent,
+                                              screenView: eventOb.screenView))
                 }
             } catch {
                 guard let self = self else {

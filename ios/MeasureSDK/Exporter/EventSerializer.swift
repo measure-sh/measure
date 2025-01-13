@@ -161,6 +161,16 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
                 }
             }
             return nil
+        case .screenView:
+            if let screenViewData = event.screenView {
+                do {
+                    let decodedData = try JSONDecoder().decode(ScreenViewData.self, from: screenViewData)
+                    return serialiseScreenViewData(decodedData)
+                } catch {
+                    return nil
+                }
+            }
+            return nil
         case nil:
             return nil
         }
@@ -414,6 +424,13 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
     private func serialiseCustomEventData(_ customEventData: CustomEventData) -> String {
         var result = "{"
         result += "\"name\":\"\(customEventData.name)\""
+        result += "}"
+        return result
+    }
+
+    private func serialiseScreenViewData(_ screenViewData: ScreenViewData) -> String {
+        var result = "{"
+        result += "\"name\":\"\(screenViewData.name)\""
         result += "}"
         return result
     }

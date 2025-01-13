@@ -112,6 +112,9 @@ final class MeasureInternal {
     var customEventCollector: CustomEventCollector {
         return measureInitializer.customEventCollector
     }
+    var userTriggeredEventCollector: UserTriggeredEventCollector {
+        return measureInitializer.userTriggeredEventCollector
+    }
     private let lifecycleObserver: LifecycleObserver
 
     init(_ measureInitializer: MeasureInitializer) {
@@ -122,6 +125,7 @@ final class MeasureInternal {
         self.sessionManager.start()
         self.customEventCollector.enable()
         self.appLaunchCollector.enable()
+        self.userTriggeredEventCollector.enable()
         self.lifecycleObserver.applicationDidEnterBackground = applicationDidEnterBackground
         self.lifecycleObserver.applicationWillEnterForeground = applicationWillEnterForeground
         self.lifecycleObserver.applicationWillTerminate = applicationWillTerminate

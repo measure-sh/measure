@@ -54,6 +54,7 @@
     [self setTitle:@"Objc View Controller"];
     
     [self.view addSubview:tableView];
+    [[Measure shared] trackScreenView:@"ObjcViewController"];
 }
 
 // MARK: - Create Table Header with Buttons
