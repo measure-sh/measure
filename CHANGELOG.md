@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**backend**): Address clickhouse high cpu usage (#1727)
 - Update readme
 
 ## [0.5.0] - 2025-01-06
