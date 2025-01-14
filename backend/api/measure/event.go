@@ -161,7 +161,7 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		return fmt.Errorf(`payload must contain at least 1 event or 1 span`)
 	}
 
-	dupeEventMap := make(map[uuid.UUID]struct{})
+	dupEvent := make(map[uuid.UUID]struct{})
 
 	for i := range events {
 		if events[i] == "" {
@@ -175,11 +175,11 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 
 		// discard batch if duplicate
 		// event ids found
-		_, ok := dupeEventMap[ev.ID]
+		_, ok := dupEvent[ev.ID]
 		if ok {
 			return fmt.Errorf("duplicate event id %q found, discarding batch", ev.ID)
 		} else {
-			dupeEventMap[ev.ID] = struct{}{}
+			dupEvent[ev.ID] = struct{}{}
 		}
 
 		e.bumpSize(int64(len(bytes)))
@@ -221,7 +221,7 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		e.events = append(e.events, ev)
 	}
 
-	dupeSpanMap := make(map[string]struct{})
+	dupSpan := make(map[string]struct{})
 
 	for i := range spans {
 		if spans[i] == "" {
@@ -235,11 +235,11 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 
 		// discard batch if duplicate
 		// span ids found
-		_, ok := dupeSpanMap[sp.SpanID]
+		_, ok := dupSpan[sp.SpanID]
 		if ok {
 			return fmt.Errorf("duplicate span id %q found, discarding batch", sp.SpanID)
 		} else {
-			dupeSpanMap[sp.SpanID] = struct{}{}
+			dupSpan[sp.SpanID] = struct{}{}
 		}
 
 		e.bumpSize(int64(len(bytes)))
@@ -570,8 +570,8 @@ func (e eventreq) validate() error {
 		// if the payload contains any.
 		//
 		// this check is super important to have
-		// because older SDKs won't ever send these
-		// attributes.
+		// because SDKs without support for user
+		// defined attributes won't ever send these.
 		if !e.events[i].UserDefinedAttribute.Empty() {
 			if err := e.events[i].UserDefinedAttribute.Validate(); err != nil {
 				return err

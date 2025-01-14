@@ -291,23 +291,6 @@ type Thread struct {
 	ThreadiOS
 }
 
-func whatever() {
-	threadAndroid := Thread{
-		Name:   "android-thread-name",
-		Frames: Frames{},
-	}
-
-	threadiOS := Thread{
-		Name: "iOS-thread-name",
-		ThreadiOS: ThreadiOS{
-			Sequence: 0,
-		},
-	}
-
-	fmt.Println("android thread", threadAndroid)
-	fmt.Println("iOS thread", threadiOS)
-}
-
 type Threads []Thread
 
 type ANR struct {
@@ -318,17 +301,12 @@ type ANR struct {
 	Foreground  bool           `json:"foreground" binding:"required"`
 }
 
-type ExceptioniOS struct {
-	Signal string `json:"signal" binding:"required"`
-}
-
 type Exception struct {
 	Handled     bool           `json:"handled" binding:"required"`
 	Exceptions  ExceptionUnits `json:"exceptions" binding:"required"`
 	Threads     Threads        `json:"threads" binding:"required"`
 	Fingerprint string         `json:"fingerprint"`
 	Foreground  bool           `json:"foreground" binding:"required"`
-	ExceptioniOS
 }
 
 // FingerprintComputer describes the behavior
