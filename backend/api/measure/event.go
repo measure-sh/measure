@@ -627,7 +627,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				return err
 			}
 			anrThreads = string(marshalledThreads)
-			if err := e.events[i].ANR.ComputeANRFingerprint(); err != nil {
+			if err := e.events[i].ANR.ComputeFingerprint(); err != nil {
 				return err
 			}
 		}
@@ -643,7 +643,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				return err
 			}
 			exceptionThreads = string(marshalledThreads)
-			if err := e.events[i].Exception.ComputeExceptionFingerprint(); err != nil {
+			if err := e.events[i].Exception.ComputeFingerprint(); err != nil {
 				return err
 			}
 		}

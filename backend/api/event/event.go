@@ -246,17 +246,66 @@ func makeTitle(t, m string) (typeMessage string) {
 	return
 }
 
+// ExceptionUnitiOS represents iOS specific
+// structure to work with iOS exceptions.
+type ExceptionUnitiOS struct {
+	// Signal is the BSD termination signal.
+	Signal string `json:"signal" binding:"required"`
+	// ThreadName is the name of the thread.
+	ThreadName string `json:"thread_name" binding:"required"`
+	// ThreadSequence is the order of the thread
+	// in the iOS exception.
+	ThreadSequence uint `json:"thread_sequence" binding:"required"`
+	// OSBuildNumber is the operating system's
+	// build number.
+	OSBuildNumber string `json:"os_build_number" binding:"required"`
+}
+
+// ExceptionUnit represents a cross-platform
+// structure to work with parts of an exception.
 type ExceptionUnit struct {
-	Type    string `json:"type" binding:"required"`
+	// Type is the type of the exception.
+	Type string `json:"type" binding:"required"`
+	// Message is the exception's message.
 	Message string `json:"message"`
-	Frames  Frames `json:"frames" binding:"required"`
+	// Frames is a collection of exception's frames.
+	Frames Frames `json:"frames" binding:"required"`
+	ExceptionUnitiOS
 }
 
 type ExceptionUnits []ExceptionUnit
 
+// ThreadiOS represents iOS specific structure
+// to work with iOS exceptions.
+type ThreadiOS struct {
+	Sequence uint `json:"sequence"`
+}
+
+// Thread represents a cross-platform
+// structure to work with exception threads.
 type Thread struct {
-	Name   string `json:"name" binding:"required"`
+	// Name is the name of the thread.
+	Name string `json:"name" binding:"required"`
+	// Frames is the collection of stackframe objects.
 	Frames Frames `json:"frames" binding:"required"`
+	ThreadiOS
+}
+
+func whatever() {
+	threadAndroid := Thread{
+		Name:   "android-thread-name",
+		Frames: Frames{},
+	}
+
+	threadiOS := Thread{
+		Name: "iOS-thread-name",
+		ThreadiOS: ThreadiOS{
+			Sequence: 0,
+		},
+	}
+
+	fmt.Println("android thread", threadAndroid)
+	fmt.Println("iOS thread", threadiOS)
 }
 
 type Threads []Thread
@@ -269,12 +318,24 @@ type ANR struct {
 	Foreground  bool           `json:"foreground" binding:"required"`
 }
 
+type ExceptioniOS struct {
+	Signal string `json:"signal" binding:"required"`
+}
+
 type Exception struct {
 	Handled     bool           `json:"handled" binding:"required"`
 	Exceptions  ExceptionUnits `json:"exceptions" binding:"required"`
 	Threads     Threads        `json:"threads" binding:"required"`
 	Fingerprint string         `json:"fingerprint"`
 	Foreground  bool           `json:"foreground" binding:"required"`
+	ExceptioniOS
+}
+
+// FingerprintComputer describes the behavior
+// to compute a unique fingerprint of any
+// underlying structure.
+type FingerprintComputer interface {
+	ComputeFingerprint() error
 }
 
 type AppExit struct {
@@ -1208,9 +1269,9 @@ func (e Exception) Stacktrace() string {
 	return b.String()
 }
 
-// ComputeExceptionFingerprint computes a fingerprint
-// from the exception data.
-func (e *Exception) ComputeExceptionFingerprint() (err error) {
+// ComputeFingerprint computes a fingerprint
+// for the exception.
+func (e *Exception) ComputeFingerprint() (err error) {
 	if len(e.Exceptions) == 0 {
 		return fmt.Errorf("error computing exception fingerprint: no exceptions found")
 	}
@@ -1352,9 +1413,9 @@ func (a ANR) Stacktrace() string {
 	return b.String()
 }
 
-// ComputeANRFingerprint computes a fingerprint
+// ComputeFingerprint computes a fingerprint
 // from the ANR data.
-func (a *ANR) ComputeANRFingerprint() (err error) {
+func (a *ANR) ComputeFingerprint() (err error) {
 	if len(a.Exceptions) == 0 {
 		return fmt.Errorf("error computing ANR fingerprint: no exceptions found")
 	}
