@@ -352,10 +352,7 @@ Typical questions asked by other self host-ers.
 
 ### Q. Why does ClickHouse consume high amount of CPU or memory?
 
-<details>
-  <summary>Click to reveal the answer.</summary>
-
-ClickHouse is engineered to maximize hardware utilization, often leading to high CPU and memory consumption. In an idle state, when Measure is not ingesting sessions or executing queries, you might observe 25-30% CPU consumption. Under under load, CPU consumption may go up to 90-100%. This is completely normal and expected behavior.
+ClickHouse is engineered to maximize hardware utilization, often leading to high CPU and memory consumption. In an idle state, when Measure is not ingesting sessions or executing queries, you might observe 25-30% CPU consumption. Under higher load, CPU consumption may go up to 90-100%. This is completely normal and expected behavior.
 
 Several factors contribute to this behavior.
 
@@ -365,11 +362,11 @@ Several factors contribute to this behavior.
 
 3. **Compression and Decompression**: ClickHouse employs compression algorithms to minimize storage space. Compressing and decompressing data during ingestion and queries are CPU-intensive operations.
 
-4. **Hardware Considerations**: ClickHouse is configured to utilize available resources effectively and expects adequate RAM (32 GB or more is recommended). Our default configuration is designed to strike a balance between cost and performance targetting majority of Measure users. Feel free to allocate additional system resources if your budget allows.
+4. **Hardware Considerations**: ClickHouse is configured to utilize available resources effectively and expects adequate RAM (32 GB or more is recommended). Our default configuration is designed to strike a balance between cost and performance for majority of users. Feel free to allocate additional system resources if your budget allows.
 
 Having said that, we'll continue to optimize our configuration and recommendation over time to accommodate light & heavy weight usage patterns whenever possible.
 
-> ![NOTE]
+> [!NOTE]
 >
 > If you want to discuss more, hop on to our [Discord](https://discord.gg/f6zGkBCt42) and ask your questions.
 
@@ -378,4 +375,3 @@ Having said that, we'll continue to optimize our configuration and recommendatio
 1. [ClickHouse High CPU Usage](https://kb.altinity.com/altinity-kb-setup-and-maintenance/high-cpu-usage/)
 2. [GitHub issue discussing mutations](https://github.com/ClickHouse/ClickHouse/issues/39403)
 3. [ClickHouse Usage Recommendations](https://clickhouse.com/docs/en/operations/tips)
-</details>
