@@ -61,6 +61,7 @@ android {
 
     defaultConfig {
         minSdk = 21
+        testOptions.targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
         consumerProguardFiles("consumer-rules.pro")
@@ -187,6 +188,7 @@ dependencies {
     androidTestImplementation(libs.androidx.lifecycle.process)
     androidTestImplementation(libs.androidx.lifecycle.common)
     androidTestImplementation(libs.androidx.activity.compose)
+    androidTestImplementation(libs.androidx.fragment.ktx)
     androidTestImplementation(libs.androidx.navigation.compose)
     androidTestImplementation(libs.androidx.rules)
     androidTestImplementation(libs.androidx.uiautomator)

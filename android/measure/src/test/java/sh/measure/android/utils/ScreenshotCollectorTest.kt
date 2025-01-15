@@ -10,21 +10,19 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.robolectric.Robolectric
-import org.robolectric.annotation.Config
 import sh.measure.android.TestLifecycleActivity
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.screenshot.ScreenshotCollectorImpl
 
 @RunWith(AndroidJUnit4::class)
-class ScreenshotHelperTest {
+class ScreenshotCollectorTest {
     private val logger = NoopLogger()
     private val lowMemoryCheck = mock<LowMemoryCheck>()
     private val config = FakeConfigProvider()
     private val controller = Robolectric.buildActivity(TestLifecycleActivity::class.java)
 
     @Test
-    @Config(sdk = [21, 33])
     fun `returns screenshot when resumed activity is available`() {
         val application =
             InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as Application
@@ -43,7 +41,6 @@ class ScreenshotHelperTest {
     }
 
     @Test
-    @Config(sdk = [21, 33])
     fun `returns null when resumed activity is not available`() {
         val application =
             InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as Application

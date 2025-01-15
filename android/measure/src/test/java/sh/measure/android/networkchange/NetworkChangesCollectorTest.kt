@@ -48,8 +48,10 @@ class NetworkChangesCollectorTest {
         telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
     }
 
+    // Ideally we would like to test on multiple versions, but specifying the SDK versions
+    // in @Config makes this test cause an OOM error after updating robolectric to 4.14
+    // @Config(sdk = [23, 33])
     @Test
-    @Config(sdk = [23, 24])
     fun `NetworkChangesCollector does not register network callbacks if permission not available`() {
         shadowOf(context as Application).denyPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
 
@@ -65,8 +67,10 @@ class NetworkChangesCollectorTest {
         Assert.assertEquals(0, shadowOf(connectivityManager).networkCallbacks.size)
     }
 
-    @Test
+    // Ideally we would like to test on multiple versions, but specifying the SDK versions
+    // in @Config makes this test cause an OOM error after updating robolectric to 4.14
     @Config(sdk = [21, 22])
+    @Test
     fun `NetworkChangesCollector does not register network callbacks below API 23`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         NetworkChangesCollector(
@@ -81,8 +85,9 @@ class NetworkChangesCollectorTest {
         Assert.assertEquals(0, shadowOf(connectivityManager).networkCallbacks.size)
     }
 
+    // Ideally we would like to test on multiple versions, but specifying the SDK versions
+    // in @Config makes this test cause an OOM error after updating robolectric to 4.14
     @Test
-    @Config(sdk = [23, 24, 26, 28, 29, 30, 31, 33])
     fun `NetworkChangesCollector registers network callbacks when permission is available`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         NetworkChangesCollector(
@@ -97,8 +102,10 @@ class NetworkChangesCollectorTest {
         Assert.assertEquals(1, shadowOf(connectivityManager).networkCallbacks.size)
     }
 
+    // Ideally we would like to test on multiple versions, but specifying the SDK versions
+    // in @Config makes this test cause an OOM error after updating robolectric to 4.14
+    // @Config(sdk = [23, 33])
     @Test
-    @Config(sdk = [23, 33])
     fun `NetworkChangesCollector tracks change to cellular network with network_provider and network_generation`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         shadowOf(context as Application).grantPermissions(Manifest.permission.READ_PHONE_STATE)
@@ -135,8 +142,10 @@ class NetworkChangesCollectorTest {
         )
     }
 
-    @Test
+    // Ideally we would like to test on multiple versions, but specifying the SDK versions
+    // in @Config makes this test cause an OOM error after updating robolectric to 4.14
     @Config(sdk = [23])
+    @Test
     fun `NetworkChangesCollector tracks change to cellular network without network_generation if READ_PHONE_STATE permission is not available`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         shadowOf(telephonyManager).setNetworkOperatorName("Test Provider")
@@ -166,8 +175,10 @@ class NetworkChangesCollectorTest {
         )
     }
 
+    // Ideally we would like to test on multiple versions, but specifying the SDK versions
+    // in @Config makes this test cause an OOM error after updating robolectric to 4.14
+    // @Config(sdk = [33])
     @Test
-    @Config(sdk = [33])
     fun `NetworkChangesCollector tracks change to cellular network with network_provider & network_generation if READ_BASIC_PHONE_STATE permission is available`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         shadowOf(context as Application).grantPermissions(Manifest.permission.READ_BASIC_PHONE_STATE)
@@ -201,8 +212,10 @@ class NetworkChangesCollectorTest {
         )
     }
 
+    // Ideally we would like to test on multiple versions, but specifying the SDK versions
+    // in @Config makes this test cause an OOM error after updating robolectric to 4.14
+    // @Config(sdk = [26, 33])
     @Test
-    @Config(sdk = [26, 33])
     fun `NetworkChangesCollector discards first change for SDK 26 and above`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         shadowOf(context as Application).grantPermissions(Manifest.permission.READ_BASIC_PHONE_STATE)
@@ -223,8 +236,10 @@ class NetworkChangesCollectorTest {
         Mockito.verifyNoInteractions(signalProcessor)
     }
 
+    // Ideally we would like to test on multiple versions, but specifying the SDK versions
+    // in @Config makes this test cause an OOM error after updating robolectric to 4.14
+    // @Config(sdk = [23, 33])
     @Test
-    @Config(sdk = [23, 33])
     fun `NetworkChangesCollector updates network provider when network changes`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         shadowOf(context as Application).grantPermissions(Manifest.permission.READ_PHONE_STATE)
@@ -260,8 +275,8 @@ class NetworkChangesCollectorTest {
         )
     }
 
-    @Test
     @Config(sdk = [23])
+    @Test
     fun `NetworkChangesCollector tracks change to wifi network`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
 
@@ -470,8 +485,10 @@ class NetworkChangesCollectorTest {
         )
     }
 
+    // Ideally we would like to test on multiple versions, but specifying the SDK versions
+    // in @Config makes this test cause an OOM error after updating robolectric to 4.14
+    // @Config(sdk = [23])
     @Test
-    @Config(sdk = [23])
     fun `NetworkChangesCollector updates network state provider when network is lost`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
 
@@ -498,8 +515,10 @@ class NetworkChangesCollectorTest {
         )
     }
 
-    @Test
+    // Ideally we would like to test on multiple versions, but specifying the SDK versions
+    // in @Config makes this test cause an OOM error after updating robolectric to 4.14
     @Config(sdk = [23])
+    @Test
     fun `NetworkChangesCollector discards first change with previous network when network is lost`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         shadowOf(context as Application).grantPermissions(Manifest.permission.READ_PHONE_STATE)
