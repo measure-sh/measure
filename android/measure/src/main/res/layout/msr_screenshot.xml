@@ -1,0 +1,26 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="16dp"
+        android:adjustViewBounds="true"
+        android:background="@drawable/msr_transparent_border"
+        android:contentDescription="@string/msr_br_screenshot_cd"
+        android:padding="1dp"
+        android:scaleType="fitCenter" />
+
+    <ImageButton
+        android:id="@+id/closeButton"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:background="@drawable/msr_close_button_bg"
+        android:contentDescription="@string/msr_close_button_content_desc"
+        android:src="@drawable/msr_ic_close_16"
+        android:tint="?attr/msrCloseButtonTint"
+        android:visibility="gone" />
+
+</FrameLayout>

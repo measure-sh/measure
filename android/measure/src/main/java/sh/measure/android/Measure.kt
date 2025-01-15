@@ -1,12 +1,17 @@
 package sh.measure.android
 
+import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.net.Uri
+import androidx.annotation.MainThread
 import androidx.annotation.VisibleForTesting
 import org.jetbrains.annotations.TestOnly
 import sh.measure.android.applaunch.LaunchState
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.attributes.AttributesBuilder
+import sh.measure.android.bugreport.BugReportCollector
+import sh.measure.android.bugreport.MsrBugReportActivity
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventType
@@ -321,6 +326,118 @@ object Measure {
             return measure.getSessionId()
         }
         return null
+    }
+
+    /**
+     * Takes a screenshot and launches the bug report flow.
+     *
+     * @param takeScreenshot set to false to disable the screenshot.
+     * @see [MsrBugReportActivity] - the activity that will be launched.
+     * @see [trackBugReport] - to track a bug report by using a custom experience instead of the
+     * built-in experience.
+     */
+    fun launchBugReportActivity(activity: Activity, takeScreenshot: Boolean = true) {
+        if (isInitialized.get()) {
+            return measure.startBugReportFlow(activity, takeScreenshot)
+        }
+    }
+
+    /**
+     * Tracks a but report event.
+     *
+     * A bug report contains a mandatory [description], describing the bug and optional attachments.
+     * Attachments can contain screenshots obtained by [captureScreenshot] or layout snapshots obtained
+     * by [captureLayoutSnapshot]. Attachments can also contain a Uri to an image picked using an
+     * image picker, to convert a Uri to a attachment, use [imageUriToAttachment] method.
+     *
+     * A maximum of 5 attachments can be added to a bug report, any additional attachments will be
+     * ignored.
+     *
+     * @see [launchBugReportActivity] to use the built-in experience for bug reporting.
+     */
+    @MainThread
+    fun trackBugReport(description: String, attachments: List<MsrAttachment> = listOf()) {
+        if (isInitialized.get()) {
+            return measure.trackBugReport(description, attachments)
+        }
+    }
+
+    /**
+     * Takes a screenshot of the current activity window. This method must be called from the
+     * main thread.
+     *
+     * The screenshot will be masked for privacy based on the configuration provided during
+     * initialization using [MeasureConfig.screenshotMaskLevel], by default all text and media
+     * is masked.
+     *
+     * @param activity The activity to capture
+     * @param onComplete Callback invoked with the screenshot attachment when successful
+     * @param onError Callback invoked if screenshot capture fails
+     */
+    @MainThread
+    fun captureScreenshot(
+        activity: Activity,
+        onComplete: (attachment: MsrAttachment) -> Unit,
+        onError: () -> Unit,
+    ) {
+        if (isInitialized.get()) {
+            return measure.captureScreenshot(activity, onComplete, onError)
+        }
+    }
+
+    /**
+     * Takes a snapshot of the current activity's view hierarchy layout. This method must be called
+     * from the main thread.
+     *
+     * The snapshot captures information about visible elements including their position and
+     * dimensions. It works with both traditional Android Views and Jetpack Compose hierarchies.
+     * These are cheaper to capture and take less storage than screenshots.
+     *
+     * See [docs/android/features/feature_layout_snapshots.md] for more details on layout snapshots.
+     *
+     * @param activity The activity to capture
+     * @param onComplete Callback invoked with the layout snapshot attachment when successful
+     * @param onError Callback invoked if snapshot capture fails
+     */
+    @MainThread
+    fun captureLayoutSnapshot(
+        activity: Activity,
+        onComplete: (attachment: MsrAttachment) -> Unit,
+        onError: () -> Unit,
+    ) {
+        if (isInitialized.get()) {
+            return measure.takeLayoutSnapshot(activity, onComplete, onError)
+        }
+    }
+
+    /**
+     * Converts an image Uri to an attachment.
+     *
+     * The image will be scaled down if its width exceeds the maximum allowed width, and
+     * compressed according to the quality settings in [MeasureConfig].
+     *
+     * @param context Android context
+     * @param uri URI of the image to convert
+     * @param onComplete Callback invoked with the image attachment when successful
+     * @param onError Callback invoked if conversion fails
+     */
+    @MainThread
+    fun imageUriToAttachment(
+        context: Context,
+        uri: Uri,
+        onComplete: (attachment: MsrAttachment) -> Unit,
+        onError: () -> Unit,
+    ) {
+        if (isInitialized.get()) {
+            return measure.imageUriToAttachment(context, uri, onComplete, onError)
+        }
+    }
+
+    internal fun getBugReportCollector(): BugReportCollector {
+        if (isInitialized.get()) {
+            return measure.bugReportCollector
+        }
+        throw IllegalAccessException("Attempt to access bug report without initializing the SDK")
     }
 
     internal fun getOkHttpEventCollector(): OkHttpEventCollector? {

@@ -117,4 +117,14 @@ internal interface InternalConfig {
      * Defaults to 3000ms.
      */
     val inMemorySignalsQueueFlushRateMs: Long
+
+    /**
+     * The maximum allowed attachments in a bug report. Defaults to 5.
+     */
+    val maxAttachmentsInBugReport: Int
+
+    /**
+     * The maximum allowed characters in a bug report. Defaults to 1000.
+     */
+    val maxDescriptionLengthInBugReport: Int
 }

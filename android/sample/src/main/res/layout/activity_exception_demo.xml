@@ -112,5 +112,11 @@
             android:layout_height="wrap_content"
             android:text="@string/create_span" />
 
+        <Button
+            android:id="@+id/btn_bug_report"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/report_a_bug" />
+
     </LinearLayout>
 </ScrollView>

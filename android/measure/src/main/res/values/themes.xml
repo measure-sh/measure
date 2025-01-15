@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MsrBugReport" parent="android:Theme.DeviceDefault.NoActionBar">
+        <!-- no action bar -->
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+
+        <!-- Colors -->
+        <item name="msrBackgroundColor">@color/msr_background</item>
+        <item name="msrTextColorPrimary">@color/msr_text_primary</item>
+        <item name="msrTextColorSecondary">@color/msr_text_secondary</item>
+        <item name="msrCloseButtonTint">@color/msr_text_primary</item>
+        <item name="msrCloseButtonBackgroundColor">@color/msr_close_button_bg</item>
+        <item name="msrScreenshotBorderColor">@color/msr_screenshot_border</item>
+        <item name="msrOutlineButtonStrokeColor">@color/msr_outline_stroke</item>
+        <item name="msrRippleColor">@color/msr_ripple</item>
+
+        <!-- Text Sizes -->
+        <item name="msrTitleTextSize">18sp</item>
+        <item name="msrDescriptionTextSize">16sp</item>
+        <item name="msrSendButtonTextSize">14sp</item>
+        <item name="msrChooseImageButtonTextSize">14sp</item>
+
+        <!-- Dimensions -->
+        <item name="msrButtonCornerRadius">20dp</item>
+        <item name="msrScreenshotBorderWidth">1dp</item>
+
+        <!-- Text Appearances -->
+        <item name="msrTitleTextAppearance">@style/TextAppearance.MsrBugReport.Title</item>
+        <item name="msrDescriptionTextAppearance">@style/TextAppearance.MsrBugReport.Description</item>
+        <item name="msrSendButtonTextAppearance">@style/TextAppearance.MsrBugReport.SendButton</item>
+        <item name="msrChooseImageButtonTextAppearance">@style/TextAppearance.MsrBugReport.ChooseImageButton</item>
+    </style>
+
+    <!-- Text appearances -->
+    <style name="TextAppearance.MsrBugReport.Title" parent="android:TextAppearance">
+        <item name="android:textSize">?attr/msrTitleTextSize</item>
+        <item name="android:textColor">?attr/msrTextColorPrimary</item>
+    </style>
+
+    <style name="TextAppearance.MsrBugReport.Description" parent="android:TextAppearance">
+        <item name="android:textSize">?attr/msrDescriptionTextSize</item>
+        <item name="android:textColor">?attr/msrTextColorPrimary</item>
+    </style>
+
+    <style name="TextAppearance.MsrBugReport.SendButton" parent="android:TextAppearance">
+        <item name="android:textSize">?attr/msrSendButtonTextSize</item>
+        <item name="android:textColor">@drawable/msr_send_button_text_color</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.MsrBugReport.ChooseImageButton" parent="android:TextAppearance">
+        <item name="android:textSize">?attr/msrChooseImageButtonTextSize</item>
+        <item name="android:textColor">?attr/msrTextColorPrimary</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

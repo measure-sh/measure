@@ -321,6 +321,7 @@ All the features supported by the Measure SDK are listed below.
 * [CPU monitoring](features/feature_cpu_monitoring.md)
 * [Memory monitoring](features/feature_memory_monitoring.md)
 * [App size](features/feature_app_size.md)
+* [Bug Reports](features/feature_bug_reports.md)
 
 # Session
 
@@ -366,6 +367,9 @@ or by using [Perfetto](https://perfetto.dev/docs/quickstart/android-tracing) dir
   thread. 
 * `msr-trackGesture` — time spent on the main thread to track a gesture.
 * `msr-generateSvgAttachment` — time spent on background thread to generate a SVG layout.
+* `msr-captureScreenshot` — time spent on main thread to capture and compress a screenshot.
+* `msr-loadImageFromFile` — time spent on main thread to load an image from a file.
+* `msr-loadImageFromUri` — time spent on main thread to load an image from a Uri.
 
 ## Implementation
 

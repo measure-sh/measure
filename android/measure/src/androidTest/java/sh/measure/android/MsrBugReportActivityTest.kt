@@ -1,0 +1,187 @@
+package sh.measure.android
+
+import android.Manifest
+import androidx.lifecycle.Lifecycle
+import androidx.test.core.app.ActivityScenario
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.rule.GrantPermissionRule
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import org.junit.After
+import org.junit.Before
+import org.junit.Ignore
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import sh.measure.android.bugreport.MsrBugReportActivity
+import sh.measure.android.config.MeasureConfig
+
+@RunWith(AndroidJUnit4::class)
+class MsrBugReportActivityTest {
+    private val robot: MsrBugReportActivityRobot = MsrBugReportActivityRobot()
+    private val mockWebServer: MockWebServer = MockWebServer()
+
+    @get:Rule
+    val grantPermissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        Manifest.permission.READ_MEDIA_IMAGES,
+        Manifest.permission.POST_NOTIFICATIONS,
+        Manifest.permission.READ_MEDIA_AUDIO,
+        Manifest.permission.READ_EXTERNAL_STORAGE,
+    )
+
+    @Before
+    fun setup() {
+        mockWebServer.start(port = 8080)
+        mockWebServer.enqueue(MockResponse().setResponseCode(200))
+    }
+
+    @After
+    fun teardown() {
+        mockWebServer.shutdown()
+    }
+
+    @Test
+    fun testSendButtonState() {
+        // Given
+        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        ActivityScenario.launch(MsrBugReportActivity::class.java).use {
+            it.moveToState(Lifecycle.State.RESUMED)
+
+            // Then
+            robot.assertSendCtaEnabled(enabled = false)
+            robot.enterDescription()
+            robot.assertSendCtaEnabled(enabled = true)
+        }
+    }
+
+    @Test
+    fun launchWithInitialScreenshot() {
+        // Given
+        val initializer = robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        ActivityScenario.launch(TestActivity::class.java).use { activity ->
+            activity.moveToState(Lifecycle.State.RESUMED)
+            activity.onActivity {
+                // When
+                initializer.bugReportCollector.startBugReportFlow(it)
+            }
+
+            // Then
+            robot.assertBugReportActivityLaunched()
+            robot.assertTotalScreenshots(1)
+        }
+    }
+
+    @Test
+    fun launchWithoutInitialScreenshot() {
+        // Given
+        val initializer = robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        ActivityScenario.launch(TestActivity::class.java).use { activity ->
+            activity.moveToState(Lifecycle.State.RESUMED)
+            activity.onActivity {
+                // When
+                initializer.bugReportCollector.startBugReportFlow(it, takeScreenshot = false)
+            }
+
+            // Then
+            robot.assertBugReportActivityLaunched()
+            robot.assertTotalScreenshots(0)
+        }
+    }
+
+    @Test
+    fun removeScreenshotUpdatesUI() {
+        // Given
+        val initializer = robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        ActivityScenario.launch(TestActivity::class.java).use { activity ->
+            activity.moveToState(Lifecycle.State.RESUMED)
+            activity.onActivity {
+                // When
+                initializer.bugReportCollector.startBugReportFlow(it)
+            }
+            // Then
+            robot.assertBugReportActivityLaunched()
+            robot.assertTotalScreenshots(value = 1)
+            robot.removeScreenshot(index = 0)
+            robot.assertTotalScreenshots(value = 0)
+        }
+    }
+
+    @Test
+    fun clickingCloseExitsTheBugReportActivity() {
+        // Given
+        val initializer = robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        ActivityScenario.launch(TestActivity::class.java).use { activity ->
+            activity.moveToState(Lifecycle.State.RESUMED)
+            activity.onActivity {
+                initializer.bugReportCollector.startBugReportFlow(it)
+            }
+            // Then
+            robot.assertBugReportActivityLaunched()
+            robot.clickCloseButton()
+            robot.assertBugReportActivityNotVisible()
+        }
+    }
+
+    @Test
+    fun reopenBugReportActivity() {
+        // Given
+        val initializer = robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        ActivityScenario.launch(TestActivity::class.java).use { activity ->
+            activity.moveToState(Lifecycle.State.RESUMED)
+            activity.onActivity {
+                initializer.bugReportCollector.startBugReportFlow(it)
+            }
+            robot.assertBugReportActivityLaunched()
+            robot.clickCloseButton()
+
+            // Re-open
+            activity.onActivity {
+                initializer.bugReportCollector.startBugReportFlow(it)
+            }
+            robot.assertBugReportActivityLaunched()
+        }
+    }
+
+    @Test
+    fun tracksBugReportWithoutAttachments() {
+        // Given
+        val initializer = robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        ActivityScenario.launch(TestActivity::class.java).use { activity ->
+            activity.moveToState(Lifecycle.State.RESUMED)
+            activity.onActivity {
+                // When
+                initializer.bugReportCollector.startBugReportFlow(it)
+            }
+            // Then
+            robot.assertBugReportActivityLaunched()
+            robot.removeScreenshot(index = 0)
+            robot.enterDescription()
+            robot.clickSendCTA()
+            robot.assetBugReportTracked(attachmentCount = 0)
+        }
+    }
+
+    @Test
+    fun tracksBugReportWithAttachment() {
+        // Given
+        val initializer = robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        ActivityScenario.launch(TestActivity::class.java).use { activity ->
+            activity.moveToState(Lifecycle.State.RESUMED)
+            activity.onActivity {
+                // When
+                initializer.bugReportCollector.startBugReportFlow(it)
+            }
+            // Then
+            robot.assertBugReportActivityLaunched()
+            robot.enterDescription()
+            robot.clickSendCTA()
+            robot.assetBugReportTracked(attachmentCount = 1)
+        }
+    }
+
+    @Test
+    @Ignore("Skipped as picking image from gallery is not reliable in tests")
+    fun addsImageFromGallery() {
+        // Unable to create a image URI which can be read by the app under test
+    }
+}

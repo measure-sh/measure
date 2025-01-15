@@ -30,4 +30,5 @@
     <string name="androidx_fragment_navigation">AndroidX Fragment Navigation</string>
     <string name="create_span">Create span</string>
     <string name="start_tracking">Start tracking</string>
+    <string name="report_a_bug">Report a bug</string>
 </resources>

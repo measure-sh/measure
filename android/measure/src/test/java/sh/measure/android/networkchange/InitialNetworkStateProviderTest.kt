@@ -136,10 +136,10 @@ internal class InitialNetworkStateProviderTest {
         assertEquals(NetworkType.WIFI, networkType)
     }
 
-    @Test
     // Ideally we would like to test on multiple versions, but specifying the SDK versions
     // in @Config makes this test cause an OOM error after updating robolectric to 4.14
     // @Config(sdk = [23, 33])
+    @Test
     fun `returns correct network type above API 23`() {
         shadowOf(context as Application).grantPermissions(Manifest.permission.ACCESS_NETWORK_STATE)
         val nc = ShadowNetworkCapabilities.newInstance()
