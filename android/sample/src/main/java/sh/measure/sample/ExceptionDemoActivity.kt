@@ -1,13 +1,18 @@
 package sh.measure.sample
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.widget.Button
+import android.widget.ScrollView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import com.google.android.material.switchmaterial.SwitchMaterial
+import com.google.android.material.textview.MaterialTextView
 import sh.measure.android.Measure
 import sh.measure.android.tracing.SpanStatus
 import sh.measure.sample.fragments.AndroidXFragmentNavigationActivity
@@ -25,58 +30,59 @@ class ExceptionDemoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val span = Measure.startSpan("activity.onCreate")
         setContentView(R.layout.activity_exception_demo)
-        findViewById<Button>(R.id.btn_single_exception).setOnClickListener {
+        handleEdgeToEdgeDisplay()
+        findViewById<MaterialTextView>(R.id.btn_single_exception).setOnClickListener {
             throw IllegalAccessException("This is a new exception")
         }
-        findViewById<Button>(R.id.btn_chained_exception).setOnClickListener {
+        findViewById<MaterialTextView>(R.id.btn_chained_exception).setOnClickListener {
             throw IOException("This is a test exception").initCause(
                 CustomException(message = "This is a nested custom exception")
             )
         }
-        findViewById<Button>(R.id.btn_oom_exception).setOnClickListener {
+        findViewById<MaterialTextView>(R.id.btn_oom_exception).setOnClickListener {
             val list = mutableListOf<ByteArray>()
             while (true) {
                 val byteArray = ByteArray(1024 * 1024 * 100) // Allocate 100MB of memory
                 list.add(byteArray)
             }
         }
-        findViewById<Button>(R.id.btn_stack_overflow_exception).setOnClickListener {
+        findViewById<MaterialTextView>(R.id.btn_stack_overflow_exception).setOnClickListener {
             recursiveFunction()
         }
-        findViewById<Button>(R.id.btn_infinite_loop).setOnClickListener {
+        findViewById<MaterialTextView>(R.id.btn_infinite_loop).setOnClickListener {
             infiniteLoop()
         }
-        findViewById<Button>(R.id.btn_deadlock).setOnClickListener {
+        findViewById<MaterialTextView>(R.id.btn_deadlock).setOnClickListener {
             deadLock()
         }
-        findViewById<Button>(R.id.btn_okhttp).setOnClickListener {
+        findViewById<MaterialTextView>(R.id.btn_okhttp).setOnClickListener {
             startActivity(Intent(this, OkHttpActivity::class.java))
         }
-        findViewById<Button>(R.id.btn_compose).setOnClickListener {
+        findViewById<MaterialTextView>(R.id.btn_compose).setOnClickListener {
             startActivity(Intent(this, ComposeActivity::class.java))
         }
-        findViewById<Button>(R.id.btn_compose_navigation).setOnClickListener {
+        findViewById<MaterialTextView>(R.id.btn_compose_navigation).setOnClickListener {
             startActivity(Intent(this, ComposeNavigationActivity::class.java))
         }
-        findViewById<Button>(R.id.btn_view_screenshot).setOnClickListener {
+        findViewById<MaterialTextView>(R.id.btn_view_screenshot).setOnClickListener {
             startActivity(Intent(this, ViewScreenshotActivity::class.java))
         }
-        findViewById<Button>(R.id.btn_compose_screenshot).setOnClickListener {
+        findViewById<MaterialTextView>(R.id.btn_compose_screenshot).setOnClickListener {
             startActivity(Intent(this, ComposeScreenshotActivity::class.java))
         }
-        findViewById<Button>(R.id.btn_nested_fragments).setOnClickListener {
+        findViewById<MaterialTextView>(R.id.btn_nested_fragments).setOnClickListener {
             startActivity(Intent(this, NestedFragmentActivity::class.java))
         }
-        findViewById<Button>(R.id.btn_fragment_navigation).setOnClickListener {
+        findViewById<MaterialTextView>(R.id.btn_fragment_navigation).setOnClickListener {
             startActivity(Intent(this, FragmentNavigationActivity::class.java))
         }
-        findViewById<Button>(R.id.btn_fragment_androidx_navigation).setOnClickListener {
+        findViewById<MaterialTextView>(R.id.btn_fragment_androidx_navigation).setOnClickListener {
             startActivity(Intent(this, AndroidXFragmentNavigationActivity::class.java))
         }
-        findViewById<Button>(R.id.btn_bug_report).setOnClickListener {
+        findViewById<MaterialTextView>(R.id.btn_bug_report).setOnClickListener {
             Measure.launchBugReportActivity(this)
         }
-        val spanButton = findViewById<Button>(R.id.btn_generate_span)
+        val spanButton = findViewById<MaterialTextView>(R.id.btn_generate_span)
         spanButton.setOnClickListener {
             spanButton.isEnabled = false
             thread {
@@ -150,6 +156,33 @@ class ExceptionDemoActivity : AppCompatActivity() {
             Thread.sleep((8 * 1000).toLong())
         } catch (e: InterruptedException) {
             e.printStackTrace()
+        }
+    }
+
+    private fun handleEdgeToEdgeDisplay() {
+        val container = findViewById<ScrollView>(R.id.sv_container)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            ViewCompat.setOnApplyWindowInsetsListener(container) { view, windowInsets ->
+                val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+                view.updatePadding(
+                    left = insets.left,
+                    top = insets.top,
+                    right = insets.right,
+                    bottom = insets.bottom
+                )
+                windowInsets
+            }
+        } else {
+            ViewCompat.setOnApplyWindowInsetsListener(container) { view, windowInsets ->
+                @Suppress("DEPRECATION") val insets = windowInsets.systemWindowInsets
+                view.updatePadding(
+                    left = insets.left,
+                    top = insets.top,
+                    right = insets.right,
+                    bottom = insets.bottom
+                )
+                windowInsets
+            }
         }
     }
 }

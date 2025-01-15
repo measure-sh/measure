@@ -50,7 +50,8 @@
             android:theme="@style/Theme.MeasureAndroid" />
         <activity
             android:name=".ExceptionDemoActivity"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/Theme.MeasureAndroid">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
