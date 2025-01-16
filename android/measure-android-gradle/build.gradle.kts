@@ -68,7 +68,7 @@ mavenPublishing {
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(11)
 }
 
 extensions.configure<SpotlessExtension>("spotless") {
@@ -113,7 +113,7 @@ fun configureSpotlessKotlin(spotlessExtension: SpotlessExtension) {
 }
 
 dependencies {
-    compileOnly(libs.agp)
+    compileOnly(libs.agp741)
     compileOnly(libs.asm.util)
     compileOnly(libs.asm.commons)
 
@@ -132,7 +132,7 @@ dependencies {
     testImplementation(libs.squareup.okhttp.mockwebserver)
     testImplementation(libs.asm.util)
     testImplementation(libs.asm.commons)
-    testImplementation(libs.agp)
+    testImplementation(libs.agp741)
     testImplementation(libs.mockitokotlin2.mockito.kotlin)
     testImplementationAar(libs.measure.android)
 
@@ -145,7 +145,10 @@ dependencies {
 }
 
 tasks.withType<Test>().configureEach {
-    if (this.name.equals("functionalTest")) {
+    javaLauncher.set(javaToolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    })
+    if (this.name == "functionalTest") {
         useJUnitPlatform()
     }
 }
