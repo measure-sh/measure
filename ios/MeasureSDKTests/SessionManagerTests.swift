@@ -25,7 +25,6 @@ final class SessionManagerTests: XCTestCase {
         timeProvider = MockTimeProvider()
         configProvider = MockConfigProvider(enableLogging: false,
                                             trackScreenshotOnCrash: false,
-                                            sessionSamplingRate: 1.0,
                                             eventsBatchingIntervalMs: 1000,
                                             sessionEndLastEventThresholdMs: 1000,
                                             longPressTimeout: 0.5,
@@ -41,6 +40,7 @@ final class SessionManagerTests: XCTestCase {
                                             configProvider: configProvider,
                                             randomizer: randomizer,
                                             sessionStore: sessionStore,
+                                            eventStore: MockEventStore(),
                                             userDefaultStorage: userDefaultStorage,
                                             versionCode: "1.0.0")
     }
@@ -117,6 +117,7 @@ final class SessionManagerTests: XCTestCase {
                                             configProvider: configProvider,
                                             randomizer: randomizer,
                                             sessionStore: sessionStore,
+                                            eventStore: MockEventStore(),
                                             userDefaultStorage: userDefaultStorage,
                                             versionCode: "1.0.0")
         sessionManager.start()

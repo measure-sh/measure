@@ -10,6 +10,7 @@ import Foundation
 /// Protocol defining the requirements for initializing the SessionManager.
 protocol SessionManager {
     var sessionId: String { get }
+    var shouldReportSession: Bool { get }
     func start()
     func applicationDidEnterBackground()
     func applicationWillEnterForeground()
@@ -31,9 +32,11 @@ final class BaseSessionManager: SessionManager {
     private let configProvider: ConfigProvider
     private let randomizer: Randomizer
     private let sessionStore: SessionStore
+    private let eventStore: EventStore
     private let userDefaultStorage: UserDefaultStorage
     private var previousSessionCrashed = false
     private let versionCode: String
+    var shouldReportSession: Bool
 
     /// The current session ID.
     var sessionId: String {
@@ -50,6 +53,7 @@ final class BaseSessionManager: SessionManager {
          configProvider: ConfigProvider,
          randomizer: Randomizer = BaseRandomizer(),
          sessionStore: SessionStore,
+         eventStore: EventStore,
          userDefaultStorage: UserDefaultStorage,
          versionCode: String) {
         self.appBackgroundTimeMs = 0
@@ -59,17 +63,20 @@ final class BaseSessionManager: SessionManager {
         self.configProvider = configProvider
         self.randomizer = randomizer
         self.sessionStore = sessionStore
+        self.eventStore = eventStore
         self.userDefaultStorage = userDefaultStorage
         self.versionCode = versionCode
+        self.shouldReportSession = false
     }
 
     private func createNewSession() {
         currentSessionId = idProvider.createId()
         logger.log(level: .info, message: "New session created", error: nil, data: nil)
+        shouldReportSession = shouldMarkSessionForExport()
         let session = SessionEntity(sessionId: sessionId,
                                     pid: ProcessInfo.processInfo.processIdentifier,
                                     createdAt: Number(timeProvider.now()),
-                                    needsReporting: true,
+                                    needsReporting: shouldReportSession,
                                     crashed: false)
         sessionStore.insertSession(session)
         let recentSession = RecentSession(id: session.sessionId,
@@ -154,6 +161,11 @@ final class BaseSessionManager: SessionManager {
 
     func setPreviousSessionCrashed(_ crashed: Bool) {
         self.previousSessionCrashed = crashed
+        if let recentSession = userDefaultStorage.getRecentSession(), previousSessionCrashed {
+            sessionStore.markCrashedSession(sessionId: recentSession.id)
+            sessionStore.updateNeedsReporting(sessionId: recentSession.id, needsReporting: true)
+            eventStore.updateNeedsReportingForAllEvents(sessionId: recentSession.id, needsReporting: true)
+        }
     }
 
     private func shouldEndSession() -> Bool {
@@ -168,12 +180,12 @@ final class BaseSessionManager: SessionManager {
     }
 
     private func shouldMarkSessionForExport() -> Bool {
-        if configProvider.sessionSamplingRate == 0.0 {
+        if configProvider.samplingRateForErrorFreeSessions == 0.0 {
             return false
         }
-        if configProvider.sessionSamplingRate == 1.0 {
+        if configProvider.samplingRateForErrorFreeSessions == 1.0 {
             return true
         }
-        return randomizer.random() < configProvider.sessionSamplingRate
+        return randomizer.random() < configProvider.samplingRateForErrorFreeSessions
     }
 }

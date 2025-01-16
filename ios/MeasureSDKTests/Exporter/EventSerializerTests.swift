@@ -36,7 +36,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: true
         )
 
-        let eventEntity = EventEntity(event)
+        let eventEntity = EventEntity(event, needsReporting: true)
 
         guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent should not return nil")
@@ -90,7 +90,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: true
         )
 
-        let eventEntity = EventEntity(event)
+        let eventEntity = EventEntity(event, needsReporting: true)
 
         guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
@@ -142,7 +142,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: true
         )
 
-        let eventEntity = EventEntity(event)
+        let eventEntity = EventEntity(event, needsReporting: true)
 
         guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
@@ -209,7 +209,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: true
         )
 
-        let eventEntity = EventEntity(event)
+        let eventEntity = EventEntity(event, needsReporting: true)
 
         guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
@@ -294,7 +294,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: true
         )
 
-        let eventEntity = EventEntity(event)
+        let eventEntity = EventEntity(event, needsReporting: true)
 
         guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
@@ -332,7 +332,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: false
         )
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: EventEntity(event)) else {
+        guard let jsonString = eventSerializer.getSerialisedEvent(for: EventEntity(event, needsReporting: true)) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
@@ -388,7 +388,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: false
         )
 
-        let eventEntity = EventEntity(event)
+        let eventEntity = EventEntity(event, needsReporting: true)
 
         guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
@@ -424,7 +424,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: false
         )
 
-        let eventEntity = EventEntity(event)
+        let eventEntity = EventEntity(event, needsReporting: true)
 
         guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
@@ -461,7 +461,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: false
         )
 
-        let eventEntity = EventEntity(event)
+        let eventEntity = EventEntity(event, needsReporting: true)
 
         guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
@@ -509,7 +509,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: false
         )
 
-        let eventEntity = EventEntity(event)
+        let eventEntity = EventEntity(event, needsReporting: true)
 
         guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
@@ -558,7 +558,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: false
         )
 
-        let eventEntity = EventEntity(event)
+        let eventEntity = EventEntity(event, needsReporting: true)
 
         guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
@@ -602,7 +602,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: false
         )
 
-        let eventEntity = EventEntity(event)
+        let eventEntity = EventEntity(event, needsReporting: true)
 
         guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
@@ -648,7 +648,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: false
         )
 
-        let eventEntity = EventEntity(event)
+        let eventEntity = EventEntity(event, needsReporting: true)
 
         guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
@@ -696,7 +696,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: false
         )
 
-        let eventEntity = EventEntity(event)
+        let eventEntity = EventEntity(event, needsReporting: true)
 
         guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
@@ -750,7 +750,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             attributes: TestDataGenerator.generateAttributes(),
             userTriggered: false)
 
-        let eventEntity = EventEntity(event)
+        let eventEntity = EventEntity(event, needsReporting: true)
 
         guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
@@ -809,7 +809,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             attributes: TestDataGenerator.generateAttributes(),
             userTriggered: true)
 
-        let eventEntity = EventEntity(event)
+        let eventEntity = EventEntity(event, needsReporting: true)
 
         guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")

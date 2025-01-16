@@ -40,7 +40,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let clientInfo = ClientInfo(apiKey: "test", apiUrl: "test")
         let config = BaseMeasureConfig(enableLogging: true,
                                        trackScreenshotOnCrash: false,
-                                       sessionSamplingRate: 1.0)
+                                       samplingRateForErrorFreeSessions: 1.0)
         mockMeasureInitializer = MockMeasureInitializer(config: config, client: clientInfo)
         measureInstance.meaureInitializerInternal = mockMeasureInitializer
         measureInstance.initialize(with: clientInfo, config: config)

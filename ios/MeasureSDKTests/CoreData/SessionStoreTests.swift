@@ -97,7 +97,7 @@ final class SessionStoreTests: XCTestCase {
         wait(for: [expectation1, expectation2], timeout: 5)
 
         let sessions = sessionStore.getAllSessions()
-        XCTAssertEqual(sessions?.count, 0)
+        XCTAssertNil(sessions)
     }
 
     func testMarkCrashedSessions() {

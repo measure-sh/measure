@@ -49,12 +49,14 @@ final class MockMeasureInitializer: MeasureInitializer {
     let httpEventCollector: HttpEventCollector
     let customEventCollector: CustomEventCollector
     let networkChangeCollector: NetworkChangeCollector
+    let userTriggeredEventCollector: UserTriggeredEventCollector
+    let dataCleanupService: DataCleanupService
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
         let defaultConfig = Config(enableLogging: config.enableLogging,
                                    trackScreenshotOnCrash: config.trackScreenshotOnCrash,
-                                   sessionSamplingRate: config.sessionSamplingRate)
+                                   samplingRateForErrorFreeSessions: config.samplingRateForErrorFreeSessions)
 
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
@@ -72,6 +74,7 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                  timeProvider: timeProvider,
                                                  configProvider: configProvider,
                                                  sessionStore: sessionStore,
+                                                 eventStore: eventStore,
                                                  userDefaultStorage: userDefaultStorage,
                                                  versionCode: "1.0.0")
         self.appAttributeProcessor = AppAttributeProcessor()
@@ -164,6 +167,12 @@ final class MockMeasureInitializer: MeasureInitializer {
         self.networkChangeCollector = BaseNetworkChangeCollector(logger: logger,
                                                                  eventProcessor: eventProcessor,
                                                                  timeProvider: timeProvider)
+        self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(eventProcessor: eventProcessor,
+                                                                           timeProvider: timeProvider)
+        self.dataCleanupService = BaseDataCleanupService(eventStore: eventStore,
+                                                         sessionStore: sessionStore,
+                                                         logger: logger,
+                                                         sessionManager: sessionManager)
         self.client = client
         self.httpEventCollector = BaseHttpEventCollector(logger: logger,
                                                          eventProcessor: eventProcessor,

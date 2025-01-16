@@ -51,6 +51,7 @@ protocol MeasureInitializer {
     var networkChangeCollector: NetworkChangeCollector { get }
     var customEventCollector: CustomEventCollector { get }
     var userTriggeredEventCollector: UserTriggeredEventCollector { get }
+    var dataCleanupService: DataCleanupService { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -96,6 +97,7 @@ protocol MeasureInitializer {
 /// - `eventExporter`: `EventExporter` object that exports a single batch.
 /// - `batchStore`: `BatchStore` object that manages `Batch` related operations
 /// - `batchCreator`: `BatchCreator` object used to create a batch.
+/// - `dataCleanupService`: `DataCleanupService` object responsible for clearing stale data
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -139,12 +141,13 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let networkChangeCollector: NetworkChangeCollector
     let customEventCollector: CustomEventCollector
     let userTriggeredEventCollector: UserTriggeredEventCollector
+    let dataCleanupService: DataCleanupService
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
         let defaultConfig = Config(enableLogging: config.enableLogging,
                                    trackScreenshotOnCrash: config.trackScreenshotOnCrash,
-                                   sessionSamplingRate: config.sessionSamplingRate)
+                                   samplingRateForErrorFreeSessions: config.samplingRateForErrorFreeSessions)
 
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
@@ -162,6 +165,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                  timeProvider: timeProvider,
                                                  configProvider: configProvider,
                                                  sessionStore: sessionStore,
+                                                 eventStore: eventStore,
                                                  userDefaultStorage: userDefaultStorage,
                                                  versionCode: FrameworkInfo.version)
         self.appAttributeProcessor = AppAttributeProcessor()
@@ -256,6 +260,10 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                              configProvider: configProvider)
         self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(eventProcessor: eventProcessor,
                                                                            timeProvider: timeProvider)
+        self.dataCleanupService = BaseDataCleanupService(eventStore: eventStore,
+                                                         sessionStore: sessionStore,
+                                                         logger: logger,
+                                                         sessionManager: sessionManager)
         self.client = client
         self.httpEventCollector = BaseHttpEventCollector(logger: logger,
                                                          eventProcessor: eventProcessor,

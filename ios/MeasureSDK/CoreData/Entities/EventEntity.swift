@@ -35,8 +35,9 @@ struct EventEntity { // swiftlint:disable:this type_body_length
     var batchId: String?
     let http: Data?
     let customEvent: Data?
+    var needsReporting: Bool
 
-    init<T: Codable>(_ event: Event<T>) { // swiftlint:disable:this cyclomatic_complexity function_body_length
+    init<T: Codable>(_ event: Event<T>, needsReporting: Bool) { // swiftlint:disable:this cyclomatic_complexity function_body_length
         self.id = event.id
         self.sessionId = event.sessionId
         self.timestamp = event.timestamp
@@ -46,6 +47,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.attachmentSize = 0
         self.batchId = nil
         self.userDefinedAttributes = event.userDefinedAttributes
+        self.needsReporting = needsReporting
 
         if let exception = event.data as? Exception {
             do {
@@ -268,7 +270,8 @@ struct EventEntity { // swiftlint:disable:this type_body_length
          http: Data?,
          networkChange: Data?,
          customEvent: Data?,
-         screenView: Data?) {
+         screenView: Data?,
+         needsReporting: Bool) {
         self.id = id
         self.sessionId = sessionId
         self.timestamp = timestamp
@@ -296,6 +299,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.networkChange = networkChange
         self.customEvent = customEvent
         self.screenView = screenView
+        self.needsReporting = needsReporting
     }
 
     func getEvent<T: Codable>() -> Event<T> { // swiftlint:disable:this cyclomatic_complexity function_body_length

@@ -33,6 +33,10 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var eventTypeExportAllowList: [EventType] {
+        return getMergedConfig(\.eventTypeExportAllowList)
+    }
+
     var maxUserDefinedAttributesPerEvent: Int {
         return getMergedConfig(\.maxUserDefinedAttributesPerEvent)
     }
@@ -69,8 +73,8 @@ final class BaseConfigProvider: ConfigProvider {
         return getMergedConfig(\.maxEventsInBatch)
     }
 
-    var sessionSamplingRate: Float {
-        return getMergedConfig(\.sessionSamplingRate)
+    var samplingRateForErrorFreeSessions: Float {
+        return getMergedConfig(\.samplingRateForErrorFreeSessions)
     }
 
     var enableLogging: Bool {

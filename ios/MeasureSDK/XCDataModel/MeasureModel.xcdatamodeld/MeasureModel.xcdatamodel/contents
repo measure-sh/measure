@@ -24,6 +24,7 @@
         <attribute name="lifecycleSwiftUI" optional="YES" attributeType="Binary"/>
         <attribute name="lifecycleViewController" optional="YES" attributeType="Binary"/>
         <attribute name="memoryUsage" optional="YES" attributeType="Binary"/>
+        <attribute name="needsReporting" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="networkChange" optional="YES" attributeType="Binary"/>
         <attribute name="screenView" optional="YES" attributeType="Binary"/>
         <attribute name="sessionId" attributeType="String" defaultValueString=""/>

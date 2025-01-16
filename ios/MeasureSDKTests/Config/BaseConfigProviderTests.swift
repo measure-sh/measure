@@ -28,27 +28,27 @@ final class BaseConfigProviderTests: XCTestCase {
     }
 
     func testMergedConfigUsesNetworkConfigIfAvailable() {
-        let networkConfig = Config(enableLogging: false, trackScreenshotOnCrash: true, sessionSamplingRate: 0.2)
+        let networkConfig = Config(enableLogging: false, trackScreenshotOnCrash: true, samplingRateForErrorFreeSessions: 0.2)
         mockConfigLoader.networkConfig = networkConfig
         baseConfigProvider.loadNetworkConfig()
 
-        XCTAssertEqual(baseConfigProvider.sessionSamplingRate, 0.2)
+        XCTAssertEqual(baseConfigProvider.samplingRateForErrorFreeSessions, 0.2)
         XCTAssertEqual(baseConfigProvider.enableLogging, false)
         XCTAssertEqual(baseConfigProvider.trackScreenshotOnCrash, true)
     }
 
     func testMergedConfigUsesCachedConfigIfNoNetworkConfig() {
-        let cachedConfig = Config(enableLogging: true, trackScreenshotOnCrash: true, sessionSamplingRate: 0.15)
+        let cachedConfig = Config(enableLogging: true, trackScreenshotOnCrash: true, samplingRateForErrorFreeSessions: 0.15)
         mockConfigLoader.cachedConfig = cachedConfig
         baseConfigProvider = BaseConfigProvider(defaultConfig: defaultConfig, configLoader: mockConfigLoader)
 
-        XCTAssertEqual(baseConfigProvider.sessionSamplingRate, 0.15)
+        XCTAssertEqual(baseConfigProvider.samplingRateForErrorFreeSessions, 0.15)
         XCTAssertEqual(baseConfigProvider.enableLogging, true)
         XCTAssertEqual(baseConfigProvider.trackScreenshotOnCrash, true)
     }
 
     func testMergedConfigUsesDefaultConfigIfNoNetworkOrCachedConfig() {
-        XCTAssertEqual(baseConfigProvider.sessionSamplingRate, 1.0)
+        XCTAssertEqual(baseConfigProvider.samplingRateForErrorFreeSessions, 0.0)
         XCTAssertEqual(baseConfigProvider.enableLogging, false)
         XCTAssertEqual(baseConfigProvider.trackScreenshotOnCrash, true)
         XCTAssertEqual(baseConfigProvider.sessionEndLastEventThresholdMs, 1200000)
@@ -56,13 +56,13 @@ final class BaseConfigProviderTests: XCTestCase {
     }
 
     func testLoadNetworkConfigUpdatesNetworkConfig() {
-        let networkConfig = Config(enableLogging: false, trackScreenshotOnCrash: false, sessionSamplingRate: 0.25)
+        let networkConfig = Config(enableLogging: false, trackScreenshotOnCrash: false, samplingRateForErrorFreeSessions: 0.25)
 
         mockConfigLoader.networkConfig = networkConfig
 
         baseConfigProvider.loadNetworkConfig()
 
-        XCTAssertEqual(baseConfigProvider.sessionSamplingRate, 0.25)
+        XCTAssertEqual(baseConfigProvider.samplingRateForErrorFreeSessions, 0.25)
         XCTAssertEqual(baseConfigProvider.enableLogging, false)
         XCTAssertEqual(baseConfigProvider.trackScreenshotOnCrash, false)
         XCTAssertEqual(baseConfigProvider.sessionEndLastEventThresholdMs, 1200000)

@@ -17,7 +17,7 @@ import Foundation
 struct Config: InternalConfig, MeasureConfig {
     let enableLogging: Bool
     let trackScreenshotOnCrash: Bool
-    let sessionSamplingRate: Float
+    let samplingRateForErrorFreeSessions: Float
     let eventsBatchingIntervalMs: Number
     let sessionEndLastEventThresholdMs: Number
     let longPressTimeout: TimeInterval
@@ -35,14 +35,15 @@ struct Config: InternalConfig, MeasureConfig {
     let maxUserDefinedAttributeKeyLength: Int
     let maxUserDefinedAttributeValueLength: Int
     let maxUserDefinedAttributesPerEvent: Int
+    let eventTypeExportAllowList: [EventType]
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   trackScreenshotOnCrash: Bool = DefaultConfig.trackScreenshotOnCrash,
-                  sessionSamplingRate: Float = DefaultConfig.sessionSamplingRate) {
+                  samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
-        self.sessionSamplingRate = sessionSamplingRate
-        self.eventsBatchingIntervalMs = 3000 // 30 seconds
+        self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
+        self.eventsBatchingIntervalMs = 30000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndLastEventThresholdMs = 20 * 60 * 1000 // 20 minitues
         self.timeoutIntervalForRequest = 30 // 30 seconds
@@ -64,5 +65,11 @@ struct Config: InternalConfig, MeasureConfig {
         self.maxUserDefinedAttributeKeyLength = 256 // 256 chars
         self.maxUserDefinedAttributeValueLength = 256 // 256 chars
         self.maxUserDefinedAttributesPerEvent = 100
+        self.eventTypeExportAllowList = [.coldLaunch,
+                                         .hotLaunch,
+                                         .warmLaunch,
+                                         .lifecycleSwiftUI,
+                                         .lifecycleViewController,
+                                         .screenView]
     }
 }
