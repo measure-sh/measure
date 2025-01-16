@@ -22,6 +22,7 @@ final class BaseCpuUsageCollector: CpuUsageCollector {
     private let cpuUsageCalculator: CpuUsageCalculator
     private let sysCtl: SysCtl
     private var isTrackingInProgress = false
+    private var isEnabled = false
 
     init(logger: Logger, configProvider: ConfigProvider, eventProcessor: EventProcessor, timeProvider: TimeProvider, cpuUsageCalculator: CpuUsageCalculator, sysCtl: SysCtl) {
         self.logger = logger
@@ -35,12 +36,13 @@ final class BaseCpuUsageCollector: CpuUsageCollector {
     func enable() {
         guard timer == nil else { return }
 
+        isEnabled = true
         initializeTimer()
         logger.log(level: .info, message: "CpuUsageCollector enabled.", error: nil, data: nil)
     }
 
     func resume() {
-        if timer == nil {
+        if isEnabled && timer == nil {
             initializeTimer()
             logger.log(level: .info, message: "CpuUsageCollector resumed.", error: nil, data: nil)
         }

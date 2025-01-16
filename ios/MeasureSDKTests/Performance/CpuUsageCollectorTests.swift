@@ -46,8 +46,7 @@ final class CpuUsageCollectorTests: XCTestCase {
 
     func testResumeStartsTimerIfNotRunning() {
         cpuUsageCollector.resume()
-        XCTAssertEqual(mockLogger.logs.count, 1)
-        XCTAssertEqual(mockLogger.logs.first, "CpuUsageCollector resumed.")
+        XCTAssertEqual(mockLogger.logs.count, 0)
     }
 
     func testResumeDoesNotStartTimerIfAlreadyRunning() {

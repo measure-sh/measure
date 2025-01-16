@@ -11,15 +11,15 @@ import UIKit
 enum DetectedGesture {
     case click(x: CGFloat,
                y: CGFloat,
-               touchDownTime: Number,
-               touchUpTime: Number,
+               touchDownTime: UnsignedNumber,
+               touchUpTime: UnsignedNumber,
                target: String?,
                targetId: String?,
                targetFrame: CGRect?)
     case longClick(x: CGFloat,
                    y: CGFloat,
-                   touchDownTime: Number,
-                   touchUpTime: Number,
+                   touchDownTime: UnsignedNumber,
+                   touchUpTime: UnsignedNumber,
                    target: String?,
                    targetId: String?,
                    targetFrame: CGRect?)
@@ -28,8 +28,8 @@ enum DetectedGesture {
                 endX: CGFloat,
                 endY: CGFloat,
                 direction: Direction,
-                touchDownTime: Number,
-                touchUpTime: Number,
+                touchDownTime: UnsignedNumber,
+                touchUpTime: UnsignedNumber,
                 target: String?,
                 targetId: String?)
 }
@@ -37,7 +37,7 @@ enum DetectedGesture {
 struct GestureDetector {
     private static var startTouchX: CGFloat = 0
     private static var startTouchY: CGFloat = 0
-    private static var startTouchEventTime: Number = 0
+    private static var startTouchEventTime: UnsignedNumber = 0
     private static var touchSlop: CGFloat = 0
     private static var isScrolling: Bool = false
     private static var target: String?
@@ -66,13 +66,13 @@ struct GestureDetector {
         }
 
         let location = touch.location(in: view)
-        let eventTime = Number(touch.timestamp)
+        let eventTime = UnsignedNumber(touch.timestamp)
 
         switch touch.phase {
         case .began:
             startTouchX = location.x
             startTouchY = location.y
-            startTouchEventTime = timeProvider.millisTime
+            startTouchEventTime = UnsignedNumber(timeProvider.millisTime)
             isScrolling = false
         case .moved:
             // Movement detected, check if it is a scroll gesture
@@ -94,7 +94,7 @@ struct GestureDetector {
                             x: location.x,
                             y: location.y,
                             touchDownTime: startTouchEventTime,
-                            touchUpTime: timeProvider.millisTime,
+                            touchUpTime: UnsignedNumber(timeProvider.millisTime),
                             target: target,
                             targetId: targetId,
                             targetFrame: targetFrame)
@@ -106,7 +106,7 @@ struct GestureDetector {
                             x: location.x,
                             y: location.y,
                             touchDownTime: startTouchEventTime,
-                            touchUpTime: timeProvider.millisTime,
+                            touchUpTime: UnsignedNumber(timeProvider.millisTime),
                             target: target,
                             targetId: targetId,
                             targetFrame: targetFrame)
@@ -123,7 +123,7 @@ struct GestureDetector {
                     endY: location.y,
                     direction: calculateScrollDirection(endX: location.x, endY: location.y, startX: startTouchX, startY: startTouchY),
                     touchDownTime: startTouchEventTime,
-                    touchUpTime: timeProvider.millisTime,
+                    touchUpTime: UnsignedNumber(timeProvider.millisTime),
                     target: target,
                     targetId: targetId)
                 target = nil

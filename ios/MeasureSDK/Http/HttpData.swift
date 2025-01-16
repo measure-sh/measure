@@ -18,10 +18,10 @@ struct HttpData: Codable {
     let statusCode: Int?
 
     /// The uptime at which the HTTP call started, in milliseconds.
-    let startTime: Int64?
+    let startTime: UnsignedNumber?
 
     /// The uptime at which the HTTP call ended, in milliseconds.
-    let endTime: Int64?
+    let endTime: UnsignedNumber?
 
     /// The reason for the failure. Typically the error class name.
     let failureReason: String?

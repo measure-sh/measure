@@ -10,7 +10,7 @@ import Foundation
 // Custom URLProtocol for intercepting network requests and responses
 class NetworkInterceptorProtocol: URLProtocol {
     private var dataTask: URLSessionDataTask?
-    private var startTime: Int64?
+    private var startTime: UnsignedNumber?
     private var responseBody: Data?
     private var httpResponse: HTTPURLResponse?
     private var httpContentTypeAllowlist: [String]?
@@ -64,7 +64,7 @@ class NetworkInterceptorProtocol: URLProtocol {
 
     override func startLoading() {
         if let timeProvider = NetworkInterceptorProtocol.timeProvider {
-            startTime = timeProvider.millisTime
+            startTime = UnsignedNumber(timeProvider.millisTime)
         }
 
         if let taggedRequest = (request as NSURLRequest).mutableCopy() as? NSMutableURLRequest {
@@ -130,7 +130,7 @@ extension NetworkInterceptorProtocol: URLSessionDataDelegate {
             if let allowedDomains = NetworkInterceptorProtocol.allowedDomains.flatMap({ $0 }), !allowedDomains.isEmpty && !allowedDomains.contains(where: { url.contains($0) }) {
                 return
             }
-            let endTime = timeProvider.millisTime
+            let endTime = UnsignedNumber(timeProvider.millisTime)
 
             var requestBody: String?
             if let requestBodyStream = request.httpBodyStream {

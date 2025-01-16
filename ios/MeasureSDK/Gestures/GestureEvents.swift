@@ -16,12 +16,12 @@ enum Direction: String, Codable {
 struct ClickData: Codable {
     let target: String?
     let targetId: String?
-    let width: Number?
-    let height: Number?
+    let width: UInt16?
+    let height: UInt16?
     let x: FloatNumber32
     let y: FloatNumber32
-    let touchDownTime: Number
-    let touchUpTime: Number
+    let touchDownTime: UnsignedNumber
+    let touchUpTime: UnsignedNumber
 
     enum CodingKeys: String, CodingKey {
         case target
@@ -38,12 +38,12 @@ struct ClickData: Codable {
 struct LongClickData: Codable {
     let target: String?
     let targetId: String?
-    let width: Number?
-    let height: Number?
+    let width: UInt16?
+    let height: UInt16?
     let x: FloatNumber32
     let y: FloatNumber32
-    let touchDownTime: Number
-    let touchUpTime: Number
+    let touchDownTime: UnsignedNumber
+    let touchUpTime: UnsignedNumber
 
     enum CodingKeys: String, CodingKey {
         case target
@@ -65,8 +65,8 @@ struct ScrollData: Codable {
     let endX: FloatNumber32
     let endY: FloatNumber32
     let direction: Direction
-    let touchDownTime: Number
-    let touchUpTime: Number
+    let touchDownTime: UnsignedNumber
+    let touchUpTime: UnsignedNumber
 
     enum CodingKeys: String, CodingKey {
         case target

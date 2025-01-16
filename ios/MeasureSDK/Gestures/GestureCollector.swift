@@ -58,8 +58,8 @@ final class BaseGestureCollector: GestureCollector {
         switch gesture {
         case .click(let x, let y, let touchDownTime, let touchUpTime, let target, let targetId, let targetFrame):
             let gestureTargetFinderData = gestureTargetFinder.findClickable(x: x, y: y, window: window)
-            let width = Number((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0)
-            let height = Number((gestureTargetFinderData.targetFrame?.height ?? targetFrame?.height) ?? 0)
+            let width = UInt16((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0)
+            let height = UInt16((gestureTargetFinderData.targetFrame?.height ?? targetFrame?.height) ?? 0)
 
             let data = ClickData(target: gestureTargetFinderData.target ?? target,
                                  targetId: gestureTargetFinderData.targetId ?? targetId,
@@ -72,8 +72,8 @@ final class BaseGestureCollector: GestureCollector {
             eventProcessor.track(data: data, timestamp: timeProvider.now(), type: .gestureClick, attributes: nil, sessionId: nil, attachments: nil, userDefinedAttributes: nil)
         case .longClick(let x, let y, let touchDownTime, let touchUpTime, let target, let targetId, let targetFrame):
             let gestureTargetFinderData = gestureTargetFinder.findClickable(x: x, y: y, window: window)
-            let width = Number((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0)
-            let height = Number((gestureTargetFinderData.targetFrame?.height ?? targetFrame?.height) ?? 0)
+            let width = UInt16((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0)
+            let height = UInt16((gestureTargetFinderData.targetFrame?.height ?? targetFrame?.height) ?? 0)
 
             let data = LongClickData(target: gestureTargetFinderData.target ?? target,
                                      targetId: gestureTargetFinderData.targetId ?? targetId,

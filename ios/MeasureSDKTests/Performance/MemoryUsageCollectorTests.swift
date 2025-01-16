@@ -46,8 +46,7 @@ final class MemoryUsageCollectorTests: XCTestCase {
 
     func testResumeStartsTimerIfNotRunning() {
         memoryUsageCollector.resume()
-        XCTAssertEqual(mockLogger.logs.count, 1)
-        XCTAssertEqual(mockLogger.logs.first, "MemoryUsageCollector resumed.")
+        XCTAssertEqual(mockLogger.logs.count, 0)
     }
 
     func testResumeDoesNotStartTimerIfAlreadyRunning() {
