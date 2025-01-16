@@ -2093,7 +2093,10 @@ func GetAppJourney(c *gin.Context) {
 	selectedVersions, err := af.VersionPairs()
 	if err != nil {
 		fmt.Println(msg, err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
@@ -4946,6 +4949,32 @@ func GetSessionsOverview(c *gin.Context) {
 		}
 	}
 
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		fmt.Println(msg, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	sessions := []SessionDisplay{}
+	meta := gin.H{"next": false, "previous": false}
+
+	response := gin.H{
+		"results": sessions,
+		"meta":    meta,
+	}
+
+	// no point going further as we
+	// don't have any selected app
+	// version(s)
+	if selectedVersions.Empty() {
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
 	if !af.HasTimeRange() {
 		af.SetDefaultTimeRange()
 	}
@@ -4997,13 +5026,11 @@ func GetSessionsOverview(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"results": sessions,
-		"meta": gin.H{
-			"next":     next,
-			"previous": previous,
-		},
-	})
+	response["results"] = sessions
+	meta["next"] = next
+	meta["previous"] = previous
+
+	c.JSON(http.StatusOK, response)
 }
 
 func GetSessionsOverviewPlotInstances(c *gin.Context) {
@@ -5076,6 +5103,30 @@ func GetSessionsOverviewPlotInstances(c *gin.Context) {
 		}
 	}
 
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		fmt.Println(msg, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	type instance struct {
+		ID   string  `json:"id"`
+		Data []gin.H `json:"data"`
+	}
+	var instances []instance
+
+	// no point going further as we
+	// don't have any selected app
+	// version(s)
+	if selectedVersions.Empty() {
+		c.JSON(http.StatusOK, instances)
+		return
+	}
+
 	if !af.HasTimeRange() {
 		af.SetDefaultTimeRange()
 	}
@@ -5129,13 +5180,7 @@ func GetSessionsOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
-	type instance struct {
-		ID   string  `json:"id"`
-		Data []gin.H `json:"data"`
-	}
-
 	lut := make(map[string]int)
-	var instances []instance
 
 	for i := range sessionInstances {
 		instance := instance{
