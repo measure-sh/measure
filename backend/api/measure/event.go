@@ -1889,10 +1889,6 @@ func GetIssuesAttributeDistribution(ctx context.Context, g group.IssueGroup, af 
 // GetIssuesPlot aggregates issue free percentage for plotting
 // visually from an ExceptionGroup or ANRGroup.
 func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
-	if af.Timezone == "" {
-		return nil, errors.New("missing timezone filter")
-	}
-
 	fingerprint := g.GetFingerprint()
 	groupType := event.TypeException
 

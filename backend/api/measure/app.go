@@ -1025,13 +1025,8 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			Select(`toString(lifecycle_swift_ui.class_name)`)
 	}
 
-	if len(af.Versions) > 0 {
-		stmt.Where("`attribute.app_version` in ?", af.Versions)
-	}
-
-	if len(af.VersionCodes) > 0 {
-		stmt.Where("`attribute.app_build` in ?", af.VersionCodes)
-	}
+	stmt.Where("`attribute.app_version` in ?", af.Versions)
+	stmt.Where("`attribute.app_build` in ?", af.VersionCodes)
 
 	if opts.All {
 		switch a.Platform {
@@ -2095,6 +2090,40 @@ func GetAppJourney(c *gin.Context) {
 		}
 	}
 
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		fmt.Println(msg, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{})
+		return
+	}
+
+	type Node struct {
+		ID     string `json:"id"`
+		Issues gin.H  `json:"issues"`
+	}
+	type Link struct {
+		Source string `json:"source"`
+		Target string `json:"target"`
+		Value  int    `json:"value"`
+	}
+
+	var nodes []Node
+	var links []Link
+
+	response := gin.H{
+		"total_issues": 0,
+		"nodes":        nodes,
+		"links":        links,
+	}
+
+	// no point going furhter as we
+	// don't have any selected app
+	// version(s)
+	if selectedVersions.Empty() {
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
 	if !af.HasTimeRange() {
 		af.SetDefaultTimeRange()
 	}
@@ -2172,25 +2201,12 @@ func GetAppJourney(c *gin.Context) {
 	}
 
 	var journeyGraph journey.Journey
-	type Link struct {
-		Source string `json:"source"`
-		Target string `json:"target"`
-		Value  int    `json:"value"`
-	}
 
 	type Issue struct {
 		ID    uuid.UUID `json:"id"`
 		Title string    `json:"title"`
 		Count int       `json:"count"`
 	}
-
-	type Node struct {
-		ID     string `json:"id"`
-		Issues gin.H  `json:"issues"`
-	}
-
-	var nodes []Node
-	var links []Link
 
 	switch app.Platform {
 	case platform.Android:
@@ -2364,11 +2380,11 @@ func GetAppJourney(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"totalIssues": len(issueEvents),
-		"nodes":       nodes,
-		"links":       links,
-	})
+	response["totalIssues"] = len(issueEvents)
+	response["nodes"] = nodes
+	response["links"] = links
+
+	c.JSON(http.StatusOK, response)
 }
 
 func GetAppMetrics(c *gin.Context) {
@@ -2434,6 +2450,48 @@ func GetAppMetrics(c *gin.Context) {
 		}
 	}
 
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		fmt.Println(msg, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	var cold_launch gin.H
+	var warm_launch gin.H
+	var hot_launch gin.H
+
+	var launch *metrics.LaunchMetric
+	var adoption *metrics.SessionAdoption
+	var crashFree *metrics.CrashFreeSession
+	var anrFree *metrics.ANRFreeSession
+	var perceivedCrashFree *metrics.PerceivedCrashFreeSession
+	var perceivedANRFree *metrics.PerceivedANRFreeSession
+	var sizes *metrics.SizeMetric
+
+	response := gin.H{
+		"cold_launch":                   cold_launch,
+		"warm_launch":                   warm_launch,
+		"hot_launch":                    hot_launch,
+		"adoption":                      adoption,
+		"sizes":                         sizes,
+		"crash_free_sessions":           crashFree,
+		"anr_free_sessions":             anrFree,
+		"perceived_crash_free_sessions": perceivedCrashFree,
+		"perceived_anr_free_sessions":   perceivedANRFree,
+	}
+
+	// no point going further as we
+	// don't have any selected app
+	// version(s)
+	if selectedVersions.Empty() {
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
 	if !af.HasTimeRange() {
 		af.SetDefaultTimeRange()
 	}
@@ -2496,7 +2554,7 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	adoption, err := app.GetAdoptionMetrics(ctx, &af)
+	adoption, err = app.GetAdoptionMetrics(ctx, &af)
 	if err != nil {
 		msg := `failed to fetch adoption metrics`
 		fmt.Println(msg, err)
@@ -2506,7 +2564,7 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err := app.GetIssueFreeMetrics(ctx, &af, excludedVersions)
+	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err = app.GetIssueFreeMetrics(ctx, &af, excludedVersions)
 	if err != nil {
 		msg := `failed to fetch issue free metrics`
 		fmt.Println(msg, err)
@@ -2516,18 +2574,7 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	launch, err := app.GetLaunchMetrics(ctx, &af)
-	if err != nil {
-		msg := `failed to fetch launch metrics`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	var sizes *metrics.SizeMetric = nil
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 && !af.HasMultiVersions() {
+	if !af.HasMultiVersions() {
 		sizes, err = app.GetSizeMetrics(ctx, &af, excludedVersions)
 		if err != nil {
 			msg := `failed to fetch size metrics`
@@ -2539,29 +2586,45 @@ func GetAppMetrics(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"cold_launch": gin.H{
+	launch, err = app.GetLaunchMetrics(ctx, &af)
+	if err != nil {
+		msg := `failed to fetch launch metrics`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if launch != nil {
+		cold_launch = gin.H{
 			"p95":   launch.ColdLaunchP95,
 			"delta": launch.ColdDelta,
 			"nan":   launch.ColdNaN,
-		},
-		"warm_launch": gin.H{
+		}
+		warm_launch = gin.H{
 			"p95":   launch.WarmLaunchP95,
 			"delta": launch.WarmDelta,
 			"nan":   launch.WarmNaN,
-		},
-		"hot_launch": gin.H{
+		}
+		hot_launch = gin.H{
 			"p95":   launch.HotLaunchP95,
 			"delta": launch.HotDelta,
 			"nan":   launch.HotNaN,
-		},
-		"adoption":                      adoption,
-		"sizes":                         sizes,
-		"crash_free_sessions":           crashFree,
-		"anr_free_sessions":             anrFree,
-		"perceived_crash_free_sessions": perceivedCrashFree,
-		"perceived_anr_free_sessions":   perceivedANRFree,
-	})
+		}
+	}
+
+	response["cold_launch"] = cold_launch
+	response["warm_launch"] = warm_launch
+	response["hot_launch"] = hot_launch
+	response["adoption"] = adoption
+	response["sizes"] = sizes
+	response["crash_free_sessions"] = crashFree
+	response["anr_free_sessions"] = anrFree
+	response["perceived_crash_free_sessions"] = perceivedCrashFree
+	response["perceived_anr_free_sessions"] = perceivedANRFree
+
+	c.JSON(http.StatusOK, response)
 }
 
 func GetAppFilters(c *gin.Context) {
@@ -2771,6 +2834,28 @@ func GetCrashOverview(c *gin.Context) {
 		}
 	}
 
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		fmt.Println(msg, err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	var crashGroups []group.ExceptionGroup
+	meta := gin.H{"next": false, "previous": false}
+	response := gin.H{"results": crashGroups, "meta": meta}
+
+	// no point going further as we
+	// don't have any selected app
+	// version(s)
+	if selectedVersions.Empty() {
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
 	if !af.HasTimeRange() {
 		af.SetDefaultTimeRange()
 	}
@@ -2834,7 +2919,6 @@ func GetCrashOverview(c *gin.Context) {
 		return
 	}
 
-	var crashGroups []group.ExceptionGroup
 	for i := range groups {
 		// only consider those groups that have at least 1 exception
 		// event
@@ -2850,12 +2934,11 @@ func GetCrashOverview(c *gin.Context) {
 	group.ComputeCrashContribution(crashGroups)
 	group.SortExceptionGroups(crashGroups)
 	crashGroups, next, previous := paginate.Paginate(crashGroups, &af)
-	meta := gin.H{"next": next, "previous": previous}
+	response["results"] = crashGroups
+	meta["next"] = next
+	meta["previous"] = previous
 
-	c.JSON(http.StatusOK, gin.H{
-		"results": crashGroups,
-		"meta":    meta,
-	})
+	c.JSON(http.StatusOK, response)
 }
 
 func GetCrashOverviewPlotInstances(c *gin.Context) {
@@ -2921,6 +3004,30 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 		}
 	}
 
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		fmt.Println(msg, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	type instance struct {
+		ID   string  `json:"id"`
+		Data []gin.H `json:"data"`
+	}
+	var instances []instance
+
+	// no point going further as we
+	// don't have any selected app
+	// version(s)
+	if selectedVersions.Empty() {
+		c.JSON(http.StatusOK, instances)
+		return
+	}
+
 	if !af.HasTimeRange() {
 		af.SetDefaultTimeRange()
 	}
@@ -2974,13 +3081,7 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
-	type instance struct {
-		ID   string  `json:"id"`
-		Data []gin.H `json:"data"`
-	}
-
 	lut := make(map[string]int)
-	var instances []instance
 
 	for i := range crashInstances {
 		instance := instance{
@@ -3067,6 +3168,28 @@ func GetCrashDetailCrashes(c *gin.Context) {
 		}
 	}
 
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		fmt.Println(msg, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	eventExceptions := []event.EventException{}
+	meta := gin.H{"next": false, "previous": false}
+	response := gin.H{"results": eventExceptions, "meta": meta}
+
+	// no point going further as we
+	// don't have any selected app
+	// version(s)
+	if selectedVersions.Empty() {
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
 	app := App{
 		ID: &id,
 	}
@@ -3147,13 +3270,11 @@ func GetCrashDetailCrashes(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"results": eventExceptions,
-		"meta": gin.H{
-			"next":     next,
-			"previous": previous,
-		},
-	})
+	response["results"] = eventExceptions
+	meta["next"] = next
+	meta["previous"] = previous
+
+	c.JSON(http.StatusOK, response)
 }
 
 func GetCrashDetailPlotInstances(c *gin.Context) {
@@ -3224,6 +3345,37 @@ func GetCrashDetailPlotInstances(c *gin.Context) {
 		}
 	}
 
+	// we need timezone for the queries.
+	if af.Timezone == "" {
+		details := "missing timezone filter"
+		fmt.Println(msg, details)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": details,
+		})
+		return
+	}
+
+	type instance struct {
+		ID   string  `json:"id"`
+		Data []gin.H `json:"data"`
+	}
+	var instances []instance
+
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		fmt.Println(msg, err.Error())
+	}
+
+	// no point going further as we
+	// don't have any selected app
+	// version(s)
+	if selectedVersions.Empty() {
+		fmt.Println("should not come here")
+		c.JSON(http.StatusOK, instances)
+		return
+	}
+
 	app := App{
 		ID: &id,
 	}
@@ -3281,13 +3433,7 @@ func GetCrashDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	type instance struct {
-		ID   string  `json:"id"`
-		Data []gin.H `json:"data"`
-	}
-
 	lut := make(map[string]int)
-	var instances []instance
 
 	for i := range crashInstances {
 		instance := instance{
@@ -3379,6 +3525,26 @@ func GetCrashDetailAttributeDistribution(c *gin.Context) {
 		}
 	}
 
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	distribution := map[string]map[string]uint64{}
+
+	// no point going further as we
+	// don't have any selected app
+	// version(s)
+	if selectedVersions.Empty() {
+		c.JSON(http.StatusOK, distribution)
+		return
+	}
+
 	app := App{
 		ID: &id,
 	}
@@ -3426,7 +3592,7 @@ func GetCrashDetailAttributeDistribution(c *gin.Context) {
 		return
 	}
 
-	distribution, err := GetIssuesAttributeDistribution(ctx, group, &af)
+	distribution, err = GetIssuesAttributeDistribution(ctx, group, &af)
 	if err != nil {
 		msg := `failed to query data for crash distribution plot`
 		fmt.Println(msg, err)
@@ -3708,6 +3874,28 @@ func GetANROverview(c *gin.Context) {
 		}
 	}
 
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		fmt.Println(msg, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	var anrGroups []group.ANRGroup
+	meta := gin.H{"next": false, "previous": false}
+	response := gin.H{"results": anrGroups, "meta": meta}
+
+	// no point going further as we
+	// don't have any selected app
+	// version(s)
+	if selectedVersions.Empty() {
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
 	if !af.HasTimeRange() {
 		af.SetDefaultTimeRange()
 	}
@@ -3759,7 +3947,6 @@ func GetANROverview(c *gin.Context) {
 		return
 	}
 
-	var anrGroups []group.ANRGroup
 	for i := range groups {
 		// only consider those groups that have at least 1 anr
 		// event
@@ -3775,9 +3962,12 @@ func GetANROverview(c *gin.Context) {
 	group.ComputeANRContribution(anrGroups)
 	group.SortANRGroups(anrGroups)
 	anrGroups, next, previous := paginate.Paginate(anrGroups, &af)
-	meta := gin.H{"next": next, "previous": previous}
 
-	c.JSON(http.StatusOK, gin.H{"results": anrGroups, "meta": meta})
+	response["results"] = anrGroups
+	meta["next"] = next
+	meta["previous"] = previous
+
+	c.JSON(http.StatusOK, response)
 }
 
 func GetANROverviewPlotInstances(c *gin.Context) {
@@ -3842,6 +4032,30 @@ func GetANROverviewPlotInstances(c *gin.Context) {
 		}
 	}
 
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		fmt.Println(msg, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	type instance struct {
+		ID   string  `json:"id"`
+		Data []gin.H `json:"data"`
+	}
+	var instances []instance
+
+	// no point going further as we
+	// don't have any selected app
+	// version(s)
+	if selectedVersions.Empty() {
+		c.JSON(http.StatusOK, instances)
+		return
+	}
+
 	if !af.HasTimeRange() {
 		af.SetDefaultTimeRange()
 	}
@@ -3894,13 +4108,8 @@ func GetANROverviewPlotInstances(c *gin.Context) {
 		})
 		return
 	}
-	type instance struct {
-		ID   string  `json:"id"`
-		Data []gin.H `json:"data"`
-	}
 
 	lut := make(map[string]int)
-	var instances []instance
 
 	for i := range anrInstances {
 		instance := instance{
@@ -3993,6 +4202,28 @@ func GetANRDetailANRs(c *gin.Context) {
 		}
 	}
 
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		fmt.Println(msg, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	eventANRs := []event.EventANR{}
+	meta := gin.H{"next": false, "previous": false}
+	response := gin.H{"results": eventANRs, "meta": meta}
+
+	// no point going further as we
+	// don't have any selected app
+	// version(s)
+	if selectedVersions.Empty() {
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
 	app := App{
 		ID: &id,
 	}
@@ -4073,13 +4304,11 @@ func GetANRDetailANRs(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"results": eventANRs,
-		"meta": gin.H{
-			"next":     next,
-			"previous": previous,
-		},
-	})
+	response["results"] = eventANRs
+	meta["next"] = next
+	meta["previous"] = previous
+
+	c.JSON(http.StatusOK, response)
 }
 
 func GetANRDetailPlotInstances(c *gin.Context) {
@@ -4144,6 +4373,37 @@ func GetANRDetailPlotInstances(c *gin.Context) {
 		}
 	}
 
+	// we need timezone for the queries.
+	if af.Timezone == "" {
+		details := "missing timezone filter"
+		fmt.Println(msg, details)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": details,
+		})
+		return
+	}
+
+	type instance struct {
+		ID   string  `json:"id"`
+		Data []gin.H `json:"data"`
+	}
+	var instances []instance
+
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		fmt.Println(msg, err.Error())
+	}
+
+	// no point going further as we
+	// don't have any selected app
+	// version(s)
+	if selectedVersions.Empty() {
+		fmt.Println("should not come here")
+		c.JSON(http.StatusOK, instances)
+		return
+	}
+
 	app := App{
 		ID: &id,
 	}
@@ -4201,13 +4461,7 @@ func GetANRDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	type instance struct {
-		ID   string  `json:"id"`
-		Data []gin.H `json:"data"`
-	}
-
 	lut := make(map[string]int)
-	var instances []instance
 
 	for i := range anrInstances {
 		instance := instance{
@@ -4293,6 +4547,26 @@ func GetANRDetailAttributeDistribution(c *gin.Context) {
 		}
 	}
 
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	distribution := map[string]map[string]uint64{}
+
+	// no point going further as we
+	// don't have any selected app
+	// version(s)
+	if selectedVersions.Empty() {
+		c.JSON(http.StatusOK, distribution)
+		return
+	}
+
 	app := App{
 		ID: &id,
 	}
@@ -4340,7 +4614,7 @@ func GetANRDetailAttributeDistribution(c *gin.Context) {
 		return
 	}
 
-	distribution, err := GetIssuesAttributeDistribution(ctx, group, &af)
+	distribution, err = GetIssuesAttributeDistribution(ctx, group, &af)
 	if err != nil {
 		msg := `failed to query data for anr distribution plot`
 		fmt.Println(msg, err)

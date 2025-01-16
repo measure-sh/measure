@@ -34,6 +34,11 @@ func (p *Pairs[T, U]) Add(first T, second U) {
 	p.second = append(p.second, second)
 }
 
+// Empty indicates if the pair is empty.
+func (p Pairs[T, U]) Empty() bool {
+	return len(p.first) == 0 || len(p.second) == 0
+}
+
 // Parameterize represents Pairs in a slice of clickhouse.GroupSet
 // for direct use in SQL queries.
 func (p Pairs[T, U]) Parameterize() (tuples []clickhouse.GroupSet) {
