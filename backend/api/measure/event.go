@@ -62,6 +62,7 @@ type eventreq struct {
 	id                     uuid.UUID
 	appId                  uuid.UUID
 	status                 status
+	platform               string
 	symbolicate            map[uuid.UUID]int
 	exceptionIds           []int
 	anrIds                 []int
@@ -2013,6 +2014,7 @@ func PutEvents(c *gin.Context) {
 	msg := `failed to parse event request payload`
 	eventReq := eventreq{
 		appId:       appId,
+		platform:    app.Platform,
 		symbolicate: make(map[uuid.UUID]int),
 		attachments: make(map[uuid.UUID]*attachment),
 		createdAt:   time.Now(),

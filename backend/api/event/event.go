@@ -4,6 +4,7 @@ import (
 	"backend/api/platform"
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net"
 	"regexp"
@@ -1136,6 +1137,28 @@ func (e *EventField) Validate() error {
 	return nil
 }
 
+// GetPlatform determines the exception belongs
+// to which platform.
+func (e Exception) GetPlatform() (p string) {
+	p = platform.Unknown
+	if len(e.Exceptions) < 1 || len(e.Threads) < 1 {
+		return p
+	}
+
+	// Might be possible to detect the platform
+	// in a more robust manner
+	//
+	// FIXME: Revisit the heuristics for platform
+	// determination
+	if e.Exceptions[0].Signal != "" && e.Threads[0].Sequence != 0 {
+		p = platform.IOS
+	} else {
+		p = platform.Android
+	}
+
+	return
+}
+
 // IsNested returns true in case of
 // multiple nested exceptions.
 func (e Exception) IsNested() bool {
@@ -1251,36 +1274,68 @@ func (e Exception) Stacktrace() string {
 // for the exception.
 func (e *Exception) ComputeFingerprint() (err error) {
 	if len(e.Exceptions) == 0 {
-		return fmt.Errorf("error computing exception fingerprint: no exceptions found")
+		return errors.New("error computing exception fingerprint: no exceptions found")
 	}
 
-	// Get the innermost exception
-	innermostException := e.Exceptions[len(e.Exceptions)-1]
+	// input holds the raw input to
+	// compute the fingerprint
+	input := ""
 
-	// Get the exception type
-	exceptionType := innermostException.Type
+	// sep is the separator to separate
+	// parts of the input
+	sep := ":"
 
-	// Initialize fingerprint data with the exception type
-	fingerprintData := exceptionType
+	switch e.GetPlatform() {
+	case platform.Android:
+		// get the innermost exception
+		innermostException := e.Exceptions[len(e.Exceptions)-1]
 
-	// Get the method name and file name from the first frame of the innermost exception
-	if len(innermostException.Frames) > 0 {
-		methodName := innermostException.Frames[0].MethodName
-		fileName := innermostException.Frames[0].FileName
+		// initialize fingerprint data with the exception type
+		input = innermostException.Type
 
-		// Include any non-empty information
+		// get the method name and file name from the first frame of the innermost exception
+		if len(innermostException.Frames) > 0 {
+			methodName := innermostException.Frames[0].MethodName
+			fileName := innermostException.Frames[0].FileName
+
+			// Include any non-empty information
+			if methodName != "" {
+				input += sep + methodName
+			}
+			if fileName != "" {
+				input += sep + fileName
+			}
+		}
+	case platform.IOS:
+		// get the first exception unit
+		// FIXME: might need to use ThreadSequence here
+		firstUnit := e.Exceptions[0]
+
+		input = firstUnit.Type
+
+		if len(firstUnit.Frames) < 1 {
+			break
+		}
+
+		methodName := firstUnit.Frames[0].MethodName
+		fileName := firstUnit.Frames[0].FileName
+
 		if methodName != "" {
-			fingerprintData += ":" + methodName
+			input += sep + methodName
 		}
 		if fileName != "" {
-			fingerprintData += ":" + fileName
+			input += sep + fileName
 		}
+	default:
+		return errors.New("failed to compute fingerprint for unknown platform")
 	}
 
 	// Compute the fingerprint
-	e.Fingerprint = computeFingerprint(fingerprintData)
+	// e.Fingerprint = computeFingerprint(input)
+	hash := md5.Sum([]byte(input))
+	e.Fingerprint = hex.EncodeToString(hash[:])
 
-	return nil
+	return
 }
 
 // IsNested returns true in case of
@@ -1422,12 +1477,8 @@ func (a *ANR) ComputeFingerprint() (err error) {
 	}
 
 	// Compute the fingerprint
-	a.Fingerprint = computeFingerprint(fingerprintData)
+	hash := md5.Sum([]byte(fingerprintData))
+	a.Fingerprint = hex.EncodeToString(hash[:])
 
 	return nil
-}
-
-func computeFingerprint(data string) string {
-	hash := md5.Sum([]byte(data))
-	return hex.EncodeToString(hash[:])
 }
