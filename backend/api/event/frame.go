@@ -15,6 +15,8 @@ const FramePrefix = "\tat "
 const GenericPrefix = ": "
 
 type FrameiOS struct {
+	// FrameIndex is the sequence of the frame.
+	FrameIndex int `json:"frame_index"`
 	// BinaryName is the name of the iOS binary image.
 	BinaryName string `json:"binary_name"`
 	// BinaryAddress is the binary load address.

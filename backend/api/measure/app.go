@@ -1446,6 +1446,11 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`gesture_scroll.end_x`,
 		`gesture_scroll.end_y`,
 		`toString(gesture_scroll.direction)`,
+		`exception.handled`,
+		`exception.fingerprint`,
+		`exception.foreground`,
+		`exception.exceptions`,
+		`exception.threads`,
 		`toString(lifecycle_app.type)`,
 		`cold_launch.process_start_uptime`,
 		`cold_launch.process_start_requested_uptime`,
@@ -1509,11 +1514,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			`anr.foreground`,
 			`anr.exceptions`,
 			`anr.threads`,
-			`exception.handled`,
-			`exception.fingerprint`,
-			`exception.foreground`,
-			`exception.exceptions`,
-			`exception.threads`,
 			`toString(app_exit.reason)`,
 			`toString(app_exit.importance)`,
 			`app_exit.trace`,
@@ -1692,6 +1692,13 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&gestureScroll.EndY,
 			&gestureScroll.Direction,
 
+			// excpetion
+			&exception.Handled,
+			&exception.Fingerprint,
+			&exception.Foreground,
+			&exceptionExceptions,
+			&exceptionThreads,
+
 			// lifecycle app
 			&lifecycleApp.Type,
 
@@ -1773,13 +1780,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 				&anr.Foreground,
 				&anrExceptions,
 				&anrThreads,
-
-				// excpetion
-				&exception.Handled,
-				&exception.Fingerprint,
-				&exception.Foreground,
-				&exceptionExceptions,
-				&exceptionThreads,
 
 				// app exit
 				&appExit.Reason,
