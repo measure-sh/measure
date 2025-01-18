@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**frontend**): Add discord support link to dashboard nav
 
+### :bug: Bug fixes
+
+- (**backend**): Query all user defined attributes (#1738)
+
 ### :hammer: Misc
 
 - (**backend**): Replace email with new user login log
