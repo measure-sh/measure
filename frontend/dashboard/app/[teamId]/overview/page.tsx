@@ -35,6 +35,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         showDeviceManufacturers={false}
         showDeviceNames={false}
         showFreeText={false}
+        showUdAttrs={false}
         onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
 
       <div className="py-4" />

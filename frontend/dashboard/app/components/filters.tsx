@@ -3,13 +3,14 @@
 import { useRouter } from "next/navigation";
 import { formatDateToHumanReadableDateTime, formatIsoDateForDateTimeInputField, isValidTimestamp } from "../utils/time_utils";
 import { useEffect, useState } from "react";
-import { AppVersion, AppsApiStatus, FiltersApiStatus, FiltersApiType, OsVersion, SessionType, RootSpanNamesApiStatus, emptyApp, fetchAppsFromServer, fetchFiltersFromServer, fetchRootSpanNamesFromServer, SpanStatus } from "../api/api_calls";
+import { AppVersion, AppsApiStatus, FiltersApiStatus, FiltersApiType, OsVersion, SessionType, RootSpanNamesApiStatus, emptyApp, fetchAppsFromServer, fetchFiltersFromServer, fetchRootSpanNamesFromServer, SpanStatus, UserDefAttr } from "../api/api_calls";
 import { DateTime } from "luxon";
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 import FilterPill from "./filter_pill";
 import CreateApp from "./create_app";
 import DebounceTextInput from "./debounce_text_input";
 import LoadingSpinner from "./loading_spinner";
+import UserDefAttrSelector, { UdAttrMatcher } from "./user_def_attr_selector";
 
 export enum AppVersionsInitialSelectionType {
   Latest,
@@ -36,6 +37,7 @@ interface FiltersProps {
   showLocales: boolean
   showDeviceManufacturers: boolean
   showDeviceNames: boolean
+  showUdAttrs: boolean
   showFreeText: boolean
   onFiltersChanged: (filters: Filters) => void
 }
@@ -74,6 +76,7 @@ export type Filters = {
   locales: string[]
   deviceManufacturers: string[]
   deviceNames: string[]
+  udAttrMatchers: UdAttrMatcher[]
   freeText: string
 }
 
@@ -101,6 +104,7 @@ export const defaultFilters: Filters = {
   locales: [],
   deviceManufacturers: [],
   deviceNames: [],
+  udAttrMatchers: [],
   freeText: ''
 }
 
@@ -136,6 +140,7 @@ const Filters: React.FC<FiltersProps> = ({
   showLocales,
   showDeviceManufacturers,
   showDeviceNames,
+  showUdAttrs,
   showFreeText,
   onFiltersChanged }) => {
 
@@ -219,6 +224,10 @@ const Filters: React.FC<FiltersProps> = ({
 
   const [deviceNames, setDeviceNames] = useState([] as string[]);
   const [selectedDeviceNames, setSelectedDeviceNames] = useState([] as string[]);
+
+  const [userDefAttrs, setUserDefAttrs] = useState([] as UserDefAttr[]);
+  const [userDefAttrOps, setUserDefAttrOps] = useState<Map<string, string[]>>(new Map());
+  const [selectedUdAttrMatchers, setSelectedUdAttrMatchers] = useState<UdAttrMatcher[]>([]);
 
   const [selectedFreeText, setSelectedFreeText] = useState('');
 
@@ -404,6 +413,11 @@ const Filters: React.FC<FiltersProps> = ({
           setSelectedDeviceNames(result.data.device_names)
         }
 
+        if (result.data.ud_attrs !== null && result.data.ud_attrs.key_types !== null && result.data.ud_attrs.operator_types !== null) {
+          setUserDefAttrs(result.data.ud_attrs.key_types)
+          setUserDefAttrOps(new Map(Object.entries(result.data.ud_attrs.operator_types)))
+        }
+
         break
     }
   }
@@ -458,12 +472,13 @@ const Filters: React.FC<FiltersProps> = ({
       locales: selectedLocales,
       deviceManufacturers: selectedDeviceManufacturers,
       deviceNames: selectedDeviceNames,
+      udAttrMatchers: selectedUdAttrMatchers,
       freeText: selectedFreeText
     }
 
     sessionStorage.setItem(persistedFiltersStorageKey, JSON.stringify(updatedPersistedFilters))
     onFiltersChanged(updatedSelectedFilters)
-  }, [filtersApiStatus, selectedStartDate, selectedEndDate, selectedVersions, selectedSessionType, selectedOsVersions, selectedCountries, selectedNetworkProviders, selectedNetworkTypes, selectedNetworkGenerations, selectedLocales, selectedDeviceManufacturers, selectedDeviceNames, selectedFreeText, selectedRootSpanName, selectedSpanStatuses])
+  }, [filtersApiStatus, selectedStartDate, selectedEndDate, selectedVersions, selectedSessionType, selectedOsVersions, selectedCountries, selectedNetworkProviders, selectedNetworkTypes, selectedNetworkGenerations, selectedLocales, selectedDeviceManufacturers, selectedDeviceNames, selectedUdAttrMatchers, selectedFreeText, selectedRootSpanName, selectedSpanStatuses])
 
   return (
     <div>
@@ -547,6 +562,7 @@ const Filters: React.FC<FiltersProps> = ({
             {showLocales && locales.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Locale" items={locales} initialSelected={selectedLocales} onChangeSelected={(items) => setSelectedLocales(items as string[])} />}
             {showDeviceManufacturers && deviceManufacturers.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Manufacturer" items={deviceManufacturers} initialSelected={selectedDeviceManufacturers} onChangeSelected={(items) => setSelectedDeviceManufacturers(items as string[])} />}
             {showDeviceNames && deviceNames.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Name" items={deviceNames} initialSelected={selectedDeviceNames} onChangeSelected={(items) => setSelectedDeviceNames(items as string[])} />}
+            {showUdAttrs && userDefAttrs.length > 0 && <UserDefAttrSelector attrs={userDefAttrs} ops={userDefAttrOps} onChangeSelected={(udAttrMatchers) => setSelectedUdAttrMatchers(udAttrMatchers)} />}
             {showFreeText && <DebounceTextInput id="free-text" placeholder="Search User/Session ID, Logs, Event Type, Target View ID, File/Class name or Exception Traces..." initialValue={selectedFreeText} onChange={(input) => setSelectedFreeText(input)} />}
           </div>
           <div className="py-4" />
@@ -564,6 +580,7 @@ const Filters: React.FC<FiltersProps> = ({
             {showLocales && selectedLocales.length > 0 && <FilterPill title={Array.from(selectedLocales).join(', ')} />}
             {showDeviceManufacturers && selectedDeviceManufacturers.length > 0 && <FilterPill title={Array.from(selectedDeviceManufacturers).join(', ')} />}
             {showDeviceNames && selectedDeviceNames.length > 0 && <FilterPill title={Array.from(selectedDeviceNames).join(', ')} />}
+            {showUdAttrs && selectedUdAttrMatchers.length > 0 && <FilterPill title={selectedUdAttrMatchers.map(matcher => `${matcher.key} (${matcher.type}) ${matcher.op} ${matcher.value}`).join(', ')} />}
             {showFreeText && selectedFreeText !== '' && <FilterPill title={"Search Text: " + selectedFreeText} />}
           </div>
         </div>
