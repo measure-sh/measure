@@ -819,6 +819,11 @@ export class OsVersion {
   }
 }
 
+export type UserDefAttr = {
+  key: string
+  type: string
+}
+
 export const saveListFiltersToServer = async (filters: Filters) => {
   if (filters.versions.length === 0 &&
     filters.osVersions.length === 0 &&
@@ -828,29 +833,48 @@ export const saveListFiltersToServer = async (filters: Filters) => {
     filters.networkGenerations.length === 0 &&
     filters.locales.length === 0 &&
     filters.deviceManufacturers.length === 0 &&
-    filters.deviceNames.length === 0
+    filters.deviceNames.length === 0 &&
+    filters.udAttrMatchers.length === 0
   ) {
     return null
   }
 
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
   let url = `${origin}/apps/${filters.app.id}/shortFilters`
+
+  const udExpression = {
+    and: filters.udAttrMatchers.map(matcher => ({
+      cmp: {
+        key: matcher.key,
+        type: matcher.type,
+        op: matcher.op,
+        value: String(matcher.value)
+      }
+    }))
+  };
+
+  const bodyFilters: any = {
+    versions: filters.versions.map((v) => v.name),
+    version_codes: filters.versions.map((v) => v.code),
+    os_names: filters.osVersions.map((v) => v.name),
+    os_versions: filters.osVersions.map((v) => v.version),
+    countries: filters.countries,
+    network_providers: filters.networkProviders,
+    network_types: filters.networkTypes,
+    network_generations: filters.networkGenerations,
+    locales: filters.locales,
+    device_manufacturers: filters.deviceManufacturers,
+    device_names: filters.deviceNames,
+  };
+
+  if (filters.udAttrMatchers.length > 0) {
+    bodyFilters.ud_expression = JSON.stringify(udExpression);
+  }
+
   const opts = {
     method: 'POST',
     body: JSON.stringify({
-      filters: {
-        versions: filters.versions.map((v) => v.name),
-        version_codes: filters.versions.map((v) => v.code),
-        os_names: filters.osVersions.map((v) => v.name),
-        os_versions: filters.osVersions.map((v) => v.version),
-        countries: filters.countries,
-        network_providers: filters.networkProviders,
-        network_types: filters.networkTypes,
-        network_generations: filters.networkGenerations,
-        locales: filters.locales,
-        device_manufacturers: filters.deviceManufacturers,
-        device_names: filters.deviceNames
-      }
+      filters: bodyFilters
     })
   }
 
@@ -1081,13 +1105,16 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filte
 
   let url = `${origin}/apps/${selectedApp.id}/filters`
 
+  // fetch the user defined attributes
+  url += '?ud_attr_keys=1'
+
   // if filter is for Crashes or Anrs, we append a query param indicating it
   if (filtersApiType === FiltersApiType.Crash) {
-    url += '?crash=1'
+    url += '&crash=1'
   } else if (filtersApiType === FiltersApiType.Anr) {
-    url += '?anr=1'
+    url += '&anr=1'
   } else if (filtersApiType === FiltersApiType.Span) {
-    url += '?span=1'
+    url += '&span=1'
   }
 
   try {

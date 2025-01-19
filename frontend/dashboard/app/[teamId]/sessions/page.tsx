@@ -76,6 +76,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                 showLocales={true}
                 showDeviceManufacturers={true}
                 showDeviceNames={true}
+                showUdAttrs={true}
                 showFreeText={true}
                 onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
             <div className="py-4" />

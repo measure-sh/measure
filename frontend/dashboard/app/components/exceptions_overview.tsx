@@ -93,6 +93,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         showLocales={true}
         showDeviceManufacturers={true}
         showDeviceNames={true}
+        showUdAttrs={true}
         showFreeText={false}
         onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
       <div className="py-4" />

@@ -1,6 +1,7 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -120,7 +121,6 @@ CREATE TABLE public.anr_groups (
     file_name text NOT NULL,
     line_number integer NOT NULL,
     fingerprint character varying(32) NOT NULL,
-    event_ids uuid[] NOT NULL,
     first_event_timestamp timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
@@ -181,13 +181,6 @@ COMMENT ON COLUMN public.anr_groups.line_number IS 'line number where the anr oc
 --
 
 COMMENT ON COLUMN public.anr_groups.fingerprint IS 'fingerprint of the anr';
-
-
---
--- Name: COLUMN anr_groups.event_ids; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.anr_groups.event_ids IS 'list of associated event ids';
 
 
 --
@@ -689,7 +682,9 @@ CREATE TABLE public.event_reqs (
     session_count integer DEFAULT 0,
     bytes_in integer DEFAULT 0,
     symbolication_attempts_count integer DEFAULT 0,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    status integer DEFAULT 0,
+    span_count integer DEFAULT 0
 );
 
 
@@ -750,12 +745,25 @@ COMMENT ON COLUMN public.event_reqs.created_at IS 'utc timestamp at the time of 
 
 
 --
+-- Name: COLUMN event_reqs.status; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.event_reqs.status IS 'status of event request: 0 is pending, 1 is done';
+
+
+--
+-- Name: COLUMN event_reqs.span_count; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.event_reqs.span_count IS 'number of spans in the event request';
+
+
+--
 -- Name: roles; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.roles (
     name character varying(256) NOT NULL,
-    scopes text[],
     CONSTRAINT roles_name_check CHECK (((name)::text = ANY ((ARRAY['owner'::character varying, 'admin'::character varying, 'developer'::character varying, 'viewer'::character varying])::text[])))
 );
 
@@ -768,10 +776,51 @@ COMMENT ON COLUMN public.roles.name IS 'unique role name';
 
 
 --
--- Name: COLUMN roles.scopes; Type: COMMENT; Schema: public; Owner: -
+-- Name: short_filters; Type: TABLE; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.roles.scopes IS 'valid scopes for this role';
+CREATE TABLE public.short_filters (
+    code character varying(32) NOT NULL,
+    app_id uuid NOT NULL,
+    filters jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: COLUMN short_filters.code; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.short_filters.code IS 'short code hashed from filters';
+
+
+--
+-- Name: COLUMN short_filters.app_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.short_filters.app_id IS 'linked app id';
+
+
+--
+-- Name: COLUMN short_filters.filters; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.short_filters.filters IS 'filters JSON';
+
+
+--
+-- Name: COLUMN short_filters.created_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.short_filters.created_at IS 'utc timestamp at the time of record creation';
+
+
+--
+-- Name: COLUMN short_filters.updated_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.short_filters.updated_at IS 'utc timestamp at the time of record update';
 
 
 --
@@ -883,7 +932,6 @@ CREATE TABLE public.unhandled_exception_groups (
     file_name text NOT NULL,
     line_number integer NOT NULL,
     fingerprint character varying(32) NOT NULL,
-    event_ids uuid[] NOT NULL,
     first_event_timestamp timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
@@ -944,13 +992,6 @@ COMMENT ON COLUMN public.unhandled_exception_groups.line_number IS 'line number 
 --
 
 COMMENT ON COLUMN public.unhandled_exception_groups.fingerprint IS 'fingerprint of the unhandled exception';
-
-
---
--- Name: COLUMN unhandled_exception_groups.event_ids; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.unhandled_exception_groups.event_ids IS 'list of associated event ids';
 
 
 --
@@ -1160,6 +1201,14 @@ ALTER TABLE ONLY public.roles
 
 
 --
+-- Name: short_filters short_filters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.short_filters
+    ADD CONSTRAINT short_filters_pkey PRIMARY KEY (code);
+
+
+--
 -- Name: team_membership team_membership_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1220,7 +1269,7 @@ ALTER TABLE ONLY public.anr_groups
 --
 
 ALTER TABLE ONLY public.api_keys
-    ADD CONSTRAINT api_keys_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.apps(id) ON DELETE CASCADE DEFERRABLE;
+    ADD CONSTRAINT api_keys_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.apps(id) ON DELETE CASCADE;
 
 
 --
@@ -1272,6 +1321,14 @@ ALTER TABLE ONLY public.event_reqs
 
 
 --
+-- Name: short_filters short_filters_app_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.short_filters
+    ADD CONSTRAINT short_filters_app_id_fkey FOREIGN KEY (app_id) REFERENCES public.apps(id) ON DELETE CASCADE;
+
+
+--
 -- Name: team_membership team_membership_role_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1313,18 +1370,21 @@ ALTER TABLE ONLY public.unhandled_exception_groups
 --
 
 INSERT INTO dbmate.schema_migrations (version) VALUES
-    ('20231117010311'),
-    ('20231117010312'),
-    ('20231117010526'),
-    ('20231117011737'),
-    ('20231117012011'),
-    ('20231117012219'),
-    ('20231122211412'),
-    ('20231228033348'),
-    ('20231228044339'),
-    ('20240311054505'),
-    ('20240404122712'),
-    ('20240502060117'),
-    ('20240703152041'),
-    ('20240704051355'),
-    ('20240708104127');
+    ('20240830075257'),
+    ('20240830080137'),
+    ('20240830080707'),
+    ('20240830081828'),
+    ('20240830081908'),
+    ('20240830082904'),
+    ('20240830083150'),
+    ('20240830083238'),
+    ('20240830083450'),
+    ('20240830083536'),
+    ('20240830083705'),
+    ('20240830083806'),
+    ('20240830083926'),
+    ('20240830084037'),
+    ('20240830084124'),
+    ('20241011140121'),
+    ('20241102075104'),
+    ('20241113131953');
