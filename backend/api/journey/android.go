@@ -519,7 +519,7 @@ func NewJourneyAndroid(events []event.EventField, opts *Options) (journey *Journ
 
 		} else if issue {
 			// find the previous activity node
-			// and attach the issue to the node.
+			// and attach the issue to that node.
 			c := i
 			for {
 				c--

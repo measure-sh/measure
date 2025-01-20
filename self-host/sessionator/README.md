@@ -156,9 +156,11 @@ For this to work, make sure `self-host/.env` has the `AWS_ENDPOINT_URL` environm
 
 ### Remove apps completely
 
-With `ingest --clean/--clean-all` commands, only the app's resources are removed, but the apps are not. If you wish to remove an app completely with all its resources also removed. Use the `remove apps` command.
+The `ingest --clean/--clean-all` commands only removes the app's resources, but the apps themselves are not removed. If you wish to remove an app completely, use the `remove apps` command. Like below.
 
 ```sh
 # syntax, where xxxx is the id of the app
 go run . remove apps --id xxxx
 ```
+
+You would need to get the id of the app from the `apps` table in Measure's Postgres database.

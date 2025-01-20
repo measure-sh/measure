@@ -1,5 +1,7 @@
 package numeric
 
+import "math"
+
 // AbsInt returns the absolute
 // value of int n.
 //
@@ -13,4 +15,10 @@ func AbsInt(n int) int {
 		return -n
 	}
 	return n
+}
+
+// RoundTwoDecimalsFloat64 rounds the precision
+// part of a float64 value to 2 decimals.
+func RoundTwoDecimalsFloat64(x float64) float64 {
+	return math.Ceil(x*100) / 100
 }

@@ -4,6 +4,7 @@ import (
 	"backend/api/platform"
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net"
 	"regexp"
@@ -246,17 +247,49 @@ func makeTitle(t, m string) (typeMessage string) {
 	return
 }
 
+// ExceptionUnitiOS represents iOS specific
+// structure to work with iOS exceptions.
+type ExceptionUnitiOS struct {
+	// Signal is the BSD termination signal.
+	Signal string `json:"signal" binding:"required"`
+	// ThreadName is the name of the thread.
+	ThreadName string `json:"thread_name" binding:"required"`
+	// ThreadSequence is the order of the thread
+	// in the iOS exception.
+	ThreadSequence uint `json:"thread_sequence" binding:"required"`
+	// OSBuildNumber is the operating system's
+	// build number.
+	OSBuildNumber string `json:"os_build_number" binding:"required"`
+}
+
+// ExceptionUnit represents a cross-platform
+// structure to work with parts of an exception.
 type ExceptionUnit struct {
-	Type    string `json:"type" binding:"required"`
+	// Type is the type of the exception.
+	Type string `json:"type" binding:"required"`
+	// Message is the exception's message.
 	Message string `json:"message"`
-	Frames  Frames `json:"frames" binding:"required"`
+	// Frames is a collection of exception's frames.
+	Frames Frames `json:"frames" binding:"required"`
+	ExceptionUnitiOS
 }
 
 type ExceptionUnits []ExceptionUnit
 
+// ThreadiOS represents iOS specific structure
+// to work with iOS exceptions.
+type ThreadiOS struct {
+	Sequence uint `json:"sequence"`
+}
+
+// Thread represents a cross-platform
+// structure to work with exception threads.
 type Thread struct {
-	Name   string `json:"name" binding:"required"`
+	// Name is the name of the thread.
+	Name string `json:"name" binding:"required"`
+	// Frames is the collection of stackframe objects.
 	Frames Frames `json:"frames" binding:"required"`
+	ThreadiOS
 }
 
 type Threads []Thread
@@ -275,6 +308,13 @@ type Exception struct {
 	Threads     Threads        `json:"threads" binding:"required"`
 	Fingerprint string         `json:"fingerprint"`
 	Foreground  bool           `json:"foreground" binding:"required"`
+}
+
+// FingerprintComputer describes the behavior
+// to compute a unique fingerprint of any
+// underlying structure.
+type FingerprintComputer interface {
+	ComputeFingerprint() error
 }
 
 type AppExit struct {
@@ -1097,6 +1137,28 @@ func (e *EventField) Validate() error {
 	return nil
 }
 
+// GetPlatform determines the exception belongs
+// to which platform.
+func (e Exception) GetPlatform() (p string) {
+	p = platform.Unknown
+	if len(e.Exceptions) < 1 || len(e.Threads) < 1 {
+		return p
+	}
+
+	// Might be possible to detect the platform
+	// in a more robust manner
+	//
+	// FIXME: Revisit the heuristics for platform
+	// determination
+	if e.Exceptions[0].Signal != "" && e.Threads[0].Sequence != 0 {
+		p = platform.IOS
+	} else {
+		p = platform.Android
+	}
+
+	return
+}
+
 // IsNested returns true in case of
 // multiple nested exceptions.
 func (e Exception) IsNested() bool {
@@ -1208,40 +1270,72 @@ func (e Exception) Stacktrace() string {
 	return b.String()
 }
 
-// ComputeExceptionFingerprint computes a fingerprint
-// from the exception data.
-func (e *Exception) ComputeExceptionFingerprint() (err error) {
+// ComputeFingerprint computes a fingerprint
+// for the exception.
+func (e *Exception) ComputeFingerprint() (err error) {
 	if len(e.Exceptions) == 0 {
-		return fmt.Errorf("error computing exception fingerprint: no exceptions found")
+		return errors.New("error computing exception fingerprint: no exceptions found")
 	}
 
-	// Get the innermost exception
-	innermostException := e.Exceptions[len(e.Exceptions)-1]
+	// input holds the raw input to
+	// compute the fingerprint
+	input := ""
 
-	// Get the exception type
-	exceptionType := innermostException.Type
+	// sep is the separator to separate
+	// parts of the input
+	sep := ":"
 
-	// Initialize fingerprint data with the exception type
-	fingerprintData := exceptionType
+	switch e.GetPlatform() {
+	case platform.Android:
+		// get the innermost exception
+		innermostException := e.Exceptions[len(e.Exceptions)-1]
 
-	// Get the method name and file name from the first frame of the innermost exception
-	if len(innermostException.Frames) > 0 {
-		methodName := innermostException.Frames[0].MethodName
-		fileName := innermostException.Frames[0].FileName
+		// initialize fingerprint data with the exception type
+		input = innermostException.Type
 
-		// Include any non-empty information
+		// get the method name and file name from the first frame of the innermost exception
+		if len(innermostException.Frames) > 0 {
+			methodName := innermostException.Frames[0].MethodName
+			fileName := innermostException.Frames[0].FileName
+
+			// Include any non-empty information
+			if methodName != "" {
+				input += sep + methodName
+			}
+			if fileName != "" {
+				input += sep + fileName
+			}
+		}
+	case platform.IOS:
+		// get the first exception unit
+		// FIXME: might need to use ThreadSequence here
+		firstUnit := e.Exceptions[0]
+
+		input = firstUnit.Type
+
+		if len(firstUnit.Frames) < 1 {
+			break
+		}
+
+		methodName := firstUnit.Frames[0].MethodName
+		fileName := firstUnit.Frames[0].FileName
+
 		if methodName != "" {
-			fingerprintData += ":" + methodName
+			input += sep + methodName
 		}
 		if fileName != "" {
-			fingerprintData += ":" + fileName
+			input += sep + fileName
 		}
+	default:
+		return errors.New("failed to compute fingerprint for unknown platform")
 	}
 
 	// Compute the fingerprint
-	e.Fingerprint = computeFingerprint(fingerprintData)
+	// e.Fingerprint = computeFingerprint(input)
+	hash := md5.Sum([]byte(input))
+	e.Fingerprint = hex.EncodeToString(hash[:])
 
-	return nil
+	return
 }
 
 // IsNested returns true in case of
@@ -1352,9 +1446,9 @@ func (a ANR) Stacktrace() string {
 	return b.String()
 }
 
-// ComputeANRFingerprint computes a fingerprint
+// ComputeFingerprint computes a fingerprint
 // from the ANR data.
-func (a *ANR) ComputeANRFingerprint() (err error) {
+func (a *ANR) ComputeFingerprint() (err error) {
 	if len(a.Exceptions) == 0 {
 		return fmt.Errorf("error computing ANR fingerprint: no exceptions found")
 	}
@@ -1383,12 +1477,8 @@ func (a *ANR) ComputeANRFingerprint() (err error) {
 	}
 
 	// Compute the fingerprint
-	a.Fingerprint = computeFingerprint(fingerprintData)
+	hash := md5.Sum([]byte(fingerprintData))
+	a.Fingerprint = hex.EncodeToString(hash[:])
 
 	return nil
-}
-
-func computeFingerprint(data string) string {
-	hash := md5.Sum([]byte(data))
-	return hex.EncodeToString(hash[:])
 }

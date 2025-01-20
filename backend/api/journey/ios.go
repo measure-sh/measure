@@ -370,7 +370,7 @@ func NewJourneyiOS(events []event.EventField, opts *Options) (journey *JourneyiO
 			node.IsSwiftUI = true
 		} else if issue {
 			// find the previous view node and
-			// attach the issue to the node.
+			// attach the issue to that node.
 			c := i
 			for {
 				c--
@@ -381,7 +381,7 @@ func NewJourneyiOS(events []event.EventField, opts *Options) (journey *JourneyiO
 				}
 
 				// we only add issues to view nodes
-				if journey.Nodes[i].IsViewController || journey.Nodes[i].IsSwiftUI {
+				if journey.Nodes[c].IsViewController || journey.Nodes[c].IsSwiftUI {
 					addIssue := false
 
 					// only add exception if requested and if the issue exists
