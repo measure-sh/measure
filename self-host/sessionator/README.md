@@ -10,6 +10,7 @@ Easily ingest test sessions during development.
 - [Repeat ingestion of sessions](#repeat-ingestion-of-sessions)
   - [`--clean-all` flag](#--clean-all-flag)
   - [`--clean` flag](#--clean-flag)
+- [Skipping apps from ingestion](#skipping-apps-from-ingestion)
 - [Uploading mappings \& attachments locally](#uploading-mappings--attachments-locally)
 - [Remove apps completely](#remove-apps-completely)
 
@@ -135,6 +136,17 @@ symbols_s3_bucket_region = "us-east-1"
 symbols_access_key = "minio"
 symbols_secret_access_key = "minio123"
 ```
+
+### Skipping apps from ingestion
+
+You can skip certain apps during ingestion using the `--skip-apps` option. This can be useful in scenarios when you to ingest some apps partially.
+
+```sh
+go run . ingest --skip-apps com.example.appOne,com.example.appTwo
+```
+
+Sessionator will not scan the `com.example.appOne` and `com.example.appTwo` apps for the above. Note the app name must match the directory name under the `session-data` directory.
+
 
 ### Uploading mappings & attachments locally
 

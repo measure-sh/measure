@@ -63,6 +63,10 @@ var duration time.Duration
 // parallel is used to enable virtualization.
 var parallel bool
 
+// skipApps is used to skip processing
+// of specified apps.
+var skipApps []string
+
 // metrics is used to store progress of ingestion
 // operations.
 var metrics Metrics
@@ -99,6 +103,10 @@ func init() {
 	ingestCmd.
 		Flags().
 		BoolVarP(&cleanAll, "clean-all", "X", false, "remove all builds, events & attachments before ingestion")
+
+	ingestCmd.
+		Flags().
+		StringSliceVar(&skipApps, "skip-apps", nil, "list of apps to skip ingestion")
 
 	ingestCmd.Flags().SortFlags = false
 }
@@ -568,7 +576,9 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 			os.Exit(1)
 		}
 
-		apps, err := app.Scan(sourceDir)
+		apps, err := app.Scan(sourceDir, &app.ScanOpts{
+			SkipApps: skipApps,
+		})
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
