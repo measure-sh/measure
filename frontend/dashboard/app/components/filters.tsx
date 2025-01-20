@@ -94,7 +94,7 @@ export const defaultFilters: Filters = {
   startDate: '',
   endDate: '',
   versions: [],
-  sessionType: SessionType.Issues,
+  sessionType: SessionType.All,
   spanStatuses: [],
   osVersions: [],
   countries: [],
@@ -199,7 +199,7 @@ const Filters: React.FC<FiltersProps> = ({
   const [versions, setVersions] = useState([] as AppVersion[]);
   const [selectedVersions, setSelectedVersions] = useState([] as AppVersion[]);
 
-  const [selectedSessionType, setSelectedSessionType] = useState(SessionType.Issues);
+  const [selectedSessionType, setSelectedSessionType] = useState(SessionType.All);
 
   const [osVersions, setOsVersions] = useState([] as OsVersion[]);
   const [selectedOsVersions, setSelectedOsVersions] = useState([] as OsVersion[]);
