@@ -17,6 +17,7 @@ import (
 	"backend/api/group"
 	"backend/api/journey"
 	"backend/api/metrics"
+	"backend/api/numeric"
 	"backend/api/paginate"
 	"backend/api/platform"
 	"backend/api/server"
@@ -690,7 +691,7 @@ func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions 
 func (a App) GetIssueFreeMetrics(
 	ctx context.Context,
 	af *filter.AppFilter,
-	versions filter.Versions,
+	unselectedVersions filter.Versions,
 ) (
 	crashFree *metrics.CrashFreeSession,
 	perceivedCrashFree *metrics.PerceivedCrashFreeSession,
@@ -775,13 +776,13 @@ func (a App) GetIssueFreeMetrics(
 			perceivedANRFree.ANRFreeSessions = math.NaN()
 		}
 	} else {
-		crashFree.CrashFreeSessions = math.Round(1-float64(crashSelected/selected)) * 100
-		perceivedCrashFree.CrashFreeSessions = math.Round(1-float64(perceivedCrashSelected/selected)) * 100
+		crashFree.CrashFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(crashSelected) / float64(selected))) * 100)
+		perceivedCrashFree.CrashFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedCrashSelected) / float64(selected))) * 100)
 
 		switch a.Platform {
 		case platform.Android:
-			anrFree.ANRFreeSessions = math.Round(1-float64(anrSelected/selected)) * 100
-			perceivedANRFree.ANRFreeSessions = math.Round(1-float64(perceivedANRSelected/selected)) * 100
+			anrFree.ANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrSelected) / float64(selected))) * 100)
+			perceivedANRFree.ANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRSelected) / float64(selected))) * 100)
 		}
 	}
 
@@ -795,28 +796,28 @@ func (a App) GetIssueFreeMetrics(
 			perceivedANRFreeUnselected = math.NaN()
 		}
 	} else {
-		crashFreeUnselected = math.Round(1-float64(crashUnselected/unselected)) * 100
-		perceivedCrashFreeUnselected = math.Round(1-float64(perceivedCrashUnselected/unselected)) * 100
+		crashFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(crashUnselected) / float64(unselected))) * 100)
+		perceivedCrashFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedCrashUnselected) / float64(unselected))) * 100)
 
 		switch a.Platform {
 		case platform.Android:
-			anrFreeUnselected = math.Round(1-float64(anrUnselected/unselected)) * 100
-			perceivedANRFreeUnselected = math.Round(1-float64(perceivedANRUnselected/unselected)) * 100
+			anrFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrUnselected) / float64(unselected))) * 100)
+			perceivedANRFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRUnselected) / float64(unselected))) * 100)
 		}
 	}
 
 	// compute delta
-	if versions.HasVersions() {
+	if unselectedVersions.HasVersions() {
 		// avoid division by zero
 		if crashFreeUnselected != 0 {
 			// Round to two decimal places
-			crashFree.Delta = math.Round(crashFree.CrashFreeSessions/crashFreeUnselected*100) / 100
+			crashFree.Delta = numeric.RoundTwoDecimalsFloat64(crashFree.CrashFreeSessions / crashFreeUnselected)
 		} else {
 			crashFree.Delta = 1
 		}
 
 		if perceivedCrashFreeUnselected != 0 {
-			crashFree.Delta = math.Round(perceivedCrashFree.CrashFreeSessions/perceivedCrashFreeUnselected*100) / 100
+			crashFree.Delta = numeric.RoundTwoDecimalsFloat64(perceivedCrashFree.CrashFreeSessions / perceivedCrashFreeUnselected)
 		} else {
 			perceivedCrashFree.Delta = 1
 		}
@@ -824,13 +825,13 @@ func (a App) GetIssueFreeMetrics(
 		switch a.Platform {
 		case platform.Android:
 			if anrFreeUnselected != 0 {
-				anrFree.Delta = math.Round(anrFree.ANRFreeSessions/anrFreeUnselected*100) / 100
+				anrFree.Delta = numeric.RoundTwoDecimalsFloat64(anrFree.ANRFreeSessions / anrFreeUnselected)
 			} else {
 				anrFree.Delta = 1
 			}
 
 			if perceivedANRFreeUnselected != 0 {
-				perceivedANRFree.Delta = math.Round(perceivedANRFree.ANRFreeSessions/perceivedANRFreeUnselected*100) / 100
+				perceivedANRFree.Delta = numeric.RoundTwoDecimalsFloat64(perceivedANRFree.ANRFreeSessions / perceivedANRFreeUnselected)
 			} else {
 				perceivedANRFree.Delta = 1
 			}
