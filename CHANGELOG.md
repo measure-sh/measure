@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :bug: Bug fixes
 
 - (**backend**): Query all user defined attributes (#1738)
+- (**frontend**): Set default session type to All
 
 ### :hammer: Misc
 
