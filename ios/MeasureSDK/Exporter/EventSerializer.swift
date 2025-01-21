@@ -367,15 +367,15 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
         result += "\"method\":\"\(httpData.method)\","
 
         if let statusCode = httpData.statusCode {
-            result += "\"status_code\":\"\(statusCode)\","
+            result += "\"status_code\":\(statusCode),"
         }
 
         if let startTime = httpData.startTime {
-            result += "\"start_time\":\"\(startTime)\","
+            result += "\"start_time\":\(startTime),"
         }
 
         if let endTime = httpData.endTime {
-            result += "\"end_time\":\"\(endTime)\","
+            result += "\"end_time\":\(endTime),"
         }
 
         if let failureReason = httpData.failureReason {
@@ -387,12 +387,12 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
         }
 
         if let requestHeaders = httpData.requestHeaders {
-            let headers = requestHeaders.map { "\"\($0.key)\":\"\($0.value)\"" }.joined(separator: ",")
+            let headers = requestHeaders.map { "\"\($0.key)\":\"\($0.value.sanitizeRequestBody())\"" }.joined(separator: ",")
             result += "\"request_headers\":{\(headers)},"
         }
 
         if let responseHeaders = httpData.responseHeaders {
-            let headers = responseHeaders.map { "\"\($0.key)\":\"\($0.value)\"" }.joined(separator: ",")
+            let headers = responseHeaders.map { "\"\($0.key)\":\"\($0.value.sanitizeRequestBody())\"" }.joined(separator: ",")
             result += "\"response_headers\":{\(headers)},"
         }
 
@@ -412,10 +412,10 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
 
     private func serialiseNetworkChangeData(_ networkChangeData: NetworkChangeData) -> String {
         var result = "{"
-        result += "\"network_type\":\(networkChangeData.networkType),"
-        result += "\"network_provider\":\(networkChangeData.networkProvider),"
+        result += "\"network_type\":\"\(networkChangeData.networkType)\","
+        result += "\"network_provider\":\"\(networkChangeData.networkProvider)\","
         result += "\"network_generation\":\"\(networkChangeData.networkGeneration)\","
-        result += "\"previous_network_type\":\(networkChangeData.previousNetworkType),"
+        result += "\"previous_network_type\":\"\(networkChangeData.previousNetworkType)\","
         result += "\"previous_network_generation\":\"\(networkChangeData.previousNetworkGeneration)\""
         result += "}"
         return result
@@ -508,4 +508,4 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
         result += "}"
         return result
     }
-} // swiftlint:disable:this file_length
+}
