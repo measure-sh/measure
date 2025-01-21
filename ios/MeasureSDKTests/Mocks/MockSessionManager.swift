@@ -9,6 +9,7 @@ import Foundation
 @testable import MeasureSDK
 
 final class MockSessionManager: SessionManager {
+    var shouldReportSession: Bool = true
     var sessionId: String = ""
     var isPreviousSessionCrashed = false
     var trackedEvent: EventEntity?

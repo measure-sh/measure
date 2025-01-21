@@ -59,4 +59,8 @@ protocol InternalConfig {
 
     /// The maximum number of user defined attributes for an event. Defaults to 100.
     var maxUserDefinedAttributesPerEvent: Int { get }
+
+    /// All `EventType`s that are always exported, regardless of other filters like session sampling rate and whether the session crashed or not.
+    var eventTypeExportAllowList: [EventType] { get }
+
 }

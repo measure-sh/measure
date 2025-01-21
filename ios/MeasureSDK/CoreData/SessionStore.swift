@@ -15,8 +15,10 @@ protocol SessionStore {
     func deleteSession(_ sessionId: String)
     func markCrashedSessions(sessionIds: [String])
     func markCrashedSession(sessionId: String)
+    func updateNeedsReporting(sessionId: String, needsReporting: Bool)
     func getOldestSession() -> String?
     func deleteSessions(_ sessionIds: [String])
+    func getSessionsToDelete() -> [String]?
 }
 
 final class BaseSessionStore: SessionStore {
@@ -30,7 +32,7 @@ final class BaseSessionStore: SessionStore {
 
     func insertSession(_ session: SessionEntity) {
         let context = coreDataManager.backgroundContext
-        context.perform { [weak self] in
+        context.performAndWait { [weak self] in
             let sessionOb = SessionOb(context: context)
 
             sessionOb.sessionId = session.sessionId
@@ -77,7 +79,7 @@ final class BaseSessionStore: SessionStore {
         let context = coreDataManager.backgroundContext
         let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
 
-        var sessions: [SessionEntity]?
+        var sessions = [SessionEntity]()
         context.performAndWait { [weak self] in
             do {
                 let result = try context.fetch(fetchRequest)
@@ -93,7 +95,7 @@ final class BaseSessionStore: SessionStore {
                 self.logger.internalLog(level: .error, message: "Failed to fetch sessions.", error: error, data: nil)
             }
         }
-        return sessions
+        return sessions.isEmpty ? nil : sessions
     }
 
     func deleteSession(_ sessionId: String) {
@@ -102,7 +104,7 @@ final class BaseSessionStore: SessionStore {
         fetchRequest.fetchLimit = 1
         fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
 
-        context.perform { [weak self] in
+        context.performAndWait { [weak self] in
             do {
                 if let sessionOb = try context.fetch(fetchRequest).first {
                     context.delete(sessionOb)
@@ -121,7 +123,7 @@ final class BaseSessionStore: SessionStore {
         fetchRequest.fetchLimit = sessionIds.count
         fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
 
-        context.perform { [weak self] in
+        context.performAndWait { [weak self] in
             do {
                 let sessions = try context.fetch(fetchRequest)
                 for session in sessions {
@@ -141,10 +143,29 @@ final class BaseSessionStore: SessionStore {
         fetchRequest.fetchLimit = 1
         fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
 
-        context.perform { [weak self] in
+        context.performAndWait { [weak self] in
             do {
                 if let session = try context.fetch(fetchRequest).first {
                     session.crashed = true
+                    try context.saveIfNeeded()
+                }
+            } catch {
+                guard let self = self else { return }
+                self.logger.internalLog(level: .error, message: "Failed to mark crashed session: \(sessionId)", error: error, data: nil)
+            }
+        }
+    }
+
+    func updateNeedsReporting(sessionId: String, needsReporting: Bool) {
+        let context = coreDataManager.backgroundContext
+        let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
+        fetchRequest.fetchLimit = 1
+        fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
+
+        context.performAndWait { [weak self] in
+            do {
+                if let session = try context.fetch(fetchRequest).first {
+                    session.needsReporting = needsReporting
                     try context.saveIfNeeded()
                 }
             } catch {
@@ -179,7 +200,7 @@ final class BaseSessionStore: SessionStore {
         fetchRequest.fetchLimit = sessionIds.count
         fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
 
-        context.perform { [weak self] in
+        context.performAndWait { [weak self] in
             do {
                 let sessions = try context.fetch(fetchRequest)
                 for session in sessions {
@@ -191,5 +212,24 @@ final class BaseSessionStore: SessionStore {
                 self.logger.internalLog(level: .error, message: "Failed to delete sessions: \(sessionIds.joined(separator: ","))", error: error, data: nil)
             }
         }
+    }
+
+    func getSessionsToDelete() -> [String]? {
+        let context = coreDataManager.backgroundContext
+        let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "needsReporting == %d", false)
+
+        var sessionIds: [String]?
+        context.performAndWait { [weak self] in
+            do {
+                let sessions = try context.fetch(fetchRequest)
+                sessionIds = sessions.compactMap { $0.sessionId }
+            } catch {
+                guard let self = self else { return }
+                self.logger.internalLog(level: .error, message: "Failed to fetch sessions to delete.", error: error, data: nil)
+            }
+        }
+
+        return sessionIds
     }
 }

@@ -13,9 +13,11 @@ protocol EventStore {
     func getEvents(eventIds: [String]) -> [EventEntity]?
     func getEventsForSessions(sessions: [String]) -> [EventEntity]?
     func deleteEvents(eventIds: [String])
+    func deleteEvents(sessionIds: [String])
     func getAllEvents() -> [EventEntity]?
     func getUnBatchedEventsWithAttachmentSize(eventCount: Number, ascending: Bool, sessionId: String?) -> [String: Number]
     func updateBatchId(_ batchId: String, for events: [String])
+    func updateNeedsReportingForAllEvents(sessionId: String, needsReporting: Bool)
 }
 
 final class BaseEventStore: EventStore {
@@ -56,6 +58,8 @@ final class BaseEventStore: EventStore {
             eventOb.networkChange = event.networkChange
             eventOb.customEvent = event.customEvent
             eventOb.screenView = event.screenView
+            eventOb.timestampInMillis = event.timestampInMillis
+            eventOb.needsReporting = event.needsReporting
 
             do {
                 try context.saveIfNeeded()
@@ -103,7 +107,8 @@ final class BaseEventStore: EventStore {
                                 http: eventOb.http,
                                 networkChange: eventOb.networkChange,
                                 customEvent: eventOb.customEvent,
-                                screenView: eventOb.screenView)
+                                screenView: eventOb.screenView,
+                                needsReporting: eventOb.needsReporting)
                 }
             } catch {
                 guard let self = self else { return }
@@ -149,7 +154,8 @@ final class BaseEventStore: EventStore {
                                 http: eventOb.http,
                                 networkChange: eventOb.networkChange,
                                 customEvent: eventOb.customEvent,
-                                screenView: eventOb.screenView)
+                                screenView: eventOb.screenView,
+                                needsReporting: eventOb.needsReporting)
                 }
             } catch {
                 guard let self = self else { return }
@@ -214,7 +220,8 @@ final class BaseEventStore: EventStore {
                                               http: eventOb.http,
                                               networkChange: eventOb.networkChange,
                                               customEvent: eventOb.customEvent,
-                                              screenView: eventOb.screenView))
+                                              screenView: eventOb.screenView,
+                                              needsReporting: eventOb.needsReporting))
                 }
             } catch {
                 guard let self = self else {
@@ -238,13 +245,14 @@ final class BaseEventStore: EventStore {
         var predicates = [NSPredicate]()
 
         predicates.append(NSPredicate(format: "batchId == nil"))
+
         if let sessionId = sessionId {
             predicates.append(NSPredicate(format: "sessionId == %@", sessionId))
         }
 
-        if !predicates.isEmpty {
-            fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
-        }
+        predicates.append(NSPredicate(format: "needsReporting == %d", true))
+
+        fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
 
         var eventIdAttachmentSizeMap: [String: Int64] = [:]
 
@@ -282,6 +290,44 @@ final class BaseEventStore: EventStore {
             } catch {
                 guard let self = self else { return }
                 self.logger.internalLog(level: .error, message: "Failed to update batchId for events.", error: error, data: nil)
+            }
+        }
+    }
+
+    func updateNeedsReportingForAllEvents(sessionId: String, needsReporting: Bool) {
+        let context = coreDataManager.backgroundContext
+        let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
+
+        context.performAndWait { [weak self] in
+            do {
+                let events = try context.fetch(fetchRequest)
+                for event in events {
+                    event.needsReporting = needsReporting
+                }
+                try context.saveIfNeeded()
+            } catch {
+                guard let self = self else { return }
+                self.logger.internalLog(level: .error, message: "Failed to update needsReporting for sessionId: \(sessionId)", error: error, data: nil)
+            }
+        }
+    }
+
+    func deleteEvents(sessionIds: [String]) {
+        let context = coreDataManager.backgroundContext
+        let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "sessionId IN %@ AND needsReporting == %d", sessionIds, false)
+
+        context.performAndWait { [weak self] in
+            do {
+                let events = try context.fetch(fetchRequest)
+                for event in events {
+                    context.delete(event)
+                }
+                try context.saveIfNeeded()
+            } catch {
+                guard let self = self else { return }
+                self.logger.internalLog(level: .error, message: "Failed to delete events by session IDs: \(sessionIds.joined(separator: ","))", error: error, data: nil)
             }
         }
     }

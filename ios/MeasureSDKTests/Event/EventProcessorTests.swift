@@ -56,7 +56,7 @@ final class EventProcessorTests: XCTestCase {
         timeProvider = BaseTimeProvider()
         configProvider = MockConfigProvider(enableLogging: false,
                                             trackScreenshotOnCrash: false,
-                                            sessionSamplingRate: 1.0,
+                                            samplingRateForErrorFreeSessions: 1.0,
                                             eventsBatchingIntervalMs: 1000,
                                             sessionEndLastEventThresholdMs: 1000,
                                             longPressTimeout: 0.5,

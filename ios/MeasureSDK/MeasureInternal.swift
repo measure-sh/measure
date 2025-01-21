@@ -115,6 +115,9 @@ final class MeasureInternal {
     var userTriggeredEventCollector: UserTriggeredEventCollector {
         return measureInitializer.userTriggeredEventCollector
     }
+    var dataCleanupService: DataCleanupService {
+        return measureInitializer.dataCleanupService
+    }
     private let lifecycleObserver: LifecycleObserver
 
     init(_ measureInitializer: MeasureInitializer) {
@@ -154,6 +157,7 @@ final class MeasureInternal {
         self.lifecycleCollector.applicationDidEnterBackground()
         self.cpuUsageCollector.pause()
         self.memoryUsageCollector.pause()
+        self.dataCleanupService.clearStaleData()
     }
 
     private func applicationWillEnterForeground() {

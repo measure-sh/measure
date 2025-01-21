@@ -49,6 +49,8 @@
 		5225D0352D0AEB1A00FD240D /* String+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5225D0342D0AEB1A00FD240D /* String+Extension.swift */; };
 		5225D0502D0FECFF00FD240D /* InputStream+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5225D04F2D0FECFF00FD240D /* InputStream+Extension.swift */; };
 		5229D16E2CCB533C00EFFE44 /* RecentSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5229D16D2CCB533C00EFFE44 /* RecentSession.swift */; };
+		522BA9D42D36579100DBF4A3 /* DataCleanupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 522BA9D32D36579000DBF4A3 /* DataCleanupService.swift */; };
+		522BA9D62D37C2A000DBF4A3 /* DataCleanupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 522BA9D52D37C2A000DBF4A3 /* DataCleanupServiceTests.swift */; };
 		523287692C85E07B000EE268 /* LifecycleObserverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523287682C85E07B000EE268 /* LifecycleObserverTests.swift */; };
 		523287732C86195E000EE268 /* SessionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523287722C86195E000EE268 /* SessionManagerTests.swift */; };
 		523287752C8619C4000EE268 /* MockIdProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523287742C8619C4000EE268 /* MockIdProvider.swift */; };
@@ -369,6 +371,8 @@
 		5225D0342D0AEB1A00FD240D /* String+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Extension.swift"; sourceTree = "<group>"; };
 		5225D04F2D0FECFF00FD240D /* InputStream+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InputStream+Extension.swift"; sourceTree = "<group>"; };
 		5229D16D2CCB533C00EFFE44 /* RecentSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentSession.swift; sourceTree = "<group>"; };
+		522BA9D32D36579000DBF4A3 /* DataCleanupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataCleanupService.swift; sourceTree = "<group>"; };
+		522BA9D52D37C2A000DBF4A3 /* DataCleanupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataCleanupServiceTests.swift; sourceTree = "<group>"; };
 		523287682C85E07B000EE268 /* LifecycleObserverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleObserverTests.swift; sourceTree = "<group>"; };
 		523287722C86195E000EE268 /* SessionManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManagerTests.swift; sourceTree = "<group>"; };
 		523287742C8619C4000EE268 /* MockIdProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockIdProvider.swift; sourceTree = "<group>"; };
@@ -803,6 +807,7 @@
 			children = (
 				524576722CC116DD00B288E5 /* BatchStore.swift */,
 				524CC5D22C6A4B48001AB506 /* CoreDataManager.swift */,
+				522BA9D32D36579000DBF4A3 /* DataCleanupService.swift */,
 				52A1A94B2CA3D3B000461103 /* Entities */,
 				52A1A9492CA3CF9B00461103 /* EventStore.swift */,
 				52A1A93B2CA0777300461103 /* SessionStore.swift */,
@@ -894,6 +899,7 @@
 			isa = PBXGroup;
 			children = (
 				52D3D7372CC404DA004E404B /* BatchStoreTests.swift */,
+				522BA9D52D37C2A000DBF4A3 /* DataCleanupServiceTests.swift */,
 				52A1A94E2CA52C8A00461103 /* EventStoreTests.swift */,
 				52A1A9402CA087BA00461103 /* SessionStoreTests.swift */,
 			);
@@ -1401,6 +1407,7 @@
 				5202BE472C89600200A3496E /* UIDevice+Extension.swift in Sources */,
 				52AE72012CABAE9000F2830A /* GestureCollector.swift in Sources */,
 				5202BE3B2C895FC800A3496E /* AttributeProcessor.swift in Sources */,
+				522BA9D42D36579100DBF4A3 /* DataCleanupService.swift in Sources */,
 				5202BE3C2C895FC800A3496E /* ComputeOnceAttributeProcessor.swift in Sources */,
 				5202BE3D2C895FC800A3496E /* DeviceAttributeProcessor.swift in Sources */,
 				52BCF1DC2CB42026003102DF /* MeasureModel.xcdatamodeld in Sources */,
@@ -1523,6 +1530,7 @@
 				5202BE582C89603400A3496E /* MockUserDefaultStorage.swift in Sources */,
 				52D3D73F2CC4E696004E404B /* EventExporterTests.swift in Sources */,
 				52D3D73D2CC415B2004E404B /* MockBatchStore.swift in Sources */,
+				522BA9D62D37C2A000DBF4A3 /* DataCleanupServiceTests.swift in Sources */,
 				5202BE522C89601200A3496E /* UserAttributeProcessorTests.swift in Sources */,
 				5224ECE32C880FA400D1B1F7 /* XCTextCase+Extension.swift in Sources */,
 				52A1A9662CA5AC9900461103 /* Attachment+Extension.swift in Sources */,

@@ -14,7 +14,7 @@ final class MockConfigProvider: ConfigProvider {
     var maxSessionDurationMs: Number
     var enableLogging: Bool
     var trackScreenshotOnCrash: Bool
-    var sessionSamplingRate: Float
+    var samplingRateForErrorFreeSessions: Float
     var eventsBatchingIntervalMs: Number
     var sessionEndLastEventThresholdMs: Number
     var longPressTimeout: TimeInterval
@@ -29,10 +29,11 @@ final class MockConfigProvider: ConfigProvider {
     var maxUserDefinedAttributesPerEvent: Int
     var httpContentTypeAllowlist: [String]
     var defaultHttpHeadersBlocklist: [String]
+    var eventTypeExportAllowList: [EventType]
 
     init(enableLogging: Bool = false,
          trackScreenshotOnCrash: Bool = true,
-         sessionSamplingRate: Float = 1.0,
+         samplingRateForErrorFreeSessions: Float = 1.0,
          eventsBatchingIntervalMs: Number = 30000,
          sessionEndLastEventThresholdMs: Number = 60 * 1000,
          longPressTimeout: TimeInterval = 500,
@@ -54,10 +55,16 @@ final class MockConfigProvider: ConfigProvider {
                                                   "Set-Cookie",
                                                   "Proxy-Authorization",
                                                   "WWW-Authenticate",
-                                                  "X-Api-Key"]) {
+                                                  "X-Api-Key"],
+         eventTypeExportAllowList: [EventType] = [.coldLaunch,
+                                                  .hotLaunch,
+                                                  .warmLaunch,
+                                                  .lifecycleSwiftUI,
+                                                  .lifecycleViewController,
+                                                  .screenView]) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
-        self.sessionSamplingRate = sessionSamplingRate
+        self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
         self.eventsBatchingIntervalMs = eventsBatchingIntervalMs
         self.sessionEndLastEventThresholdMs = sessionEndLastEventThresholdMs
         self.longPressTimeout = longPressTimeout
@@ -75,6 +82,7 @@ final class MockConfigProvider: ConfigProvider {
         self.maxUserDefinedAttributesPerEvent = maxUserDefinedAttributesPerEvent
         self.httpContentTypeAllowlist = httpContentTypeAllowlist
         self.defaultHttpHeadersBlocklist = defaultHttpHeadersBlocklist
+        self.eventTypeExportAllowList = eventTypeExportAllowList
     }
 
     func loadNetworkConfig() {}

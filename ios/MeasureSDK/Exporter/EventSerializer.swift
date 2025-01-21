@@ -508,4 +508,4 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
         result += "}"
         return result
     }
-}
+} // swiftlint:disable:this file_length

@@ -54,4 +54,17 @@ final class MockEventStore: EventStore {
             self.events[index].batchId = batchId
         }
     }
+
+    func updateNeedsReportingForAllEvents(sessionId: String, needsReporting: Bool) {
+        for index in 0..<events.count where events[index].sessionId == sessionId {
+            events[index].needsReporting = needsReporting
+        }
+    }
+
+    func deleteEvents(sessionIds: [String]) {
+        let eventsToDelete = events.filter { sessionIds.contains($0.sessionId) && !$0.needsReporting }
+        let eventIdsToDelete = eventsToDelete.map { $0.id }
+
+        deleteEvents(eventIds: eventIdsToDelete)
+    }
 }

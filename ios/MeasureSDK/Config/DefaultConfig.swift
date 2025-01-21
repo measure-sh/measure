@@ -11,5 +11,5 @@ import Foundation
 struct DefaultConfig {
     static let enableLogging = false
     static let trackScreenshotOnCrash = true
-    static let sessionSamplingRate: Float = 1.0
+    static let sessionSamplingRate: Float = 0.0
 }

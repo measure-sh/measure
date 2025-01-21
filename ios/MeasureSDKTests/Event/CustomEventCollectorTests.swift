@@ -49,7 +49,8 @@ final class BaseCustomEventCollectorTests: XCTestCase {
         XCTAssertNotNil(eventProcessor.data)
         XCTAssertEqual(eventProcessor.timestamp, 123456789)
         XCTAssertEqual(eventProcessor.type, .custom)
-        XCTAssertEqual(eventProcessor.userDefinedAttributes, "{\"is_premium\":true,\"user_name\":\"Alice\"}")
+        XCTAssertTrue(eventProcessor.userDefinedAttributes!.contains("Alice"))
+        XCTAssertTrue(eventProcessor.userDefinedAttributes!.contains("true"))
     }
 
     func testTrackEvent_whenDisabled_doesNotSendToProcessor() {

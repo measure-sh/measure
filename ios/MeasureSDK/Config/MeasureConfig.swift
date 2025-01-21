@@ -11,7 +11,7 @@ import Foundation
 protocol MeasureConfig {
     var enableLogging: Bool { get }
     var trackScreenshotOnCrash: Bool { get }
-    var sessionSamplingRate: Float { get }
+    var samplingRateForErrorFreeSessions: Float { get }
 }
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -24,21 +24,22 @@ protocol MeasureConfig {
 @objc public final class BaseMeasureConfig: NSObject, MeasureConfig {
     let enableLogging: Bool
     let trackScreenshotOnCrash: Bool
-    let sessionSamplingRate: Float
+    let samplingRateForErrorFreeSessions: Float
 
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
     /// - Parameters:
     ///   - enableLogging: Enable or disable internal SDK logs. Defaults to `false`.
     ///   - trackScreenshotOnCrash: Whether to capture a screenshot of the app when it crashes due to an unhandled exception. Defaults to `true`.
-    ///   - sessionSamplingRate: Allows setting a sampling rate for non-crashed sessions. Session sampling rate must be between 0.0 and 1.0. By default, all non-crashed sessions are always exported.
+    ///   - samplingRateForErrorFreeSessions: Sampling rate for sessions without a crash. The sampling rate is a value between 0 and 1.
+    ///   For example, a value of `0.5` will export only 50% of the non-crashed sessions, and a value of `0` will disable sending non-crashed sessions to the server.
     public init(enableLogging: Bool? = nil,
                 trackScreenshotOnCrash: Bool? = nil,
-                sessionSamplingRate: Float? = nil) {
+                samplingRateForErrorFreeSessions: Float? = nil) {
         self.enableLogging = enableLogging ?? DefaultConfig.enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash ?? DefaultConfig.trackScreenshotOnCrash
-        self.sessionSamplingRate = sessionSamplingRate ?? DefaultConfig.sessionSamplingRate
+        self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions ?? DefaultConfig.sessionSamplingRate
 
-        if !(0.0...1.0).contains(self.sessionSamplingRate) {
+        if !(0.0...1.0).contains(self.samplingRateForErrorFreeSessions) {
             fatalError("Session sampling rate must be between 0.0 and 1.0")
         }
     }
