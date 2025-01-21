@@ -96,30 +96,30 @@ final class BaseLaunchTracker: LaunchTracker {
 
     private func generateHotLaunchData(appVisibleUptime: UnsignedNumber, onNextDrawUptime: UnsignedNumber) {
         let hotLaunchData = HotLaunchData(appVisibleUptime: appVisibleUptime,
-                                      onNextDrawUptime: onNextDrawUptime,
-                                      launchedActivity: getViewControllerName(),
-                                      hasSavedState: false,
-                                      intentData: nil)
+                                          onNextDrawUptime: onNextDrawUptime,
+                                          launchedActivity: getViewControllerName(),
+                                          hasSavedState: false,
+                                          intentData: nil)
         launchCallbacks.onHotLaunch(data: hotLaunchData)
     }
 
     private func generateColdLaunchData(processStartUptime: UnsignedNumber, onNextDrawUptime: UnsignedNumber) {
         let coldLaunchData = ColdLaunchData(processStartUptime: processStartUptime,
-                                        processStartRequestedUptime: nil,
-                                        contentProviderAttachUptime: nil,
-                                        onNextDrawUptime: onNextDrawUptime,
-                                        launchedActivity: getViewControllerName(),
-                                        hasSavedState: false,
-                                        intentData: nil)
+                                            processStartRequestedUptime: nil,
+                                            contentProviderAttachUptime: nil,
+                                            onNextDrawUptime: onNextDrawUptime,
+                                            launchedActivity: getViewControllerName(),
+                                            hasSavedState: false,
+                                            intentData: nil)
         launchCallbacks.onColdLaunch(data: coldLaunchData)
     }
 
     private func generateWarmLaunchData(appVisibleUptime: UnsignedNumber, onNextDrawUptime: UnsignedNumber) {
         let warmLaunchData = WarmLaunchData(appVisibleUptime: appVisibleUptime,
-                                        onNextDrawUptime: onNextDrawUptime,
-                                        launchedActivity: getViewControllerName(),
-                                        hasSavedState: false,
-                                        intentData: nil)
+                                            onNextDrawUptime: onNextDrawUptime,
+                                            launchedActivity: getViewControllerName(),
+                                            hasSavedState: false,
+                                            intentData: nil)
         launchCallbacks.onWarmLaunch(data: warmLaunchData)
     }
 
@@ -133,23 +133,18 @@ final class BaseLaunchTracker: LaunchTracker {
     }
 
     private func getViewControllerName() -> String {
-        guard let viewController = getActiveViewController() else {
-            return ""
+        let keyWindow = UIApplication.shared.windows.filter {$0.isKeyWindow}.first
+
+        if var topController = keyWindow?.rootViewController {
+            while let presentedViewController = topController.presentedViewController {
+                topController = presentedViewController
+            }
+
+            print("topController: ", topController)
+            return NSStringFromClass(type(of: topController))
         }
 
-        return NSStringFromClass(type(of: viewController))
-    }
-
-    private func getActiveViewController(_ rootViewController: UIViewController? = UIApplication.shared.keyWindow?.rootViewController) -> UIViewController? {
-        if let navigationController = rootViewController as? UINavigationController {
-            return getActiveViewController(navigationController.visibleViewController)
-        } else if let tabBarController = rootViewController as? UITabBarController {
-            return getActiveViewController(tabBarController.selectedViewController)
-        } else if let presentedViewController = rootViewController?.presentedViewController {
-            return getActiveViewController(presentedViewController)
-        } else {
-            return rootViewController
-        }
+        return ""
     }
 
     deinit {
