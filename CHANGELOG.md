@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump nanoid from 3.3.7 to 3.3.8 in /frontend/dashboard (#1708)
 - (**deps**): Bump golang.org/x/crypto in /backend/cleanup (#1707)
 - (**deps**): Bump golang.org/x/crypto in /backend/api (#1701)
+- (**frontend**): Allow unchecking last item in dropdown select if "None" is available
 - (**frontend**): Remove "None" for app version selection
 - (**frontend**): Update landing page + readme with perf traces
 - Improve automated changelog formatting (#1706)
