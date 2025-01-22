@@ -93,6 +93,14 @@ export default function SessionReplayEventCell({
       return 'Fragment ' + formatToCamelCase(eventDetails.type) + ': ' + name
     }
 
+    if (eventType === "lifecycle_view_controller") {
+      return eventDetails.class_name + ': ' + eventDetails.type
+    }
+
+    if (eventType === "lifecycle_swift_ui") {
+      return eventDetails.class_name + ': ' + eventDetails.type
+    }
+
     if (eventType === "lifecycle_app") {
       return 'App ' + formatToCamelCase(eventDetails.type)
     }
