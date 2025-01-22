@@ -91,10 +91,6 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
   const toggleCheckboxStringItem = (item: string) => {
     let curSelected = selected as string[]
     if (curSelected.includes(item)) {
-      // If only one item is selected, do nothing
-      if (curSelected.length === 1) {
-        return
-      }
       setSelected(curSelected.filter(a => a != item))
     } else {
       setSelected([item, ...curSelected])
@@ -110,10 +106,6 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
   const toggleCheckboxOsVersionItem = (item: OsVersion) => {
     let curSelected = selected as OsVersion[]
     if (isOsVersionSelected(item)) {
-      // If only one item is selected, do nothing
-      if (curSelected.length === 1) {
-        return
-      }
       setSelected(curSelected.filter(a => a != item))
     } else {
       setSelected([item, ...curSelected])
