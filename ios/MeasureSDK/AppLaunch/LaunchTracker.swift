@@ -140,11 +140,10 @@ final class BaseLaunchTracker: LaunchTracker {
                 topController = presentedViewController
             }
 
-            print("topController: ", topController)
             return NSStringFromClass(type(of: topController))
         }
 
-        return ""
+        return "unknown"
     }
 
     deinit {

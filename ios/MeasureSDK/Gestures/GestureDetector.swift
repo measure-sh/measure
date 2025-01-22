@@ -85,34 +85,37 @@ struct GestureDetector {
             }
         case .ended:
             if !isScrolling {
-                let dt = eventTime - startTouchEventTime/1000
-                let dx = abs(startTouchX - location.x)
-                let dy = abs(startTouchY - location.y)
-                if dx <= touchSlop && dy <= touchSlop {
-                    if TimeInterval(dt) >= longPressTimeout {
-                        let longClick: DetectedGesture = .longClick(
-                            x: location.x,
-                            y: location.y,
-                            touchDownTime: startTouchEventTime,
-                            touchUpTime: UnsignedNumber(timeProvider.millisTime),
-                            target: target,
-                            targetId: targetId,
-                            targetFrame: targetFrame)
-                        target = nil
-                        targetId = nil
-                        return longClick
-                    } else {
-                        let click: DetectedGesture = .click(
-                            x: location.x,
-                            y: location.y,
-                            touchDownTime: startTouchEventTime,
-                            touchUpTime: UnsignedNumber(timeProvider.millisTime),
-                            target: target,
-                            targetId: targetId,
-                            targetFrame: targetFrame)
-                        target = nil
-                        targetId = nil
-                        return click
+                let startTimeMs = startTouchEventTime / 1000
+                if startTimeMs > eventTime {
+                    let dt = eventTime - startTimeMs
+                    let dx = abs(startTouchX - location.x)
+                    let dy = abs(startTouchY - location.y)
+                    if dx <= touchSlop && dy <= touchSlop {
+                        if TimeInterval(dt) >= longPressTimeout {
+                            let longClick: DetectedGesture = .longClick(
+                                x: location.x,
+                                y: location.y,
+                                touchDownTime: startTouchEventTime,
+                                touchUpTime: UnsignedNumber(timeProvider.millisTime),
+                                target: target,
+                                targetId: targetId,
+                                targetFrame: targetFrame)
+                            target = nil
+                            targetId = nil
+                            return longClick
+                        } else {
+                            let click: DetectedGesture = .click(
+                                x: location.x,
+                                y: location.y,
+                                touchDownTime: startTouchEventTime,
+                                touchUpTime: UnsignedNumber(timeProvider.millisTime),
+                                target: target,
+                                targetId: targetId,
+                                targetFrame: targetFrame)
+                            target = nil
+                            targetId = nil
+                            return click
+                        }
                     }
                 }
             } else {
