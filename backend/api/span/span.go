@@ -428,8 +428,11 @@ func GetSpanInstancesWithFilter(ctx context.Context, spanName string, af *filter
 		Select("attribute.device_model").
 		From("spans").
 		Clause("prewhere app_id = toUUID(?) and span_name = ? and start_time >= ? and end_time <= ?", af.AppID, spanName, af.From, af.To).
-		Where("status").In(af.SpanStatuses).
 		OrderBy("start_time desc")
+
+	if len(af.SpanStatuses) > 0 {
+		stmt.Where("status").In(af.SpanStatuses)
+	}
 
 	if af.Limit > 0 {
 		stmt.Limit(uint64(af.Limit) + 1)
@@ -535,8 +538,11 @@ func GetSpanMetricsPlotWithFilter(ctx context.Context, spanName string, af *filt
 		Select("round(quantileMerge(0.90)(p90), 2) as p90").
 		Select("round(quantileMerge(0.95)(p95), 2) as p95").
 		Select("round(quantileMerge(0.99)(p99), 2) as p99").
-		Clause("prewhere app_id = toUUID(?) and span_name = ? and timestamp >= ? and timestamp <= ?", af.AppID, spanName, af.From, af.To).
-		Where("status").In(af.SpanStatuses)
+		Clause("prewhere app_id = toUUID(?) and span_name = ? and timestamp >= ? and timestamp <= ?", af.AppID, spanName, af.From, af.To)
+
+	if len(af.SpanStatuses) > 0 {
+		stmt.Where("status").In(af.SpanStatuses)
+	}
 
 	if af.HasVersions() {
 		selectedVersions, err := af.VersionPairs()
