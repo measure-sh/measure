@@ -74,7 +74,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
     setSelected(items)
   };
 
-  const selectNone = () => {
+  const clearAll = () => {
     setSelected([])
   };
 
@@ -260,10 +260,10 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                   </button>
                   <div className="px-1" />
                   <button
-                    onClick={() => selectNone()}
+                    onClick={() => clearAll()}
                     className={groupSelectButtonStyle}
                   >
-                    None
+                    Clear
                   </button>
                 </div>}
                 {items.filter((item) => (item as string).toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item) => (
@@ -318,10 +318,10 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                   </button>
                   <div className="px-1" />
                   <button
-                    onClick={() => selectNone()}
+                    onClick={() => clearAll()}
                     className={groupSelectButtonStyle}
                   >
-                    None
+                    Clear
                   </button>
                 </div>}
                 {items.filter((item) => (item as OsVersion).displayName.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item, idx) => (
