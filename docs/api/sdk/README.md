@@ -665,11 +665,11 @@ Use the `lifecycle_swift_ui` type for iOS SwiftUI view lifecycle events.
 
 #### **`lifecycle_app`**
 
-Use the `lifecycle_app` type for Android's app lifecycle events.
+Use the `lifecycle_app` type for app's lifecycle events.
 
 | Field  | Type   | Optional | Comment                                                       |
 | ------ | ------ | -------- | ------------------------------------------------------------- |
-| `type` | string | No       | One of the following:<br />- `background`<br />- `foreground`<br />- `terminated` |
+| `type` | string | No       | One of the following:<br />- `background`<br />- `foreground`<br />- `terminated`. `terminated` option is only supported on iOS. |
 
 #### **`cold_launch`**
 
