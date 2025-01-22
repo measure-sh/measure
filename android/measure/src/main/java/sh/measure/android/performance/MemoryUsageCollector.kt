@@ -1,8 +1,8 @@
 package sh.measure.android.performance
 
 import androidx.annotation.VisibleForTesting
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -17,7 +17,7 @@ internal const val BYTES_TO_KB_FACTOR = 1024
 
 internal class MemoryUsageCollector(
     private val logger: Logger,
-    private val eventProcessor: EventProcessor,
+    private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
     private val defaultExecutor: MeasureExecutorService,
     private val memoryReader: MemoryReader,
@@ -73,8 +73,8 @@ internal class MemoryUsageCollector(
             native_free_heap = memoryReader.nativeFreeHeapSize(),
             interval = interval,
         )
-        eventProcessor.track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+        signalProcessor.track(
+            timestamp = timeProvider.now(),
             type = EventType.MEMORY_USAGE,
             data = data,
         )

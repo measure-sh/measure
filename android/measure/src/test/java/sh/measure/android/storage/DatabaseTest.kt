@@ -2,6 +2,7 @@ package sh.measure.android.storage
 
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
+import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
@@ -50,12 +51,15 @@ class DatabaseTest {
             it.moveToNext()
             assertEquals(AttachmentTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
+            assertEquals(BatchesTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
+            it.moveToNext()
             assertEquals(EventsBatchTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
-            assertEquals(
-                UserDefinedAttributesTable.TABLE_NAME,
-                it.getString(it.getColumnIndex("name")),
-            )
+            assertEquals(AppExitTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
+            it.moveToNext()
+            assertEquals(SpansTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
+            it.moveToNext()
+            assertEquals(SpansBatchTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
         }
     }
 
@@ -162,27 +166,40 @@ class DatabaseTest {
     }
 
     @Test
-    fun `insertBatch returns true when event batch is successfully inserted`() {
+    fun `insertBatch successfully inserts batch with events and spans to batches tables`() {
         // given
         val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
         val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
+        val span1 = TestData.getSpanEntity(spanId = "span-id-1", sessionId = "session-id-1")
+        val span2 = TestData.getSpanEntity(spanId = "span-id-2", sessionId = "session-id-1")
         database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
         database.insertEvent(event1)
         database.insertEvent(event2)
+        database.insertSpan(span1)
+        database.insertSpan(span2)
 
         // when
         val result = database.insertBatch(
-            BatchEntity("batch-id", listOf(event1.id, event2.id), 1234567890L),
+            BatchEntity(
+                "batch-id",
+                eventIds = listOf(event1.id, event2.id),
+                spanIds = listOf(span1.spanId, span2.spanId),
+                createdAt = 1234567890L,
+            ),
         )
 
         // then
         assertEquals(true, result)
+        queryAllBatches().use {
+            assertEquals(1, it.count)
+            it.moveToFirst()
+            assertBatchInCursor("batch-id", it)
+        }
         queryAllEventBatches().use {
             assertEquals(2, it.count)
-            it.moveToFirst()
-            assertBatchedEventInCursor(event1.id, "batch-id", it)
-            it.moveToNext()
-            assertBatchedEventInCursor(event2.id, "batch-id", it)
+        }
+        queryAllSpanBatches().use {
+            assertEquals(2, it.count)
         }
     }
 
@@ -192,8 +209,26 @@ class DatabaseTest {
         val result = database.insertBatch(
             BatchEntity(
                 "batch-id",
-                listOf("valid-id", "event-id", "event-id"),
-                987654321L,
+                eventIds = listOf("valid-id", "event-id", "event-id"),
+                spanIds = emptyList(),
+                createdAt = 987654321L,
+            ),
+        )
+        queryAllEventBatches().use {
+            assertEquals(0, it.count)
+        }
+        assertEquals(false, result)
+    }
+
+    @Test
+    fun `insertBatch returns false when span batch insertion fails`() {
+        // attempt to insert a event with same ID twice, resulting in a failure
+        val result = database.insertBatch(
+            BatchEntity(
+                "batch-id",
+                eventIds = emptyList(),
+                spanIds = listOf("valid-id", "span-id", "span-id"),
+                createdAt = 987654321L,
             ),
         )
         queryAllEventBatches().use {
@@ -213,10 +248,39 @@ class DatabaseTest {
 
         // when
         val result = database.insertBatch(
-            BatchEntity("batch-id", listOf(event1.id, eventNotInEventsTable.id), 1234567890L),
+            BatchEntity(
+                "batch-id",
+                eventIds = listOf(event1.id, eventNotInEventsTable.id),
+                spanIds = emptyList(),
+                createdAt = 1234567890L,
+            ),
         )
         assertEquals(false, result)
         queryAllEventBatches().use {
+            assertEquals(0, it.count)
+        }
+    }
+
+    @Test
+    fun `insertBatch returns false when insertion fails due to span ID not present in spans table`() {
+        // given
+        val span1 = TestData.getSpanEntity(spanId = "span-id-1", sessionId = "session-id-1")
+        val spanNotInSpansTable =
+            TestData.getSpanEntity(spanId = "span-id-2", sessionId = "session-id-1")
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertSpan(span1)
+
+        // when
+        val result = database.insertBatch(
+            BatchEntity(
+                "batch-id",
+                eventIds = emptyList(),
+                spanIds = listOf(span1.spanId, spanNotInSpansTable.spanId),
+                createdAt = 1234567890L,
+            ),
+        )
+        assertEquals(false, result)
+        queryAllSpanBatches().use {
             assertEquals(0, it.count)
         }
     }
@@ -228,7 +292,12 @@ class DatabaseTest {
         val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
         val batchedEvent =
             TestData.getEventEntity(eventId = "event-id-3", sessionId = "session-id-1")
-        database.insertSession(TestData.getSessionEntity(id = "session-id-1", needsReporting = true))
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = "session-id-1",
+                needsReporting = true,
+            ),
+        )
         database.insertEvent(event1)
         database.insertEvent(event2)
         database.insertEvent(batchedEvent)
@@ -383,6 +452,53 @@ class DatabaseTest {
     }
 
     @Test
+    fun `getUnBatchedSpans returns sampled spans, but discards already batched spans`() {
+        // given
+        val span1 = TestData.getSpanEntity(spanId = "span-id-1", sessionId = "session-id-1")
+        val span2 = TestData.getSpanEntity(spanId = "span-id-2", sessionId = "session-id-1")
+        val batchedSpan = TestData.getSpanEntity(spanId = "span-id-3", sessionId = "session-id-1")
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertSpan(span1)
+        database.insertSpan(span2)
+        database.insertSpan(batchedSpan)
+        database.insertBatch(
+            TestData.getEventBatchEntity(
+                batchId = "batch-id",
+                spanIds = listOf(batchedSpan.spanId),
+            ),
+        )
+
+        // when
+        val spansToBatch = database.getUnBatchedSpans(100)
+
+        // then
+        assertEquals(2, spansToBatch.size)
+    }
+
+    @Test
+    fun `getUnBatchedSpans returns sampled spans, respects the maximum number of spans to return`() {
+        // given
+        val span1 = TestData.getSpanEntity(spanId = "span-id-1", sessionId = "session-id-1")
+        val span2 = TestData.getSpanEntity(spanId = "span-id-2", sessionId = "session-id-1")
+        val span3 = TestData.getSpanEntity(spanId = "span-id-3", sessionId = "session-id-2")
+        val span4 = TestData.getSpanEntity(spanId = "span-id-4", sessionId = "session-id-2")
+        val span5 = TestData.getSpanEntity(spanId = "span-id-5", sessionId = "session-id-2")
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertSession(TestData.getSessionEntity(id = "session-id-2"))
+        database.insertSpan(span1)
+        database.insertSpan(span2)
+        database.insertSpan(span3)
+        database.insertSpan(span4)
+        database.insertSpan(span5)
+
+        // when
+        val spansToBatch = database.getUnBatchedSpans(3)
+
+        // then
+        assertEquals(3, spansToBatch.size)
+    }
+
+    @Test
     fun `getEventPackets returns event packets for given event IDs`() {
         // given
         val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
@@ -470,84 +586,43 @@ class DatabaseTest {
     }
 
     @Test
-    fun `returns all batches and it's event IDs`() {
+    fun `getBatches returns all batches with event IDs and span IDs`() {
         // given
         val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
         val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
-        database.insertSession(SessionEntity("session-id-1", 123, 500, true))
+        val span1 = TestData.getSpanEntity(spanId = "span-id-1", sessionId = "session-id-1")
+        val span2 = TestData.getSpanEntity(spanId = "span-id-2", sessionId = "session-id-1")
+        database.insertSession(
+            SessionEntity(
+                "session-id-1",
+                123,
+                500,
+                true,
+                supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
+            ),
+        )
         database.insertEvent(event1)
         database.insertEvent(event2)
+        database.insertSpan(span1)
+        database.insertSpan(span2)
 
         // when
-        database.insertBatch(BatchEntity("batch-id-1", listOf(event1.id, event2.id), 1234567890L))
+        database.insertBatch(
+            BatchEntity(
+                "batch-id-1",
+                eventIds = listOf(event1.id, event2.id),
+                spanIds = listOf(span1.spanId, span2.spanId),
+                createdAt = 1234567890L,
+            ),
+        )
 
         // then
-        assertEquals(1, database.getBatches(2).size)
-        assertEquals(2, database.getBatches(2)["batch-id-1"]!!.size)
+        val batches = database.getBatches(2)
+        assertEquals(1, batches.size)
+        assertEquals(2, batches.first().eventIds.size)
+        assertEquals(2, batches.first().spanIds.size)
     }
 
-    @Test
-    fun `deleteEvents deletes events with given event IDs, ignores event IDs that don't exist`() {
-        // given
-        val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
-        val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
-        val eventWithDifferentSession = TestData.getEventEntity(eventId = "event-id-3", sessionId = "session-id-2")
-        val eventNotInDb = TestData.getEventEntity(eventId = "event-id-4", sessionId = "session-id-1")
-        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
-        database.insertSession(TestData.getSessionEntity(id = "session-id-2"))
-        database.insertEvent(event1)
-        database.insertEvent(event2)
-        database.insertEvent(eventWithDifferentSession)
-        val eventIds = listOf(event1.id, event2.id, eventWithDifferentSession.id, eventNotInDb.id)
-
-        // when
-        database.deleteEvents(eventIds)
-
-        // then
-        queryAllEvents(database.writableDatabase).use {
-            assertEquals(0, it.count)
-        }
-    }
-
-    @Test
-    fun `getSessionsWithUntrackedAppExit returns all sessions with untracked app exits from sessions table`() {
-        // given
-        database.insertSession(TestData.getSessionEntity(id = "session-id-1", pid = 1))
-        database.insertSession(TestData.getSessionEntity(id = "session-id-2", pid = 2))
-        database.insertSession(TestData.getSessionEntity(id = "session-id-3", pid = 3))
-        database.updateAppExitTracked(1)
-        database.updateAppExitTracked(2)
-
-        // when
-        val sessions = database.getSessionsWithUntrackedAppExit()
-
-        // then
-        assertEquals(1, sessions.size)
-    }
-
-    @Test
-    fun `getSessionsWithUntrackedAppExit returns empty map if no sessions exist in db`() {
-        // when
-        val sessions = database.getSessionsWithUntrackedAppExit()
-
-        // then
-        assertEquals(0, sessions.size)
-    }
-
-    @Test
-    fun `getSessionsWithUntrackedAppExit returns empty map if no sessions with untracked app exit exist in db`() {
-        // given
-        database.insertSession(TestData.getSessionEntity(id = "session-id-1", pid = 1))
-        database.updateAppExitTracked(1)
-
-        // when
-        val sessions = database.getSessionsWithUntrackedAppExit()
-
-        // then
-        assertEquals(0, sessions.size)
-    }
-
-    @Test
     fun `getOldestSession returns oldest session`() {
         database.insertSession(TestData.getSessionEntity(id = "session-id-1", createdAt = 500))
         database.insertSession(TestData.getSessionEntity(id = "session-id-2", createdAt = 700))
@@ -596,28 +671,49 @@ class DatabaseTest {
     }
 
     @Test
-    fun `updateAppExitTracked updates session with app exit as tracked`() {
-        // given
-        database.insertSession(TestData.getSessionEntity("session-id-1", pid = 1))
-        database.insertSession(TestData.getSessionEntity("session-id-2", pid = 2))
-
+    fun `insertSession inserts a new app exit entry successfully`() {
         // when
-        database.updateAppExitTracked(pid = 1)
+        database.insertSession(TestData.getSessionEntity("session-id-1", supportsAppExit = true))
 
         // then
-        val db = database.readableDatabase
+        val db = database.writableDatabase
         db.query(
-            SessionsTable.TABLE_NAME,
+            AppExitTable.TABLE_NAME,
             null,
-            "${SessionsTable.COL_PID} = ?",
-            arrayOf("1"),
+            "${AppExitTable.COL_SESSION_ID} = ?",
+            arrayOf("session-id-1"),
             null,
             null,
             null,
         ).use {
             assertEquals(1, it.count)
-            it.moveToFirst()
-            assertEquals("session-id-1", it.getString(it.getColumnIndex(SessionsTable.COL_SESSION_ID)))
+        }
+    }
+
+    @Test
+    fun `insertSession does not insert a new app exit entry`() {
+        // when
+        database.insertSession(TestData.getSessionEntity("session-id-1", supportsAppExit = false))
+
+        // then
+        val db = database.writableDatabase
+        db.rawQuery("SELECT * FROM ${AppExitTable.TABLE_NAME}", null).use {
+            assertEquals(0, it.count)
+        }
+    }
+
+    @Test
+    fun `updateSession creates new entry in app exit table`() {
+        val session = TestData.getSessionEntity(pid = 1, supportsAppExit = true)
+        database.insertSession(session)
+        database.updateSessionPid(
+            sessionId = session.sessionId,
+            pid = 2,
+            createdAt = session.createdAt,
+            true,
+        )
+        database.readableDatabase.rawQuery("SELECT * FROM ${AppExitTable.TABLE_NAME}", null).use {
+            assertEquals(2, it.count)
         }
     }
 
@@ -766,8 +862,10 @@ class DatabaseTest {
         // given
         database.insertSession(TestData.getSessionEntity("session-id-1"))
         database.insertSession(TestData.getSessionEntity("session-id-2"))
-        val eventToDelete = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
-        val eventToNotDelete = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-2")
+        val eventToDelete =
+            TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val eventToNotDelete =
+            TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-2")
         database.insertEvent(eventToDelete)
         database.insertEvent(eventToNotDelete)
 
@@ -787,6 +885,36 @@ class DatabaseTest {
             assertEquals(1, it.count)
             it.moveToFirst()
             assertEquals("event-id-2", it.getString(it.getColumnIndex(EventTable.COL_ID)))
+        }
+    }
+
+    @Test
+    fun `deleteSessions also deletes spans for the session`() {
+        // given
+        database.insertSession(TestData.getSessionEntity("session-id-1"))
+        database.insertSession(TestData.getSessionEntity("session-id-2"))
+        val spanToDelete = TestData.getSpanEntity(spanId = "span-id-1", sessionId = "session-id-1")
+        val spanToNotDelete =
+            TestData.getSpanEntity(spanId = "span-id-2", sessionId = "session-id-2")
+        database.insertSpan(spanToDelete)
+        database.insertSpan(spanToNotDelete)
+
+        // when
+        database.deleteSessions(listOf("session-id-1"))
+
+        // then
+        database.readableDatabase.query(
+            SpansTable.TABLE_NAME,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+        ).use {
+            assertEquals(1, it.count)
+            it.moveToFirst()
+            assertEquals("span-id-2", it.getString(it.getColumnIndex(SpansTable.COL_SPAN_ID)))
         }
     }
 
@@ -849,7 +977,8 @@ class DatabaseTest {
         database.insertEvent(event4)
 
         // when
-        val attachments = database.getAttachmentsForEvents(listOf("event-id-1", "event-id-2", "event-id-3"))
+        val attachments =
+            database.getAttachmentsForEvents(listOf("event-id-1", "event-id-2", "event-id-3"))
 
         // then
         assertEquals(4, attachments.size)
@@ -878,9 +1007,166 @@ class DatabaseTest {
         assertEquals(0, count)
     }
 
+    @Test
+    fun `insertSpan inserts span and returns success`() {
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        val result = database.insertSpan(
+            TestData.getSpanEntity(sessionId = "session-id"),
+        )
+        assertTrue(result)
+    }
+
+    @Test
+    fun `deleteBatch deletes all events, attachments and spans for the batch`() {
+        // given
+        val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
+        val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
+        val eventWithDifferentSession =
+            TestData.getEventEntity(eventId = "event-id-3", sessionId = "session-id-2")
+        val eventNotInDb =
+            TestData.getEventEntity(eventId = "event-id-4", sessionId = "session-id-1")
+        val attachment = TestData.getAttachmentEntity("attachment-id")
+        val eventWithAttachment = TestData.getEventEntity(
+            eventId = "event-id-4",
+            sessionId = "session-id-1",
+            attachmentEntities = listOf(attachment),
+        )
+        val span1 = TestData.getSpanEntity(spanId = "span-1", sessionId = "session-id-1")
+        val span2 = TestData.getSpanEntity(spanId = "span-2", sessionId = "session-id-1")
+        val spanWithDifferentSession =
+            TestData.getSpanEntity(spanId = "span-3", sessionId = "session-id-2")
+        val spanNotInDb = TestData.getSpanEntity(spanId = "span-4", sessionId = "session-id-1")
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertSession(TestData.getSessionEntity(id = "session-id-2"))
+        database.insertEvent(event1)
+        database.insertEvent(event2)
+        database.insertEvent(eventWithDifferentSession)
+        database.insertEvent(eventWithAttachment)
+        database.insertSpan(span1)
+        database.insertSpan(span2)
+        database.insertSpan(spanWithDifferentSession)
+        val eventIds = listOf(
+            event1.id,
+            event2.id,
+            eventWithDifferentSession.id,
+            eventWithAttachment.id,
+        )
+        val spanIds = listOf(
+            span1.spanId,
+            span2.spanId,
+            spanWithDifferentSession.spanId,
+        )
+        database.insertBatch(
+            BatchEntity(
+                "batch-id",
+                eventIds = eventIds,
+                createdAt = 98765432L,
+                spanIds = spanIds,
+            ),
+        )
+
+        // when
+        database.deleteBatch(
+            batchId = "batch-id",
+            eventIds = eventIds + eventNotInDb.id,
+            spanIds = spanIds + spanNotInDb.spanId,
+        )
+
+        // then
+        queryAllEvents(database.writableDatabase).use {
+            assertEquals(0, it.count)
+        }
+        queryAllSpans(database.writableDatabase).use {
+            assertEquals(0, it.count)
+        }
+        queryAllAttachments(database.writableDatabase).use {
+            assertEquals(0, it.count)
+        }
+    }
+
+    @Test
+    fun `insertSignals inserts events, attachments, spans and returns success`() {
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        val span1 = TestData.getSpanEntity(sessionId = "session-id", spanId = "span-1")
+        val span2 = TestData.getSpanEntity(sessionId = "session-id", spanId = "span-2")
+        val attachment1 = TestData.getAttachmentEntity(id = "attachment-1")
+        val event1 = TestData.getEventEntity(
+            sessionId = "session-id",
+            eventId = "event-1",
+            attachmentEntities = listOf(attachment1),
+        )
+        val event2 = TestData.getEventEntity(sessionId = "session-id", eventId = "event-2")
+
+        val result = database.insertSignals(listOf(event1, event2), listOf(span1, span2))
+        assertTrue(result)
+        assertEquals(2, database.getEventsCount())
+        assertEquals(2, database.getSpansCount())
+        val attachments = database.getAttachmentsForEvents(listOf(event1.id, event2.id)).size
+        assertEquals(1, attachments)
+    }
+
+    @Test
+    fun `insertSignals rollback transaction if insertion fails and returns false`() {
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        val span1 = TestData.getSpanEntity(sessionId = "session-id", spanId = "span-1")
+        // span with duplicate ID
+        val duplicateSpan = TestData.getSpanEntity(sessionId = "session-id", spanId = "span-1")
+        val attachment1 = TestData.getAttachmentEntity(id = "attachment-1")
+        val event1 = TestData.getEventEntity(
+            sessionId = "session-id",
+            eventId = "event-1",
+            attachmentEntities = listOf(attachment1),
+        )
+        val event2 = TestData.getEventEntity(sessionId = "session-id", eventId = "event-2")
+
+        val result = database.insertSignals(listOf(event1, event2), listOf(span1, duplicateSpan))
+        assertFalse(result)
+        assertEquals(0, database.getEventsCount())
+        assertEquals(0, database.getSpansCount())
+        val attachments = database.getAttachmentsForEvents(listOf(event1.id, event2.id)).size
+        assertEquals(0, attachments)
+    }
+
     private fun queryAllEvents(db: SQLiteDatabase): Cursor {
         return db.query(
             EventTable.TABLE_NAME,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+        )
+    }
+
+    private fun queryAllSpans(db: SQLiteDatabase): Cursor {
+        return db.query(
+            SpansTable.TABLE_NAME,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+        )
+    }
+
+    private fun queryAllAttachments(db: SQLiteDatabase): Cursor {
+        return db.query(
+            AttachmentTable.TABLE_NAME,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+        )
+    }
+
+    private fun queryAllBatches(): Cursor {
+        val db = database.writableDatabase
+        return db.query(
+            BatchesTable.TABLE_NAME,
             null,
             null,
             null,
@@ -894,6 +1180,19 @@ class DatabaseTest {
         val db = database.writableDatabase
         return db.query(
             EventsBatchTable.TABLE_NAME,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+        )
+    }
+
+    private fun queryAllSpanBatches(): Cursor {
+        val db = database.writableDatabase
+        return db.query(
+            SpansBatchTable.TABLE_NAME,
             null,
             null,
             null,
@@ -988,15 +1287,10 @@ class DatabaseTest {
         )
     }
 
-    private fun assertBatchedEventInCursor(
-        eventId: String,
+    private fun assertBatchInCursor(
         @Suppress("SameParameterValue") batchId: String,
         cursor: Cursor,
     ) {
-        assertEquals(
-            eventId,
-            cursor.getString(cursor.getColumnIndex(EventsBatchTable.COL_EVENT_ID)),
-        )
         assertEquals(
             batchId,
             cursor.getString(cursor.getColumnIndex(EventsBatchTable.COL_BATCH_ID)),

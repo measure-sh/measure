@@ -1,0 +1,172 @@
+[
+  {
+    "id": "b41f1435-67a9-40a0-af6c-59cea0925267",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:49.352Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewDidLoad",
+      "class_name": "ControlsViewController"
+    }
+  },
+  {
+    "id": "510ab1c1-3061-4dc3-82a4-3a3a543d7c9c",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:49.412Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewWillDisappear",
+      "class_name": "ViewController"
+    }
+  },
+  {
+    "id": "7cf72dbf-c673-48ca-9269-762bc1467b62",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:49.423Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewWillAppear",
+      "class_name": "ControlsViewController"
+    }
+  },
+  {
+    "id": "c56163f0-ff97-4ad4-af5e-129d6cbb96b2",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:49.959Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewDidDisappear",
+      "class_name": "ViewController"
+    }
+  },
+  {
+    "id": "f3195996-51cc-48a4-b7bd-fb0ec20d6a30",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:49.970Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewDidAppear",
+      "class_name": "ControlsViewController"
+    }
+  },
+  {
+    "id": "67dc2804-2fd4-4604-a540-b770cc882524",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:50.460Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewWillDisappear",
+      "class_name": "ControlsViewController"
+    }
+  },
+  {
+    "id": "7ff76470-e724-4d20-af4d-92e3f45fdaec",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:50.469Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewWillAppear",
+      "class_name": "ViewController"
+    }
+  },
+  {
+    "id": "06c12fa0-b88a-46ab-806e-ee62b409c407",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:50.992Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewDidDisappear",
+      "class_name": "ControlsViewController"
+    }
+  },
+  {
+    "id": "048cae6f-780f-4036-8ad4-5d883d62eb43",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:51.003Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewDidAppear",
+      "class_name": "ViewController"
+    }
+  },
+  {
+    "id": "a3ae4291-a1dc-4b61-af67-28bd4d55bb37",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:51.236Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewWillDisappear",
+      "class_name": "ViewController"
+    }
+  },
+  {
+    "id": "aec33035-20c2-4606-b53e-3a39f2538e2e",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:51.841Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewDidDisappear",
+      "class_name": "ViewController"
+    }
+  },
+  {
+    "id": "2306fc60-419f-434d-93e5-53d309f9fe2d",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:53.898Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewWillAppear",
+      "class_name": "ViewController"
+    }
+  },
+  {
+    "id": "8456fe39-4d3c-4dd5-90c2-b5348bff79e0",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:54.448Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewDidAppear",
+      "class_name": "ViewController"
+    }
+  },
+  {
+    "id": "7f038082-8bfc-4ece-8ecc-31774a57c6c3",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:54.778Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "loadView",
+      "class_name": "ObjcDetailViewController"
+    }
+  },
+  {
+    "id": "936691d1-bb4e-4e87-8be7-28d063b594ab",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:54.787Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewDidLoad",
+      "class_name": "ObjcDetailViewController"
+    }
+  },
+  {
+    "id": "fcb77cd9-a706-413c-b2d9-2a0f46f5a861",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:54.798Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewWillDisappear",
+      "class_name": "ViewController"
+    }
+  },
+  {
+    "id": "9e0999be-9760-475a-acbb-2cefac80610b",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:54.806Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewWillAppear",
+      "class_name": "ObjcDetailViewController"
+    }
+  }
+]

@@ -20,14 +20,14 @@ internal interface ExceptionExporter {
  */
 internal class ExceptionExporterImpl(
     private val logger: Logger,
-    private val eventExporter: EventExporter,
+    private val exporter: Exporter,
     private val exportExecutor: MeasureExecutorService,
 ) : ExceptionExporter {
     override fun export(sessionId: String) {
         try {
             exportExecutor.submit {
-                eventExporter.createBatch(sessionId)?.let {
-                    eventExporter.export(it.batchId, it.eventIds)
+                exporter.createBatch(sessionId)?.let {
+                    exporter.export(it)
                 }
             }
         } catch (e: RejectedExecutionException) {

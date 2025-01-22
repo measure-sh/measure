@@ -1,0 +1,1271 @@
+{
+    "events": [
+        {
+            "id": "12498ed6-50fa-474e-aeb4-13a3065cf6c3",
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "user_triggered": true,
+            "timestamp": "2024-12-17T05:49:08.00400000Z",
+            "type": "custom",
+            "custom": {
+                "name": "custom-app-start"
+            },
+            "attachments": null,
+            "attribute": {
+                "thread_name": "main",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "tablet",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 420,
+                "device_width_px": 2208,
+                "device_height_px": 1840,
+                "device_density": 2.625,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": {
+                "string": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in",
+                "largest_integer": 2147483647,
+                "smallest_integer": -2147483647,
+                "largest_long": 9223372036854775807,
+                "smallest_long": 9223372036854775808,
+                "largest_double": 1.7976931348623157E308,
+                "smallest_double": 4.9E-324,
+                "largest_float": 3.4028235E38,
+                "smallest_float": 1.4E-45,
+                "boolean": false
+            }
+        },
+        {
+            "id": "150cd169-0a8c-41c4-b7d7-6dca241cba33",
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "user_triggered": false,
+            "timestamp": "2024-12-17T05:49:07.98800000Z",
+            "type": "memory_usage",
+            "memory_usage": {
+                "java_max_heap": 196608,
+                "java_total_heap": 196608,
+                "java_free_heap": 192026,
+                "total_pss": 53251,
+                "rss": 140720,
+                "native_total_heap": 13104,
+                "native_free_heap": 2252,
+                "interval": 0
+            },
+            "attachments": null,
+            "attribute": {
+                "thread_name": "msr-default",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "tablet",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 420,
+                "device_width_px": 2208,
+                "device_height_px": 1840,
+                "device_density": 2.625,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": null
+        },
+        {
+            "id": "1715a1b7-879c-4f77-96a7-0c7adc0a65c7",
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "user_triggered": false,
+            "timestamp": "2024-12-17T05:49:14.01000000Z",
+            "type": "memory_usage",
+            "memory_usage": {
+                "java_max_heap": 196608,
+                "java_total_heap": 49152,
+                "java_free_heap": 28057,
+                "total_pss": 132729,
+                "rss": 243632,
+                "native_total_heap": 64624,
+                "native_free_heap": 1789,
+                "interval": 2006
+            },
+            "attachments": null,
+            "attribute": {
+                "thread_name": "msr-default",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "tablet",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 420,
+                "device_width_px": 2208,
+                "device_height_px": 1840,
+                "device_density": 2.625,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": null
+        },
+        {
+            "id": "215c0798-7c65-48e9-8c2a-33941231a375",
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "user_triggered": false,
+            "timestamp": "2024-12-17T05:49:10.96200000Z",
+            "type": "cpu_usage",
+            "cpu_usage": {
+                "num_cores": 4,
+                "clock_speed": 100,
+                "start_time": 1883196,
+                "uptime": 18835607,
+                "utime": 128,
+                "cutime": 0,
+                "cstime": 0,
+                "stime": 85,
+                "interval": 3001,
+                "percentage_usage": 12.416666666666666
+            },
+            "attachments": null,
+            "attribute": {
+                "thread_name": "msr-default",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "tablet",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 420,
+                "device_width_px": 2208,
+                "device_height_px": 1840,
+                "device_density": 2.625,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": null
+        },
+        {
+            "id": "2b86fb37-99d9-4777-8bf5-7368c1603390",
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "user_triggered": false,
+            "timestamp": "2024-12-17T05:49:08.07700000Z",
+            "type": "lifecycle_activity",
+            "lifecycle_activity": {
+                "type": "created",
+                "class_name": "sh.measure.sample.ExceptionDemoActivity"
+            },
+            "attachments": null,
+            "attribute": {
+                "thread_name": "main",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "tablet",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 420,
+                "device_width_px": 2208,
+                "device_height_px": 1840,
+                "device_density": 2.625,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": null
+        },
+        {
+            "id": "33c8d0bf-cfa4-45cb-b164-24111657658e",
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "user_triggered": false,
+            "timestamp": "2024-12-17T05:49:13.72700000Z",
+            "type": "gesture_click",
+            "gesture_click": {
+                "target": "com.google.android.material.button.MaterialButton",
+                "target_id": "id:btn_stack_overflow_exception",
+                "width": 796,
+                "height": 126,
+                "x": 1055.956,
+                "y": 748.95996,
+                "touch_down_time": 18838308,
+                "touch_up_time": 18838372
+            },
+            "attachments": [
+                {
+                    "id": "03e9d589-f442-464d-ba74-7270d2d9f637",
+                    "type": "layout_snapshot",
+                    "name": "snapshot.svg"
+                }
+            ],
+            "attribute": {
+                "thread_name": "main",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "tablet",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 420,
+                "device_width_px": 2208,
+                "device_height_px": 1840,
+                "device_density": 2.625,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": null
+        },
+        {
+            "id": "394a13e3-2cf3-473e-9cfe-0b2447f4e722",
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "user_triggered": false,
+            "timestamp": "2024-12-17T05:49:12.00200000Z",
+            "type": "memory_usage",
+            "memory_usage": {
+                "java_max_heap": 196608,
+                "java_total_heap": 49152,
+                "java_free_heap": 38458,
+                "total_pss": 78790,
+                "rss": 187312,
+                "native_total_heap": 26688,
+                "native_free_heap": 1890,
+                "interval": 2008
+            },
+            "attachments": null,
+            "attribute": {
+                "thread_name": "msr-default",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "tablet",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 420,
+                "device_width_px": 2208,
+                "device_height_px": 1840,
+                "device_density": 2.625,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": null
+        },
+        {
+            "id": "675430b8-d43c-4e58-918a-e353ab1622f7",
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "user_triggered": false,
+            "timestamp": "2024-12-17T05:49:13.90300000Z",
+            "type": "exception",
+            "exception": {
+                "exceptions": [
+                    {
+                        "type": "java.lang.StackOverflowError",
+                        "message": "stack size 8176KB",
+                        "frames": [
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                                "method_name": "recursiveFunction",
+                                "file_name": "ExceptionDemoActivity.kt",
+                                "line_num": 125
+                            },
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                                "method_name": "recursiveFunction",
+                                "file_name": "ExceptionDemoActivity.kt",
+                                "line_num": 125
+                            },
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                                "method_name": "recursiveFunction",
+                                "file_name": "ExceptionDemoActivity.kt",
+                                "line_num": 125
+                            },
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                                "method_name": "recursiveFunction",
+                                "file_name": "ExceptionDemoActivity.kt",
+                                "line_num": 125
+                            },
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                                "method_name": "recursiveFunction",
+                                "file_name": "ExceptionDemoActivity.kt",
+                                "line_num": 125
+                            },
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                                "method_name": "onCreate$lambda$3",
+                                "file_name": "ExceptionDemoActivity.kt",
+                                "line_num": 48
+                            },
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                                "method_name": "$r8$lambda$Vy6Eb-Pv02Yhb9LdR-mO8xTeYyU",
+                                "line_num": 0
+                            },
+                            {
+                                "class_name": "sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda1",
+                                "method_name": "onClick",
+                                "file_name": "D8$$SyntheticClass",
+                                "line_num": 0
+                            },
+                            {
+                                "class_name": "android.view.View",
+                                "method_name": "performClick",
+                                "file_name": "View.java",
+                                "line_num": 8028
+                            },
+                            {
+                                "class_name": "com.google.android.material.button.MaterialButton",
+                                "method_name": "performClick",
+                                "file_name": "MaterialButton.java",
+                                "line_num": 1218
+                            },
+                            {
+                                "class_name": "android.view.View",
+                                "method_name": "performClickInternal",
+                                "file_name": "View.java",
+                                "line_num": 8005
+                            },
+                            {
+                                "class_name": "android.view.View",
+                                "method_name": "-$$Nest$mperformClickInternal",
+                                "line_num": 0
+                            },
+                            {
+                                "class_name": "android.view.View$PerformClick",
+                                "method_name": "run",
+                                "file_name": "View.java",
+                                "line_num": 31229
+                            },
+                            {
+                                "class_name": "android.os.Handler",
+                                "method_name": "handleCallback",
+                                "file_name": "Handler.java",
+                                "line_num": 959
+                            },
+                            {
+                                "class_name": "android.os.Handler",
+                                "method_name": "dispatchMessage",
+                                "file_name": "Handler.java",
+                                "line_num": 100
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "method_name": "loopOnce",
+                                "file_name": "Looper.java",
+                                "line_num": 232
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "method_name": "loop",
+                                "file_name": "Looper.java",
+                                "line_num": 317
+                            },
+                            {
+                                "class_name": "android.app.ActivityThread",
+                                "method_name": "main",
+                                "file_name": "ActivityThread.java",
+                                "line_num": 8705
+                            },
+                            {
+                                "class_name": "java.lang.reflect.Method",
+                                "method_name": "invoke",
+                                "file_name": "Method.java",
+                                "line_num": -2
+                            },
+                            {
+                                "class_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                                "method_name": "run",
+                                "file_name": "RuntimeInit.java",
+                                "line_num": 580
+                            },
+                            {
+                                "class_name": "com.android.internal.os.ZygoteInit",
+                                "method_name": "main",
+                                "file_name": "ZygoteInit.java",
+                                "line_num": 886
+                            }
+                        ]
+                    }
+                ],
+                "threads": [
+                    {
+                        "name": "ConnectivityThread",
+                        "frames": [
+                            {
+                                "class_name": "android.os.MessageQueue",
+                                "method_name": "nativePollOnce",
+                                "file_name": "MessageQueue.java",
+                                "line_num": -2
+                            },
+                            {
+                                "class_name": "android.os.MessageQueue",
+                                "method_name": "next",
+                                "file_name": "MessageQueue.java",
+                                "line_num": 346
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "method_name": "loopOnce",
+                                "file_name": "Looper.java",
+                                "line_num": 189
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "method_name": "loop",
+                                "file_name": "Looper.java",
+                                "line_num": 317
+                            },
+                            {
+                                "class_name": "android.os.HandlerThread",
+                                "method_name": "run",
+                                "file_name": "HandlerThread.java",
+                                "line_num": 85
+                            }
+                        ]
+                    },
+                    {
+                        "name": "msr-io",
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "method_name": "park",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "method_name": "park",
+                                "file_name": "LockSupport.java",
+                                "line_num": 341
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode",
+                                "method_name": "block",
+                                "file_name": "AbstractQueuedSynchronizer.java",
+                                "line_num": 506
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ForkJoinPool",
+                                "method_name": "unmanagedBlock",
+                                "file_name": "ForkJoinPool.java",
+                                "line_num": 3466
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ForkJoinPool",
+                                "method_name": "managedBlock",
+                                "file_name": "ForkJoinPool.java",
+                                "line_num": 3437
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+                                "method_name": "await",
+                                "file_name": "AbstractQueuedSynchronizer.java",
+                                "line_num": 1623
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                                "method_name": "take",
+                                "file_name": "ScheduledThreadPoolExecutor.java",
+                                "line_num": 1176
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                                "method_name": "take",
+                                "file_name": "ScheduledThreadPoolExecutor.java",
+                                "line_num": 905
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "method_name": "getTask",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1071
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "method_name": "runWorker",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1131
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                                "method_name": "run",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 644
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "method_name": "run",
+                                "file_name": "Thread.java",
+                                "line_num": 1012
+                            }
+                        ]
+                    },
+                    {
+                        "name": "ReferenceQueueDaemon",
+                        "frames": [
+                            {
+                                "class_name": "java.lang.Object",
+                                "method_name": "wait",
+                                "file_name": "Object.java",
+                                "line_num": -2
+                            },
+                            {
+                                "class_name": "java.lang.Object",
+                                "method_name": "wait",
+                                "file_name": "Object.java",
+                                "line_num": 405
+                            },
+                            {
+                                "class_name": "java.lang.Object",
+                                "method_name": "wait",
+                                "file_name": "Object.java",
+                                "line_num": 543
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$ReferenceQueueDaemon",
+                                "method_name": "runInternal",
+                                "file_name": "Daemons.java",
+                                "line_num": 251
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$Daemon",
+                                "method_name": "run",
+                                "file_name": "Daemons.java",
+                                "line_num": 131
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "method_name": "run",
+                                "file_name": "Thread.java",
+                                "line_num": 1012
+                            }
+                        ]
+                    },
+                    {
+                        "name": "queued-work-looper",
+                        "frames": [
+                            {
+                                "class_name": "android.os.MessageQueue",
+                                "method_name": "nativePollOnce",
+                                "file_name": "MessageQueue.java",
+                                "line_num": -2
+                            },
+                            {
+                                "class_name": "android.os.MessageQueue",
+                                "method_name": "next",
+                                "file_name": "MessageQueue.java",
+                                "line_num": 346
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "method_name": "loopOnce",
+                                "file_name": "Looper.java",
+                                "line_num": 189
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "method_name": "loop",
+                                "file_name": "Looper.java",
+                                "line_num": 317
+                            },
+                            {
+                                "class_name": "android.os.HandlerThread",
+                                "method_name": "run",
+                                "file_name": "HandlerThread.java",
+                                "line_num": 85
+                            }
+                        ]
+                    },
+                    {
+                        "name": "FinalizerDaemon",
+                        "frames": [
+                            {
+                                "class_name": "java.lang.Object",
+                                "method_name": "wait",
+                                "file_name": "Object.java",
+                                "line_num": -2
+                            },
+                            {
+                                "class_name": "java.lang.Object",
+                                "method_name": "wait",
+                                "file_name": "Object.java",
+                                "line_num": 405
+                            },
+                            {
+                                "class_name": "java.lang.ref.ReferenceQueue",
+                                "method_name": "remove",
+                                "file_name": "ReferenceQueue.java",
+                                "line_num": 207
+                            },
+                            {
+                                "class_name": "java.lang.ref.ReferenceQueue",
+                                "method_name": "remove",
+                                "file_name": "ReferenceQueue.java",
+                                "line_num": 228
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$FinalizerDaemon",
+                                "method_name": "runInternal",
+                                "file_name": "Daemons.java",
+                                "line_num": 331
+                            },
+                            {
+                                "class_name": "java.lang.Daemons$Daemon",
+                                "method_name": "run",
+                                "file_name": "Daemons.java",
+                                "line_num": 131
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "method_name": "run",
+                                "file_name": "Thread.java",
+                                "line_num": 1012
+                            }
+                        ]
+                    },
+                    {
+                        "name": "msr-default",
+                        "frames": [
+                            {
+                                "class_name": "jdk.internal.misc.Unsafe",
+                                "method_name": "park",
+                                "file_name": "Unsafe.java",
+                                "line_num": -2
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.LockSupport",
+                                "method_name": "parkNanos",
+                                "file_name": "LockSupport.java",
+                                "line_num": 252
+                            },
+                            {
+                                "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+                                "method_name": "awaitNanos",
+                                "file_name": "AbstractQueuedSynchronizer.java",
+                                "line_num": 1672
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                                "method_name": "take",
+                                "file_name": "ScheduledThreadPoolExecutor.java",
+                                "line_num": 1188
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                                "method_name": "take",
+                                "file_name": "ScheduledThreadPoolExecutor.java",
+                                "line_num": 905
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "method_name": "getTask",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1071
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "method_name": "runWorker",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1131
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                                "method_name": "run",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 644
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "method_name": "run",
+                                "file_name": "Thread.java",
+                                "line_num": 1012
+                            }
+                        ]
+                    },
+                    {
+                        "name": "LeakCanary-Heap-Dump",
+                        "frames": [
+                            {
+                                "class_name": "android.os.MessageQueue",
+                                "method_name": "nativePollOnce",
+                                "file_name": "MessageQueue.java",
+                                "line_num": -2
+                            },
+                            {
+                                "class_name": "android.os.MessageQueue",
+                                "method_name": "next",
+                                "file_name": "MessageQueue.java",
+                                "line_num": 346
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "method_name": "loopOnce",
+                                "file_name": "Looper.java",
+                                "line_num": 189
+                            },
+                            {
+                                "class_name": "android.os.Looper",
+                                "method_name": "loop",
+                                "file_name": "Looper.java",
+                                "line_num": 317
+                            },
+                            {
+                                "class_name": "android.os.HandlerThread",
+                                "method_name": "run",
+                                "file_name": "HandlerThread.java",
+                                "line_num": 85
+                            }
+                        ]
+                    },
+                    {
+                        "name": "OkHttp ConnectionPool",
+                        "frames": [
+                            {
+                                "class_name": "java.lang.Object",
+                                "method_name": "wait",
+                                "file_name": "Object.java",
+                                "line_num": -2
+                            },
+                            {
+                                "class_name": "com.android.okhttp.ConnectionPool$1",
+                                "method_name": "run",
+                                "file_name": "ConnectionPool.java",
+                                "line_num": 106
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                                "method_name": "runWorker",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 1145
+                            },
+                            {
+                                "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                                "method_name": "run",
+                                "file_name": "ThreadPoolExecutor.java",
+                                "line_num": 644
+                            },
+                            {
+                                "class_name": "java.lang.Thread",
+                                "method_name": "run",
+                                "file_name": "Thread.java",
+                                "line_num": 1012
+                            }
+                        ]
+                    }
+                ],
+                "handled": false,
+                "foreground": true
+            },
+            "attachments": [
+                {
+                    "id": "db92f512-dace-4f3e-b236-90c3d5c18e67",
+                    "type": "screenshot",
+                    "name": "screenshot.webp"
+                }
+            ],
+            "attribute": {
+                "thread_name": "main",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "tablet",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 420,
+                "device_width_px": 2208,
+                "device_height_px": 1840,
+                "device_density": 2.625,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": null
+        },
+        {
+            "id": "704c5104-6af9-4ea3-b8b8-32ae9e5c1712",
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "user_triggered": false,
+            "timestamp": "2024-12-17T05:49:08.18400000Z",
+            "type": "lifecycle_app",
+            "lifecycle_app": {
+                "type": "foreground"
+            },
+            "attachments": null,
+            "attribute": {
+                "thread_name": "main",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "tablet",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 420,
+                "device_width_px": 2208,
+                "device_height_px": 1840,
+                "device_density": 2.625,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": null
+        },
+        {
+            "id": "91ab43df-77b4-4f08-a210-94bbedeb4b15",
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "user_triggered": false,
+            "timestamp": "2024-12-17T05:49:08.44000000Z",
+            "type": "cold_launch",
+            "cold_launch": {
+                "process_start_uptime": 18832173,
+                "process_start_requested_uptime": 18831934,
+                "content_provider_attach_uptime": 18832458,
+                "on_next_draw_uptime": 18833085,
+                "launched_activity": "sh.measure.sample.ExceptionDemoActivity",
+                "has_saved_state": false,
+                "intent_data": null
+            },
+            "attachments": null,
+            "attribute": {
+                "thread_name": "main",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "tablet",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 420,
+                "device_width_px": 2208,
+                "device_height_px": 1840,
+                "device_density": 2.625,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": null
+        },
+        {
+            "id": "b609c4b6-eba0-41da-a8e9-9fe0bc1bcd37",
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "user_triggered": false,
+            "timestamp": "2024-12-17T05:49:07.96100000Z",
+            "type": "cpu_usage",
+            "cpu_usage": {
+                "num_cores": 4,
+                "clock_speed": 100,
+                "start_time": 1883196,
+                "uptime": 18832606,
+                "utime": 46,
+                "cutime": 0,
+                "cstime": 0,
+                "stime": 18,
+                "interval": 0,
+                "percentage_usage": 0.0
+            },
+            "attachments": null,
+            "attribute": {
+                "thread_name": "msr-default",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "tablet",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 420,
+                "device_width_px": 2208,
+                "device_height_px": 1840,
+                "device_density": 2.625,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": null
+        },
+        {
+            "id": "cfd561ff-bd12-4577-822c-a21d6fc61cf6",
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "user_triggered": false,
+            "timestamp": "2024-12-17T05:49:09.99400000Z",
+            "type": "memory_usage",
+            "memory_usage": {
+                "java_max_heap": 196608,
+                "java_total_heap": 49152,
+                "java_free_heap": 38810,
+                "total_pss": 78614,
+                "rss": 187312,
+                "native_total_heap": 26688,
+                "native_free_heap": 1885,
+                "interval": 2027
+            },
+            "attachments": null,
+            "attribute": {
+                "thread_name": "msr-default",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "tablet",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 420,
+                "device_width_px": 2208,
+                "device_height_px": 1840,
+                "device_density": 2.625,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": null
+        },
+        {
+            "id": "cff0fa37-4b07-4509-ba79-fc097114d31f",
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "user_triggered": false,
+            "timestamp": "2024-12-17T05:49:08.18800000Z",
+            "type": "lifecycle_activity",
+            "lifecycle_activity": {
+                "type": "resumed",
+                "class_name": "sh.measure.sample.ExceptionDemoActivity"
+            },
+            "attachments": null,
+            "attribute": {
+                "thread_name": "main",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "tablet",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 420,
+                "device_width_px": 2208,
+                "device_height_px": 1840,
+                "device_density": 2.625,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": null
+        },
+        {
+            "id": "d7de933e-25dc-4bef-b7d8-cf61a6c7dd27",
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "user_triggered": false,
+            "timestamp": "2024-12-17T05:49:13.96300000Z",
+            "type": "cpu_usage",
+            "cpu_usage": {
+                "num_cores": 4,
+                "clock_speed": 100,
+                "start_time": 1883196,
+                "uptime": 18838608,
+                "utime": 142,
+                "cutime": 0,
+                "cstime": 0,
+                "stime": 106,
+                "interval": 3001,
+                "percentage_usage": 2.9166666666666665
+            },
+            "attachments": null,
+            "attribute": {
+                "thread_name": "msr-default",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "tablet",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 420,
+                "device_width_px": 2208,
+                "device_height_px": 1840,
+                "device_density": 2.625,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": null
+        }
+    ],
+    "spans": [
+        {
+            "name": "activity.onCreate",
+            "trace_id": "e9e276b6689fd355164b5db0d0d4ee18",
+            "span_id": "d20a77357a21b772",
+            "parent_id": null,
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "start_time": "2024-12-17T05:49:08.07700000Z",
+            "end_time": "2024-12-17T05:49:08.17900000Z",
+            "duration": 102,
+            "status": 1,
+            "attributes": {
+                "thread_name": "main",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "checkpoints": []
+        },
+        {
+            "name": "SampleApp.onCreate",
+            "trace_id": "897f046550d720b5de95c4837c152556",
+            "span_id": "e097c0cab78ccabd",
+            "parent_id": null,
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "start_time": "2024-12-17T05:49:07.88900000Z",
+            "end_time": "2024-12-17T05:49:08.00300000Z",
+            "duration": 114,
+            "status": 0,
+            "attributes": {
+                "thread_name": "main",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "checkpoints": []
+        },
+        {
+            "name": "Measure.init",
+            "trace_id": "897f046550d720b5de95c4837c152556",
+            "span_id": "ec33a8012cedf2bc",
+            "parent_id": "e097c0cab78ccabd",
+            "session_id": "edea86b5-09d9-438a-a372-af07e0c9f6b8",
+            "start_time": "2024-12-17T05:49:07.88900000Z",
+            "end_time": "2024-12-17T05:49:08.00300000Z",
+            "duration": 114,
+            "status": 0,
+            "attributes": {
+                "thread_name": "main",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "a09b16a8-a241-4ef1-be62-d118fbe2b32c",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "checkpoints": []
+        }
+    ]
+}

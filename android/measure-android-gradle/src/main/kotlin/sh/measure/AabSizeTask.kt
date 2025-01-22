@@ -10,15 +10,14 @@ import com.android.tools.build.bundletool.commands.GetSizeCommand
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
-import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 import java.io.PrintStream
 import java.nio.file.Path
-import org.gradle.api.tasks.Optional
 
 /**
  * Task to measure the size of an app bundle.
@@ -95,7 +94,7 @@ abstract class AabSizeTask : DefaultTask() {
             """
             ${lines[1].split(",")[1]}
             aab
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 
@@ -103,9 +102,9 @@ abstract class AabSizeTask : DefaultTask() {
      * Finds and returns the location of the aapt2 executable.
      */
     private fun getAapt2Location(sdkDirectory: File?): Path {
-        val sdkLocation = (sdkDirectory ?: File(checkNotNull(System.getenv("ANDROID_HOME")) {
+        val sdkLocation = sdkDirectory ?: File(checkNotNull(System.getenv("ANDROID_HOME")) {
             "Missing 'ANDROID_HOME' environment variable"
-        }))
+        })
         val sdkHandler =
             AndroidSdkHandler.getInstance(AndroidLocationsSingleton, sdkLocation.toPath())
         val progressIndicator = object : ProgressIndicatorAdapter() { /* No progress reporting */ }

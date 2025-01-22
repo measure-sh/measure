@@ -4,7 +4,6 @@ Measure SDK captures the following to help monitor memory:
 
 1. [Memory usage over time](#memory-usage-over-time)
 2. [Trim memory](#trim-memory)
-3. [Low memory](#low-memory)
 
 ## Memory usage over time
 
@@ -45,25 +44,3 @@ availability.
 
 Checkout all the data collected for trim memory in the [Trim Memory Event](../../api/sdk/README.md#trimmemory)
 section.
-
-## Low memory
-
-### How it works
-
-Measure tracks
-all [low memory](https://developer.android.com/reference/android/content/ComponentCallbacks#onLowMemory()) events
-triggered by the OS. This event can be triggered when the overall system is running low on memory,
-and actively running processes should trim their memory usage.
-
-While, this event can be triggered because of the overall memory health of the system. It is useful to track areas where
-your app might be consistently running into low memory situations to optimize.
-
-### Data collected
-
-Checkout all the data collected for low memory in the [Low Memory Event](../../api/sdk/README.md#lowmemory)
-section.
-
-
-> [!NOTE]  
-> Low memory event is being considered to be removed as it does not provide any additional value than trim memory event.
-> The progress on this can be tracked [here](https://github.com/measure-sh/measure/issues/560).

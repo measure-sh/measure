@@ -4,12 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import sh.measure.android.fakes.FakeTimeProvider
 
 class ExceptionFactoryTest {
-
-    private val timeProvider = FakeTimeProvider()
-
     @Test
     fun `ExceptionFactory creates a single exception when exception has no cause`() {
         // Given

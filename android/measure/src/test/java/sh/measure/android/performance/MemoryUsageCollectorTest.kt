@@ -3,46 +3,41 @@ package sh.measure.android.performance
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert
 import org.junit.Assert.assertNull
-import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeMemoryReader
 import sh.measure.android.fakes.FakeProcessInfoProvider
-import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.TestClock
+import java.time.Duration
 
 internal class MemoryUsageCollectorTest {
-    private lateinit var memoryUsageCollector: MemoryUsageCollector
-    private lateinit var timeProvider: FakeTimeProvider
-    private val eventProcessor = mock<EventProcessor>()
+    private val clock = TestClock.create()
+    private val timeProvider = AndroidTimeProvider(clock)
+    private val signalProcessor = mock<SignalProcessor>()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val memoryReader = FakeMemoryReader()
     private val processInfo = FakeProcessInfoProvider()
-
-    @Before
-    fun setUp() {
-        val currentElapsedRealtime: Long = 20_000 // 20s
-        timeProvider = FakeTimeProvider(fakeElapsedRealtime = currentElapsedRealtime)
-        memoryUsageCollector = MemoryUsageCollector(
-            NoopLogger(),
-            eventProcessor,
-            timeProvider,
-            executorService,
-            memoryReader,
-            processInfo,
-        )
-    }
+    private val memoryUsageCollector = MemoryUsageCollector(
+        NoopLogger(),
+        signalProcessor,
+        timeProvider,
+        executorService,
+        memoryReader,
+        processInfo,
+    )
 
     @Test
     fun `MemoryUsageCollector tracks memory usage`() {
         memoryUsageCollector.register()
-        verify(eventProcessor).track(
+        verify(signalProcessor).track(
             type = EventType.MEMORY_USAGE,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = MemoryUsageData(
                 java_max_heap = memoryReader.maxHeapSize(),
                 java_total_heap = memoryReader.totalHeapSize(),
@@ -75,7 +70,8 @@ internal class MemoryUsageCollectorTest {
 
     @Test
     fun `calculates interval between two events dynamically`() {
-        memoryUsageCollector.previousMemoryUsageReadTimeMs = 1000
+        val initialTimeMillis = timeProvider.elapsedRealtime
+        memoryUsageCollector.previousMemoryUsageReadTimeMs = initialTimeMillis
         memoryUsageCollector.previousMemoryUsage = MemoryUsageData(
             java_max_heap = 0,
             java_total_heap = 0,
@@ -84,14 +80,16 @@ internal class MemoryUsageCollectorTest {
             rss = 0,
             native_total_heap = 0,
             native_free_heap = 0,
-            interval = 10_000,
+            interval = 0,
         )
-        timeProvider.fakeElapsedRealtime = 15_000
+
+        val advancedTime = Duration.ofMillis(15000)
+        clock.advance(advancedTime)
         memoryUsageCollector.register()
 
-        verify(eventProcessor).track(
+        verify(signalProcessor).track(
             type = EventType.MEMORY_USAGE,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = MemoryUsageData(
                 java_max_heap = memoryReader.maxHeapSize(),
                 java_total_heap = memoryReader.totalHeapSize(),
@@ -100,7 +98,7 @@ internal class MemoryUsageCollectorTest {
                 rss = memoryReader.rss(),
                 native_total_heap = memoryReader.nativeTotalHeapSize(),
                 native_free_heap = memoryReader.nativeFreeHeapSize(),
-                interval = 14_000,
+                interval = advancedTime.toMillis(),
             ),
         )
     }

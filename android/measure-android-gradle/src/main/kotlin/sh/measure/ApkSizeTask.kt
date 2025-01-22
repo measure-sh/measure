@@ -48,7 +48,7 @@ abstract class ApkSizeTask : DefaultTask() {
             """
             $size
             apk
-        """.trimIndent()
+            """.trimIndent(),
         )
     }
 }

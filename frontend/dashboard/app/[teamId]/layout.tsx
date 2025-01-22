@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link";
+import Image from 'next/image'
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useRouter } from 'next/navigation';
@@ -25,6 +26,10 @@ export default function DashboardLayout({
     {
       hrefSuffix: 'anrs',
       title: 'ANRs',
+    },
+    {
+      hrefSuffix: 'traces',
+      title: 'Traces',
     },
     {
       hrefSuffix: 'sessions',
@@ -94,7 +99,8 @@ export default function DashboardLayout({
   const teamsApiStatusToTeamsSwitcherStatus = {
     [TeamsApiStatus.Loading]: TeamsSwitcherStatus.Loading,
     [TeamsApiStatus.Success]: TeamsSwitcherStatus.Success,
-    [TeamsApiStatus.Error]: TeamsSwitcherStatus.Error
+    [TeamsApiStatus.Error]: TeamsSwitcherStatus.Error,
+    [TeamsApiStatus.Cancelled]: TeamsSwitcherStatus.Loading
   };
 
   return (
@@ -111,15 +117,24 @@ export default function DashboardLayout({
               <ul>
                 {menuItems.map(({ hrefSuffix, title }) => (
                   <li key={title}>
-                    <Link href={`/${selectedTeam}/${hrefSuffix}`} className={`m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) ? 'bg-neutral-950 text-white hover:text-black focus-visible:text-black' : ''}`}>{title}</Link>
+                    <Link href={`/${selectedTeam}/${hrefSuffix}`} className={`mx-4 mb-3 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) ? 'bg-neutral-950 text-white hover:text-black focus-visible:text-black' : ''}`}>{title}</Link>
                   </li>
                 ))}
               </ul>}
             <div className="grow" />
-            <button className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => logoutUser()}>Logout</button>
+            <a href="https://discord.gg/f6zGkBCt42" target="_blank" className='mx-4 mb-3 outline-none flex flex-row justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4'>
+              <Image
+                src='/images/discord_logo.svg'
+                width={24}
+                height={24}
+                alt={'Discord logo'} />
+              <div className='px-1' />
+              <p className='mt-1'>Support</p>
+            </a>
+            <button className="mx-4 mb-2 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => logoutUser()}>Logout</button>
           </nav>
         </aside>
-        {teamsApiStatus === TeamsApiStatus.Success && <main>{children}</main>}
+        {teamsApiStatus === TeamsApiStatus.Success && <main className="md:overflow-auto">{children}</main>}
       </div>
     </div>
   );

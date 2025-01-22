@@ -10,7 +10,9 @@ Easily ingest test sessions during development.
 - [Repeat ingestion of sessions](#repeat-ingestion-of-sessions)
   - [`--clean-all` flag](#--clean-all-flag)
   - [`--clean` flag](#--clean-flag)
+- [Skipping apps from ingestion](#skipping-apps-from-ingestion)
 - [Uploading mappings \& attachments locally](#uploading-mappings--attachments-locally)
+- [Remove apps completely](#remove-apps-completely)
 
 ### Usage and Help
 
@@ -135,8 +137,30 @@ symbols_access_key = "minio"
 symbols_secret_access_key = "minio123"
 ```
 
+### Skipping apps from ingestion
+
+You can skip certain apps during ingestion using the `--skip-apps` option. This can be useful in scenarios when you to ingest some apps partially.
+
+```sh
+go run . ingest --skip-apps com.example.appOne,com.example.appTwo
+```
+
+Sessionator will not scan the `com.example.appOne` and `com.example.appTwo` apps for the above. Note the app name must match the directory name under the `session-data` directory.
+
+
 ### Uploading mappings & attachments locally
 
 The mapping and attachment files can be either configured to be uploaded to a remote S3 bucket or a local S3-compatible storage service. Like [minio](https://min.io/).
 
 For this to work, make sure `self-host/.env` has the `AWS_ENDPOINT_URL` environment variable pointing to the minio host url. Also, the bucket name, region and access key/secret must be configured correctly. These settings are required for symbolication to work correctly.
+
+### Remove apps completely
+
+The `ingest --clean/--clean-all` commands only removes the app's resources, but the apps themselves are not removed. If you wish to remove an app completely, use the `remove apps` command. Like below.
+
+```sh
+# syntax, where xxxx is the id of the app
+go run . remove apps --id xxxx
+```
+
+You would need to get the id of the app from the `apps` table in Measure's Postgres database.

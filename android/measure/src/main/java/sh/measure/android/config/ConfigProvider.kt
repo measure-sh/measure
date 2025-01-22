@@ -58,8 +58,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { screenshotCompressionQuality }
     override val eventTypeExportAllowList: List<String>
         get() = getMergedConfig { eventTypeExportAllowList }
-    override val maxEventsInDatabase: Int
-        get() = getMergedConfig { maxEventsInDatabase }
+    override val maxSignalsInDatabase: Int
+        get() = getMergedConfig { maxSignalsInDatabase }
     override val trackHttpHeaders: Boolean
         get() = getMergedConfig { trackHttpHeaders }
     override val trackHttpBody: Boolean
@@ -72,8 +72,10 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { httpUrlAllowlist }
     override val trackActivityIntentData: Boolean
         get() = getMergedConfig { trackActivityIntentData }
-    override val sessionSamplingRate: Float
-        get() = getMergedConfig { sessionSamplingRate }
+    override val samplingRateForErrorFreeSessions: Float
+        get() = getMergedConfig { samplingRateForErrorFreeSessions }
+    override val traceSamplingRate: Float
+        get() = getMergedConfig { traceSamplingRate }
     override val eventsBatchingIntervalMs: Long
         get() = getMergedConfig { eventsBatchingIntervalMs }
     override val maxEventsInBatch: Int
@@ -82,16 +84,34 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { httpContentTypeAllowlist }
     override val defaultHttpHeadersBlocklist: List<String>
         get() = getMergedConfig { defaultHttpHeadersBlocklist }
-    override val sessionEndThresholdMs: Long
-        get() = getMergedConfig { sessionEndThresholdMs }
+    override val sessionEndLastEventThresholdMs: Long
+        get() = getMergedConfig { sessionEndLastEventThresholdMs }
+    override val maxSessionDurationMs: Long
+        get() = getMergedConfig { maxSessionDurationMs }
     override val maxAttachmentSizeInEventsBatchInBytes: Int
         get() = getMergedConfig { maxAttachmentSizeInEventsBatchInBytes }
+    override val maxEventNameLength: Int
+        get() = getMergedConfig { maxEventNameLength }
     override val maxUserDefinedAttributeKeyLength: Int
         get() = getMergedConfig { maxUserDefinedAttributeKeyLength }
     override val maxUserDefinedAttributeValueLength: Int
         get() = getMergedConfig { maxUserDefinedAttributeValueLength }
-    override val userDefinedAttributeKeyWithSpaces: Boolean
-        get() = getMergedConfig { userDefinedAttributeKeyWithSpaces }
+    override val autoStart: Boolean
+        get() = getMergedConfig { autoStart }
+    override val maxSpanNameLength: Int
+        get() = getMergedConfig { maxSpanNameLength }
+    override val maxCheckpointNameLength: Int
+        get() = getMergedConfig { maxCheckpointNameLength }
+    override val maxCheckpointsPerSpan: Int
+        get() = getMergedConfig { maxCheckpointsPerSpan }
+    override val customEventNameRegex: String
+        get() = getMergedConfig { customEventNameRegex }
+    override val maxUserDefinedAttributesPerEvent: Int
+        get() = getMergedConfig { maxUserDefinedAttributesPerEvent }
+    override val maxInMemorySignalsQueueSize: Int
+        get() = getMergedConfig { maxInMemorySignalsQueueSize }
+    override val inMemorySignalsQueueFlushRateMs: Long
+        get() = getMergedConfig { inMemorySignalsQueueFlushRateMs }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (!trackHttpBody) {

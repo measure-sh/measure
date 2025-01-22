@@ -17,10 +17,31 @@ def startup(file_path: str) -> Series:
     return series
 
 
-def target_finder(file_path: str) -> Series:
+def track_gesture(file_path: str) -> Series:
     json_data = read_json(file_path)
     try:
-        runs = json_data['benchmarks'][0]['metrics']['GestureCollector.getTargetMs']['runs']
+        runs = json_data['benchmarks'][0]['metrics']['msr-trackGestureAverageMs']['runs']
+    except KeyError as e:
+        typer.echo(f"Error: Failed to parse JSON: {e}", err=True)
+        raise typer.Exit(code=1)
+    series = extract_data(runs)
+    return series
+
+def track_gesture_heap(file_path: str) -> Series:
+    json_data = read_json(file_path)
+    try:
+        runs = json_data['benchmarks'][0]['metrics']['memoryHeapSizeMaxKb']['runs']
+    except KeyError as e:
+        typer.echo(f"Error: Failed to parse JSON: {e}", err=True)
+        raise typer.Exit(code=1)
+    series = extract_data(runs)
+    return series    
+
+
+def generate_svg(file_path: str) -> Series:
+    json_data = read_json(file_path)
+    try:
+        runs = json_data['benchmarks'][0]['metrics']['msr-generateSvgAttachmentAverageMs']['runs']
     except KeyError as e:
         typer.echo(f"Error: Failed to parse JSON: {e}", err=True)
         raise typer.Exit(code=1)

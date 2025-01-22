@@ -78,6 +78,18 @@ type Attribute struct {
 	// identifier.
 	DeviceLocale string `json:"device_locale"`
 
+	// DeviceLowPowerMode is true if low power mode
+	// is enabled.
+	DeviceLowPowerMode bool `json:"device_low_power_mode"`
+
+	// DeviceThermalThrottlingEnabled is true if device
+	// is running with thermal throttling enabled.
+	DeviceThermalThrottlingEnabled bool `json:"device_thermal_throttling_enabled"`
+
+	// DeviceCPUArch describes the CPU architecture
+	// of the device if available.
+	DeviceCPUArch string `json:"device_cpu_arch"`
+
 	// OSName is the operating system's name
 	OSName string `json:"os_name"`
 
@@ -111,7 +123,7 @@ type Attribute struct {
 // Validate validates an event's attributes.
 func (a Attribute) Validate() error {
 	const (
-		maxThreadNameChars         = 64
+		maxThreadNameChars         = 128
 		maxUserIDChars             = 128
 		maxDeviceNameChars         = 32
 		maxDeviceModelChars        = 32
@@ -120,7 +132,7 @@ func (a Attribute) Validate() error {
 		maxOSNameChars             = 32
 		maxOSVersionChars          = 32
 		maxPlatformChars           = 32
-		maxAppVersionChars         = 32
+		maxAppVersionChars         = 128
 		maxAppBuildChars           = 32
 		maxAppUniqueIDChars        = 128
 		maxMeasureSDKVersion       = 16
@@ -128,67 +140,94 @@ func (a Attribute) Validate() error {
 		maxNetworkGenerationChars  = 8
 		maxNetworkProviderChars    = 64
 		maxDeviceLocaleChars       = 64
+		maxDeviceCPUArchChars      = 16
 	)
 
+	switch a.Platform {
+	case platform.Android, platform.IOS:
+	default:
+		return fmt.Errorf(`%q does not contain a valid platform value`, `attribute.platform`)
+	}
+
+	if a.InstallationID == uuid.Nil {
+		return fmt.Errorf(`%q must not be empty`, `attribute.installation_id`)
+	}
+
+	if a.MeasureSDKVersion == "" {
+		return fmt.Errorf(`%q must not be empty`, `attribute.measure_sdk_version`)
+	}
+
+	if a.AppVersion == "" {
+		return fmt.Errorf(`%q must not be empty`, `attribute.app_version`)
+	}
+
+	if a.AppBuild == "" {
+		return fmt.Errorf(`%q must not be empty`, `attribute.app_build`)
+	}
+
+	if a.AppUniqueID == "" {
+		return fmt.Errorf(`%q must not be empty`, `attribute.app_unique_id`)
+	}
+
 	if len(a.AppVersion) > maxAppVersionChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.app_version`, maxAppVersionChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.app_version`, maxAppVersionChars)
 	}
 	if len(a.AppBuild) > maxAppBuildChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.app_build`, maxAppBuildChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.app_build`, maxAppBuildChars)
 	}
 	if len(a.AppUniqueID) > maxAppUniqueIDChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attrubutes.app_unique_id`, maxAppUniqueIDChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attrubute.app_unique_id`, maxAppUniqueIDChars)
 	}
 	if len(a.Platform) > maxPlatformChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.platform`, maxPlatformChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.platform`, maxPlatformChars)
 	}
 	if len(a.MeasureSDKVersion) > maxMeasureSDKVersion {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.measure_sdk_version`, maxMeasureSDKVersion)
-	}
-	if a.Platform != platform.Android && a.Platform != platform.IOS {
-		return fmt.Errorf(`%q does not contain a valid platform value`, `attributes.platform`)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.measure_sdk_version`, maxMeasureSDKVersion)
 	}
 	if len(a.ThreadName) > maxThreadNameChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.thread_name`, maxThreadNameChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.thread_name`, maxThreadNameChars)
 	}
 	if len(a.UserID) > maxUserIDChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.user_id`, maxUserIDChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.user_id`, maxUserIDChars)
 	}
 	if len(a.DeviceName) > maxDeviceNameChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.device_name`, maxDeviceNameChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.device_name`, maxDeviceNameChars)
 	}
 	if len(a.DeviceModel) > maxDeviceModelChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.device_model`, maxDeviceModelChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.device_model`, maxDeviceModelChars)
 	}
 	if len(a.DeviceManufacturer) > maxDeviceManufacturerChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.device_manufacturer`, maxDeviceManufacturerChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.device_manufacturer`, maxDeviceManufacturerChars)
 	}
 	if len(a.DeviceType) > maxDeviceTypeChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.device_type`, maxDeviceTypeChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.device_type`, maxDeviceTypeChars)
 	}
 	if len(a.DeviceLocale) > maxDeviceLocaleChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.device_locale`, maxDeviceLocaleChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.device_locale`, maxDeviceLocaleChars)
+	}
+	if len(a.DeviceCPUArch) > maxDeviceCPUArchChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.device_cpu_arch`, maxDeviceCPUArchChars)
 	}
 	if len(a.OSName) > maxOSNameChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.os_name`, maxOSNameChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.os_name`, maxOSNameChars)
 	}
 	if len(a.OSVersion) > maxOSVersionChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.os_version`, maxOSVersionChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.os_version`, maxOSVersionChars)
 	}
 	if len(a.NetworkType) > maxNetworkTypeChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.network_type`, maxNetworkTypeChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.network_type`, maxNetworkTypeChars)
 	}
 	if len(a.NetworkGeneration) > maxNetworkGenerationChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.network_generation`, maxNetworkGenerationChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.network_generation`, maxNetworkGenerationChars)
 	}
 	if len(a.NetworkProvider) > maxNetworkProviderChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.network_provider`, maxNetworkProviderChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.network_provider`, maxNetworkProviderChars)
 	}
 	if !slices.Contains(ValidNetworkTypes, a.NetworkType) {
-		return fmt.Errorf(`%q contains invalid network type`, `attributes.network_type`)
+		return fmt.Errorf(`%q contains invalid network type`, `attribute.network_type`)
 	}
 	if !slices.Contains(ValidNetworkGenerations, a.NetworkGeneration) {
-		return fmt.Errorf(`%q contains invalid network geenration`, `attributes.network_generation`)
+		return fmt.Errorf(`%q contains invalid network geenration`, `attribute.network_generation`)
 	}
 	return nil
 }

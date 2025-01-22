@@ -5,15 +5,17 @@ import android.content.Context
 import androidx.annotation.VisibleForTesting
 import org.jetbrains.annotations.TestOnly
 import sh.measure.android.applaunch.LaunchState
+import sh.measure.android.attributes.AttributeValue
+import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.Attachment
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.okhttp.OkHttpEventCollector
 import sh.measure.android.tracing.InternalTrace
-import sh.measure.android.utils.TimeProvider
+import sh.measure.android.tracing.Span
+import sh.measure.android.tracing.SpanBuilder
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -30,10 +32,7 @@ object Measure {
 
     /**
      * Initializes the Measure SDK. The SDK must be initialized before using any of the other
-     * methods. It is recommended to initialize the SDK as early as possible in the application
-     * startup so that exceptions, ANRs and other events can be captured as early as possible.
-     *
-     * Initializing the SDK multiple times will have no effect.
+     * methods. It is recommended to call this function in Application onCreate.
      *
      * An optional [measureConfig] can be passed to configure the SDK. If not provided, the SDK
      * will use the default configuration. To understand the configuration options available
@@ -55,6 +54,39 @@ object Measure {
                     measure = MeasureInternal(initializer)
                     storeProcessImportanceState()
                     measure.init()
+                },
+            )
+        }
+    }
+
+    /**
+     * Starts tracking.
+     *
+     * @see stop to stop tracking.
+     * @see MeasureConfig.autoStart to control whether the SDK should start on init or not.
+     */
+    fun start() {
+        if (isInitialized.get()) {
+            InternalTrace.trace(
+                label = { "msr-start" },
+                block = {
+                    measure.start()
+                },
+            )
+        }
+    }
+
+    /**
+     * Stops tracking. Features like session replay, crash & ANR reporting will not work.
+     *
+     * @see start to start tracking.
+     */
+    fun stop() {
+        if (isInitialized.get()) {
+            InternalTrace.trace(
+                label = { "msr-stop" },
+                block = {
+                    measure.stop()
                 },
             )
         }
@@ -85,43 +117,6 @@ object Measure {
     fun clearUserId() {
         if (isInitialized.get()) {
             measure.clearUserId()
-        }
-    }
-
-    /**
-     * Track a navigation event.
-     *
-     * Navigation events are important to understand user journey in the app. Measure SDK
-     * automatically collects navigation events from
-     * [Jetpack Navigation library](https://developer.android.com/jetpack/androidx/releases/navigation)
-     * along with Activity and Fragment lifecycle events. But if your app uses a custom navigation
-     * system, you can use this method to track navigation events to have more context when
-     * debugging issues.
-     *
-     * For more details on the automatically collected events, check the documentation.
-     *
-     * It is recommended to use consistent naming conventions for screen names and namespacing
-     * them with relevant context to make it easier to understand the user journey on the Measure
-     * Dashboard.
-     *
-     * Example usage:
-     *
-     * ```kotlin
-     * Measure.trackNavigation("Home", "Login")
-     * ```
-     *
-     * @param to The name of the destination screen or location.
-     * @param from The name of the source screen or location. Null by default.
-     */
-    @JvmStatic
-    @JvmOverloads
-    @Deprecated(
-        message = "This method will be removed in the next version, use trackScreenView instead",
-        replaceWith = ReplaceWith("Measure.trackScreenView(screenName)"),
-    )
-    fun trackNavigation(to: String, from: String? = null) {
-        if (isInitialized.get()) {
-            measure.trackNavigation(to, from)
         }
     }
 
@@ -171,126 +166,159 @@ object Measure {
     }
 
     /**
-     * Adds an attribute which will be collected along with every event in the session.
+     * Tracks an event with optional attributes and timestamp.
      *
-     * Attributes are key-value pairs that provide additional context to the events. For example,
-     * you can add user's subscription status, plan, or any other relevant information to help
-     * debug issues with more context.
+     * Event Attributes:
+     * - Maximum 100 attributes per event
+     * - Keys must be strings (max 256 characters)
+     * - Values can be one of: boolean, string, integer, long, double
+     * - Values of type string have maximum length of 256 characters
      *
-     * Note that these attributes are not persisted across app launches. You need to set them
-     * each time the app starts.
+     * Usage Notes:
+     * - Event names should be clear and consistent to aid in dashboard searches
+     * - Attributes can be built using [AttributesBuilder]:
+     *   ```kotlin
+     *   val attributes = AttributesBuilder()
+     *       .put("string", "string")
+     *       .put("integer", 10)
+     *       .put("long", 100000L)
+     *       .put("double", 10.9999)
+     *       .put("boolean", false)
+     *       .build()
+     *   Measure.trackEvent(name = "event-name", attributes = attributes)
+     *   ```
      *
-     * To be able to filter and search on these attributes on the Measure Dashboard, it is
-     * recommended to use consistent naming conventions and namespacing them with relevant context.
-     *
-     * Setting an attribute with different values overrides the previous value.
-     *
-     * @param key The key for the attribute.
-     * @param value The value for the attribute, can be an Integer, Long, Float or Double.
-     * @param store If true, the attribute will be stored on disk and persisted across app launches.
+     * @param name Name of the event (max 64 characters)
+     * @param attributes Key-value pairs providing additional context (defaults to empty map)
+     * @param timestamp Optional timestamp for the event, defaults to current time
      */
-    private fun putAttribute(key: String, value: Number, store: Boolean) {
+    fun trackEvent(
+        name: String,
+        attributes: Map<String, AttributeValue> = emptyMap(),
+        timestamp: Long? = null,
+    ) {
         if (isInitialized.get()) {
-            measure.putAttribute(key, value, store)
+            measure.trackEvent(name, attributes, timestamp)
         }
     }
 
     /**
-     * Adds an attribute which will be collected along with every event in the session.
+     * Starts a new performance tracing span with the specified [name].
      *
-     * Attributes are key-value pairs that provide additional context to the events. For example,
-     * you can add user's subscription status, plan, or any other relevant information to help
-     * debug issues with more context.
+     * @param name The name to identify this span. Follow the [naming convention guide](https://github.com/measure-sh/measure/blob/main/docs/android/features/feature_performance_tracing.md#span-names)
+     * for consistent naming practices.
      *
-     * Note that these attributes are not persisted across app launches. You need to set them
-     * each time the app starts.
-     *
-     * To be able to filter and search on these attributes on the Measure Dashboard, it is
-     * recommended to use consistent naming conventions and namespacing them with relevant context.
-     *
-     * Setting an attribute with different values overrides the previous value.
-     *
-     * @param key The key for the attribute.
-     * @param value The value for the attribute.
-     * @param store If true, the attribute will be stored on disk and persisted across app launches.
+     * @return [Span] A new span instance if the SDK is initialized, or an invalid no-op span if not initialized
      */
-    private fun putAttribute(key: String, value: String, store: Boolean) {
-        if (isInitialized.get()) {
-            measure.putAttribute(key, value, store)
+    fun startSpan(name: String): Span {
+        return if (isInitialized.get()) {
+            measure.startSpan(name)
+        } else {
+            Span.invalid()
         }
     }
 
     /**
-     * Adds an attribute which will be collected along with every event in the session.
+     * Starts a new performance tracing span with the specified [name] and start [timestamp].
      *
-     * Attributes are key-value pairs that provide additional context to the events. For example,
-     * you can add user's subscription status, plan, or any other relevant information to help
-     * debug issues with more context.
+     * @param name The name to identify this span. Follow the [naming convention guide](https://github.com/measure-sh/measure/blob/main/docs/android/features/feature_performance_tracing.md#span-names)
+     * for consistent naming practices.
+     * @param timestamp The milliseconds since epoch when the span started. Must be obtained using [getCurrentTime]
+     * to minimize clock drift effects.
      *
-     * Note that these attributes are not persisted across app launches. You need to set them
-     * each time the app starts.
+     * @return [Span] A new span instance if the SDK is initialized, or an invalid no-op span if not initialized
      *
-     * To be able to filter and search on these attributes on the Measure Dashboard, it is
-     * recommended to use consistent naming conventions and namespacing them with relevant context.
-     *
-     * Setting an attribute with different values overrides the previous value.
-     *
-     * @param key The key for the attribute.
-     * @param value The value for the attribute.
-     * @param store If true, the attribute will be stored on disk and persisted across app launches.
+     * Note: Use this method when you need to trace an operation that has already started and you have
+     * captured its start time using [getCurrentTime].
      */
-    private fun putAttribute(key: String, value: Boolean, store: Boolean) {
-        if (isInitialized.get()) {
-            measure.putAttribute(key, value, store)
+    fun startSpan(name: String, timestamp: Long): Span {
+        return if (isInitialized.get()) {
+            measure.startSpan(name, timestamp = timestamp)
+        } else {
+            Span.invalid()
         }
     }
 
     /**
-     * Removes an attribute with the given key, if previously set by [putAttribute]. No-op if the
-     * key is not set. If the attribute was stored on disk, it will be removed from disk storage.
+     * Creates a configurable span builder for deferred span creation.
      *
-     * @param key The key for the attribute to remove.
+     * @param name The name to identify this span. Follow the [naming convention guide](https://github.com/measure-sh/measure/blob/main/docs/android/features/feature_performance_tracing.md#span-names)
+     * for consistent naming practices.
+     *
+     * @return [SpanBuilder] A builder instance to configure the span if the SDK is initialized,
+     * or null if the SDK is not initialized
+     *
+     * Note: Use this method when you need to create a span without immediately starting it.
      */
-    private fun removeAttribute(key: String) {
-        if (isInitialized.get()) {
-            measure.removeAttribute(key)
+    fun createSpanBuilder(name: String): SpanBuilder? {
+        return if (isInitialized.get()) {
+            measure.createSpan(name)
+        } else {
+            null
         }
     }
 
     /**
-     * Clears the attributes set by [putAttribute], if any. No-op if no attributes are set. If the
-     * attributes were stored on disk, they will be removed from disk storage.
+     * Returns the W3C traceparent header value for the given span.
+     *
+     * @param span The span to extract the traceparent header value from
+     * @return A W3C trace context compliant header value in the format:
+     * `{version}-{traceId}-{spanId}-{traceFlags}`
+     *
+     * Example: `00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01`
+     *
+     * @see getTraceParentHeaderKey
+     * @see <a href="https://www.w3.org/TR/trace-context/#header-name">W3C Trace Context specification</a>
+     *
+     * Note: Use this value in the `traceparent` HTTP header when making API calls to enable
+     * distributed tracing between your mobile app and backend services.
      */
-    private fun clearAttributes() {
-        if (isInitialized.get()) {
-            measure.clearAttributes()
+    fun getTraceParentHeaderValue(span: Span): String {
+        return measure.getTraceParentHeaderValue(span)
+    }
+
+    /**
+     * Returns the W3C traceparent header key/name.
+     *
+     * @return The standardized header key 'traceparent' that should be used when adding
+     * distributed tracing context to HTTP requests
+     *
+     * @see getTraceParentHeaderValue
+     * @see <a href="https://www.w3.org/TR/trace-context/#header-name">W3C Trace Context specification</a>
+     */
+    fun getTraceParentHeaderKey(): String {
+        return measure.getTraceParentHeaderKey()
+    }
+
+    /**
+     * Returns the current time in milliseconds since epoch using a monotonic clock source.
+     *
+     * @return The current timestamp in milliseconds since epoch.
+     *
+     * Note: Use this method to obtain timestamps when creating spans to ensure consistent time
+     * measurements and avoid clock drift issues within traces.
+     */
+    fun getCurrentTime(): Long {
+        return if (isInitialized.get()) {
+            measure.timeProvider.now()
+        } else {
+            System.currentTimeMillis()
         }
     }
 
     /**
-     * Clears the following data from memory and disk storage, if any:
-     * 1. User ID set by [setUserId].
-     * 2. Attributes set by [putAttribute].
+     * Returns the session ID for the current session, or null if the SDK has not been initialized.
      *
-     * Note that this will not clear the events already collected by the SDK, such events will
-     * still be sent to the server without any change.
+     * A session represents a continuous period of activity in the app. A new session begins
+     * when an app is launched for the first time, or when there's been no activity for a
+     * 20-minute period. A single session can continue across multiple app background and
+     * foreground events; brief interruptions will not cause a new session to be created.
+     *
+     * @return session ID if the SDK is initialized, null otherwise.
      */
-    private fun clear() {
+    fun getSessionId(): String? {
         if (isInitialized.get()) {
-            measure.clear()
-        }
-    }
-
-    internal fun getEventProcessor(): EventProcessor? {
-        if (isInitialized.get()) {
-            return measure.eventProcessor
-        }
-        return null
-    }
-
-    internal fun getTimeProvider(): TimeProvider? {
-        if (isInitialized.get()) {
-            return measure.timeProvider
+            return measure.getSessionId()
         }
         return null
     }
@@ -327,7 +355,7 @@ object Measure {
         attributes: MutableMap<String, Any?>,
         attachments: MutableList<Attachment>,
     ) {
-        measure.eventProcessor.trackCrash(
+        measure.signalProcessor.trackCrash(
             data = data,
             timestamp = timestamp,
             type = type,
@@ -343,7 +371,7 @@ object Measure {
         attributes: MutableMap<String, Any?>,
         attachments: MutableList<Attachment>,
     ) {
-        measure.eventProcessor.trackCrash(
+        measure.signalProcessor.trackCrash(
             type = EventType.ANR,
             data = data,
             timestamp = timestamp,
@@ -354,8 +382,7 @@ object Measure {
 
     private fun storeProcessImportanceState() {
         try {
-            LaunchState.processImportanceOnInit =
-                measure.processInfoProvider.getProcessImportance()
+            LaunchState.processImportanceOnInit = measure.processInfoProvider.getProcessImportance()
         } catch (e: Throwable) {
             measure.logger.log(
                 LogLevel.Error,

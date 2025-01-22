@@ -9,9 +9,10 @@ import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { formatDateToHumanReadableDateTime } from '../utils/time_utils';
 import ExceptionspDetailsPlot from './exceptions_details_plot';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters';
-import Journey, { JourneyType } from './journey';
 import Image from 'next/image';
 import CopyAiContext from './copy_ai_context';
+import LoadingSpinner from './loading_spinner';
+import ExceptionsDistributionPlot from './exceptions_distribution_plot';
 
 interface ExceptionsDetailsProps {
   exceptionsType: ExceptionsType,
@@ -100,6 +101,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
         showLocales={true}
         showDeviceManufacturers={true}
         showDeviceNames={true}
+        showUdAttrs={true}
         showFreeText={false}
         onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
 
@@ -114,29 +116,21 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
               exceptionsGroupId={exceptionsGroupId}
               filters={filters} />
             <div className="p-2" />
-            <div className="w-full h-[32rem]">
-              <Journey
-                teamId={teamId}
-                bidirectional={false}
-                journeyType={exceptionsType === ExceptionsType.Crash ? JourneyType.CrashDetails : JourneyType.AnrDetails}
-                exceptionsGroupId={exceptionsGroupId}
-                filters={filters} />
-            </div>
+            <ExceptionsDistributionPlot
+              exceptionsType={exceptionsType}
+              exceptionsGroupId={exceptionsGroupId}
+              filters={filters} />
           </div>
           <div className="py-4" />
 
-          {/* Error state for crash details fetch */}
           {exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Error && <p className="text-lg font-display">Error fetching list of {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
 
-          {/* Empty state for crash details fetch */}
-          {exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Success && exceptionsDetails.results === null && <p className="text-lg font-display">It seems there are no {exceptionsType === ExceptionsType.Crash ? 'Crashes' : 'ANRs'} for the current combination of filters. Please change filters to try again</p>}
-
-          {(exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Success || exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading) && exceptionsDetails.results !== null && exceptionsDetails.results.length > 0 &&
+          {(exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Success || exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading) &&
             <div className='flex flex-col'>
               <div className="flex flex-col md:flex-row md:items-center w-full">
                 <p className="font-sans text-3xl"> Stack traces</p>
                 <div className="grow" />
-                <Paginator prevEnabled={exceptionsDetails.meta.previous} nextEnabled={exceptionsDetails.meta.next} displayText=""
+                <Paginator prevEnabled={exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading ? false : exceptionsDetails.meta.previous} nextEnabled={exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading ? false : exceptionsDetails.meta.next} displayText=""
                   onNext={() => {
                     setPaginationDirection(PaginationDirection.Forward)
                     setPaginationIndex(paginationIndex + 1)
@@ -146,53 +140,58 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                     setPaginationIndex(paginationIndex - 1)
                   }} />
               </div>
+
               <div className="py-2" />
 
-              {/* We show ... in loading state for Crash/Anr ID so that user knows some API call is happening */}
-              <p className="font-display text-xl"> Id: {exceptionsDetailsApiStatus == ExceptionsDetailsApiStatus.Loading ? '...' : exceptionsDetails.results[0].id}</p>
-              <p className="font-sans"> Date & time: {formatDateToHumanReadableDateTime(exceptionsDetails.results[0].timestamp)}</p>
-              <p className="font-sans"> Device: {exceptionsDetails.results[0].attribute.device_manufacturer + exceptionsDetails.results[0].attribute.device_model}</p>
-              <p className="font-sans"> App version: {exceptionsDetails.results[0].attribute.app_version}</p>
-              <p className="font-sans"> Network type: {exceptionsDetails.results[0].attribute.network_type}</p>
-              {/* show screenshots if they exist */}
-              {exceptionsDetails.results[0].attachments !== undefined && exceptionsDetails.results[0].attachments !== null && exceptionsDetails.results[0].attachments.length > 0 &&
-                <div className='flex mt-8 flex-wrap gap-8 items-center'>
-                  {exceptionsDetails.results[0].attachments.map((attachment, index) => (
-                    <Image
-                      key={attachment.key}
-                      className='border border-black'
-                      src={attachment.location}
-                      width={200}
-                      height={200}
-                      unoptimized={true}
-                      alt={`Screenshot ${index}`}
-                    />
-                  ))}
+              {exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading && <LoadingSpinner />}
+
+              {exceptionsDetails.results?.length > 0 &&
+                <div className={`${exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading ? 'invisible' : 'visible'}`}>
+                  <p className="font-display text-xl"> Id: {exceptionsDetails.results[0].id}</p>
+                  <p className="font-sans"> Date & time: {formatDateToHumanReadableDateTime(exceptionsDetails.results[0].timestamp)}</p>
+                  <p className="font-sans"> Device: {exceptionsDetails.results[0].attribute.device_manufacturer + exceptionsDetails.results[0].attribute.device_model}</p>
+                  <p className="font-sans"> App version: {exceptionsDetails.results[0].attribute.app_version}</p>
+                  <p className="font-sans"> Network type: {exceptionsDetails.results[0].attribute.network_type}</p>
+                  {/* show screenshots if they exist */}
+                  {exceptionsDetails.results[0].attachments !== undefined && exceptionsDetails.results[0].attachments !== null && exceptionsDetails.results[0].attachments.length > 0 &&
+                    <div className='flex mt-8 flex-wrap gap-8 items-center'>
+                      {exceptionsDetails.results[0].attachments.map((attachment, index) => (
+                        <Image
+                          key={attachment.key}
+                          className='border border-black'
+                          src={attachment.location}
+                          width={200}
+                          height={200}
+                          unoptimized={true}
+                          alt={`Screenshot ${index}`}
+                        />
+                      ))}
+                    </div>}
+                  <div className="py-4" />
+                  <div className='flex flex-row items-center'>
+                    <Link key={exceptionsDetails.results[0].id} href={`/${teamId}/sessions/${appId}/${exceptionsDetails.results[0].session_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session</Link>
+                    <div className='px-2' />
+                    <CopyAiContext appName={filters.app.name} exceptionsType={exceptionsType} exceptionsDetails={exceptionsDetails} />
+                  </div>
+                  <div className="py-2" />
+                  {exceptionsType === ExceptionsType.Crash &&
+                    <Accordion key='crash-thread' title={'Thread: ' + exceptionsDetails.results[0].attribute.thread_name} id='crash' active={true}>
+                      {(exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse).results[0].exception.stacktrace}
+                    </Accordion>
+                  }
+                  {exceptionsType === ExceptionsType.Anr &&
+                    <Accordion key='anr-thread' title={'Thread: ' + exceptionsDetails.results[0].attribute.thread_name} id='anr' active={true}>
+                      {(exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse).results[0].anr.stacktrace}
+                    </Accordion>
+                  }
+                  <div>
+                    {exceptionsDetails.results[0].threads.map((e, index) => (
+                      <Accordion key={index} title={'Thread: ' + e.name} id={`${e.name}-${index}`} active={false}>
+                        {e.frames.join('\n')}
+                      </Accordion>
+                    ))}
+                  </div>
                 </div>}
-              <div className="py-4" />
-              <div className='flex flex-row items-center'>
-                <Link key={exceptionsDetails.results[0].id} href={`/${teamId}/sessions/${appId}/${exceptionsDetails.results[0].session_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session</Link>
-                <div className='px-2' />
-                <CopyAiContext appName={filters.app.name} exceptionsType={exceptionsType} exceptionsDetails={exceptionsDetails} />
-              </div>
-              <div className="py-2" />
-              {exceptionsType === ExceptionsType.Crash &&
-                <Accordion key='crash-thread' title={'Thread: ' + exceptionsDetails.results[0].attribute.thread_name} id='crash' active={true}>
-                  {(exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse).results[0].exception.stacktrace}
-                </Accordion>
-              }
-              {exceptionsType === ExceptionsType.Anr &&
-                <Accordion key='anr-thread' title={'Thread: ' + exceptionsDetails.results[0].attribute.thread_name} id='anr' active={true}>
-                  {(exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse).results[0].anr.stacktrace}
-                </Accordion>
-              }
-              <div>
-                {exceptionsDetails.results[0].threads.map((e, index) => (
-                  <Accordion key={index} title={'Thread: ' + e.name} id={`${e.name}-${index}`} active={false}>
-                    {e.frames.join('\n')}
-                  </Accordion>
-                ))}
-              </div>
             </div>}
         </div>}
     </div>

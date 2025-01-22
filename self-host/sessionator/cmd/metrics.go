@@ -3,13 +3,14 @@ package cmd
 import "time"
 
 // Metrics stores certain metrics used by the program
-// to keep track of progress of ingestion operations.
+// to track of progress of ingestion operations.
 type Metrics struct {
-	AppCount       int
-	EventFileCount int
-	EventCount     int
-	BuildCount     int
-	ingestDuration time.Duration
+	AppCount              int
+	EventAndSpanFileCount int
+	EventCount            int
+	SpanCount             int
+	BuildCount            int
+	ingestDuration        time.Duration
 }
 
 // bumpBuild bumps the build count of
@@ -20,14 +21,20 @@ func (m *Metrics) bumpBuild() {
 
 // bumpEventFile bumps the event file count
 // of Metrics.
-func (m *Metrics) bumpEventFile() {
-	m.EventFileCount = m.EventFileCount + 1
+func (m *Metrics) bumpEventAndSpanFile() {
+	m.EventAndSpanFileCount = m.EventAndSpanFileCount + 1
 }
 
 // bumpEvent bumps the event count by
 // n.
 func (m *Metrics) bumpEvent(n int) {
 	m.EventCount = m.EventCount + n
+}
+
+// bumpSpan bumps the span count by
+// n.
+func (m *Metrics) bumpSpan(n int) {
+	m.SpanCount = m.SpanCount + n
 }
 
 // bumpApp bumps the app count

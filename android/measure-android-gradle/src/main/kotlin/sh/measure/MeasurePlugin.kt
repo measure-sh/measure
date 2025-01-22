@@ -31,7 +31,7 @@ class MeasurePlugin : Plugin<Project> {
                 WARNING: Measure gradle plugin can only be applied to Android application projects, 
                 that is, projects that have the com.android.application plugin applied. 
                 Applying the plugin to other project types has no effect.
-                """.trimIndent()
+                """.trimIndent(),
             )
             return
         }
@@ -40,7 +40,8 @@ class MeasurePlugin : Plugin<Project> {
         val androidComponents = project.extensions.getByType(AndroidComponentsExtension::class.java)
         val sdkDirectory = androidComponents.sdkComponents.sdkDirectory
         val httpClientProvider = project.gradle.sharedServices.registerIfAbsent(
-            SHARED_SERVICE_HTTP_CLIENT, MeasureHttpClient::class.java
+            SHARED_SERVICE_HTTP_CLIENT,
+            MeasureHttpClient::class.java,
         ) { spec ->
             spec.parameters.timeout.set(Duration.ofMillis(DEFAULT_TIMEOUT_MS))
         }
@@ -67,21 +68,24 @@ class MeasurePlugin : Plugin<Project> {
         sdkDirectory: Provider<Directory>,
     ) {
         val extractManifestDataProvider = project.tasks.register(
-            extractManifestDataTaskName(variant), ExtractManifestDataTask::class.java
+            extractManifestDataTaskName(variant),
+            ExtractManifestDataTask::class.java,
         ) {
             it.manifestInputProperty.set(variant.artifacts.get(SingleArtifact.MERGED_MANIFEST))
             it.manifestOutputProperty.set(manifestDataFileProvider(project, variant))
         }
 
         val apkSizeProvider = project.tasks.register(
-            extractApkSizeTaskName(variant), ApkSizeTask::class.java
+            extractApkSizeTaskName(variant),
+            ApkSizeTask::class.java,
         ) {
             it.apkDirectoryProperty.set(variant.artifacts.get(SingleArtifact.APK))
             it.appSizeOutputFileProperty.set(appSizeFileProvider(project, variant))
         }
 
         val aabSizeProvider = project.tasks.register(
-            extractAabSizeTaskName(variant), AabSizeTask::class.java
+            extractAabSizeTaskName(variant),
+            AabSizeTask::class.java,
         ) {
             it.androidSdkDir.set(sdkDirectory)
             it.bundleFileProperty.set(variant.artifacts.get(SingleArtifact.BUNDLE))
@@ -90,7 +94,8 @@ class MeasurePlugin : Plugin<Project> {
         }
 
         val uploadBuildProvider = project.tasks.register(
-            buildUploadTaskName(variant), BuildUploadTask::class.java
+            buildUploadTaskName(variant),
+            BuildUploadTask::class.java,
         ) {
             it.manifestDataProperty.set(manifestDataFileProvider(project, variant))
             it.mappingFileProperty.set(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
@@ -109,7 +114,6 @@ class MeasurePlugin : Plugin<Project> {
                 it.mustRunAfter(apkSizeProvider, aabSizeProvider)
             }
         }
-
 
         // hook up the upload task to run after any assemble<variant> or bundle<variant>
         // apkSizeProvider should only run for assemble tasks, while aabSizeProvider should only
@@ -139,7 +143,8 @@ class MeasurePlugin : Plugin<Project> {
         "calculateAabSize${variant.name.capitalize()}"
 
     private fun manifestDataFileProvider(
-        project: Project, variant: Variant,
+        project: Project,
+        variant: Variant,
     ): Provider<RegularFile> {
         return project.layout.buildDirectory.file("intermediates/measure/${variant.name}/manifestData.json")
     }

@@ -8,12 +8,12 @@ import sh.measure.android.MeasureInitProvider
 @Serializable
 internal data class ColdLaunchData(
     /**
-     * The start time captured using [Process.getStartUptimeMillis].
+     * The start time captured using [Process.getStartElapsedRealtime].
      */
     val process_start_uptime: Long?,
 
     /**
-     * The start time captured using [Process.getStartRequestedUptimeMillis].
+     * The start time captured using [Process.getStartRequestedElapsedRealtime].
      */
     val process_start_requested_uptime: Long?,
 
@@ -46,12 +46,12 @@ internal data class ColdLaunchData(
 @Serializable
 internal data class WarmLaunchData(
     /**
-     * The start time captured using [Process.getStartUptimeMillis].
+     * The start time captured using [Process.getStartElapsedRealtime].
      */
     val process_start_uptime: Long?,
 
     /**
-     * The start time captured using [Process.getStartRequestedUptimeMillis].
+     * The start time captured using [Process.getStartRequestedElapsedRealtime].
      */
     val process_start_requested_uptime: Long?,
 

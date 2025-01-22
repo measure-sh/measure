@@ -26,6 +26,7 @@ internal class HeartbeatImpl(
     private val logger: Logger,
     private val scheduler: MeasureExecutorService,
 ) : Heartbeat {
+    @Volatile
     private var future: Future<*>? = null
 
     @VisibleForTesting
@@ -39,8 +40,8 @@ internal class HeartbeatImpl(
         if (future != null) {
             return
         }
-        future = try {
-            scheduler.scheduleAtFixedRate(
+        try {
+            future = scheduler.scheduleAtFixedRate(
                 {
                     listeners.forEach(HeartbeatListener::pulse)
                 },

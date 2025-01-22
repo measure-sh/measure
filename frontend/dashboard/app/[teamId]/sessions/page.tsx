@@ -2,7 +2,8 @@
 
 import { emptySessionsOverviewResponse, SessionsOverviewApiStatus, fetchSessionsOverviewFromServer, FiltersApiType } from '@/app/api/api_calls';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
-import Paginator, { PaginationDirection } from '@/app/components/paginator';
+import LoadingBar from '@/app/components/loading_bar';
+import Paginator from '@/app/components/paginator';
 import SessionsOverviewPlot from '@/app/components/sessions_overview_plot';
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils';
 import Link from 'next/link';
@@ -16,38 +17,19 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
     const [filters, setFilters] = useState(defaultFilters);
 
     const [sessionsOverview, setSessionsOverview] = useState(emptySessionsOverviewResponse);
-    const paginationOffset = 5
-    const [paginationRange, setPaginationRange] = useState({ start: 1, end: paginationOffset })
-    const [paginationDirection, setPaginationDirection] = useState(PaginationDirection.None)
+    const paginationLimit = 5
+    const [paginationOffset, setPaginationOffset] = useState(0)
 
     const getSessionsOverview = async () => {
         setSessionsOverviewApiStatus(SessionsOverviewApiStatus.Loading)
 
-        // Set key id if user has paginated. Last index of current list if forward navigation, first index if backward
-        var keyId = null
-        if (sessionsOverview.results !== null && sessionsOverview.results.length > 0) {
-            if (paginationDirection === PaginationDirection.Forward) {
-                keyId = sessionsOverview.results[sessionsOverview.results.length - 1].session_id
-            } else if (paginationDirection === PaginationDirection.Backward) {
-                keyId = sessionsOverview.results[0].session_id
-            }
-        }
-
-        // Invert limit if paginating backward
-        var limit = paginationOffset
-        if (paginationDirection === PaginationDirection.Backward) {
-            limit = - limit
-        }
-
-        const result = await fetchSessionsOverviewFromServer(filters, keyId, limit, router)
+        const result = await fetchSessionsOverviewFromServer(filters, null, null, paginationLimit, paginationOffset, router)
 
         switch (result.status) {
             case SessionsOverviewApiStatus.Error:
-                setPaginationDirection(PaginationDirection.None) // Reset pagination direction to None after API call so that a change in any filters does not cause keyId to be added to the next API call
                 setSessionsOverviewApiStatus(SessionsOverviewApiStatus.Error)
                 break
             case SessionsOverviewApiStatus.Success:
-                setPaginationDirection(PaginationDirection.None) // Reset pagination direction to None after API call so that a change in any filters does not cause keyId to be added to the next API call
                 setSessionsOverviewApiStatus(SessionsOverviewApiStatus.Success)
                 setSessionsOverview(result.data)
                 break
@@ -60,18 +42,14 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
         }
 
         getSessionsOverview()
-    }, [paginationRange, filters]);
+    }, [paginationOffset, filters]);
 
-    // Reset pagination range if not in default if any filters change
     useEffect(() => {
-        // If we reset pagination range even if values haven't changed, we will trigger
-        // an unnecessary getSessionsOverview effect
-        if (paginationRange.start === 1 && paginationRange.end === paginationOffset) {
+        if (!filters.ready) {
             return
         }
-
-        setPaginationRange({ start: 1, end: paginationOffset })
-    }, [filters]);
+        setPaginationOffset(0)
+    }, [filters])
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -98,6 +76,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                 showLocales={true}
                 showDeviceManufacturers={true}
                 showDeviceNames={true}
+                showUdAttrs={true}
                 showFreeText={true}
                 onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
             <div className="py-4" />
@@ -107,34 +86,26 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                 && sessionsOverviewApiStatus === SessionsOverviewApiStatus.Error
                 && <p className="text-lg font-display">Error fetching list of sessions, please change filters, refresh page or select a different app to try again</p>}
 
-            {/* Empty state for sessions fetch */}
-            {filters.ready
-                && sessionsOverviewApiStatus === SessionsOverviewApiStatus.Success
-                && (sessionsOverview.results === null || sessionsOverview.results.length === 0)
-                && <p className="text-lg font-display">It seems there are no sessions for the current combination of filters. Please change filters to try again</p>}
-
             {/* Main sessions list UI */}
             {filters.ready
-                && (sessionsOverviewApiStatus === SessionsOverviewApiStatus.Success || sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading)
-                && sessionsOverview.results !== null
-                && sessionsOverview.results.length > 0 &&
+                && (sessionsOverviewApiStatus === SessionsOverviewApiStatus.Success || sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading) &&
                 <div className="flex flex-col items-center w-full">
                     <div className="py-4" />
                     <SessionsOverviewPlot
                         filters={filters} />
                     <div className="py-4" />
                     <div className='self-end'>
-                        <Paginator prevEnabled={sessionsOverview.meta.previous} nextEnabled={sessionsOverview.meta.next} displayText={paginationRange.start + ' - ' + paginationRange.end}
+                        <Paginator prevEnabled={sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? false : sessionsOverview.meta.previous} nextEnabled={sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? false : sessionsOverview.meta.next} displayText=''
                             onNext={() => {
-                                setPaginationRange({ start: paginationRange.start + paginationOffset, end: paginationRange.end + paginationOffset })
-                                setPaginationDirection(PaginationDirection.Forward)
+                                setPaginationOffset(paginationOffset + paginationLimit)
                             }}
                             onPrev={() => {
-                                setPaginationRange({ start: paginationRange.start - paginationOffset, end: paginationRange.end - paginationOffset })
-                                setPaginationDirection(PaginationDirection.Backward)
+                                setPaginationOffset(paginationOffset - paginationLimit)
                             }} />
                     </div>
-                    <div className="py-1" />
+                    <div className={`py-1 w-full ${sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? 'visible' : 'invisible'}`}>
+                        <LoadingBar />
+                    </div>
                     <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
                         <div className="table-header-group bg-neutral-950">
                             <div className="table-row text-white font-display">
@@ -144,13 +115,13 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                             </div>
                         </div>
                         <div className="table-row-group font-sans">
-                            {sessionsOverview.results.map(({ session_id, app_id, first_event_time, duration, matched_free_text, attribute }) => (
-                                <Link key={session_id} href={`/${params.teamId}/sessions/${app_id}/${session_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
+                            {sessionsOverview.results?.map(({ session_id, app_id, first_event_time, duration, matched_free_text, attribute }, idx) => (
+                                <Link key={`${idx}-${session_id}`} href={`/${params.teamId}/sessions/${app_id}/${session_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
                                     <div className="table-cell p-4">
                                         <p className='truncate'>{session_id}</p>
                                         <div className='py-1' />
                                         <p className='text-xs truncate text-gray-500'>{"v" + attribute.app_version + "(" + attribute.app_build + "), " + attribute.os_name + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
-                                        {matched_free_text !== "" && <p className='p-1 mt-2 w-fit text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
+                                        {matched_free_text !== "" && <p className='p-1 mt-2 text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
                                     </div>
                                     <div className="table-cell p-4 text-center">
                                         <p className='truncate'>{formatDateToHumanReadableDate(first_event_time)}</p>

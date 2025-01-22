@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -10,6 +11,15 @@
         android:gravity="center"
         android:orientation="vertical"
         tools:context="sh.measure.sample.ExceptionDemoActivity">
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/btn_sdk_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:padding="16dp"
+            android:text="@string/start_tracking"
+            app:switchPadding="16dp" />
 
         <Button
             android:id="@+id/btn_single_exception"
@@ -95,6 +105,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/androidx_fragment_navigation" />
+
+        <Button
+            android:id="@+id/btn_generate_span"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/create_span" />
 
     </LinearLayout>
 </ScrollView>

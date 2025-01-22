@@ -1,7 +1,7 @@
 package sh.measure.android.exceptions
 
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.ProcessInfoProvider
@@ -15,7 +15,7 @@ import java.lang.Thread.UncaughtExceptionHandler
  */
 internal class UnhandledExceptionCollector(
     private val logger: Logger,
-    private val eventProcessor: EventProcessor,
+    private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
     private val processInfo: ProcessInfoProvider,
 ) : UncaughtExceptionHandler {
@@ -31,11 +31,16 @@ internal class UnhandledExceptionCollector(
         Thread.setDefaultUncaughtExceptionHandler(this)
     }
 
+    fun unregister() {
+        logger.log(LogLevel.Debug, "Unregistering exception handler")
+        Thread.setDefaultUncaughtExceptionHandler(originalHandler)
+    }
+
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         logger.log(LogLevel.Debug, "Unhandled exception received")
         try {
-            eventProcessor.trackCrash(
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            signalProcessor.trackCrash(
+                timestamp = timeProvider.now(),
                 type = EventType.EXCEPTION,
                 data = ExceptionFactory.createMeasureException(
                     throwable,

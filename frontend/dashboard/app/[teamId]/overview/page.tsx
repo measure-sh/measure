@@ -35,12 +35,13 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         showDeviceManufacturers={false}
         showDeviceNames={false}
         showFreeText={false}
+        showUdAttrs={false}
         onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
 
       <div className="py-4" />
 
       {filters.ready &&
-        <div className='w-5/6 h-[600px]'>
+        <div className='w-5/6 h-[700px]'>
           <Journey
             teamId={params.teamId}
             bidirectional={false}

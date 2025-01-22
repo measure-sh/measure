@@ -34,3 +34,46 @@ export function useScrollDirection() {
 
     return scrollDir;
 }
+
+export function useScrollStop(
+    elementRef: React.RefObject<HTMLElement>,
+    onScrollStop: () => void,
+    delay = 150
+) {
+    useEffect(() => {
+        const element = elementRef.current;
+        if (!element) return;
+
+        let timeoutId: number | null = null;
+        let animating = false;
+
+        const updateScrollState = () => {
+            if (timeoutId) {
+                window.clearTimeout(timeoutId);
+            }
+
+            timeoutId = window.setTimeout(() => {
+                onScrollStop();
+                animating = false;
+            }, delay);
+
+            animating = false;
+        };
+
+        const onScroll = () => {
+            if (!animating) {
+                window.requestAnimationFrame(updateScrollState);
+                animating = true;
+            }
+        };
+
+        element.addEventListener('scroll', onScroll);
+
+        return () => {
+            element.removeEventListener('scroll', onScroll);
+            if (timeoutId) {
+                window.clearTimeout(timeoutId);
+            }
+        };
+    }, [elementRef, onScrollStop, delay]);
+}

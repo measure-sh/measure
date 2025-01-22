@@ -6,6 +6,7 @@ import { ExceptionsType, ExceptionsOverviewPlotApiStatus, fetchExceptionsOvervie
 import { useRouter } from 'next/navigation';
 import { formatDateToHumanReadableDate } from '../utils/time_utils';
 import { Filters } from './filters';
+import LoadingSpinner from './loading_spinner';
 
 interface ExceptionsOverviewPlotProps {
   exceptionsType: ExceptionsType,
@@ -80,6 +81,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
 
   return (
     <div className="flex border border-black font-sans items-center justify-center w-full h-[36rem]">
+      {exceptionsOverviewPlotApiStatus === ExceptionsOverviewPlotApiStatus.Loading && <LoadingSpinner />}
       {exceptionsOverviewPlotApiStatus === ExceptionsOverviewPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {exceptionsOverviewPlotApiStatus === ExceptionsOverviewPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
       {exceptionsOverviewPlotApiStatus === ExceptionsOverviewPlotApiStatus.Success &&
@@ -87,7 +89,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
           data={plot!}
           curve="monotoneX"
           colors={{ scheme: 'nivo' }}
-          margin={{ top: 40, right: 160, bottom: 120, left: 120 }}
+          margin={{ top: 40, right: 120, bottom: 120, left: 120 }}
           xFormat="time:%Y-%m-%d"
           xScale={{
             format: '%Y-%m-%d',
@@ -132,23 +134,6 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
           }}
           pointLabelYOffset={-12}
           useMesh={true}
-          legends={[
-            {
-              anchor: 'bottom-right',
-              direction: 'column',
-              justify: false,
-              translateX: 100,
-              translateY: 0,
-              itemsSpacing: 0,
-              itemDirection: 'left-to-right',
-              itemWidth: 80,
-              itemHeight: 20,
-              itemOpacity: 0.75,
-              symbolSize: 12,
-              symbolShape: 'circle',
-              symbolBorderColor: 'rgba(0, 0, 0, .5)',
-            }
-          ]}
           enableSlices="x"
           sliceTooltip={({ slice }) => {
             return (
@@ -157,6 +142,8 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
                 {slice.points.map((point) => (
                   <div className="flex flex-row items-center p-2" key={point.id}>
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
+                    <div className="px-2" />
+                    <p>{point.serieId.toString()} - </p>
                     <div className="px-2" />
                     <p>{point.data.yFormatted}% {exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'} free sessions, {pointIdToInstanceMap.get(point.id)} {exceptionsType === ExceptionsType.Crash ? (pointIdToInstanceMap.get(point.id)! > 1 ? 'Crashes' : 'Crash') : (pointIdToInstanceMap.get(point.id)! > 1 ? 'ANRs' : 'ANR')} </p>
                   </div>

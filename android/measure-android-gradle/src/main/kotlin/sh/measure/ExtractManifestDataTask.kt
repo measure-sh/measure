@@ -57,26 +57,28 @@ abstract class ExtractManifestDataTask : DefaultTask() {
 
         if (apiKey == null) {
             logger.error(
-                "[ERROR]: $KEY_API_KEY missing in manifest, Measure SDK will not be initialized."
+                "[ERROR]: $KEY_API_KEY missing in manifest, Measure SDK will not be initialized.",
             )
             return
         }
 
         if (apiUrl == null) {
             logger.error(
-                "[ERROR]: $KEY_API_URL missing in manifest, Measure SDK will not be initialized."
+                "[ERROR]: $KEY_API_URL missing in manifest, Measure SDK will not be initialized.",
             )
             return
         }
 
-        @Suppress("OPT_IN_USAGE") Json.encodeToStream(
+        @Suppress("OPT_IN_USAGE")
+        Json.encodeToStream(
             ManifestData(
                 versionCode = versionCode,
                 versionName = versionName,
                 appUniqueId = packageName,
                 apiKey = apiKey,
-                apiUrl = apiUrl
-            ), outputFile.outputStream()
+                apiUrl = apiUrl,
+            ),
+            outputFile.outputStream(),
         )
     }
 

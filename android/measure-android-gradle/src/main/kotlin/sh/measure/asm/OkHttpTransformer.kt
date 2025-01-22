@@ -11,13 +11,16 @@ import sh.measure.isVersionCompatible
 
 class OkHttpTransformer : AsmBytecodeTransformer() {
     override val visitorFactoryClass = OkHttpVisitorFactory::class.java
+
     // Tested from 4.7.0, earlier versions do not have all required event factory overrides
     override val minVersion = SemVer(4, 7, 0)
+
     // Tested up-to 5.0.0-alpha.14 which is the latest version at the time of writing
     override val maxVersion = SemVer(5, 0, 0)
 }
 
-abstract class OkHttpVisitorFactory : AsmClassVisitorFactory<TransformerParameters>,
+abstract class OkHttpVisitorFactory :
+    AsmClassVisitorFactory<TransformerParameters>,
     VersionAwareVisitor<TransformerParameters> {
     override fun isVersionCompatible(
         versions: Map<ModuleInfo, SemVer>,
@@ -25,7 +28,10 @@ abstract class OkHttpVisitorFactory : AsmClassVisitorFactory<TransformerParamete
         maxVersion: SemVer,
     ): Boolean {
         return versions.isVersionCompatible(
-            "com.squareup.okhttp3", "okhttp", minVersion, maxVersion
+            "com.squareup.okhttp3",
+            "okhttp",
+            minVersion,
+            maxVersion,
         )
     }
 
@@ -49,14 +55,24 @@ class OkHttpClassVisitor(classVisitor: ClassVisitor) : ClassVisitor(Opcodes.ASM9
         val methodVisitor = super.visitMethod(access, name, descriptor, signature, exceptions)
         return if (name == "<init>" && descriptor == "(Lokhttp3/OkHttpClient\$Builder;)V") {
             OkHttpMethodVisitor(Opcodes.ASM9, methodVisitor, access, name, descriptor)
-        } else methodVisitor
+        } else {
+            methodVisitor
+        }
     }
 }
 
 class OkHttpMethodVisitor(
-    apiVersion: Int, originalVisitor: MethodVisitor, access: Int, name: String, descriptor: String,
+    apiVersion: Int,
+    originalVisitor: MethodVisitor,
+    access: Int,
+    name: String,
+    descriptor: String,
 ) : AdviceAdapter(
-    apiVersion, originalVisitor, access, name, descriptor
+    apiVersion,
+    originalVisitor,
+    access,
+    name,
+    descriptor,
 ) {
 
     // Stack changes:
@@ -84,21 +100,21 @@ class OkHttpMethodVisitor(
             "okhttp3/OkHttpClient\$Builder",
             "getEventListenerFactory\$okhttp",
             "()Lokhttp3/EventListener\$Factory;",
-            false
+            false,
         )
         visitMethodInsn(
             INVOKESPECIAL,
             "sh/measure/android/okhttp/MeasureEventListenerFactory",
             "<init>",
             "(Lokhttp3/EventListener\$Factory;)V",
-            false
+            false,
         )
         visitMethodInsn(
             INVOKEVIRTUAL,
             "okhttp3/OkHttpClient\$Builder",
             "eventListenerFactory",
             "(Lokhttp3/EventListener\$Factory;)Lokhttp3/OkHttpClient\$Builder;",
-            false
+            false,
         )
 
         // create MeasureOkHttpApplicationInterceptor and add it to the OkHttpClient.Builder
@@ -109,14 +125,14 @@ class OkHttpMethodVisitor(
             "sh/measure/android/okhttp/MeasureOkHttpApplicationInterceptor",
             "<init>",
             "()V",
-            false
+            false,
         )
         visitMethodInsn(
             INVOKEVIRTUAL,
             "okhttp3/OkHttpClient\$Builder",
             "addInterceptor",
             "(Lokhttp3/Interceptor;)Lokhttp3/OkHttpClient\$Builder;",
-            false
+            false,
         )
     }
 }

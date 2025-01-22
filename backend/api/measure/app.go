@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -16,9 +17,12 @@ import (
 	"backend/api/group"
 	"backend/api/journey"
 	"backend/api/metrics"
+	"backend/api/numeric"
 	"backend/api/paginate"
-	"backend/api/replay"
+	"backend/api/platform"
 	"backend/api/server"
+	"backend/api/span"
+	"backend/api/timeline"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -122,9 +126,12 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 	exceptionGroup = &row
 
 	// Get list of event IDs
-	eventDataStmt := sqlf.From(`default.events`).
-		Select(`id`).
-		Where(`exception.fingerprint = (?)`, exceptionGroup.Fingerprint)
+	eventDataStmt := sqlf.From(`events`).
+		Select(`distinct id`).
+		Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", a.ID, exceptionGroup.Fingerprint).
+		Where("type = 'exception'").
+		Where("exception.handled = false").
+		GroupBy("id")
 
 	defer eventDataStmt.Close()
 
@@ -250,19 +257,31 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		exceptionGroup = &groups[i]
 
 		eventDataStmt := sqlf.
-			From("default.events").
-			Select("id").
-			Where("app_id in ?", af.AppID).
-			Where("exception.fingerprint = ?", exceptionGroup.Fingerprint)
+			From("events").
+			Select("distinct id").
+			Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", af.AppID, exceptionGroup.Fingerprint).
+			Where("type = ?", event.TypeException).
+			Where("exception.handled = ?", false)
 
 		defer eventDataStmt.Close()
 
+		if af.HasUDExpression() && !af.UDExpression.Empty() {
+			subQuery := sqlf.From("user_def_attrs").
+				Select("event_id id").
+				Where("app_id = toUUID(?)", af.AppID).
+				Where("exception = true")
+			af.UDExpression.Augment(subQuery)
+			eventDataStmt.Clause("AND id in").SubQuery("(", ")", subQuery)
+		}
+
+		eventDataStmt.GroupBy("id")
+
 		if len(af.Versions) > 0 {
-			eventDataStmt.Where("attribute.app_version in ?", af.Versions)
+			eventDataStmt.Where("attribute.app_version").In(af.Versions)
 		}
 
 		if len(af.VersionCodes) > 0 {
-			eventDataStmt.Where("attribute.app_build in ?", af.VersionCodes)
+			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
 		}
 
 		if len(af.OsNames) > 0 {
@@ -369,9 +388,11 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 	anrGroup = &row
 
 	// Get list of event IDs
-	eventDataStmt := sqlf.From(`default.events`).
-		Select(`id`).
-		Where(`anr.fingerprint = ?`, anrGroup.Fingerprint)
+	eventDataStmt := sqlf.From(`events`).
+		Select(`distinct id`).
+		Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", a.ID, anrGroup.Fingerprint).
+		Where("type = ?", event.TypeANR).
+		GroupBy("id")
 
 	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
 	if err != nil {
@@ -494,19 +515,29 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		anrGroup = &groups[i]
 
 		eventDataStmt := sqlf.
-			From("default.events").
-			Select("id").
-			Where("app_id = ?", af.AppID).
-			Where("anr.fingerprint = ?", anrGroup.Fingerprint)
+			From("events").
+			Select("distinct id").
+			Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", af.AppID, anrGroup.Fingerprint).
+			Where("type = ?", event.TypeANR)
 
 		defer eventDataStmt.Close()
 
+		if af.HasUDExpression() && !af.UDExpression.Empty() {
+			subQuery := sqlf.From("user_def_attrs").
+				Select("event_id id").
+				Where("app_id = toUUID(?)", af.AppID)
+			af.UDExpression.Augment(subQuery)
+			eventDataStmt.Clause("AND id in").SubQuery("(", ")", subQuery)
+		}
+
+		eventDataStmt.GroupBy("id")
+
 		if len(af.Versions) > 0 {
-			eventDataStmt.Where("attribute.app_version in ?", af.Versions)
+			eventDataStmt.Where("attribute.app_version").In(af.Versions)
 		}
 
 		if len(af.VersionCodes) > 0 {
-			eventDataStmt.Where("attribute.app_build in ?", af.VersionCodes)
+			eventDataStmt.Where("attribute.app_build").In(af.VersionCodes)
 		}
 
 		if len(af.OsNames) > 0 {
@@ -650,66 +681,162 @@ func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions 
 	return
 }
 
-// GetCrashFreeMetrics computes crash free sessions percentage
-// of selected app versions and ratio of crash free sessions
-// percentage of selected app versions and crash free sessions
-// percentage of unselected app versions.
-func (a App) GetCrashFreeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (crashFree *metrics.CrashFreeSession, err error) {
+// GetIssueFreeMetrics computes crash and anr free sessions
+// percentage and its deltas.
+//
+// - Crash free sessions
+// - Perceived crash free sessions
+// - ANR free sessions
+// - Perceived ANR free sessions
+func (a App) GetIssueFreeMetrics(
+	ctx context.Context,
+	af *filter.AppFilter,
+	unselectedVersions filter.Versions,
+) (
+	crashFree *metrics.CrashFreeSession,
+	perceivedCrashFree *metrics.PerceivedCrashFreeSession,
+	anrFree *metrics.ANRFreeSession,
+	perceivedANRFree *metrics.PerceivedANRFreeSession,
+	err error,
+) {
 	crashFree = &metrics.CrashFreeSession{}
+	perceivedCrashFree = &metrics.PerceivedCrashFreeSession{}
 
-	stmt := sqlf.
-		With("all_sessions",
-			sqlf.From("default.events").
-				Select("session_id, attribute.app_version, attribute.app_build, type, exception.handled").
-				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, af.AppID, af.From, af.To)).
-		With("t1",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as total_sessions_selected").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
-		With("t2",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_exception_selected").
-				Where("`type` = 'exception' and `exception.handled` = false").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes))
+	switch a.Platform {
+	case platform.Android:
+		anrFree = &metrics.ANRFreeSession{}
+		perceivedANRFree = &metrics.PerceivedANRFreeSession{}
+	}
+
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		return
+	}
+
+	stmt := sqlf.From("app_metrics").
+		Select("uniqMergeIf(unique_sessions, app_version in (?)) as selected_sessions", selectedVersions.Parameterize()).
+		Select("uniqMergeIf(unique_sessions, app_version not in (?)) as unselected_sessions", selectedVersions.Parameterize()).
+		Select("uniqMergeIf(crash_sessions, app_version in (?)) as selected_crash_sessions", selectedVersions.Parameterize()).
+		Select("uniqMergeIf(crash_sessions, app_version not in (?)) as unselected_crash_sessions", selectedVersions.Parameterize()).
+		Select("uniqMergeIf(perceived_crash_sessions, app_version in (?)) as selected_perceived_crash_sessions", selectedVersions.Parameterize()).
+		Select("uniqMergeIf(perceived_crash_sessions, app_version not in (?)) as unselected_perceived_crash_sessions", selectedVersions.Parameterize())
+
+	switch a.Platform {
+	case platform.Android:
+		stmt.
+			Select("uniqMergeIf(anr_sessions, app_version in (?)) as selected_anr_sessions", selectedVersions.Parameterize()).
+			Select("uniqMergeIf(anr_sessions, app_version not in (?)) as unselected_anr_sessions", selectedVersions.Parameterize()).
+			Select("uniqMergeIf(perceived_anr_sessions, app_version in (?)) as selected_perceived_anr_sessions", selectedVersions.Parameterize()).
+			Select("uniqMergeIf(perceived_anr_sessions, app_version not in (?)) as unselected_perceived_anr_sessions", selectedVersions.Parameterize())
+	}
+
+	stmt.
+		Where("app_id = toUUID(?)", af.AppID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	defer stmt.Close()
 
-	dest := []any{&crashFree.CrashFreeSessions}
-	var crashFreeUnselected float64
+	var (
+		selected, unselected                             uint64
+		crashSelected, crashUnselected                   uint64
+		perceivedCrashSelected, perceivedCrashUnselected uint64
+		anrSelected, anrUnselected                       uint64
+		perceivedANRSelected, perceivedANRUnselected     uint64
+		crashFreeUnselected                              float64
+		perceivedCrashFreeUnselected                     float64
+		anrFreeUnselected                                float64
+		perceivedANRFreeUnselected                       float64
+	)
 
-	if !versions.HasVersions() {
-		stmt.
-			Select("round((1 - (t2.count_exception_selected / t1.total_sessions_selected)) * 100, 2) as crash_free_sessions_selected").
-			From("t1, t2")
-	} else {
-		stmt.
-			With("t3",
-				sqlf.From("all_sessions").
-					Select("count(distinct session_id) as total_sessions_unselected").
-					Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())).
-			With("t4", sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_exception_unselected").
-				Where("`type` = 'exception' and `exception.handled` = false").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", versions.Versions(), versions.Codes())).
-			Select("round((1 - (t2.count_exception_selected / t1.total_sessions_selected)) * 100, 2) as crash_free_sessions_selected").
-			Select("round((1 - (t4.count_exception_unselected / t3.total_sessions_unselected)) * 100, 2) as crash_free_sessions_unselected").
-			From("t1, t2, t3, t4")
+	dest := []any{
+		&selected,
+		&unselected,
+		&crashSelected,
+		&crashUnselected,
+		&perceivedCrashSelected,
+		&perceivedCrashUnselected,
+	}
 
-		dest = append(dest, &crashFreeUnselected)
+	switch a.Platform {
+	case platform.Android:
+		dest = append(dest, &anrSelected, &anrUnselected, &perceivedANRSelected, &perceivedANRUnselected)
 	}
 
 	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(dest...); err != nil {
 		return
 	}
 
-	if versions.HasVersions() {
+	if selected == 0 {
+		crashFree.CrashFreeSessions = math.NaN()
+		perceivedCrashFree.CrashFreeSessions = math.NaN()
+
+		switch a.Platform {
+		case platform.Android:
+			anrFree.ANRFreeSessions = math.NaN()
+			perceivedANRFree.ANRFreeSessions = math.NaN()
+		}
+	} else {
+		crashFree.CrashFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(crashSelected) / float64(selected))) * 100)
+		perceivedCrashFree.CrashFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedCrashSelected) / float64(selected))) * 100)
+
+		switch a.Platform {
+		case platform.Android:
+			anrFree.ANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrSelected) / float64(selected))) * 100)
+			perceivedANRFree.ANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRSelected) / float64(selected))) * 100)
+		}
+	}
+
+	if unselected == 0 {
+		crashFreeUnselected = math.NaN()
+		perceivedCrashFreeUnselected = math.NaN()
+
+		switch a.Platform {
+		case platform.Android:
+			anrFreeUnselected = math.NaN()
+			perceivedANRFreeUnselected = math.NaN()
+		}
+	} else {
+		crashFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(crashUnselected) / float64(unselected))) * 100)
+		perceivedCrashFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedCrashUnselected) / float64(unselected))) * 100)
+
+		switch a.Platform {
+		case platform.Android:
+			anrFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrUnselected) / float64(unselected))) * 100)
+			perceivedANRFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRUnselected) / float64(unselected))) * 100)
+		}
+	}
+
+	// compute delta
+	if unselectedVersions.HasVersions() {
 		// avoid division by zero
 		if crashFreeUnselected != 0 {
 			// Round to two decimal places
-			crashFree.Delta = math.Round(crashFree.CrashFreeSessions/crashFreeUnselected*100) / 100
+			crashFree.Delta = numeric.RoundTwoDecimalsFloat64(crashFree.CrashFreeSessions / crashFreeUnselected)
 		} else {
 			crashFree.Delta = 1
 		}
+
+		if perceivedCrashFreeUnselected != 0 {
+			crashFree.Delta = numeric.RoundTwoDecimalsFloat64(perceivedCrashFree.CrashFreeSessions / perceivedCrashFreeUnselected)
+		} else {
+			perceivedCrashFree.Delta = 1
+		}
+
+		switch a.Platform {
+		case platform.Android:
+			if anrFreeUnselected != 0 {
+				anrFree.Delta = numeric.RoundTwoDecimalsFloat64(anrFree.ANRFreeSessions / anrFreeUnselected)
+			} else {
+				anrFree.Delta = 1
+			}
+
+			if perceivedANRFreeUnselected != 0 {
+				perceivedANRFree.Delta = numeric.RoundTwoDecimalsFloat64(perceivedANRFree.ANRFreeSessions / perceivedANRFreeUnselected)
+			} else {
+				perceivedANRFree.Delta = 1
+			}
+		}
+
 	} else {
 		// because if there are no unselected
 		// app versions, then:
@@ -718,233 +845,31 @@ func (a App) GetCrashFreeMetrics(ctx context.Context, af *filter.AppFilter, vers
 		if crashFree.CrashFreeSessions != 0 {
 			crashFree.Delta = 1
 		}
-	}
 
-	crashFree.SetNaNs()
-
-	return
-}
-
-// GetPerceivedCrashFreeMetrics computes perceived crash
-// free sessions percentage of selected app versions and
-// ratio of perceived crash free sessions percentage of
-// selected app versions and perceived crash free sessions
-// percentage of unselected app versions.
-func (a App) GetPerceivedCrashFreeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (crashFree *metrics.PerceivedCrashFreeSession, err error) {
-	crashFree = &metrics.PerceivedCrashFreeSession{}
-	stmt := sqlf.
-		With("all_sessions",
-			sqlf.From("default.events").
-				Select("session_id, attribute.app_version, attribute.app_build, type, exception.handled, exception.foreground").
-				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, af.AppID, af.From, af.To)).
-		With("t1",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as total_sessions_selected").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
-		With("t2",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_exception_selected").
-				Where("`type` = 'exception' and `exception.handled` = false and `exception.foreground` = true").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes))
-
-	defer stmt.Close()
-
-	dest := []any{&crashFree.CrashFreeSessions}
-	var crashFreeUnselected float64
-
-	if !versions.HasVersions() {
-		stmt.
-			Select("round((1 - (t2.count_exception_selected / t1.total_sessions_selected)) * 100, 2) as crash_free_sessions_selected").
-			From("t1, t2")
-	} else {
-		stmt.
-			With("t3",
-				sqlf.From("all_sessions").
-					Select("count(distinct session_id) as total_sessions_unselected").
-					Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())).
-			With("t4", sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_exception_unselected").
-				Where("`type` = 'exception' and `exception.handled` = false").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", versions.Versions(), versions.Codes())).
-			Select("round((1 - (t2.count_exception_selected / t1.total_sessions_selected)) * 100, 2) as crash_free_sessions_selected").
-			Select("round((1 - (t4.count_exception_unselected / t3.total_sessions_unselected)) * 100, 2) as crash_free_sessions_unselected").
-			From("t1, t2, t3, t4")
-
-		dest = append(dest, &crashFreeUnselected)
-	}
-
-	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(dest...); err != nil {
-		return
-	}
-
-	if versions.HasVersions() {
-		// avoid division by zero
-		if crashFreeUnselected != 0 {
-			// Round to two decimal places
-			crashFree.Delta = math.Round(crashFree.CrashFreeSessions/crashFreeUnselected*100) / 100
-		} else {
-			crashFree.Delta = 1
+		if perceivedCrashFree.CrashFreeSessions != 0 {
+			perceivedCrashFree.Delta = 1
 		}
-	} else {
-		// because if there are no unselected
-		// app versions, then:
-		// crash free sessions of unselected app versions = crash free sessions of selected app versions
-		// ratio between the two, will be always 1
-		if crashFree.CrashFreeSessions != 0 {
-			crashFree.Delta = 1
+
+		switch a.Platform {
+		case platform.Android:
+			if anrFree.ANRFreeSessions != 0 {
+				anrFree.Delta = 1
+			}
+
+			if perceivedANRFree.ANRFreeSessions != 0 {
+				perceivedANRFree.Delta = 1
+			}
 		}
 	}
 
 	crashFree.SetNaNs()
+	perceivedCrashFree.SetNaNs()
 
-	return
-}
-
-// GetANRFreeMetrics computes ANR free sessions percentage
-// of selected app versions and ratio of ANR free sessions
-// percentage of selected app versions and ANR free sessions
-// percentage of unselected app versions.
-func (a App) GetANRFreeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (anrFree *metrics.ANRFreeSession, err error) {
-	anrFree = &metrics.ANRFreeSession{}
-	stmt := sqlf.
-		With("all_sessions",
-			sqlf.From("default.events").
-				Select("session_id, attribute.app_version, attribute.app_build, type").
-				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, af.AppID, af.From, af.To)).
-		With("t1",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as total_sessions_selected").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
-		With("t2",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_anr_selected").
-				Where("`type` = 'anr'").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes))
-
-	defer stmt.Close()
-
-	dest := []any{&anrFree.ANRFreeSessions}
-	var anrFreeUnselected float64
-
-	if !versions.HasVersions() {
-		stmt.
-			Select("round((1 - (t2.count_anr_selected / t1.total_sessions_selected)) * 100, 2) as anr_free_sessions_selected").
-			From("t1, t2")
-	} else {
-		stmt.
-			With("t3",
-				sqlf.From("all_sessions").
-					Select("count(distinct session_id) as total_sessions_unselected").
-					Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())).
-			With("t4", sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_anr_unselected").
-				Where("`type` = 'anr'").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", versions.Versions(), versions.Codes())).
-			Select("round((1 - (t2.count_anr_selected / t1.total_sessions_selected)) * 100, 2) as anr_free_sessions_selected").
-			Select("round((1 - (t4.count_anr_unselected / t3.total_sessions_unselected)) * 100, 2) as anr_free_sessions_unselected").
-			From("t1, t2, t3, t4")
-
-		dest = append(dest, &anrFreeUnselected)
+	switch a.Platform {
+	case platform.Android:
+		anrFree.SetNaNs()
+		perceivedANRFree.SetNaNs()
 	}
-
-	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(dest...); err != nil {
-		return
-	}
-
-	if versions.HasVersions() {
-		// avoid division by zero
-		if anrFreeUnselected != 0 {
-			// Round to two decimal places
-			anrFree.Delta = math.Round(anrFree.ANRFreeSessions/anrFreeUnselected*100) / 100
-		} else {
-			anrFree.Delta = 1
-		}
-	} else {
-		// because if there are no unselected
-		// app versions, then:
-		// anr free sessions of unselected app versions = anr free sessions of selected app versions
-		// ratio between the two, will be always 1
-		if anrFree.ANRFreeSessions != 0 {
-			anrFree.Delta = 1
-		}
-	}
-
-	anrFree.SetNaNs()
-
-	return
-}
-
-// GetPerceivedANRFreeMetrics computes perceived ANR
-// free sessions percentage of selected app versions and
-// ratio of perceived ANR free sessions percentage of
-// selected app versions and perceived ANR free sessions
-// percentage of unselected app versions.
-func (a App) GetPerceivedANRFreeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (anrFree *metrics.PerceivedANRFreeSession, err error) {
-	anrFree = &metrics.PerceivedANRFreeSession{}
-	stmt := sqlf.
-		With("all_sessions",
-			sqlf.From("default.events").
-				Select("session_id, attribute.app_version, attribute.app_build, type, anr.foreground").
-				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, af.AppID, af.From, af.To)).
-		With("t1",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as total_sessions_selected").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
-		With("t2",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_anr_selected").
-				Where("`type` = 'anr' and anr.foreground = true").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes))
-
-	defer stmt.Close()
-
-	dest := []any{&anrFree.ANRFreeSessions}
-	var anrFreeUnselected float64
-
-	if !versions.HasVersions() {
-		stmt.
-			Select("round((1 - (t2.count_anr_selected / t1.total_sessions_selected)) * 100, 2) as anr_free_sessions_selected").
-			From("t1, t2")
-	} else {
-		stmt.
-			With("t3",
-				sqlf.From("all_sessions").
-					Select("count(distinct session_id) as total_sessions_unselected").
-					Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())).
-			With("t4", sqlf.From("all_sessions").
-				Select("count(distinct session_id) as count_anr_unselected").
-				Where("`type` = 'anr'").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", versions.Versions(), versions.Codes())).
-			Select("round((1 - (t2.count_anr_selected / t1.total_sessions_selected)) * 100, 2) as anr_free_sessions_selected").
-			Select("round((1 - (t4.count_anr_unselected / t3.total_sessions_unselected)) * 100, 2) as anr_free_sessions_unselected").
-			From("t1, t2, t3, t4")
-
-		dest = append(dest, &anrFreeUnselected)
-	}
-
-	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(dest...); err != nil {
-		return
-	}
-
-	if versions.HasVersions() {
-		// avoid division by zero
-		if anrFreeUnselected != 0 {
-			// Round to two decimal places
-			anrFree.Delta = math.Round(anrFree.ANRFreeSessions/anrFreeUnselected*100) / 100
-		} else {
-			anrFree.Delta = 1
-		}
-	} else {
-		// because if there are no unselected
-		// app versions, then:
-		// anr free sessions of unselected app versions = anr free sessions of selected app versions
-		// ratio between the two, will be always 1
-		if anrFree.ANRFreeSessions != 0 {
-			anrFree.Delta = 1
-		}
-	}
-
-	anrFree.SetNaNs()
 
 	return
 }
@@ -953,26 +878,21 @@ func (a App) GetPerceivedANRFreeMetrics(ctx context.Context, af *filter.AppFilte
 // for selected versions and sessions of all versions for an app.
 func (a App) GetAdoptionMetrics(ctx context.Context, af *filter.AppFilter) (adoption *metrics.SessionAdoption, err error) {
 	adoption = &metrics.SessionAdoption{}
-	stmt := sqlf.From("default.events").
-		With("all_sessions",
-			sqlf.From("default.events").
-				Select("session_id, attribute.app_version, attribute.app_build").
-				Where(`app_id = ? and timestamp >= ? and timestamp <= ?`, af.AppID, af.From, af.To)).
-		With("all_versions",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as all_app_versions")).
-		With("selected_versions",
-			sqlf.From("all_sessions").
-				Select("count(distinct session_id) as selected_app_versions").
-				Where("`attribute.app_version` in ? and `attribute.app_build` in ?", af.Versions, af.VersionCodes)).
-		Select("t1.all_app_versions as all_app_versions").
-		Select("t2.selected_app_versions as selected_app_versions").
-		Select("round((t2.selected_app_versions/t1.all_app_versions) * 100, 2) as adoption").
-		From("all_versions as t1, selected_versions as t2")
+	selectedVersions, err := af.VersionPairs()
+	if err != nil {
+		return
+	}
+
+	stmt := sqlf.From("app_metrics").
+		Select("uniqMergeIf(unique_sessions, app_version in (?)) as selected_sessions", selectedVersions.Parameterize()).
+		Select("uniqMerge(unique_sessions) as all_sessions").
+		Select("round((selected_sessions / all_sessions) * 100, 2) as adoption").
+		Where("app_id = toUUID(?)", af.AppID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	defer stmt.Close()
 
-	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&adoption.AllVersions, &adoption.SelectedVersion, &adoption.Adoption); err != nil {
+	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&adoption.SelectedVersion, &adoption.AllVersions, &adoption.Adoption); err != nil {
 		return
 	}
 
@@ -981,73 +901,46 @@ func (a App) GetAdoptionMetrics(ctx context.Context, af *filter.AppFilter) (adop
 	return
 }
 
-// GetLaunchMetrics computes cold, warm and hot launch percentiles
+// GetLaunchMetrics computes cold, warm and hot launch quantiles
 // and deltas while respecting all applicable app filters.
-// If at least 1 version pair exists, then delta is computed
-// between launch metric values of selected versions and
-// launch metric values of unselected versions.
-func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (launch *metrics.LaunchMetric, err error) {
+// Deltas are computed between launch metric values of selected and
+// unselected app versions.
+func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch *metrics.LaunchMetric, err error) {
 	launch = &metrics.LaunchMetric{}
 
-	coldStmt := sqlf.From("timings").
-		Select("round(quantile(0.95)(cold_launch.duration), 2) as cold_launch").
-		Where("type = 'cold_launch' and cold_launch.duration > 0")
+	selectedVersions, err := af.VersionPairs()
 
-	warmStmt := sqlf.From("timings").
-		Select("round(quantile(0.95)(warm_launch.duration), 2) as warm_launch").
-		Where("type = 'warm_launch' and warm_launch.duration > 0")
+	withStmt := sqlf.From("app_metrics").
+		Select("quantileMergeIf(0.95)(cold_launch_p95, app_version not in (?)) as cold_launch_p95", selectedVersions.Parameterize()).
+		Select("quantileMergeIf(0.95)(warm_launch_p95, app_version not in (?)) as warm_launch_p95", selectedVersions.Parameterize()).
+		Select("quantileMergeIf(0.95)(hot_launch_p95, app_version not in (?)) as hot_launch_p95", selectedVersions.Parameterize()).
+		Where("app_id = toUUID(?)", af.AppID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
-	hotStmt := sqlf.From("timings").
-		Select("round(quantile(0.95)(hot_launch.duration), 2) as hot_launch").
-		Where("type = 'hot_launch' and hot_launch.duration > 0")
+	defer withStmt.Close()
 
-	if versions.HasVersions() {
-		coldStmt.Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())
-		warmStmt.Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())
-		hotStmt.Where("attribute.app_version in ? and attribute.app_build in ?", versions.Versions(), versions.Codes())
-	}
-
-	stmt := sqlf.
-		With("timings",
-			sqlf.From("default.events").
-				Select("type, cold_launch.duration, warm_launch.duration, hot_launch.duration, attribute.app_version, attribute.app_build").
-				Where("app_id = ?", af.AppID).
-				Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
-				Where("(type = 'cold_launch' or type = 'warm_launch' or type = 'hot_launch')")).
-		With("cold_unselected", coldStmt).
-		With("warm_unselected", warmStmt).
-		With("hot_unselected", hotStmt).
-		With("cold_selected",
-			sqlf.From("timings").
-				Select("round(quantile(0.95)(cold_launch.duration), 2) as cold_launch").
-				Where("type = 'cold_launch'").
-				Where("cold_launch.duration > 0").
-				Where("cold_launch.duration <= 30000"). //ignore cold launch durations greater than 30 seconds. See https://github.com/measure-sh/measure/issues/933
-				Where("attribute.app_version in ? and attribute.app_build in ?", af.Versions, af.VersionCodes)).
-		With("warm_selected",
-			sqlf.From("timings").
-				Select("round(quantile(0.95)(warm_launch.duration), 2) as warm_launch").
-				Where("type = 'warm_launch'").
-				Where("warm_launch.duration > 0 and warm_launch.duration <= ?", event.NominalWarmLaunchThreshold.Milliseconds()). //ignore warm launch durations greater than 10 seconds. Similar to https://github.com/measure-sh/measure/issues/933
-				Where("attribute.app_version in ? and attribute.app_build in ?", af.Versions, af.VersionCodes)).
-		With("hot_selected",
-			sqlf.From("timings").
-				Select("round(quantile(0.95)(hot_launch.duration), 2) as hot_launch").
-				Where("type = 'hot_launch'").
-				Where("hot_launch.duration > 0").
-				Where("attribute.app_version in ? and attribute.app_build in ?", af.Versions, af.VersionCodes)).
-		Select("cold_selected.cold_launch as cold_launch_p95").
-		Select("warm_selected.warm_launch as warm_launch_p95").
-		Select("hot_selected.hot_launch as hot_launch_p95").
-		Select("round(cold_selected.cold_launch / cold_unselected.cold_launch, 2) as cold_delta").
-		Select("round(warm_selected.warm_launch / warm_unselected.warm_launch, 2) as warm_delta").
-		Select("round(hot_selected.hot_launch / hot_unselected.hot_launch, 2) as hot_delta").
-		From("cold_selected, warm_selected, hot_selected, cold_unselected, warm_unselected, hot_unselected")
+	stmt := sqlf.New(fmt.Sprintf("with (%s) as unselected select", withStmt.String()), withStmt.Args()...).
+		Select("round(quantileMergeIf(0.95)(cold_launch_p95, app_version in (?)), 2) as selected_cold_launch_p95", selectedVersions.Parameterize()).
+		Select("round(quantileMergeIf(0.95)(warm_launch_p95, app_version in (?)), 2) as selected_warm_launch_p95", selectedVersions.Parameterize()).
+		Select("round(quantileMergeIf(0.95)(hot_launch_p95, app_version in (?)), 2) as selected_hot_launch_p95", selectedVersions.Parameterize()).
+		Select("round((selected_cold_launch_p95 / unselected.cold_launch_p95), 2) as cold_delta").
+		Select("round((selected_warm_launch_p95 / unselected.warm_launch_p95), 2) as warm_delta").
+		Select("round((selected_hot_launch_p95 / unselected.hot_launch_p95), 2) as hot_delta").
+		From("app_metrics").
+		Where("app_id = toUUID(?)", af.AppID).
+		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
 
 	defer stmt.Close()
 
-	if err := server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&launch.ColdLaunchP95, &launch.WarmLaunchP95, &launch.HotLaunchP95, &launch.ColdDelta, &launch.WarmDelta, &launch.ColdDelta); err != nil {
-		return nil, err
+	if err = server.Server.ChPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
+		&launch.ColdLaunchP95,
+		&launch.WarmLaunchP95,
+		&launch.HotLaunchP95,
+		&launch.ColdDelta,
+		&launch.WarmDelta,
+		&launch.HotDelta,
+	); err != nil {
+		return
 	}
 
 	launch.SetNaNs()
@@ -1059,41 +952,79 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter, version
 // and issue events involved in forming
 // an implicit navigational journey.
 func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts filter.JourneyOpts) (events []event.EventField, err error) {
-	whereVals := []any{
-		event.TypeLifecycleActivity,
-		[]string{
-			event.LifecycleActivityTypeCreated,
-			event.LifecycleActivityTypeResumed,
-		},
-		event.TypeLifecycleFragment,
-		[]string{
-			event.LifecycleFragmentTypeAttached,
-			event.LifecycleFragmentTypeResumed,
-		},
+	whereVals := []any{}
+
+	switch a.Platform {
+	case platform.Android:
+		whereVals = append(
+			whereVals,
+			event.TypeLifecycleActivity,
+			[]string{
+				event.LifecycleActivityTypeCreated,
+				event.LifecycleActivityTypeResumed,
+			},
+			event.TypeLifecycleFragment,
+			[]string{
+				event.LifecycleFragmentTypeAttached,
+				event.LifecycleFragmentTypeResumed,
+			},
+		)
+	case platform.IOS:
+		whereVals = append(
+			whereVals,
+			event.TypeLifecycleViewController,
+			[]string{
+				event.LifecycleViewControllerTypeViewDidLoad,
+				event.LifecycleViewControllerTypeViewDidAppear,
+			},
+			event.TypeLifecycleSwiftUI,
+			[]string{
+				event.LifecycleSwiftUITypeOnAppear,
+			},
+		)
 	}
 
 	if opts.All {
-		whereVals = append(whereVals, event.TypeException, false, event.TypeANR)
+		switch a.Platform {
+		case platform.Android:
+			whereVals = append(whereVals, event.TypeException, false, event.TypeANR)
+		case platform.IOS:
+			whereVals = append(whereVals, event.TypeException, false)
+		}
 	} else if opts.Exceptions {
 		whereVals = append(whereVals, event.TypeException, false)
 	} else if opts.ANRs {
-		whereVals = append(whereVals, event.TypeANR)
+		switch a.Platform {
+		case platform.Android:
+			whereVals = append(whereVals, event.TypeANR)
+		}
 	}
 
 	stmt := sqlf.
 		From(`default.events`).
-		Select(`id`).
+		Select(`distinct id`).
 		Select(`toString(type)`).
 		Select(`timestamp`).
 		Select(`session_id`).
-		Select(`toString(lifecycle_activity.type)`).
-		Select(`toString(lifecycle_activity.class_name)`).
-		Select(`toString(lifecycle_fragment.type)`).
-		Select(`toString(lifecycle_fragment.class_name)`).
-		Select(`toString(lifecycle_fragment.parent_activity)`).
-		Select(`toString(lifecycle_fragment.parent_fragment)`).
-		Where(`app_id = ?`, a.ID).
+		Where(`app_id = toUUID(?)`, a.ID).
 		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To)
+
+	switch a.Platform {
+	case platform.Android:
+		stmt.
+			Select(`toString(lifecycle_activity.type)`).
+			Select(`toString(lifecycle_activity.class_name)`).
+			Select(`toString(lifecycle_fragment.type)`).
+			Select(`toString(lifecycle_fragment.class_name)`).
+			Select(`toString(lifecycle_fragment.parent_activity)`).
+			Select(`toString(lifecycle_fragment.parent_fragment)`)
+	case platform.IOS:
+		stmt.
+			Select(`toString(lifecycle_view_controller.type)`).
+			Select(`toString(lifecycle_view_controller.class_name)`).
+			Select(`toString(lifecycle_swift_ui.type)`).
+			Select(`toString(lifecycle_swift_ui.class_name)`)
+	}
 
 	if len(af.Versions) > 0 {
 		stmt.Where("`attribute.app_version` in ?", af.Versions)
@@ -1104,11 +1035,19 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	}
 
 	if opts.All {
-		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
+		switch a.Platform {
+		case platform.Android:
+			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
+		case platform.IOS:
+			stmt.Where("((type = ? and `lifecycle_view_controller.type` in ?) or (type = ? and `lifecycle_swift_ui.type` in ?) or (type = ? and `exception.handled` = ?))", whereVals...)
+		}
 	} else if opts.Exceptions {
 		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ? and `exception.handled` = ?))", whereVals...)
 	} else if opts.ANRs {
-		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?))", whereVals...)
+		switch a.Platform {
+		case platform.Android:
+			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?))", whereVals...)
+		}
 	}
 
 	if len(af.OsNames) > 0 {
@@ -1164,18 +1103,37 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		var lifecycleFragmentClassName string
 		var lifecycleFragmentParentActivity string
 		var lifecycleFragmentParentFragment string
+		var lifecycleViewControllerType string
+		var lifecycleViewControllerClassName string
+		var lifecycleSwiftUIType string
+		var lifecycleSwiftUIClassName string
 
 		dest := []any{
 			&ev.ID,
 			&ev.Type,
 			&ev.Timestamp,
 			&ev.SessionID,
-			&lifecycleActivityType,
-			&lifecycleActivityClassName,
-			&lifecycleFragmentType,
-			&lifecycleFragmentClassName,
-			&lifecycleFragmentParentActivity,
-			&lifecycleFragmentParentFragment,
+		}
+
+		switch a.Platform {
+		case platform.Android:
+			dest = append(
+				dest,
+				&lifecycleActivityType,
+				&lifecycleActivityClassName,
+				&lifecycleFragmentType,
+				&lifecycleFragmentClassName,
+				&lifecycleFragmentParentActivity,
+				&lifecycleFragmentParentFragment,
+			)
+		case platform.IOS:
+			dest = append(
+				dest,
+				&lifecycleViewControllerType,
+				&lifecycleViewControllerClassName,
+				&lifecycleSwiftUIType,
+				&lifecycleSwiftUIClassName,
+			)
 		}
 
 		if err := rows.Scan(dest...); err != nil {
@@ -1193,6 +1151,16 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				ClassName:      lifecycleFragmentClassName,
 				ParentActivity: lifecycleFragmentParentActivity,
 				ParentFragment: lifecycleFragmentParentFragment,
+			}
+		} else if ev.IsLifecycleViewController() {
+			ev.LifecycleViewController = &event.LifecycleViewController{
+				Type:      lifecycleViewControllerType,
+				ClassName: lifecycleViewControllerClassName,
+			}
+		} else if ev.IsLifecycleSwiftUI() {
+			ev.LifecycleSwiftUI = &event.LifecycleSwiftUI{
+				Type:      lifecycleSwiftUIType,
+				ClassName: lifecycleSwiftUIClassName,
 			}
 		} else if ev.IsException() {
 			ev.Exception = &event.Exception{}
@@ -1363,10 +1331,11 @@ func (a *App) getTeam(ctx context.Context) (*Team, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("team_id").
 		From("apps").
-		Where("id = ?", nil)
+		Where("id = ?", a.ID)
+
 	defer stmt.Close()
 
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), a.ID).Scan(&team.ID); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&team.ID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {
@@ -1375,6 +1344,24 @@ func (a *App) getTeam(ctx context.Context) (*Team, error) {
 	}
 
 	return team, nil
+}
+
+func (a *App) Populate(ctx context.Context) (err error) {
+	stmt := sqlf.PostgreSQL.From("apps").
+		Select("team_id::UUID").
+		Select("unique_identifier").
+		Select("app_name").
+		Select("platform").
+		Select("first_version").
+		Select("onboarded").
+		Select("onboarded_at").
+		Select("created_at").
+		Select("updated_at").
+		Where("id = ?", a.ID)
+
+	defer stmt.Close()
+
+	return server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&a.TeamId, &a.UniqueId, &a.AppName, &a.Platform, &a.FirstVersion, &a.Onboarded, &a.OnboardedAt, &a.CreatedAt, &a.UpdatedAt)
 }
 
 func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, platform, firstVersion string) error {
@@ -1434,22 +1421,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`toString(attribute.network_type)`,
 		`toString(attribute.network_generation)`,
 		`toString(attribute.network_provider)`,
-		`anr.fingerprint`,
-		`anr.foreground`,
-		`anr.exceptions`,
-		`anr.threads`,
-		`exception.handled`,
-		`exception.fingerprint`,
-		`exception.foreground`,
-		`exception.exceptions`,
-		`exception.threads`,
-		`toString(app_exit.reason)`,
-		`toString(app_exit.importance)`,
-		`app_exit.trace`,
-		`app_exit.process_name`,
-		`app_exit.pid`,
-		`toString(string.severity_text)`,
-		`string.string`,
+		`user_defined_attribute`,
 		`toString(gesture_long_click.target)`,
 		`toString(gesture_long_click.target_id)`,
 		`gesture_long_click.touch_down_time`,
@@ -1475,15 +1447,11 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`gesture_scroll.end_x`,
 		`gesture_scroll.end_y`,
 		`toString(gesture_scroll.direction)`,
-		`toString(lifecycle_activity.type)`,
-		`toString(lifecycle_activity.class_name)`,
-		`lifecycle_activity.intent`,
-		`lifecycle_activity.saved_instance_state`,
-		`toString(lifecycle_fragment.type)`,
-		`toString(lifecycle_fragment.class_name)`,
-		`lifecycle_fragment.parent_activity`,
-		`lifecycle_fragment.parent_fragment`,
-		`lifecycle_fragment.tag`,
+		`exception.handled`,
+		`exception.fingerprint`,
+		`exception.foreground`,
+		`exception.exceptions`,
+		`exception.threads`,
 		`toString(lifecycle_app.type)`,
 		`cold_launch.process_start_uptime`,
 		`cold_launch.process_start_requested_uptime`,
@@ -1498,7 +1466,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`warm_launch.process_start_requested_uptime`,
 		`warm_launch.content_provider_attach_uptime`,
 		`warm_launch.on_next_draw_uptime`,
-		`warm_launch.launched_activity`,
+		`toString(warm_launch.launched_activity)`,
 		`warm_launch.has_saved_state`,
 		`warm_launch.intent_data`,
 		`warm_launch.duration`,
@@ -1526,22 +1494,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`http.failure_reason`,
 		`http.failure_description`,
 		`toString(http.client)`,
-		`memory_usage.java_max_heap`,
-		`memory_usage.java_total_heap`,
-		`memory_usage.java_free_heap`,
-		`memory_usage.total_pss`,
-		`memory_usage.rss`,
-		`memory_usage.native_total_heap`,
-		`memory_usage.native_free_heap`,
-		`memory_usage.interval`,
-		`low_memory.java_max_heap`,
-		`low_memory.java_total_heap`,
-		`low_memory.java_free_heap`,
-		`low_memory.total_pss`,
-		`low_memory.rss`,
-		`low_memory.native_total_heap`,
-		`low_memory.native_free_heap`,
-		`toString(trim_memory.level)`,
 		`cpu_usage.num_cores`,
 		`cpu_usage.clock_speed`,
 		`cpu_usage.start_time`,
@@ -1552,10 +1504,63 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`cpu_usage.cstime`,
 		`cpu_usage.interval`,
 		`cpu_usage.percentage_usage`,
-		`toString(navigation.to)`,
-		`toString(navigation.from)`,
-		`toString(navigation.source)`,
 		`toString(screen_view.name) `,
+		`custom.name`,
+	}
+
+	switch a.Platform {
+	case platform.Android:
+		cols = append(cols, []string{
+			`anr.fingerprint`,
+			`anr.foreground`,
+			`anr.exceptions`,
+			`anr.threads`,
+			`toString(app_exit.reason)`,
+			`toString(app_exit.importance)`,
+			`app_exit.trace`,
+			`app_exit.process_name`,
+			`app_exit.pid`,
+			`toString(string.severity_text)`,
+			`string.string`,
+			`toString(lifecycle_activity.type)`,
+			`toString(lifecycle_activity.class_name)`,
+			`lifecycle_activity.intent`,
+			`lifecycle_activity.saved_instance_state`,
+			`toString(lifecycle_fragment.type)`,
+			`toString(lifecycle_fragment.class_name)`,
+			`lifecycle_fragment.parent_activity`,
+			`lifecycle_fragment.parent_fragment`,
+			`lifecycle_fragment.tag`,
+			`memory_usage.java_max_heap`,
+			`memory_usage.java_total_heap`,
+			`memory_usage.java_free_heap`,
+			`memory_usage.total_pss`,
+			`memory_usage.rss`,
+			`memory_usage.native_total_heap`,
+			`memory_usage.native_free_heap`,
+			`memory_usage.interval`,
+			`low_memory.java_max_heap`,
+			`low_memory.java_total_heap`,
+			`low_memory.java_free_heap`,
+			`low_memory.total_pss`,
+			`low_memory.rss`,
+			`low_memory.native_total_heap`,
+			`low_memory.native_free_heap`,
+			`toString(trim_memory.level)`,
+			`toString(navigation.to)`,
+			`toString(navigation.from)`,
+			`toString(navigation.source)`,
+		}...)
+	case platform.IOS:
+		cols = append(cols, []string{
+			`toString(lifecycle_view_controller.type)`,
+			`toString(lifecycle_view_controller.class_name)`,
+			`toString(lifecycle_swift_ui.type)`,
+			`toString(lifecycle_swift_ui.class_name)`,
+			`memory_usage_absolute.max_memory`,
+			`memory_usage_absolute.used_memory`,
+			`memory_usage_absolute.interval`,
+		}...)
 	}
 
 	stmt := sqlf.From("default.events")
@@ -1605,10 +1610,16 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		var cpuUsage event.CPUUsage
 		var navigation event.Navigation
 		var screenView event.ScreenView
+		var userDefAttr map[string][]any
+		var custom event.Custom
 
 		var coldLaunchDuration uint32
 		var warmLaunchDuration uint32
 		var hotLaunchDuration uint32
+
+		var lifecycleViewController event.LifecycleViewController
+		var lifecycleSwiftUI event.LifecycleSwiftUI
+		var memoryUsageAbs event.MemoryUsageAbs
 
 		dest := []any{
 			&ev.ID,
@@ -1648,29 +1659,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&ev.Attribute.NetworkGeneration,
 			&ev.Attribute.NetworkProvider,
 
-			// anr
-			&anr.Fingerprint,
-			&anr.Foreground,
-			&anrExceptions,
-			&anrThreads,
-
-			// excpetion
-			&exception.Handled,
-			&exception.Fingerprint,
-			&exception.Foreground,
-			&exceptionExceptions,
-			&exceptionThreads,
-
-			// app exit
-			&appExit.Reason,
-			&appExit.Importance,
-			&appExit.Trace,
-			&appExit.ProcessName,
-			&appExit.PID,
-
-			// log string
-			&logString.SeverityText,
-			&logString.String,
+			// user defined attributes
+			&userDefAttr,
 
 			// gesture long click
 			&gestureLongClick.Target,
@@ -1703,18 +1693,12 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&gestureScroll.EndY,
 			&gestureScroll.Direction,
 
-			// lifecycle activity
-			&lifecycleActivity.Type,
-			&lifecycleActivity.ClassName,
-			&lifecycleActivity.Intent,
-			&lifecycleActivity.SavedInstanceState,
-
-			// lifecycle fragment
-			&lifecycleFragment.Type,
-			&lifecycleFragment.ClassName,
-			&lifecycleFragment.ParentActivity,
-			&lifecycleFragment.ParentFragment,
-			&lifecycleFragment.Tag,
+			// excpetion
+			&exception.Handled,
+			&exception.Fingerprint,
+			&exception.Foreground,
+			&exceptionExceptions,
+			&exceptionThreads,
 
 			// lifecycle app
 			&lifecycleApp.Type,
@@ -1770,28 +1754,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&http.FailureDescription,
 			&http.Client,
 
-			// memory usage
-			&memoryUsage.JavaMaxHeap,
-			&memoryUsage.JavaTotalHeap,
-			&memoryUsage.JavaFreeHeap,
-			&memoryUsage.TotalPSS,
-			&memoryUsage.RSS,
-			&memoryUsage.NativeTotalHeap,
-			&memoryUsage.NativeFreeHeap,
-			&memoryUsage.Interval,
-
-			// low memory
-			&lowMemory.JavaMaxHeap,
-			&lowMemory.JavaTotalHeap,
-			&lowMemory.JavaFreeHeap,
-			&lowMemory.TotalPSS,
-			&lowMemory.RSS,
-			&lowMemory.NativeTotalHeap,
-			&lowMemory.NativeFreeHeap,
-
-			// trim memory
-			&trimMemory.Level,
-
 			// cpu usage
 			&cpuUsage.NumCores,
 			&cpuUsage.ClockSpeed,
@@ -1804,17 +1766,92 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&cpuUsage.Interval,
 			&cpuUsage.PercentageUsage,
 
-			// navigation
-			&navigation.To,
-			&navigation.From,
-			&navigation.Source,
-
 			// screen view
 			&screenView.Name,
+
+			// custom
+			&custom.Name,
+		}
+
+		switch a.Platform {
+		case platform.Android:
+			dest = append(dest, []any{
+				// anr
+				&anr.Fingerprint,
+				&anr.Foreground,
+				&anrExceptions,
+				&anrThreads,
+
+				// app exit
+				&appExit.Reason,
+				&appExit.Importance,
+				&appExit.Trace,
+				&appExit.ProcessName,
+				&appExit.PID,
+
+				// log string
+				&logString.SeverityText,
+				&logString.String,
+
+				// lifecycle activity
+				&lifecycleActivity.Type,
+				&lifecycleActivity.ClassName,
+				&lifecycleActivity.Intent,
+				&lifecycleActivity.SavedInstanceState,
+
+				// lifecycle fragment
+				&lifecycleFragment.Type,
+				&lifecycleFragment.ClassName,
+				&lifecycleFragment.ParentActivity,
+				&lifecycleFragment.ParentFragment,
+				&lifecycleFragment.Tag,
+
+				// memory usage
+				&memoryUsage.JavaMaxHeap,
+				&memoryUsage.JavaTotalHeap,
+				&memoryUsage.JavaFreeHeap,
+				&memoryUsage.TotalPSS,
+				&memoryUsage.RSS,
+				&memoryUsage.NativeTotalHeap,
+				&memoryUsage.NativeFreeHeap,
+				&memoryUsage.Interval,
+
+				// low memory
+				&lowMemory.JavaMaxHeap,
+				&lowMemory.JavaTotalHeap,
+				&lowMemory.JavaFreeHeap,
+				&lowMemory.TotalPSS,
+				&lowMemory.RSS,
+				&lowMemory.NativeTotalHeap,
+				&lowMemory.NativeFreeHeap,
+
+				// trim memory
+				&trimMemory.Level,
+
+				// navigation
+				&navigation.To,
+				&navigation.From,
+				&navigation.Source,
+			}...)
+		case platform.IOS:
+			dest = append(dest, []any{
+				&lifecycleViewController.Type,
+				&lifecycleViewController.ClassName,
+				&lifecycleSwiftUI.Type,
+				&lifecycleSwiftUI.ClassName,
+				&memoryUsageAbs.MaxMemory,
+				&memoryUsageAbs.UsedMemory,
+				&memoryUsageAbs.Interval,
+			}...)
 		}
 
 		if err := rows.Scan(dest...); err != nil {
 			return nil, err
+		}
+
+		// populate user defined attribute
+		if len(userDefAttr) > 0 {
+			ev.UserDefinedAttribute.Scan(userDefAttr)
 		}
 
 		switch ev.Type {
@@ -1852,6 +1889,9 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			ev.GestureLongClick = &gestureLongClick
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureClick:
+			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+				return nil, err
+			}
 			ev.GestureClick = &gestureClick
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureScroll:
@@ -1901,6 +1941,18 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			session.Events = append(session.Events, ev)
 		case event.TypeScreenView:
 			ev.ScreenView = &screenView
+			session.Events = append(session.Events, ev)
+		case event.TypeCustom:
+			ev.Custom = &custom
+			session.Events = append(session.Events, ev)
+		case event.TypeLifecycleViewController:
+			ev.LifecycleViewController = &lifecycleViewController
+			session.Events = append(session.Events, ev)
+		case event.TypeLifecycleSwiftUI:
+			ev.LifecycleSwiftUI = &lifecycleSwiftUI
+			session.Events = append(session.Events, ev)
+		case event.TypeMemoryUsageAbs:
+			ev.MemoryUsageAbs = &memoryUsageAbs
 			session.Events = append(session.Events, ev)
 		default:
 			continue
@@ -2008,7 +2060,19 @@ func GetAppJourney(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "app journey request validation failed"
 
@@ -2040,17 +2104,25 @@ func GetAppJourney(c *gin.Context) {
 		ID: &id,
 	}
 
-	team, err := app.getTeam(ctx)
-	if err != nil {
-		msg := "failed to get team from app id"
+	if err := app.Populate(ctx); err != nil {
+		msg := `failed to fetch app details`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		status := http.StatusInternalServerError
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+			msg = fmt.Sprintf(`app with id %q does not exist`, app.ID)
+		}
+
+		c.JSON(status, gin.H{
+			"error": msg,
+		})
+
 		return
 	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
+
+	team := &Team{
+		ID: &app.TeamId,
 	}
 
 	userId := c.GetString("userId")
@@ -2095,43 +2167,12 @@ func GetAppJourney(c *gin.Context) {
 		if journeyEvents[i].IsUnhandledException() {
 			issueEvents = append(issueEvents, journeyEvents[i])
 		}
-		if journeyEvents[i].IsANR() {
+		if app.Platform == platform.Android && journeyEvents[i].IsANR() {
 			issueEvents = append(issueEvents, journeyEvents[i])
 		}
 	}
 
-	journeyAndroid := journey.NewJourneyAndroid(journeyEvents, &journey.Options{
-		BiGraph: af.BiGraph,
-	})
-
-	if err := journeyAndroid.SetNodeExceptionGroups(func(eventIds []uuid.UUID) ([]group.ExceptionGroup, error) {
-		exceptionGroups, err := group.GetExceptionGroupsFromExceptionIds(ctx, eventIds)
-		if err != nil {
-			return nil, err
-		}
-		return exceptionGroups, nil
-	}); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if err := journeyAndroid.SetNodeANRGroups(func(eventIds []uuid.UUID) ([]group.ANRGroup, error) {
-		anrGroups, err := group.GetANRGroupsFromANRIds(ctx, eventIds)
-		if err != nil {
-			return nil, err
-		}
-		return anrGroups, nil
-	}); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
+	var journeyGraph journey.Journey
 	type Link struct {
 		Source string `json:"source"`
 		Target string `json:"target"`
@@ -2152,60 +2193,176 @@ func GetAppJourney(c *gin.Context) {
 	var nodes []Node
 	var links []Link
 
-	for v := range journeyAndroid.Graph.Order() {
-		journeyAndroid.Graph.Visit(v, func(w int, c int64) bool {
-			var link Link
-			link.Source = journeyAndroid.GetNodeName(v)
-			link.Target = journeyAndroid.GetNodeName(w)
-			link.Value = journeyAndroid.GetEdgeSessionCount(v, w)
-			links = append(links, link)
-			return false
+	switch app.Platform {
+	case platform.Android:
+		journeyGraph = journey.NewJourneyAndroid(journeyEvents, &journey.Options{
+			BiGraph: af.BiGraph,
+		})
+	case platform.IOS:
+		journeyGraph = journey.NewJourneyiOS(journeyEvents, &journey.Options{
+			BiGraph: af.BiGraph,
 		})
 	}
 
-	for _, v := range journeyAndroid.GetNodeVertices() {
-		var node Node
-		name := journeyAndroid.GetNodeName(v)
-		exceptionGroups := journeyAndroid.GetNodeExceptionGroups(name)
-		crashes := []Issue{}
-
-		for i := range exceptionGroups {
-			issue := Issue{
-				ID:    exceptionGroups[i].ID,
-				Title: exceptionGroups[i].GetDisplayTitle(),
-				Count: journeyAndroid.GetNodeExceptionCount(v, exceptionGroups[i].ID),
+	switch j := journeyGraph.(type) {
+	case *journey.JourneyAndroid:
+		if err := j.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
+			// do not hit database if no event ids
+			// to query
+			if len(eventIds) == 0 {
+				return
 			}
-			crashes = append(crashes, issue)
-		}
 
-		// crashes are shown in descending order
-		sort.Slice(crashes, func(i, j int) bool {
-			return crashes[i].Count > crashes[j].Count
-		})
-
-		anrGroups := journeyAndroid.GetNodeANRGroups(name)
-		anrs := []Issue{}
-
-		for i := range anrGroups {
-			issue := Issue{
-				ID:    anrGroups[i].ID,
-				Title: anrGroups[i].GetDisplayTitle(),
-				Count: journeyAndroid.GetNodeANRCount(v, anrGroups[i].ID),
+			exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
+			if err != nil {
+				return
 			}
-			anrs = append(anrs, issue)
+
+			return
+		}); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
 		}
 
-		// ANRs are shown in descending order
-		sort.Slice(anrs, func(i, j int) bool {
-			return anrs[i].Count > anrs[j].Count
-		})
+		if err := j.SetNodeANRGroups(func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error) {
+			// do not hit database if no event ids
+			// to query
+			if len(eventIds) == 0 {
+				return
+			}
 
-		node.ID = name
-		node.Issues = gin.H{
-			"crashes": crashes,
-			"anrs":    anrs,
+			anrGroups, err = group.GetANRGroupsFromANRIds(ctx, &af, eventIds)
+			if err != nil {
+				return
+			}
+
+			return
+		}); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
 		}
-		nodes = append(nodes, node)
+
+		for v := range j.Graph.Order() {
+			j.Graph.Visit(v, func(w int, c int64) bool {
+				var link Link
+				link.Source = j.GetNodeName(v)
+				link.Target = j.GetNodeName(w)
+				link.Value = j.GetEdgeSessionCount(v, w)
+				links = append(links, link)
+				return false
+			})
+		}
+
+		for _, v := range j.GetNodeVertices() {
+			var node Node
+			name := j.GetNodeName(v)
+			exceptionGroups := j.GetNodeExceptionGroups(name)
+			crashes := []Issue{}
+
+			for i := range exceptionGroups {
+				issue := Issue{
+					ID:    exceptionGroups[i].ID,
+					Title: exceptionGroups[i].GetDisplayTitle(),
+					Count: j.GetNodeExceptionCount(v, exceptionGroups[i].ID),
+				}
+				crashes = append(crashes, issue)
+			}
+
+			// crashes are shown in descending order
+			sort.Slice(crashes, func(i, j int) bool {
+				return crashes[i].Count > crashes[j].Count
+			})
+
+			anrGroups := j.GetNodeANRGroups(name)
+			anrs := []Issue{}
+
+			for i := range anrGroups {
+				issue := Issue{
+					ID:    anrGroups[i].ID,
+					Title: anrGroups[i].GetDisplayTitle(),
+					Count: j.GetNodeANRCount(v, anrGroups[i].ID),
+				}
+				anrs = append(anrs, issue)
+			}
+
+			// ANRs are shown in descending order
+			sort.Slice(anrs, func(i, j int) bool {
+				return anrs[i].Count > anrs[j].Count
+			})
+
+			node.ID = name
+			node.Issues = gin.H{
+				"crashes": crashes,
+				"anrs":    anrs,
+			}
+			nodes = append(nodes, node)
+		}
+	case *journey.JourneyiOS:
+		if err := j.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
+			// do not hit database if no event ids
+			// to query
+			if len(eventIds) == 0 {
+				return
+			}
+
+			exceptionGroups, err = group.GetExceptionGroupsFromExceptionIds(ctx, &af, eventIds)
+			if err != nil {
+				return
+			}
+
+			return
+		}); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		for v := range j.Graph.Order() {
+			j.Graph.Visit(v, func(w int, c int64) bool {
+				var link Link
+				link.Source = j.GetNodeName(v)
+				link.Target = j.GetNodeName(w)
+				link.Value = j.GetEdgeSessionCount(v, w)
+				links = append(links, link)
+				return false
+			})
+		}
+
+		for _, v := range j.GetNodeVertices() {
+			var node Node
+			name := j.GetNodeName(v)
+			exceptionGroups := j.GetNodeExceptionGroups(name)
+			crashes := []Issue{}
+
+			for i := range exceptionGroups {
+				issue := Issue{
+					ID:    exceptionGroups[i].ID,
+					Title: exceptionGroups[i].GetDisplayTitle(),
+					Count: j.GetNodeExceptionCount(v, exceptionGroups[i].ID),
+				}
+				crashes = append(crashes, issue)
+			}
+
+			// crashes are shown in descending order
+			sort.Slice(crashes, func(i, j int) bool {
+				return crashes[i].Count > crashes[j].Count
+			})
+
+			node.ID = name
+			node.Issues = gin.H{
+				"crashes": crashes,
+				"anrs":    []Issue{},
+			}
+			nodes = append(nodes, node)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -2242,7 +2399,19 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := `app metrics request validation failed`
 
@@ -2274,17 +2443,25 @@ func GetAppMetrics(c *gin.Context) {
 		ID: &id,
 	}
 
-	team, err := app.getTeam(ctx)
-	if err != nil {
-		msg := "failed to get team from app id"
+	if err := app.Populate(ctx); err != nil {
+		msg := `failed to fetch app details`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		status := http.StatusInternalServerError
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+			msg = fmt.Sprintf(`app with id %q does not exist`, app.ID)
+		}
+
+		c.JSON(status, gin.H{
+			"error": msg,
+		})
+
 		return
 	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
+
+	team := &Team{
+		ID: &app.TeamId,
 	}
 
 	userId := c.GetString("userId")
@@ -2310,19 +2487,9 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	msg = `failed to fetch app metrics`
-
 	excludedVersions, err := af.GetExcludedVersions(ctx)
 	if err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	launch, err := app.GetLaunchMetrics(ctx, &af, excludedVersions)
-	if err != nil {
+		msg := `failed to fetch excluded versions`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -2332,6 +2499,27 @@ func GetAppMetrics(c *gin.Context) {
 
 	adoption, err := app.GetAdoptionMetrics(ctx, &af)
 	if err != nil {
+		msg := `failed to fetch adoption metrics`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err := app.GetIssueFreeMetrics(ctx, &af, excludedVersions)
+	if err != nil {
+		msg := `failed to fetch issue free metrics`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	launch, err := app.GetLaunchMetrics(ctx, &af)
+	if err != nil {
+		msg := `failed to fetch launch metrics`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -2343,48 +2531,13 @@ func GetAppMetrics(c *gin.Context) {
 	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 && !af.HasMultiVersions() {
 		sizes, err = app.GetSizeMetrics(ctx, &af, excludedVersions)
 		if err != nil {
+			msg := `failed to fetch size metrics`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": msg,
 			})
 			return
 		}
-	}
-
-	crashFree, err := app.GetCrashFreeMetrics(ctx, &af, excludedVersions)
-	if err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	anrFree, err := app.GetANRFreeMetrics(ctx, &af, excludedVersions)
-	if err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	perceivedCrashFree, err := app.GetPerceivedCrashFreeMetrics(ctx, &af, excludedVersions)
-	if err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	perceivedANRFree, err := app.GetPerceivedANRFreeMetrics(ctx, &af, excludedVersions)
-	if err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -2417,7 +2570,9 @@ func GetAppFilters(c *gin.Context) {
 	if err != nil {
 		msg := `id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2431,14 +2586,20 @@ func GetAppFilters(c *gin.Context) {
 	if err := c.ShouldBindQuery(&af); err != nil {
 		msg := `failed to parse query parameters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
 	if err := af.Validate(); err != nil {
 		msg := "app filters request validation failed"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
@@ -2450,12 +2611,16 @@ func GetAppFilters(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2464,7 +2629,9 @@ func GetAppFilters(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2472,13 +2639,17 @@ func GetAppFilters(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if !okTeam || !okApp {
 		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2487,7 +2658,9 @@ func GetAppFilters(c *gin.Context) {
 	if err := af.GetGenericFilters(ctx, &fl); err != nil {
 		msg := `failed to query app filters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2505,6 +2678,24 @@ func GetAppFilters(c *gin.Context) {
 		osVersions = append(osVersions, osVersion)
 	}
 
+	udAttrs := gin.H{
+		"operator_types": nil,
+		"key_types":      nil,
+	}
+
+	if af.UDAttrKeys {
+		if err := af.GetUserDefinedAttrKeys(ctx, &fl); err != nil {
+			msg := `failed to query user defined attribute keys`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+		udAttrs["operator_types"] = event.GetUDAttrsOpMap()
+		udAttrs["key_types"] = fl.UDKeyTypes
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"versions":             versions,
 		"os_versions":          osVersions,
@@ -2515,6 +2706,7 @@ func GetAppFilters(c *gin.Context) {
 		"locales":              fl.DeviceLocales,
 		"device_manufacturers": fl.DeviceManufacturers,
 		"device_names":         fl.DeviceNames,
+		"ud_attrs":             udAttrs,
 	})
 }
 
@@ -2524,7 +2716,9 @@ func GetCrashOverview(c *gin.Context) {
 	if err != nil {
 		msg := `id invalid or missing`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2536,16 +2730,34 @@ func GetCrashOverview(c *gin.Context) {
 	if err := c.ShouldBindQuery(&af); err != nil {
 		msg := `failed to parse query parameters`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "crash overview request validation failed"
 	if err := af.Validate(); err != nil {
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
@@ -2571,12 +2783,16 @@ func GetCrashOverview(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 	if team == nil {
 		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2585,7 +2801,9 @@ func GetCrashOverview(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2593,13 +2811,17 @@ func GetCrashOverview(c *gin.Context) {
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
 	if !okTeam || !okApp {
 		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2607,7 +2829,9 @@ func GetCrashOverview(c *gin.Context) {
 	if err != nil {
 		msg := "failed to get app's exception groups with filter"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -2662,7 +2886,20 @@ func GetCrashOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
 	msg := `crash overview request validation failed`
 
 	if err := af.Validate(); err != nil {
@@ -2799,7 +3036,19 @@ func GetCrashDetailCrashes(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "app filters request validation failed"
 	if err := af.Validate(); err != nil {
@@ -2875,7 +3124,7 @@ func GetCrashDetailCrashes(c *gin.Context) {
 		return
 	}
 
-	eventExceptions, next, previous, err := GetExceptionsWithFilter(ctx, group.EventIDs, &af)
+	eventExceptions, next, previous, err := GetExceptionsWithFilter(ctx, group, &af)
 	if err != nil {
 		msg := `failed to get exception group's exception events`
 		fmt.Println(msg, err)
@@ -2887,7 +3136,7 @@ func GetCrashDetailCrashes(c *gin.Context) {
 	for i := range eventExceptions {
 		if len(eventExceptions[i].Attachments) > 0 {
 			for j := range eventExceptions[i].Attachments {
-				if err := eventExceptions[i].Attachments[j].PreSignURL(); err != nil {
+				if err := eventExceptions[i].Attachments[j].PreSignURL(ctx); err != nil {
 					msg := `failed to generate URLs for attachment`
 					fmt.Println(msg, err)
 					c.JSON(http.StatusInternalServerError, gin.H{
@@ -2941,7 +3190,19 @@ func GetCrashDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "app filters request validation failed"
 	if err := af.Validate(); err != nil {
@@ -3011,7 +3272,7 @@ func GetCrashDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	crashInstances, err := GetIssuesPlot(ctx, group.EventIDs, &af)
+	crashInstances, err := GetIssuesPlot(ctx, group, &af)
 	if err != nil {
 		msg := `failed to query data for crash instances plot`
 		fmt.Println(msg, err)
@@ -3051,6 +3312,134 @@ func GetCrashDetailPlotInstances(c *gin.Context) {
 	c.JSON(http.StatusOK, instances)
 }
 
+func GetCrashDetailAttributeDistribution(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	crashGroupId, err := uuid.Parse(c.Param("crashGroupId"))
+	if err != nil {
+		msg := `crash group id is invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "app filters request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	group, err := app.GetExceptionGroup(ctx, crashGroupId)
+	if err != nil {
+		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId.String())
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	distribution, err := GetIssuesAttributeDistribution(ctx, group, &af)
+	if err != nil {
+		msg := `failed to query data for crash distribution plot`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, distribution)
+}
+
 func GetCrashDetailPlotJourney(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
@@ -3081,7 +3470,19 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := `crash detail journey plot request validation failed`
 	if err := af.Validate(); err != nil {
@@ -3273,7 +3674,19 @@ func GetANROverview(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "anr overview request validation failed"
 	if err := af.Validate(); err != nil {
@@ -3395,7 +3808,19 @@ func GetANROverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "ANR overview request validation failed"
 	if err := af.Validate(); err != nil {
@@ -3534,7 +3959,19 @@ func GetANRDetailANRs(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "app filters request validation failed"
 	if err := af.Validate(); err != nil {
@@ -3598,7 +4035,7 @@ func GetANRDetailANRs(c *gin.Context) {
 
 	group, err := app.GetANRGroup(ctx, anrGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get anr group with id %q", anrGroupId.String())
+		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId.String())
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -3613,7 +4050,7 @@ func GetANRDetailANRs(c *gin.Context) {
 		return
 	}
 
-	eventANRs, next, previous, err := GetANRsWithFilter(ctx, group.EventIDs, &af)
+	eventANRs, next, previous, err := GetANRsWithFilter(ctx, group, &af)
 	if err != nil {
 		msg := `failed to get anr group's anr events`
 		fmt.Println(msg, err)
@@ -3625,7 +4062,7 @@ func GetANRDetailANRs(c *gin.Context) {
 	for i := range eventANRs {
 		if len(eventANRs[i].Attachments) > 0 {
 			for j := range eventANRs[i].Attachments {
-				if err := eventANRs[i].Attachments[j].PreSignURL(); err != nil {
+				if err := eventANRs[i].Attachments[j].PreSignURL(ctx); err != nil {
 					msg := `failed to generate URLs for attachment`
 					fmt.Println(msg, err)
 					c.JSON(http.StatusInternalServerError, gin.H{
@@ -3676,7 +4113,168 @@ func GetANRDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "app filters request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	group, err := app.GetANRGroup(ctx, anrGroupId)
+	if err != nil {
+		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId.String())
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	anrInstances, err := GetIssuesPlot(ctx, group, &af)
+	if err != nil {
+		msg := `failed to query data for anr instances plot`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	type instance struct {
+		ID   string  `json:"id"`
+		Data []gin.H `json:"data"`
+	}
+
+	lut := make(map[string]int)
+	var instances []instance
+
+	for i := range anrInstances {
+		instance := instance{
+			ID: anrInstances[i].Version,
+			Data: []gin.H{{
+				"datetime":  anrInstances[i].DateTime,
+				"instances": anrInstances[i].Instances,
+			}},
+		}
+
+		ndx, ok := lut[anrInstances[i].Version]
+
+		if ok {
+			instances[ndx].Data = append(instances[ndx].Data, instance.Data...)
+		} else {
+			instances = append(instances, instance)
+			lut[anrInstances[i].Version] = len(instances) - 1
+		}
+	}
+
+	c.JSON(http.StatusOK, instances)
+}
+
+func GetANRDetailAttributeDistribution(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	anrGroupId, err := uuid.Parse(c.Param("anrGroupId"))
+	if err != nil {
+		msg := `anr group id is invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "app filters request validation failed"
 	if err := af.Validate(); err != nil {
@@ -3743,9 +4341,9 @@ func GetANRDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	anrInstances, err := GetIssuesPlot(ctx, group.EventIDs, &af)
+	distribution, err := GetIssuesAttributeDistribution(ctx, group, &af)
 	if err != nil {
-		msg := `failed to query data for anr instances plot`
+		msg := `failed to query data for anr distribution plot`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -3753,34 +4351,7 @@ func GetANRDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	type instance struct {
-		ID   string  `json:"id"`
-		Data []gin.H `json:"data"`
-	}
-
-	lut := make(map[string]int)
-	var instances []instance
-
-	for i := range anrInstances {
-		instance := instance{
-			ID: anrInstances[i].Version,
-			Data: []gin.H{{
-				"datetime":  anrInstances[i].DateTime,
-				"instances": anrInstances[i].Instances,
-			}},
-		}
-
-		ndx, ok := lut[anrInstances[i].Version]
-
-		if ok {
-			instances[ndx].Data = append(instances[ndx].Data, instance.Data...)
-		} else {
-			instances = append(instances, instance)
-			lut[anrInstances[i].Version] = len(instances) - 1
-		}
-	}
-
-	c.JSON(http.StatusOK, instances)
+	c.JSON(http.StatusOK, distribution)
 }
 
 func GetANRDetailPlotJourney(c *gin.Context) {
@@ -3816,7 +4387,19 @@ func GetANRDetailPlotJourney(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := `ANR detail journey plot request validation failed`
 	if err := af.Validate(); err != nil {
@@ -4055,7 +4638,19 @@ func GetSessionsOverview(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
 
 	msg := "sessions overview request validation failed"
 	if err := af.Validate(); err != nil {
@@ -4121,285 +4716,24 @@ func GetSessionsOverview(c *gin.Context) {
 		return
 	}
 
-	sessions, err := app.GetSessionsWithFilter(ctx, &af)
+	sessions, next, previous, err := GetSessionsWithFilter(ctx, &af)
 	if err != nil {
-		msg := "failed to get app's sessions matching filter"
+		msg := "failed to get app's sessions"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 
-	sessions, next, previous := paginate.Paginate(sessions, &af)
-	meta := gin.H{"next": next, "previous": previous}
-
-	c.JSON(http.StatusOK, gin.H{"results": sessions, "meta": meta})
+	c.JSON(http.StatusOK, gin.H{
+		"results": sessions,
+		"meta": gin.H{
+			"next":     next,
+			"previous": previous,
+		},
+	})
 }
 
-// GetSessionsWithFilters returns a slice of sessions of an app.
-func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions []Session, err error) {
-	base := sqlf.
-		From("default.events").
-		Select("session_id").
-		Select("app_id").
-		Select("toString(any(attribute.app_version)) AS app_version").
-		Select("toString(any(attribute.app_build)) AS app_build").
-		Select("toString(any(attribute.user_id)) AS user_id").
-		Select("toString(any(attribute.device_name)) AS device_name").
-		Select("toString(any(attribute.device_model)) AS device_model").
-		Select("toString(any(attribute.device_manufacturer)) AS device_manufacturer").
-		Select("toString(any(attribute.os_name)) AS os_name").
-		Select("toString(any(attribute.os_version)) AS os_version")
-
-	if af.FreeText != "" {
-		base.Select(
-			"COALESCE("+
-				"multiIf("+
-				"any(attribute.user_id) ILIKE ?, concat('User ID: ', any(attribute.user_id)),"+
-				"any(string.string) ILIKE ?, concat('Log: ', any(string.string)),"+
-				"any(exception.exceptions) ILIKE ?, concat('Exception: ',any(exception.exceptions)),"+
-				"any(anr.exceptions) ILIKE ?, concat('ANR: ', any(anr.exceptions)),"+
-				"any(type) ILIKE ?, any(type),"+
-				"any(lifecycle_activity.class_name) ILIKE ?, concat('Activity: ', any(lifecycle_activity.class_name)),"+
-				"any(lifecycle_fragment.class_name) ILIKE ?, concat('Fragment: ', any(lifecycle_fragment.class_name)),"+
-				"any(gesture_click.target_id) ILIKE ?, concat('Gesture Click: ', any(gesture_click.target_id)),"+
-				"any(gesture_long_click.target_id) ILIKE ?, concat('Gesture Long Click: ', any(gesture_long_click.target_id)),"+
-				"any(gesture_scroll.target_id) ILIKE ?, concat('Gesture Scroll: ', any(gesture_scroll.target_id)),"+
-				"any(gesture_click.target) ILIKE ?, concat('Gesture Click: ', any(gesture_click.target)),"+
-				"any(gesture_long_click.target) ILIKE ?, concat('Gesture Long Click: ', any(gesture_long_click.target)),"+
-				"any(gesture_scroll.target) ILIKE ?, concat('Gesture Scroll: ', any(gesture_scroll.target)),"+
-				"any(screen_view.name) ILIKE ?, concat('Screen View: ', any(screen_view.name)),"+
-				"''"+
-				")"+
-				") AS matched_free_text",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%")
-	} else {
-		base.Select("'' AS matched_free_text")
-	}
-
-	base.Where("app_id = ?", af.AppID)
-
-	if len(af.Versions) > 0 {
-		base.Where("attribute.app_version").In(af.Versions)
-	}
-
-	if len(af.VersionCodes) > 0 {
-		base.Where("attribute.app_build").In(af.VersionCodes)
-	}
-
-	if af.Crash && af.ANR {
-		base.Where("((type = 'exception' AND exception.handled = false) OR type = 'anr')")
-	} else if af.Crash {
-		base.Where("type = 'exception' AND exception.handled = false")
-	} else if af.ANR {
-		base.Where("type = 'anr'")
-	}
-
-	if len(af.OsNames) > 0 {
-		base.Where("attribute.os_name").In(af.OsNames)
-	}
-
-	if len(af.OsVersions) > 0 {
-		base.Where("attribute.os_version").In(af.OsVersions)
-	}
-
-	if len(af.Countries) > 0 {
-		base.Where("inet.country_code").In(af.Countries)
-	}
-
-	if len(af.DeviceNames) > 0 {
-		base.Where("attribute.device_name").In(af.DeviceNames)
-	}
-
-	if len(af.DeviceManufacturers) > 0 {
-		base.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
-	}
-
-	if len(af.Locales) > 0 {
-		base.Where("attribute.device_locale").In(af.Locales)
-	}
-
-	if len(af.NetworkProviders) > 0 {
-		base.Where("attribute.network_provider").In(af.NetworkProviders)
-	}
-
-	if len(af.NetworkTypes) > 0 {
-		base.Where("attribute.network_type").In(af.NetworkTypes)
-	}
-
-	if len(af.NetworkGenerations) > 0 {
-		base.Where("attribute.network_generation").In(af.NetworkGenerations)
-	}
-
-	if af.FreeText != "" {
-		base.Where(
-			"("+
-				"attribute.user_id ILIKE ? OR "+
-				"string.string ILIKE ? OR "+
-				"toString(exception.exceptions) ILIKE ? OR "+
-				"toString(anr.exceptions) ILIKE ? OR "+
-				"type ILIKE ? OR "+
-				"lifecycle_activity.class_name ILIKE ? OR "+
-				"lifecycle_fragment.class_name ILIKE ? OR "+
-				"gesture_click.target_id ILIKE ? OR "+
-				"gesture_long_click.target_id ILIKE ? OR "+
-				"gesture_scroll.target_id ILIKE ? OR "+
-				"gesture_click.target ILIKE ? OR "+
-				"gesture_long_click.target ILIKE ? OR "+
-				"gesture_scroll.target ILIKE ? OR "+
-				"screen_view.name ILIKE ?"+
-				")",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%",
-			"%"+af.FreeText+"%")
-	}
-
-	if af.HasTimeRange() {
-		base.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-	}
-
-	base.GroupBy("session_id, app_id")
-
-	eventTimesStmt := sqlf.
-		From("default.events").
-		Select("session_id").
-		Select("MIN(timestamp) AS first_event_time").
-		Select("MAX(timestamp) AS last_event_time").
-		Where("app_id = ?", af.AppID).
-		GroupBy("session_id")
-
-	stmt := sqlf.
-		With("base_events", base).
-		With("event_times", eventTimesStmt).
-		From("base_events").
-		Join("event_times e ", "base_events.session_id = e.session_id").
-		Select("session_id").
-		Select("app_id").
-		Select("app_version").
-		Select("app_build").
-		Select("user_id").
-		Select("device_name").
-		Select("device_model").
-		Select("device_manufacturer").
-		Select("os_name").
-		Select("os_version").
-		Select("first_event_time").
-		Select("last_event_time").
-		Select("matched_free_text").
-		OrderBy("first_event_time desc")
-
-	defer stmt.Close()
-
-	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return nil, err
-	}
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-
-	defer rows.Close()
-
-	sessions = []Session{}
-	for rows.Next() {
-		var session Session
-		session.Attribute = &event.Attribute{}
-
-		if err := rows.Scan(&session.SessionID,
-			&session.AppID,
-			&session.Attribute.AppVersion,
-			&session.Attribute.AppBuild,
-			&session.Attribute.UserID,
-			&session.Attribute.DeviceName,
-			&session.Attribute.DeviceModel,
-			&session.Attribute.DeviceManufacturer,
-			&session.Attribute.OSName,
-			&session.Attribute.OSVersion,
-			&session.FirstEventTime,
-			&session.LastEventTime,
-			&session.MatchedFreeText); err != nil {
-			return nil, err
-		}
-
-		if af.FreeText != "" {
-			session.MatchedFreeText = extractShortenedMatchedFreeText(af.FreeText, session.MatchedFreeText)
-		}
-
-		session.Duration = session.DurationFromTimeStamps().Milliseconds()
-
-		sessions = append(sessions, session)
-	}
-
-	return sessions, nil
-}
-
-func extractShortenedMatchedFreeText(inputFreeText, matchedFreeText string) string {
-	matchedFreeTextForwardChars := 24
-	matchedFreeTextBackwardChars := 24
-
-	// Remove null padding that clickhouse adds in some cases
-	matchedFreeText = strings.ReplaceAll(matchedFreeText, "\u0000", "")
-
-	// Find the first occurrence of ':' in matchedFreeText and extract everything before it as the prefix
-	colonIdx := strings.Index(matchedFreeText, ":")
-	prefix := ""
-	if colonIdx != -1 {
-		prefix = matchedFreeText[:colonIdx+1]          // Include ':' in the prefix
-		matchedFreeText = matchedFreeText[colonIdx+1:] // Remove the prefix from matchedFreeText
-	}
-
-	// Convert both strings to lowercase for case-insensitive comparison
-	lowerInputFreeText := strings.ToLower(inputFreeText)
-	lowerMatchedFreeText := strings.ToLower(matchedFreeText)
-
-	// Find the index of inputFreeText in matchedFreeText (case-insensitive)
-	idx := strings.Index(lowerMatchedFreeText, lowerInputFreeText)
-	if idx == -1 {
-		return "" // Substring not found
-	}
-
-	// Calculate the start and end positions for the padded substring
-	start := idx - matchedFreeTextBackwardChars
-	if start < 0 {
-		start = 0
-	}
-
-	end := idx + len(inputFreeText) + matchedFreeTextForwardChars
-	if end > len(matchedFreeText) {
-		end = len(matchedFreeText)
-	}
-
-	// Extract the padded substring from the original matchedFreeText (not lowercased)
-	result := matchedFreeText[start:end]
-
-	// Return the prefix followed by the result
-	return strings.TrimSpace(prefix + " " + result)
-}
-
-func GetSessionsOverviewPlot(c *gin.Context) {
+func GetSessionsOverviewPlotInstances(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -4426,14 +4760,34 @@ func GetSessionsOverviewPlot(c *gin.Context) {
 		return
 	}
 
-	af.Expand()
-	msg := `sessions overview plot instances request validation failed`
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := `sessions overview request validation failed`
 
 	if err := af.Validate(); err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   msg,
 			"details": err.Error(),
+		})
+		return
+	}
+
+	if !af.HasTimezone() {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "missing required field `timezone`",
 		})
 		return
 	}
@@ -4492,7 +4846,7 @@ func GetSessionsOverviewPlot(c *gin.Context) {
 		return
 	}
 
-	sessionInstances, err := GetSessionsPlot(ctx, &af)
+	sessionInstances, err := GetSessionsInstancesPlot(ctx, &af)
 	if err != nil {
 		msg := `failed to query data for sessions overview plot`
 		fmt.Println(msg, err)
@@ -4553,18 +4907,26 @@ func GetSession(c *gin.Context) {
 	app := &App{
 		ID: &appId,
 	}
-	team, err := app.getTeam(ctx)
-	if err != nil {
-		msg := `failed to fetch team from app`
+
+	if err := app.Populate(ctx); err != nil {
+		msg := `failed to fetch app details`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		status := http.StatusInternalServerError
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+			msg = fmt.Sprintf(`app with id %q does not exist`, app.ID)
+		}
+
+		c.JSON(status, gin.H{
+			"error": msg,
+		})
+
 		return
 	}
-	if team == nil {
-		msg := fmt.Sprintf(`no team exists for app id: %q`, app.ID)
-		fmt.Println(msg)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
+
+	team := &Team{
+		ID: &app.TeamId,
 	}
 
 	userId := c.GetString("userId")
@@ -4597,7 +4959,7 @@ func GetSession(c *gin.Context) {
 
 	session, err := app.GetSessionEvents(ctx, sessionId)
 	if err != nil {
-		msg := `failed to fetch session data for replay`
+		msg := `failed to fetch session data for timeline`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -4618,7 +4980,7 @@ func GetSession(c *gin.Context) {
 			continue
 		}
 		for j := range session.Events[i].Attachments {
-			if err := session.Events[i].Attachments[j].PreSignURL(); err != nil {
+			if err := session.Events[i].Attachments[j].PreSignURL(ctx); err != nil {
 				msg := `failed to generate URLs for attachment`
 				fmt.Println(msg, err)
 				c.JSON(http.StatusInternalServerError, gin.H{
@@ -4631,10 +4993,13 @@ func GetSession(c *gin.Context) {
 
 	duration := session.DurationFromEvents().Milliseconds()
 	cpuUsageEvents := session.EventsOfType(event.TypeCPUUsage)
-	cpuUsages := replay.ComputeCPUUsage(cpuUsageEvents)
+	cpuUsages := timeline.ComputeCPUUsage(cpuUsageEvents)
 
 	memoryUsageEvents := session.EventsOfType(event.TypeMemoryUsage)
-	memoryUsages := replay.ComputeMemoryUsage(memoryUsageEvents)
+	memoryUsages := timeline.ComputeMemoryUsage(memoryUsageEvents)
+
+	memoryUsageAbsEvents := session.EventsOfType(event.TypeMemoryUsageAbs)
+	memoryUsageAbsolutes := timeline.ComputeMemoryUsageAbs(memoryUsageAbsEvents)
 
 	typeList := []string{
 		event.TypeGestureClick,
@@ -4648,6 +5013,8 @@ func GetSession(c *gin.Context) {
 		event.TypeHotLaunch,
 		event.TypeLifecycleActivity,
 		event.TypeLifecycleFragment,
+		event.TypeLifecycleViewController,
+		event.TypeLifecycleSwiftUI,
 		event.TypeLifecycleApp,
 		event.TypeTrimMemory,
 		event.TypeLowMemory,
@@ -4656,168 +5023,202 @@ func GetSession(c *gin.Context) {
 		event.TypeANR,
 		event.TypeHttp,
 		event.TypeScreenView,
+		event.TypeCustom,
 	}
 
 	eventMap := session.EventsOfTypes(typeList...)
-	threads := make(replay.Threads)
+	threads := make(timeline.Threads)
 
 	gestureClickEvents := eventMap[event.TypeGestureClick]
 	if len(gestureClickEvents) > 0 {
-		gestureClicks := replay.ComputeGestureClicks(gestureClickEvents)
-		threadedGestureClicks := replay.GroupByThreads(gestureClicks)
+		gestureClicks := timeline.ComputeGestureClicks(gestureClickEvents)
+		threadedGestureClicks := timeline.GroupByThreads(gestureClicks)
 		threads.Organize(event.TypeGestureClick, threadedGestureClicks)
 	}
 
 	gestureLongClickEvents := eventMap[event.TypeGestureLongClick]
 	if len(gestureLongClickEvents) > 0 {
-		gestureLongClicks := replay.ComputeGestureLongClicks(gestureLongClickEvents)
-		threadedGestureLongClicks := replay.GroupByThreads(gestureLongClicks)
+		gestureLongClicks := timeline.ComputeGestureLongClicks(gestureLongClickEvents)
+		threadedGestureLongClicks := timeline.GroupByThreads(gestureLongClicks)
 		threads.Organize(event.TypeGestureLongClick, threadedGestureLongClicks)
 	}
 
 	gestureScrollEvents := eventMap[event.TypeGestureScroll]
 	if len(gestureScrollEvents) > 0 {
-		gestureScrolls := replay.ComputeGestureScrolls(gestureScrollEvents)
-		threadedGestureScrolls := replay.GroupByThreads(gestureScrolls)
+		gestureScrolls := timeline.ComputeGestureScrolls(gestureScrollEvents)
+		threadedGestureScrolls := timeline.GroupByThreads(gestureScrolls)
 		threads.Organize(event.TypeGestureScroll, threadedGestureScrolls)
 	}
 
 	navEvents := eventMap[event.TypeNavigation]
 	if len(navEvents) > 0 {
-		navs := replay.ComputeNavigation(navEvents)
-		threadedNavs := replay.GroupByThreads(navs)
+		navs := timeline.ComputeNavigation(navEvents)
+		threadedNavs := timeline.GroupByThreads(navs)
 		threads.Organize(event.TypeNavigation, threadedNavs)
 	}
 
 	screenViewEvents := eventMap[event.TypeScreenView]
 	if len(screenViewEvents) > 0 {
-		screenViews := replay.ComputeScreenViews(screenViewEvents)
-		threadedScreenViews := replay.GroupByThreads(screenViews)
+		screenViews := timeline.ComputeScreenViews(screenViewEvents)
+		threadedScreenViews := timeline.GroupByThreads(screenViews)
 		threads.Organize(event.TypeScreenView, threadedScreenViews)
+	}
+
+	customEvents := eventMap[event.TypeCustom]
+	if len(customEvents) > 0 {
+		customs := timeline.ComputeCustom(customEvents)
+		threadedCustoms := timeline.GroupByThreads(customs)
+		threads.Organize(event.TypeCustom, threadedCustoms)
 	}
 
 	logEvents := eventMap[event.TypeString]
 	if len(logEvents) > 0 {
-		logs := replay.ComputeLogString(logEvents)
-		threadedLogs := replay.GroupByThreads(logs)
+		logs := timeline.ComputeLogString(logEvents)
+		threadedLogs := timeline.GroupByThreads(logs)
 		threads.Organize(event.TypeString, threadedLogs)
 	}
 
 	netChangeEvents := eventMap[event.TypeNetworkChange]
 	if len(netChangeEvents) > 0 {
-		netChanges := replay.ComputeNetworkChange(netChangeEvents)
-		threadedNetChanges := replay.GroupByThreads(netChanges)
+		netChanges := timeline.ComputeNetworkChange(netChangeEvents)
+		threadedNetChanges := timeline.GroupByThreads(netChanges)
 		threads.Organize(event.TypeNetworkChange, threadedNetChanges)
 	}
 
 	coldLaunchEvents := eventMap[event.TypeColdLaunch]
 	if len(coldLaunchEvents) > 0 {
-		coldLaunches := replay.ComputeColdLaunches(coldLaunchEvents)
-		threadedColdLaunches := replay.GroupByThreads(coldLaunches)
+		coldLaunches := timeline.ComputeColdLaunches(coldLaunchEvents)
+		threadedColdLaunches := timeline.GroupByThreads(coldLaunches)
 		threads.Organize(event.TypeColdLaunch, threadedColdLaunches)
 	}
 
 	warmLaunchEvents := eventMap[event.TypeWarmLaunch]
 	if len(warmLaunchEvents) > 0 {
-		warmLaunches := replay.ComputeWarmLaunches(warmLaunchEvents)
-		threadedWarmLaunches := replay.GroupByThreads(warmLaunches)
+		warmLaunches := timeline.ComputeWarmLaunches(warmLaunchEvents)
+		threadedWarmLaunches := timeline.GroupByThreads(warmLaunches)
 		threads.Organize(event.TypeWarmLaunch, threadedWarmLaunches)
 	}
 
 	hotLaunchEvents := eventMap[event.TypeHotLaunch]
 	if len(hotLaunchEvents) > 0 {
-		hotLaunches := replay.ComputeHotLaunches(hotLaunchEvents)
-		threadedHotLaunches := replay.GroupByThreads(hotLaunches)
+		hotLaunches := timeline.ComputeHotLaunches(hotLaunchEvents)
+		threadedHotLaunches := timeline.GroupByThreads(hotLaunches)
 		threads.Organize(event.TypeHotLaunch, threadedHotLaunches)
 	}
 
 	lifecycleActivityEvents := eventMap[event.TypeLifecycleActivity]
 	if len(lifecycleActivityEvents) > 0 {
-		lifecycleActivities := replay.ComputeLifecycleActivities(lifecycleActivityEvents)
-		threadedLifecycleActivities := replay.GroupByThreads(lifecycleActivities)
+		lifecycleActivities := timeline.ComputeLifecycleActivities(lifecycleActivityEvents)
+		threadedLifecycleActivities := timeline.GroupByThreads(lifecycleActivities)
 		threads.Organize(event.TypeLifecycleActivity, threadedLifecycleActivities)
 	}
 
 	lifecycleFragmentEvents := eventMap[event.TypeLifecycleFragment]
 	if len(lifecycleActivityEvents) > 0 {
-		lifecycleFragments := replay.ComputeLifecycleFragments(lifecycleFragmentEvents)
-		threadedLifecycleFragments := replay.GroupByThreads(lifecycleFragments)
+		lifecycleFragments := timeline.ComputeLifecycleFragments(lifecycleFragmentEvents)
+		threadedLifecycleFragments := timeline.GroupByThreads(lifecycleFragments)
 		threads.Organize(event.TypeLifecycleFragment, threadedLifecycleFragments)
+	}
+
+	lifecycleViewControllerEvents := eventMap[event.TypeLifecycleViewController]
+	if len(lifecycleViewControllerEvents) > 0 {
+		lifecycleViewControllers := timeline.ComputeLifecycleViewControllers(lifecycleViewControllerEvents)
+		threadedLifecycleViewControllers := timeline.GroupByThreads(lifecycleViewControllers)
+		threads.Organize(event.TypeLifecycleViewController, threadedLifecycleViewControllers)
+	}
+
+	lifecycleSwiftUIEvents := eventMap[event.TypeLifecycleSwiftUI]
+	if len(lifecycleSwiftUIEvents) > 0 {
+		lifecycleSwiftUIViews := timeline.ComputeLifecycleSwiftUIViews(lifecycleSwiftUIEvents)
+		threadedLifecycleSwiftUIViews := timeline.GroupByThreads(lifecycleSwiftUIViews)
+		threads.Organize(event.TypeLifecycleSwiftUI, threadedLifecycleSwiftUIViews)
 	}
 
 	lifecycleAppEvents := eventMap[event.TypeLifecycleApp]
 	if len(lifecycleActivityEvents) > 0 {
-		lifecycleApps := replay.ComputeLifecycleApps(lifecycleAppEvents)
-		threadedLifecycleApps := replay.GroupByThreads(lifecycleApps)
+		lifecycleApps := timeline.ComputeLifecycleApps(lifecycleAppEvents)
+		threadedLifecycleApps := timeline.GroupByThreads(lifecycleApps)
 		threads.Organize(event.TypeLifecycleApp, threadedLifecycleApps)
 	}
 
 	trimMemoryEvents := eventMap[event.TypeTrimMemory]
 	if len(trimMemoryEvents) > 0 {
-		trimMemories := replay.ComputeTrimMemories(trimMemoryEvents)
-		threadedTrimMemories := replay.GroupByThreads(trimMemories)
+		trimMemories := timeline.ComputeTrimMemories(trimMemoryEvents)
+		threadedTrimMemories := timeline.GroupByThreads(trimMemories)
 		threads.Organize(event.TypeTrimMemory, threadedTrimMemories)
 	}
 
 	lowMemoryEvents := eventMap[event.TypeLowMemory]
 	if len(lowMemoryEvents) > 0 {
-		lowMemories := replay.ComputeLowMemories(lowMemoryEvents)
-		threadedLowMemories := replay.GroupByThreads(lowMemories)
+		lowMemories := timeline.ComputeLowMemories(lowMemoryEvents)
+		threadedLowMemories := timeline.GroupByThreads(lowMemories)
 		threads.Organize(event.TypeLowMemory, threadedLowMemories)
 	}
 
 	appExitEvents := eventMap[event.TypeAppExit]
 	if len(appExitEvents) > 0 {
-		appExits := replay.ComputeAppExits(appExitEvents)
-		threadedAppExits := replay.GroupByThreads(appExits)
+		appExits := timeline.ComputeAppExits(appExitEvents)
+		threadedAppExits := timeline.GroupByThreads(appExits)
 		threads.Organize(event.TypeAppExit, threadedAppExits)
 	}
 
 	exceptionEvents := eventMap[event.TypeException]
 	if len(exceptionEvents) > 0 {
-		exceptions, err := replay.ComputeExceptions(c, app.ID, exceptionEvents)
+		exceptions, err := timeline.ComputeExceptions(c, app.ID, exceptionEvents)
 		if err != nil {
 			msg := fmt.Sprintf(`unable to compute exceptions for session %q for app %q`, sessionId, app.ID)
+			fmt.Println(msg, err)
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": msg,
 			})
 			return
 		}
-		threadedExceptions := replay.GroupByThreads(exceptions)
+		threadedExceptions := timeline.GroupByThreads(exceptions)
 		threads.Organize(event.TypeException, threadedExceptions)
 	}
 
 	anrEvents := eventMap[event.TypeANR]
 	if len(anrEvents) > 0 {
-		anrs, err := replay.ComputeANRs(c, app.ID, anrEvents)
+		anrs, err := timeline.ComputeANRs(c, app.ID, anrEvents)
 		if err != nil {
 			msg := fmt.Sprintf(`unable to compute ANRs for session %q for app %q`, sessionId, app.ID)
+			fmt.Println(msg, err)
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": msg,
 			})
 			return
 		}
-		threadedANRs := replay.GroupByThreads(anrs)
+		threadedANRs := timeline.GroupByThreads(anrs)
 		threads.Organize(event.TypeANR, threadedANRs)
 	}
 
 	httpEvents := eventMap[event.TypeHttp]
 	if len(httpEvents) > 0 {
-		httpies := replay.ComputeHttp(httpEvents)
-		threadedHttpies := replay.GroupByThreads(httpies)
+		httpies := timeline.ComputeHttp(httpEvents)
+		threadedHttpies := timeline.GroupByThreads(httpies)
 		threads.Organize(event.TypeHttp, threadedHttpies)
 	}
 
 	threads.Sort()
 
+	sessionTraces, err := span.FetchTracesForSessionId(ctx, appId, sessionId)
+	if err != nil {
+		msg := `failed to fetch trace data for timeline`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
 	response := gin.H{
-		"session_id":   sessionId,
-		"attribute":    session.Attribute,
-		"app_id":       appId,
-		"duration":     duration,
-		"cpu_usage":    cpuUsages,
-		"memory_usage": memoryUsages,
-		"threads":      threads,
+		"session_id":            sessionId,
+		"attribute":             session.Attribute,
+		"app_id":                appId,
+		"duration":              duration,
+		"cpu_usage":             cpuUsages,
+		"memory_usage":          memoryUsages,
+		"memory_usage_absolute": memoryUsageAbsolutes,
+		"threads":               threads,
+		"traces":                sessionTraces,
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -5020,4 +5421,504 @@ func RenameApp(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+}
+
+func CreateShortFilters(c *gin.Context) {
+	ctx := c.Request.Context()
+	userId := c.GetString("userId")
+	appId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `app id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	app := App{
+		ID: &appId,
+	}
+
+	team, err := app.getTeam(c)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to create short filters in team [%s]`, team.ID.String())
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	var payload filter.ShortFiltersPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		msg := `failed to parse filters json payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	// embed app id in filter payload
+	payload.AppID = appId
+
+	shortFilters, err := filter.NewShortFilters(payload)
+	if err != nil {
+		msg := `failed to create filter hash`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if err = shortFilters.Create(ctx); err != nil {
+		msg := `failed to create short code from filters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"filter_short_code": shortFilters.Code,
+	})
+}
+
+func GetRootSpanNames(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	traceNames, err := span.FetchRootSpanNames(ctx, *app.ID)
+	if err != nil {
+		msg := "failed to get app's traces"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"results": traceNames,
+	})
+}
+
+func GetSpanInstances(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	rawSpanName := c.Query("span_name")
+	if rawSpanName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing span_name query param"})
+		return
+	}
+
+	spanName, err := url.QueryUnescape(rawSpanName)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid span_name query param"})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "root spans request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	spans, next, previous, err := span.GetSpanInstancesWithFilter(ctx, spanName, &af)
+	if err != nil {
+		msg := "failed to get app's root spans"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"results": spans,
+		"meta": gin.H{
+			"next":     next,
+			"previous": previous,
+		},
+	})
+}
+
+func GetSpanMetricsPlot(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	rawSpanName := c.Query("span_name")
+	if rawSpanName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing span_name query param"})
+		return
+	}
+
+	spanName, err := url.QueryUnescape(rawSpanName)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid span_name query param"})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "span plot request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	spanMetricsPlotInstances, err := span.GetSpanMetricsPlotWithFilter(ctx, spanName, &af)
+	if err != nil {
+		msg := "failed to get span's plot"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	type instance struct {
+		ID   string  `json:"id"`
+		Data []gin.H `json:"data"`
+	}
+
+	lut := make(map[string]int)
+	var instances []instance
+
+	for i := range spanMetricsPlotInstances {
+		instance := instance{
+			ID: spanMetricsPlotInstances[i].Version,
+			Data: []gin.H{{
+				"datetime": spanMetricsPlotInstances[i].DateTime,
+				"p50":      spanMetricsPlotInstances[i].P50,
+				"p90":      spanMetricsPlotInstances[i].P90,
+				"p95":      spanMetricsPlotInstances[i].P95,
+				"p99":      spanMetricsPlotInstances[i].P99,
+			}},
+		}
+
+		ndx, ok := lut[spanMetricsPlotInstances[i].Version]
+
+		if ok {
+			instances[ndx].Data = append(instances[ndx].Data, instance.Data...)
+		} else {
+			instances = append(instances, instance)
+			lut[spanMetricsPlotInstances[i].Version] = len(instances) - 1
+		}
+	}
+
+	c.JSON(http.StatusOK, instances)
+}
+
+func GetTrace(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	traceId := c.Param("traceId")
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	trace, err := span.GetTrace(ctx, traceId)
+	if err != nil {
+		msg := "failed to get trace"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, trace)
 }

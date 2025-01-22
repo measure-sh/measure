@@ -8,40 +8,39 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeProcessInfoProvider
-import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.OsSysConfProvider
 import sh.measure.android.utils.ProcProvider
+import sh.measure.android.utils.TestClock
 import java.io.File
+import java.time.Duration
 
 internal class CpuUsageCollectorTest {
     private val logger = NoopLogger()
-    private val eventProcessor = mock<EventProcessor>()
+    private val signalProcessor = mock<SignalProcessor>()
     private val processInfo = FakeProcessInfoProvider()
     private val procProvider = mock<ProcProvider>()
     private val osSysConfProvider = mock<OsSysConfProvider>()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
-    private lateinit var cpuUsageCollector: CpuUsageCollector
-    private lateinit var timeProvider: FakeTimeProvider
+    private val testClock = TestClock.create()
+    private val timeProvider = AndroidTimeProvider(testClock)
+    private val cpuUsageCollector: CpuUsageCollector = CpuUsageCollector(
+        logger,
+        signalProcessor,
+        processInfo,
+        timeProvider,
+        executorService,
+        procProvider,
+        osSysConfProvider,
+    )
 
     @Before
     fun setUp() {
-        val currentElapsedRealtime: Long = 20_000 // 20s
-        timeProvider = FakeTimeProvider(fakeElapsedRealtime = currentElapsedRealtime)
-        cpuUsageCollector = CpuUsageCollector(
-            logger,
-            eventProcessor,
-            processInfo,
-            timeProvider,
-            executorService,
-            procProvider,
-            osSysConfProvider,
-        )
-
         // setup mocks
         val file = createDummyProcStatFile(
             utime = 400,
@@ -68,13 +67,13 @@ internal class CpuUsageCollectorTest {
         `when`(procProvider.getStatFile(processInfo.getPid())).thenReturn(file)
 
         cpuUsageCollector.register()
-        verify(eventProcessor).track(
+        verify(signalProcessor).track(
             type = EventType.CPU_USAGE,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = CpuUsageData(
                 num_cores = 1,
                 clock_speed = 100,
-                uptime = 20_000,
+                uptime = timeProvider.now(),
                 utime = 100,
                 stime = 200,
                 cutime = 300,
@@ -113,7 +112,7 @@ internal class CpuUsageCollectorTest {
     }
 
     @Test
-    fun `cou usage calculation returns 0 when CPU cores are 0`() {
+    fun `cpu usage calculation returns 0 when CPU cores are 0`() {
         val result = calculatePercentageUsage(
             utime = 300,
             stime = 400,
@@ -132,7 +131,7 @@ internal class CpuUsageCollectorTest {
     }
 
     @Test
-    fun `cou usage calculation returns 0 when uptime between previous and current reading is same`() {
+    fun `cpu usage calculation returns 0 when uptime between previous and current reading is same`() {
         val result = calculatePercentageUsage(
             utime = 300,
             stime = 400,
@@ -188,10 +187,11 @@ internal class CpuUsageCollectorTest {
 
     @Test
     fun `CpuUsageCollector calculates interval dynamically`() {
+        val initialTimeMillis = timeProvider.elapsedRealtime
         cpuUsageCollector.prevCpuUsageData = CpuUsageData(
             num_cores = 1,
             clock_speed = 100,
-            uptime = 1000,
+            uptime = initialTimeMillis,
             utime = 100,
             stime = 200,
             cutime = 300,
@@ -200,27 +200,29 @@ internal class CpuUsageCollectorTest {
             interval = 0,
             percentage_usage = 0.0,
         )
-        timeProvider.fakeElapsedRealtime = 15_000
+
+        val advancedTime = Duration.ofMillis(15000)
+        testClock.advance(advancedTime)
         cpuUsageCollector.register()
-        verify(eventProcessor).track(
+        verify(signalProcessor).track(
             type = EventType.CPU_USAGE,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = CpuUsageData(
                 num_cores = 1,
                 clock_speed = 100,
-                uptime = 15_000,
+                uptime = initialTimeMillis + advancedTime.toMillis(),
                 utime = 400,
                 stime = 500,
                 cutime = 600,
                 cstime = 700,
                 start_time = 58385,
-                interval = 14_000,
+                interval = advancedTime.toMillis(),
                 // calculate manually using the formula:
                 // ((utime + stime + cutime + cstime)
                 //   - (previousUtime + previousStime + previousCutime + previousCstime))
                 // divided by
                 // (((uptime - previousUptime) / previousUptime) * numCores * clockSpeedHz)
-                percentage_usage = 85.71428571428571,
+                percentage_usage = 80.0,
             ),
         )
     }

@@ -10,14 +10,14 @@ import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isClassAvailable
 
 internal class AndroidXFragmentNavigationCollector(
-    private val eventProcessor: EventProcessor,
+    private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
 ) : FragmentLifecycleAdapter(), NavController.OnDestinationChangedListener {
 
@@ -40,9 +40,9 @@ internal class AndroidXFragmentNavigationCollector(
         arguments: Bundle?,
     ) {
         val displayName = getDisplayName(controller.context, destination.id)
-        eventProcessor.track(
+        signalProcessor.track(
             type = EventType.SCREEN_VIEW,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = ScreenViewData(name = displayName),
         )
     }

@@ -21,9 +21,12 @@ type MonthlyAppUsage struct {
 	MonthName     string `json:"month_year"`
 	EventsCount   uint64 `json:"event_count"`
 	SessionsCount uint64 `json:"session_count"`
+	TracesCount   uint64 `json:"trace_count"`
+	SpansCount    uint64 `json:"span_count"`
 }
 
 func GetUsage(c *gin.Context) {
+	ctx := c.Request.Context()
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -77,23 +80,50 @@ func GetUsage(c *gin.Context) {
 		appIds = append(appIds, *app.ID)
 	}
 
+	// we want the API server to be the source-of-truth and
+	// arbiter of providing time. makes dealing with system
+	// clock skews easier, which is a horrendous problem to
+	// deal with honestly.
+	now := time.Now()
+
 	// Query events and session counts for all apps in team
-	stmt := sqlf.
+	eventsStmt := sqlf.
 		From(`default.events`).
 		Select("app_id").
 		Select("formatDateTime(toStartOfMonth(timestamp), '%b %Y') AS month_year").
 		Select("COUNT(*) AS event_count").
 		Select("COUNT(DISTINCT session_id) AS session_count").
-		Where("`app_id` in (?)", appIds).
-		Where("timestamp >= addMonths(toStartOfMonth(now()), -2) AND timestamp < toStartOfMonth(addMonths(now(), 1))").
+		Where("`app_id` in ?", appIds).
+		Where("timestamp >= addMonths(toStartOfMonth(?), -2) AND timestamp < toStartOfMonth(addMonths(?, 1))", now, now).
 		GroupBy("app_id, toStartOfMonth(timestamp)").
 		OrderBy("app_id, toStartOfMonth(timestamp) DESC")
 
-	defer stmt.Close()
+	defer eventsStmt.Close()
 
-	rows, err := server.Server.ChPool.Query(c, stmt.String(), stmt.Args()...)
+	eventRows, err := server.Server.ChPool.Query(ctx, eventsStmt.String(), eventsStmt.Args()...)
 	if err != nil {
-		msg := fmt.Sprintf("error occurred while querying usage for team: %s", teamId)
+		msg := fmt.Sprintf("error occurred while querying event usage for team: %s", teamId)
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	spansStmt := sqlf.
+		From(`spans`).
+		Select("app_id").
+		Select("formatDateTime(toStartOfMonth(start_time), '%b %Y') AS month_year").
+		Select("COUNT(DISTINCT trace_id) AS trace_count").
+		Select("COUNT(DISTINCT span_id) AS span_count").
+		Where("`app_id` in ?", appIds).
+		Where("start_time >= addMonths(toStartOfMonth(?), -2) AND start_time < toStartOfMonth(addMonths(?, 1))", now, now).
+		GroupBy("app_id, toStartOfMonth(start_time)").
+		OrderBy("app_id, toStartOfMonth(start_time) DESC")
+
+	defer spansStmt.Close()
+
+	spanRows, err := server.Server.ChPool.Query(ctx, spansStmt.String(), spansStmt.Args()...)
+	if err != nil {
+		msg := fmt.Sprintf("error occurred while querying span usage for team: %s", teamId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -111,7 +141,6 @@ func GetUsage(c *gin.Context) {
 	}
 
 	// Get the last three month names
-	now := time.Now()
 	monthYearFormat := "Jan 2006"
 	monthNames := []string{
 		now.AddDate(0, -2, 0).Format(monthYearFormat),
@@ -119,13 +148,13 @@ func GetUsage(c *gin.Context) {
 		now.Format(monthYearFormat),
 	}
 
-	// Populate appUsageMap with rows from DB
-	for rows.Next() {
+	// Populate appUsageMap with event rows from DB
+	for eventRows.Next() {
 		var appId, monthYear string
 		var eventCount, sessionCount uint64
 
-		if err := rows.Scan(&appId, &monthYear, &eventCount, &sessionCount); err != nil {
-			msg := fmt.Sprintf("error occurred while scanning usage row for team: %s", teamId)
+		if err := eventRows.Scan(&appId, &monthYear, &eventCount, &sessionCount); err != nil {
+			msg := fmt.Sprintf("error occurred while scanning event usage row for team: %s", teamId)
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 			return
@@ -140,8 +169,51 @@ func GetUsage(c *gin.Context) {
 		}
 	}
 
-	if err := rows.Err(); err != nil {
-		msg := fmt.Sprintf("error occurred while iterating usage rows for team: %s", teamId)
+	if err := eventRows.Err(); err != nil {
+		msg := fmt.Sprintf("error occurred while iterating event usage rows for team: %s", teamId)
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	// Populate appUsageMap with span rows from DB
+	for spanRows.Next() {
+		var appId, monthYear string
+		var traceCount, spanCount uint64
+
+		if err := spanRows.Scan(&appId, &monthYear, &spanCount, &traceCount); err != nil {
+			msg := fmt.Sprintf("error occurred while scanning span usage row for team: %s", teamId)
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			return
+		}
+
+		if appUsage, exists := appUsageMap[appId]; exists {
+			// Find the montly usage if it it already exists
+			var monthlyAppUsage *MonthlyAppUsage
+			for i := 0; i < len(appUsage.MonthlyAppUsage); i++ {
+				if appUsage.MonthlyAppUsage[i].MonthName == monthYear {
+					monthlyAppUsage = &appUsage.MonthlyAppUsage[i]
+					break
+				}
+			}
+
+			// If monthly app usage entry exits, modify it. Create one if it doesn't.
+			if monthlyAppUsage != nil {
+				monthlyAppUsage.TracesCount = traceCount
+				monthlyAppUsage.SpansCount = spanCount
+			} else {
+				appUsage.MonthlyAppUsage = append(appUsage.MonthlyAppUsage, MonthlyAppUsage{
+					MonthName:   monthYear,
+					TracesCount: traceCount,
+					SpansCount:  spanCount,
+				})
+			}
+		}
+	}
+
+	if err := spanRows.Err(); err != nil {
+		msg := fmt.Sprintf("error occurred while iterating span usage rows for team: %s", teamId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -163,6 +235,8 @@ func GetUsage(c *gin.Context) {
 					MonthName:     monthName,
 					EventsCount:   0,
 					SessionsCount: 0,
+					TracesCount:   0,
+					SpansCount:    0,
 				})
 			}
 		}

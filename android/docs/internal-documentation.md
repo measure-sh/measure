@@ -5,33 +5,26 @@
     * [Periodic batching and export](#periodic-batching-and-export)
     * [Exceptions and ANRs export](#exceptions-and-anrs-export)
 * [Thread management](#thread-management)
-* [Configuration](#configuration)
 * [Testing](#testing)
 
 # Storage
 
 Measure primarily uses **SQLite database** to store events. However, it also uses the file system to
-store parts of large events, like exceptions, attachments, etc. Deciding which events are directly
-stored in the database and which are stored in the file system is based on the size of the event.
-Even though SQLite can store large blobs, due to the cursor window size limit on Android, it can
-lead to
-a [TransactionTooLargeException](https://developer.android.com/reference/android/os/TransactionTooLargeException)
-if a query exceeds the limit, and it makes working with large blobs cumbersome.
+store certain large events, like exceptions, attachments, etc to
+avoid [TransactionTooLargeException](https://developer.android.com/reference/android/os/TransactionTooLargeException).
 
-Sqlite database is configured with the following settings:
+SQLite database is configured with the following settings:
 
 * [journal_mode](https://sqlite.org/pragma.html#pragma_journal_mode): WAL
 * [foreign_keys](https://sqlite.org/pragma.html#pragma_foreign_keys): ON
 
-Events are written to the database & file storage (if needed) as soon as they are received by
-the `Event Processor`. This can be improved in future by adding a queue which batches the inserts.
+Batches of events and spans are inserted in database either every 3 seconds or if either the spans or events buffer reaches 30.
+At time of a crash, events and spans are immediately persisted to the db.
 
 # Batching & export
 
-Measure exports events to the server in batches. All events for sessions that contain a crash are
-exported. All non-crashed sessions are exported by default, a sampling rate can be applied to
-non-crashed sessions to reduce the number of sessions exported. See [README](../README.md) for 
-more details about configuring sampling rate.
+Events are sent to the server in batches at regular intervals (30s) while the app is in foreground and when the app 
+goes to background.
 
 * [Periodic batching and export](#periodic-batching-and-export)
 * [Exceptions and ANRs export](#exceptions-and-anrs-export)
@@ -39,8 +32,10 @@ more details about configuring sampling rate.
 ## Periodic batching and export
 
 Measure creates and sends one batch at a time to the server at a regular interval of 30 seconds.
-Batching is done to reduce the number of network calls and to reduce the battery consumption while
+Batching is done to reduce the number of network calls and battery consumption while
 also ensuring that the events are sent to the server without too much delay.
+
+Only **one** batch of events is sent to the server at a time to reduce memory usage and optimize batch size.
 
 The following algorithm is used to periodically batch and send events to the server:
 
@@ -51,15 +46,20 @@ flowchart TD
     D0 -->|No| D1
     D0 -->|Yes| Skip
     P[[Pulse]] -->|every 30 secs| D0
-    CL[[Cold Launch]] --> D0
+    AF[[App Foreground]] --> D0
     AB[[App Background]] --> D0
     D1{existing batches available?}
-    D1 -->|Yes\neach batch\nsequentially| Export
+    D1 -->|Yes| Export
     D2{last batch created recently?}
     D1 -->|No| D2
     D2 -->|No| CNB[Create new batch]
-    CNB --> Export((Export))
+    CNB --> Export((Export batch))
     D2 -->|Yes| Skip((Skip))
+    
+    classDef skip fill:#003300,stroke:#333,stroke-width:2px,color:white
+    classDef export fill:#003300,stroke:#333,stroke-width:2px,color:white
+    class Skip skip
+    class Export export
 ```
 
 Following considerations were in mind when designing the algorithm:
@@ -88,10 +88,8 @@ In worse case scenarios the following must be ensured:
 ## Exceptions and ANRs export
 
 All events except for exceptions and ANRs are sent to the server in batches, periodically, as shown
-above. Exceptions
-and ANRs however, are sent to the server immediately as soon as they are received. This is done to
-ensure that clients
-can be notified of issues as soon as possible.
+above. Exceptions and ANRs however, are attempted to be sent as soon as they occur. This is done to
+ensure that clients can be notified of issues as soon as possible.
 
 # Thread management
 
@@ -100,65 +98,47 @@ tasks. This makes it easy to manage the lifecycle of executors and also to provi
 tune the number of threads used for various tasks.
 
 The following executors are used:
+
 1. IO Executor: Used for all long running operations like writing to the database, reading from the database,
    writing to the file system, etc.
 2. Export Executor: Used for exporting events to the server over the network.
-3. Default Executor: Used for short running tasks that need to be run in background like processing 
-events, etc.
+3. Default Executor: Used for short running tasks that need to be run in background like processing
+   events, etc.
 
-All executors are configured to be single-threaded and internally use a scheduled executor service 
+All executors are configured to be single-threaded and internally use a scheduled executor service
 with unbounded queue, which can be tuned in the future.
-
-
-# Configuration
-
-The SDK is configured using the `MeasureConfig` object. The client can pass in a custom config at
-the time of initialization. These configurations can help in enabling/disabling features, preventing
-sensitive information from being sent or modifying the behavior of the SDK.
-
-Any configuration change made to `MeasureConfig` is a public API change and must also result in
-updating the documentation.
-
-See [README](../../docs/android/configuration-options.md) for more details about the 
-available configurations.
-
-## Applying configs
-
-Configs which modify events, like removing fields or decision to drop events are all centralized in
-the `EventTransformer` which makes it easy to keep these modifications in one place instead of
-scattering them throughout the codebase.
-
-However, some configs modify the behavior of collection itself, like `screenshotMaskColor`which
-changes
-the color of the mask applied to the screenshot. These configs are applied at the time of collection
-itself.
 
 # Testing
 
-The SDK is tested using both unit tests and integration tests. Certain unit tests which require 
+The SDK is tested using both unit tests and integration tests. Certain unit tests which require
 Android framework classes are run using Robolectric. The integration tests are run using Espresso
 and UI Automator.
 
 To run unit tests, use the following command:
+
 ```shell
 ./gradlew :measure:test
 ```
 
 To run integration tests (requires a device), use the following command:
+
 ```shell
 ./gradlew :measure:connectedAndroidTest
 ```
 
 The _Measure gradle plugin_ also contains both unit tests and functional tests. The functional tests
-are run using the [testkit by autonomous apps](https://github.com/autonomousapps/dependency-analysis-gradle-plugin/tree/main/testkit) 
+are run using
+the [testkit by autonomous apps](https://github.com/autonomousapps/dependency-analysis-gradle-plugin/tree/main/testkit)
 and use JUnit5 for testing as it provides an easy way to run parameterized tests.
 
 TO run the unit tests, use the following command:
+
 ```shell
 ./gradlew :measure-gradle-plugin:test
 ```
 
 To run the functional tests, use the following command:
+
 ```shell
 ./gradlew :measure-gradle-plugin:functionalTest
 ```

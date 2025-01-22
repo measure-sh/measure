@@ -78,7 +78,7 @@ internal object GestureDetector {
                         y = motionEvent.y,
                         touchDownTime = startTouchEventTime,
                         touchUpTime = motionEvent.eventTime,
-                        timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                        timestamp = timeProvider.now(),
                     )
                 } else {
                     DetectedGesture.Click(
@@ -86,7 +86,7 @@ internal object GestureDetector {
                         y = motionEvent.y,
                         touchDownTime = startTouchEventTime,
                         touchUpTime = motionEvent.eventTime,
-                        timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                        timestamp = timeProvider.now(),
                     )
                 }
             } else {
@@ -98,7 +98,7 @@ internal object GestureDetector {
                     touchDownTime = startTouchEventTime,
                     touchUpTime = motionEvent.eventTime,
                     direction = calculateDirection(motionEvent, startTouchX, startTouchY),
-                    timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                    timestamp = timeProvider.now(),
                 )
             }
         }

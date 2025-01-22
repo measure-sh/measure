@@ -31,6 +31,10 @@ describe('formatMillisToHumanReadable', () => {
         expect(formatMillisToHumanReadable(604799999)).toBe('6d, 23h, 59min, 59s, 999ms')
     })
 
+    it('should round decimal milliseconds to nearest int', () => {
+        expect(formatMillisToHumanReadable(500.920473)).toBe('501ms')
+    })
+
     it('should handle zero input', () => {
         expect(formatMillisToHumanReadable(0)).toBe('0ms')
     })

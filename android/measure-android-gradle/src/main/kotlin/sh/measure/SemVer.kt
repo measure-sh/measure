@@ -60,7 +60,7 @@ data class SemVer(
                 minor = if (result.groupValues[2].isEmpty()) 0 else result.groupValues[2].toInt(),
                 patch = if (result.groupValues[3].isEmpty()) 0 else result.groupValues[3].toInt(),
                 preRelease = if (result.groupValues[4].isEmpty()) null else result.groupValues[4],
-                buildMetadata = if (result.groupValues[5].isEmpty()) null else result.groupValues[5]
+                buildMetadata = if (result.groupValues[5].isEmpty()) null else result.groupValues[5],
             )
         }
     }

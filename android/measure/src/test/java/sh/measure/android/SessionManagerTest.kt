@@ -2,119 +2,276 @@ package sh.measure.android
 
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
+import org.mockito.Mockito
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
+import org.mockito.Mockito.times
+import org.mockito.Mockito.`when`
+import org.mockito.kotlin.verify
+import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeConfigProvider
-import sh.measure.android.fakes.FakeIdProvider
+import sh.measure.android.fakes.FakePackageInfoProvider
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeRandomizer
-import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.fakes.TestData
+import sh.measure.android.fakes.TestData.toEvent
 import sh.measure.android.storage.Database
+import sh.measure.android.storage.PrefsStorage
 import sh.measure.android.storage.SessionEntity
+import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.IdProviderImpl
+import sh.measure.android.utils.TestClock
+import java.time.Duration
 
 class SessionManagerTest {
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val logger = NoopLogger()
     private val database = mock<Database>()
-    private val idProvider = FakeIdProvider()
-    private val processInfo = FakeProcessInfoProvider()
-    private val timeProvider = FakeTimeProvider()
-    private val configProvider = FakeConfigProvider()
+    private val prefsStorage = mock<PrefsStorage>()
     private val randomizer = FakeRandomizer()
+    private val idProvider = IdProviderImpl(randomizer)
+    private val processInfo = FakeProcessInfoProvider()
+    private val testClock = TestClock.create()
+    private val timeProvider = AndroidTimeProvider(testClock)
+    private val configProvider = FakeConfigProvider()
+    private val packageInfoProvider = FakePackageInfoProvider()
 
     private val sessionManager = SessionManagerImpl(
         logger = logger,
-        database = database,
         idProvider = idProvider,
+        database = database,
+        prefs = prefsStorage,
         processInfo = processInfo,
-        ioExecutor = executorService,
         timeProvider = timeProvider,
         configProvider = configProvider,
+        ioExecutor = executorService,
+        packageInfoProvider = packageInfoProvider,
+        randomizer = randomizer,
     )
 
     @Before
     fun setup() {
         // forces "needs reporting" to be set to false
-        configProvider.sessionSamplingRate = 0.0f
+        configProvider.samplingRateForErrorFreeSessions = 0.0f
         randomizer.randomDouble = 0.0
     }
 
     @Test
-    fun `init creates a new session and updates cached value and writes the session to db`() {
-        // given
-        val sessionId = "session-id"
-        idProvider.id = sessionId
-
-        // when
-        sessionManager.init()
-
-        // then
-        assertNotNull(sessionManager.currentSessionId)
-        verify(database).insertSession(
-            SessionEntity(
-                sessionId,
-                processInfo.getPid(),
-                timeProvider.fakeCurrentTimeSinceEpochInMillis,
-                false,
-            ),
-        )
-    }
-
-    @Test
-    fun `getSessionId throws exception if session ID does not exist`() {
-        val expectedSessionId = "session-id"
-        idProvider.id = expectedSessionId
-        sessionManager.currentSessionId = null
-
+    fun `throws if session is accessed before initialization`() {
         assertThrows(IllegalArgumentException::class.java) {
             sessionManager.getSessionId()
         }
     }
 
     @Test
-    fun `given session ID already exists and app has been in background for less than threshold to end session, then returns existing session ID`() {
-        val initialSessionId = "session-id-1"
-        val updateSessionId = "session-id-2"
-        sessionManager.currentSessionId = initialSessionId
+    fun `creates new session when recent session is unavailable`() {
+        // Given
+        `when`(prefsStorage.getRecentSession()).thenReturn(null)
 
-        idProvider.id = updateSessionId
-        simulateAppRelaunch(1000)
-
+        // When
+        sessionManager.init()
         val sessionId = sessionManager.getSessionId()
-        assertEquals(initialSessionId, sessionId)
-    }
 
-    @Test
-    fun `given session ID already exists and app has been in background for more than threshold to end session, then returns new session ID and persists to db`() {
-        val initialSessionId = "session-id-1"
-        val updatedSessionId = "session-id-2"
-        sessionManager.currentSessionId = initialSessionId
-
-        idProvider.id = updatedSessionId
-        simulateAppRelaunch(configProvider.sessionEndThresholdMs)
-
-        val sessionId = sessionManager.getSessionId()
-        assertEquals(updatedSessionId, sessionId)
+        // Then
         verify(database).insertSession(
             SessionEntity(
-                updatedSessionId,
+                sessionId,
                 processInfo.getPid(),
-                timeProvider.fakeCurrentTimeSinceEpochInMillis,
-                false,
+                timeProvider.elapsedRealtime,
+                needsReporting = false,
+                crashed = false,
+                supportsAppExit = false,
             ),
         )
     }
 
     @Test
-    fun `delegates to database to get sessions for pids where app exit has not been tracked`() {
-        sessionManager.getSessionsWithUntrackedAppExit()
-        verify(database).getSessionsWithUntrackedAppExit()
+    fun `creates new session when last event occurred more than 20 minutes ago`() {
+        // Given
+        val initialTime = testClock.epochTime()
+
+        val previousSession = RecentSession(
+            id = "previous-session-id",
+            lastEventTime = initialTime,
+            createdAt = initialTime - Duration.ofMinutes(3).toMillis(),
+            crashed = false,
+            versionCode = packageInfoProvider.getVersionCode(),
+        )
+        `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
+
+        // Advance time beyond the 20-minute session timeout
+        testClock.advance(Duration.ofMinutes(21))
+
+        // When
+        sessionManager.init()
+        val actualSessionId = sessionManager.getSessionId()
+
+        // Then
+        assertNotEquals(previousSession.id, actualSessionId)
+    }
+
+    @Test
+    fun `continues previous session when last event occurred less than 20 minutes ago`() {
+        // Given
+        val initialTime = testClock.epochTime()
+
+        val previousSession = RecentSession(
+            id = "previous-session-id",
+            lastEventTime = initialTime,
+            createdAt = initialTime - Duration.ofMinutes(3).toMillis(),
+            crashed = false,
+            versionCode = packageInfoProvider.getVersionCode(),
+        )
+        `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
+
+        // Advance time beyond the 20-minute session timeout
+        testClock.advance(Duration.ofMinutes(5))
+
+        // When
+        sessionManager.init()
+        val actualSessionId = sessionManager.getSessionId()
+
+        // Then
+        assertEquals(previousSession.id, actualSessionId)
+    }
+
+    @Test
+    fun `creates new session if previous session happened more than 6 hours ago, even if last event happened within 20 minutes`() {
+        // Given
+        val previousSessionCreatedTime = testClock.epochTime()
+        // Last event happened within 20 minutes of next session.
+        val lastEventTime =
+            previousSessionCreatedTime + Duration.ofHours(7).toMillis() - Duration.ofMinutes(5)
+                .toMillis()
+        val previousSession = RecentSession(
+            id = "previous-session-id",
+            lastEventTime = lastEventTime,
+            createdAt = previousSessionCreatedTime,
+            crashed = false,
+            versionCode = packageInfoProvider.getVersionCode(),
+        )
+        `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
+
+        // Advance time by 7 hours
+        testClock.advance(Duration.ofHours(7))
+        // When
+        sessionManager.init()
+        val sessionId = sessionManager.getSessionId()
+
+        // Then
+        assertNotEquals(previousSession.id, sessionId)
+    }
+
+    @Test
+    fun `creates new session if last session crashed, even if last event happened within 20 minutes`() {
+        // Given
+        val initialTime = testClock.epochTime()
+        val previousSession = RecentSession(
+            id = "previous-session-id",
+            lastEventTime = initialTime,
+            createdAt = initialTime - Duration.ofMinutes(3).toMillis(),
+            crashed = true,
+            versionCode = packageInfoProvider.getVersionCode(),
+        )
+        `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
+
+        // Advance time by 10 minutes
+        testClock.advance(Duration.ofMinutes(10))
+        // When
+        sessionManager.init()
+        val sessionId = sessionManager.getSessionId()
+
+        // Then
+        assertNotEquals(previousSession.id, sessionId)
+    }
+
+    @Test
+    fun `updates last event time in preferences when event is triggered`() {
+        // Given
+        sessionManager.init()
+        val currentSessionId = sessionManager.getSessionId()
+
+        // When
+        sessionManager.onEventTracked(
+            TestData.getScrollData().toEvent(type = EventType.SCROLL, sessionId = currentSessionId),
+        )
+
+        // Then
+        Mockito.verify(prefsStorage, times(1))
+            .setRecentSessionEventTime(timeProvider.elapsedRealtime)
+    }
+
+    @Test
+    fun `sets crashed state for session in preferences when ANR event is triggered`() {
+        // Given
+        sessionManager.init()
+        val currentSessionId = sessionManager.getSessionId()
+
+        // When
+        sessionManager.onEventTracked(
+            TestData.getExceptionData().toEvent(type = EventType.ANR, sessionId = currentSessionId),
+        )
+
+        // Then
+        Mockito.verify(prefsStorage, times(1)).setRecentSessionCrashed()
+    }
+
+    @Test
+    fun `sets crashed state for session in preferences when unhandled exception event is triggered`() {
+        // Given
+        sessionManager.init()
+        val currentSessionId = sessionManager.getSessionId()
+
+        // When
+        sessionManager.onEventTracked(
+            TestData.getExceptionData(handled = false)
+                .toEvent(type = EventType.EXCEPTION, sessionId = currentSessionId),
+        )
+
+        // Then
+        Mockito.verify(prefsStorage, times(1)).setRecentSessionCrashed()
+    }
+
+    @Test
+    fun `creates new session if elapsed time is zero due to device boot`() {
+        // Given
+        val initialTime = timeProvider.elapsedRealtime
+        val previousSession = RecentSession(
+            "previous-session-id",
+            createdAt = initialTime - Duration.ofMinutes(3).toMillis(),
+            lastEventTime = initialTime,
+            versionCode = packageInfoProvider.getVersionCode(),
+        )
+        `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
+
+        // Reset time to 0
+        testClock.setTime(0)
+        sessionManager.init()
+
+        val actualSessionId = sessionManager.getSessionId()
+        assertNotEquals(previousSession.id, actualSessionId)
+    }
+
+    @Test
+    fun `creates new session if app version changed since last session`() {
+        // Given
+        val initialTime = timeProvider.elapsedRealtime
+        val previousSession = RecentSession(
+            "previous-session-id",
+            createdAt = initialTime - Duration.ofMinutes(3).toMillis(),
+            lastEventTime = initialTime,
+            versionCode = "previous-version-code",
+        )
+        `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
+        sessionManager.init()
+
+        val actualSessionId = sessionManager.getSessionId()
+        assertNotEquals(previousSession.id, actualSessionId)
     }
 
     @Test
@@ -129,12 +286,5 @@ class SessionManagerTest {
         val sessionIds = listOf("session-id-1", "session-id-2")
         sessionManager.markCrashedSessions(sessionIds)
         verify(database).markCrashedSessions(sessionIds)
-    }
-
-    private fun simulateAppRelaunch(durationMs: Long) {
-        timeProvider.fakeUptimeMs = 1000
-        sessionManager.onAppBackground()
-        timeProvider.fakeUptimeMs = 1000 + durationMs
-        sessionManager.onAppForeground()
     }
 }

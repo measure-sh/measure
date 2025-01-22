@@ -43,7 +43,8 @@ class BuildUploadTaskTest {
         val buildServiceRegistry =
             (project as ProjectInternal).services.get(BuildServiceRegistry::class.java)
         val httpClient = buildServiceRegistry.registerIfAbsent(
-            "measureHttpClient", MeasureHttpClient::class.java
+            "measureHttpClient",
+            MeasureHttpClient::class.java,
         ) {
             it.parameters.timeout.set(Duration.ofSeconds(30))
         }.get()

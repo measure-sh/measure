@@ -26,15 +26,11 @@ internal class DataCleanupServiceImpl(
     private val sessionManager: SessionManager,
     private val configProvider: ConfigProvider,
 ) : DataCleanupService {
-    // This flag is used to ensure that the event count check is done only once during the app
-    // lifecycle. This is to avoid the overhead of checking the event count too frequently.
-    private var eventCountCheckComplete = false
-
     private companion object {
         // The maximum number of sessions to query for deletion.
         // Keeping this to 1 as deleting too many sessions and events at once can lock
         // the db for other operations for too long. Each session can potentially
-        // contain thousands of events and attachments.
+        // contain thousands of events, spans and attachments.
         const val MAX_SESSIONS_TO_QUERY = 1
     }
 
@@ -42,25 +38,23 @@ internal class DataCleanupServiceImpl(
         try {
             ioExecutor.submit {
                 deleteSessionsNotMarkedForReporting()
-                trimEvents()
+                trimEventsAndSpans()
             }
         } catch (e: RejectedExecutionException) {
             logger.log(LogLevel.Error, "Failed to submit data cleanup task to executor", e)
         }
     }
 
-    private fun trimEvents() {
-        if (eventCountCheckComplete) {
-            return
-        }
-        eventCountCheckComplete = true
+    private fun trimEventsAndSpans() {
         val eventsCount = database.getEventsCount()
-        if (eventsCount <= configProvider.maxEventsInDatabase) {
+        val spansCount = database.getSpansCount()
+        val totalSignals = eventsCount + spansCount
+        if (totalSignals <= configProvider.maxSignalsInDatabase) {
             return
         }
         logger.log(
             LogLevel.Warning,
-            "Total events in database ($eventsCount) exceeds the limit, deleting the oldest session.",
+            "Total signals ($totalSignals) exceeds the limit, deleting the oldest session.",
         )
         deleteOldestSession()
     }
@@ -88,8 +82,8 @@ internal class DataCleanupServiceImpl(
         val eventIds = database.getEventsForSessions(sessionIds)
         val attachmentIds = database.getAttachmentsForEvents(eventIds)
         fileStorage.deleteEventsIfExist(eventIds, attachmentIds)
-        // deleting sessions from db will also delete events for the session as they are cascaded
-        // deletes.
+        // deleting sessions from db will also delete events for the session as they ar
+        // e cascaded deletes.
         val result = database.deleteSessions(sessionIds)
         if (result) {
             logger.log(LogLevel.Debug, "Deleted ${eventIds.size} events")

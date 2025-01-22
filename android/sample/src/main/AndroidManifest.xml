@@ -69,7 +69,7 @@
 
         <meta-data
             android:name="sh.measure.android.API_KEY"
-            android:value="msrsh_014e789f898cfb0ddb03548b8a591eeedf22d63bdd178d6a412b3fb4a5e8d7f8_c2b4a820" />
+            android:value="msrsh_a1a9d99a7fd0729549f380d80a8c78098b0f6e143c57c81c0dff9758d5849685_ab7c6629" />
         <meta-data
             android:name="sh.measure.android.API_URL"
             android:value="http://10.0.2.2:8080" />

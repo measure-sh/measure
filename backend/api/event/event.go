@@ -1,10 +1,13 @@
 package event
 
 import (
+	"backend/api/platform"
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -35,6 +38,10 @@ const (
 	maxLifecycleActivityClassNameChars        = 128
 	maxLifecycleFragmentTypeChars             = 32
 	maxLifecycleFragmentClassNameChars        = 128
+	maxLifecycleViewControllerTypeChars       = 32
+	maxLifecycleViewControllerClassNameChars  = 256
+	maxLifecycleSwiftUITypeChars              = 32
+	maxLifecycleSwiftUIClassNameChars         = 128
 	maxLifecycleAppTypeChars                  = 32
 	maxColdLaunchLaunchedActivityChars        = 128
 	maxWarmLaunchLaunchedActivityChars        = 128
@@ -51,8 +58,14 @@ const (
 	maxNavigationFromChars                    = 128
 	maxNavigationSourceChars                  = 128
 	maxScreenViewNameChars                    = 128
+	maxUserDefAttrsCount                      = 100
+	maxUserDefAttrsKeyChars                   = 256
+	maxUserDefAttrsValsChars                  = 256
+	maxCustomNameChars                        = 64
+	customNameKeyPattern                      = "^[a-zA-Z0-9_-]+$"
 )
 
+const TypeCustom = "custom"
 const TypeANR = "anr"
 const TypeException = "exception"
 const TypeAppExit = "app_exit"
@@ -62,6 +75,8 @@ const TypeGestureClick = "gesture_click"
 const TypeGestureScroll = "gesture_scroll"
 const TypeLifecycleActivity = "lifecycle_activity"
 const TypeLifecycleFragment = "lifecycle_fragment"
+const TypeLifecycleViewController = "lifecycle_view_controller"
+const TypeLifecycleSwiftUI = "lifecycle_swift_ui"
 const TypeLifecycleApp = "lifecycle_app"
 const TypeColdLaunch = "cold_launch"
 const TypeWarmLaunch = "warm_launch"
@@ -69,6 +84,7 @@ const TypeHotLaunch = "hot_launch"
 const TypeNetworkChange = "network_change"
 const TypeHttp = "http"
 const TypeMemoryUsage = "memory_usage"
+const TypeMemoryUsageAbs = "memory_usage_absolute"
 const TypeLowMemory = "low_memory"
 const TypeTrimMemory = "trim_memory"
 const TypeCPUUsage = "cpu_usage"
@@ -97,8 +113,25 @@ const LifecycleFragmentTypeResumed = "resumed"
 const LifecycleFragmentTypePaused = "paused"
 const LifecycleFragmentTypeDetached = "detached"
 
+const LifecycleViewControllerTypeLoadView = "loadView"
+const LifecycleViewControllerTypeViewDidLoad = "viewDidLoad"
+const LifecycleViewControllerTypeViewWillAppear = "viewWillAppear"
+const LifecycleViewControllerTypeViewDidAppear = "viewDidAppear"
+const LifecycleViewControllerTypeViewWillDisappear = "viewWillDisappear"
+const LifecycleViewControllerTypeViewDidDisappear = "viewDidDisappear"
+const LifecycleViewControllerTypeDidReceiveMemoryWarning = "didReceiveMemoryWarning"
+const LifecycleViewControllerTypeInitWithDbName = "initWithDbName"
+const LifecycleViewControllerTypeInitWithCoder = "initWithCoder"
+const LifecycleViewControllerTypeVCDeinit = "vcDeinit"
+
+const LifecycleSwiftUITypeOnAppear = "on_appear"
+const LifecycleSwiftUITypeOnDisappear = "on_disappear"
+
 const LifecycleAppTypeBackground = "background"
 const LifecycleAppTypeForeground = "foreground"
+
+// LifecycleAppTypeTerminated is used only for iOS
+const LifecycleAppTypeTerminated = "terminated"
 
 // NominalColdLaunchThreshold defines the upper bound
 // of a nominal cold launch duration.
@@ -107,6 +140,38 @@ const NominalColdLaunchThreshold = 30 * time.Second
 // NominalWarmLaunchThreshold defines the upper bound
 // of a nominal warm launch duration.
 const NominalWarmLaunchThreshold = 10 * time.Second
+
+// androidValidTypes defines a whitelist for all
+// valid android event types.
+var androidValidTypes = []string{
+	TypeANR, TypeException, TypeAppExit,
+	TypeGestureLongClick, TypeGestureScroll, TypeGestureClick,
+	TypeLifecycleActivity, TypeLifecycleFragment,
+	TypeLifecycleViewController, TypeLifecycleSwiftUI,
+	TypeLifecycleApp,
+	TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch,
+	TypeNetworkChange, TypeHttp,
+	TypeMemoryUsage, TypeMemoryUsageAbs, TypeLowMemory, TypeTrimMemory,
+	TypeCPUUsage, TypeNavigation, TypeScreenView,
+	TypeString,
+	TypeCustom,
+}
+
+// iOSValidTypes defines a whitelist for all
+// valid iOS event types.
+var iOSValidTypes = []string{
+	TypeException,
+	TypeGestureLongClick, TypeGestureScroll, TypeGestureClick,
+	TypeLifecycleViewController, TypeLifecycleSwiftUI,
+	TypeLifecycleApp,
+	TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch,
+	TypeNetworkChange, TypeHttp,
+	TypeMemoryUsageAbs,
+	TypeCPUUsage,
+	TypeScreenView,
+	TypeString,
+	TypeCustom,
+}
 
 // ValidLifecycleActivityTypes defines allowed
 // `lifecycle_activity.type` values.
@@ -126,11 +191,26 @@ var ValidLifecycleFragmentTypes = []string{
 	LifecycleFragmentTypeDetached,
 }
 
-// ValidLifecycleAppTypes defines allowed
-// `lifecycle_app.type` values.
-var ValidLifecycleAppTypes = []string{
-	LifecycleAppTypeBackground,
-	LifecycleAppTypeForeground,
+// ValidLifecycleViewControllerTypes defines allowed
+// `lifecycle_view_controller.type` values.
+var ValidLifecycleViewControllerTypes = []string{
+	LifecycleViewControllerTypeLoadView,
+	LifecycleViewControllerTypeViewDidLoad,
+	LifecycleViewControllerTypeViewWillAppear,
+	LifecycleViewControllerTypeViewDidAppear,
+	LifecycleViewControllerTypeViewWillDisappear,
+	LifecycleViewControllerTypeViewDidDisappear,
+	LifecycleViewControllerTypeDidReceiveMemoryWarning,
+	LifecycleViewControllerTypeInitWithDbName,
+	LifecycleViewControllerTypeInitWithCoder,
+	LifecycleViewControllerTypeVCDeinit,
+}
+
+// ValidLifecycleSwiftUITypes defines allowed
+// `lifecycle_swift_ui.type` values.
+var ValidLifecycleSwiftUITypes = []string{
+	LifecycleSwiftUITypeOnAppear,
+	LifecycleSwiftUITypeOnDisappear,
 }
 
 // ValidNetworkTypes defines allowed
@@ -153,6 +233,27 @@ var ValidNetworkGenerations = []string{
 	NetworkGenerationUnknown,
 }
 
+// getValidLifecycleAppTypes defines valid
+// `lifecycle_app.type` values according
+// to the platform.
+func getValidLifecycleAppTypes(p string) (types []string) {
+	switch p {
+	case platform.Android:
+		types = []string{
+			LifecycleAppTypeBackground,
+			LifecycleAppTypeForeground,
+		}
+	case platform.IOS:
+		types = []string{
+			LifecycleAppTypeBackground,
+			LifecycleAppTypeForeground,
+			LifecycleAppTypeTerminated,
+		}
+	}
+
+	return types
+}
+
 // makeTitle appends the message to the type
 // if message is present.
 func makeTitle(t, m string) (typeMessage string) {
@@ -163,17 +264,49 @@ func makeTitle(t, m string) (typeMessage string) {
 	return
 }
 
+// ExceptionUnitiOS represents iOS specific
+// structure to work with iOS exceptions.
+type ExceptionUnitiOS struct {
+	// Signal is the BSD termination signal.
+	Signal string `json:"signal" binding:"required"`
+	// ThreadName is the name of the thread.
+	ThreadName string `json:"thread_name" binding:"required"`
+	// ThreadSequence is the order of the thread
+	// in the iOS exception.
+	ThreadSequence uint `json:"thread_sequence" binding:"required"`
+	// OSBuildNumber is the operating system's
+	// build number.
+	OSBuildNumber string `json:"os_build_number" binding:"required"`
+}
+
+// ExceptionUnit represents a cross-platform
+// structure to work with parts of an exception.
 type ExceptionUnit struct {
-	Type    string `json:"type" binding:"required"`
+	// Type is the type of the exception.
+	Type string `json:"type" binding:"required"`
+	// Message is the exception's message.
 	Message string `json:"message"`
-	Frames  Frames `json:"frames" binding:"required"`
+	// Frames is a collection of exception's frames.
+	Frames Frames `json:"frames" binding:"required"`
+	ExceptionUnitiOS
 }
 
 type ExceptionUnits []ExceptionUnit
 
+// ThreadiOS represents iOS specific structure
+// to work with iOS exceptions.
+type ThreadiOS struct {
+	Sequence uint `json:"sequence"`
+}
+
+// Thread represents a cross-platform
+// structure to work with exception threads.
 type Thread struct {
-	Name   string `json:"name" binding:"required"`
+	// Name is the name of the thread.
+	Name string `json:"name" binding:"required"`
+	// Frames is the collection of stackframe objects.
 	Frames Frames `json:"frames" binding:"required"`
+	ThreadiOS
 }
 
 type Threads []Thread
@@ -192,6 +325,13 @@ type Exception struct {
 	Threads     Threads        `json:"threads" binding:"required"`
 	Fingerprint string         `json:"fingerprint"`
 	Foreground  bool           `json:"foreground" binding:"required"`
+}
+
+// FingerprintComputer describes the behavior
+// to compute a unique fingerprint of any
+// underlying structure.
+type FingerprintComputer interface {
+	ComputeFingerprint() error
 }
 
 type AppExit struct {
@@ -254,6 +394,16 @@ type LifecycleFragment struct {
 	ParentActivity string `json:"parent_activity"`
 	ParentFragment string `json:"parent_fragment"`
 	Tag            string `json:"tag"`
+}
+
+type LifecycleViewController struct {
+	Type      string `json:"type" binding:"required"`
+	ClassName string `json:"class_name" binding:"required"`
+}
+
+type LifecycleSwiftUI struct {
+	Type      string `json:"type" binding:"required"`
+	ClassName string `json:"class_name" binding:"required"`
 }
 
 type LifecycleApp struct {
@@ -327,6 +477,12 @@ type MemoryUsage struct {
 	Interval        uint64 `json:"interval" binding:"required"`
 }
 
+type MemoryUsageAbs struct {
+	MaxMemory  uint64 `json:"max_memory" binding:"required"`
+	UsedMemory uint64 `json:"used_memory" binding:"required"`
+	Interval   uint64 `json:"interval" binding:"required"`
+}
+
 type LowMemory struct {
 	JavaMaxHeap     uint64 `json:"java_max_heap" binding:"required"`
 	JavaTotalHeap   uint64 `json:"java_total_heap" binding:"required"`
@@ -364,39 +520,48 @@ type ScreenView struct {
 	Name string `json:"name" binding:"required"`
 }
 
+type Custom struct {
+	Name string `json:"name" binding:"required"`
+}
+
 type EventField struct {
-	ID                uuid.UUID          `json:"id"`
-	IPv4              net.IP             `json:"inet_ipv4"`
-	IPv6              net.IP             `json:"inet_ipv6"`
-	CountryCode       string             `json:"inet_country_code"`
-	AppID             uuid.UUID          `json:"app_id"`
-	SessionID         uuid.UUID          `json:"session_id" binding:"required"`
-	Timestamp         time.Time          `json:"timestamp" binding:"required"`
-	Type              string             `json:"type" binding:"required"`
-	UserTriggered     bool               `json:"user_triggered" binding:"required"`
-	Attribute         Attribute          `json:"attribute" binding:"required"`
-	Attachments       []Attachment       `json:"attachments" binding:"required"`
-	ANR               *ANR               `json:"anr,omitempty"`
-	Exception         *Exception         `json:"exception,omitempty"`
-	AppExit           *AppExit           `json:"app_exit,omitempty"`
-	LogString         *LogString         `json:"string,omitempty"`
-	GestureLongClick  *GestureLongClick  `json:"gesture_long_click,omitempty"`
-	GestureScroll     *GestureScroll     `json:"gesture_scroll,omitempty"`
-	GestureClick      *GestureClick      `json:"gesture_click,omitempty"`
-	LifecycleActivity *LifecycleActivity `json:"lifecycle_activity,omitempty"`
-	LifecycleFragment *LifecycleFragment `json:"lifecycle_fragment,omitempty"`
-	LifecycleApp      *LifecycleApp      `json:"lifecycle_app,omitempty"`
-	ColdLaunch        *ColdLaunch        `json:"cold_launch,omitempty"`
-	WarmLaunch        *WarmLaunch        `json:"warm_launch,omitempty"`
-	HotLaunch         *HotLaunch         `json:"hot_launch,omitempty"`
-	NetworkChange     *NetworkChange     `json:"network_change,omitempty"`
-	Http              *Http              `json:"http,omitempty"`
-	MemoryUsage       *MemoryUsage       `json:"memory_usage,omitempty"`
-	LowMemory         *LowMemory         `json:"low_memory,omitempty"`
-	TrimMemory        *TrimMemory        `json:"trim_memory,omitempty"`
-	CPUUsage          *CPUUsage          `json:"cpu_usage,omitempty"`
-	Navigation        *Navigation        `json:"navigation,omitempty"`
-	ScreenView        *ScreenView        `json:"screen_view,omitempty"`
+	ID                      uuid.UUID                `json:"id"`
+	IPv4                    net.IP                   `json:"inet_ipv4"`
+	IPv6                    net.IP                   `json:"inet_ipv6"`
+	CountryCode             string                   `json:"inet_country_code"`
+	AppID                   uuid.UUID                `json:"app_id"`
+	SessionID               uuid.UUID                `json:"session_id" binding:"required"`
+	Timestamp               time.Time                `json:"timestamp" binding:"required"`
+	Type                    string                   `json:"type" binding:"required"`
+	UserTriggered           bool                     `json:"user_triggered" binding:"required"`
+	Attribute               Attribute                `json:"attribute" binding:"required"`
+	UserDefinedAttribute    UDAttribute              `json:"user_defined_attribute" binding:"required"`
+	Attachments             []Attachment             `json:"attachments" binding:"required"`
+	ANR                     *ANR                     `json:"anr,omitempty"`
+	Exception               *Exception               `json:"exception,omitempty"`
+	AppExit                 *AppExit                 `json:"app_exit,omitempty"`
+	LogString               *LogString               `json:"string,omitempty"`
+	GestureLongClick        *GestureLongClick        `json:"gesture_long_click,omitempty"`
+	GestureScroll           *GestureScroll           `json:"gesture_scroll,omitempty"`
+	GestureClick            *GestureClick            `json:"gesture_click,omitempty"`
+	LifecycleActivity       *LifecycleActivity       `json:"lifecycle_activity,omitempty"`
+	LifecycleFragment       *LifecycleFragment       `json:"lifecycle_fragment,omitempty"`
+	LifecycleViewController *LifecycleViewController `json:"lifecycle_view_controller,omitempty"`
+	LifecycleSwiftUI        *LifecycleSwiftUI        `json:"lifecycle_swift_ui,omitempty"`
+	LifecycleApp            *LifecycleApp            `json:"lifecycle_app,omitempty"`
+	ColdLaunch              *ColdLaunch              `json:"cold_launch,omitempty"`
+	WarmLaunch              *WarmLaunch              `json:"warm_launch,omitempty"`
+	HotLaunch               *HotLaunch               `json:"hot_launch,omitempty"`
+	NetworkChange           *NetworkChange           `json:"network_change,omitempty"`
+	Http                    *Http                    `json:"http,omitempty"`
+	MemoryUsage             *MemoryUsage             `json:"memory_usage,omitempty"`
+	MemoryUsageAbs          *MemoryUsageAbs          `json:"memory_usage_absolute,omitempty"`
+	LowMemory               *LowMemory               `json:"low_memory,omitempty"`
+	TrimMemory              *TrimMemory              `json:"trim_memory,omitempty"`
+	CPUUsage                *CPUUsage                `json:"cpu_usage,omitempty"`
+	Navigation              *Navigation              `json:"navigation,omitempty"`
+	ScreenView              *ScreenView              `json:"screen_view,omitempty"`
+	Custom                  *Custom                  `json:"custom,omitempty"`
 }
 
 // Compute computes the most accurate cold launch timing
@@ -454,7 +619,13 @@ func (e EventField) IsUnhandledException() bool {
 	return e.Type == TypeException && !e.Exception.Handled
 }
 
-// IsANR returns true for anr
+// IsCustom returns true for custom
+// event.
+func (e EventField) IsCustom() bool {
+	return e.Type == TypeCustom
+}
+
+// IsANR returns true for ANR
 // event.
 func (e EventField) IsANR() bool {
 	return e.Type == TypeANR
@@ -502,6 +673,18 @@ func (e EventField) IsLifecycleFragment() bool {
 	return e.Type == TypeLifecycleFragment
 }
 
+// IsLifecycleViewController returns true for
+// lifecycle view controller event.
+func (e EventField) IsLifecycleViewController() bool {
+	return e.Type == TypeLifecycleViewController
+}
+
+// IsLifecycleSwiftUI returns true for lifecycle
+// swift ui event.
+func (e EventField) IsLifecycleSwiftUI() bool {
+	return e.Type == TypeLifecycleSwiftUI
+}
+
 // IsLifecycleApp returns true for
 // lifecycle app event.
 func (e EventField) IsLifecycleApp() bool {
@@ -541,6 +724,12 @@ func (e EventField) IsHttp() bool {
 // memory usage event.
 func (e EventField) IsMemoryUsage() bool {
 	return e.Type == TypeMemoryUsage
+}
+
+// IsMemoryUsageAbs returns true for
+// memory usage absolute event.
+func (e EventField) IsMemoryUsageAbs() bool {
+	return e.Type == TypeMemoryUsageAbs
 }
 
 // IsTrimMemory returns true for trim
@@ -631,18 +820,17 @@ func (e EventField) HasAttachments() bool {
 // Validate validates the event for data
 // integrity.
 func (e *EventField) Validate() error {
-	validTypes := []string{
-		TypeANR, TypeException, TypeAppExit,
-		TypeString, TypeGestureLongClick, TypeGestureScroll,
-		TypeGestureClick, TypeLifecycleActivity, TypeLifecycleFragment,
-		TypeLifecycleApp, TypeColdLaunch, TypeWarmLaunch,
-		TypeHotLaunch, TypeNetworkChange, TypeHttp,
-		TypeMemoryUsage, TypeLowMemory, TypeTrimMemory,
-		TypeCPUUsage, TypeNavigation, TypeScreenView,
-	}
-
-	if !slices.Contains(validTypes, e.Type) {
-		return fmt.Errorf(`%q is not a valid type`, `type`)
+	switch e.Attribute.Platform {
+	case platform.Android:
+		if !slices.Contains(androidValidTypes, e.Type) {
+			return fmt.Errorf(`%q is not a valid event type for Android`, e.Type)
+		}
+	case platform.IOS:
+		if !slices.Contains(iOSValidTypes, e.Type) {
+			return fmt.Errorf(`%q is not a valid event type for iOS`, e.Type)
+		}
+	default:
+		return fmt.Errorf(`%q is not a valid platform value`, e.Attribute.Platform)
 	}
 
 	if e.ID == uuid.Nil {
@@ -772,6 +960,36 @@ func (e *EventField) Validate() error {
 		}
 	}
 
+	if e.IsLifecycleViewController() {
+		if e.LifecycleViewController.Type == "" || e.LifecycleViewController.ClassName == "" {
+			return fmt.Errorf(`%q and %q must not be empty`, `lifecycle_view_controller.type`, `lifecycle_view_controller.class_name`)
+		}
+		if len(e.LifecycleViewController.Type) > maxLifecycleViewControllerTypeChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_view_controller.type`, maxLifecycleViewControllerTypeChars)
+		}
+		if len(e.LifecycleViewController.ClassName) > maxLifecycleViewControllerClassNameChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_view_controller.class_name`, maxLifecycleViewControllerClassNameChars)
+		}
+		if !slices.Contains(ValidLifecycleViewControllerTypes, e.LifecycleViewController.Type) {
+			return fmt.Errorf(`%q contains invalid lifecycle view controller type %q`, `lifecycle_view_controller.type`, e.LifecycleViewController.Type)
+		}
+	}
+
+	if e.IsLifecycleSwiftUI() {
+		if e.LifecycleSwiftUI.Type == "" || e.LifecycleSwiftUI.ClassName == "" {
+			return fmt.Errorf(`%q and %q must not be empty`, `lifecycle_swift_ui.type`, `lifecycle_swift_ui.class_name`)
+		}
+		if len(e.LifecycleSwiftUI.Type) > maxLifecycleSwiftUITypeChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_swift_ui.type`, maxLifecycleSwiftUITypeChars)
+		}
+		if len(e.LifecycleSwiftUI.ClassName) > maxLifecycleSwiftUIClassNameChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_swift_ui.class_name`, maxLifecycleSwiftUIClassNameChars)
+		}
+		if !slices.Contains(ValidLifecycleSwiftUITypes, e.LifecycleSwiftUI.Type) {
+			return fmt.Errorf(`%q contains invalid lifecycle swift ui type %q`, `lifecycle_swift_ui.type`, e.LifecycleSwiftUI.Type)
+		}
+	}
+
 	if e.IsLifecycleApp() {
 		if e.LifecycleApp.Type == "" {
 			return fmt.Errorf(`%q must not be empty`, `lifecycle_app.type`)
@@ -779,7 +997,10 @@ func (e *EventField) Validate() error {
 		if len(e.LifecycleApp.Type) > maxLifecycleAppTypeChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_app.type`, maxLifecycleAppTypeChars)
 		}
-		if !slices.Contains(ValidLifecycleAppTypes, e.LifecycleApp.Type) {
+
+		validTypes := getValidLifecycleAppTypes(e.Attribute.Platform)
+
+		if !slices.Contains(validTypes, e.LifecycleApp.Type) {
 			return fmt.Errorf(`%q contains invalid lifecycle app type`, `lifecycle_app.type`)
 		}
 	}
@@ -922,13 +1143,56 @@ func (e *EventField) Validate() error {
 		}
 	}
 
+	if e.IsCustom() {
+		if len(e.Custom.Name) > maxCustomNameChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `custom.name`, maxTypeChars)
+		}
+
+		re := regexp.MustCompile(customNameKeyPattern)
+		if !re.MatchString(e.Custom.Name) {
+			return fmt.Errorf("%q custom event name must match this regular expression pattern %q", `custom.name`, customNameKeyPattern)
+		}
+	}
+
 	return nil
+}
+
+// GetPlatform determines the exception belongs
+// to which platform.
+func (e Exception) GetPlatform() (p string) {
+	p = platform.Unknown
+	if len(e.Exceptions) < 1 || len(e.Threads) < 1 {
+		return p
+	}
+
+	// Might be possible to detect the platform
+	// in a more robust manner
+	//
+	// FIXME: Revisit the heuristics for platform
+	// determination
+	if e.Exceptions[0].Signal != "" && e.Threads[0].Sequence != 0 {
+		p = platform.IOS
+	} else {
+		p = platform.Android
+	}
+
+	return
 }
 
 // IsNested returns true in case of
 // multiple nested exceptions.
 func (e Exception) IsNested() bool {
 	return len(e.Exceptions) > 1
+}
+
+// HasNoFrames returns true if the exception
+// does not have any frame.
+//
+// This may happen
+// for certain OutOfMemory stacktraces in
+// Android.
+func (e Exception) HasNoFrames() bool {
+	return len(e.Exceptions[len(e.Exceptions)-1].Frames) == 0
 }
 
 // GetTitle provides the combined
@@ -953,18 +1217,30 @@ func (e Exception) GetMessage() string {
 // GetFileName provides the file name of
 // the exception.
 func (e Exception) GetFileName() string {
+	// some exception may have zero frames
+	if e.HasNoFrames() {
+		return ""
+	}
 	return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
 }
 
 // GetLineNumber provides the line number of
 // the exception.
 func (e Exception) GetLineNumber() int {
+	// some exception may have zero frames
+	if e.HasNoFrames() {
+		return 0
+	}
 	return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
 }
 
 // GetMethodName provides the method name of
 // the Exception.
 func (e Exception) GetMethodName() string {
+	// some exception may have zero frames
+	if e.HasNoFrames() {
+		return ""
+	}
 	return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
 }
 
@@ -1014,46 +1290,88 @@ func (e Exception) Stacktrace() string {
 	return b.String()
 }
 
-// ComputeExceptionFingerprint computes a fingerprint
-// from the exception data.
-func (e *Exception) ComputeExceptionFingerprint() (err error) {
+// ComputeFingerprint computes a fingerprint
+// for the exception.
+func (e *Exception) ComputeFingerprint() (err error) {
 	if len(e.Exceptions) == 0 {
-		return fmt.Errorf("error computing exception fingerprint: no exceptions found")
+		return errors.New("error computing exception fingerprint: no exceptions found")
 	}
 
-	// Get the innermost exception
-	innermostException := e.Exceptions[len(e.Exceptions)-1]
+	// input holds the raw input to
+	// compute the fingerprint
+	input := ""
 
-	// Get the exception type
-	exceptionType := innermostException.Type
+	// sep is the separator to separate
+	// parts of the input
+	sep := ":"
 
-	// Initialize fingerprint data with the exception type
-	fingerprintData := exceptionType
+	switch e.GetPlatform() {
+	case platform.Android:
+		// get the innermost exception
+		innermostException := e.Exceptions[len(e.Exceptions)-1]
 
-	// Get the method name and file name from the first frame of the innermost exception
-	if len(innermostException.Frames) > 0 {
-		methodName := innermostException.Frames[0].MethodName
-		fileName := innermostException.Frames[0].FileName
+		// initialize fingerprint data with the exception type
+		input = innermostException.Type
 
-		// Include any non-empty information
+		// get the method name and file name from the first frame of the innermost exception
+		if len(innermostException.Frames) > 0 {
+			methodName := innermostException.Frames[0].MethodName
+			fileName := innermostException.Frames[0].FileName
+
+			// Include any non-empty information
+			if methodName != "" {
+				input += sep + methodName
+			}
+			if fileName != "" {
+				input += sep + fileName
+			}
+		}
+	case platform.IOS:
+		// get the first exception unit
+		// FIXME: might need to use ThreadSequence here
+		firstUnit := e.Exceptions[0]
+
+		input = firstUnit.Type
+
+		if len(firstUnit.Frames) < 1 {
+			break
+		}
+
+		methodName := firstUnit.Frames[0].MethodName
+		fileName := firstUnit.Frames[0].FileName
+
 		if methodName != "" {
-			fingerprintData += ":" + methodName
+			input += sep + methodName
 		}
 		if fileName != "" {
-			fingerprintData += ":" + fileName
+			input += sep + fileName
 		}
+	default:
+		return errors.New("failed to compute fingerprint for unknown platform")
 	}
 
 	// Compute the fingerprint
-	e.Fingerprint = computeFingerprint(fingerprintData)
+	// e.Fingerprint = computeFingerprint(input)
+	hash := md5.Sum([]byte(input))
+	e.Fingerprint = hex.EncodeToString(hash[:])
 
-	return nil
+	return
 }
 
 // IsNested returns true in case of
 // multiple nested ANRs.
 func (a ANR) IsNested() bool {
 	return len(a.Exceptions) > 1
+}
+
+// HasNoFrames returns true if the ANR
+// does not have any frame.
+//
+// This may happen
+// for certain OutOfMemory stacktraces in
+// Android.
+func (a ANR) HasNoFrames() bool {
+	return len(a.Exceptions[len(a.Exceptions)-1].Frames) == 0
 }
 
 // GetTitle provides the combined
@@ -1078,18 +1396,27 @@ func (a ANR) GetMessage() string {
 // GetFileName provides the file name of
 // the ANR.
 func (a ANR) GetFileName() string {
+	if a.HasNoFrames() {
+		return ""
+	}
 	return a.Exceptions[len(a.Exceptions)-1].Frames[0].FileName
 }
 
 // GetLineNumber provides the line number of
 // the ANR.
 func (a ANR) GetLineNumber() int {
+	if a.HasNoFrames() {
+		return 0
+	}
 	return a.Exceptions[len(a.Exceptions)-1].Frames[0].LineNum
 }
 
 // GetMethodName provides the method name of
 // the ANR.
 func (a ANR) GetMethodName() string {
+	if a.HasNoFrames() {
+		return ""
+	}
 	return a.Exceptions[len(a.Exceptions)-1].Frames[0].MethodName
 }
 
@@ -1139,9 +1466,9 @@ func (a ANR) Stacktrace() string {
 	return b.String()
 }
 
-// ComputeANRFingerprint computes a fingerprint
+// ComputeFingerprint computes a fingerprint
 // from the ANR data.
-func (a *ANR) ComputeANRFingerprint() (err error) {
+func (a *ANR) ComputeFingerprint() (err error) {
 	if len(a.Exceptions) == 0 {
 		return fmt.Errorf("error computing ANR fingerprint: no exceptions found")
 	}
@@ -1170,12 +1497,8 @@ func (a *ANR) ComputeANRFingerprint() (err error) {
 	}
 
 	// Compute the fingerprint
-	a.Fingerprint = computeFingerprint(fingerprintData)
+	hash := md5.Sum([]byte(fingerprintData))
+	a.Fingerprint = hex.EncodeToString(hash[:])
 
 	return nil
-}
-
-func computeFingerprint(data string) string {
-	hash := md5.Sum([]byte(data))
-	return hex.EncodeToString(hash[:])
 }

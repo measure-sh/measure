@@ -10,6 +10,7 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -204,6 +205,14 @@ func Init(config *ServerConfig) {
 	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
 	if err != nil {
 		log.Fatalf("Unable to parse CH connection string: %v\n", err)
+	}
+
+	if gin.Mode() == gin.ReleaseMode {
+		chOpts.Settings = clickhouse.Settings{
+			"use_query_cache":                1,
+			"query_cache_ttl":                600,
+			"query_cache_min_query_duration": 1000,
+		}
 	}
 
 	chPool, err := clickhouse.Open(chOpts)

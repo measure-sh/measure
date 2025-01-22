@@ -9,7 +9,6 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import sh.measure.android.Measure
-import sh.measure.android.events.EventType
 
 @Composable
 fun NavHostController.withMeasureNavigationListener(): NavHostController {
@@ -46,13 +45,7 @@ private class MeasureNavigationObserver(
     private val destinationChangedListener =
         NavController.OnDestinationChangedListener { controller, _, _ ->
             controller.currentDestination?.route?.let { to ->
-                val timeProvider = Measure.getTimeProvider() ?: return@let
-                val eventProcessor = Measure.getEventProcessor() ?: return@let
-                eventProcessor.track(
-                    type = EventType.SCREEN_VIEW,
-                    timestamp = timeProvider.currentTimeSinceEpochInMillis,
-                    data = ScreenViewData(name = to),
-                )
+                Measure.trackScreenView(to)
             }
         }
 }

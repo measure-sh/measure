@@ -6,18 +6,19 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeProcessInfoProvider
-import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.TestClock
 
 internal class UnhandledExceptionCollectorTest {
 
     private var originalDefaultHandler: Thread.UncaughtExceptionHandler? = null
     private val logger = NoopLogger()
-    private val timeProvider = FakeTimeProvider()
-    private val eventProcessor = mock<EventProcessor>()
+    private val timeProvider = AndroidTimeProvider(TestClock.create())
+    private val signalProcessor = mock<SignalProcessor>()
     private val processInfo = FakeProcessInfoProvider()
 
     @Before
@@ -30,7 +31,7 @@ internal class UnhandledExceptionCollectorTest {
         // When
         val collector = UnhandledExceptionCollector(
             logger,
-            eventProcessor,
+            signalProcessor,
             timeProvider,
             processInfo,
         ).apply { register() }
@@ -44,7 +45,7 @@ internal class UnhandledExceptionCollectorTest {
     fun `UnhandledExceptionCollector tracks uncaught exceptions`() {
         val collector = UnhandledExceptionCollector(
             logger,
-            eventProcessor,
+            signalProcessor,
             timeProvider,
             processInfo,
         ).apply { register() }
@@ -63,8 +64,8 @@ internal class UnhandledExceptionCollectorTest {
         collector.uncaughtException(thread, exception)
 
         // Then
-        verify(eventProcessor).trackCrash(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+        verify(signalProcessor).trackCrash(
+            timestamp = timeProvider.now(),
             type = EventType.EXCEPTION,
             data = expectedException,
             attributes = mutableMapOf(),
@@ -80,10 +81,36 @@ internal class UnhandledExceptionCollectorTest {
         }
         val collector = UnhandledExceptionCollector(
             logger,
-            eventProcessor,
+            signalProcessor,
             timeProvider,
             processInfo,
         ).apply { register() }
+
+        // Given
+        val thread = Thread.currentThread()
+        val exception = RuntimeException("Test exception")
+
+        // When
+        collector.uncaughtException(thread, exception)
+
+        // Then
+        assertTrue(originalHandlerCalled)
+    }
+
+    @Test
+    fun `UnhandledExceptionCollector calls the original handler when unregistered`() {
+        var originalHandlerCalled = false
+        Thread.setDefaultUncaughtExceptionHandler { _, _ ->
+            originalHandlerCalled = true
+        }
+        val collector = UnhandledExceptionCollector(
+            logger,
+            signalProcessor,
+            timeProvider,
+            processInfo,
+        )
+        collector.register()
+        collector.unregister()
 
         // Given
         val thread = Thread.currentThread()

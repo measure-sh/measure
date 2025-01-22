@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"backend/api/event"
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -65,6 +63,10 @@ var duration time.Duration
 // parallel is used to enable virtualization.
 var parallel bool
 
+// skipApps is used to skip processing
+// of specified apps.
+var skipApps []string
+
 // metrics is used to store progress of ingestion
 // operations.
 var metrics Metrics
@@ -102,9 +104,11 @@ func init() {
 		Flags().
 		BoolVarP(&cleanAll, "clean-all", "X", false, "remove all builds, events & attachments before ingestion")
 
-	ingestCmd.Flags().SortFlags = false
+	ingestCmd.
+		Flags().
+		StringSliceVar(&skipApps, "skip-apps", nil, "list of apps to skip ingestion")
 
-	rootCmd.AddCommand(ingestCmd)
+	ingestCmd.Flags().SortFlags = false
 }
 
 // ValidateFlags validates the commmand line
@@ -136,21 +140,21 @@ func ValidateFlags() bool {
 func IngestSerial(apps *app.Apps, origin string) {
 	startTime := time.Now()
 	eventURL := fmt.Sprintf("%s/events", origin)
-	mappingURL := fmt.Sprintf("%s/builds", origin)
+	buildURL := fmt.Sprintf("%s/builds", origin)
 	virtualizer := NewVirtualizer()
 
 	for _, app := range apps.Items {
 		fmt.Printf("Processing %q\n", app.FullName())
 
-		if len(app.EventFiles) < 1 {
-			fmt.Println("No event files found, skipping...")
+		if len(app.EventAndSpanFiles) < 1 {
+			fmt.Println("No event and span files found, skipping...")
 			continue
 		}
 
 		apiKey := configData.Apps[app.Name].ApiKey
 
 		fmt.Printf("Uploading build info...")
-		status, err := UploadBuild(mappingURL, apiKey, app)
+		status, err := UploadBuild(buildURL, apiKey, app)
 		if err != nil {
 			if status == "" {
 				status = err.Error()
@@ -162,16 +166,16 @@ func IngestSerial(apps *app.Apps, origin string) {
 		fmt.Printf("🟢 %s \n", status)
 		metrics.bumpBuild()
 
-		for i := range app.EventFiles {
-			eventFile := app.EventFiles[i]
-			content, eventCount, err := prepareEvents(eventFile, virtualizer)
+		for i := range app.EventAndSpanFiles {
+			eventAndSpanFile := app.EventAndSpanFiles[i]
+			content, eventCount, spanCount, err := prepareEventsAndSpans(eventAndSpanFile, virtualizer)
 			if err != nil {
 				log.Fatal(err)
 			}
-			base := filepath.Base(eventFile)
-			fmt.Printf("%3d) Ingesting events %q...", i+1, base)
+			base := filepath.Base(eventAndSpanFile)
+			fmt.Printf("%3d) Ingesting events and spans %q...", i+1, base)
 			reqId := base[:len(base)-len(filepath.Ext(base))]
-			status, err := UploadEvents(eventURL, apiKey, reqId, content)
+			status, err := UploadEventsAndSpans(eventURL, apiKey, reqId, content)
 			if err != nil {
 				if status == "" {
 					status = err.Error()
@@ -180,8 +184,9 @@ func IngestSerial(apps *app.Apps, origin string) {
 				log.Fatal(err)
 			}
 			fmt.Printf("🟢 %s \n", status)
-			metrics.bumpEventFile()
+			metrics.bumpEventAndSpanFile()
 			metrics.bumpEvent(eventCount)
+			metrics.bumpSpan(spanCount)
 		}
 
 		fmt.Printf("\n")
@@ -196,7 +201,7 @@ func IngestSerial(apps *app.Apps, origin string) {
 func IngestParallel(apps *app.Apps, origin string) {
 	startTime := time.Now()
 	eventURL := fmt.Sprintf("%s/events", origin)
-	mappingURL := fmt.Sprintf("%s/builds", origin)
+	buildURL := fmt.Sprintf("%s/builds", origin)
 
 	var logResults = func(results *[]string) {
 		for _, result := range *results {
@@ -208,15 +213,15 @@ func IngestParallel(apps *app.Apps, origin string) {
 	for _, app := range apps.Items {
 		fmt.Printf("Processing %q\n", app.FullName())
 
-		if len(app.EventFiles) < 1 {
-			fmt.Println("No event files found, skipping...")
+		if len(app.EventAndSpanFiles) < 1 {
+			fmt.Println("No event and span files found, skipping...")
 			continue
 		}
 
 		apiKey := configData.Apps[app.Name].ApiKey
 
 		fmt.Printf("Uploading build info...")
-		status, err := UploadBuild(mappingURL, apiKey, app)
+		status, err := UploadBuild(buildURL, apiKey, app)
 		if err != nil {
 			if status == "" {
 				status = err.Error()
@@ -247,16 +252,16 @@ func IngestParallel(apps *app.Apps, origin string) {
 					return
 				default:
 					virtualizer := NewVirtualizer().Event().Session()
-					for j := range app.EventFiles {
+					for j := range app.EventAndSpanFiles {
 						results := []string{}
-						eventFile := app.EventFiles[j]
-						content, eventCount, err := prepareEvents(eventFile, virtualizer)
+						eventAndSpanFile := app.EventAndSpanFiles[j]
+						content, eventCount, spanCount, err := prepareEventsAndSpans(eventAndSpanFile, virtualizer)
 						if err != nil {
 							log.Fatal(err)
 						}
 						reqId := uuid.New().String()
-						result := fmt.Sprintf("Ingesting virtual events %q...", reqId)
-						status, err := UploadEvents(eventURL, apiKey, reqId, content)
+						result := fmt.Sprintf("Ingesting virtual events and spans %q...", reqId)
+						status, err := UploadEventsAndSpans(eventURL, apiKey, reqId, content)
 						if err != nil {
 							if status == "" {
 								status = err.Error()
@@ -264,15 +269,16 @@ func IngestParallel(apps *app.Apps, origin string) {
 							result += fmt.Sprintf("🔴 %s \n", status)
 							results = append(results, result)
 							logResults(&results)
-							fmt.Println("event file", eventFile)
+							fmt.Println("event and span file", eventAndSpanFile)
 							log.Fatal(err)
 						}
 						result += fmt.Sprintf("🟢 %s \n", status)
 						results = append(results, result)
 						logResults(&results)
 
-						metrics.bumpEventFile()
+						metrics.bumpEventAndSpanFile()
 						metrics.bumpEvent(eventCount)
+						metrics.bumpSpan(spanCount)
 					}
 				}
 			}()
@@ -355,38 +361,82 @@ func UploadBuild(url, apiKey string, app app.App) (string, error) {
 	return sendRequest(url, apiKey, headers, buff.Bytes())
 }
 
-// prepareEvents prepares request for events.
-func prepareEvents(eventFile string, virtualizer *virtualizer) (data []byte, eventCount int, err error) {
-	events := []event.EventField{}
+// prepareEventsAndSpansAndSpans prepares request for events.
+func prepareEventsAndSpans(eventAndSpanFile string, virtualizer *virtualizer) (data []byte, eventCount int, spanCount int, err error) {
+	fileData := app.EventAndSpanFileData{}
 	rawEvents := []json.RawMessage{}
-	content, err := os.ReadFile(eventFile)
+	rawSpans := []json.RawMessage{}
+	content, err := os.ReadFile(eventAndSpanFile)
 	if err != nil {
 		return
 	}
-	if err = json.Unmarshal(content, &events); err != nil {
+	if err = json.Unmarshal(content, &fileData); err != nil {
 		return
 	}
 
 	decoder := json.NewDecoder(bytes.NewBuffer(content))
-	_, err = decoder.Token()
-	if err != nil {
+	if _, err = decoder.Token(); err != nil { // Read the initial '{'
+		return data, eventCount, spanCount, fmt.Errorf("error reading JSON object start: %v", err)
+	}
+
+	for decoder.More() { // Loop through top-level keys
+		// Read the next key
+		token, err := decoder.Token()
+		if err != nil {
+			return data, eventCount, spanCount, fmt.Errorf("error reading JSON key: %v", err)
+		}
+
+		if key, ok := token.(string); ok {
+			switch key {
+			case "events":
+				if _, err = decoder.Token(); err != nil { // Skip '['
+					return data, eventCount, spanCount, fmt.Errorf("error reading events array start: %v", err)
+				}
+
+				for decoder.More() {
+					var rawEvent json.RawMessage
+					if err = decoder.Decode(&rawEvent); err != nil {
+						return data, eventCount, spanCount, fmt.Errorf("error decoding event: %v", err)
+					}
+					if err = virtualizer.Virtualize(&rawEvent); err != nil {
+						return data, eventCount, spanCount, fmt.Errorf("error virtualizing event: %v", err)
+					}
+					rawEvents = append(rawEvents, rawEvent)
+					eventCount++
+				}
+
+				if _, err = decoder.Token(); err != nil { // Skip ']'
+					return data, eventCount, spanCount, fmt.Errorf("error reading events array end: %v", err)
+				}
+
+			case "spans":
+				if _, err = decoder.Token(); err != nil { // Skip '['
+					return data, eventCount, spanCount, fmt.Errorf("error reading spans array start: %v", err)
+				}
+
+				for decoder.More() {
+					var rawSpan json.RawMessage
+					if err = decoder.Decode(&rawSpan); err != nil {
+						return data, eventCount, spanCount, fmt.Errorf("error decoding span: %v", err)
+					}
+					rawSpans = append(rawSpans, rawSpan)
+					spanCount++
+				}
+
+				if _, err = decoder.Token(); err != nil { // Skip ']'
+					return data, eventCount, spanCount, fmt.Errorf("error reading spans array end: %v", err)
+				}
+			}
+		}
+	}
+
+	if len(rawEvents) != len(fileData.Events) {
+		err = errors.New("mismatch found in number of events while preparing events request")
 		return
 	}
-	for decoder.More() {
-		var r json.RawMessage
-		if err = decoder.Decode(&r); err != nil {
-			return
-		}
 
-		if err = virtualizer.Virtualize(&r); err != nil {
-			return
-		}
-
-		rawEvents = append(rawEvents, r)
-	}
-
-	if len(rawEvents) != len(events) {
-		err = fmt.Errorf("mismatch found in number of events while preparing events request")
+	if len(rawSpans) != len(fileData.Spans) {
+		err = errors.New("mismatch found in number of spans while preparing spans request")
 		return
 	}
 
@@ -397,41 +447,50 @@ func prepareEvents(eventFile string, virtualizer *virtualizer) (data []byte, eve
 	for i := range rawEvents {
 		fw, err := w.CreateFormField("event")
 		if err != nil {
-			return data, eventCount, err
+			return data, eventCount, spanCount, err
 		}
 		_, err = fw.Write(rawEvents[i])
 		if err != nil {
-			return data, eventCount, err
+			return data, eventCount, spanCount, err
 		}
 
-		eventCount = eventCount + 1
-
-		if len(events[i].Attachments) < 1 {
+		if len(fileData.Events[i].Attachments) < 1 {
 			continue
 		}
 
-		for j := range events[i].Attachments {
-			appDir := filepath.Dir(eventFile)
-			id := events[i].Attachments[j].ID.String()
-			filename := events[i].Attachments[j].Name
+		for j := range fileData.Events[i].Attachments {
+			appDir := filepath.Dir(eventAndSpanFile)
+			id := fileData.Events[i].Attachments[j].ID.String()
+			filename := fileData.Events[i].Attachments[j].Name
 			key := `blob-` + id
 			blobPath := filepath.Join(appDir, "blobs", id)
 			blobFile, err := os.Open(blobPath)
 			if err != nil {
-				return data, eventCount, err
+				return data, eventCount, spanCount, err
 			}
 			ff, err := w.CreateFormFile(key, filename)
 			if err != nil {
-				return data, eventCount, err
+				return data, eventCount, spanCount, err
 			}
 
 			_, err = io.Copy(ff, blobFile)
 			if err != nil {
-				return data, eventCount, err
+				return data, eventCount, spanCount, err
 			}
 			if err := blobFile.Close(); err != nil {
-				return data, eventCount, err
+				return data, eventCount, spanCount, err
 			}
+		}
+	}
+
+	for i := range rawSpans {
+		fw, err := w.CreateFormField("span")
+		if err != nil {
+			return data, eventCount, spanCount, err
+		}
+		_, err = fw.Write(rawSpans[i])
+		if err != nil {
+			return data, eventCount, spanCount, err
 		}
 	}
 
@@ -443,9 +502,9 @@ func prepareEvents(eventFile string, virtualizer *virtualizer) (data []byte, eve
 	return
 }
 
-// UploadEvents prepares & sends the request to upload
+// UploadEventsAndSpans prepares & sends the request to upload
 // events.
-func UploadEvents(url, apiKey, reqId string, data []byte) (status string, err error) {
+func UploadEventsAndSpans(url, apiKey, reqId string, data []byte) (status string, err error) {
 	if dryRun {
 		return http.StatusText(http.StatusAccepted), nil
 	}
@@ -503,8 +562,8 @@ func sendRequest(url, apiKey string, headers map[string]string, data []byte) (st
 
 var ingestCmd = &cobra.Command{
 	Use:   "ingest",
-	Short: "Ingest events",
-	Long: `Ingest events from a local directory.
+	Short: "Ingest events, spans & builds",
+	Long: `Ingest events, spans & builds from disk.
 
 Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -517,7 +576,9 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 			os.Exit(1)
 		}
 
-		apps, err := app.Scan(sourceDir)
+		apps, err := app.Scan(sourceDir, &app.ScanOpts{
+			SkipApps: skipApps,
+		})
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
@@ -541,24 +602,24 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 				mapping = "found"
 			}
 			fmt.Printf("app (%d): %s\n", i+1, app.FullName())
-			fmt.Printf("event files count: %d\n", len(app.EventFiles))
+			fmt.Printf("event and span files count: %d\n", len(app.EventAndSpanFiles))
 			fmt.Printf("blob files count: %d\n", len(app.BlobFiles))
 			fmt.Printf("mapping file: %s\n\n", mapping)
 		}
 
-		if clean {
+		if clean || cleanAll {
 			if err := configData.ValidateStorage(); err != nil {
 				log.Fatal(err)
 			}
-			ctx := context.Background()
-			if err := rmEvents(ctx, configData); err != nil {
+		}
+
+		ctx := cmd.Context()
+
+		if clean {
+			if err := rmAppResources(ctx, configData); err != nil {
 				log.Fatal("failed to clean old data", err)
 			}
 		} else if cleanAll {
-			if err := configData.ValidateStorage(); err != nil {
-				log.Fatal(err)
-			}
-			ctx := context.Background()
 			if err := rmAll(ctx, configData); err != nil {
 				log.Fatal("failed to clean all old data", err)
 			}
@@ -574,8 +635,9 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 
 		fmt.Printf("apps: %d\n", metrics.AppCount)
 		fmt.Printf("builds: %d\n", metrics.BuildCount)
-		fmt.Printf("event files: %d\n", metrics.EventFileCount)
+		fmt.Printf("event and span files: %d\n", metrics.EventAndSpanFileCount)
 		fmt.Printf("events: %d\n", metrics.EventCount)
+		fmt.Printf("spans: %d\n", metrics.SpanCount)
 		fmt.Printf("ingest took: %v\n", metrics.ingestDuration)
 	},
 }

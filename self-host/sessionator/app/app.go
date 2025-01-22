@@ -2,6 +2,7 @@ package app
 
 import (
 	"backend/api/event"
+	"backend/api/span"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,12 +15,17 @@ import (
 // App represents each combination of app and version
 // along with its events and related build info.
 type App struct {
-	Name        string
-	Version     string
-	MappingFile string
-	BuildInfo   BuildInfo
-	EventFiles  []string
-	BlobFiles   []string
+	Name              string
+	Version           string
+	MappingFile       string
+	BuildInfo         BuildInfo
+	EventAndSpanFiles []string
+	BlobFiles         []string
+}
+
+type EventAndSpanFileData struct {
+	Events []event.EventField `json:"events"`
+	Spans  []span.SpanField   `json:"spans"`
 }
 
 // ReadBuild decodes and parses build info data
@@ -35,18 +41,45 @@ func (a *App) ReadBuild(path string) error {
 // Attribute provides the event attribute from the first
 // event of the app.
 func (a *App) Attribute() (attribute *event.Attribute, err error) {
-	content, err := os.ReadFile(a.EventFiles[0])
+	content, err := os.ReadFile(a.EventAndSpanFiles[0])
 	if err != nil {
 		return nil, err
 	}
 
-	events := []event.EventField{}
+	fileData := EventAndSpanFileData{}
 
-	if err := json.Unmarshal(content, &events); err != nil {
+	if err := json.Unmarshal(content, &fileData); err != nil {
+		fmt.Println("goo 0")
 		return nil, err
 	}
 
-	attribute = &events[0].Attribute
+	if len(fileData.Events) > 0 {
+		attribute = &fileData.Events[0].Attribute
+	} else if len(fileData.Spans) > 0 {
+		spanAttr := fileData.Spans[0].Attributes
+
+		attribute = &event.Attribute{
+			InstallationID:     spanAttr.InstallationID,
+			AppVersion:         spanAttr.AppVersion,
+			AppBuild:           spanAttr.AppBuild,
+			AppUniqueID:        spanAttr.AppUniqueID,
+			MeasureSDKVersion:  spanAttr.MeasureSDKVersion,
+			Platform:           spanAttr.Platform,
+			ThreadName:         spanAttr.ThreadName,
+			UserID:             spanAttr.UserID,
+			DeviceName:         spanAttr.DeviceName,
+			DeviceModel:        spanAttr.DeviceModel,
+			DeviceManufacturer: spanAttr.DeviceManufacturer,
+			DeviceLocale:       spanAttr.DeviceLocale,
+			OSName:             spanAttr.OSName,
+			OSVersion:          spanAttr.OSVersion,
+			NetworkType:        spanAttr.NetworkType,
+			NetworkProvider:    spanAttr.NetworkProvider,
+			NetworkGeneration:  spanAttr.NetworkGeneration,
+		}
+	} else {
+		return nil, fmt.Errorf("no events or spans found to fetch attributes")
+	}
 
 	return
 }

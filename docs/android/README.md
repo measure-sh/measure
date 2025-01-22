@@ -1,13 +1,17 @@
 # Measure Android SDK
 
 * [Minimum requirements](#minimum-requirements)
+* [Self host compatibility](#self-host-compatibility)
 * [Quick reference](#quick-reference)
 * [Getting started](#getting-started)
 * [Custom events](#custom-events)
   * [Handled exceptions](#handled-exceptions)
-  * [Navigation](#navigation)
+  * [Screen view](#screen-view)
 * [Features](#features)
-* [Benchmarks](#benchmarks)
+* [Performance Impact](#performance-impact)
+  * [Benchmarks](#benchmarks)
+  * [Profiling](#profiling)
+  * [Implementation](#implementation)
 
 # Minimum requirements
 
@@ -17,12 +21,21 @@
 | Min SDK               | 21 (Lollipop) |
 | Target SDK            | 31            |
 
+# Self-host compatibility
+
+Before updating to Android SDK version 0.9.0, make sure the deployed self-host version is *atleast* 0.5.0. For more 
+details, checkout the [self-host guide](../hosting/README.md).
+
+| SDK version   | Minimum required self-host version |
+|---------------|------------------------------------|
+| 0.1.0 - 0.8.2 | 0.1.1                              |
+| 0.9.0         | 0.5.0                              |
+ 
 # Quick reference
 
 A quick reference to the entire public API for Measure Android SDK.
 
-<img src="https://github.com/user-attachments/assets/ff835b3b-2953-4920-b5fa-060761862cac" width="60%" alt="Cheatsheet">
-
+![Cheatsheet](images/cheatsheet_v0.9.0.png)
 
 # Getting started
 
@@ -157,13 +170,13 @@ measure {
 Add the following to your app's `build.gradle.kts`file.
 
 ```kotlin
-implementation("sh.measure:measure-android:0.7.0")
+implementation("sh.measure:measure-android:0.9.0")
 ```
 
 or, add the following to your app's `build.gradle`file.
 
 ```groovy
-implementation 'sh.measure:measure-android:0.7.0'
+implementation 'sh.measure:measure-android:0.9.0'
 ```
 
 ### 4. Initialize the SDK
@@ -178,8 +191,6 @@ Add the following to your app's Application class `onCreate` method.
 Measure.init(context)
 ```
 
-
-
 If you wish to configure the SDK during initialization with a custom config use the overloaded function:
 
 ```kotlin
@@ -188,6 +199,24 @@ Measure.init(
         // override the default configuration here
     )
 )
+```
+
+By default, init also starts collection of events. To delay start to a different point in your app
+use [configuration options](configuration-options.md#autostart).
+
+```kotlin
+Measure.init(
+  context, MeasureConfig(
+    // delay starting of collection
+    autoStart = false,
+  )
+)
+
+// Start collecting
+Measure.start()
+
+// Stop collecting
+Measure.stop()
 ```
 
 See all the [configuration options](configuration-options.md) available.
@@ -200,6 +229,7 @@ after the SDK is initialized:
 ```kotlin
 throw RuntimeException("This is a test crash")
 ```
+
 Reopen the app and launch the dashboard, you should see the crash report in the dashboard.
 
 > [!CAUTION]
@@ -209,7 +239,41 @@ Reopen the app and launch the dashboard, you should see the crash report in the 
 
 # Custom events
 
-The following events can be triggered manually to get more context while debugging issues.
+Custom events provide more context on top of automatically collected events. They provide the context
+specific to the app to debug issues and analyze impact.
+
+To track a custom event use `trackEvent` method.
+
+```kotlin
+Measure.trackEvent("event_name")
+```
+
+A custom event can also contain attributes which are key value paris.
+
+- Attribute keys must be strings with max length of 256 chars.
+- Attribute values must be one of the primitive types: int, long, double, float or boolean.
+- String attribute values can have a max length of 256 chars.
+
+```kotlin
+val attributes = AttributesBuilder()
+  .put("is_premium_user", true)
+  .build()
+Measure.trackEvent("event_name", attributes = attributes)
+```
+
+A custom event can also be triggered with a timestamp to allow tracking events which might 
+have happened before the app or SDK was initialized. The timestamp must be in format milliseconds 
+since epoch.
+
+```kotlin
+Measure.trackEvent("event_name", timestamp = 1734443973879L)
+```
+
+Apart from sending a custom event, the following events can be tracked with a predefined scehama:
+
+* [Handled exceptions](#handled-exceptions)
+* [ScreenView](#screen-view)
+
 
 ### Handled exceptions
 
@@ -224,9 +288,9 @@ try {
 }
 ```
 
-### Navigation
+### Screen View
 
-Measure automatically tracks `navigation` events
+Measure automatically tracks `screen_view` events
 for [androidx.navigation](https://developer.android.com/jetpack/androidx/releases/navigation)
 library. It also
 tracks [lifecycle_activity](features/feature_navigation_and_lifecycle.md#activity-lifecycle)
@@ -234,25 +298,23 @@ events
 and [lifecycle_fragment](features/feature_navigation_and_lifecycle.md#fragment-lifecycle)
 events.
 
-However, `navigation` events can also be triggered manually using the following method to keep
+However, `screen_view` events can also be triggered manually using the following method to keep
 a track of the user flow.
 
 ```kotlin
-Measure.trackNavigationEvent(
-    from = "home",
-    to = "settings"
-)
+Measure.trackScreenView("checkout")
 ```
 
 # Features
 
-All the features supported by the Measure SDK are listed below. 
+All the features supported by the Measure SDK are listed below.
 
 * [Crash tracking](features/feature_crash_tracking.md)
 * [ANR tracking](features/feature_anr_tracking.md)
 * [Network monitoring](features/feature_network_monitoring.md)
 * [Network changes](features/feature_network_changes.md)
 * [Gesture tracking](features/feature_gesture_tracking.md)
+* [Layout Snapshots](features/feature_layout_snapshots.md)
 * [Navigation & Lifecycle](features/feature_navigation_and_lifecycle.md)
 * [App launch](features/feature_app_launch.md)
 * [App exit info](features/feature_app_exit_info.md)
@@ -260,22 +322,52 @@ All the features supported by the Measure SDK are listed below.
 * [Memory monitoring](features/feature_memory_monitoring.md)
 * [App size](features/feature_app_size.md)
 
-# Benchmarks
+# Session
 
-Measure SDK has a set of benchmarks to measure the performance impact of the SDK on the app.
-These benchmarks are collected using macro-benchmark on a Pixel 4a device running Android 13 (API 33).
-Each benchmark is run 35 times. See the [android/benchmarks](../../android/benchmarks/README.md) for
-more details, and the raw results are available in the 
-[android/benchmarkData](../../android/benchmarks/README.md) folder.
+A session represents a continuous period of activity in the app. A new session begins when an app is launched for the first time,
+or when there's been no activity for a 20-minute period. A single session can continue across multiple app background and
+foreground events; brief interruptions will not cause a new session to be created. This approach is helpful when reviewing
+session replays, as it shows the app switching between background and foreground states within the same session.
+
+The current session can be retrived by using `getSessionId` method.
+
+```kotlin
+val sessionId = Measure.getSessionId()
+```
+
+
+# Performance Impact
+
+## Benchmarks
+
+We benchmark the SDK's performance impact using a Pixel 4a running Android 13 (API 33). Each test runs 35 times using
+macro-benchmark. For detailed methodology, see [android/benchmarks](../../android/benchmarks/README.md).
 
 > [!IMPORTANT]
 > Benchmark results are specific to the device and the app. It is recommended to run the benchmarks
 > for your app to get results specific to your app. These numbers are published to provide
 > a reference point and are used internally to detect any performance regressions.
 
-For v0.7.0, the following benchmarks are available.
+Benchmarks results for v0.9.0:
 
 * Adds 26.258ms-34.416ms to the app startup time (Time to Initial Display) for a simple app.
-* Takes 0.30ms to find the target view for every click/scroll gesture in a deep view hierarchy.
-* Takes 0.45ms to find the target composable for every click/scroll gesture in a deep composable
-  hierarchy.
+* Adds 0.57ms for view-based layouts, and 0.65ms for compose based layouts to every gesture.
+
+## Profiling
+
+To measure the SDK's impact on your app, we've added traces to key areas of the code. These traces help you track
+performance using [Macro Benchmark](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-overview)
+or by using [Perfetto](https://perfetto.dev/docs/quickstart/android-tracing) directly.
+
+* `msr-init` — time spent on the main thread while initializing.
+* `msr-start` — time spent on the main thread when `Measure.start` is called.
+* `msr-stop` — — time spent on the main thread when `Measure.stop` is called.
+* `msr-trackEvent` — time spent in storing an event to local storage. Almost all of this time is spent _off_ the main
+  thread. 
+* `msr-trackGesture` — time spent on the main thread to track a gesture.
+* `msr-generateSvgAttachment` — time spent on background thread to generate a SVG layout.
+
+## Implementation
+
+For details on data storage, syncing behavior, and threading, see
+our [Internal Documentation](../../android/docs/internal-documentation.md).

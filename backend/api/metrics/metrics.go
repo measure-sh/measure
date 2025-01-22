@@ -130,7 +130,7 @@ func (lm *LaunchMetric) SetNaNs() {
 		lm.ColdNaN = true
 		lm.ColdLaunchP95 = 0
 	}
-	if math.IsNaN(lm.ColdDelta) {
+	if math.IsNaN(lm.ColdDelta) || math.IsInf(lm.ColdDelta, 0) {
 		lm.ColdNaN = true
 		lm.ColdDelta = 0
 	}
@@ -138,7 +138,7 @@ func (lm *LaunchMetric) SetNaNs() {
 		lm.WarmNaN = true
 		lm.WarmLaunchP95 = 0
 	}
-	if math.IsNaN(lm.WarmDelta) {
+	if math.IsNaN(lm.WarmDelta) || math.IsInf(lm.WarmDelta, 0) {
 		lm.WarmNaN = true
 		lm.WarmDelta = 0
 	}
@@ -146,7 +146,7 @@ func (lm *LaunchMetric) SetNaNs() {
 		lm.HotNaN = true
 		lm.HotLaunchP95 = 0
 	}
-	if math.IsNaN(lm.HotDelta) {
+	if math.IsNaN(lm.HotDelta) || math.IsInf(lm.HotDelta, 0) {
 		lm.HotNaN = true
 		lm.HotDelta = 0
 	}

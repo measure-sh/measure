@@ -70,93 +70,130 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-12)
     - [Response Body](#response-body-12)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-12)
-  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
+  - [GET `/apps/:id/sessions`](#get-appsidsessions)
     - [Usage Notes](#usage-notes-13)
     - [Authorization \& Content Type](#authorization--content-type-13)
     - [Response Body](#response-body-13)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-13)
-  - [GET `/apps/:id/alertPrefs`](#get-appsidalertprefs)
+  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
     - [Usage Notes](#usage-notes-14)
     - [Authorization \& Content Type](#authorization--content-type-14)
     - [Response Body](#response-body-14)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-14)
-  - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
+  - [GET `/apps/:id/alertPrefs`](#get-appsidalertprefs)
     - [Usage Notes](#usage-notes-15)
-    - [Request Body](#request-body)
     - [Authorization \& Content Type](#authorization--content-type-15)
     - [Response Body](#response-body-15)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-15)
-  - [GET `/apps/:id/settings`](#get-appsidsettings)
+  - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
     - [Usage Notes](#usage-notes-16)
+    - [Request body](#request-body)
     - [Authorization \& Content Type](#authorization--content-type-16)
     - [Response Body](#response-body-16)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-16)
-  - [PATCH `/apps/:id/settings`](#patch-appsidsettings)
+  - [PATCH `/apps/:id/rename`](#patch-appsidrename)
     - [Usage Notes](#usage-notes-17)
-    - [Request Body](#request-body-1)
+    - [Request body](#request-body-1)
     - [Authorization \& Content Type](#authorization--content-type-17)
     - [Response Body](#response-body-17)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-17)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-18)
-    - [Request Body](#request-body-2)
+  - [GET `/apps/:id/settings`](#get-appsidsettings)
     - [Usage Notes](#usage-notes-18)
+    - [Authorization \& Content Type](#authorization--content-type-18)
     - [Response Body](#response-body-18)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-18)
-  - [GET `/teams`](#get-teams)
+  - [PATCH `/apps/:id/settings`](#patch-appsidsettings)
+    - [Usage Notes](#usage-notes-19)
+    - [Request body](#request-body-2)
     - [Authorization \& Content Type](#authorization--content-type-19)
     - [Response Body](#response-body-19)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-19)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-19)
+  - [POST `/apps/:id/shortFilters`](#post-appsidshortfilters)
+    - [Usage Notes](#usage-notes-20)
+    - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-20)
     - [Response Body](#response-body-20)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-20)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
-    - [Usage Notes](#usage-notes-20)
+  - [GET `/apps/:id/spans/roots/names`](#get-appsidspansrootsnames)
+    - [Usage Notes](#usage-notes-21)
     - [Authorization \& Content Type](#authorization--content-type-21)
     - [Response Body](#response-body-21)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-21)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
-    - [Usage Notes](#usage-notes-21)
-    - [Request Body](#request-body-3)
+  - [GET `/apps/:id/spans/instances`](#get-appsidspansinstances)
+    - [Usage Notes](#usage-notes-22)
     - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-22)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-22)
-  - [POST `/auth/invite`](#post-authinvite)
-    - [Usage Notes](#usage-notes-22)
-    - [Request Body](#request-body-4)
+  - [GET `/apps/:id/spans/plot`](#get-appsidspansplot)
+    - [Usage Notes](#usage-notes-23)
     - [Authorization \& Content Type](#authorization--content-type-23)
     - [Response Body](#response-body-23)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-23)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
-    - [Usage Notes](#usage-notes-23)
-    - [Request Body](#request-body-5)
+  - [GET `/apps/:id/traces/:traceId`](#get-appsidtracestraceid)
+    - [Usage Notes](#usage-notes-24)
     - [Authorization \& Content Type](#authorization--content-type-24)
     - [Response Body](#response-body-24)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-24)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
-    - [Usage Notes](#usage-notes-24)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-25)
+    - [Request Body](#request-body-4)
+    - [Usage Notes](#usage-notes-25)
     - [Response Body](#response-body-25)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-25)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
-    - [Usage Notes](#usage-notes-25)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-26)
     - [Response Body](#response-body-26)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-26)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-26)
-    - [Request Body](#request-body-6)
     - [Authorization \& Content Type](#authorization--content-type-27)
     - [Response Body](#response-body-27)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-27)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-27)
     - [Authorization \& Content Type](#authorization--content-type-28)
     - [Response Body](#response-body-28)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-28)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
+    - [Usage Notes](#usage-notes-28)
+    - [Request body](#request-body-5)
+    - [Authorization \& Content Type](#authorization--content-type-29)
+    - [Response Body](#response-body-29)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-29)
+  - [POST `/auth/invite`](#post-authinvite)
+    - [Usage Notes](#usage-notes-29)
+    - [Request body](#request-body-30)
+    - [Authorization \& Content Type](#authorization--content-type-30)
+    - [Response Body](#response-body-26)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-30)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+    - [Usage Notes](#usage-notes-30)
+    - [Request body](#request-body-7)
+    - [Authorization \& Content Type](#authorization--content-type-31)
+    - [Response Body](#response-body-31)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-31)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
+    - [Usage Notes](#usage-notes-31)
+    - [Authorization \& Content Type](#authorization--content-type-32)
+    - [Response Body](#response-body-32)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-32)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+    - [Usage Notes](#usage-notes-32)
+    - [Authorization \& Content Type](#authorization--content-type-33)
+    - [Response Body](#response-body-33)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-33)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+    - [Usage Notes](#usage-notes-33)
+    - [Request body](#request-body-8)
+    - [Authorization \& Content Type](#authorization--content-type-34)
+    - [Response Body](#response-body-34)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-34)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+    - [Usage Notes](#usage-notes-34)
+    - [Authorization \& Content Type](#authorization--content-type-35)
+    - [Response Body](#response-body-35)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-35)
 
 ## Apps
 
@@ -173,11 +210,18 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**GET `/apps/:id/anrGroups/:id/anrs`**](#get-appsidanrgroupsidanrs) - Fetch an app's ANR detail.
 - [**GET `/apps/:id/anrGroups/:id/plots/instances`**](#get-appsidanrgroupsidplotsinstances) - Fetch an app's ANR detail instances aggregated by date range & version.
 - [**GET `/apps/:id/anrGroups/:id/plots/journey`**](#get-appsidanrgroupsidplotsjourney) - Fetch an app's ANR journey map.
+- [**GET `/apps/:id/sessions`**](#get-appsidsessions) - Fetch an app's sessions by applying various optional filters.
 - [**GET `/apps/:id/sessions/:id`**](#get-appsidsessionsid) - Fetch an app's session replay.
 - [**GET `/apps/:id/alertPrefs`**](#get-appsidalertprefs) - Fetch an app's alert preferences for current user.
 - [**PATCH `/apps/:id/alertPrefs`**](#patch-appsidalertprefs) - Update an app's alert preferences for current user.
+- [**PATCH `/apps/:id/rename`**](#patch-appsidrename) - Modify the name of an app.
 - [**GET `/apps/:id/settings`**](#get-appsidsettings) - Fetch an app's settings.
 - [**PATCH `/apps/:id/settings`**](#patch-appsidsettings) - Update an app's settings.
+- [**POST `/apps/:id/shortFilters`**](#post-appsidshortfilters) - Create a shortcode to represent a combination of various app filters.
+- [**GET `/apps/:id/spans/roots/names`**](#get-appsidspansrootsnames) - Fetch an app's root span names list with optional filters.
+- [**GET `/apps/:id/spans/instances`**](#get-appsidspansinstances) - Fetch an span's list of instances with optional filters.
+- [**GET `/apps/:id/spans/plot`**](#get-appsidspansplot) - Fetch an span's metrics plot with optional filters.
+- [**GET `/apps/:id/traces/:traceId`**](#get-appsidtracestraceid) - Fetch a trace.
 
 ### GET `/apps/:id/journey`
 
@@ -202,7 +246,7 @@ Fetch an app's issue journey map. Filter time range using `from` &amp; `to` quer
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -214,7 +258,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -317,7 +362,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -355,7 +400,7 @@ Fetch an app's health metrics. Filter time range using `from` &amp; `to` query s
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -369,7 +414,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -438,7 +484,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -458,9 +504,9 @@ Fetch an app's filters.
 #### Usage Notes
 
 - App's UUID must be passed in the URI
-- Pass `crash=1` as query string parameter to only return filters for unhandled exceptions
+- Pass `crash=1` as query string parameter to only return filters for crashes
 - Pass `anr=1` as query string parameter to only return filters for ANRs
-- Pass `exception=1` as query string parameter to only return filters for handled & unhandled exceptions
+- Pass `ud_attr_keys=1` as query string parameter to return user defined attribute keys
 - If no query string parameters are passed, the API computes filters from all events
 
 #### Authorization & Content Type
@@ -472,7 +518,7 @@ Fetch an app's filters.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -484,40 +530,109 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
-    "versions": [
-      {
-        "code": "9400",
-        "name": "7.61"
-      },
-      {
-        "code": "9300",
-        "name": "7.60"
-      },
-      {
-        "code": "9200",
-        "name": "7.59"
-      }
-    ],
     "countries": [
       "bogon"
-    ],
-    "network_providers": null,
-    "network_types": [
-      "wifi"
-    ],
-    "network_generations": null,
-    "locales": [
-      "en-US"
     ],
     "device_manufacturers": [
       "Google"
     ],
     "device_names": [
-      "sunfish"
+      "emu64a",
+      "emu64a16k"
+    ],
+    "locales": [
+      "en-US"
+    ],
+    "network_generations": [
+      "3g",
+      "unknown"
+    ],
+    "network_providers": [
+      "T-Mobile",
+      "unknown"
+    ],
+    "network_types": [
+      "cellular",
+      "no_network",
+      "unknown",
+      "wifi"
+    ],
+    "os_versions": [
+      {
+        "name": "android",
+        "version": "35"
+      },
+      {
+        "name": "android",
+        "version": "33"
+      }
+    ],
+    "ud_attrs": {
+      "key_types": [
+        {
+          "key": "username",
+          "type": "string"
+        },
+        {
+          "key": "paid_user",
+          "type": "bool"
+        },
+        {
+          "key": "credit_balance",
+          "type": "int64"
+        },
+        {
+          "key": "latitude",
+          "type": "float64"
+        }
+      ],
+      "operator_types": {
+        "bool": [
+          "eq",
+          "neq"
+        ],
+        "float64": [
+          "eq",
+          "neq",
+          "gt",
+          "lt",
+          "gte",
+          "lte"
+        ],
+        "int64": [
+          "eq",
+          "neq",
+          "gt",
+          "lt",
+          "gte",
+          "lte"
+        ],
+        "string": [
+          "eq",
+          "neq",
+          "contains",
+          "startsWith"
+        ]
+      }
+    },
+    "versions": [
+      {
+        "code": "800",
+        "name": "0.8.0-SNAPSHOT.debug"
+      },
+      {
+        "code": "700",
+        "name": "0.7.0-SNAPSHOT.debug"
+      },
+      {
+        "code": "1",
+        "name": "1.0"
+      }
     ]
   }
   ```
@@ -537,7 +652,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -565,6 +680,8 @@ Fetch an app's crash overview.
   - `version_codes` (_optional_) - List of comma separated version codes to return crash groups that have events matching the version code.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `limit`.
   - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id`. Negative values traverses backward along with `limit`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 
 #### Authorization & Content Type
 
@@ -575,7 +692,7 @@ Fetch an app's crash overview.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -587,7 +704,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -655,7 +773,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -681,6 +799,8 @@ Fetch an app's crash overview instances plot aggregated by date range & version.
   - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `versions` (_optional_) - List of comma separated version identifier strings to return crash groups that have events matching the version.
   - `version_codes` (_optional_) - List of comma separated version codes to return crash groups that have events matching the version code.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - Both `from` and `to` **MUST** be present when specifyng date range.
 
 #### Authorization & Content Type
@@ -692,7 +812,7 @@ Fetch an app's crash overview instances plot aggregated by date range & version.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -704,7 +824,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   [
@@ -746,7 +867,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -782,6 +903,8 @@ Fetch an app's crash detail.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `key_timestamp` &amp; `limit`.
   - `key_timestamp` (_optional_) - ISO8601 timestamp of the last item. Used for keyset based pagination. Should be used along with `key_id` &amp; `limit`.
   - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id` &amp; `key_timestamp`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
 
 #### Authorization &amp; Content Type
@@ -793,7 +916,7 @@ Fetch an app's crash detail.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -805,7 +928,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -988,7 +1112,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1021,6 +1145,8 @@ Fetch an app's crash detail instances aggregrated by date range & version.
   - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching crashes.
   - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching crashes.
   - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching crashes.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
 
 #### Authorization &amp; Content Type
@@ -1032,7 +1158,7 @@ Fetch an app's crash detail instances aggregrated by date range & version.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1044,7 +1170,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   [
@@ -1084,7 +1211,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1129,7 +1256,7 @@ Fetch an app's crash journey map.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1141,7 +1268,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -1225,7 +1353,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1253,6 +1381,8 @@ Fetch an app's ANR overview.
   - `version_codes` (_optional_) - List of comma separated version codes to return anr groups that have events matching the version code.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `limit`.
   - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id`. Negative values traverses backward along with `limit`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 
 #### Authorization & Content Type
 
@@ -1263,7 +1393,7 @@ Fetch an app's ANR overview.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1275,7 +1405,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -1323,7 +1454,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1349,6 +1480,8 @@ Fetch an app's ANR overview instances plot aggregated by date range & version.
   - `to` (_optional_) - End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
   - `versions` (_optional_) - List of comma separated version identifier strings to return crash groups that have events matching the version.
   - `version_codes` (_optional_) - List of comma separated version codes to return crash groups that have events matching the version code.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - Both `from` and `to` **MUST** be present when specifyng date range.
 
 #### Authorization & Content Type
@@ -1360,7 +1493,7 @@ Fetch an app's ANR overview instances plot aggregated by date range & version.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1372,7 +1505,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   [
@@ -1414,7 +1548,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1450,6 +1584,8 @@ Fetch an app's ANR detail.
   - `key_id` (_optional_) - UUID of the last item. Used for keyset based pagination. Should be used along with `key_timestamp` &amp; `limit`.
   - `key_timestamp` (_optional_) - ISO8601 timestamp of the last item. Used for keyset based pagination. Should be used along with `key_id` &amp; `limit`.
   - `limit` (_optional_) - Number of items to return. Used for keyset based pagination. Should be used along with `key_id` &amp; `key_timestamp`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
 
 #### Authorization &amp; Content Type
@@ -1461,7 +1597,7 @@ Fetch an app's ANR detail.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1473,7 +1609,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -1689,7 +1826,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1722,6 +1859,8 @@ Fetch an app's ANR detail instances aggregated by date range & version.
   - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching crashes.
   - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching crashes.
   - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching crashes.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
 
 #### Authorization &amp; Content Type
@@ -1733,7 +1872,7 @@ Fetch an app's ANR detail instances aggregated by date range & version.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1745,7 +1884,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   [
@@ -1776,7 +1916,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1821,7 +1961,7 @@ Fetch an app's ANR journey map.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1833,7 +1973,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -1926,7 +2067,279 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/sessions`
+
+Fetch an app's sessions by applying various optional filters.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return only matching sessions.
+  - `version_codes` (_optional_) - List of comma separated version codes to return only matching sessions.
+  - `crash` (_optional_) - Boolean true/false to control if only sessions containing at least 1 crash should be fetched.
+  - `anr` (_optional_) - Boolean true/false to control if only sessions containing at least 1 ANR should be fetched.
+  - `countries` (_optional_) - List of comma separated country identifier strings to return only matching sessions.
+  - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching sessions.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching sessions.
+  - `locales` (_optional_) - List of comma separated device locale identifier strings to return only matching sessions.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching sessions.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching sessions.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching sessions.
+  - `free_text` (_optional_) - A sequence of characters used to filter sessions matching various criteria like user_id, even type, exception message and so on.
+  - `offset` (_optional_) - Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
+  - `limit` (_optional_) - Number of items to return. Used for pagination. Should be used along with `offset`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+- Pass `limit` and `offset` values to paginate results
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "meta": {
+      "next": true,
+      "previous": false
+    },
+    "results": [
+      {
+        "session_id": "295842e1-7cd9-4ca3-8545-d6a5b36be9a4",
+        "app_id": "36e1b948-3a0a-4e71-80f3-625e61d6c832",
+        "attribute": {
+          "installation_id": "00000000-0000-0000-0000-000000000000",
+          "app_version": "0.8.0-SNAPSHOT.debug",
+          "app_build": "800",
+          "app_unique_id": "",
+          "measure_sdk_version": "",
+          "platform": "",
+          "thread_name": "",
+          "user_id": "",
+          "device_name": "emu64a16k",
+          "device_model": "sdk_gphone16k_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "",
+          "device_is_foldable": false,
+          "device_is_physical": false,
+          "device_density_dpi": 0,
+          "device_width_px": 0,
+          "device_height_px": 0,
+          "device_density": 0,
+          "device_locale": "",
+          "os_name": "android",
+          "os_version": "35",
+          "os_page_size": 0,
+          "network_type": "",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "events": null,
+        "first_event_time": "2024-10-26T05:52:43.104Z",
+        "last_event_time": "2024-10-26T05:53:58.596Z",
+        "duration": 75492,
+        "matched_free_text": ""
+      },
+      {
+        "session_id": "2cc9ffd2-9f9d-40a7-9f55-d802a460507a",
+        "app_id": "36e1b948-3a0a-4e71-80f3-625e61d6c832",
+        "attribute": {
+          "installation_id": "00000000-0000-0000-0000-000000000000",
+          "app_version": "0.8.0-SNAPSHOT.debug",
+          "app_build": "800",
+          "app_unique_id": "",
+          "measure_sdk_version": "",
+          "platform": "",
+          "thread_name": "",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "",
+          "device_is_foldable": false,
+          "device_is_physical": false,
+          "device_density_dpi": 0,
+          "device_width_px": 0,
+          "device_height_px": 0,
+          "device_density": 0,
+          "device_locale": "",
+          "os_name": "android",
+          "os_version": "33",
+          "os_page_size": 0,
+          "network_type": "",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "events": null,
+        "first_event_time": "2024-10-02T18:26:58.226Z",
+        "last_event_time": "2024-10-02T18:27:09.151Z",
+        "duration": 10925,
+        "matched_free_text": ""
+      },
+      {
+        "session_id": "1152c238-4583-49b7-93fa-0c73d6a3d5b1",
+        "app_id": "36e1b948-3a0a-4e71-80f3-625e61d6c832",
+        "attribute": {
+          "installation_id": "00000000-0000-0000-0000-000000000000",
+          "app_version": "0.8.0-SNAPSHOT.debug",
+          "app_build": "800",
+          "app_unique_id": "",
+          "measure_sdk_version": "",
+          "platform": "",
+          "thread_name": "",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "",
+          "device_is_foldable": false,
+          "device_is_physical": false,
+          "device_density_dpi": 0,
+          "device_width_px": 0,
+          "device_height_px": 0,
+          "device_density": 0,
+          "device_locale": "",
+          "os_name": "android",
+          "os_version": "33",
+          "os_page_size": 0,
+          "network_type": "",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "events": null,
+        "first_event_time": "2024-10-02T13:11:45.182Z",
+        "last_event_time": "2024-10-02T13:15:14.489Z",
+        "duration": 209307,
+        "matched_free_text": ""
+      },
+      {
+        "session_id": "6d132488-9f91-4f4e-9869-e80fc5f4a03c",
+        "app_id": "36e1b948-3a0a-4e71-80f3-625e61d6c832",
+        "attribute": {
+          "installation_id": "00000000-0000-0000-0000-000000000000",
+          "app_version": "0.8.0-SNAPSHOT.debug",
+          "app_build": "800",
+          "app_unique_id": "",
+          "measure_sdk_version": "",
+          "platform": "",
+          "thread_name": "",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "",
+          "device_is_foldable": false,
+          "device_is_physical": false,
+          "device_density_dpi": 0,
+          "device_width_px": 0,
+          "device_height_px": 0,
+          "device_density": 0,
+          "device_locale": "",
+          "os_name": "android",
+          "os_version": "33",
+          "os_page_size": 0,
+          "network_type": "",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "events": null,
+        "first_event_time": "2024-10-02T13:10:28.454Z",
+        "last_event_time": "2024-10-02T13:11:08.89Z",
+        "duration": 40436,
+        "matched_free_text": ""
+      },
+      {
+        "session_id": "5e6e1064-9eed-499f-b552-c2dc993b4792",
+        "app_id": "36e1b948-3a0a-4e71-80f3-625e61d6c832",
+        "attribute": {
+          "installation_id": "00000000-0000-0000-0000-000000000000",
+          "app_version": "0.7.0-SNAPSHOT.debug",
+          "app_build": "700",
+          "app_unique_id": "",
+          "measure_sdk_version": "",
+          "platform": "",
+          "thread_name": "",
+          "user_id": "",
+          "device_name": "emu64a16k",
+          "device_model": "sdk_gphone16k_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "",
+          "device_is_foldable": false,
+          "device_is_physical": false,
+          "device_density_dpi": 0,
+          "device_width_px": 0,
+          "device_height_px": 0,
+          "device_density": 0,
+          "device_locale": "",
+          "os_name": "android",
+          "os_version": "35",
+          "os_page_size": 0,
+          "network_type": "",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "events": null,
+        "first_event_time": "2024-09-23T10:07:08.236Z",
+        "last_event_time": "2024-09-23T10:07:13.063Z",
+        "duration": 4827,
+        "matched_free_text": ""
+      }
+    ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -1957,7 +2370,7 @@ Fetch an app's session replay.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -1969,7 +2382,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+<details>
+  <summary>Click to expand</summary>
 
   ```json
   {
@@ -2092,6 +2506,12 @@ These headers must be present in each request.
       "OkHttp https://httpbin.org/...": [
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "OkHttp https://httpbin.org/...",
           "user_triggered": false,
           "url": "https://httpbin.org/",
@@ -2125,6 +2545,12 @@ These headers must be present in each request.
       "Thread-2": [
         {
           "event_type": "anr",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "title": "sh.measure.android.anr.AnrError@ExceptionDemoActivity.kt:66",
           "thread_name": "Thread-2",
           "stacktrace": "sh.measure.android.anr.AnrError: Application Not Responding for at least 5000 ms.\n\tat sh.measure.sample.ExceptionDemoActivity.deadLock$lambda$10(ExceptionDemoActivity.kt:66)\n\tat sh.measure.sample.ExceptionDemoActivity.$r8$lambda$G4MY09CRhRk9ettfD7HPDD_b1n4\n\tat sh.measure.sample.ExceptionDemoActivity$$ExternalSyntheticLambda0.run(R8$$SyntheticClass)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7872)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)",
@@ -2144,6 +2570,12 @@ These headers must be present in each request.
       "main": [
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "created",
           "class_name": "sh.measure.sample.ExceptionDemoActivity",
@@ -2153,12 +2585,24 @@ These headers must be present in each request.
         },
         {
           "event_type": "lifecycle_app",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "foreground",
           "timestamp": "2024-05-03T23:34:17.74Z"
         },
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "resumed",
           "class_name": "sh.measure.sample.ExceptionDemoActivity",
@@ -2168,12 +2612,24 @@ These headers must be present in each request.
         },
         {
           "event_type": "cold_launch",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "duration": 698,
           "timestamp": "2024-05-03T23:34:17.825Z"
         },
         {
           "event_type": "gesture_click",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "target": "com.google.android.material.button.MaterialButton",
           "target_id": "btn_okhttp",
@@ -2185,6 +2641,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "paused",
           "class_name": "sh.measure.sample.ExceptionDemoActivity",
@@ -2194,6 +2656,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "created",
           "class_name": "sh.measure.sample.OkHttpActivity",
@@ -2203,6 +2671,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "resumed",
           "class_name": "sh.measure.sample.OkHttpActivity",
@@ -2212,6 +2686,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "paused",
           "class_name": "sh.measure.sample.OkHttpActivity",
@@ -2221,6 +2701,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "resumed",
           "class_name": "sh.measure.sample.ExceptionDemoActivity",
@@ -2230,6 +2716,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "lifecycle_activity",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "type": "destroyed",
           "class_name": "sh.measure.sample.OkHttpActivity",
@@ -2239,6 +2731,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "gesture_click",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "main",
           "target": "com.google.android.material.button.MaterialButton",
           "target_id": "btn_deadlock",
@@ -2252,6 +2750,12 @@ These headers must be present in each request.
       "msr-bg": [
         {
           "event_type": "app_exit",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-bg",
           "reason": "ANR",
           "importance": "FOREGROUND",
@@ -2264,6 +2768,12 @@ These headers must be present in each request.
       "msr-ee": [
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2283,6 +2793,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2302,6 +2818,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2321,6 +2843,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2340,6 +2868,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2359,6 +2893,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2378,6 +2918,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2397,6 +2943,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2416,6 +2968,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2435,6 +2993,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2454,6 +3018,12 @@ These headers must be present in each request.
         },
         {
           "event_type": "http",
+          "user_defined_attribute": {
+            "username": "alice",
+            "paid_user": true,
+            "credit_balance": 12345,
+            "latitude": 30.2661403415387
+          },
           "thread_name": "msr-ee",
           "user_triggered": false,
           "url": "http://10.0.2.2:8080/events",
@@ -2491,7 +3061,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -2521,7 +3091,7 @@ Fetch an app's alert preferences for current user.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -2533,7 +3103,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -2567,7 +3138,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -2616,7 +3187,7 @@ Update an app's alert preferences for current user.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -2628,7 +3199,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -2651,7 +3223,81 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### PATCH `/apps/:id/rename`
+
+Modify the name of an app.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+
+#### Request body
+
+  ```json
+  {
+    "name": "acme app"
+  }
+  ```
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok" : "done"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -2681,7 +3327,7 @@ Fetch an app's settings.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -2693,7 +3339,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -2716,7 +3363,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -2754,7 +3401,7 @@ Update an app's settings.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -2766,7 +3413,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -2789,7 +3437,489 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### POST `/apps/:id/shortFilters`
+
+Create a shortcode to represent a combination of various app filters.
+
+These shortcodes can then be used in other app APIs which accept different filters. Shortcodes are short-lived, they'll be automatically removed after an hour or so.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+
+#### Request body
+
+  ```json
+  {
+    "filters": {
+      "versions": ["1.0"],
+      "version_codes": ["1"],
+      "os_names": ["android"],
+      "os_versions": ["33"],
+      "countries": ["bogon"],
+      "network_providers": ["unknown"],
+      "network_types": ["wifi"],
+      "network_generations": ["unknown"],
+      "locales": ["en-US"],
+      "device_manufacturers": ["Google"],
+      "device_names": ["emu64a"],
+      "ud_expression": "{\"and\":[{\"cmp\":{\"key\":\"username\",\"type\":\"string\",\"op\":\"eq\",\"value\":\"alice\"}},{\"cmp\":{\"key\":\"premium_user\",\"type\":\"bool\",\"op\":\"eq\",\"value\":\"true\"}}]}"
+    }
+  }
+  ```
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "filter_short_code" : "86f379b7afd9836d0877eb5c8ff93538"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/spans/roots/names`
+
+Fetch an app's root span names list with optional filters.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {"results":["activity.onCreate","SampleApp.onCreate"]}
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/spans/instances`
+
+Fetch an span's list of instances with optional filters.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Span name for which instances list is being fetched must be passed as a query param
+- Accepted query parameters
+  - `span_name` (_required_) - Name of the span for which instances list is being fetched.
+  - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return only matching sessions.
+  - `version_codes` (_optional_) - List of comma separated version codes to return only matching sessions.
+  - `countries` (_optional_) - List of comma separated country identifier strings to return only matching sessions.
+  - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching sessions.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching sessions.
+  - `locales` (_optional_) - List of comma separated device locale identifier strings to return only matching sessions.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching sessions.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching sessions.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching sessions.
+  - `offset` (_optional_) - Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
+  - `limit` (_optional_) - Number of items to return. Used for pagination. Should be used along with `offset`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `span_statuses` (_optional_) - should be 0 (Unset), 1 (Ok) or 2 (Error). If multiple status are required, they should passed as multiple query params like `span_statuses=0&span_statuses=1&span_statuses=2`
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+- Pass `limit` and `offset` values to paginate results
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "meta": {
+        "next": false,
+        "previous": false
+    },
+    "results": [
+        {
+            "app_id": "e963e98a-aca9-4bab-bd62-70a74801384e",
+            "span_name": "activity.onCreate",
+            "span_id": "54b40eb484ade006",
+            "trace_id": "e0826847053bb9e539c9dc4d4da793ad",
+            "status": 0,
+            "start_time": "2024-11-18T14:14:55.491Z",
+            "end_time": "2024-11-18T14:14:55.573Z",
+            "duration": 82,
+            "app_version": "0.9.0-SNAPSHOT.debug",
+            "app_build": "900",
+            "os_name": "android",
+            "os_version": "35",
+            "device_model": "sdk_gphone16k_arm64",
+            "device_manufacturer": "Google"
+        },
+        {
+            "app_id": "e963e98a-aca9-4bab-bd62-70a74801384e",
+            "span_name": "activity.onCreate",
+            "span_id": "9f1890db9aedb305",
+            "trace_id": "d71f3d909689859469a7d9b38e605d56",
+            "status": 0,
+            "start_time": "2024-11-18T14:14:40.545Z",
+            "end_time": "2024-11-18T14:14:40.62Z",
+            "duration": 75,
+            "app_version": "0.9.0-SNAPSHOT.debug",
+            "app_build": "900",
+            "os_name": "android",
+            "os_version": "35",
+            "device_model": "sdk_gphone16k_arm64",
+            "device_manufacturer": "Google"
+        },
+        {
+            "app_id": "e963e98a-aca9-4bab-bd62-70a74801384e",
+            "span_name": "activity.onCreate",
+            "span_id": "0b227c80be4050d8",
+            "trace_id": "bba721b7bc78ae746e2c81a5e9e41e7a",
+            "status": 0,
+            "start_time": "2024-11-18T14:14:33.658Z",
+            "end_time": "2024-11-18T14:14:33.743Z",
+            "duration": 85,
+            "app_version": "0.9.0-SNAPSHOT.debug",
+            "app_build": "900",
+            "os_name": "android",
+            "os_version": "35",
+            "device_model": "sdk_gphone16k_arm64",
+            "device_manufacturer": "Google"
+        }
+    ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/spans/plot`
+
+Fetch an span's metrics plot with optional filters.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Span name for which metrics plot is being fetched must be passed as a query param
+- Accepted query parameters
+  - `span_name` (_required_) - Name of the span for which metrics plot is being fetched.
+  - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return only matching sessions.
+  - `version_codes` (_optional_) - List of comma separated version codes to return only matching sessions.
+  - `countries` (_optional_) - List of comma separated country identifier strings to return only matching sessions.
+  - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching sessions.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching sessions.
+  - `locales` (_optional_) - List of comma separated device locale identifier strings to return only matching sessions.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching sessions.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching sessions.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching sessions.
+  - `offset` (_optional_) - Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
+  - `limit` (_optional_) - Number of items to return. Used for pagination. Should be used along with `offset`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `span_statuses` (_optional_) - should be 0 (Unset), 1 (Ok) or 2 (Error). If multiple status are required, they should passed as multiple query params like `span_statuses=0&span_statuses=1&span_statuses=2`
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+- Pass `limit` and `offset` values to paginate results
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  [
+    {
+        "id": "0.9.0-SNAPSHOT.debug (900)",
+        "data": [
+            {
+                "datetime": "2024-11-18",
+                "p50": 82,
+                "p90": 85,
+                "p95": 85,
+                "p99": 85
+            }
+        ]
+    }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/traces/:traceId`
+
+Fetch a trace.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Trace Id must be passed in the URI
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "app_id": "e963e98a-aca9-4bab-bd62-70a74801384e",
+    "trace_id": "e0826847053bb9e539c9dc4d4da793ad",
+    "session_id": "9b33b3cd-2588-46b4-9b1e-19d7d2c462fa",
+    "user_id": "",
+    "start_time": "2024-11-18T14:14:55.491Z",
+    "end_time": "2024-11-18T14:14:55.573Z",
+    "duration": 82,
+    "app_version": "0.9.0-SNAPSHOT.debug(900)",
+    "os_version": "android 35",
+    "device_manufacturer": "Google",
+    "device_model": "sdk_gphone16k_arm64",
+    "network_type": "wifi",
+    "spans": [
+        {
+            "span_name": "activity.onCreate",
+            "span_id": "54b40eb484ade006",
+            "parent_id": "",
+            "status": 0,
+            "start_time": "2024-11-18T14:14:55.491Z",
+            "end_time": "2024-11-18T14:14:55.573Z",
+            "duration": 82,
+            "thread_name": "main",
+            "device_low_power_mode": false,
+            "device_thermal_throttling_enabled": false,
+            "checkpoints": []
+        }
+    ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -2829,7 +3959,7 @@ Create a new team. Only owners of existing team can create new teams.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -2855,7 +3985,8 @@ Pass the name in `"name"` JSON property.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -2879,11 +4010,11 @@ Pass the name in `"name"` JSON property.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `201 Created`                    | Successful response, no errors.                                                                                        |
+| `201 Created`               | Successful response, no errors.                                                                                        |
 | `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
 | `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
 | `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
@@ -2905,7 +4036,7 @@ Fetch list of teams of access token holder.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -2917,7 +4048,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   [
@@ -2949,7 +4081,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -2983,7 +4115,7 @@ Fetch list of apps for a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -2995,7 +4127,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   [
@@ -3051,7 +4184,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3086,7 +4219,7 @@ Fetch details of an app for a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3098,7 +4231,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3135,7 +4269,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3178,7 +4312,7 @@ Create a new app for a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3190,7 +4324,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3227,7 +4362,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3269,18 +4404,19 @@ Invite new members (both existing & non measure users) to a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
-| **Name**        | **Value**                        |
-| --------------- | -------------------------------- |
-| `Content-Type`  | application/json; charset=utf-8  |
+| **Name**       | **Value**                       |
+| -------------- | ------------------------------- |
+| `Content-Type` | application/json; charset=utf-8 |
 </details>
 
 #### Response Body
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3303,7 +4439,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3342,7 +4478,7 @@ Rename a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3354,7 +4490,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3377,7 +4514,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3407,7 +4544,7 @@ Fetch list of team members for a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3419,7 +4556,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   [
@@ -3457,7 +4595,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3488,7 +4626,7 @@ Remove a member from a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3500,7 +4638,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3523,7 +4662,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3562,7 +4701,7 @@ Change role of a member of a team
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3574,7 +4713,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3597,7 +4737,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -3630,7 +4770,7 @@ Fetch authorization details of access token holder for a team.
 These headers must be present in each request.
 
 <details>
-<summary>Request Headers - Click to expand</summary>
+  <summary>Request Headers - Click to expand</summary>
 
 | **Name**        | **Value**                        |
 | --------------- | -------------------------------- |
@@ -3642,7 +4782,8 @@ These headers must be present in each request.
 
 - Response
 
-  <details><summary>Click to expand</summary>
+  <details>
+    <summary>Click to expand</summary>
 
   ```json
   {
@@ -3706,7 +4847,7 @@ These headers must be present in each request.
 List of HTTP status codes for success and failures.
 
 <details>
-<summary>Status Codes - Click to expand</summary>
+  <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |

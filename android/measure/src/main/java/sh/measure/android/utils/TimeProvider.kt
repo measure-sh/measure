@@ -1,7 +1,6 @@
 package sh.measure.android.utils
 
 import android.os.Build
-import android.os.SystemClock
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneOffset
@@ -11,50 +10,35 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * Provides time from different clocks.
+ * Provides current time.
  */
 internal interface TimeProvider {
-    val currentTimeSinceEpochInMillis: Long
-    val currentTimeSinceEpochInNanos: Long
-    val uptimeInMillis: Long
+    /**
+     * Returns a time measurement with millisecond precision that can only be used to calculate
+     * time intervals.
+     */
     val elapsedRealtime: Long
+
+    /**
+     * Returns the current epoch timestamp in millis. This timestamp is calculated using
+     * a monotonic clock, with initial epoch time set to the time on the device during
+     * initialization.
+     *
+     * Once the time provider is initialized, this time does not get affected by clock skew.
+     * However, the initial time used during initialization can be affected by clock skew.
+     */
+    fun now(): Long
 }
 
-internal class AndroidTimeProvider : TimeProvider {
+internal class AndroidTimeProvider(private val systemClock: SystemClock) : TimeProvider {
+    private val anchoredEpochTime = systemClock.epochTime()
+    private val anchoredElapsedRealtime = systemClock.monotonicTimeSinceBoot()
 
-    /**
-     * The standard "wall" clock (time and date) expressing milliseconds since the epoch. The
-     * wall clock can be set by the user or the phone network (see setCurrentTimeMillis(long)),
-     * so the time may jump backwards or forwards unpredictably.
-     */
-    override val currentTimeSinceEpochInMillis
-        get() = System.currentTimeMillis()
-
-    /**
-     * Same as [currentTimeSinceEpochInMillis], but in nanoseconds.
-     */
-    override val currentTimeSinceEpochInNanos
-        get() = currentTimeSinceEpochInMillis.toNanos()
-
-    /**
-     * Milliseconds since the system was booted. This clock stops when the system enters
-     * deep sleep (CPU off, display dark, device waiting for external input), but is not affected
-     * by clock scaling, idle, or other power saving mechanisms.
-     *
-     * [SystemClock] is guaranteed to be monotonic, and is suitable for interval timing. But cannot
-     * be used to denote "wall clock" time.
-     */
-    override val uptimeInMillis
-        get() = SystemClock.uptimeMillis()
-
-    /**
-     * Returns milliseconds since boot, including time spent in sleep.
-     */
     override val elapsedRealtime
-        get() = SystemClock.elapsedRealtime()
+        get() = systemClock.monotonicTimeSinceBoot()
 
-    private fun Long.toNanos(): Long {
-        return this * 1_000_000
+    override fun now(): Long {
+        return anchoredEpochTime + (systemClock.monotonicTimeSinceBoot() - anchoredElapsedRealtime)
     }
 }
 

@@ -1,0 +1,14 @@
+<clickhouse>
+  <query_cache>
+    <max_size_in_bytes>1073741824</max_size_in_bytes> <!-- 1 GiB -->
+    <max_entries>1024</max_entries>
+    <max_entry_size_in_bytes>1048576</max_entry_size_in_bytes> <!-- 10 MiB -->
+    <max_entry_size_in_rows>30000000</max_entry_size_in_rows> <!-- 30 million -->
+  </query_cache>
+  <compression>
+    <case>
+      <method>zstd</method>
+      <level>1</level>
+    </case>
+  </compression>
+</clickhouse>

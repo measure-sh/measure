@@ -1,5 +1,6 @@
 import React from 'react';
 import { MetricsApiStatus } from '../api/api_calls';
+import LoadingSpinner from './loading_spinner';
 
 interface InfoCircleAppStartTimeProps {
   status: MetricsApiStatus,
@@ -14,7 +15,7 @@ const InfoCircleAppStartTime = ({ status, noData, value, delta, title, launchTyp
   return (
     <div className="flex flex-col items-center">
       <div className={`flex flex-col group relative items-center justify-center w-64 aspect-square rounded-full border border-4 transition-colors duration-100 ${(status !== MetricsApiStatus.Success || noData === true) ? 'border-black hover:bg-neutral-800/25' : value < 800 ? 'border-green-400 hover:bg-green-400/25' : value < 1200 ? 'border-yellow-400 hover:bg-yellow-400/25' : 'border-red-400 hover:bg-red-400/25'}`}>
-        {status === MetricsApiStatus.Loading && <p className="font-display text-lg">Updating...</p>}
+        {status === MetricsApiStatus.Loading && <LoadingSpinner />}
         {status === MetricsApiStatus.Error && <p className="font-display text-lg">Error</p>}
         {status === MetricsApiStatus.Success && noData === true && <p className="font-sans text-lg"> No data</p>}
         {status === MetricsApiStatus.Success && noData === false && <p className="font-sans text-xl"> {value}ms</p>}

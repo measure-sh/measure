@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -15,10 +16,16 @@ func hidden(name string) bool {
 	return strings.HasPrefix(name, ".")
 }
 
+// ScanOpts holds the options for
+// configuring app scanning on disk.
+type ScanOpts struct {
+	SkipApps []string
+}
+
 // Scan reads and validates session data directory
 // and sets up internal data structures for apps,
 // builds, events and blobs.
-func Scan(rootPath string) (apps *Apps, err error) {
+func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 	apps = &Apps{}
 	rootbase := filepath.Base(rootPath)
 	if err := filepath.WalkDir(rootPath, func(path string, d fs.DirEntry, err error) error {
@@ -32,6 +39,12 @@ func Scan(rootPath string) (apps *Apps, err error) {
 		}
 
 		parts := strings.Split(rel, "/")
+
+		// don't process apps marked
+		// to skip
+		if slices.Contains(opts.SkipApps, parts[0]) {
+			return fs.SkipDir
+		}
 
 		if d.IsDir() {
 			// not top-level directory
@@ -58,7 +71,7 @@ func Scan(rootPath string) (apps *Apps, err error) {
 				if info.Size() < 1 {
 					return fmt.Errorf("%q has empty an events file. check %q", app.FullName(), rel)
 				}
-				app.EventFiles = append(app.EventFiles, path)
+				app.EventAndSpanFiles = append(app.EventAndSpanFiles, path)
 			}
 
 			mapping, err := filepath.Match("*/*/mapping.txt", rel)

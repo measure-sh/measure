@@ -11,18 +11,18 @@ import android.os.Process
  */
 internal object LaunchState {
     var processImportanceOnInit: Int? = null
-    var contentLoaderAttachUptime: Long? = null
-    var lastAppVisibleTime: Long? = null
+    var contentLoaderAttachElapsedRealtime: Long? = null
+    var lastAppVisibleElapsedRealtime: Long? = null
 
-    val processStartUptime: Long? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-        Process.getStartUptimeMillis()
+    val processStartElapsedRealtime: Long? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        Process.getStartElapsedRealtime()
     } else {
         null
     }
 
-    val processStartRequestedUptime: Long? =
+    val processStartRequestedElapsedRealtime: Long? =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            Process.getStartRequestedUptimeMillis()
+            Process.getStartRequestedElapsedRealtime()
         } else {
             null
         }

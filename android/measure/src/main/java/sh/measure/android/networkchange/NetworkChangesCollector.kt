@@ -17,8 +17,8 @@ import android.os.Build
 import android.telephony.TelephonyManager
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.SystemServiceProvider
@@ -48,7 +48,7 @@ internal class NetworkChangesCollector(
     private val context: Context,
     private val systemServiceProvider: SystemServiceProvider,
     private val logger: Logger,
-    private val eventProcessor: EventProcessor,
+    private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
     private val networkStateProvider: NetworkStateProvider,
 ) {
@@ -57,6 +57,7 @@ internal class NetworkChangesCollector(
     private val telephonyManager: TelephonyManager? by lazy(mode = LazyThreadSafetyMode.NONE) {
         systemServiceProvider.telephonyManager
     }
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     @SuppressLint("MissingPermission")
     fun register() {
@@ -64,7 +65,9 @@ internal class NetworkChangesCollector(
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.N -> {
                 if (hasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
                     val connectivityManager = systemServiceProvider.connectivityManager ?: return
-                    connectivityManager.registerDefaultNetworkCallback(networkCallback())
+                    val networkCallback = networkCallback()
+                    this.networkCallback = networkCallback
+                    connectivityManager.registerDefaultNetworkCallback(networkCallback)
                 } else {
                     logger.log(
                         LogLevel.Info,
@@ -76,11 +79,13 @@ internal class NetworkChangesCollector(
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> {
                 val connectivityManager = systemServiceProvider.connectivityManager ?: return
                 if (hasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
+                    val networkCallback = networkCallback()
+                    this.networkCallback = networkCallback
                     connectivityManager.registerNetworkCallback(
                         NetworkRequest.Builder().addTransportType(TRANSPORT_CELLULAR)
                             .addTransportType(TRANSPORT_WIFI).addTransportType(TRANSPORT_VPN)
                             .addCapability(NET_CAPABILITY_INTERNET).build(),
-                        networkCallback(),
+                        networkCallback,
                     )
                 } else {
                     logger.log(
@@ -96,6 +101,13 @@ internal class NetworkChangesCollector(
                     "Network change monitoring is not supported on Android versions below M",
                 )
             }
+        }
+    }
+
+    fun unregister() {
+        networkCallback?.let { callback ->
+            systemServiceProvider.connectivityManager?.unregisterNetworkCallback(callback)
+            networkCallback = null
         }
     }
 
@@ -138,9 +150,9 @@ internal class NetworkChangesCollector(
                 return
             }
 
-            eventProcessor.track(
+            signalProcessor.track(
                 type = EventType.NETWORK_CHANGE,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                timestamp = timeProvider.now(),
                 data = NetworkChangeData(
                     previous_network_type = previousNetworkType,
                     network_type = newNetworkType,
@@ -163,9 +175,9 @@ internal class NetworkChangesCollector(
             if (previousNetworkType == newNetworkType) {
                 return
             }
-            eventProcessor.track(
+            signalProcessor.track(
                 type = EventType.NETWORK_CHANGE,
-                timestamp = timeProvider.currentTimeSinceEpochInMillis,
+                timestamp = timeProvider.now(),
                 data = NetworkChangeData(
                     previous_network_type = previousNetworkType,
                     network_type = newNetworkType,

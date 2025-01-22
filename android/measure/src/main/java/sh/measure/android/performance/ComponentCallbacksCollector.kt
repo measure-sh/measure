@@ -10,35 +10,27 @@ import android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW
 import android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE
 import android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN
 import android.content.res.Configuration
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.utils.TimeProvider
 
 internal class ComponentCallbacksCollector(
     private val application: Application,
-    private val eventProcessor: EventProcessor,
+    private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
-    private val memoryReader: MemoryReader,
 ) : ComponentCallbacks2 {
 
     fun register() {
         application.registerComponentCallbacks(this)
     }
 
+    fun unregister() {
+        application.unregisterComponentCallbacks(this)
+    }
+
+    @Deprecated("Not called since API level 34")
     override fun onLowMemory() {
-        eventProcessor.track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
-            type = EventType.LOW_MEMORY,
-            data = LowMemoryData(
-                java_free_heap = memoryReader.freeHeapSize(),
-                java_max_heap = memoryReader.maxHeapSize(),
-                java_total_heap = memoryReader.totalHeapSize(),
-                native_free_heap = memoryReader.nativeFreeHeapSize(),
-                native_total_heap = memoryReader.nativeTotalHeapSize(),
-                rss = memoryReader.rss(),
-                total_pss = memoryReader.totalPss(),
-            ),
-        )
+        // no-op
     }
 
     override fun onTrimMemory(level: Int) {
@@ -52,8 +44,8 @@ internal class ComponentCallbacksCollector(
             TRIM_MEMORY_COMPLETE -> TrimMemoryData(level = "TRIM_MEMORY_COMPLETE")
             else -> TrimMemoryData(level = "TRIM_MEMORY_UNKNOWN")
         }
-        eventProcessor.track(
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+        signalProcessor.track(
+            timestamp = timeProvider.now(),
             type = EventType.TRIM_MEMORY,
             data = trimMemoryData,
         )

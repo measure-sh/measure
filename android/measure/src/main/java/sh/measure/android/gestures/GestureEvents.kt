@@ -1,6 +1,7 @@
 package sh.measure.android.gestures
 
 import kotlinx.serialization.Serializable
+import sh.measure.android.layoutinspector.Node
 
 @Serializable
 internal data class ClickData(
@@ -14,12 +15,12 @@ internal data class ClickData(
     val touch_up_time: Long,
 ) {
     companion object {
-        fun fromDetectedGesture(gesture: DetectedGesture.Click, target: Target): ClickData {
+        fun fromTargetNode(gesture: DetectedGesture.Click, node: Node): ClickData {
             return ClickData(
-                target = target.className,
-                target_id = target.id,
-                width = target.width,
-                height = target.height,
+                target = node.className,
+                target_id = node.id,
+                width = node.width,
+                height = node.height,
                 x = gesture.x,
                 y = gesture.y,
                 touch_down_time = gesture.touchDownTime,
@@ -41,12 +42,12 @@ internal data class LongClickData(
     val touch_up_time: Long,
 ) {
     companion object {
-        fun fromDetectedGesture(gesture: DetectedGesture.LongClick, target: Target): LongClickData {
+        fun fromTargetNode(gesture: DetectedGesture.LongClick, node: Node): LongClickData {
             return LongClickData(
-                target = target.className,
-                target_id = target.id,
-                width = target.width,
-                height = target.height,
+                target = node.className,
+                target_id = node.id,
+                width = node.width,
+                height = node.height,
                 x = gesture.x,
                 y = gesture.y,
                 touch_down_time = gesture.touchDownTime,
@@ -69,10 +70,10 @@ internal data class ScrollData(
     val touch_up_time: Long,
 ) {
     companion object {
-        fun fromDetectedGesture(gesture: DetectedGesture.Scroll, target: Target): ScrollData {
+        fun fromTargetNode(gesture: DetectedGesture.Scroll, node: Node): ScrollData {
             return ScrollData(
-                target = target.className,
-                target_id = target.id,
+                target = node.className,
+                target_id = node.id,
                 x = gesture.x,
                 y = gesture.y,
                 end_x = gesture.endX,

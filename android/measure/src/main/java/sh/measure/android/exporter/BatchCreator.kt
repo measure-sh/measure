@@ -16,18 +16,19 @@ internal interface BatchCreator {
      * Attempts to create a new batch of events to export.
      *
      * @param sessionId The session ID to filter events by if provided.
-     * @return [BatchCreationResult] if a batch was created, otherwise null.
+     * @return [Batch] if a batch was created, otherwise null.
      */
-    fun create(sessionId: String? = null): BatchCreationResult?
+    fun create(sessionId: String? = null): Batch?
 }
 
 /**
  * Result of a batch creation operation. Contains the mapping of batch ID to all the event IDs part
  * of the batch.
  */
-internal data class BatchCreationResult(
+internal data class Batch(
     val batchId: String,
     val eventIds: List<String>,
+    val spanIds: List<String>,
 )
 
 /**
@@ -44,7 +45,7 @@ internal class BatchCreatorImpl(
 ) : BatchCreator {
     private val batchCreationLock = Any()
 
-    override fun create(sessionId: String?): BatchCreationResult? {
+    override fun create(sessionId: String?): Batch? {
         synchronized(batchCreationLock) {
             val eventToAttachmentSizeMap =
                 database.getUnBatchedEventsWithAttachmentSize(
@@ -58,29 +59,29 @@ internal class BatchCreatorImpl(
             }
 
             val eventIds = filterEventsForMaxAttachmentSize(eventToAttachmentSizeMap)
-            if (eventIds.isEmpty()) {
-                logger.log(
-                    LogLevel.Debug,
-                    "No events to batch after filtering for max attachment size",
-                )
-                return null
+            val spanIds = database.getUnBatchedSpans(configProvider.maxEventsInBatch)
+
+            if (spanIds.isEmpty() && eventIds.isEmpty()) {
+                logger.log(LogLevel.Debug, "No events or spans to batch")
             }
 
-            val batchId = idProvider.createId()
+            val batchId = idProvider.uuid()
             val batchInsertionResult = database.insertBatch(
                 BatchEntity(
                     batchId = batchId,
                     eventIds = eventIds,
-                    createdAt = timeProvider.currentTimeSinceEpochInMillis,
+                    spanIds = spanIds,
+                    createdAt = timeProvider.now(),
                 ),
             )
             if (!batchInsertionResult) {
-                logger.log(LogLevel.Error, "Failed to insert batched event IDs")
+                logger.log(LogLevel.Error, "Failed to insert batch")
                 return null
             }
-            return BatchCreationResult(
+            return Batch(
                 batchId = batchId,
                 eventIds = eventIds,
+                spanIds = spanIds,
             )
         }
     }

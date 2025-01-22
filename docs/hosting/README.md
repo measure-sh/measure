@@ -23,6 +23,8 @@ Measure is designed from the ground up for easy self-hosting. Follow along to ru
   - [2. Run `config.sh` script to configure](#2-run-configsh-script-to-configure)
   - [3. Start the containers](#3-start-the-containers)
   - [4. Access your Measure dashboard](#4-access-your-measure-dashboard)
+- [Frequently Asked Questions](#frequently-asked-questions)
+  - [Q. Why does ClickHouse consume high amount of CPU or memory?](#q-why-does-clickhouse-consume-high-amount-of-cpu-or-memory)
 
 ## Objectives
 
@@ -208,6 +210,8 @@ Visit `https://measure.yourcompany.com` to access your dashboard and sign in to 
 
 To upgrade to a specific or latest version of Measure, SSH to your VM instance first and run these commands.
 
+For certain target versions, you will need to run extra migration scripts. Check out our [Migration Guides](../hosting/migration-guides/README.md).
+
 ```sh
 # change to the directory you
 # had cloned to.
@@ -237,7 +241,19 @@ git checkout v1.2.3
 Change to `self-host` directory and run `sudo ./install.sh` to perform the upgrade.
 
 ```sh
+# change to `self-host` directory
 cd self-host
+
+# bring down all containers
+sudo docker compose -f compose.yml -f compose.prod.yml \
+  --profile init \
+  --profile migrate \
+  down
+
+# pull fresh images
+sudo docker compose pull
+
+# bring up all containers
 sudo ./install.sh
 ```
 
@@ -329,3 +345,33 @@ It'll take a few seconds for the containers to be healthy.
 ### 4. Access your Measure dashboard
 
 Visit [Dashboard](http://localhost:3000/auth/login) to access your dashboard and sign in to continue.
+
+## Frequently Asked Questions
+
+Typical questions asked by other self host-ers.
+
+### Q. Why does ClickHouse consume high amount of CPU or memory?
+
+ClickHouse is engineered to maximize hardware utilization, often leading to high CPU and memory consumption. In an idle state, when Measure is not ingesting sessions or executing queries, you might observe 25-30% CPU consumption. Under higher load, CPU consumption may go up to 90-100%. This is completely normal and expected behavior.
+
+Several factors contribute to this behavior.
+
+1. **Query Execution and Parallelism**: ClickHouse executes queries using multiple threads to enhance performance. By default, it utilizes a number of threads equal to the number of available CPU cores.
+
+2. **Background Merges and Mutations**: ClickHouse continously merges data parts in the background to optimize storage and query performance. These merge operations and data mutations can lead to increased resource consumption.
+
+3. **Compression and Decompression**: ClickHouse employs compression algorithms to minimize storage space. Compressing and decompressing data during ingestion and queries are CPU-intensive operations.
+
+4. **Hardware Considerations**: ClickHouse is configured to utilize available resources effectively and expects adequate RAM (32 GB or more is recommended). Our default configuration is designed to strike a balance between cost and performance for majority of users. Feel free to allocate additional system resources if your budget allows.
+
+Having said that, we'll continue to optimize our configuration and recommendation over time to accommodate light & heavy weight usage patterns whenever possible.
+
+> [!NOTE]
+>
+> If you want to discuss more, hop on to our [Discord](https://discord.gg/f6zGkBCt42) and ask your questions.
+
+#### References <!-- omit in toc -->
+
+1. [ClickHouse High CPU Usage](https://kb.altinity.com/altinity-kb-setup-and-maintenance/high-cpu-usage/)
+2. [GitHub issue discussing mutations](https://github.com/ClickHouse/ClickHouse/issues/39403)
+3. [ClickHouse Usage Recommendations](https://clickhouse.com/docs/en/operations/tips)

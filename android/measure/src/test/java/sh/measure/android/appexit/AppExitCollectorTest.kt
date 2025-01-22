@@ -1,218 +1,200 @@
 package sh.measure.android.appexit
 
+import android.app.ApplicationExitInfo
 import androidx.concurrent.futures.ResolvableFuture
-import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.never
-import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
+import org.mockito.kotlin.never
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
 import sh.measure.android.SessionManager
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeAppExitProvider
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.fakes.TestData
+import sh.measure.android.storage.Database
 
 class AppExitCollectorTest {
+    private val logger = NoopLogger()
     private val appExitProvider = FakeAppExitProvider()
+    private val database = mock<Database>()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
-    private val eventProcessor = mock<EventProcessor>()
+    private val signalProcessor = mock<SignalProcessor>()
     private val sessionManager = mock<SessionManager>()
 
     private val appExitCollector = AppExitCollector(
-        NoopLogger(),
+        logger,
         appExitProvider,
         executorService,
-        eventProcessor,
+        database,
+        signalProcessor,
         sessionManager,
     )
 
-    @Before
-    fun setUp() {
-        `when`(sessionManager.getSessionId()).thenReturn("fake-session-id")
-    }
-
     @Test
-    fun `given no app exits available, does not track anything`() {
-        appExitCollector.onColdLaunch()
+    fun `given session is available for given pid, tracks app exit event`() {
+        // Given
+        val appExit = TestData.getAppExit()
+        val pid = 1
+        val pidToAppExit = pid to appExit
+        val appExits = mapOf(pidToAppExit)
+        appExitProvider.appExits = appExits
+        val session = getSession(pid)
+        `when`(database.getSessionForAppExit(pid)).thenReturn(session)
 
-        verify(eventProcessor, never()).track(
-            data = any<AppExit>(),
-            timestamp = any<Long>(),
-            type = any<String>(),
-            sessionId = any<String>(),
-        )
-    }
+        // When
+        appExitCollector.collect()
 
-    @Test
-    fun `given no sessions available, does not track anything`() {
-        `when`(sessionManager.getSessionsWithUntrackedAppExit()).thenReturn(emptyMap())
-        appExitCollector.onColdLaunch()
-
-        val appExit = AppExit(
-            reason = "REASON_USER_REQUESTED",
-            pid = 7654.toString(),
-            trace = null,
-            process_name = "com.example.app",
-            importance = "IMPORTANCE_VISIBLE",
-        )
-        appExitProvider.appExits = mapOf(7654 to appExit)
-
-        verify(eventProcessor, never()).track(
-            data = any<AppExit>(),
-            timestamp = any<Long>(),
-            type = any<String>(),
-            sessionId = any<String>(),
+        // Then
+        verify(signalProcessor).track(
+            appExit,
+            appExit.app_exit_time_ms,
+            EventType.APP_EXIT,
+            sessionId = session.id,
         )
     }
 
     @Test
-    fun `given sessions are available, but no corresponding app exits, does not track anything`() {
-        val sessionId = sessionManager.getSessionId()
-        val pid = 7654
-        appExitProvider.appExits = mapOf()
-        `when`(sessionManager.getSessionsWithUntrackedAppExit()).thenReturn(mapOf(pid to listOf(sessionId)))
+    fun `given multiple sessions are available, tracks app exit event for each of them`() {
+        // Given
+        val appExit1 = TestData.getAppExit()
+        val session1 = getSession(sessionId = "session-1", pid = 1)
+        val appExit2 = TestData.getAppExit()
+        val session2 = getSession(sessionId = "session-2", pid = 2)
 
-        appExitCollector.onColdLaunch()
+        appExitProvider.appExits = mapOf(1 to appExit1, 2 to appExit2)
+        `when`(database.getSessionForAppExit(1)).thenReturn(session1)
+        `when`(database.getSessionForAppExit(2)).thenReturn(session2)
 
-        verify(eventProcessor, never()).track(
-            data = any<AppExit>(),
-            timestamp = any<Long>(),
-            type = any<String>(),
-            sessionId = any<String>(),
+        // When
+        appExitCollector.collect()
+
+        // Then
+        verify(signalProcessor).track(
+            appExit1,
+            appExit1.app_exit_time_ms,
+            EventType.APP_EXIT,
+            sessionId = session1.id,
+        )
+        verify(signalProcessor).track(
+            appExit2,
+            appExit2.app_exit_time_ms,
+            EventType.APP_EXIT,
+            sessionId = session2.id,
         )
     }
 
     @Test
-    fun `given app exits are available, but sessions do not have the corresponding pids, does not track anything`() {
-        val pid = 7654
-        val appExit = AppExit(
-            reason = "REASON_USER_REQUESTED",
-            pid = pid.toString(),
-            trace = null,
-            process_name = "com.example.app",
-            importance = "IMPORTANCE_VISIBLE",
-        )
-        appExitProvider.appExits = mapOf(pid to appExit)
-        `when`(sessionManager.getSessionsWithUntrackedAppExit()).thenReturn(mapOf(9999 to listOf("session-id")))
+    fun `marks session as crashed if app exit has crashed reason`() {
+        // Given
+        val appExit1 = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_CRASH)
+        val session1 = getSession(sessionId = "session-1", pid = 1)
 
-        appExitCollector.onColdLaunch()
+        appExitProvider.appExits = mapOf(1 to appExit1)
+        `when`(database.getSessionForAppExit(1)).thenReturn(session1)
 
-        verify(eventProcessor, never()).track(
-            data = any<AppExit>(),
-            timestamp = any<Long>(),
-            type = any<String>(),
-            sessionId = any<String>(),
-        )
+        // When
+        appExitCollector.collect()
+
+        // Then
+        verify(sessionManager).markCrashedSession(session1.id)
     }
 
     @Test
-    fun `given app exits are available and sessions have the corresponding pids, tracks the app exits`() {
-        val sessionId = sessionManager.getSessionId()
-        val pid = 7654
-        val appExit = AppExit(
-            reason = "REASON_USER_REQUESTED",
-            pid = pid.toString(),
-            trace = null,
-            process_name = "com.example.app",
-            importance = "IMPORTANCE_VISIBLE",
-            app_exit_time_ms = 1234567890,
-        )
-        appExitProvider.appExits = mapOf(pid to appExit)
-        `when`(sessionManager.getSessionsWithUntrackedAppExit()).thenReturn(mapOf(pid to listOf(sessionId)))
+    fun `marks session as crashed if app exit has ANR reason`() {
+        // Given
+        val appExit1 = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_ANR)
+        val session1 = getSession(sessionId = "session-1", pid = 1)
 
-        appExitCollector.onColdLaunch()
+        appExitProvider.appExits = mapOf(1 to appExit1)
+        `when`(database.getSessionForAppExit(1)).thenReturn(session1)
 
-        verify(eventProcessor).track(
-            data = appExit,
-            timestamp = appExit.app_exit_time_ms,
-            type = EventType.APP_EXIT,
-            sessionId = sessionId,
-        )
+        // When
+        appExitCollector.collect()
+
+        // Then
+        verify(sessionManager).markCrashedSession(session1.id)
     }
 
     @Test
-    fun `updates sessions table when app exit is tracked successfully`() {
-        val sessionId = sessionManager.getSessionId()
-        val pid = 7654
-        val appExit = AppExit(
-            reason = "REASON_USER_REQUESTED",
-            pid = pid.toString(),
-            trace = null,
-            process_name = "com.example.app",
-            importance = "IMPORTANCE_VISIBLE",
-        )
-        appExitProvider.appExits = mapOf(pid to appExit)
-        `when`(sessionManager.getSessionsWithUntrackedAppExit()).thenReturn(mapOf(pid to listOf(sessionId)))
+    fun `marks session as crashed if app exit has crash native reason`() {
+        // Given
+        val appExit1 = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_CRASH_NATIVE)
+        val session1 = getSession(sessionId = "session-1", pid = 1)
 
-        appExitCollector.onColdLaunch()
+        appExitProvider.appExits = mapOf(1 to appExit1)
+        `when`(database.getSessionForAppExit(1)).thenReturn(session1)
 
-        verify(sessionManager).updateAppExitTracked(pid)
+        // When
+        appExitCollector.collect()
+
+        // Then
+        verify(sessionManager).markCrashedSession(session1.id)
     }
 
     @Test
-    fun `marks sessions as crashed when app exit is a crash`() {
-        val pid1 = 7654
-        val pid2 = 1234
-        val pid3 = 5678
-        val pid4 = 9876
-        val crashedAppExit = AppExit(
-            reasonId = 4,
-            reason = "REASON_CRASH",
-            pid = pid1.toString(),
-            trace = null,
-            process_name = "com.example.app",
-            importance = "IMPORTANCE_VISIBLE",
-        )
-        val anrAppExit = AppExit(
-            reasonId = 6,
-            reason = "REASON_ANR",
-            pid = pid2.toString(),
-            trace = null,
-            process_name = "com.example.app",
-            importance = "IMPORTANCE_VISIBLE",
-        )
-        val nativeCrashAppExit = AppExit(
-            reasonId = 5,
-            reason = "REASON_NATIVE_CRASH",
-            pid = pid3.toString(),
-            trace = null,
-            process_name = "com.example.app",
-            importance = "IMPORTANCE_VISIBLE",
-        )
-        val nonCrashAppExit = AppExit(
-            reasonId = 1,
-            reason = "REASON_EXIT_SELF",
-            pid = pid4.toString(),
-            trace = null,
-            process_name = "com.example.app",
-            importance = "IMPORTANCE_VISIBLE",
-        )
-        appExitProvider.appExits = mapOf(
-            pid1 to crashedAppExit,
-            pid2 to anrAppExit,
-            pid3 to nativeCrashAppExit,
-            pid4 to nonCrashAppExit,
-        )
-        `when`(sessionManager.getSessionsWithUntrackedAppExit()).thenReturn(
-            mapOf(
-                pid1 to listOf("session-id1"),
-                pid2 to listOf("session-id2"),
-                pid3 to listOf("session-id3"),
-                pid4 to listOf("session-id4"),
-            ),
-        )
+    fun `does not mark session as crashed if app exit has non-crashed reason`() {
+        // Given
+        val appExit1 = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_EXIT_SELF)
+        val session1 = getSession(sessionId = "session-1", pid = 1)
 
-        appExitCollector.onColdLaunch()
+        appExitProvider.appExits = mapOf(1 to appExit1)
+        `when`(database.getSessionForAppExit(1)).thenReturn(session1)
 
-        verify(sessionManager).markCrashedSessions(
-            listOf(
-                "session-id1",
-                "session-id2",
-                "session-id3",
-            ),
+        // When
+        appExitCollector.collect()
+
+        // Then
+        verify(sessionManager, never()).markCrashedSession(any())
+    }
+
+    @Test
+    fun `clears sessions that happened before the latest app exit`() {
+        // Given
+        val appExit1 = TestData.getAppExit()
+        val session1 = getSession(sessionId = "session-1", pid = 1, createdAt = 1000)
+        val appExit2 = TestData.getAppExit()
+        val session2 = getSession(sessionId = "session-2", pid = 2, createdAt = 2000)
+
+        appExitProvider.appExits = mapOf(1 to appExit1, 2 to appExit2)
+        `when`(database.getSessionForAppExit(1)).thenReturn(session1)
+        `when`(database.getSessionForAppExit(2)).thenReturn(session2)
+
+        // When
+        appExitCollector.collect()
+
+        // Then
+        verify(sessionManager).clearAppExitSessionsBefore(session2.createdAt)
+    }
+
+    @Test
+    fun `tracks app exit only once`() {
+        // Given
+        val appExit = TestData.getAppExit()
+        val pid = 1
+        val pidToAppExit = pid to appExit
+        val appExits = mapOf(pidToAppExit)
+        appExitProvider.appExits = appExits
+        val session = getSession(pid)
+        `when`(database.getSessionForAppExit(pid)).thenReturn(session)
+
+        // When
+        appExitCollector.collect()
+        appExitCollector.collect()
+
+        // Then
+        verify(signalProcessor, times(1)).track(
+            appExit,
+            appExit.app_exit_time_ms,
+            EventType.APP_EXIT,
+            sessionId = session.id,
         )
     }
+
+    private fun getSession(pid: Int, sessionId: String = "session-id-1", createdAt: Long = 98765) =
+        AppExitCollector.Session(id = sessionId, pid = pid, createdAt = createdAt)
 }

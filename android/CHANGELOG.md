@@ -1,7 +1,82 @@
 # measure-android
 
+# 0.9.0
+
+#### Important notes
+
+* This version of the SDK *must* be paired with v0.5.0 version of the server. Older server versions will drop events originating from v0.5.0.
+* Breaking changes:
+  * Deprecated `Measure.trackNavigation` method has been removed. Use `Measure.trackScreenView` instead.
+  * Config `sessionSamplingRate` renamed to `samplingRateForErrorFreeSessions` to be more precise.
+* Dependency updates:
+  * chore(android): upgrade AGP version by @abhaysood in https://github.com/measure-sh/measure/pull/1672
+  * chore(android): bump up curtains to 1.2.5 by @abhaysood in https://github.com/measure-sh/measure/pull/1536
+
+#### Features
+
+* feat(android): add low power and thermal throttling attributes by @abhaysood in https://github.com/measure-sh/measure/pull/1525
+* feat(android): expose APIs to start/stop SDK by @abhaysood in https://github.com/measure-sh/measure/pull/1533
+* feat(android): attach layout snapshots with gesture click events by @abhaysood in https://github.com/measure-sh/measure/pull/1551
+* feat(android): implement tracing for Android by @abhaysood in https://github.com/measure-sh/measure/pull/1405
+* feat(android): expose API to get current session ID by @abhaysood in https://github.com/measure-sh/measure/pull/1634
+* feat(android): support custom events and attributes by @abhaysood in https://github.com/measure-sh/measure/pull/1616
+
+
+#### Fixes
+
+* fix(android): initialization issues by @abhaysood in https://github.com/measure-sh/measure/pull/1538
+* fix(android): revert usage of reentrant lock for heartbeat and SDK initialization by @abhaysood in https://github.com/measure-sh/measure/pull/1539
+* fix(android): add keep rule for AndroidComposeView by @abhaysood in https://github.com/measure-sh/measure/pull/1540
+* fix(android): serialize numbers as numbers instead of string in user def attrs by @abhaysood in https://github.com/measure-sh/measure/pull/1667
+* fix(android): remove unneeded view id prefix in gesture events by @abhaysood in https://github.com/measure-sh/measure/pull/1673
+* chore(android): apply spotless to gradle plugin module by @abhaysood in https://github.com/measure-sh/measure/pull/1671
+
+
+#### Others
+
+* docs(android): update benchmarks & related information in README by @abhaysood in https://github.com/measure-sh/measure/pull/1537
+* refactor(android): implement batch insertions of events and spans in db by @abhaysood in https://github.com/measure-sh/measure/pull/1659
+* refactor(android): avoid accessing thermal status change for older APIs by @abhaysood in https://github.com/measure-sh/measure/pull/1661
+* docs(android): add minimum version compatibility by @abhaysood in https://github.com/measure-sh/measure/pull/1670
+
+
+# 0.8.2
+
+#### Features
+
+chore(android): Collect only launch & journey events for non-crashed sessions by @abhaysood in https://github.com/measure-sh/measure/pull/1482
+All events for crashed sessions continue to be reported. Non-crashed sessions are not reported by default, only launch and lifecycle events
+are reported.
+
+
+# 0.8.1
+
+#### Fixes
+
+* fix(android): create new session if previous session crashed by @abhaysood in https://github.com/measure-sh/measure/pull/1439
+* fix(android): use uptime millis for cold launch instead of realtime elapsed by @abhaysood in https://github.com/measure-sh/measure/pull/1438
+
+# 0.8.0
+#### Features
+
+* feat(android): add screen view event & deprecate navigation event by @abhaysood in https://github.com/measure-sh/measure/pull/1265
+* feat(android): improve session management by @abhaysood in https://github.com/measure-sh/measure/pull/1372
+
+#### Fixes
+
+* fix(android): track fragment lifecycle events when r8 is enabled by @abhaysood in https://github.com/measure-sh/measure/pull/1327
+* fix(android): ignore duplicate inserts to app exit by @abhaysood in https://github.com/measure-sh/measure/pull/1379
+* chore(android): remove unnecessary logs for launch tracking by @abhaysood in https://github.com/measure-sh/measure/pull/1382
+* chore(android): support latest stable compose-navigation by @abhaysood in https://github.com/measure-sh/measure/pull/1383
+* chore(android): remove low memory event by @abhaysood in https://github.com/measure-sh/measure/pull/1384
+* chore(android): add max session duration config by @abhaysood in https://github.com/measure-sh/measure/pull/1392
+* fix(android): handle session management when elapsed time gets reset by @abhaysood in https://github.com/measure-sh/measure/pull/1394
+* refactor(android): use monotonic clock to get time by @abhaysood in https://github.com/measure-sh/measure/pull/1402
+
+**Full Changelog**: https://github.com/measure-sh/measure/compare/android-v0.7.0...0.8.0](https://github.com/measure-sh/measure/pull/1265)
+
 # 0.7.0
-### Features
+#### Features
 
 * feat(android): report activity launched with saved state as warm launch by @abhaysood in https://github.com/measure-sh/measure/pull/1247
 * feat(android): handle warm launches that are lukewarm by @abhaysood in https://github.com/measure-sh/measure/pull/1268

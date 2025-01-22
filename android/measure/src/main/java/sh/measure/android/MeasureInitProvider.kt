@@ -25,7 +25,7 @@ internal class MeasureInitProvider : ContentProvider() {
         check(MeasureInitProvider::class.java.name != info.authority) {
             "An applicationId is required to fulfill the manifest placeholder."
         }
-        LaunchState.contentLoaderAttachUptime = SystemClock.uptimeMillis()
+        LaunchState.contentLoaderAttachElapsedRealtime = SystemClock.elapsedRealtime()
         super.attachInfo(context, info)
     }
 

@@ -11,48 +11,28 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
-import sh.measure.android.fakes.FakeMemoryReader
-import sh.measure.android.fakes.FakeTimeProvider
+import sh.measure.android.events.SignalProcessor
+import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.TestClock
 
 internal class ComponentCallbacksCollectorTest {
-    private val eventProcessor = mock<EventProcessor>()
-    private val timeProvider = FakeTimeProvider()
-    private val memoryReader = FakeMemoryReader()
+    private val signalProcessor = mock<SignalProcessor>()
+    private val timeProvider = AndroidTimeProvider(TestClock.create())
     private lateinit var componentCallbacksCollector: ComponentCallbacksCollector
 
     @Before
     fun setUp() {
         componentCallbacksCollector = ComponentCallbacksCollector(
             mock(),
-            eventProcessor,
+            signalProcessor,
             timeProvider,
-            memoryReader,
-        ).apply { register() }
-    }
-
-    @Test
-    fun `ComponentCallbacksCollector tracks low memory event`() {
-        componentCallbacksCollector.onLowMemory()
-
-        verify(eventProcessor).track(
-            type = EventType.LOW_MEMORY,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
-            data = LowMemoryData(
-                java_max_heap = memoryReader.maxHeapSize(),
-                java_free_heap = memoryReader.freeHeapSize(),
-                java_total_heap = memoryReader.totalHeapSize(),
-                native_free_heap = memoryReader.nativeFreeHeapSize(),
-                native_total_heap = memoryReader.nativeTotalHeapSize(),
-                rss = memoryReader.rss(),
-                total_pss = memoryReader.totalPss(),
-            ),
         )
     }
 
     @Test
-    fun `ComponentCallbacksCollector tracks trim memory event`() {
+    fun `tracks trim memory event`() {
+        componentCallbacksCollector.register()
         testTrimMemoryEvent(TRIM_MEMORY_UI_HIDDEN, "TRIM_MEMORY_UI_HIDDEN")
         testTrimMemoryEvent(TRIM_MEMORY_RUNNING_MODERATE, "TRIM_MEMORY_RUNNING_MODERATE")
         testTrimMemoryEvent(TRIM_MEMORY_RUNNING_LOW, "TRIM_MEMORY_RUNNING_LOW")
@@ -65,9 +45,9 @@ internal class ComponentCallbacksCollectorTest {
 
     private fun testTrimMemoryEvent(trimLevel: Int, expectedLevel: String) {
         componentCallbacksCollector.onTrimMemory(trimLevel)
-        verify(eventProcessor).track(
+        verify(signalProcessor).track(
             type = EventType.TRIM_MEMORY,
-            timestamp = timeProvider.currentTimeSinceEpochInMillis,
+            timestamp = timeProvider.now(),
             data = TrimMemoryData(
                 level = expectedLevel,
             ),

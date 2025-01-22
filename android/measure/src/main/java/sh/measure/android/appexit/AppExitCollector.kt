@@ -1,76 +1,86 @@
 package sh.measure.android.appexit
 
-import android.annotation.SuppressLint
+import android.app.ApplicationExitInfo.REASON_ANR
+import android.app.ApplicationExitInfo.REASON_CRASH
+import android.app.ApplicationExitInfo.REASON_CRASH_NATIVE
+import android.os.Build
+import androidx.annotation.RequiresApi
 import sh.measure.android.SessionManager
-import sh.measure.android.events.EventProcessor
 import sh.measure.android.events.EventType
+import sh.measure.android.events.SignalProcessor
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.storage.Database
 import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal class AppExitCollector(
     private val logger: Logger,
     private val appExitProvider: AppExitProvider,
     private val ioExecutor: MeasureExecutorService,
-    private val eventProcessor: EventProcessor,
+    private val database: Database,
+    private val signalProcessor: SignalProcessor,
     private val sessionManager: SessionManager,
 ) {
-    fun onColdLaunch() {
-        trackAppExit()
+    // Prevents app exit from being processed multiple times
+    private val tracked = AtomicBoolean(false)
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun collect() {
+        if (!tracked.getAndSet(true)) {
+            trackAppExits()
+        }
     }
 
-    private fun trackAppExit() {
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun trackAppExits() {
         try {
             ioExecutor.submit {
-                val appExits = appExitProvider.get()
-                if (appExits.isNullOrEmpty()) {
-                    return@submit emptyList<Triple<Int, String, AppExit>>()
+                val appExitsMap: Map<Int, AppExit> = appExitProvider.get() ?: return@submit
+                val trackedSessions = mutableListOf<Session>()
+                appExitsMap.forEach {
+                    val pid = it.key
+                    val appExit = it.value
+                    val session = getSessionForAppExit(pid)
+                    if (session != null) {
+                        signalProcessor.track(
+                            appExit,
+                            // Current time is irrelevant for app exit, using
+                            // the time at which the app exit actually occurred instead.
+                            appExit.app_exit_time_ms,
+                            EventType.APP_EXIT,
+                            sessionId = session.id,
+                        )
+                        logger.log(LogLevel.Debug, "Tracked app_exit: $appExit")
+                        if (isReasonCrashOrAnr(appExit)) {
+                            sessionManager.markCrashedSession(session.id)
+                        }
+                        trackedSessions.add(session)
+                    }
                 }
-                val pidsToSessionsMap: Map<Int, List<String>> =
-                    sessionManager.getSessionsWithUntrackedAppExit()
-                val appExitsToTrack = mapAppExitsToSession(pidsToSessionsMap, appExits)
-                markSessionsAsCrashedByAppExitReason(appExitsToTrack)
-                appExitsToTrack.forEach {
-                    eventProcessor.track(
-                        data = it.third,
-                        // For app exit, the time at which the app exited is more relevant
-                        // than the current time.
-                        timestamp = it.third.app_exit_time_ms,
-                        type = EventType.APP_EXIT,
-                        sessionId = it.second,
-                    )
-                    sessionManager.updateAppExitTracked(pid = it.first)
-                }
+                trackedSessions.sortByDescending { it.createdAt }
+                val clearSessionsBefore = trackedSessions.first().createdAt
+                sessionManager.clearAppExitSessionsBefore(clearSessionsBefore)
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Failed to submit app exit tracking task to executor", e)
+            logger.log(LogLevel.Error, "Unable to track app exit events", e)
         }
     }
 
-    @SuppressLint("NewApi")
-    private fun markSessionsAsCrashedByAppExitReason(appExitsToTrack: List<Triple<Int, String, AppExit>>) {
-        val crashedSessionIds = appExitsToTrack.filter { it.third.isCrash() }.map { it.second }
-        sessionManager.markCrashedSessions(crashedSessionIds)
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun isReasonCrashOrAnr(appExit: AppExit): Boolean {
+        val reasonId = appExit.reasonId
+        return reasonId == REASON_CRASH || reasonId == REASON_ANR || reasonId == REASON_CRASH_NATIVE
     }
 
-    private fun mapAppExitsToSession(
-        pidToSessionsMap: Map<Int, List<String>>,
-        appExits: Map<Int, AppExit>,
-    ): List<Triple<Int, String, AppExit>> {
-        val result: MutableList<Triple<Int, String, AppExit>> = ArrayList()
-        for ((pid, sessionIds) in pidToSessionsMap) {
-            if (appExits.containsKey(pid)) {
-                val appExit = appExits[pid]
-                // assuming last session for the PID to be the one that maps to app exit.
-                val lastSessionId = sessionIds.last()
-                appExit?.let { result.add(Triple(pid, lastSessionId, appExit)) } ?: logger.log(
-                    LogLevel.Error,
-                    "AppExit not found for PID: $pid",
-                )
-            }
-        }
-
-        return result
+    private fun getSessionForAppExit(pid: Int): Session? {
+        return database.getSessionForAppExit(pid)
     }
+
+    internal data class Session(
+        val id: String,
+        val pid: Int,
+        val createdAt: Long,
+    )
 }

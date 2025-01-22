@@ -6,6 +6,7 @@ import { ExceptionsDetailsPlotApiStatus, ExceptionsType, fetchExceptionsDetailsP
 import { useRouter } from 'next/navigation';
 import { formatDateToHumanReadableDate } from '../utils/time_utils';
 import { Filters } from './filters';
+import LoadingSpinner from './loading_spinner';
 
 interface ExceptionsDetailsPlotProps {
   exceptionsType: ExceptionsType,
@@ -65,6 +66,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
 
   return (
     <div className="flex border border-black font-sans items-center justify-center w-full h-[32rem]">
+      {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Loading && <LoadingSpinner />}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Success &&
@@ -72,7 +74,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
           data={plot!}
           curve="monotoneX"
           colors={{ scheme: 'nivo' }}
-          margin={{ top: 40, right: 160, bottom: 120, left: 120 }}
+          margin={{ top: 40, right: 60, bottom: 120, left: 60 }}
           xFormat="time:%Y-%m-%d"
           xScale={{
             format: '%Y-%m-%d',
@@ -93,7 +95,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
             tickPadding: 10,
             legendOffset: 100,
             format: '%b %d, %Y',
-            tickRotation: 45,
+            tickRotation: 60,
             legendPosition: 'middle'
           }}
           axisLeft={{
@@ -101,10 +103,10 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
             tickPadding: 5,
             format: value => Number.isInteger(value) ? value : '',
             legend: exceptionsType === ExceptionsType.Crash ? 'Crash instances' : 'ANR instances',
-            legendOffset: -80,
+            legendOffset: -40,
             legendPosition: 'middle'
           }}
-          pointSize={3}
+          pointSize={6}
           pointBorderWidth={2}
           pointBorderColor={{
             from: 'color',
@@ -117,23 +119,6 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
           }}
           pointLabelYOffset={-12}
           useMesh={true}
-          legends={[
-            {
-              anchor: 'bottom-right',
-              direction: 'column',
-              justify: false,
-              translateX: 100,
-              translateY: 0,
-              itemsSpacing: 0,
-              itemDirection: 'left-to-right',
-              itemWidth: 80,
-              itemHeight: 20,
-              itemOpacity: 0.75,
-              symbolSize: 12,
-              symbolShape: 'circle',
-              symbolBorderColor: 'rgba(0, 0, 0, .5)',
-            }
-          ]}
           enableSlices="x"
           sliceTooltip={({ slice }) => {
             return (
@@ -142,6 +127,8 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
                 {slice.points.map((point) => (
                   <div className="flex flex-row items-center p-2" key={point.id}>
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
+                    <div className="px-2" />
+                    <p>{point.serieId.toString()} - </p>
                     <div className="px-2" />
                     <p>{point.data.y.toString()} {point.data.y.valueOf() as number > 1 ? 'instances' : 'instance'}</p>
                   </div>

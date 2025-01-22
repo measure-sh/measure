@@ -4,11 +4,9 @@ import (
 	"backend/api/authsession"
 	"backend/api/cipher"
 	"backend/api/server"
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
@@ -41,49 +39,9 @@ func extractToken(c *gin.Context) (token string) {
 	return
 }
 
-// trackEmail tracks email in third party email list
-func trackEmail(email string) {
-	emailListId := "cm1aew9540002el4efgoa48ne"
-	emailListApiKey := "cm1aew9540003el4e9kefrf4w"
-
-	url := "https://www.waitlist.email/api/subscribers/create"
-
-	requestBody, err := json.Marshal(map[string]string{
-		"waitlist": emailListId,
-		"email":    email,
-	})
-	if err != nil {
-		fmt.Println("Error creating email tracking request body:", err)
-		return
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
-	if err != nil {
-		fmt.Println("Error creating email tracking request:", err)
-		return
-	}
-
-	// Set headers
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Waitlist-Api-Key", emailListApiKey)
-
-	// Send the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("Error tracking email: ", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error reading email tracking response:", err)
-		return
-	}
-
-	fmt.Println("Email tracking Response Status:", resp.Status)
-	fmt.Println("Email tracking Response Body:", string(body))
+// logNewUserFirstLogin logs new user's first login to stdout
+func logNewUserFirstLogin() {
+	fmt.Println("New user logged in")
 }
 
 // ValidateAPIKey validates the Measure API key.
@@ -367,7 +325,7 @@ func SigninGitHub(c *gin.Context) {
 			}
 
 			// Once new user creation is done, track email
-			trackEmail(ghUser.Email)
+			logNewUserFirstLogin()
 		} else {
 			// update user's last sign in at value
 			if err := msrUser.touchLastSignInAt(ctx); err != nil {
@@ -572,7 +530,7 @@ func SigninGoogle(c *gin.Context) {
 		}
 
 		// Once new user creation is done, track email
-		trackEmail(googUser.Email)
+		logNewUserFirstLogin()
 	} else {
 		// update user's last sign in at value
 		if err := msrUser.touchLastSignInAt(ctx); err != nil {

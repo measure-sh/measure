@@ -1,11 +1,18 @@
 package sh.measure.android.storage
 
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.modules.SerializersModule
 import sh.measure.android.appexit.AppExit
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
+import sh.measure.android.attributes.AttributeValue
+import sh.measure.android.attributes.AttributeValueSerializer
+import sh.measure.android.attributes.serializer
+import sh.measure.android.events.CustomEventData
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
@@ -15,15 +22,21 @@ import sh.measure.android.gestures.ScrollData
 import sh.measure.android.lifecycle.ActivityLifecycleData
 import sh.measure.android.lifecycle.ApplicationLifecycleData
 import sh.measure.android.lifecycle.FragmentLifecycleData
-import sh.measure.android.navigation.NavigationData
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.networkchange.NetworkChangeData
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.performance.CpuUsageData
-import sh.measure.android.performance.LowMemoryData
 import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
 import sh.measure.android.utils.toJsonElement
+
+private val json by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    Json {
+        serializersModule = SerializersModule {
+            contextual(AttributeValue::class, AttributeValueSerializer)
+        }
+    }
+}
 
 /**
  * Serializes the attributes of the event to a JSON string.
@@ -32,7 +45,7 @@ internal fun <T> Event<T>.serializeAttributes(): String? {
     if (attributes.isEmpty()) {
         return null
     }
-    val result = Json.encodeToString(
+    val result = json.encodeToString(
         JsonElement.serializer(),
         attributes.toJsonElement(),
     )
@@ -46,9 +59,9 @@ internal fun <T> Event<T>.serializeUserDefinedAttributes(): String? {
     if (userDefinedAttributes.isEmpty()) {
         return null
     }
-    val result = Json.encodeToString(
-        JsonElement.serializer(),
-        userDefinedAttributes.toJsonElement(),
+    val result = json.encodeToString(
+        MapSerializer(String.serializer(), AttributeValue.serializer()),
+        userDefinedAttributes,
     )
     return result
 }
@@ -59,92 +72,88 @@ internal fun <T> Event<T>.serializeUserDefinedAttributes(): String? {
 internal fun <T> Event<T>.serializeDataToString(): String {
     return when (type) {
         EventType.EXCEPTION -> {
-            Json.encodeToString(ExceptionData.serializer(), data as ExceptionData)
+            json.encodeToString(ExceptionData.serializer(), data as ExceptionData)
         }
 
         EventType.ANR -> {
-            Json.encodeToString(ExceptionData.serializer(), data as ExceptionData)
+            json.encodeToString(ExceptionData.serializer(), data as ExceptionData)
         }
 
         EventType.APP_EXIT -> {
-            Json.encodeToString(AppExit.serializer(), data as AppExit)
+            json.encodeToString(AppExit.serializer(), data as AppExit)
         }
 
         EventType.CLICK -> {
-            Json.encodeToString(ClickData.serializer(), data as ClickData)
+            json.encodeToString(ClickData.serializer(), data as ClickData)
         }
 
         EventType.LONG_CLICK -> {
-            Json.encodeToString(LongClickData.serializer(), data as LongClickData)
+            json.encodeToString(LongClickData.serializer(), data as LongClickData)
         }
 
         EventType.SCROLL -> {
-            Json.encodeToString(ScrollData.serializer(), data as ScrollData)
+            json.encodeToString(ScrollData.serializer(), data as ScrollData)
         }
 
         EventType.LIFECYCLE_ACTIVITY -> {
-            Json.encodeToString(
+            json.encodeToString(
                 ActivityLifecycleData.serializer(),
                 data as ActivityLifecycleData,
             )
         }
 
         EventType.LIFECYCLE_FRAGMENT -> {
-            Json.encodeToString(
+            json.encodeToString(
                 FragmentLifecycleData.serializer(),
                 data as FragmentLifecycleData,
             )
         }
 
         EventType.LIFECYCLE_APP -> {
-            Json.encodeToString(
+            json.encodeToString(
                 ApplicationLifecycleData.serializer(),
                 data as ApplicationLifecycleData,
             )
         }
 
         EventType.COLD_LAUNCH -> {
-            Json.encodeToString(ColdLaunchData.serializer(), data as ColdLaunchData)
+            json.encodeToString(ColdLaunchData.serializer(), data as ColdLaunchData)
         }
 
         EventType.WARM_LAUNCH -> {
-            Json.encodeToString(WarmLaunchData.serializer(), data as WarmLaunchData)
+            json.encodeToString(WarmLaunchData.serializer(), data as WarmLaunchData)
         }
 
         EventType.HOT_LAUNCH -> {
-            Json.encodeToString(HotLaunchData.serializer(), data as HotLaunchData)
+            json.encodeToString(HotLaunchData.serializer(), data as HotLaunchData)
         }
 
         EventType.NETWORK_CHANGE -> {
-            Json.encodeToString(NetworkChangeData.serializer(), data as NetworkChangeData)
+            json.encodeToString(NetworkChangeData.serializer(), data as NetworkChangeData)
         }
 
         EventType.HTTP -> {
-            Json.encodeToString(HttpData.serializer(), data as HttpData)
+            json.encodeToString(HttpData.serializer(), data as HttpData)
         }
 
         EventType.MEMORY_USAGE -> {
-            Json.encodeToString(MemoryUsageData.serializer(), data as MemoryUsageData)
-        }
-
-        EventType.LOW_MEMORY -> {
-            Json.encodeToString(LowMemoryData.serializer(), data as LowMemoryData)
+            json.encodeToString(MemoryUsageData.serializer(), data as MemoryUsageData)
         }
 
         EventType.TRIM_MEMORY -> {
-            Json.encodeToString(TrimMemoryData.serializer(), data as TrimMemoryData)
+            json.encodeToString(TrimMemoryData.serializer(), data as TrimMemoryData)
         }
 
         EventType.CPU_USAGE -> {
-            Json.encodeToString(CpuUsageData.serializer(), data as CpuUsageData)
+            json.encodeToString(CpuUsageData.serializer(), data as CpuUsageData)
         }
 
-        EventType.NAVIGATION -> {
-            Json.encodeToString(NavigationData.serializer(), data as NavigationData)
+        EventType.CUSTOM -> {
+            json.encodeToString(CustomEventData.serializer(), data as CustomEventData)
         }
 
         EventType.SCREEN_VIEW -> {
-            Json.encodeToString(ScreenViewData.serializer(), data as ScreenViewData)
+            json.encodeToString(ScreenViewData.serializer(), data as ScreenViewData)
         }
 
         else -> {

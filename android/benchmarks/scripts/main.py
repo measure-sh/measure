@@ -18,10 +18,24 @@ def compare_startup(path_before: str, path_after: str):
 
 
 @app.command()
-def compare_target_finder(path_before: str, path_after: str):
-    before_data = parse_benchmark.target_finder(path_before)
-    after_data = parse_benchmark.target_finder(path_after)
+def compare_track_gesture(path_before: str, path_after: str):
+    before_data = parse_benchmark.track_gesture(path_before)
+    after_data = parse_benchmark.track_gesture(path_after)
     calculate_and_print_metrics(before_data, after_data)
+
+@app.command()
+def compare_view_click_heap(path_before: str, path_after: str):
+    before_data = parse_benchmark.track_gesture_heap(path_before)
+    after_data = parse_benchmark.track_gesture_heap(path_after)
+    calculate_and_print_metrics(before_data, after_data)
+
+
+@app.command()
+def compare_generate_svg(path_before: str, path_after: str):
+    before_data = parse_benchmark.generate_svg(path_before)
+    after_data = parse_benchmark.generate_svg(path_after)
+    calculate_and_print_metrics(before_data, after_data)
+
 
 def calculate_and_print_metrics(data_before: Series, data_after: Series) -> None:
     iteration_count_before = len(data_before)

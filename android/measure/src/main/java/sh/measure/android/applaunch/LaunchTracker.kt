@@ -3,13 +3,13 @@ package sh.measure.android.applaunch
 import android.app.Activity
 import android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
 import android.os.Bundle
-import android.os.SystemClock
 import curtains.onNextDraw
 import sh.measure.android.lifecycle.ActivityLifecycleAdapter
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.mainHandler
 import sh.measure.android.postAtFrontOfQueueAsync
+import sh.measure.android.utils.TimeProvider
 
 internal interface LaunchCallbacks {
     fun onColdLaunch(coldLaunchData: ColdLaunchData)
@@ -23,9 +23,10 @@ internal interface LaunchCallbacks {
  */
 internal class LaunchTracker(
     private val logger: Logger,
-    private val callbacks: LaunchCallbacks,
+    private val timeProvider: TimeProvider,
 ) : ActivityLifecycleAdapter {
 
+    private var callbacks: LaunchCallbacks? = null
     private var coldLaunchComplete = false
     private var launchInProgress = false
 
@@ -39,6 +40,14 @@ internal class LaunchTracker(
     private val createdActivities = mutableMapOf<String, OnCreateRecord>()
     private val startedActivities = mutableListOf<String>()
     private val resumedActivities = mutableListOf<String>()
+
+    fun registerCallbacks(callbacks: LaunchCallbacks) {
+        this.callbacks = callbacks
+    }
+
+    fun unregisterCallbacks() {
+        this.callbacks = null
+    }
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         val identityHash = Integer.toHexString(System.identityHashCode(activity))
@@ -84,10 +93,10 @@ internal class LaunchTracker(
     }
 
     private fun appMightBecomeVisible() {
-        LaunchState.lastAppVisibleTime = SystemClock.uptimeMillis()
+        LaunchState.lastAppVisibleElapsedRealtime = timeProvider.elapsedRealtime
         logger.log(
-            LogLevel.Error,
-            "Updated last app visible time: ${LaunchState.lastAppVisibleTime}",
+            LogLevel.Debug,
+            "Updated last app visible time: ${LaunchState.lastAppVisibleElapsedRealtime}",
         )
     }
 
@@ -102,17 +111,17 @@ internal class LaunchTracker(
                 if (!launchInProgress) return@postAtFrontOfQueueAsync
                 launchInProgress = false
 
-                val onNextDrawUptime = SystemClock.uptimeMillis()
+                val onNextDrawElapsedRealtime = timeProvider.elapsedRealtime
                 onCreateRecord?.let { onCreateRecord ->
                     when (val launchType = computeLaunchType(onCreateRecord)) {
                         "Cold" -> {
                             coldLaunchComplete = true
-                            callbacks.onColdLaunch(
+                            callbacks?.onColdLaunch(
                                 coldLaunchData = ColdLaunchData(
-                                    process_start_uptime = LaunchState.processStartUptime,
-                                    process_start_requested_uptime = LaunchState.processStartRequestedUptime,
-                                    content_provider_attach_uptime = LaunchState.contentLoaderAttachUptime,
-                                    on_next_draw_uptime = onNextDrawUptime,
+                                    process_start_uptime = LaunchState.processStartElapsedRealtime,
+                                    process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
+                                    content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
+                                    on_next_draw_uptime = onNextDrawElapsedRealtime,
                                     launched_activity = onCreateRecord.activityName,
                                     has_saved_state = onCreateRecord.hasSavedState,
                                     intent_data = onCreateRecord.intentData,
@@ -121,11 +130,11 @@ internal class LaunchTracker(
                         }
 
                         "Hot" -> {
-                            LaunchState.lastAppVisibleTime?.let {
-                                callbacks.onHotLaunch(
+                            LaunchState.lastAppVisibleElapsedRealtime?.let {
+                                callbacks?.onHotLaunch(
                                     HotLaunchData(
                                         app_visible_uptime = it,
-                                        on_next_draw_uptime = onNextDrawUptime,
+                                        on_next_draw_uptime = onNextDrawElapsedRealtime,
                                         launched_activity = onCreateRecord.activityName,
                                         has_saved_state = onCreateRecord.hasSavedState,
                                         intent_data = onCreateRecord.intentData,
@@ -138,13 +147,13 @@ internal class LaunchTracker(
                         }
 
                         "Warm" -> {
-                            callbacks.onWarmLaunch(
+                            callbacks?.onWarmLaunch(
                                 WarmLaunchData(
-                                    process_start_uptime = LaunchState.processStartUptime,
-                                    process_start_requested_uptime = LaunchState.processStartRequestedUptime,
-                                    content_provider_attach_uptime = LaunchState.contentLoaderAttachUptime,
-                                    app_visible_uptime = LaunchState.lastAppVisibleTime ?: 0,
-                                    on_next_draw_uptime = onNextDrawUptime,
+                                    process_start_uptime = LaunchState.processStartElapsedRealtime,
+                                    process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
+                                    content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
+                                    app_visible_uptime = LaunchState.lastAppVisibleElapsedRealtime ?: 0,
+                                    on_next_draw_uptime = onNextDrawElapsedRealtime,
                                     launched_activity = onCreateRecord.activityName,
                                     has_saved_state = onCreateRecord.hasSavedState,
                                     intent_data = onCreateRecord.intentData,
@@ -154,13 +163,13 @@ internal class LaunchTracker(
                         }
 
                         "Lukewarm" -> {
-                            callbacks.onWarmLaunch(
+                            callbacks?.onWarmLaunch(
                                 WarmLaunchData(
-                                    process_start_uptime = LaunchState.processStartUptime,
-                                    process_start_requested_uptime = LaunchState.processStartRequestedUptime,
-                                    content_provider_attach_uptime = LaunchState.contentLoaderAttachUptime,
-                                    app_visible_uptime = LaunchState.lastAppVisibleTime ?: 0,
-                                    on_next_draw_uptime = onNextDrawUptime,
+                                    process_start_uptime = LaunchState.processStartElapsedRealtime,
+                                    process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
+                                    content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
+                                    app_visible_uptime = LaunchState.lastAppVisibleElapsedRealtime ?: 0,
+                                    on_next_draw_uptime = onNextDrawElapsedRealtime,
                                     launched_activity = onCreateRecord.activityName,
                                     has_saved_state = onCreateRecord.hasSavedState,
                                     intent_data = onCreateRecord.intentData,
@@ -220,7 +229,7 @@ internal class LaunchTracker(
             // lukewarm launch as the system got a chance to warm up before deciding to bring the
             // activity to the foreground. Sadly we do not know when the system changed it's mind, so
             // we just use the same launch time as a cold launch. We cannot rely on
-            // app_visible_uptime as it won't be set in this case.
+            // lastAppVisibleElapsedRealtime as it won't be set in this case.
             else -> "Lukewarm"
         }
     }

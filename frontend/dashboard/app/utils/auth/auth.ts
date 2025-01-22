@@ -324,42 +324,98 @@ export const encodeOAuthState = (path: URL | string = "") => {
 
 /**
  * Proxied fetch to automatically refresh sessions
- * if expired.
+ * and cancel in-flight requests.
  */
-export const fetchAuth = new Proxy(fetch.bind(globalThis), {
-  async apply(target, thisArg, argArray) {
-    let session = loadSession(sessionKey);
-    if (!session) {
-      clearSession()
-      if (window && 'location' in window) {
-        window.location.assign("/auth/login");
-      }
-      throw new Error("couldn't retrieve session");
+export const fetchMeasure = (() => {
+  // Map to track in-flight requests
+  const inFlightRequests = new Map<string, AbortController>();
+
+  // Extract base endpoint from a URL, stripping query parameters
+  const getEndpoint = (resource: string | Request | URL) => {
+    let urlString: string;
+
+    if (resource instanceof Request) {
+      urlString = resource.url;
+    } else if (resource instanceof URL) {
+      urlString = resource.toString();
+    } else {
+      urlString = resource;
     }
-    if (needsRefresh(session.access_token)) {
-      try {
-        session = await refreshSession();
-      } catch (e) {
-        console.error("Session refresh failed:", e);
-        clearSession();
+
+    try {
+      const url = new URL(urlString);
+      // Return pathname without query params
+      return `${url.origin}${url.pathname}`;
+    } catch (error) {
+      // Fallback if URL parsing fails
+      return urlString.split('?')[0];
+    }
+  };
+
+  return new Proxy(fetch.bind(globalThis), {
+    async apply(target, thisArg, argArray) {
+      let session = loadSession(sessionKey);
+      if (!session) {
+        clearSession()
         if (window && 'location' in window) {
           window.location.assign("/auth/login");
         }
+        throw new Error("couldn't retrieve session");
+      }
+
+      if (needsRefresh(session.access_token)) {
+        try {
+          session = await refreshSession();
+        } catch (e) {
+          console.error("Session refresh failed:", e);
+          clearSession();
+          if (window && 'location' in window) {
+            window.location.assign("/auth/login");
+          }
+        }
+      }
+
+      const [resource, config] = argArray;
+
+      // Get the base endpoint
+      const endpoint = getEndpoint(resource);
+
+      // Cancel existing request for this endpoint if it exists except in case of 'shortFilters' endpoint
+      const existingController = inFlightRequests.get(endpoint);
+      if (existingController && !endpoint.includes('shortFilters')) {
+        existingController.abort();
+        inFlightRequests.delete(endpoint);
+      }
+
+      // Create a new AbortController
+      const controller = new AbortController();
+      inFlightRequests.set(endpoint, controller);
+
+      const newConfig = {
+        ...config,
+        signal: controller.signal,
+        headers: {
+          ...config?.headers,
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      };
+
+      try {
+        const response = await target.call(thisArg, resource, newConfig);
+        return response;
+      } catch (error) {
+        // Handle AbortError separately if needed
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          console.log(`Request to ${endpoint} was cancelled`);
+        }
+        throw error;
+      } finally {
+        // Remove the controller from in-flight requests
+        inFlightRequests.delete(endpoint);
       }
     }
-
-    const [resource, config] = argArray;
-    const newConfig = {
-      ...config,
-      headers: {
-        ...config?.headers,
-        'Authorization': `Bearer ${session.access_token}`
-      }
-    };
-
-    return target.call(thisArg, resource, newConfig);
-  }
-})
+  });
+})();
 
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 

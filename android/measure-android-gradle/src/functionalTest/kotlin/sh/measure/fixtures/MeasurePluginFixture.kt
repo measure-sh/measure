@@ -38,10 +38,13 @@ class MeasurePluginFixture(
             withBuildScript {
                 buildscript = BuildscriptBlock(
                     repositories = Repositories(
-                        Repository.MAVEN_CENTRAL, Repository.GOOGLE, Repository.MAVEN_LOCAL
-                    ), dependencies = Dependencies(
+                        Repository.MAVEN_CENTRAL,
+                        Repository.GOOGLE,
+                        Repository.MAVEN_LOCAL,
+                    ),
+                    dependencies = Dependencies(
                         Dependency.androidPlugin(agpVersion.toString()),
-                    )
+                    ),
                 )
             }
         }
@@ -57,7 +60,7 @@ class MeasurePluginFixture(
                 targetSdkVersion = 35,
                 versionCode = 1,
                 versionName = "1.0",
-            )
+            ),
         )
     }
 
@@ -77,7 +80,7 @@ class MeasurePluginFixture(
                     beforeVariants(selector().withBuildType("${variant.buildType}")) {
                     minifyEnabled = ${variant.minifyEnabled}
                 }
-                }"""
+                }""",
         )
     }
 
@@ -90,7 +93,7 @@ class MeasurePluginFixture(
                 plugins.add(Plugins.measurePlugin)
                 android = AndroidBlock.defaultAndroidBlock(name)
                 withVariant(
-                    Variant(buildType = "release", minifyEnabled = minifyEnabled)
+                    Variant(buildType = "release", minifyEnabled = minifyEnabled),
                 )
                 withAndroidManifest(setMeasureApiKey, setMeasureApiUrl)
 
@@ -101,7 +104,7 @@ class MeasurePluginFixture(
                                enabled = $enabled
                             }
                         }
-                    """.trimIndent()
+                    """.trimIndent(),
                 )
             }
         }
@@ -109,7 +112,7 @@ class MeasurePluginFixture(
 
     private fun AndroidSubproject.Builder.withAndroidManifest(
         setApiKey: Boolean,
-        setApiUrl: Boolean
+        setApiUrl: Boolean,
     ) {
         val apiKeyMetaData = if (setApiKey) {
             """
@@ -137,7 +140,7 @@ class MeasurePluginFixture(
                     $apiUrlMetaData
                 </application>
             </manifest>
-            """.trimIndent()
+            """.trimIndent(),
         )
     }
 }

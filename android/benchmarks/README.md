@@ -59,7 +59,6 @@ benchmark:
 
 These are two benchmarks (View and Compose) that measures the time added by Measure to find
 click/scroll targets. This is used to detect any regressions in target finding logic.
-It uses a custom timing metric with name - `GestureCollector.getTarget`.
 
 # Benchmark Comparison
 

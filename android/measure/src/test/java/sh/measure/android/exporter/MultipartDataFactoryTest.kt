@@ -7,10 +7,12 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.mock
 import sh.measure.android.exporter.MultipartDataFactoryImpl.Companion.ATTACHMENT_NAME_PREFIX
 import sh.measure.android.exporter.MultipartDataFactoryImpl.Companion.EVENT_FORM_NAME
+import sh.measure.android.exporter.MultipartDataFactoryImpl.Companion.SPAN_FORM_NAME
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.FileStorage
+import sh.measure.android.utils.iso8601Timestamp
 import java.io.File
 import java.io.InputStream
 
@@ -25,7 +27,7 @@ class MultipartDataFactoryTest {
     @Test
     fun `createFromEventPacket with serializedData returns FormField`() {
         fun EventPacket.expectedSerializedValue(): String {
-            return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$serializedData,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes}"
+            return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$serializedData,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
         }
 
         // Given
@@ -46,8 +48,9 @@ class MultipartDataFactoryTest {
     @Test
     fun `createFromEventPacket with filePath returns FormField`() {
         fun EventPacket.expectedSerializedValue(): String {
-            return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":${getFakeFileContent()},\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes}"
+            return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":${getFakeFileContent()},\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
         }
+
         val eventEntity = TestData.getEventEntity(
             eventId = "event-id",
             filePath = "/path/to/file.json",
@@ -111,6 +114,69 @@ class MultipartDataFactoryTest {
         val result = multipartDataFactory.createFromAttachmentPacket(attachmentPacket)
 
         assertNull(result)
+    }
+
+    @Test
+    fun `createFromSpanPacket returns FormField`() {
+        val startTime: Long = 1000
+        val endTime: Long = 5000
+        val checkpoint = TestData.getCheckpoint()
+        fun expectedSerializedValue(): String {
+            return "{\"name\":\"span-name\",\"trace_id\":\"trace-id\",\"span_id\":\"span-id\",\"parent_id\":\"parent-id\",\"session_id\":\"session-id\",\"start_time\":\"${startTime.iso8601Timestamp()}\",\"end_time\":\"${endTime.iso8601Timestamp()}\",\"duration\":4000,\"status\":1,\"attributes\":{\"key\":\"value\"},\"checkpoints\":[{\"name\":\"${checkpoint.name}\",\"timestamp\":\"${checkpoint.timestamp.iso8601Timestamp()}\"}]}"
+        }
+
+        // Given
+        val attributes = mapOf("key" to "value")
+        val spanEntity = TestData.getSpanEntity(
+            spanId = "span-id",
+            checkpoints = mutableListOf(checkpoint),
+            startTime = startTime,
+            endTime = endTime,
+            duration = endTime - startTime,
+            attributes = attributes,
+        )
+        val spanPacket = TestData.getSpanPacket(spanEntity)
+
+        // When
+        val result = multipartDataFactory.createFromSpanPacket(spanPacket)
+
+        // Then
+        assert(result is MultipartData.FormField)
+        val formField = result as MultipartData.FormField
+        assertEquals(SPAN_FORM_NAME, formField.name)
+        assertEquals(expectedSerializedValue(), formField.value)
+    }
+
+    @Test
+    fun `createFromSpanPacket with null parentId returns FormField`() {
+        val startTime: Long = 1000
+        val endTime: Long = 5000
+        val checkpoint = TestData.getCheckpoint()
+        fun expectedSerializedValue(): String {
+            return "{\"name\":\"span-name\",\"trace_id\":\"trace-id\",\"span_id\":\"span-id\",\"parent_id\":null,\"session_id\":\"session-id\",\"start_time\":\"${startTime.iso8601Timestamp()}\",\"end_time\":\"${endTime.iso8601Timestamp()}\",\"duration\":4000,\"status\":1,\"attributes\":{\"key\":\"value\"},\"checkpoints\":[{\"name\":\"${checkpoint.name}\",\"timestamp\":\"${checkpoint.timestamp.iso8601Timestamp()}\"}]}"
+        }
+
+        // Given
+        val attributes = mapOf("key" to "value")
+        val spanEntity = TestData.getSpanEntity(
+            spanId = "span-id",
+            parentId = null,
+            checkpoints = mutableListOf(checkpoint),
+            startTime = startTime,
+            endTime = endTime,
+            duration = endTime - startTime,
+            attributes = attributes,
+        )
+        val spanPacket = TestData.getSpanPacket(spanEntity)
+
+        // When
+        val result = multipartDataFactory.createFromSpanPacket(spanPacket)
+
+        // Then
+        assert(result is MultipartData.FormField)
+        val formField = result as MultipartData.FormField
+        assertEquals(SPAN_FORM_NAME, formField.name)
+        assertEquals(expectedSerializedValue(), formField.value)
     }
 
     private fun getFakeFileContent(): String {

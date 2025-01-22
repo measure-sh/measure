@@ -1,5 +1,6 @@
 package sh.measure.android.exporter
 
+import kotlinx.serialization.json.Json
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.FileStorage
@@ -28,6 +29,13 @@ internal interface MultipartDataFactory {
      * @return [MultipartData] object or null if the file at the [AttachmentPacket]'s file path
      */
     fun createFromAttachmentPacket(attachmentPacket: AttachmentPacket): MultipartData?
+
+    /**
+     * Creates a [MultipartData] object from a [SpanPacket].
+     *
+     * @param spanPacket the [SpanPacket] to create the [MultipartData] object from.
+     */
+    fun createFromSpanPacket(spanPacket: SpanPacket): MultipartData
 }
 
 internal class MultipartDataFactoryImpl(
@@ -38,6 +46,7 @@ internal class MultipartDataFactoryImpl(
     internal companion object {
         const val ATTACHMENT_NAME_PREFIX = "blob-"
         const val EVENT_FORM_NAME = "event"
+        const val SPAN_FORM_NAME = "span"
     }
 
     override fun createFromEventPacket(eventPacket: EventPacket): MultipartData? {
@@ -84,6 +93,15 @@ internal class MultipartDataFactoryImpl(
         }
     }
 
+    override fun createFromSpanPacket(spanPacket: SpanPacket): MultipartData {
+        return spanPacket.getSerializedData().let {
+            MultipartData.FormField(
+                name = SPAN_FORM_NAME,
+                value = it,
+            )
+        }
+    }
+
     private fun getFileInputStream(filePath: String): InputStream? {
         return fileStorage.getFile(filePath)?.inputStream().also { fileInputStream ->
             if (fileInputStream == null) {
@@ -99,7 +117,7 @@ internal class MultipartDataFactoryImpl(
         if (serializedData.isNullOrEmpty()) {
             return null
         }
-        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$serializedData,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes}"
+        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$serializedData,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
     }
 
     private fun EventPacket.getFromFileData(): String? {
@@ -110,6 +128,10 @@ internal class MultipartDataFactoryImpl(
         if (data.isNullOrEmpty()) {
             return null
         }
-        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes}"
+        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
+    }
+
+    private fun SpanPacket.getSerializedData(): String {
+        return Json.encodeToString(SpanPacket.serializer(), this)
     }
 }

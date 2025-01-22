@@ -7,6 +7,7 @@ import { ExceptionsOverviewApiStatus, ExceptionsType, FiltersApiType, emptyExcep
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters';
 import ExceptionsOverviewPlot from './exceptions_overview_plot';
+import LoadingBar from './loading_bar';
 
 interface ExceptionsOverviewProps {
   exceptionsType: ExceptionsType,
@@ -21,7 +22,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
 
   const [exceptionsOverview, setExceptionsOverview] = useState(emptyExceptionsOverviewResponse);
   const paginationOffset = 10
-  const [paginationRange, setPaginationRange] = useState({ start: 1, end: paginationOffset })
+  const [paginationIndex, setPaginationIndex] = useState(0)
   const [paginationDirection, setPaginationDirection] = useState(PaginationDirection.None)
 
 
@@ -65,18 +66,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
     }
 
     getExceptionsOverview()
-  }, [paginationRange, filters]);
-
-  // Reset pagination range if not in default if any filters change
-  useEffect(() => {
-    // If we reset pagination range even if values haven't change, we will trigger
-    // and unnecessary getExceptionsOverview effect
-    if (paginationRange.start === 1 && paginationRange.end === paginationOffset) {
-      return
-    }
-
-    setPaginationRange({ start: 1, end: paginationOffset })
-  }, [filters]);
+  }, [paginationIndex, filters]);
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -103,6 +93,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         showLocales={true}
         showDeviceManufacturers={true}
         showDeviceNames={true}
+        showUdAttrs={true}
         showFreeText={false}
         onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
       <div className="py-4" />
@@ -112,16 +103,9 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         && exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Error
         && <p className="text-lg font-display">Error fetching list of {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
 
-      {/* Empty state for crash groups fetch */}
-      {filters.ready
-        && exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Success
-        && exceptionsOverview.results === null
-        && <p className="text-lg font-display">It seems there are no {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'} for the current combination of filters. Please change filters to try again</p>}
-
       {/* Main crash groups list UI */}
       {filters.ready
-        && (exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Success || exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading)
-        && exceptionsOverview.results !== null &&
+        && (exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Success || exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading) &&
         <div className="flex flex-col items-center w-full">
           <div className="py-4" />
           <ExceptionsOverviewPlot
@@ -129,17 +113,19 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
             filters={filters} />
           <div className="py-4" />
           <div className='self-end'>
-            <Paginator prevEnabled={exceptionsOverview.meta.previous} nextEnabled={exceptionsOverview.meta.next} displayText={paginationRange.start + ' - ' + paginationRange.end}
+            <Paginator prevEnabled={exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : exceptionsOverview.meta.previous} nextEnabled={exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : exceptionsOverview.meta.next} displayText=''
               onNext={() => {
-                setPaginationRange({ start: paginationRange.start + paginationOffset, end: paginationRange.end + paginationOffset })
+                setPaginationIndex(paginationIndex + 1)
                 setPaginationDirection(PaginationDirection.Forward)
               }}
               onPrev={() => {
-                setPaginationRange({ start: paginationRange.start - paginationOffset, end: paginationRange.end - paginationOffset })
+                setPaginationIndex(paginationIndex - 1)
                 setPaginationDirection(PaginationDirection.Backward)
               }} />
           </div>
-          <div className="py-1" />
+          <div className={`py-1 w-full ${exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? 'visible' : 'invisible'}`}>
+            <LoadingBar />
+          </div>
           <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
             <div className="table-header-group bg-neutral-950">
               <div className="table-row text-white font-display">
@@ -149,10 +135,10 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
               </div>
             </div>
             <div className="table-row-group font-sans">
-              {exceptionsOverview.results.map(({ id, type, message, method_name, file_name, line_number, count, percentage_contribution }) => (
-                <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${filters.app.id}/${id}/${type + "@" + file_name}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
+              {exceptionsOverview.results?.map(({ id, type, message, method_name, file_name, line_number, count, percentage_contribution }) => (
+                <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${filters.app.id}/${id}/${type + (file_name !== "" ? "@" + file_name : "")}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
                   <div className="table-cell p-4">
-                    <p className='truncate'>{file_name + ": " + method_name + "()"}</p>
+                    <p className='truncate'>{(file_name !== "" ? file_name : "unknown_file") + ": " + (method_name !== "" ? method_name : "unknown_method") + "()"}</p>
                     <div className='py-1' />
                     <p className='text-xs truncate text-gray-500'>{type + ":" + message}</p>
                   </div>
@@ -163,6 +149,6 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
             </div>
           </div>
         </div>}
-    </div>
+    </div >
   )
 }

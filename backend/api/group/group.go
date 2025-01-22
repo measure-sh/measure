@@ -3,6 +3,7 @@ package group
 import (
 	"backend/api/chrono"
 	"backend/api/event"
+	"backend/api/filter"
 	"backend/api/server"
 	"context"
 	"math"
@@ -14,6 +15,13 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 )
+
+// IssueGroup interface represents
+// common interface for issue group
+// types like ExceptionGroup & ANRGroup.
+type IssueGroup interface {
+	GetFingerprint() string
+}
 
 type ExceptionGroup struct {
 	ID              uuid.UUID              `json:"id" db:"id"`
@@ -53,6 +61,12 @@ type ANRGroup struct {
 
 func (e ExceptionGroup) GetID() uuid.UUID {
 	return e.ID
+}
+
+// GetFingerprint provides the exception's
+// fingerprint.
+func (e ExceptionGroup) GetFingerprint() string {
+	return e.Fingerprint
 }
 
 // GetDisplayTitle provides a user friendly display
@@ -128,6 +142,12 @@ func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 
 func (a ANRGroup) GetID() uuid.UUID {
 	return a.ID
+}
+
+// GetFingerprint provides the ANR's
+// fingerprint.
+func (a ANRGroup) GetFingerprint() string {
+	return a.Fingerprint
 }
 
 // GetDisplayTitle provides a user friendly display
@@ -254,12 +274,13 @@ func SortANRGroups(groups []ANRGroup) {
 }
 
 // GetExceptionGroupsFromExceptionIds gets exception groups
-// matched by exception ids.
-func GetExceptionGroupsFromExceptionIds(ctx context.Context, eventIds []uuid.UUID) (exceptionGroups []ExceptionGroup, err error) {
+// matched by app filter(s) and exception event ids.
+func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (exceptionGroups []ExceptionGroup, err error) {
 	// Get list of fingerprints and event IDs
 	eventDataStmt := sqlf.From(`default.events`).
 		Select(`id, exception.fingerprint`).
-		Where(`id in (?)`, eventIds)
+		Where("app_id = toUUID(?)", af.AppID).
+		Where("id in ?", eventIds)
 
 	defer eventDataStmt.Close()
 
@@ -330,13 +351,13 @@ func GetExceptionGroupsFromExceptionIds(ctx context.Context, eventIds []uuid.UUI
 }
 
 // GetANRGroupsFromANRIds gets ANR groups
-// matched by ANR ids.
-func GetANRGroupsFromANRIds(ctx context.Context, eventIds []uuid.UUID) (anrGroups []ANRGroup, err error) {
+// matched by app filter(s) and ANR event ids.
+func GetANRGroupsFromANRIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (anrGroups []ANRGroup, err error) {
 	// Get list of fingerprints and event IDs
 	eventDataStmt := sqlf.From(`default.events`).
 		Select(`id, anr.fingerprint`).
-		Where(`id in (?)`, eventIds).
-		Where(`anr.fingerprint != ''`)
+		Where("app_id = toUUID(?)", af.AppID).
+		Where(`id in ?`, eventIds)
 
 	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
 	if err != nil {

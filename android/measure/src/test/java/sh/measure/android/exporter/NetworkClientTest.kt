@@ -52,6 +52,7 @@ class NetworkClientTest {
     @Test
     fun `execute sends request with correct URL and headers`() {
         val eventPackets = listOf<EventPacket>()
+        val spanPackets = listOf<SpanPacket>()
         val attachmentPackets = listOf<AttachmentPacket>()
         val multipartData = listOf<MultipartData>()
 
@@ -61,7 +62,7 @@ class NetworkClientTest {
             HttpResponse.Success(),
         )
 
-        networkClient.execute("batch123", eventPackets, attachmentPackets)
+        networkClient.execute("batch123", eventPackets, attachmentPackets, spanPackets)
 
         verify(httpClient).sendMultipartRequest(
             eq("http://localhost:8080/events"),
@@ -76,8 +77,10 @@ class NetworkClientTest {
     @Test
     fun `execute prepares multipart data correctly`() {
         val eventPacket = mock<EventPacket>()
+        val spanPacket = mock<SpanPacket>()
         val attachmentPacket = mock<AttachmentPacket>()
         val eventMultipartData = mock<MultipartData>()
+        val spanMultipartData = mock<MultipartData>()
         val attachmentMultipartData = mock<MultipartData>()
 
         `when`(multipartDataFactory.createFromEventPacket(eventPacket)).thenReturn(
@@ -86,17 +89,25 @@ class NetworkClientTest {
         `when`(multipartDataFactory.createFromAttachmentPacket(attachmentPacket)).thenReturn(
             attachmentMultipartData,
         )
+        `when`(multipartDataFactory.createFromSpanPacket(spanPacket)).thenReturn(
+            spanMultipartData,
+        )
         `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
             HttpResponse.Success(),
         )
 
-        networkClient.execute("batch123", listOf(eventPacket), listOf(attachmentPacket))
+        networkClient.execute(
+            "batch123",
+            listOf(eventPacket),
+            listOf(attachmentPacket),
+            listOf(spanPacket),
+        )
 
         verify(httpClient).sendMultipartRequest(
             any(),
             any(),
             any(),
-            eq(listOf(eventMultipartData, attachmentMultipartData)),
+            eq(listOf(eventMultipartData, attachmentMultipartData, spanMultipartData)),
         )
     }
 
@@ -107,7 +118,7 @@ class NetworkClientTest {
             successResponse,
         )
 
-        val result = networkClient.execute("batch123", emptyList(), emptyList())
+        val result = networkClient.execute("batch123", emptyList(), emptyList(), emptyList())
 
         assertEquals(successResponse, result)
     }
@@ -119,7 +130,7 @@ class NetworkClientTest {
             rateLimitResponse,
         )
 
-        val result = networkClient.execute("batch123", emptyList(), emptyList())
+        val result = networkClient.execute("batch123", emptyList(), emptyList(), emptyList())
 
         assertEquals(rateLimitResponse, result)
     }
@@ -131,7 +142,7 @@ class NetworkClientTest {
             clientErrorResponse,
         )
 
-        val result = networkClient.execute("batch123", emptyList(), emptyList())
+        val result = networkClient.execute("batch123", emptyList(), emptyList(), emptyList())
 
         assertEquals(clientErrorResponse, result)
     }
@@ -143,7 +154,7 @@ class NetworkClientTest {
             serverErrorResponse,
         )
 
-        val result = networkClient.execute("batch123", emptyList(), emptyList())
+        val result = networkClient.execute("batch123", emptyList(), emptyList(), emptyList())
 
         assertEquals(serverErrorResponse, result)
     }
@@ -155,7 +166,7 @@ class NetworkClientTest {
             exception,
         )
 
-        val result = networkClient.execute("batch123", emptyList(), emptyList())
+        val result = networkClient.execute("batch123", emptyList(), emptyList(), emptyList())
 
         assert(result is HttpResponse.Error.UnknownError)
         assertEquals(exception, (result as HttpResponse.Error.UnknownError).exception)
@@ -170,7 +181,8 @@ class NetworkClientTest {
             multipartDataFactory = multipartDataFactory,
         )
 
-        val result = uninitializedNetworkClient.execute("batch123", emptyList(), emptyList())
+        val result =
+            uninitializedNetworkClient.execute("batch123", emptyList(), emptyList(), emptyList())
         assertTrue(result is HttpResponse.Error.UnknownError)
     }
 
@@ -178,13 +190,14 @@ class NetworkClientTest {
     fun `execute with trailing slash in base URL works correctly`() {
         networkClient.init(baseUrl = "http://localhost:8080/", apiKey = "secret")
         val eventPackets = listOf<EventPacket>()
+        val spanPackets = listOf<SpanPacket>()
         val attachmentPackets = listOf<AttachmentPacket>()
 
         `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
             HttpResponse.Success(),
         )
 
-        networkClient.execute("batch123", eventPackets, attachmentPackets)
+        networkClient.execute("batch123", eventPackets, attachmentPackets, spanPackets)
 
         verify(httpClient).sendMultipartRequest(
             eq("http://localhost:8080/events"),

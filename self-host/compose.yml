@@ -44,10 +44,6 @@ services:
     volumes:
       - ../frontend/dashboard:/app
       - ../frontend/dashboard/public:/app/public
-    depends_on:
-      api:
-        condition: service_healthy
-        restart: false
 
   api:
     build:
@@ -105,7 +101,7 @@ services:
       mc:
         condition: service_completed_successfully
         required: false
-  
+
   cleanup:
     build:
       context: ../backend/cleanup
@@ -275,7 +271,7 @@ services:
 
   postgres:
     image: postgres:16.3-alpine
-    restart: always
+    restart: unless-stopped
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -291,7 +287,7 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   clickhouse:
-    image: clickhouse/clickhouse-server:24
+    image: clickhouse/clickhouse-server:24.10-alpine
     environment:
       - CLICKHOUSE_USER=${CLICKHOUSE_USER}
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
@@ -308,6 +304,9 @@ services:
     volumes:
       - clickhouse-volume:/var/lib/clickhouse
       - clickhouse-volume:/var/log/clickhouse-server
+      - type: bind
+        source: ./clickhouse/config/config.xml
+        target: /etc/clickhouse-server/config.d/config.xml
 
 volumes:
   clickhouse-volume:

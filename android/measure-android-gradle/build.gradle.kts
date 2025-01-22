@@ -1,3 +1,4 @@
+import com.diffplug.gradle.spotless.SpotlessExtension
 import com.vanniktech.maven.publish.GradlePublishPlugin
 import com.vanniktech.maven.publish.SonatypeHost
 
@@ -37,7 +38,7 @@ mavenPublishing {
     coordinates(group as String, artifactId, version as String)
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
     configure(
-        GradlePublishPlugin()
+        GradlePublishPlugin(),
     )
 
     pom {
@@ -68,6 +69,47 @@ mavenPublishing {
 
 kotlin {
     jvmToolchain(17)
+}
+
+extensions.configure<SpotlessExtension>("spotless") {
+    plugins.withId("org.jetbrains.kotlin.jvm") {
+        configureSpotlessKotlin(this@configure)
+    }
+    plugins.withId("org.jetbrains.kotlin.android") {
+        configureSpotlessKotlin(this@configure)
+    }
+    kotlinGradle {
+        ktlint()
+    }
+    format("misc") {
+        target(
+            ".gitignore",
+            ".gitattributes",
+            ".gitconfig",
+            ".editorconfig",
+            "*.md",
+            "src/**/*.md",
+            "docs/**/*.md",
+            "src/**/*.properties",
+        )
+        indentWithSpaces()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+fun configureSpotlessKotlin(spotlessExtension: SpotlessExtension) {
+    spotlessExtension.kotlin {
+        ktlint().apply {
+            editorConfigOverride(
+                mapOf(
+                    "max_line_length" to 2147483647,
+                    "ktlint_function_naming_ignore_when_annotated_with" to "Composable",
+                ),
+            )
+        }
+        target("src/**/*.kt")
+    }
 }
 
 dependencies {

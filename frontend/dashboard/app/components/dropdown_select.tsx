@@ -23,6 +23,7 @@ interface DropdownSelectProps {
 const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, initialSelected, onChangeSelected }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState(initialSelected);
+  const [searchText, setSearchText] = useState('');
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -61,6 +62,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
+    setSearchText('')
   };
 
   const selectSingleItem = (item: string | AppVersion | OsVersion) => {
@@ -70,6 +72,10 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
 
   const selectAll = () => {
     setSelected(items)
+  };
+
+  const clearAll = () => {
+    setSelected([])
   };
 
   const selectLatestAppVersion = () => {
@@ -85,10 +91,6 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
   const toggleCheckboxStringItem = (item: string) => {
     let curSelected = selected as string[]
     if (curSelected.includes(item)) {
-      // If only one item is selected, do nothing
-      if (curSelected.length === 1) {
-        return
-      }
       setSelected(curSelected.filter(a => a != item))
     } else {
       setSelected([item, ...curSelected])
@@ -104,10 +106,6 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
   const toggleCheckboxOsVersionItem = (item: OsVersion) => {
     let curSelected = selected as OsVersion[]
     if (isOsVersionSelected(item)) {
-      // If only one item is selected, do nothing
-      if (curSelected.length === 1) {
-        return
-      }
       setSelected(curSelected.filter(a => a != item))
     } else {
       setSelected([item, ...curSelected])
@@ -139,11 +137,12 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
 
   const buttonStyle = "block px-2 py-2 w-full truncate text-white bg-neutral-950 hover:text-black font-display text-left hover:bg-yellow-200 active:bg-yellow-300 outline-none focus:bg-yellow-200"
   const groupSelectButtonStyle = "text-white text-xs font-display rounded-md border border-white p-1 bg-neutral-950 hover:text-black hover:bg-yellow-200 hover:border-black focus-visible:bg-yellow-200 focus-visible:text-black focus-visible:border-black active:bg-yellow-300 outline-none"
-  const checkboxContainerStyle = "px-2 py-2 bg-neutral-950 truncate text-white hover:text-black hover:bg-yellow-200 font-display text-left"
-  const checkboxInputStyle = "appearance-none border-white rounded-sm font-display bg-neutral-950 checked:bg-neutral-950 checked:hover:bg-neutral-950 checked:focus:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
+  const checkboxContainerStyle = "px-2 py-2 bg-neutral-950 truncate text-white font-display text-left outline-none hover:text-black hover:bg-yellow-200 focus:text-black focus:bg-yellow-200 active:bg-yellow-300"
+  const checkboxInputStyle = "appearance-none pointer-events-none border-white rounded-sm font-display bg-neutral-950 checked:bg-neutral-950 checked:hover:bg-neutral-950 checked:focus:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
+  const searchInputStyle = "w-full bg-neutral-950 text-white text-sm border border-white rounded-md py-2 px-4 font-sans placeholder:text-gray-400 focus:outline-none focus:border-yellow-300 focus:ring-1 focus:ring-yellow-300"
 
   return (
-    <div className="relative inline-block text-left" ref={dropdownRef} >
+    <div className="relative inline-block text-left select-none" ref={dropdownRef} >
       <div>
         <button
           type="button"
@@ -158,44 +157,100 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
       </div>
 
       {isOpen && (
-        <div className="z-50 origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
+        <div className="z-50 origin-top-right absolute left-0 mt-2 w-fit min-w-48 max-h-96 overflow-auto rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
           <div
             role="menu"
             aria-orientation="vertical"
             aria-labelledby="options-menu"
           >
-            {type === DropdownSelectType.SingleString && items.map((item) => (
-              <button
-                key={item as string}
-                onClick={() => selectSingleItem(item as string)}
-                className={buttonStyle}
-                role="menuitem"
-              >
-                {item as string}
-              </button>
-            ))}
-            {type === DropdownSelectType.SingleAppVersion && items.map((item) => (
-              <button
-                key={(item as AppVersion).displayName}
-                onClick={() => selectSingleItem(item as AppVersion)}
-                className={buttonStyle}
-                role="menuitem"
-              >
-                {(item as AppVersion).displayName}
-              </button>
-            ))}
-            {type === DropdownSelectType.SingleOsVersion && items.map((item) => (
-              <button
-                key={(item as OsVersion).displayName}
-                onClick={() => selectSingleItem(item as OsVersion)}
-                className={buttonStyle}
-                role="menuitem"
-              >
-                {(item as OsVersion).displayName}
-              </button>
-            ))}
+            {type === DropdownSelectType.SingleString &&
+              <div>
+                {(items as string[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
+                  <input
+                    type="text"
+                    id="single-string-search"
+                    placeholder='Search...'
+                    className={searchInputStyle}
+                    onChange={(e) => {
+                      setSearchText(e.target.value)
+                    }}
+                  />
+                </div>}
+                {items.filter((item) => (item as string).toLowerCase().includes(searchText.toLowerCase())).map((item) => (
+                  <button
+                    key={item as string}
+                    onClick={() => selectSingleItem(item as string)}
+                    className={buttonStyle}
+                    role="menuitem"
+                  >
+                    {item as string}
+                  </button>
+                ))}
+              </div>
+            }
+            {type === DropdownSelectType.SingleAppVersion &&
+              <div>
+                {(items as AppVersion[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
+                  <input
+                    type="text"
+                    id="single-app-version-search"
+                    placeholder='Search...'
+                    className={searchInputStyle}
+                    onChange={(e) => {
+                      setSearchText(e.target.value)
+                    }}
+                  />
+                </div>}
+                {items.filter((item) => (item as AppVersion).displayName.toLowerCase().includes(searchText.toLowerCase())).map((item) => (
+                  <button
+                    key={(item as AppVersion).displayName}
+                    onClick={() => selectSingleItem(item as AppVersion)}
+                    className={buttonStyle}
+                    role="menuitem"
+                  >
+                    {(item as AppVersion).displayName}
+                  </button>
+                ))}
+              </div>
+            }
+            {type === DropdownSelectType.SingleOsVersion &&
+              <div>
+                {(items as OsVersion[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
+                  <input
+                    type="text"
+                    id="single-os-version-search"
+                    placeholder='Search...'
+                    className={searchInputStyle}
+                    onChange={(e) => {
+                      setSearchText(e.target.value)
+                    }}
+                  />
+                </div>}
+                {items.filter((item) => (item as OsVersion).displayName.toLowerCase().includes(searchText.toLowerCase())).map((item) => (
+                  <button
+                    key={(item as OsVersion).displayName}
+                    onClick={() => selectSingleItem(item as OsVersion)}
+                    className={buttonStyle}
+                    role="menuitem"
+                  >
+                    {(item as OsVersion).displayName}
+                  </button>
+                ))}
+              </div>
+            }
             {type === DropdownSelectType.MultiString &&
               <div>
+                {(items as string[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
+                  <input
+                    type="text"
+                    id="multi-string-search"
+                    placeholder='Search...'
+                    className={searchInputStyle}
+                    onChange={(e) => {
+                      setSearchText(e.target.value)
+                    }}
+                  />
+                </div>}
                 {(items as string[]).length > 1 && <div className='flex flex-row w-full p-2 bg-neutral-950'>
                   <button
                     onClick={() => selectAll()}
@@ -203,15 +258,38 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                   >
                     All
                   </button>
+                  <div className="px-1" />
+                  <button
+                    onClick={() => clearAll()}
+                    className={groupSelectButtonStyle}
+                  >
+                    Clear
+                  </button>
                 </div>}
-                {items.map((item) => (
-                  <div key={item as string} className={checkboxContainerStyle} role="menuitem">
+                {items.filter((item) => (item as string).toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item) => (
+                  <div
+                    key={item as string}
+                    className={checkboxContainerStyle}
+                    role="menuitem"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      toggleCheckboxStringItem(item as string);
+                      (e.currentTarget as HTMLElement).blur()
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        toggleCheckboxStringItem(item as string)
+                      }
+                    }}
+                  >
                     <input
                       type="checkbox"
                       className={checkboxInputStyle}
                       value={item as string}
                       checked={(selected as string[]).includes(item as string)}
-                      onChange={() => { toggleCheckboxStringItem(item as string) }}
+                      readOnly
+                      tabIndex={-1}
                     />
                     <span className="ml-2">{item as string}</span>
                   </div>
@@ -220,6 +298,17 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
             }
             {type === DropdownSelectType.MultiOsVersion &&
               <div>
+                {(items as OsVersion[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
+                  <input
+                    type="text"
+                    id="multi-os-version-search"
+                    placeholder='Search...'
+                    className={searchInputStyle}
+                    onChange={(e) => {
+                      setSearchText(e.target.value)
+                    }}
+                  />
+                </div>}
                 {(items as OsVersion[]).length > 1 && <div className='flex flex-row w-full p-2 bg-neutral-950'>
                   <button
                     onClick={() => selectAll()}
@@ -227,15 +316,38 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                   >
                     All
                   </button>
+                  <div className="px-1" />
+                  <button
+                    onClick={() => clearAll()}
+                    className={groupSelectButtonStyle}
+                  >
+                    Clear
+                  </button>
                 </div>}
-                {items.map((item) => (
-                  <div key={item as string} className={checkboxContainerStyle} role="menuitem">
+                {items.filter((item) => (item as OsVersion).displayName.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item, idx) => (
+                  <div
+                    key={`${idx}-${item as string}`}
+                    className={checkboxContainerStyle}
+                    role="menuitem"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      toggleCheckboxOsVersionItem(item as OsVersion);
+                      (e.currentTarget as HTMLElement).blur()
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        toggleCheckboxOsVersionItem(item as OsVersion)
+                      }
+                    }}
+                  >
                     <input
                       type="checkbox"
                       className={checkboxInputStyle}
                       value={(item as OsVersion).displayName}
                       checked={isOsVersionSelected(item as OsVersion)}
-                      onChange={() => { toggleCheckboxOsVersionItem(item as OsVersion) }}
+                      readOnly
+                      tabIndex={-1}
                     />
                     <span className="ml-2">{(item as OsVersion).displayName}</span>
                   </div>
@@ -244,6 +356,17 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
             }
             {type === DropdownSelectType.MultiAppVersion &&
               <div>
+                {(items as AppVersion[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
+                  <input
+                    type="text"
+                    id="multi-app-version-search"
+                    placeholder='Search...'
+                    className={searchInputStyle}
+                    onChange={(e) => {
+                      setSearchText(e.target.value)
+                    }}
+                  />
+                </div>}
                 {(items as AppVersion[]).length > 1 && <div className='flex flex-row w-full p-2 bg-neutral-950'>
                   <button
                     onClick={() => selectAll()}
@@ -259,16 +382,32 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                     Latest
                   </button>
                 </div>}
-                {items.map((item) => (
-                  <div key={(item as AppVersion).displayName} className={checkboxContainerStyle} role="menuitem">
+                {items.filter((item) => (item as AppVersion).displayName.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item) => (
+                  <div
+                    key={(item as AppVersion).displayName}
+                    className={checkboxContainerStyle}
+                    role="menuitem"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      toggleCheckboxAppVersionItem(item as AppVersion);
+                      (e.currentTarget as HTMLElement).blur()
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        toggleCheckboxAppVersionItem(item as AppVersion)
+                      }
+                    }}
+                  >
                     <input
                       type="checkbox"
                       className={checkboxInputStyle}
                       value={(item as AppVersion).displayName}
                       checked={isAppVersionSelected(item as AppVersion)}
-                      onChange={() => { toggleCheckboxAppVersionItem(item as AppVersion) }}
+                      readOnly
+                      tabIndex={-1}
                     />
-                    <span className="ml-2">{(item as AppVersion).displayName}</span>
+                    <span className="ml-2">{(item as OsVersion).displayName}</span>
                   </div>
                 ))}
               </div>}

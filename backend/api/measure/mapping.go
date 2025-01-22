@@ -13,10 +13,9 @@ import (
 	"backend/api/cipher"
 	"backend/api/server"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
@@ -170,39 +169,74 @@ func (bm *BuildMapping) checksum() error {
 	return nil
 }
 
-func (bm *BuildMapping) upload() (*s3manager.UploadOutput, error) {
+func (bm *BuildMapping) upload(ctx context.Context) (location *string, err error) {
 	file, err := bm.File.Open()
 	if err != nil {
 		return nil, err
 	}
 
 	config := server.Server.Config
-	awsConfig := &aws.Config{
-		Region:      aws.String(config.SymbolsBucketRegion),
-		Credentials: credentials.NewStaticCredentials(config.SymbolsAccessKey, config.SymbolsSecretAccessKey, ""),
+	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
+		return aws.Credentials{
+			AccessKeyID:     config.SymbolsAccessKey,
+			SecretAccessKey: config.SymbolsSecretAccessKey,
+		}, nil
 	}
 
-	// if a custom endpoint was set, then most likely,
-	// we are in local development mode and should force
-	// path style instead of S3 virtual path styles.
-	if config.AWSEndpoint != "" {
-		awsConfig.S3ForcePathStyle = aws.Bool(true)
-		awsConfig.Endpoint = aws.String(config.AWSEndpoint)
+	awsConfig := &aws.Config{
+		Region:      config.SymbolsBucketRegion,
+		Credentials: credentialsProvider,
 	}
+
+	client := s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
+		endpoint := config.AWSEndpoint
+		if endpoint != "" {
+			o.BaseEndpoint = aws.String(endpoint)
+			o.UsePathStyle = *aws.Bool(true)
+		}
+	})
 
 	if bm.Key == "" {
 		bm.Key = bm.GetKey()
 	}
 
-	metadata := map[string]*string{
-		"original_file_name": aws.String(bm.File.Filename),
-		"app_id":             aws.String(bm.AppID.String()),
-		"version_name":       aws.String(bm.VersionName),
-		"version_code":       aws.String(bm.VersionCode),
-		"mapping_type":       aws.String(bm.MappingType),
+	metadata := map[string]string{
+		"original_file_name": bm.File.Filename,
+		"app_id":             bm.AppID.String(),
+		"version_name":       bm.VersionName,
+		"version_code":       bm.VersionCode,
+		"mapping_type":       bm.MappingType,
 	}
 
-	return uploadToStorage(awsConfig, config.SymbolsBucket, bm.Key, file, metadata)
+	putObjectInput := &s3.PutObjectInput{
+		Bucket:   aws.String(config.SymbolsBucket),
+		Key:      aws.String(bm.Key),
+		Body:     file,
+		Metadata: metadata,
+	}
+
+	loc := ""
+
+	// for now, we construct the location manually
+	// implement a better solution later using
+	// EndpointResolverV2 with custom resolvers
+	// for non-AWS clouds like GCS
+	if config.AWSEndpoint != "" {
+		loc = fmt.Sprintf("%s/%s/%s", config.AWSEndpoint, config.SymbolsBucket, bm.Key)
+	} else {
+		loc = fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", config.SymbolsBucket, config.SymbolsBucketRegion, bm.Key)
+	}
+
+	location = &loc
+
+	// ignore the putObjectOutput, don't need
+	// it for now
+	_, err = client.PutObject(ctx, putObjectInput)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 type BuildSize struct {
@@ -211,7 +245,7 @@ type BuildSize struct {
 	VersionName string `form:"version_name" binding:"required"`
 	VersionCode string `form:"version_code" binding:"required"`
 	BuildSize   int    `form:"build_size" binding:"required_with=BuildType,gt=100"`
-	BuildType   string `form:"build_type" binding:"required_with=BuildSize,oneof=aab apk"`
+	BuildType   string `form:"build_type" binding:"required_with=BuildSize,oneof=aab apk ipa"`
 	CreatedAt   chrono.ISOTime
 }
 
@@ -317,8 +351,8 @@ func PutBuild(c *gin.Context) {
 		// start span to trace mapping file upload
 		mappingFileUploadTracer := otel.Tracer("mapping-file-upload-tracer")
 		_, mappingFileUploadSpan := mappingFileUploadTracer.Start(ctx, "mapping-file-upload")
-		result, err := bm.upload()
-		if err != nil {
+		location, err := bm.upload(ctx)
+		if err != nil || location == nil {
 			fmt.Printf("failed to upload mapping file, key: %s with error, %v\n", bm.Key, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, bm.File.Filename),
@@ -328,7 +362,7 @@ func PutBuild(c *gin.Context) {
 		}
 		mappingFileUploadSpan.End()
 
-		bm.Location = result.Location
+		bm.Location = *location
 	}
 
 	if existingId != nil {
@@ -370,17 +404,5 @@ func PutBuild(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": `uploaded build info`,
-	})
-}
-
-func uploadToStorage(awsConfig *aws.Config, bucket, key string, file io.Reader, metadata map[string]*string) (*s3manager.UploadOutput, error) {
-	awsSession := session.Must(session.NewSession(awsConfig))
-	uploader := s3manager.NewUploader(awsSession)
-
-	return uploader.Upload(&s3manager.UploadInput{
-		Bucket:   aws.String(bucket),
-		Key:      aws.String(key),
-		Body:     file,
-		Metadata: metadata,
 	})
 }

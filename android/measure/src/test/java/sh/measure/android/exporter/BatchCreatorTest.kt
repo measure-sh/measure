@@ -9,9 +9,10 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
-import sh.measure.android.fakes.FakeTimeProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.storage.Database
+import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.utils.TestClock
 
 class BatchCreatorTest {
     private val database = mock<Database>()
@@ -21,7 +22,7 @@ class BatchCreatorTest {
         idProvider = FakeIdProvider(),
         database = database,
         configProvider = config,
-        timeProvider = FakeTimeProvider(),
+        timeProvider = AndroidTimeProvider(TestClock.create()),
     )
 
     @Test
@@ -53,7 +54,7 @@ class BatchCreatorTest {
     }
 
     @Test
-    fun `returns null if no events to batch`() {
+    fun `returns null if no events and spans to batch`() {
         // Given
         `when`(
             database.getUnBatchedEventsWithAttachmentSize(
@@ -64,6 +65,14 @@ class BatchCreatorTest {
             ),
         ).thenReturn(
             LinkedHashMap(),
+        )
+        `when`(
+            database.getUnBatchedSpans(
+                spanCount = any(),
+                ascending = eq(true),
+            ),
+        ).thenReturn(
+            listOf(),
         )
 
         // When

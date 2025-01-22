@@ -15,11 +15,12 @@ class NavigationTransformer : AsmBytecodeTransformer() {
     // Tested from 2.4.0, 2.3.5 does not have navigation-compose package
     override val minVersion = SemVer(2, 4, 0)
 
-    // Tested up-to 2.8.0-beta06, 2.8.0-beta07 requires compile SDK 35
-    override val maxVersion = SemVer(2, 8, 0, "-beta06")
+    // Tested up-to 2.9.0-alpha01
+    override val maxVersion = SemVer(2, 9, 0)
 }
 
-abstract class NavigationVisitorFactory : AsmClassVisitorFactory<TransformerParameters>,
+abstract class NavigationVisitorFactory :
+    AsmClassVisitorFactory<TransformerParameters>,
     VersionAwareVisitor<TransformerParameters> {
     override fun isVersionCompatible(
         versions: Map<ModuleInfo, SemVer>,
@@ -27,7 +28,10 @@ abstract class NavigationVisitorFactory : AsmClassVisitorFactory<TransformerPara
         maxVersion: SemVer,
     ): Boolean {
         return versions.isVersionCompatible(
-            "androidx.navigation", "navigation-compose", minVersion, maxVersion
+            "androidx.navigation",
+            "navigation-compose",
+            minVersion,
+            maxVersion,
         )
     }
 
@@ -52,7 +56,9 @@ class NavigationClassVisitor(classVisitor: ClassVisitor) :
         val methodVisitor = super.visitMethod(access, name, descriptor, signature, exceptions)
         return if (name == "rememberNavController") {
             NavigationMethodVisitor(Opcodes.ASM9, methodVisitor, access, name, descriptor)
-        } else methodVisitor
+        } else {
+            methodVisitor
+        }
     }
 }
 
@@ -82,9 +88,17 @@ class NavigationClassVisitor(classVisitor: ClassVisitor) :
  * ```
  */
 class NavigationMethodVisitor(
-    apiVersion: Int, originalVisitor: MethodVisitor, access: Int, name: String, descriptor: String,
+    apiVersion: Int,
+    originalVisitor: MethodVisitor,
+    access: Int,
+    name: String,
+    descriptor: String,
 ) : AdviceAdapter(
-    apiVersion, originalVisitor, access, name, descriptor
+    apiVersion,
+    originalVisitor,
+    access,
+    name,
+    descriptor,
 ) {
     override fun onMethodExit(opcode: Int) {
         // loadArg(0) -> not needed as NavHostController is already on the stack.
@@ -96,7 +110,7 @@ class NavigationMethodVisitor(
             "sh/measure/android/navigation/ComposeNavigationCollectorKt",
             "withMeasureNavigationListener",
             "(Landroidx/navigation/NavHostController;Landroidx/compose/runtime/Composer;I)Landroidx/navigation/NavHostController;",
-            false
+            false,
         )
         super.onMethodExit(opcode)
     }

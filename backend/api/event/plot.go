@@ -8,11 +8,3 @@ type IssueInstance struct {
 	Instances         *uint64  `json:"instances"`
 	IssueFreeSessions *float64 `json:"issue_free_sessions"`
 }
-
-// SessionInstance represents an entity
-// for plotting session instances.
-type SessionInstance struct {
-	DateTime  string  `json:"datetime"`
-	Version   string  `json:"version"`
-	Instances *uint64 `json:"instances"`
-}

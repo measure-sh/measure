@@ -1,7 +1,9 @@
 package event
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"io"
 	"mime"
 	"net/url"
@@ -11,16 +13,13 @@ import (
 
 	"backend/api/server"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 )
 
 // attachmentTypes is a list of all valid attachment types.
-var attachmentTypes = []string{"screenshot", "android_method_trace"}
+var attachmentTypes = []string{"screenshot", "android_method_trace", "layout_snapshot"}
 
 type Attachment struct {
 	ID       uuid.UUID `json:"id"`
@@ -48,21 +47,29 @@ func (a Attachment) Validate() error {
 	return nil
 }
 
-// Upload uploads raw file bytes to an S3 compatible storage system.
-func (a *Attachment) Upload() (output *s3manager.UploadOutput, err error) {
+// Upload uploads raw file bytes to an S3 compatible storage system
+// and returns the uploaded file's remote location.
+func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 	config := server.Server.Config
-	awsConfig := &aws.Config{
-		Region:      aws.String(config.AttachmentsBucketRegion),
-		Credentials: credentials.NewStaticCredentials(config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, ""),
+	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
+		return aws.Credentials{
+			AccessKeyID:     config.AttachmentsAccessKey,
+			SecretAccessKey: config.AttachmentsSecretAccessKey,
+		}, nil
 	}
 
-	// if a custom endpoint was set, then most likely,
-	// we are in local development mode and should force
-	// path style instead of S3 virtual path styles.
-	if config.AWSEndpoint != "" {
-		awsConfig.S3ForcePathStyle = aws.Bool(true)
-		awsConfig.Endpoint = aws.String(config.AWSEndpoint)
+	awsConfig := &aws.Config{
+		Region:      config.AttachmentsBucketRegion,
+		Credentials: credentialsProvider,
 	}
+
+	client := s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
+		endpoint := config.AWSEndpoint
+		if endpoint != "" {
+			o.BaseEndpoint = aws.String(endpoint)
+			o.UsePathStyle = *aws.Bool(true)
+		}
+	})
 
 	// set mime type from extension
 	ext := filepath.Ext(a.Key)
@@ -71,62 +78,80 @@ func (a *Attachment) Upload() (output *s3manager.UploadOutput, err error) {
 		contentType = mime.TypeByExtension(ext)
 	}
 
-	awsSession := session.Must(session.NewSession(awsConfig))
-	uploader := s3manager.NewUploader(awsSession)
-	output, err = uploader.Upload(&s3manager.UploadInput{
+	putObjectInput := &s3.PutObjectInput{
 		Bucket: aws.String(config.AttachmentsBucket),
 		Key:    aws.String(a.Key),
 		Body:   a.Reader,
-		Metadata: map[string]*string{
-			"original_file_name": aws.String(a.Name),
+		Metadata: map[string]string{
+			"original_file_name": a.Name,
 		},
 		ContentType: aws.String(contentType),
-	})
+	}
+
+	// for now, we construct the location manually
+	// implement a better solution later using
+	// EndpointResolverV2 with custom resolvers
+	// for non-AWS clouds like GCS
+	if config.AWSEndpoint != "" {
+		location = fmt.Sprintf("%s/%s/%s", config.AWSEndpoint, config.AttachmentsBucket, a.Key)
+	} else {
+		location = fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", config.AttachmentsBucket, config.AttachmentsBucketRegion, a.Key)
+	}
+
+	// ignore the putObjectOutput, don't need
+	// it for now
+	_, err = client.PutObject(ctx, putObjectInput)
+	if err != nil {
+		return
+	}
 
 	return
 }
 
 // PreSignURL generates a S3-compatible
 // pre-signed URL for the attachment.
-func (a *Attachment) PreSignURL() (err error) {
+func (a *Attachment) PreSignURL(ctx context.Context) (err error) {
 	config := server.Server.Config
-	awsConfig := &aws.Config{
-		Region:      aws.String(config.AttachmentsBucketRegion),
-		Credentials: credentials.NewStaticCredentials(config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, ""),
-	}
-
 	shouldProxy := true
-
 	if config.AttachmentOrigin != "" {
 		shouldProxy = false
 	}
 
-	// if a custom endpoint was set, then most likely,
-	// external object store is not native S3 like,
-	// hence should force path style instead of S3 virtual
-	// path styles.
-	if config.AWSEndpoint != "" {
-		awsConfig.S3ForcePathStyle = aws.Bool(true)
-
-		if shouldProxy {
-			awsConfig.Endpoint = aws.String(config.AWSEndpoint)
-		} else {
-			awsConfig.Endpoint = aws.String(config.AttachmentOrigin)
-		}
+	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
+		return aws.Credentials{
+			AccessKeyID:     config.AttachmentsAccessKey,
+			SecretAccessKey: config.AttachmentsSecretAccessKey,
+		}, nil
 	}
 
-	awsSession := session.Must(session.NewSession(awsConfig))
+	awsConfig := &aws.Config{
+		Region:      config.AttachmentsBucketRegion,
+		Credentials: credentialsProvider,
+	}
 
-	svc := s3.New(awsSession)
-	req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
-		Bucket: aws.String(config.AttachmentsBucket),
-		Key:    aws.String(a.Key),
+	client := s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
+		endpoint := config.AWSEndpoint
+		if endpoint != "" {
+			o.BaseEndpoint = aws.String(endpoint)
+			o.UsePathStyle = *aws.Bool(true)
+		}
 	})
 
-	urlStr, err := req.Presign(48 * time.Hour)
-	if err != nil {
-		return err
+	presignClient := s3.NewPresignClient(client, func(o *s3.PresignOptions) {
+		o.Expires = 48 * time.Hour
+	})
+
+	getObjectInput := &s3.GetObjectInput{
+		Bucket: aws.String(config.AttachmentsBucket),
+		Key:    aws.String(a.Key),
 	}
+
+	req, err := presignClient.PresignGetObject(ctx, getObjectInput)
+	if err != nil {
+		return
+	}
+
+	urlStr := req.URL
 
 	if shouldProxy {
 		endpoint, err := url.JoinPath(config.APIOrigin, "attachments")
