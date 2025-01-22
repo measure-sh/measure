@@ -571,7 +571,7 @@ const Filters: React.FC<FiltersProps> = ({
             {showDates && <FilterPill title={`${selectedFormattedStartDate} to ${selectedFormattedEndDate}`} />}
             {showAppVersions && selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).map((v) => v.displayName).join(', ')} />}
             {showSessionType && <FilterPill title={selectedSessionType} />}
-            {filtersApiType === FiltersApiType.Span && <FilterPill title={Array.from(selectedSpanStatuses).join(', ')} />}
+            {filtersApiType === FiltersApiType.Span && selectedSpanStatuses.length > 0 && <FilterPill title={Array.from(selectedSpanStatuses).join(', ')} />}
             {showOsVersions && selectedOsVersions.length > 0 && <FilterPill title={Array.from(selectedOsVersions).map((v) => v.displayName).join(', ')} />}
             {showCountries && selectedCountries.length > 0 && <FilterPill title={Array.from(selectedCountries).join(', ')} />}
             {showNetworkProviders && selectedNetworkProviders.length > 0 && <FilterPill title={Array.from(selectedNetworkProviders).join(', ')} />}
