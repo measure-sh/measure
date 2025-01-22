@@ -389,13 +389,6 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                   >
                     Latest
                   </button>
-                  <div className="px-1" />
-                  <button
-                    onClick={() => selectNone()}
-                    className={groupSelectButtonStyle}
-                  >
-                    None
-                  </button>
                 </div>}
                 {items.filter((item) => (item as AppVersion).displayName.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item) => (
                   <div
