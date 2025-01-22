@@ -179,4 +179,42 @@ import Foundation
 
         userTriggeredEventCollector.trackScreenView(screenName)
     }
+    
+    /// Sets the user ID for the current user.
+    ///
+    /// User ID is persisted across app launches and is used to identify the user across sessions.
+    ///
+    /// It is recommended to avoid the use of PII (Personally Identifiable Information) in the
+    /// user ID, such as email, phone number, or any other sensitive information. Instead, use a hashed
+    /// or anonymized user ID to protect user privacy.
+    ///
+    /// Example usage:
+    /// ```swift
+    /// Measure.shared.setUserId("user_id")
+    /// ```
+    ///
+    /// ```objc
+    /// [[Measure shared] setUserId:@"user_id"]
+    /// ```
+    ///
+    /// - Parameter userId: userId string.
+    @objc public func setUserId(_ userId: String) {
+        guard let measureInternal = measureInternal else { return }
+        measureInternal.setUserId(userId)
+    }
+
+    /// Clears the user ID, if previously set by `setUserId`.
+    ///
+    /// Example usage:
+    /// ```swift
+    /// Measure.shared.clearUserId()
+    /// ```
+    ///
+    /// ```objc
+    /// [[Measure shared] clearUserId]
+    /// ```
+    @objc public func clearUserId() {
+        guard let measureInternal = measureInternal else { return }
+        measureInternal.clearUserId()
+    }
 }

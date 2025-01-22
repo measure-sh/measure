@@ -20,6 +20,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                                        trackScreenshotOnCrash: false,
                                        samplingRateForErrorFreeSessions: 0.5)
         measureInstance.initialize(with: clientInfo, config: config)
+        measureInstance.setUserId("test_user_ios")
 
         return true
     }

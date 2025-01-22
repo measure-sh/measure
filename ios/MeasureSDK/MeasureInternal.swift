@@ -150,6 +150,14 @@ final class MeasureInternal {
         }
     }
 
+    func setUserId(_ userId: String) {
+        userAttributeProcessor.setUserId(userId)
+    }
+
+    func clearUserId() {
+        userAttributeProcessor.clearUserId()
+    }
+
     private func applicationDidEnterBackground() {
         self.crashDataPersistence.isForeground = false
         self.sessionManager.applicationDidEnterBackground()

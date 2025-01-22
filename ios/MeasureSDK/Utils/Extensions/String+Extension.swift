@@ -18,5 +18,8 @@ extension String {
                    .replacingOccurrences(of: "\n", with: "")
                    .replacingOccurrences(of: "\t", with: "")
                    .replacingOccurrences(of: " ", with: "")
+                   .replacingOccurrences(of: "{", with: "")
+                   .replacingOccurrences(of: "}", with: "")
+                   .replacingOccurrences(of: "\"", with: "")
     }
 }
