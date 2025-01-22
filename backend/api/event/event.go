@@ -130,6 +130,9 @@ const LifecycleSwiftUITypeOnDisappear = "on_disappear"
 const LifecycleAppTypeBackground = "background"
 const LifecycleAppTypeForeground = "foreground"
 
+// LifecycleAppTypeTerminated is used only for iOS
+const LifecycleAppTypeTerminated = "terminated"
+
 // NominalColdLaunchThreshold defines the upper bound
 // of a nominal cold launch duration.
 const NominalColdLaunchThreshold = 30 * time.Second
@@ -188,13 +191,6 @@ var ValidLifecycleFragmentTypes = []string{
 	LifecycleFragmentTypeDetached,
 }
 
-// ValidLifecycleAppTypes defines allowed
-// `lifecycle_app.type` values.
-var ValidLifecycleAppTypes = []string{
-	LifecycleAppTypeBackground,
-	LifecycleAppTypeForeground,
-}
-
 // ValidLifecycleViewControllerTypes defines allowed
 // `lifecycle_view_controller.type` values.
 var ValidLifecycleViewControllerTypes = []string{
@@ -235,6 +231,27 @@ var ValidNetworkGenerations = []string{
 	NetworkGeneration4G,
 	NetworkGeneration5G,
 	NetworkGenerationUnknown,
+}
+
+// getValidLifecycleAppTypes defines valid
+// `lifecycle_app.type` values according
+// to the platform.
+func getValidLifecycleAppTypes(p string) (types []string) {
+	switch p {
+	case platform.Android:
+		types = []string{
+			LifecycleAppTypeBackground,
+			LifecycleAppTypeForeground,
+		}
+	case platform.IOS:
+		types = []string{
+			LifecycleAppTypeBackground,
+			LifecycleAppTypeForeground,
+			LifecycleAppTypeTerminated,
+		}
+	}
+
+	return types
 }
 
 // makeTitle appends the message to the type
@@ -980,7 +997,10 @@ func (e *EventField) Validate() error {
 		if len(e.LifecycleApp.Type) > maxLifecycleAppTypeChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_app.type`, maxLifecycleAppTypeChars)
 		}
-		if !slices.Contains(ValidLifecycleAppTypes, e.LifecycleApp.Type) {
+
+		validTypes := getValidLifecycleAppTypes(e.Attribute.Platform)
+
+		if !slices.Contains(validTypes, e.LifecycleApp.Type) {
 			return fmt.Errorf(`%q contains invalid lifecycle app type`, `lifecycle_app.type`)
 		}
 	}
