@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Improve self hosting faq section (#1728)
 - (**backend**): Address clickhouse high cpu usage (#1727)
 - Update readme
+- (**readme**): Update banner image
 
 ## [0.5.0] - 2025-01-06
 
