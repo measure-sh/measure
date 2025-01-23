@@ -336,12 +336,13 @@ func (e eventreq) getRequest(ctx context.Context) (r *eventreq, err error) {
 	stmt := sqlf.PostgreSQL.From(`event_reqs`).
 		Select("id").
 		Select("status").
+		Select("app_id").
 		Select("created_at").
 		Where("id = ? and app_id = ?", e.id, e.appId)
 
 	defer stmt.Close()
 
-	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&r.id, &r.status, &r.createdAt)
+	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&r.id, &r.status, &r.appId, &r.createdAt)
 
 	return
 }
@@ -2047,7 +2048,10 @@ func PutEvents(c *gin.Context) {
 	//
 	// if it was processed, tell the client that this event request
 	// was seen previously and we ignore this request.
-	rs, err := eventReq.getStatus(ctx)
+	//
+	// if it's in a pending state for a long time, then we remove
+	// that request and proceed with ingestion as usual.
+	prevReq, err := eventReq.getRequest(ctx)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		msg := "failed to check status of event request"
 		fmt.Println(msg, err)
@@ -2057,19 +2061,26 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
-	if rs != nil {
-		switch *rs {
+	// pendingTimeout is the duration after which
+	// a pending request should be treated as
+	// stale
+	pendingTimeout := time.Hour * 3
+
+	if prevReq != nil {
+		switch prevReq.status {
 		case pending:
-			durStr := fmt.Sprintf("%d", int64(retryAfter.Seconds()))
-			prevReq, err := eventReq.getRequest(ctx)
-			if err != nil {
-				msg := "failed to query event request"
-				fmt.Println(msg, err)
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": msg,
-				})
-				return
+			if time.Since(prevReq.createdAt) > pendingTimeout {
+				if err = prevReq.cleanup(ctx); err != nil {
+					msg := "failed to clean up previous request"
+					fmt.Println(msg, err)
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": msg,
+					})
+					return
+				}
+				break
 			}
+			durStr := fmt.Sprintf("%d", int64(retryAfter.Seconds()))
 			c.Header("Retry-After", durStr)
 			c.JSON(http.StatusTooManyRequests, gin.H{
 				"warning":                    fmt.Sprintf("a previous accepted request is in progress, retry after %s seconds", durStr),
