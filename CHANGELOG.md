@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Clean up event batches stuck for a long time (#1770)
 - (**backend**): Only apply span statuses where clause if available
 - (**backend**): Query all user defined attributes (#1738)
 - (**frontend**): Hide filter pill when no span statuses are selected
