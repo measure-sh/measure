@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Clean up event batches stuck for a long time (#1770)
 - (**backend**): Only apply span statuses where clause if available
 - (**backend**): Query all user defined attributes (#1738)
 - (**frontend**): Hide filter pill when no span statuses are selected
@@ -47,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Improve self hosting faq section (#1728)
 - (**backend**): Address clickhouse high cpu usage (#1727)
 - Update readme
+- (**readme**): Update banner image
 
 ## [0.5.0] - 2025-01-06
 

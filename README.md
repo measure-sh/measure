@@ -1,5 +1,5 @@
 <p align="center">
-  <a href='http://measure.sh'><img alt="measurelogo" src="https://github.com/user-attachments/assets/6d6b161d-653a-4027-83e2-f749140d13d6"></a>
+  <a href='http://measure.sh'><img alt="measurelogo" src="https://github.com/user-attachments/assets/dce3fc10-0fbc-4070-9b14-08579ba2db9a"></a>
 </p>
 <p align="center">
   <a href='http://makeapullrequest.com'><img alt='PRs Welcome' src='https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=shields'/></a>
