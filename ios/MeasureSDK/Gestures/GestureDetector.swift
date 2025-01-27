@@ -86,7 +86,7 @@ struct GestureDetector {
         case .ended:
             if !isScrolling {
                 let startTimeMs = startTouchEventTime / 1000
-                if startTimeMs > eventTime {
+                if eventTime > startTimeMs {
                     let dt = eventTime - startTimeMs
                     let dx = abs(startTouchX - location.x)
                     let dy = abs(startTouchY - location.y)
