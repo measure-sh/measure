@@ -49,12 +49,24 @@ const (
 	done
 )
 
-type attachment struct {
-	id       uuid.UUID
-	name     string
-	key      string
+// blob represents each blob present in the
+// event request batch during ingestion.
+type blob struct {
+	// id is the unique id of the blob
+	id uuid.UUID
+	// name is the filename with extension
+	// from SDK
+	name string
+	// key is the s3-like object storage key
+	key string
+	// location is the fully qualified URL
+	// of the s3-like object
 	location string
-	header   *multipart.FileHeader
+	// header is the file bytes which can be
+	// opened and read
+	header *multipart.FileHeader
+	// uploaded indicates if the blob was
+	// eventually uploaded after ingestion
 	uploaded bool
 }
 
@@ -70,7 +82,7 @@ type eventreq struct {
 	symbolicationAttempted int
 	events                 []event.EventField
 	spans                  []span.SpanField
-	attachments            map[uuid.UUID]*attachment
+	attachments            map[uuid.UUID]*blob
 	createdAt              time.Time
 }
 
@@ -94,12 +106,12 @@ func (s status) String() string {
 // uploadAttachments prepares and uploads each attachment.
 func (e *eventreq) uploadAttachments(ctx context.Context) error {
 	for id, attachment := range e.attachments {
-		ext := filepath.Ext(attachment.header.Filename)
+		ext := filepath.Ext(attachment.name)
 		key := attachment.id.String() + ext
 
 		eventAttachment := event.Attachment{
 			ID:   id,
-			Name: attachment.header.Filename,
+			Name: key,
 			Key:  key,
 		}
 
@@ -198,6 +210,22 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 			e.anrIds = append(e.anrIds, i)
 		}
 
+		// partially prepare list of attachments
+		// to extract the filename with extension
+		// because extracting filename from form
+		// field header is not realiable
+		//
+		// form field header may lack file extension
+		// in some cases
+		//
+		// see https://github.com/measure-sh/measure/issues/1736
+		for _, attachment := range ev.Attachments {
+			e.attachments[attachment.ID] = &blob{
+				id:   attachment.ID,
+				name: attachment.Name,
+			}
+		}
+
 		// compute launch timings
 		if ev.IsColdLaunch() {
 			ev.ColdLaunch.Compute()
@@ -266,10 +294,12 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 			continue
 		}
 		e.bumpSize(header.Size)
-		e.attachments[blobId] = &attachment{
-			id:     blobId,
-			name:   header.Filename,
-			header: header,
+
+		// inject the form field header to
+		// the previously constructed partial
+		// attachment
+		if e.attachments[blobId] != nil {
+			e.attachments[blobId].header = header
 		}
 	}
 
@@ -2017,7 +2047,7 @@ func PutEvents(c *gin.Context) {
 		appId:       appId,
 		platform:    app.Platform,
 		symbolicate: make(map[uuid.UUID]int),
-		attachments: make(map[uuid.UUID]*attachment),
+		attachments: make(map[uuid.UUID]*blob),
 		createdAt:   time.Now(),
 	}
 
