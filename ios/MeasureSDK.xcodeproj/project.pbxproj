@@ -209,6 +209,7 @@
 		52FA6A8B2CE21EDF0091F089 /* MockMemoryUsageCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FA6A8A2CE21EDF0091F089 /* MockMemoryUsageCalculator.swift */; };
 		52FA6A8D2CE222030091F089 /* CpuUsageCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FA6A8C2CE222030091F089 /* CpuUsageCalculatorTests.swift */; };
 		52FA6A8F2CE222360091F089 /* MemoryUsageCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FA6A8E2CE222360091F089 /* MemoryUsageCalculatorTests.swift */; };
+		52FD08E32D4B42FB00897EA2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 52FD08E22D4B42FB00897EA2 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -528,6 +529,7 @@
 		52FA6A8A2CE21EDF0091F089 /* MockMemoryUsageCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockMemoryUsageCalculator.swift; sourceTree = "<group>"; };
 		52FA6A8C2CE222030091F089 /* CpuUsageCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CpuUsageCalculatorTests.swift; sourceTree = "<group>"; };
 		52FA6A8E2CE222360091F089 /* MemoryUsageCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryUsageCalculatorTests.swift; sourceTree = "<group>"; };
+		52FD08E22D4B42FB00897EA2 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -777,6 +779,7 @@
 				52816B682CCE390800B160A4 /* Lifecycle */,
 				52E303DE2D1814A7008FE733 /* NetworkChange */,
 				52A3C0752CDB732F00C8F047 /* Performance */,
+				52FD08E12D4B3E6000897EA2 /* Resources */,
 				524CC5DB2C6A4B48001AB506 /* Utils */,
 				524CC5D52C6A4B48001AB506 /* XCDataModel */,
 			);
@@ -1091,6 +1094,14 @@
 			path = Performance;
 			sourceTree = "<group>";
 		};
+		52FD08E12D4B3E6000897EA2 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				52FD08E22D4B42FB00897EA2 /* PrivacyInfo.xcprivacy */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -1292,6 +1303,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				52FD08E32D4B42FB00897EA2 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
