@@ -16,6 +16,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/klauspost/compress/zstd"
 
 	"github.com/BurntSushi/toml"
 	"github.com/spf13/cobra"
@@ -291,59 +292,125 @@ func writeEvent(c *gin.Context) {
 
 func writeBuild(c *gin.Context) {
 	if err := c.Request.ParseMultipartForm(100 << 20); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "unable to parse multipart form: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "unable to parse multipart form: " + err.Error(),
+		})
 		return
 	}
 
 	appUniqueID := c.Request.FormValue("app_unique_id")
 	versionName := c.Request.FormValue("version_name")
+	mappingType := c.Request.FormValue("type")
+
 	if appUniqueID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "app_unique_id is required"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "app_unique_id is required",
+		})
 		return
 	}
 	if versionName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "version_name is required"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "version_name is required",
+		})
+		return
+	}
+
+	filename := "mapping"
+	extension := ".txt"
+
+	// validate presence and correctness
+	// of mapping type
+	switch mappingType {
+	case "", "proguard":
+		// default to "proguard"
+		// when empty
+		mappingType = "proguard"
+	case "dsym":
+		mappingType = "dsym"
+		extension = ".dsym.zst"
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Errorf("%q should be either %q or %q", "mapping_type", "proguard", "dsym"),
+		})
 		return
 	}
 
 	file, header, err := c.Request.FormFile("mapping_file")
-	if err == nil {
-		defer file.Close()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Errorf("failed to read %q from multipart request", "mapping_file"),
+		})
+		return
+	}
+	if header == nil || header.Size < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Errorf("failed to read header of %q from multipart request", "mapping_file"),
+		})
+		return
+	}
 
-		if header != nil && header.Size > 0 {
-			filePath := filepath.Join(outputDir, appUniqueID, versionName, "mapping.txt")
+	defer file.Close()
 
-			if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create mapping file: " + err.Error()})
-				return
-			}
+	mappingFile := filename + extension
+	mappingFilePath := filepath.Join(outputDir, appUniqueID, versionName, mappingFile)
+	if err := os.MkdirAll(filepath.Dir(mappingFilePath), 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to create mapping file: " + err.Error(),
+		})
+		return
+	}
 
-			out, err := os.Create(filePath)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create mapping file: " + err.Error()})
-				return
-			}
-			defer out.Close()
+	out, err := os.Create(mappingFilePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to create mapping file: " + err.Error(),
+		})
+		return
+	}
+	defer out.Close()
 
-			_, err = io.Copy(out, file)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to write mapping file: " + err.Error()})
-				return
-			}
+	switch mappingType {
+	case "dsym":
+		enc, err := zstd.NewWriter(out)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Errorf("failed to compress %q file: %v", mappingFile, err),
+			})
+			return
+		}
+		defer enc.Close()
+		_, err = io.Copy(enc, file)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Errorf("failed to compress %q file: %v", mappingFile, err),
+			})
+			return
+		}
+	case "proguard":
+		_, err = io.Copy(out, file)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Errorf("failed to write %q file: %v", mappingFile, err),
+			})
+			return
 		}
 	}
 
 	buildType := c.Request.FormValue("build_type")
 	buildSize, err := strconv.Atoi(c.Request.FormValue("build_size"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse build_size: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "failed to parse build_size: " + err.Error(),
+		})
 		return
 	}
 
-	filePath := filepath.Join(outputDir, appUniqueID, versionName, "build.toml")
-	out, err := os.Create(filePath)
+	buildFilePath := filepath.Join(outputDir, appUniqueID, versionName, "build.toml")
+	out, err = os.Create(buildFilePath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed create build.toml file: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed create build.toml file: " + err.Error(),
+		})
 		return
 	}
 
@@ -355,7 +422,9 @@ func writeBuild(c *gin.Context) {
 	}
 
 	if err := toml.NewEncoder(out).Encode(buildInfo); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create build.toml file: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to create build.toml file: " + err.Error(),
+		})
 		return
 	}
 

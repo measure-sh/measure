@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Svg layout attachments are not visible sometimes (#1777)
 - (**backend**): Clean up event batches stuck for a long time (#1770)
 - (**backend**): Only apply span statuses where clause if available
 - (**backend**): Query all user defined attributes (#1738)
