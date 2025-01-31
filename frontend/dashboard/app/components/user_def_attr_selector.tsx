@@ -204,7 +204,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, o
       </div>
 
       {isOpen && (
-        <div className="z-50 origin-top-right absolute left-0 mt-2 w-[600px] max-h-96 overflow-auto rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
+        <div className="z-50 origin-top-right absolute right-0 mt-2 w-[600px] max-h-96 overflow-auto rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
           <div
             role="menu"
             aria-orientation="vertical"
