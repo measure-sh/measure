@@ -753,6 +753,7 @@ export const emptyTrace = {
         "end_time": "",
         "duration": 0,
         "thread_name": "",
+        "user_defined_attributes": null,
         "checkpoints": [
           {
             "name": "",

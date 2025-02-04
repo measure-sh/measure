@@ -204,7 +204,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, o
       </div>
 
       {isOpen && (
-        <div className="z-50 origin-top-right absolute right-0 mt-2 w-[600px] max-h-96 overflow-auto rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
+        <div className={`z-50 origin-top-right absolute mt-2 w-[600px] max-h-96 overflow-auto rounded-md shadow-lg ring-1 ring-black ring-opacity-5 ${dropdownRef.current && dropdownRef.current.getBoundingClientRect().left > window.innerWidth / 2 ? 'right-0' : 'left-0'}`}>
           <div
             role="menu"
             aria-orientation="vertical"

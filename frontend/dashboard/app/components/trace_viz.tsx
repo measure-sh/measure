@@ -30,6 +30,7 @@ interface Span {
   leftOffset?: number
   width?: number
   visibility?: SpanVisibility
+  user_defined_attributes?: Map<string, string> | null
   checkpoints: Checkpoint[] | null
 }
 
@@ -289,6 +290,12 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
               <p className={keyStyle}>Span Status</p>
               <p className={`${valueStyle} ${selectedSpan.status === 1 ? "text-green-300" : selectedSpan.status === 2 ? "text-red-300" : ""}`}> {selectedSpan.status === 0 ? "Unset" : selectedSpan.status === 1 ? "Okay" : "Error"}</p>
             </div>
+            {selectedSpan.user_defined_attributes !== null && selectedSpan.user_defined_attributes !== undefined && Object.entries(selectedSpan.user_defined_attributes!).map(([attrKey, attrValue]) => (
+              <div className="flex flex-row mt-1" key={attrKey}>
+                <p className={keyStyle}>{attrKey}</p>
+                <p className={valueStyle}>{attrValue?.toString()}</p>
+              </div>
+            ))}
             <div className='flex flex-row mt-1'>
               <p className={keyStyle}>Checkpoints</p>
               <p className={`${valueStyle}`}>{selectedSpan.checkpoints !== null && selectedSpan.checkpoints.length > 0 ? ": " : ": []"}</p>

@@ -76,7 +76,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                 showLocales={true}
                 showDeviceManufacturers={true}
                 showDeviceNames={true}
-                showUdAttrs={false}
+                showUdAttrs={true}
                 showFreeText={false}
                 onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
             <div className="py-4" />

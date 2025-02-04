@@ -63,6 +63,9 @@ func DeleteStaleData(ctx context.Context) {
 	// delete user defined attributes
 	deleteUserDefAttrs(ctx, appRetentions)
 
+	// delete span user defined attributes
+	deleteSpanUserDefAttrs(ctx, appRetentions)
+
 	// delete sessions
 	deleteSessions(ctx, appRetentions)
 
@@ -257,6 +260,31 @@ func deleteUserDefAttrs(ctx context.Context, retentions []AppRetention) {
 
 	if errCount < 1 {
 		fmt.Println("Successfully deleted stale user defined attributes")
+	}
+}
+
+// deleteSpanUserDefAttrs deletes stale span user defined attributes
+// for each app's retention threshold.
+func deleteSpanUserDefAttrs(ctx context.Context, retentions []AppRetention) {
+	errCount := 0
+	for _, retention := range retentions {
+		stmt := sqlf.
+			DeleteFrom("span_user_def_attrs").
+			Where("app_id = toUUID(?)", retention.AppID).
+			Where("end_of_month < ?", retention.Threshold)
+
+		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
+			errCount += 1
+			fmt.Printf("Failed to delete stale span user defined attributes for app id %q: %v\n", retention.AppID, err)
+			stmt.Close()
+			continue
+		}
+
+		stmt.Close()
+	}
+
+	if errCount < 1 {
+		fmt.Println("Successfully deleted stale span user defined attributes")
 	}
 }
 
