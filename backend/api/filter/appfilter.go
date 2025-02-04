@@ -1038,7 +1038,14 @@ func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, 
 // getUDAttrKeys finds distinct user defined attribute
 // key and its types.
 func (af *AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []event.UDKeyType, err error) {
-	stmt := sqlf.From("user_def_attrs").
+	var table_name string
+	if af.Span {
+		table_name = "span_user_def_attrs"
+	} else {
+		table_name = "user_def_attrs"
+	}
+
+	stmt := sqlf.From(table_name).
 		Select("distinct key").
 		Select("toString(type) type").
 		Clause("prewhere app_id = toUUID(?)", af.AppID).

@@ -680,6 +680,75 @@ ORDER BY
     device_low_power_mode ASC,
     device_thermal_throttling_enabled ASC;
 
+CREATE TABLE default.span_user_def_attrs
+(
+    `app_id` UUID COMMENT 'associated app id' CODEC(LZ4),
+    `span_id` FixedString(16) COMMENT 'id of the span' CODEC(ZSTD(3)),
+    `session_id` UUID COMMENT 'id of the session' CODEC(LZ4),
+    `end_of_month` DateTime COMMENT 'last day of the month' CODEC(DoubleDelta, ZSTD(3)),
+    `app_version` Tuple(
+        LowCardinality(String),
+        LowCardinality(String)) COMMENT 'composite app version' CODEC(ZSTD(3)),
+    `os_version` Tuple(
+        LowCardinality(String),
+        LowCardinality(String)) COMMENT 'composite os version' CODEC(ZSTD(3)),
+    `key` LowCardinality(String) COMMENT 'key of the user defined attribute' CODEC(ZSTD(3)),
+    `type` Enum8('string' = 1, 'int64' = 2, 'float64' = 3, 'bool' = 4) COMMENT 'type of the user defined attribute' CODEC(ZSTD(3)),
+    `value` String COMMENT 'value of the user defined attribute' CODEC(ZSTD(3)),
+    INDEX end_of_month_minmax_idx end_of_month TYPE minmax GRANULARITY 2,
+    INDEX key_bloom_idx key TYPE bloom_filter(0.05) GRANULARITY 1,
+    INDEX key_set_idx key TYPE set(1000) GRANULARITY 2,
+    INDEX session_bloom_idx session_id TYPE bloom_filter GRANULARITY 2
+)
+ENGINE = ReplacingMergeTree
+PARTITION BY toYYYYMM(end_of_month)
+ORDER BY (app_id, end_of_month, app_version, os_version, key, type, value, span_id, session_id)
+SETTINGS index_granularity = 8192
+COMMENT 'derived span user defined attributes';
+
+CREATE MATERIALIZED VIEW default.span_user_def_attrs_mv TO default.span_user_def_attrs
+(
+    `app_id` UUID,
+    `span_id` FixedString(16),
+    `session_id` UUID,
+    `end_of_month` Date,
+    `app_version` Tuple(
+        LowCardinality(String),
+        LowCardinality(String)),
+    `os_version` Tuple(
+        LowCardinality(String),
+        LowCardinality(String)),
+    `key` LowCardinality(String),
+    `type` Enum8('string' = 1, 'int64' = 2, 'float64' = 3, 'bool' = 4),
+    `value` String
+)
+AS SELECT DISTINCT
+    app_id,
+    span_id,
+    session_id,
+    toLastDayOfMonth(start_time) AS end_of_month,
+    attribute.app_version AS app_version,
+    attribute.os_version AS os_version,
+    arr_key AS key,
+    arr_val.1 AS type,
+    arr_val.2 AS value
+FROM default.spans
+ARRAY JOIN
+    mapKeys(user_defined_attribute) AS arr_key,
+    mapValues(user_defined_attribute) AS arr_val
+WHERE length(user_defined_attribute) > 0
+GROUP BY
+    app_id,
+    end_of_month,
+    app_version,
+    os_version,
+    key,
+    type,
+    value,
+    span_id,
+    session_id
+ORDER BY app_id ASC;
+
 CREATE TABLE default.spans
 (
     `app_id` UUID COMMENT 'unique id of the app' CODEC(ZSTD(3)),
@@ -716,12 +785,17 @@ CREATE TABLE default.spans
     `attribute.device_locale` LowCardinality(String) COMMENT 'rfc 5646 locale string' CODEC(ZSTD(3)),
     `attribute.device_low_power_mode` Bool COMMENT 'true if device is in power saving mode' CODEC(ZSTD(3)),
     `attribute.device_thermal_throttling_enabled` Bool COMMENT 'true if device is has thermal throttling enabled' CODEC(ZSTD(3)),
+    `user_defined_attribute` Map(LowCardinality(String), Tuple(
+        Enum8('string' = 1, 'int64' = 2, 'float64' = 3, 'bool' = 4),
+        String)) CODEC(ZSTD(3)),
     INDEX span_name_bloom_idx span_name TYPE bloom_filter GRANULARITY 2,
     INDEX span_id_bloom_idx span_id TYPE bloom_filter GRANULARITY 2,
     INDEX trace_id_bloom_idx trace_id TYPE bloom_filter GRANULARITY 2,
     INDEX parent_id_bloom_idx parent_id TYPE bloom_filter GRANULARITY 2,
     INDEX start_time_minmax_idx start_time TYPE minmax GRANULARITY 2,
-    INDEX end_time_minmax_idx end_time TYPE minmax GRANULARITY 2
+    INDEX end_time_minmax_idx end_time TYPE minmax GRANULARITY 2,
+    INDEX user_defined_attribute_key_bloom_idx mapKeys(user_defined_attribute) TYPE bloom_filter(0.01) GRANULARITY 16,
+    INDEX user_defined_attribute_key_minmax_idx mapKeys(user_defined_attribute) TYPE minmax GRANULARITY 16
 )
 ENGINE = MergeTree
 PARTITION BY toYYYYMMDD(start_time)
@@ -847,4 +921,7 @@ INSERT INTO schema_migrations (version) VALUES
     ('20241128084916'),
     ('20241128085921'),
     ('20241204135555'),
-    ('20241210052709');
+    ('20241210052709'),
+    ('20250204070350'),
+    ('20250204070357'),
+    ('20250204070548');
