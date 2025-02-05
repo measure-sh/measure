@@ -179,10 +179,17 @@ func (bm BuildMapping) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
 		}
 	}
 	stmt := sqlf.PostgreSQL.
-		Update(`build_mappings`).
-		Set(`mapping_type`, bm.MappingType).
-		Set(`key`, bm.Key).
-		Set(`location`, bm.Location).
+		Update(`build_mappings`)
+
+	if bm.Key != "" {
+		stmt.Set(`key`, bm.Key)
+	}
+
+	if bm.Location != "" {
+		stmt.Set(`location`, bm.Location)
+	}
+
+	stmt.
 		Set(`fnv1_hash`, bm.ContentHash).
 		Set(`file_size`, bm.File.Size).
 		Set(`last_updated`, time.Now()).

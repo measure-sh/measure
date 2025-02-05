@@ -2,6 +2,7 @@ package symbol
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"encoding/binary"
 	"encoding/hex"
@@ -91,13 +92,32 @@ func ExtractDsymEntities(file io.Reader, filter func(string) (DsymType, bool)) (
 				entities = make(map[DsymType][]*Dif)
 			}
 
-			if err = verifyMachO(tarReader); err != nil {
+			debugBytes, err := io.ReadAll(tarReader)
+			if err != nil {
 				return nil, err
 			}
 
-			debugId, err2 := getMachOUUID(tarReader)
-			if err2 != nil {
-				return nil, err2
+			// we create an isolated byte reader
+			// so that one operation reading data
+			// does not affect other unrelated
+			// operations because we can't reset
+			// the seek back to 0 on a *tar.Reader
+			debugReaderOne := bytes.NewReader(debugBytes)
+
+			if err = verifyMachO(debugReaderOne); err != nil {
+				return nil, err
+			}
+
+			// we create an isolated byte reader
+			// so that one operation reading data
+			// does not affect other unrelated
+			// operations because we can't reset
+			// the seek back to 0 on a *tar.Reader
+			debugReaderTwo := bytes.NewReader(debugBytes)
+
+			debugId, err := getMachOUUID(debugReaderTwo)
+			if err != nil {
+				return nil, err
 			}
 
 			parts := strings.Split(header.Name, "/")
@@ -115,15 +135,11 @@ func ExtractDsymEntities(file io.Reader, filter func(string) (DsymType, bool)) (
 				FileFormat: "macho",
 			}
 
-			metaJson, err3 := json.Marshal(m)
-			if err3 != nil {
-				return nil, err3
+			metaJson, err := json.Marshal(m)
+			if err != nil {
+				return nil, err
 			}
 			unifiedPath := BuildUnifiedLayout(debugId)
-			debugBytes, err4 := io.ReadAll(tarReader)
-			if err4 != nil {
-				return nil, err4
-			}
 
 			difs := []*Dif{
 				{
@@ -153,9 +169,9 @@ func BuildUnifiedLayout(id string) string {
 }
 
 // verifyMachO verifies Mach-O magic number.
-func verifyMachO(f *tar.Reader) (err error) {
+func verifyMachO(r *bytes.Reader) (err error) {
 	buffer := make([]byte, 4096)
-	n, err := f.Read(buffer[:8])
+	n, err := r.Read(buffer[:8])
 	if err != nil && err != io.EOF {
 		return
 	}
@@ -171,13 +187,13 @@ func verifyMachO(f *tar.Reader) (err error) {
 
 // getMachOUUID extracts the binary id
 // from Mach-O binary data.
-func getMachOUUID(f *tar.Reader) (string, error) {
+func getMachOUUID(r *bytes.Reader) (string, error) {
 	const CHUNK_SIZE = 4096
 	const LC_UUID_SIZE = 24
 	buffer := make([]byte, CHUNK_SIZE)
 
 	for {
-		n, err := f.Read(buffer)
+		n, err := r.Read(buffer)
 		if err == io.EOF {
 			return "", nil
 		}
