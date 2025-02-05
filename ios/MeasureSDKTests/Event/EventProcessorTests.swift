@@ -20,6 +20,7 @@ final class EventProcessorTests: XCTestCase {
     var crashDataPersistence: MockCrashDataPersistence!
     var sessionManager: MockSessionManager!
     var eventStore: MockEventStore!
+    var screenshotGenerator: MockScreenshotGenerator!
     var fileManagerHelper = FileManagerHelper()
     let attributes = Attributes(
         threadName: "main",
@@ -71,6 +72,7 @@ final class EventProcessorTests: XCTestCase {
                                                         sessionId: "",
                                                         isForeground: true)
         sessionManager = MockSessionManager(sessionId: "session-id-1")
+        screenshotGenerator = MockScreenshotGenerator()
         eventStore = MockEventStore()
     }
 
@@ -87,6 +89,7 @@ final class EventProcessorTests: XCTestCase {
         crashDataPersistence = nil
         sessionManager = nil
         eventStore = nil
+        screenshotGenerator = nil
     }
 
     func testTrackExceptionEventWithNilAttributesAndNilSessionId() {  // swiftlint:disable:this function_body_length
@@ -134,7 +137,7 @@ final class EventProcessorTests: XCTestCase {
                              type: .exception,
                              attributes: nil,
                              sessionId: nil,
-                             attachments: [Attachment(name: "file-name", type: .screenshot, path: "file-path")],
+                             attachments: [Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
                              userDefinedAttributes: nil)
 
         // Check if latest attributes are saved when an event is tracked
@@ -153,7 +156,7 @@ final class EventProcessorTests: XCTestCase {
         XCTAssertEqual(event.timestamp, "1970-01-12T13:46:40.000Z")
         XCTAssertEqual(event.type, .exception)
         XCTAssertEqual(event.attachments?.count, 1)
-        XCTAssertEqual(event.attachments?.first, Attachment(name: "file-name", type: .screenshot, path: "file-path"))
+        XCTAssertEqual(event.attachments?.first, Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path"))
         XCTAssertEqual(event.userTriggered, false)
         XCTAssertEqual(event.attributes, attributes)
         XCTAssertEqual(event.data, exception)
@@ -234,7 +237,7 @@ final class EventProcessorTests: XCTestCase {
                              type: .exception,
                              attributes: attributes,
                              sessionId: "session-id-2",
-                             attachments: [Attachment(name: "file-name", type: .screenshot, path: "file-path")],
+                             attachments: [Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
                              userDefinedAttributes: nil)
 
         // Check if latest attributes are saved when an event is tracked
@@ -253,7 +256,7 @@ final class EventProcessorTests: XCTestCase {
         XCTAssertEqual(event.timestamp, "1970-01-12T13:46:40.000Z")
         XCTAssertEqual(event.type, .exception)
         XCTAssertEqual(event.attachments?.count, 1)
-        XCTAssertEqual(event.attachments?.first, Attachment(name: "file-name", type: .screenshot, path: "file-path"))
+        XCTAssertEqual(event.attachments?.first, Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path"))
         XCTAssertEqual(event.userTriggered, false)
         XCTAssertEqual(event.attributes, updatedAttributes)
         XCTAssertEqual(event.data, exception)

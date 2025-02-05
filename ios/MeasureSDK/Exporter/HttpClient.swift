@@ -94,6 +94,11 @@ final class BaseHttpClient: HttpClient {
                 body.append(Data("--\(boundary)\r\n".utf8))
                 body.append(Data("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".utf8))
                 body.append(Data("\(value)\r\n".utf8))
+            case let .fileData(name, filename, data):
+                body.append(Data("--\(boundary)\r\n".utf8))
+                body.append(Data("Content-Disposition: form-data; name=\"\(name)\"; filename=\"\(filename)\"\r\n\r\n".utf8))
+                body.append(data)
+                body.append(Data("\r\n".utf8))
             }
         }
         body.append(Data("--\(boundary)--\r\n".utf8))

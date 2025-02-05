@@ -36,6 +36,9 @@ let recentSessionVersionCodeKey = "recent_session_version_code"
 let recentLaunchAppVersion = "recent_launch_app_version"
 let recentLaunchTimeSinceLastBoot = "recent_launch_time_since_last_boot"
 let networkInterceptorHandledKey = "NetworkInterceptorHandled"
+let screenshotName = "screenshot.png"
+let layoutSnapshotName = "layoutSnapshot.svg"
+let layoutSnapshotDirectoryName = "layoutSnapshot"
 
 struct AttributeConstants {
     static let deviceManufacturer = "Apple"

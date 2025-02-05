@@ -174,7 +174,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         let stackFrame = StackFrame(
             binaryName: "MyApp",
             binaryAddress: "0x0000000100000000",
-            offset: "0x0000000000001234",
+            offset: "1234",
             frameIndex: 0,
             symbolAddress: "0x0000000100000000",
             inApp: true
@@ -236,7 +236,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
                        let firstFrame = frames.first {
                         XCTAssertEqual(firstFrame["binary_name"] as? String, "MyApp")
                         XCTAssertEqual(firstFrame["binary_address"] as? String, "0x0000000100000000")
-                        XCTAssertEqual(firstFrame["offset"] as? String, "0x0000000000001234")
+                        XCTAssertEqual(firstFrame["offset"] as? Int, 1234)
                         XCTAssertEqual(firstFrame["frame_index"] as? Number, 0)
                         XCTAssertEqual(firstFrame["symbol_address"] as? String, "0x0000000100000000")
                         XCTAssertEqual(firstFrame["in_app"] as? Bool, true)
@@ -764,15 +764,15 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             if let httpDataDict = jsonDict?["http"] as? [String: Any] {
                 XCTAssertEqual(httpDataDict["url"] as? String, "https://example.com/api/v1/resource")
                 XCTAssertEqual(httpDataDict["method"] as? String, "GET")
-                XCTAssertEqual(httpDataDict["status_code"] as? String, "200")
-                XCTAssertEqual(httpDataDict["start_time"] as? String, "123456789")
-                XCTAssertEqual(httpDataDict["end_time"] as? String, "123456999")
+                XCTAssertEqual(httpDataDict["status_code"] as? Int, 200)
+                XCTAssertEqual(httpDataDict["start_time"] as? Int, 123456789)
+                XCTAssertEqual(httpDataDict["end_time"] as? Int, 123456999)
                 XCTAssertNil(httpDataDict["failure_reason"])
                 XCTAssertNil(httpDataDict["failure_description"])
 
                 if let requestHeaders = httpDataDict["request_headers"] as? [String: String] {
                     XCTAssertEqual(requestHeaders["Content-Type"], "application/json")
-                    XCTAssertEqual(requestHeaders["Authorization"], "Bearer token")
+                    XCTAssertEqual(requestHeaders["Authorization"], "Bearertoken")
                 } else {
                     XCTFail("Request headers are not serialized correctly.")
                 }

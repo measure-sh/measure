@@ -118,6 +118,9 @@ final class MeasureInternal {
     var dataCleanupService: DataCleanupService {
         return measureInitializer.dataCleanupService
     }
+    var attachmentProcessor: AttachmentProcessor {
+        return measureInitializer.attachmentProcessor
+    }
     private let lifecycleObserver: LifecycleObserver
 
     init(_ measureInitializer: MeasureInitializer) {

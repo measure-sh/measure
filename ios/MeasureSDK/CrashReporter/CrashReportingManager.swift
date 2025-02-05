@@ -29,15 +29,27 @@ final class CrashReportingManager: CrashReportManager {
     private let logger: Logger
     private let eventProcessor: EventProcessor
     private let crashDataPersistence: CrashDataPersistence
+    private let systemFileManager: SystemFileManager
+    private let idProvider: IdProvider
+    private let configProvider: ConfigProvider
     let hasPendingCrashReport: Bool
 
-    init(logger: Logger, eventProcessor: EventProcessor, crashDataPersistence: CrashDataPersistence, crashReporter: SystemCrashReporter) {
+    init(logger: Logger,
+         eventProcessor: EventProcessor,
+         crashDataPersistence: CrashDataPersistence,
+         crashReporter: SystemCrashReporter,
+         systemFileManager: SystemFileManager,
+         idProvider: IdProvider,
+         configProvider: ConfigProvider) {
         self.logger = logger
         self.eventProcessor = eventProcessor
         self.crashDataPersistence = crashDataPersistence
         self.crashReporter = crashReporter
         self.crashReporter.setCrashCallback(measureCrashCallback)
         self.hasPendingCrashReport = crashReporter.hasPendingCrashReport
+        self.systemFileManager = systemFileManager
+        self.idProvider = idProvider
+        self.configProvider = configProvider
     }
 
     func enableCrashReporting() {

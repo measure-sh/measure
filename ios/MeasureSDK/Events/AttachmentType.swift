@@ -9,4 +9,5 @@ import Foundation
 
 enum AttachmentType: String, Codable {
     case screenshot
+    case layoutSnapshot
 }

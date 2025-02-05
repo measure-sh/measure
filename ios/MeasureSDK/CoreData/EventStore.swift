@@ -43,6 +43,7 @@ final class BaseEventStore: EventStore {
             eventOb.attributes = event.attributes
             eventOb.userDefinedAttributes = event.userDefinedAttributes
             eventOb.attachments = event.attachments
+            eventOb.attachmentSize = event.attachmentSize
             eventOb.gestureClick = event.gestureClick
             eventOb.gestureLongClick = event.gestureLongClick
             eventOb.gestureScroll = event.gestureScroll
@@ -65,7 +66,7 @@ final class BaseEventStore: EventStore {
                 try context.saveIfNeeded()
             } catch {
                 guard let self = self else { return }
-                self.logger.internalLog(level: .error, message: "Failed to save session: \(event.id)", error: error, data: nil)
+                self.logger.internalLog(level: .error, message: "Failed to save event: \(event.id)", error: error, data: nil)
             }
         }
     }

@@ -179,7 +179,7 @@ import Foundation
 
         userTriggeredEventCollector.trackScreenView(screenName)
     }
-    
+
     /// Sets the user ID for the current user.
     ///
     /// User ID is persisted across app launches and is used to identify the user across sessions.

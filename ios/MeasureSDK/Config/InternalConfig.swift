@@ -63,4 +63,13 @@ protocol InternalConfig {
     /// All `EventType`s that are always exported, regardless of other filters like session sampling rate and whether the session crashed or not.
     var eventTypeExportAllowList: [EventType] { get }
 
+    /// The color of the mask to apply to the screenshot. The value should be a hex color string. For example, "#222222".
+    var screenshotMaskHexColor: String { get }
+
+    /// The compression quality of the screenshot. Must be between 0 and 100, where 0 is lowest quality and smallest size while 100 is highest quality and largest size.
+    var screenshotCompressionQuality: Int { get }
+
+    /// The time interval (in milliseconds) that must pass before a new layout snapshot can be generated. Defaults to 750 ms.
+    var layoutSnapshotDebounceInterval: Number { get }
+
 }

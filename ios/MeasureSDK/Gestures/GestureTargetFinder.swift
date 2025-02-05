@@ -40,7 +40,7 @@ final class BaseGestureTargetFinder: GestureTargetFinder {
                 targetFrame = subview.frame
                 targetId = subview.accessibilityIdentifier
                 if subview.subviews.isEmpty {
-                    return (target, targetId, targetFrame)
+                    return (target, targetId, CGRect(x: pointInSubview.x, y: pointInSubview.y, width: targetFrame?.width ?? 0, height: targetFrame?.height ?? 0))
                 } else {
                     return searchSubviews(view: subview, tapPoint: tapPoint, window: window)
                 }

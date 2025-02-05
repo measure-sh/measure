@@ -66,7 +66,6 @@ struct GestureDetector {
         }
 
         let location = touch.location(in: view)
-        let eventTime = UnsignedNumber(touch.timestamp)
 
         switch touch.phase {
         case .began:
@@ -85,9 +84,9 @@ struct GestureDetector {
             }
         case .ended:
             if !isScrolling {
-                let startTimeMs = startTouchEventTime / 1000
-                if eventTime > startTimeMs {
-                    let dt = eventTime - startTimeMs
+                let currentTime = UInt64(timeProvider.millisTime)
+                if currentTime > startTouchEventTime {
+                    let dt = currentTime - startTouchEventTime
                     let dx = abs(startTouchX - location.x)
                     let dy = abs(startTouchY - location.y)
                     if dx <= touchSlop && dy <= touchSlop {

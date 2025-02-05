@@ -20,8 +20,16 @@ struct Attachment: Codable {
     /// An optional path to the attachment (not encoded).
     var path: String?
 
+    /// Size of the attachment in bytes
+    var size: Int64
+
+    /// A unique id for the image
+    var id: String
+
     init(name: String,
          type: AttachmentType,
+         size: Int64,
+         id: String,
          bytes: Data? = nil,
          path: String? = nil) {
         precondition(bytes != nil || path != nil, "Failed to create Attachment. Either bytes or path must be provided")
@@ -31,5 +39,7 @@ struct Attachment: Codable {
         self.type = type
         self.bytes = bytes
         self.path = path
+        self.size = size
+        self.id = id
     }
 }

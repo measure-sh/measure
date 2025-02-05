@@ -30,6 +30,9 @@ final class MockConfigProvider: ConfigProvider {
     var httpContentTypeAllowlist: [String]
     var defaultHttpHeadersBlocklist: [String]
     var eventTypeExportAllowList: [EventType]
+    var screenshotMaskHexColor: String
+    var screenshotCompressionQuality: Int
+    var layoutSnapshotDebounceInterval: Number
 
     init(enableLogging: Bool = false,
          trackScreenshotOnCrash: Bool = true,
@@ -61,7 +64,10 @@ final class MockConfigProvider: ConfigProvider {
                                                   .warmLaunch,
                                                   .lifecycleSwiftUI,
                                                   .lifecycleViewController,
-                                                  .screenView]) {
+                                                  .screenView],
+         screenshotMaskHexColor: String = "#222222",
+         screenshotCompressionQuality: Int = 25,
+         layoutSnapshotDebounceInterval: Number = 750) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
@@ -83,6 +89,9 @@ final class MockConfigProvider: ConfigProvider {
         self.httpContentTypeAllowlist = httpContentTypeAllowlist
         self.defaultHttpHeadersBlocklist = defaultHttpHeadersBlocklist
         self.eventTypeExportAllowList = eventTypeExportAllowList
+        self.screenshotMaskHexColor = screenshotMaskHexColor
+        self.screenshotCompressionQuality = screenshotCompressionQuality
+        self.layoutSnapshotDebounceInterval = layoutSnapshotDebounceInterval
     }
 
     func loadNetworkConfig() {}
