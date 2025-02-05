@@ -52,7 +52,12 @@ internal interface SignalProcessor {
     /**
      * Tracks a user defined event with the given data, timestamp and type.
      */
-    fun <T> trackUserTriggered(data: T, timestamp: Long, type: String)
+    fun <T> trackUserTriggered(
+        data: T,
+        timestamp: Long,
+        type: String,
+        attachments: MutableList<Attachment> = mutableListOf(),
+    )
 
     /**
      * Tracks a crash event with the given exception data, timestamp, type, attributes and attachments.
@@ -84,14 +89,19 @@ internal class SignalProcessorImpl(
     private val configProvider: ConfigProvider,
 ) : SignalProcessor {
 
-    override fun <T> trackUserTriggered(data: T, timestamp: Long, type: String) {
+    override fun <T> trackUserTriggered(
+        data: T,
+        timestamp: Long,
+        type: String,
+        attachments: MutableList<Attachment>,
+    ) {
         track(
             data = data,
             timestamp = timestamp,
             type = type,
             attributes = mutableMapOf(),
             userDefinedAttributes = mutableMapOf(),
-            attachments = mutableListOf(),
+            attachments = attachments,
             sessionId = null,
             threadName = null,
             userTriggered = true,

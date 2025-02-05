@@ -112,6 +112,10 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { maxInMemorySignalsQueueSize }
     override val inMemorySignalsQueueFlushRateMs: Long
         get() = getMergedConfig { inMemorySignalsQueueFlushRateMs }
+    override val maxAttachmentsInBugReport: Int
+        get() = getMergedConfig { maxAttachmentsInBugReport }
+    override val maxDescriptionLengthInBugReport: Int
+        get() = getMergedConfig { maxDescriptionLengthInBugReport }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (!trackHttpBody) {

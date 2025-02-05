@@ -37,11 +37,30 @@ internal class DataCleanupServiceImpl(
     override fun clearStaleData() {
         try {
             ioExecutor.submit {
-                deleteSessionsNotMarkedForReporting()
+                val currentSessionId = sessionManager.getSessionId()
+                deleteSessionsNotMarkedForReporting(currentSessionId)
                 trimEventsAndSpans()
+                deleteBugReports(currentSessionId)
             }
         } catch (e: RejectedExecutionException) {
             logger.log(LogLevel.Error, "Failed to submit data cleanup task to executor", e)
+        }
+    }
+
+    private fun deleteBugReports(currentSessionId: String) {
+        try {
+            val bugReportsDir = fileStorage.getBugReportDir()
+            if (!bugReportsDir.exists() || !bugReportsDir.isDirectory) {
+                return
+            }
+
+            bugReportsDir.listFiles()?.forEach { sessionDir ->
+                if (sessionDir.isDirectory && sessionDir.name != currentSessionId) {
+                    sessionDir.deleteRecursively()
+                }
+            }
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Failed to clean up stale bug reports", e)
         }
     }
 
@@ -65,8 +84,7 @@ internal class DataCleanupServiceImpl(
         }
     }
 
-    private fun deleteSessionsNotMarkedForReporting() {
-        val currentSessionId = sessionManager.getSessionId()
+    private fun deleteSessionsNotMarkedForReporting(currentSessionId: String) {
         val sessionIds = database.getSessionIds(
             needReporting = false,
             filterSessionIds = listOf(currentSessionId),

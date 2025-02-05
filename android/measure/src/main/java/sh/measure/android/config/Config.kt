@@ -51,4 +51,6 @@ internal data class Config(
     override val maxCheckpointsPerSpan: Int = 100
     override val maxInMemorySignalsQueueSize: Int = 30
     override val inMemorySignalsQueueFlushRateMs: Long = 3000
+    override val maxAttachmentsInBugReport: Int = 5
+    override val maxDescriptionLengthInBugReport: Int = 1000
 }

@@ -15,6 +15,8 @@ import sh.measure.android.attributes.NetworkStateAttributeProcessor
 import sh.measure.android.attributes.PowerStateAttributeProcessor
 import sh.measure.android.attributes.SpanDeviceAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
+import sh.measure.android.bugreport.BugReportCollector
+import sh.measure.android.bugreport.BugReportCollectorImpl
 import sh.measure.android.config.Config
 import sh.measure.android.config.ConfigLoaderImpl
 import sh.measure.android.config.ConfigProvider
@@ -130,7 +132,7 @@ internal class MeasureInitializerImpl(
     ),
     override val logger: Logger = AndroidLogger(configProvider.enableLogging),
     override val timeProvider: TimeProvider = AndroidTimeProvider(AndroidSystemClock()),
-    private val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
+    override val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
     private val fileStorage: FileStorage = FileStorageImpl(
         rootDir = application.filesDir.path,
         logger = logger,
@@ -285,6 +287,7 @@ internal class MeasureInitializerImpl(
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         processInfoProvider = processInfoProvider,
+        configProvider = configProvider,
     ),
     private val periodicHeartbeat: Heartbeat = HeartbeatImpl(
         logger,
@@ -426,6 +429,16 @@ internal class MeasureInitializerImpl(
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
     ),
+    override val bugReportCollector: BugReportCollector = BugReportCollectorImpl(
+        logger = logger,
+        fileStorage = fileStorage,
+        configProvider = configProvider,
+        ioExecutor = executorServiceRegistry.ioExecutor(),
+        idProvider = idProvider,
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        sessionManager = sessionManager,
+    ),
 ) : MeasureInitializer
 
 internal interface MeasureInitializer {
@@ -460,4 +473,6 @@ internal interface MeasureInitializer {
     val spanCollector: SpanCollector
     val customEventCollector: CustomEventCollector
     val periodicSignalStoreScheduler: PeriodicSignalStoreScheduler
+    val bugReportCollector: BugReportCollector
+    val executorServiceRegistry: ExecutorServiceRegistry
 }

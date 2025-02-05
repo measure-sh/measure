@@ -362,6 +362,14 @@ internal object Sql {
         """.trimIndent()
     }
 
+    fun markSessionWithBugReport(sessionId: String): String {
+        return """
+            UPDATE ${SessionsTable.TABLE_NAME}
+            SET ${SessionsTable.COL_NEEDS_REPORTING} = 1
+            WHERE ${SessionsTable.COL_SESSION_ID} = '$sessionId'
+        """.trimIndent()
+    }
+
     fun markSessionsCrashed(sessionIds: List<String>): String {
         return """
             UPDATE ${SessionsTable.TABLE_NAME}

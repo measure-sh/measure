@@ -1,5 +1,6 @@
 package sh.measure.android.layoutinspector
 
+import sh.measure.android.MsrAttachment
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.AttachmentType
 import sh.measure.android.gestures.DetectedGesture
@@ -26,6 +27,31 @@ internal class LayoutSnapshot(private val nodes: List<Node>) {
                     "snapshot.svg",
                     AttachmentType.LAYOUT_SNAPSHOT,
                     svg.encodeToByteArray(),
+                )
+            },
+        )
+    }
+
+    /**
+     * Generates an SVG visualization of the layout snapshot as an attachment.
+     *
+     * The SVG includes all nodes in the layout with their positions and dimensions.
+     * If a [targetNode] is provided, it will be highlighted in the visualization.
+     *
+     * @param targetNode Optional node to highlight in the SVG visualization
+     * @param width The width of the SVG to be generated.
+     * @param height The height of the SVG to be generated.
+     * @return An [Attachment] containing the SVG data with MIME type set to LAYOUT_SNAPSHOT
+     */
+    fun generateSvgMsrAttachment(targetNode: Node? = null, width: Int, height: Int): MsrAttachment {
+        return InternalTrace.trace(
+            label = { "msr-generateSvgAttachment" },
+            block = {
+                val svg = nodes.generateSvg(targetNode, width, height)
+                MsrAttachment(
+                    "snapshot.svg",
+                    svg.encodeToByteArray(),
+                    AttachmentType.LAYOUT_SNAPSHOT,
                 )
             },
         )
