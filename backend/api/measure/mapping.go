@@ -1,17 +1,22 @@
 package measure
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
+	"strings"
 	"time"
 
 	"backend/api/chrono"
 	"backend/api/cipher"
+	"backend/api/codec"
+	"backend/api/platform"
 	"backend/api/server"
+	"backend/api/symbol"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -34,27 +39,22 @@ type BuildMapping struct {
 	Location     string
 	ContentHash  string
 	File         *multipart.FileHeader `form:"mapping_file" binding:"required_with=MappingType"`
+	Difs         []*symbol.Dif
 	UploadStatus string
 	Timestamp    time.Time
 }
 
-// GetKey constructs a new key with extension for
-// the soon to be uploaded mapping file.
-func (bm BuildMapping) GetKey() string {
-	return fmt.Sprintf(`%s.txt`, bm.ID)
-}
-
-// HasMapping checks if necessary details are
+// hasMapping checks if necessary details are
 // valid for mapping build info.
-func (bm BuildMapping) HasMapping() bool {
+func (bm BuildMapping) hasMapping() bool {
 	if bm.MappingType != "" && bm.File != nil {
 		return true
 	}
 	return false
 }
 
-// Validate validates build mapping details.
-func (bm BuildMapping) Validate() (code int, err error) {
+// validate validates build mapping details.
+func (bm BuildMapping) validate(app *App) (code int, err error) {
 	code = http.StatusBadRequest
 
 	if bm.File == nil {
@@ -71,110 +71,223 @@ func (bm BuildMapping) Validate() (code int, err error) {
 		err = fmt.Errorf(`%q file size exceeding %d bytes`, bm.File.Filename, server.Server.Config.MappingFileMaxSize)
 	}
 
+	platformMappingErr := fmt.Errorf("%q mapping type is not valid for %q platform", bm.MappingType, app.Platform)
+
+	switch bm.MappingType {
+	case symbol.TypeProguard.String():
+		if app.Platform != platform.Android {
+			err = platformMappingErr
+		}
+		break
+	case symbol.TypeDsym.String():
+		if app.Platform != platform.IOS {
+			err = platformMappingErr
+			break
+		}
+		f, err := bm.File.Open()
+		defer f.Close()
+		if err != nil {
+			return http.StatusInternalServerError, err
+		}
+		if err := codec.IsTarGz(f); err != nil {
+			return http.StatusBadRequest, err
+		}
+	default:
+		err = fmt.Errorf("unknown mapping type %q", bm.MappingType)
+		return
+	}
+
 	return
 }
 
-func (bm BuildMapping) shouldUpsert(ctx context.Context, tx pgx.Tx) (bool, *uuid.UUID, error) {
-	var id uuid.UUID
-	var key string
+// shouldUpsert checks if build mapping needs
+// upsertion.
+func (bm BuildMapping) shouldUpsert(ctx context.Context, tx *pgx.Tx) (upload bool, existingId *uuid.UUID, err error) {
 	var existingHash string
 
 	stmt := sqlf.PostgreSQL.
-		Select("id, key, fnv1_hash").
-		From("public.build_mappings").
-		Where("app_id = ?", nil).
-		Where("version_name = ?", nil).
-		Where("version_code = ?", nil).
-		Where("mapping_type = ?", nil)
+		Select("id").
+		Select("fnv1_hash").
+		From("build_mappings").
+		Where("app_id = ?", bm.AppID).
+		Where("version_name = ?", bm.VersionName).
+		Where("version_code = ?", bm.VersionCode).
+		Where("mapping_type = ?", bm.MappingType)
 
 	defer stmt.Close()
 
-	if err := tx.QueryRow(ctx, stmt.String(), bm.AppID, bm.VersionName, bm.VersionCode, bm.MappingType).Scan(&id, &key, &existingHash); err != nil {
+	if err = (*tx).QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&existingId, &existingHash); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return true, nil, nil
-		} else {
-			return false, nil, err
+			upload = true
+			err = nil
 		}
+		return
 	}
 
-	if err := bm.checksum(); err != nil {
-		return false, nil, err
+	if err = bm.checksum(); err != nil {
+		return
 	}
 
 	// the content has changed
 	if bm.ContentHash != existingHash {
-		return true, &id, nil
+		upload = true
+		return
 	}
 
-	return false, &id, nil
+	return
 }
 
-func (bm BuildMapping) insert(ctx context.Context, tx pgx.Tx) error {
+// insert inserts a new build mapping entry
+// to database.
+func (bm BuildMapping) insert(ctx context.Context, tx *pgx.Tx) (err error) {
+	// compute checksum if not
+	// already computed
+	if bm.ContentHash == "" {
+		if err = bm.checksum(); err != nil {
+			return
+		}
+	}
+
 	stmt := sqlf.PostgreSQL.
 		InsertInto(`public.build_mappings`).
-		Set(`id`, nil).
-		Set(`app_id`, nil).
-		Set(`version_name`, nil).
-		Set(`version_code`, nil).
-		Set(`mapping_type`, nil).
-		Set(`key`, nil).
-		Set(`location`, nil).
-		Set(`fnv1_hash`, nil).
-		Set(`file_size`, nil).
-		Set(`last_updated`, nil)
+		Set(`id`, bm.ID).
+		Set(`app_id`, bm.AppID).
+		Set(`version_name`, bm.VersionName).
+		Set(`version_code`, bm.VersionCode).
+		Set(`mapping_type`, bm.MappingType).
+		Set(`key`, bm.Key).
+		Set(`location`, bm.Location).
+		Set(`fnv1_hash`, bm.ContentHash).
+		Set(`file_size`, bm.File.Size).
+		Set(`last_updated`, time.Now())
 
 	defer stmt.Close()
 
-	if _, err := tx.Exec(ctx, stmt.String(), bm.ID, bm.AppID, bm.VersionName, bm.VersionCode, bm.MappingType, bm.Key, bm.Location, bm.ContentHash, bm.File.Size, time.Now()); err != nil {
-		return err
-	}
+	_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
 
-	return nil
+	return
 }
 
-func (bm BuildMapping) upsert(ctx context.Context, tx pgx.Tx) error {
+// upsert updates the build mapping
+// entry in database.
+func (bm BuildMapping) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
+	// compute checksum if not
+	// already computed
+	if bm.ContentHash == "" {
+		if err = bm.checksum(); err != nil {
+			return
+		}
+	}
 	stmt := sqlf.PostgreSQL.
-		Update(`public.build_mappings`).
-		Set(`fnv1_hash`, nil).
-		Set(`file_size`, nil).
-		Set(`last_updated`, nil).
-		Where(`id = ?`, nil)
+		Update(`build_mappings`).
+		Set(`mapping_type`, bm.MappingType).
+		Set(`key`, bm.Key).
+		Set(`location`, bm.Location).
+		Set(`fnv1_hash`, bm.ContentHash).
+		Set(`file_size`, bm.File.Size).
+		Set(`last_updated`, time.Now()).
+		Where(`id = ?`, bm.ID)
 
 	defer stmt.Close()
 
-	if _, err := tx.Exec(ctx, stmt.String(), bm.ContentHash, bm.File.Size, time.Now(), bm.ID); err != nil {
-		return err
-	}
+	_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
 
-	return nil
+	return
 }
 
-func (bm *BuildMapping) checksum() error {
+// extractDif extracts the debug information
+// file(s) from build mapping respecting the
+// mapping type.
+func (bm *BuildMapping) extractDif() (difs []*symbol.Dif, err error) {
+	switch bm.MappingType {
+	case symbol.TypeProguard.String():
+		f, err := bm.File.Open()
+		if err != nil {
+			return nil, err
+		}
+
+		defer func() {
+			if err := f.Close(); err != nil {
+				fmt.Println("failed to close build mapping file")
+			}
+		}()
+
+		bytes, err := io.ReadAll(f)
+		if err != nil {
+			return nil, err
+		}
+
+		ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("guardsquare.com"))
+		debugId := uuid.NewSHA1(ns, bytes)
+		difs = append(difs, &symbol.Dif{
+			Data: bytes,
+			Key:  symbol.BuildUnifiedLayout(debugId.String()) + "/proguard",
+		})
+	case symbol.TypeDsym.String():
+		f, err := bm.File.Open()
+		if err != nil {
+			return nil, err
+		}
+
+		defer func() {
+			if err := f.Close(); err != nil {
+				fmt.Println("failed to close build mapping file")
+			}
+		}()
+
+		entities, err := symbol.ExtractDsymEntities(f, func(name string) (symbol.DsymType, bool) {
+			parts := strings.Split(name, "/")
+			last := ""
+			if len(parts) > 0 {
+				last = parts[len(parts)-1]
+			}
+			symbolCondition := strings.Count(name, "Contents/Resources/") == 1 && !strings.HasSuffix(name, ".dSYM") && len(parts) == 5 && !strings.HasPrefix(last, "._")
+
+			if symbolCondition {
+				return symbol.TypeDsymDebug, true
+			}
+
+			return symbol.TypeDsymUnknown, false
+		})
+
+		for k, v := range entities {
+			if k == symbol.TypeDsymDebug {
+				difs = append(difs, v...)
+			}
+		}
+	default:
+		err = fmt.Errorf("failed to recognize mapping type %q", bm.MappingType)
+	}
+
+	return
+}
+
+// checksum computes the checksum of the
+// mapping file.
+func (bm *BuildMapping) checksum() (err error) {
 	file, err := bm.File.Open()
 	if err != nil {
-		return err
+		return
 	}
 	hash, err := cipher.ChecksumFnv1(file)
 	if err != nil {
-		return err
+		return
 	}
 
-	// seek the file offset to the beginning as the checksum calculation
-	// must have moved the offset towards end of the file
+	// seek the file offset to the beginning as
+	// the checksum calculation must have moved
+	// the offset towards end of the file
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
 
 	bm.ContentHash = hash
-	return nil
+	return
 }
 
+// upload prepares and uploads build mapping
+// files to S3-like object storage.
 func (bm *BuildMapping) upload(ctx context.Context) (location *string, err error) {
-	file, err := bm.File.Open()
-	if err != nil {
-		return nil, err
-	}
-
 	config := server.Server.Config
 	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
 		return aws.Credentials{
@@ -196,10 +309,6 @@ func (bm *BuildMapping) upload(ctx context.Context) (location *string, err error
 		}
 	})
 
-	if bm.Key == "" {
-		bm.Key = bm.GetKey()
-	}
-
 	metadata := map[string]string{
 		"original_file_name": bm.File.Filename,
 		"app_id":             bm.AppID.String(),
@@ -208,11 +317,50 @@ func (bm *BuildMapping) upload(ctx context.Context) (location *string, err error
 		"mapping_type":       bm.MappingType,
 	}
 
-	putObjectInput := &s3.PutObjectInput{
-		Bucket:   aws.String(config.SymbolsBucket),
-		Key:      aws.String(bm.Key),
-		Body:     file,
-		Metadata: metadata,
+	switch bm.MappingType {
+	case symbol.TypeProguard.String():
+		for _, dif := range bm.Difs {
+			putObjectInput := &s3.PutObjectInput{
+				Bucket:   aws.String(config.SymbolsBucket),
+				Key:      aws.String(dif.Key),
+				Body:     bytes.NewReader(dif.Data),
+				Metadata: metadata,
+			}
+			_, err = client.PutObject(ctx, putObjectInput)
+			if err != nil {
+				return
+			}
+			bm.Key = dif.Key
+		}
+	case symbol.TypeDsym.String():
+		for _, dif := range bm.Difs {
+			if !dif.Meta {
+				putObjectInput := &s3.PutObjectInput{
+					Bucket:   aws.String(config.SymbolsBucket),
+					Key:      aws.String(dif.Key),
+					Body:     bytes.NewReader(dif.Data),
+					Metadata: metadata,
+				}
+				_, err = client.PutObject(ctx, putObjectInput)
+				if err != nil {
+					return
+				}
+				bm.Key = dif.Key
+			}
+
+			if dif.Meta {
+				putObjectInput := &s3.PutObjectInput{
+					Bucket:   aws.String(config.SymbolsBucket),
+					Key:      aws.String(dif.Key),
+					Body:     bytes.NewReader(dif.Data),
+					Metadata: metadata,
+				}
+				_, err = client.PutObject(ctx, putObjectInput)
+				if err != nil {
+					return
+				}
+			}
+		}
 	}
 
 	loc := ""
@@ -229,13 +377,6 @@ func (bm *BuildMapping) upload(ctx context.Context) (location *string, err error
 
 	location = &loc
 
-	// ignore the putObjectOutput, don't need
-	// it for now
-	_, err = client.PutObject(ctx, putObjectInput)
-	if err != nil {
-		return
-	}
-
 	return
 }
 
@@ -249,31 +390,42 @@ type BuildSize struct {
 	CreatedAt   chrono.ISOTime
 }
 
-func (bs BuildSize) Upsert(ctx context.Context, tx pgx.Tx) error {
+// upsert updates build size info to
+// database.
+func (bs BuildSize) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.
 		InsertInto(`public.build_sizes`).
-		Set(`app_id`, nil).
-		Set(`version_name`, nil).
-		Set(`version_code`, nil).
-		Set(`build_size`, nil).
-		Set(`build_type`, nil).
+		Set(`app_id`, bs.AppID).
+		Set(`version_name`, bs.VersionName).
+		Set(`version_code`, bs.VersionCode).
+		Set(`build_size`, bs.BuildSize).
+		Set(`build_type`, bs.BuildType).
 		Clause(`on conflict (app_id, version_name, version_code, build_type) do update set build_size = excluded.build_size, updated_at = excluded.updated_at`, nil)
 
 	defer stmt.Close()
 
-	if _, err := tx.Exec(ctx, stmt.String(), bs.AppID, bs.VersionName, bs.VersionCode, bs.BuildSize, bs.BuildType); err != nil {
-		return err
-	}
+	_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
 
 	return nil
 }
 
 func PutBuild(c *gin.Context) {
+	ctx := c.Request.Context()
 	appId, err := uuid.Parse(c.GetString("appId"))
 	if err != nil {
 		msg := `failed to parse app id`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	app, err := SelectApp(ctx, appId)
+	if err != nil {
+		msg := "failed to read app"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
 		return
 	}
 
@@ -300,14 +452,33 @@ func PutBuild(c *gin.Context) {
 		return
 	}
 
-	if code, err := bm.Validate(); err != nil {
-		c.JSON(code, gin.H{"error": err.Error()})
+	if code, err := bm.validate(app); err != nil {
+		msg := "failed to validate build mapping"
+		fmt.Println(msg, err)
+		c.JSON(code, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
 	}
 
-	ctx := c.Request.Context()
-	tx, err := server.Server.PgPool.Begin(ctx)
+	difs, err := bm.extractDif()
 	if err != nil {
-		msg := `failed to begin db transaction`
+		msg := "failed to extract debug id from mapping file"
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	bm.Difs = difs
+
+	tx, err := server.Server.PgPool.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel: pgx.ReadCommitted,
+	})
+	if err != nil {
+		msg := `failed to acquire db transaction while putting builds`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -317,8 +488,8 @@ func PutBuild(c *gin.Context) {
 
 	// no mapping, just process build size
 	// and return early
-	if !bm.HasMapping() {
-		if err := bs.Upsert(ctx, tx); err != nil {
+	if !bm.hasMapping() {
+		if err := bs.upsert(ctx, &tx); err != nil {
 			msg := `failed to register app build size`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -338,7 +509,7 @@ func PutBuild(c *gin.Context) {
 		return
 	}
 
-	shouldUpload, existingId, err := bm.shouldUpsert(ctx, tx)
+	shouldUpload, existingId, err := bm.shouldUpsert(ctx, &tx)
 	if err != nil {
 		fmt.Println("failed to detect mapping file upsertion", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -367,9 +538,20 @@ func PutBuild(c *gin.Context) {
 
 	if existingId != nil {
 		bm.ID = *existingId
-		if err := bm.upsert(ctx, tx); err != nil {
+		if err := bm.upsert(ctx, &tx); err != nil {
 			fmt.Printf("failed to upsert mapping file, key: %s with error, %v\n", bm.Key, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf(`failed to upload build info: "%s"`, bm.File.Filename)})
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf(`failed to upload build info: "%s"`, bm.File.Filename),
+			})
+			return
+		}
+		if err := tx.Commit(ctx); err != nil {
+			msg := "failed to commit builds upsert db transaction"
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
 			return
 		}
 		msg := `existing build info is already up to date`
@@ -380,7 +562,7 @@ func PutBuild(c *gin.Context) {
 		return
 	}
 
-	if err := bm.insert(ctx, tx); err != nil {
+	if err := bm.insert(ctx, &tx); err != nil {
 		fmt.Printf("failed to insert mapping file, key: %s with error, %v\n", bm.Key, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, bm.File.Filename),
@@ -388,7 +570,7 @@ func PutBuild(c *gin.Context) {
 		return
 	}
 
-	if err := bs.Upsert(ctx, tx); err != nil {
+	if err := bs.upsert(ctx, &tx); err != nil {
 		msg := `failed to register app build size`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})

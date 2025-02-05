@@ -1,0 +1,203 @@
+package symbol
+
+import (
+	"archive/tar"
+	"compress/gzip"
+	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"strings"
+)
+
+const (
+	// TypeDsymUnknown represents an unknown
+	// dSYM entity.
+	TypeDsymUnknown DsymType = iota
+	// TypeDsymDebug represents a symbol
+	// debug entity.
+	TypeDsymDebug
+)
+
+// String provides the human recognizable
+// dSYM entity type.
+func (d DsymType) String() string {
+	switch d {
+	default:
+		return "unknown"
+	case TypeDsymDebug:
+		return "dsymDebug"
+	}
+}
+
+// DsymType represents the kind of
+// entity residing in a dSYM bundle.
+type DsymType int
+
+// Dif represents debug information
+// files.
+//
+// Dif is designed to be cross-
+// platform. On iOS, there may be
+// more than 1 dif entry. 1 for the
+// symbol debug file and another
+// meta file.
+type Dif struct {
+	// Data contains raw bytes of
+	// the file.
+	Data []byte
+	// Meta denotes if the dif is
+	// a meta file.
+	Meta bool
+	// Key contains the S3-like
+	// object key.
+	Key string
+}
+
+// ExtractDsymEntities extracts data from Mach-O
+// binary by reading a gzipped tarball while
+// matching a caller provided predicate.
+func ExtractDsymEntities(file io.Reader, filter func(string) (DsymType, bool)) (entities map[DsymType][]*Dif, err error) {
+	gzipReader, err := gzip.NewReader(file)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := gzipReader.Close(); err != nil {
+			fmt.Println("failed to close gzip reader while extracting dSYM entities")
+		}
+	}()
+
+	tarReader := tar.NewReader(gzipReader)
+
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		if header.Typeflag == tar.TypeDir {
+			continue
+		}
+
+		if dSYMType, ok := filter(header.Name); ok {
+			if entities == nil {
+				entities = make(map[DsymType][]*Dif)
+			}
+
+			if err = verifyMachO(tarReader); err != nil {
+				return nil, err
+			}
+
+			debugId, err2 := getMachOUUID(tarReader)
+			if err2 != nil {
+				return nil, err2
+			}
+
+			parts := strings.Split(header.Name, "/")
+			name := parts[len(parts)-1]
+
+			type meta struct {
+				Name       string `json:"name"`
+				Arch       string `json:"arch"`
+				FileFormat string `json:"file_format"`
+			}
+
+			m := meta{
+				Name:       name,
+				Arch:       "arm64",
+				FileFormat: "macho",
+			}
+
+			metaJson, err3 := json.Marshal(m)
+			if err3 != nil {
+				return nil, err3
+			}
+			unifiedPath := BuildUnifiedLayout(debugId)
+			debugBytes, err4 := io.ReadAll(tarReader)
+			if err4 != nil {
+				return nil, err4
+			}
+
+			difs := []*Dif{
+				{
+					Data: debugBytes,
+					Meta: false,
+					Key:  unifiedPath + "/debuginfo",
+				},
+				{
+					Data: metaJson,
+					Meta: true,
+					Key:  unifiedPath + "/meta",
+				},
+			}
+
+			entities[dSYMType] = difs
+		}
+	}
+
+	return
+}
+
+// BuildUnifiedLayout creates a Sentry
+// compatible unified layout from a debug id.
+func BuildUnifiedLayout(id string) string {
+	stripped := strings.ReplaceAll(id, "-", "")
+	return fmt.Sprintf("%s/%s", stripped[:2], stripped[2:])
+}
+
+// verifyMachO verifies Mach-O magic number.
+func verifyMachO(f *tar.Reader) (err error) {
+	buffer := make([]byte, 4096)
+	n, err := f.Read(buffer[:8])
+	if err != nil && err != io.EOF {
+		return
+	}
+
+	magic := hex.EncodeToString(buffer[:4])
+
+	if n < 4 || magic != "cffaedfe" && magic != "cefaedfe" {
+		return errors.New("failed to find valid Mach-O magic number")
+	}
+
+	return
+}
+
+// getMachOUUID extracts the binary id
+// from Mach-O binary data.
+func getMachOUUID(f *tar.Reader) (string, error) {
+	const CHUNK_SIZE = 4096
+	const LC_UUID_SIZE = 24
+	buffer := make([]byte, CHUNK_SIZE)
+
+	for {
+		n, err := f.Read(buffer)
+		if err == io.EOF {
+			return "", nil
+		}
+		if err != nil {
+			return "", fmt.Errorf("failed to read Mach-O stream: %w", err)
+		}
+
+		for i := 0; i <= n-LC_UUID_SIZE; i++ {
+			if buffer[i] == 0x1b &&
+				binary.LittleEndian.Uint32(buffer[i+4:i+8]) == LC_UUID_SIZE {
+				uuidBytes := buffer[i+8 : i+8+16]
+				debugId := formatUUID(uuidBytes)
+				return debugId, nil
+			}
+		}
+	}
+}
+
+// formatUUID encodes a uuid byte slice
+// to hex string.
+func formatUUID(uuid []byte) string {
+	return fmt.Sprintf("%s-%s-%s-%s-%s", hex.EncodeToString(uuid[0:4]), hex.EncodeToString(uuid[4:6]), hex.EncodeToString(uuid[6:8]), hex.EncodeToString(uuid[8:10]), hex.EncodeToString(uuid[10:16]))
+}

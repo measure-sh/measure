@@ -17,9 +17,34 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-// TypeProguard represents the "proguard"
-// type of mapping symbolication.
-const TypeProguard = "proguard"
+const (
+	// TypeUnknown represents an unknown
+	// type of mapping symbolication.
+	TypeUnknown MappingType = iota
+	// TypeProguard represents the "proguard"
+	// type of mapping symbolication.
+	TypeProguard
+	// TypeDsym represents the "dSYM"
+	// type of mapping symbolication.
+	TypeDsym
+)
+
+// MappingType represents the mapping
+// type for internal computational use.
+type MappingType int
+
+// String provides the human recognizable
+// mapping type.
+func (m MappingType) String() string {
+	switch m {
+	default:
+		return "unknown"
+	case TypeProguard:
+		return "proguard"
+	case TypeDsym:
+		return "dsym"
+	}
+}
 
 // Symboler describes the interface for symbolication.
 type Symboler interface {
@@ -108,7 +133,7 @@ func (s Symbolicator) Batch(events []event.EventField) (batches []SymbolBatch) {
 			appId:       events[i].AppID,
 			versionName: events[i].Attribute.AppVersion,
 			versionCode: events[i].Attribute.AppBuild,
-			mappingType: TypeProguard,
+			mappingType: TypeProguard.String(),
 		}
 
 		batch, exists := keys[key.String()]

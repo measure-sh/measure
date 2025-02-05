@@ -92,7 +92,7 @@ func TestMappingKeyString(t *testing.T) {
 		appId:       appId,
 		versionName: "1.0.0",
 		versionCode: "1000",
-		mappingType: TypeProguard,
+		mappingType: TypeProguard.String(),
 	}
 
 	expectedA := "f1246218-0ea8-4b80-8b40-2cf1c837478c/1.0.0/1000/proguard"
