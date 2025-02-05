@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"backend/api/codec"
 	"backend/api/event"
 	"backend/api/span"
 	"encoding/json"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/klauspost/compress/zstd"
 
 	"github.com/BurntSushi/toml"
 	"github.com/spf13/cobra"
@@ -327,7 +327,7 @@ func writeBuild(c *gin.Context) {
 		mappingType = "proguard"
 	case "dsym":
 		mappingType = "dsym"
-		extension = ".dsym.zst"
+		extension = ".dsym.tgz"
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": fmt.Errorf("%q should be either %q or %q", "mapping_type", "proguard", "dsym"),
@@ -351,6 +351,14 @@ func writeBuild(c *gin.Context) {
 
 	defer file.Close()
 
+	if err := codec.IsTarGz(file); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   fmt.Errorf("%q is not a gzipped tarball", "mapping_file"),
+			"details": err.Error(),
+		})
+		return
+	}
+
 	mappingFile := filename + extension
 	mappingFilePath := filepath.Join(outputDir, appUniqueID, versionName, mappingFile)
 	if err := os.MkdirAll(filepath.Dir(mappingFilePath), 0755); err != nil {
@@ -369,31 +377,12 @@ func writeBuild(c *gin.Context) {
 	}
 	defer out.Close()
 
-	switch mappingType {
-	case "dsym":
-		enc, err := zstd.NewWriter(out)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Errorf("failed to compress %q file: %v", mappingFile, err),
-			})
-			return
-		}
-		defer enc.Close()
-		_, err = io.Copy(enc, file)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Errorf("failed to compress %q file: %v", mappingFile, err),
-			})
-			return
-		}
-	case "proguard":
-		_, err = io.Copy(out, file)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Errorf("failed to write %q file: %v", mappingFile, err),
-			})
-			return
-		}
+	_, err = io.Copy(out, file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Errorf("failed to write mapping file %q: %v", mappingFile, err),
+		})
+		return
 	}
 
 	buildType := c.Request.FormValue("build_type")
