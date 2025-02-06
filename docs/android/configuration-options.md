@@ -36,7 +36,7 @@ Measure.init(
 * [**httpHeadersBlocklist**](#httpHeadersBlocklist)
 * [**trackHttpBody**](#trackHttpBody)
 * [**trackActivityIntentData**](#trackActivityIntentData)
-* [**sessionSamplingRate**](#sessionSamplingRate)
+* [**samplingRateForErrorFreeSessions**](#samplingRateForErrorFreeSessions)
 * [**enableLogging**](#enableLogging)
 * [**eventTrackingLevel**](#eventTrackingLevel)
 * [**traceSamplingRate**](#traceSamplingRate)
@@ -170,18 +170,16 @@ checking what data was passed as part of the bundle, it might also contain sensi
 
 Disabled by default.
 
-## `sessionSamplingRate`
+## `samplingRateForErrorFreeSessions`
 
-Measure SDK by default collects events for crashed sessions only. However, in case you want to collect
-events at a sampled rate for non-crashed sessions, use `sessionSamplingRate.
+Controls sampling rate for non-crashed sessions. Defaults to 0. 
 
-Defaults to 0.0, meaning no events for non-crashed sessions are exported by default.
+A value between 0.0 and 1.0 can be set:
+* 0.0 (default): Only collect crashed sessions
+* 0.1: Collect 10% of non-crashed sessions
+* 1.0: Collect all sessions
 
-The sampling rate is a value between 0 and 1. For example, a value of `0.1` will export only 10%
-of the non-crashed sessions, a value of `0` will disable exporting of non-crashed sessions.
-
-Note that events for crashed sessions are always exported. And certain events like `cold_launch`, `warm_launch`,
-`hot_launch`, `lifecycle_activity`, `lifecycle_fragment` are always exported regardless of the sampling rate.
+Note that all crashed sessions are collected regardless of this setting.
 
 ## `traceSamplingRate`
 
@@ -195,16 +193,6 @@ of the traces, a value of `0` will disable exporting of traces completely.
 
 Allows enabling/disabling internal logging of Measure SDK. This is useful to debug issues with the SDK
 itself. By default, logging is disabled.
-
-## `samplingRateForErrorFreeSessions`
-
-By default, sessions with errors (crashes and ANRs) are reported. Sessions without
-errors can also be reported with a sampling rate.
-
-Defaults to 0.0, meaning no error-free sessions are reported by default.
-
-The sampling rate is a value between 0 and 1. For example, a value of `0.1` will report only 10%
-of the error-free sessions, a value of `0` will disable reporting of error-free sessions.
 
 ## `autoStart`
 
