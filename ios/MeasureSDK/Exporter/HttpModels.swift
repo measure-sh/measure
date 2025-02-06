@@ -9,6 +9,7 @@ import Foundation
 
 enum MultipartData {
     case formField(name: String, value: String)
+    case fileData(name: String, filename: String, data: Data)
 }
 
 enum HttpResponse {

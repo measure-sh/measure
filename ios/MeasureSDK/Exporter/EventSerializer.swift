@@ -219,7 +219,7 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
         var result = "{"
         result += "\"binary_name\":\"\(escapeString(stackFrame.binaryName))\","
         result += "\"binary_address\":\"\(escapeString(stackFrame.binaryAddress))\","
-        result += "\"offset\":\"\(escapeString(stackFrame.offset))\","
+        result += "\"offset\":\(escapeString(stackFrame.offset)),"
         result += "\"frame_index\":\(stackFrame.frameIndex),"
         result += "\"symbol_address\":\"\(escapeString(stackFrame.symbolAddress))\","
         result += "\"in_app\":\(stackFrame.inApp)"
@@ -435,6 +435,32 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
         return result
     }
 
+    private func getSerialisedAttachments(for event: EventEntity) -> String? {
+        if let attachmentData = event.attachments {
+            do {
+                let decodedAttachments = try JSONDecoder().decode([Attachment].self, from: attachmentData)
+                if decodedAttachments.isEmpty {
+                    return nil
+                }
+                var result = "["
+                for attachment in decodedAttachments {
+                    result += "{"
+                    result += "\"id\":\"\(attachment.id)\","
+                    result += "\"name\":\"\(attachment.name)\","
+                    result += "\"type\":\"\(attachment.type.rawValue)\""
+                    result += "},"
+                }
+                result = String(result.dropLast())
+                result += "]"
+                return result
+            } catch {
+                return nil
+            }
+        } else {
+            return nil
+        }
+    }
+
     private func getSerialisedAttributes(for event: EventEntity) -> String? {
         let decodedAttributes: Attributes?
         if let attributeData = event.attributes {
@@ -492,6 +518,9 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
         if let userDefinedAttributes = event.userDefinedAttributes {
             result += "\"user_defined_attribute\":\(userDefinedAttributes),"
         }
+        if let attachments = getSerialisedAttachments(for: event) {
+            result += "\"attachments\":\(attachments),"
+        }
         result += "\"user_triggered\":\(event.userTriggered)"
         result += "}"
         return result
@@ -508,4 +537,4 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
         result += "}"
         return result
     }
-}
+} // swiftlint:disable:this file_length

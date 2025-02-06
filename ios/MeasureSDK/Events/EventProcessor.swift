@@ -42,16 +42,14 @@ final class BaseEventProcessor: EventProcessor {
     private var crashDataPersistence: CrashDataPersistence
     private let eventStore: EventStore
 
-    init(
-        logger: Logger,
-        idProvider: IdProvider,
-        sessionManager: SessionManager,
-        attributeProcessors: [AttributeProcessor],
-        configProvider: ConfigProvider,
-        timeProvider: TimeProvider,
-        crashDataPersistence: CrashDataPersistence,
-        eventStore: EventStore
-    ) {
+    init(logger: Logger,
+         idProvider: IdProvider,
+         sessionManager: SessionManager,
+         attributeProcessors: [AttributeProcessor],
+         configProvider: ConfigProvider,
+         timeProvider: TimeProvider,
+         crashDataPersistence: CrashDataPersistence,
+         eventStore: EventStore) {
         self.logger = logger
         self.idProvider = idProvider
         self.sessionManager = sessionManager

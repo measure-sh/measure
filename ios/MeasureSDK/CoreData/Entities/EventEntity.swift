@@ -44,7 +44,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.type = event.type.rawValue
         self.userTriggered = event.userTriggered
         self.timestampInMillis = event.timestampInMillis ?? 0
-        self.attachmentSize = 0
+        self.attachmentSize = event.attachments?.reduce(0) { $0 + $1.size } ?? 0
         self.batchId = nil
         self.userDefinedAttributes = event.userDefinedAttributes
         self.needsReporting = needsReporting
@@ -236,10 +236,14 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.attributes = nil
         }
 
-        do {
-            let data = try JSONEncoder().encode(event.attachments)
-            self.attachments = data
-        } catch {
+        if let attachments = event.attachments {
+            do {
+                let data = try JSONEncoder().encode(attachments)
+                self.attachments = data
+            } catch {
+                self.attachments = nil
+            }
+        } else {
             self.attachments = nil
         }
     }
@@ -466,9 +470,21 @@ struct EventEntity { // swiftlint:disable:this type_body_length
                      timestampInMillis: self.timestampInMillis,
                      type: EventType(rawValue: self.type) ?? .exception,
                      data: decodedData,
-                     attachments: decodedAttachments ?? [Attachment](),
+                     attachments: decodedAttachments,
                      attributes: decodedAttributes,
                      userTriggered: self.userTriggered,
                      userDefinedAttributes: self.userDefinedAttributes)
+    }
+
+    func getAttachments() -> [Attachment]? {
+        if let attachmentData = self.attachments {
+            do {
+                return try JSONDecoder().decode([Attachment].self, from: attachmentData)
+            } catch {
+                return nil
+            }
+        } else {
+            return nil
+        }
     }
 }

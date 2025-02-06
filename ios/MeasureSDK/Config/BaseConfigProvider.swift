@@ -33,6 +33,18 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var layoutSnapshotDebounceInterval: Number {
+        return getMergedConfig(\.layoutSnapshotDebounceInterval)
+    }
+
+    var screenshotMaskHexColor: String {
+        return getMergedConfig(\.screenshotMaskHexColor)
+    }
+
+    var screenshotCompressionQuality: Int {
+        return getMergedConfig(\.screenshotCompressionQuality)
+    }
+
     var eventTypeExportAllowList: [EventType] {
         return getMergedConfig(\.eventTypeExportAllowList)
     }

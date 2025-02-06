@@ -36,6 +36,9 @@ struct Config: InternalConfig, MeasureConfig {
     let maxUserDefinedAttributeValueLength: Int
     let maxUserDefinedAttributesPerEvent: Int
     let eventTypeExportAllowList: [EventType]
+    let screenshotMaskHexColor: String
+    let screenshotCompressionQuality: Int
+    let layoutSnapshotDebounceInterval: Number
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   trackScreenshotOnCrash: Bool = DefaultConfig.trackScreenshotOnCrash,
@@ -71,5 +74,8 @@ struct Config: InternalConfig, MeasureConfig {
                                          .lifecycleSwiftUI,
                                          .lifecycleViewController,
                                          .screenView]
+        self.screenshotMaskHexColor = "#222222"
+        self.screenshotCompressionQuality = 25
+        self.layoutSnapshotDebounceInterval = 750 // 750 ms
     }
 }

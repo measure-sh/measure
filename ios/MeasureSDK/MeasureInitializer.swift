@@ -52,6 +52,10 @@ protocol MeasureInitializer {
     var customEventCollector: CustomEventCollector { get }
     var userTriggeredEventCollector: UserTriggeredEventCollector { get }
     var dataCleanupService: DataCleanupService { get }
+    var attachmentProcessor: AttachmentProcessor { get }
+    var layoutSnapshotGenerator: LayoutSnapshotGenerator { get }
+    var userPermissionManager: UserPermissionManager { get }
+    var svgGenerator: SvgGenerator { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -98,6 +102,10 @@ protocol MeasureInitializer {
 /// - `batchStore`: `BatchStore` object that manages `Batch` related operations
 /// - `batchCreator`: `BatchCreator` object used to create a batch.
 /// - `dataCleanupService`: `DataCleanupService` object responsible for clearing stale data
+/// - `attachmentProcessor`: `AttachmentProcessor` object responsible for generating and managing screenshots.
+/// - `svgGenerator`: `SvgGenerator` object responsible for generating layout snapshot svg.
+/// - `layoutSnapshotGenerator`: `LayoutSnapshotGenerator` object responsible for generating a layout snapshot.
+/// - `userPermissionManager`: `UserPermissionManager` object managing user permissions.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -142,6 +150,10 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let customEventCollector: CustomEventCollector
     let userTriggeredEventCollector: UserTriggeredEventCollector
     let dataCleanupService: DataCleanupService
+    let attachmentProcessor: AttachmentProcessor
+    let layoutSnapshotGenerator: LayoutSnapshotGenerator
+    let userPermissionManager: UserPermissionManager
+    let svgGenerator: SvgGenerator
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -183,6 +195,16 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.crashDataPersistence = BaseCrashDataPersistence(logger: logger,
                                                              systemFileManager: systemFileManager)
         CrashDataWriter.shared.setCrashDataPersistence(crashDataPersistence)
+        self.attachmentProcessor = BaseAttachmentProcessor(logger: logger,
+                                                           fileManager: systemFileManager,
+                                                           idProvider: idProvider)
+        self.userPermissionManager = BaseUserPermissionManager()
+        self.svgGenerator = BaseSvgGenerator()
+        self.layoutSnapshotGenerator = BaseLayoutSnapshotGenerator(logger: logger,
+                                                                   configProvider: configProvider,
+                                                                   timeProvider: timeProvider,
+                                                                   attachmentProcessor: attachmentProcessor,
+                                                                   svgGenerator: svgGenerator)
         self.eventProcessor = BaseEventProcessor(logger: logger,
                                                  idProvider: idProvider,
                                                  sessionManager: sessionManager,
@@ -195,17 +217,23 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.crashReportManager = CrashReportingManager(logger: logger,
                                                         eventProcessor: eventProcessor,
                                                         crashDataPersistence: crashDataPersistence,
-                                                        crashReporter: systemCrashReporter)
+                                                        crashReporter: systemCrashReporter,
+                                                        systemFileManager: systemFileManager,
+                                                        idProvider: idProvider,
+                                                        configProvider: configProvider)
         self.gestureTargetFinder = BaseGestureTargetFinder()
         self.gestureCollector = BaseGestureCollector(logger: logger,
                                                      eventProcessor: eventProcessor,
                                                      timeProvider: timeProvider,
                                                      configProvider: configProvider,
-                                                     gestureTargetFinder: gestureTargetFinder)
+                                                     gestureTargetFinder: gestureTargetFinder,
+                                                     layoutSnapshotGenerator: layoutSnapshotGenerator,
+                                                     systemFileManager: systemFileManager)
         self.httpClient = BaseHttpClient(logger: logger, configProvider: configProvider)
         self.networkClient = BaseNetworkClient(client: client,
                                                httpClient: httpClient,
-                                               eventSerializer: EventSerializer())
+                                               eventSerializer: EventSerializer(),
+                                               systemFileManager: systemFileManager)
         self.heartbeat = BaseHeartbeat()
         self.batchStore = BaseBatchStore(coreDataManager: coreDataManager,
                                          logger: logger)

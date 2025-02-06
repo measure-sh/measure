@@ -14,6 +14,9 @@ final class CrashReportingManagerTests: XCTestCase {
     var eventProcessor: MockEventProcessor!
     var crashDataPersistence: MockCrashDataPersistence!
     var systemCrashReporter: MockSystemCrashReporter!
+    var systemFileManager: MockSystemFileManager!
+    var idProvider: MockIdProvider!
+    var configProvider: MockConfigProvider!
 
     let fileManagerHelper = FileManagerHelper()
     let attributes = Attributes(
@@ -55,10 +58,16 @@ final class CrashReportingManagerTests: XCTestCase {
             systemCrashReporter = MockSystemCrashReporter(hasPendingCrashReport: true,
                                                           crashData: data)
         }
+        systemFileManager = MockSystemFileManager()
+        idProvider = MockIdProvider("uuid")
+        configProvider = MockConfigProvider()
         crashReportingManager = CrashReportingManager(logger: MockLogger(),
                                                       eventProcessor: eventProcessor,
                                                       crashDataPersistence: crashDataPersistence,
-                                                      crashReporter: systemCrashReporter)
+                                                      crashReporter: systemCrashReporter,
+                                                      systemFileManager: systemFileManager,
+                                                      idProvider: idProvider,
+                                                      configProvider: configProvider)
         crashReportingManager.enableCrashReporting()
     }
 
@@ -68,6 +77,9 @@ final class CrashReportingManagerTests: XCTestCase {
         eventProcessor = nil
         crashDataPersistence = nil
         systemCrashReporter = nil
+        systemFileManager = nil
+        idProvider = nil
+        configProvider = nil
     }
 
     func testInsertSession() {

@@ -9,9 +9,6 @@ import Foundation
 @testable import MeasureSDK
 
 final class MockMeasureInitializer: MeasureInitializer {
-    let lifecycleCollector: LifecycleCollector
-    let networkClient: NetworkClient
-    let httpClient: HttpClient
     let configProvider: ConfigProvider
     let client: Client
     let logger: Logger
@@ -35,22 +32,29 @@ final class MockMeasureInitializer: MeasureInitializer {
     let eventStore: EventStore
     let gestureCollector: GestureCollector
     let gestureTargetFinder: GestureTargetFinder
-    let periodicEventExporter: PeriodicEventExporter
+    let networkClient: NetworkClient
+    let httpClient: HttpClient
     let heartbeat: Heartbeat
+    let periodicEventExporter: PeriodicEventExporter
     let eventExporter: EventExporter
     let batchStore: BatchStore
     let batchCreator: BatchCreator
+    let lifecycleCollector: LifecycleCollector
     let cpuUsageCollector: CpuUsageCollector
     let memoryUsageCollector: MemoryUsageCollector
     let cpuUsageCalculator: CpuUsageCalculator
     let memoryUsageCalculator: MemoryUsageCalculator
     let sysCtl: SysCtl
     let appLaunchCollector: AppLaunchCollector
-    let httpEventCollector: HttpEventCollector
-    let customEventCollector: CustomEventCollector
+    var httpEventCollector: HttpEventCollector
     let networkChangeCollector: NetworkChangeCollector
+    let customEventCollector: CustomEventCollector
     let userTriggeredEventCollector: UserTriggeredEventCollector
     let dataCleanupService: DataCleanupService
+    let attachmentProcessor: AttachmentProcessor
+    let layoutSnapshotGenerator: LayoutSnapshotGenerator
+    let userPermissionManager: UserPermissionManager
+    let svgGenerator: SvgGenerator
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -61,7 +65,7 @@ final class MockMeasureInitializer: MeasureInitializer {
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
         self.timeProvider = BaseTimeProvider()
-        self.logger = MockLogger()
+        self.logger = MeasureLogger(enabled: configProvider.enableLogging)
         self.idProvider = UUIDProvider()
         self.coreDataManager = BaseCoreDataManager()
         self.sessionStore = BaseSessionStore(coreDataManager: coreDataManager,
@@ -76,7 +80,7 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                  sessionStore: sessionStore,
                                                  eventStore: eventStore,
                                                  userDefaultStorage: userDefaultStorage,
-                                                 versionCode: "1.0.0")
+                                                 versionCode: FrameworkInfo.version)
         self.appAttributeProcessor = AppAttributeProcessor()
         self.deviceAttributeProcessor = DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = InstallationIdAttributeProcessor(userDefaultStorage: userDefaultStorage,
@@ -92,6 +96,16 @@ final class MockMeasureInitializer: MeasureInitializer {
         self.crashDataPersistence = BaseCrashDataPersistence(logger: logger,
                                                              systemFileManager: systemFileManager)
         CrashDataWriter.shared.setCrashDataPersistence(crashDataPersistence)
+        self.attachmentProcessor = BaseAttachmentProcessor(logger: logger,
+                                                           fileManager: systemFileManager,
+                                                           idProvider: idProvider)
+        self.userPermissionManager = BaseUserPermissionManager()
+        self.svgGenerator = BaseSvgGenerator()
+        self.layoutSnapshotGenerator = BaseLayoutSnapshotGenerator(logger: logger,
+                                                                   configProvider: configProvider,
+                                                                   timeProvider: timeProvider,
+                                                                   attachmentProcessor: attachmentProcessor,
+                                                                   svgGenerator: svgGenerator)
         self.eventProcessor = BaseEventProcessor(logger: logger,
                                                  idProvider: idProvider,
                                                  sessionManager: sessionManager,
@@ -104,17 +118,23 @@ final class MockMeasureInitializer: MeasureInitializer {
         self.crashReportManager = CrashReportingManager(logger: logger,
                                                         eventProcessor: eventProcessor,
                                                         crashDataPersistence: crashDataPersistence,
-                                                        crashReporter: systemCrashReporter)
+                                                        crashReporter: systemCrashReporter,
+                                                        systemFileManager: systemFileManager,
+                                                        idProvider: idProvider,
+                                                        configProvider: configProvider)
         self.gestureTargetFinder = BaseGestureTargetFinder()
         self.gestureCollector = BaseGestureCollector(logger: logger,
                                                      eventProcessor: eventProcessor,
                                                      timeProvider: timeProvider,
                                                      configProvider: configProvider,
-                                                     gestureTargetFinder: gestureTargetFinder)
+                                                     gestureTargetFinder: gestureTargetFinder,
+                                                     layoutSnapshotGenerator: layoutSnapshotGenerator,
+                                                     systemFileManager: systemFileManager)
         self.httpClient = BaseHttpClient(logger: logger, configProvider: configProvider)
         self.networkClient = BaseNetworkClient(client: client,
                                                httpClient: httpClient,
-                                               eventSerializer: EventSerializer())
+                                               eventSerializer: EventSerializer(),
+                                               systemFileManager: systemFileManager)
         self.heartbeat = BaseHeartbeat()
         self.batchStore = BaseBatchStore(coreDataManager: coreDataManager,
                                          logger: logger)
@@ -160,13 +180,13 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                          sysCtl: sysCtl,
                                                          userDefaultStorage: userDefaultStorage,
                                                          currentAppVersion: appVersion)
+        self.networkChangeCollector = BaseNetworkChangeCollector(logger: logger,
+                                                                 eventProcessor: eventProcessor,
+                                                                 timeProvider: timeProvider)
         self.customEventCollector = BaseCustomEventCollector(logger: logger,
                                                              eventProcessor: eventProcessor,
                                                              timeProvider: timeProvider,
                                                              configProvider: configProvider)
-        self.networkChangeCollector = BaseNetworkChangeCollector(logger: logger,
-                                                                 eventProcessor: eventProcessor,
-                                                                 timeProvider: timeProvider)
         self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(eventProcessor: eventProcessor,
                                                                            timeProvider: timeProvider)
         self.dataCleanupService = BaseDataCleanupService(eventStore: eventStore,

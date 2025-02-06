@@ -18,7 +18,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                                     apiUrl: "http://localhost:8080")
         let config = BaseMeasureConfig(enableLogging: true,
                                        trackScreenshotOnCrash: false,
-                                       samplingRateForErrorFreeSessions: 0.5)
+                                       samplingRateForErrorFreeSessions: 1.0)
         measureInstance.initialize(with: clientInfo, config: config)
         measureInstance.setUserId("test_user_ios")
 
