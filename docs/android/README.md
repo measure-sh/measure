@@ -1,19 +1,25 @@
 # Measure Android SDK
 
-* [Minimum requirements](#minimum-requirements)
-* [Self host compatibility](#self-host-compatibility)
-* [Quick reference](#quick-reference)
-* [Getting started](#getting-started)
-* [Custom events](#custom-events)
-  * [Handled exceptions](#handled-exceptions)
-  * [Screen view](#screen-view)
+* [Requirements](#requirements)
+* [Quick start](#quick-start)
+* [Verify integration](#verify-integration)
+* [Manually start/stop the SDK](#manually-start-or-stop-the-sdk)
 * [Features](#features)
-* [Performance Impact](#performance-impact)
-  * [Benchmarks](#benchmarks)
-  * [Profiling](#profiling)
-  * [Implementation](#implementation)
+  * [Automatic collection](#automatic-collection)
+  * [Identify users](#identify-users)
+  * [Track custom events](#track-custom-events)
+  * [Performance tracing](#performance-tracing)
+  * [Handled exceptions](#handled-exceptions)
+  * [Screen views](#screen-view)
+* [Configuration options](#configuration-options)
+* [Concepts](#concepts)
+  * [Sampling](#sampling)
+  * [Session](#session)
+* [Performance impact](#performance-impact)
 
-# Minimum requirements
+# Requirements
+
+### Minimum requirements
 
 | Name                  | Version       |
 |-----------------------|---------------|
@@ -21,7 +27,8 @@
 | Min SDK               | 21 (Lollipop) |
 | Target SDK            | 31            |
 
-# Self-host compatibility
+
+### Self-host compatibility
 
 Before updating to Android SDK version 0.9.0, make sure the deployed self-host version is *atleast* 0.5.0. For more 
 details, checkout the [self-host guide](../hosting/README.md).
@@ -30,14 +37,9 @@ details, checkout the [self-host guide](../hosting/README.md).
 |---------------|------------------------------------|
 | 0.1.0 - 0.8.2 | 0.1.1                              |
 | 0.9.0         | 0.5.0                              |
- 
-# Quick reference
 
-A quick reference to the entire public API for Measure Android SDK.
 
-![Cheatsheet](images/cheatsheet_v0.9.0.png)
-
-# Getting started
+# Quick start
 
 Once you have access to the dashboard, create a new app and follow the steps below:
 
@@ -188,21 +190,61 @@ Add the following to your app's Application class `onCreate` method.
 > initialize the SDK as soon as possible in Application `onCreate` method.
 
 ```kotlin
-Measure.init(context)
-```
-
-If you wish to configure the SDK during initialization with a custom config use the overloaded function:
-
-```kotlin
-Measure.init(
-    context, MeasureConfig(
-        // override the default configuration here
+Measure.init(context, MeasureConfig(
+        // Set to 1 to track all sessions, useful for debug builds.
+        samplingRateForErrorFreeSessions = 1f, 
     )
 )
 ```
 
-By default, init also starts collection of events. To delay start to a different point in your app
-use [configuration options](configuration-options.md#autostart).
+# Verify integration
+
+Launch the app and use it. Data is synced to server every 30 seconds or when the app goes to background. To be sure a sync is triggered, try killing and reopening the app.
+
+Launch the dashboard, you must be able to see some data coming in. Checkout the sessions page.
+
+🎉 Congratulations, you have successfully integrated Measure into your app!
+
+### Troubleshoot
+
+If you see no data on the dashboard. Here's how to investigate:
+
+#### Enable logs
+
+Enable logging during SDK initialization. All Meaure SDK logs use the tag `Measure`.
+
+```kotlin
+MeasureConfig(enableLogging = true)
+```
+
+#### Verify missing configuration
+
+If logs show any of the following errors, then review [Step 1: Add API Key & URL](#1-add-the-api-key--api-url).
+```
+sh.measure.android.API_URL is missing in the manifest
+sh.measure.android.API_KEY is missing in the manifest
+```
+
+#### Verify sampling rate
+
+Try setting `samplingRateForErrorFreeSessions` to 1, which would enforce all sessions to be
+sent to the server. It's typically a good idea to set this to `1` for debug builds. 
+
+
+#### Verify server connection
+
+If logs contain `Failed to send batch` or `Request failed with unknown error`:
+* Verify the API_URL in the AndroidManifest is correct
+* Check server status to ensure it is reachable
+
+
+In case you face any issue, feel free to reach out to us on [Discord](https://discord.gg/f6zGkBCt42).
+
+
+# Manually start or stop the SDK
+
+By default, `Measure.init` starts collection of events. To delay start to a different point in your app
+use [configuration options](configuration-options.md#autostart). This can be used to control the scope of where Measure is active in your application.
 
 ```kotlin
 Measure.init(
@@ -219,25 +261,49 @@ Measure.start()
 Measure.stop()
 ```
 
-See all the [configuration options](configuration-options.md) available.
+> [!IMPORTANT]
+> Some SDK instrumentation remains active even when stopped. This is to maintain state and ensure seamless data collection when it is started. However, no actual data is collected or sent to the server when the SDK is stopped.
 
-### 5. Verify
+# Features
 
-The SDK automatically collects data when a crash occurs. You can verify if the SDK is working by triggering a crash
-after the SDK is initialized:
+Measure SDK operates on an event-based architecture, automatically collecting key debugging events while letting you track custom events, performance traces, screenshots and layout snapshots, etc. Read along for more details.
+
+### Automatic collection
+
+The following data is automatically collected by Measure. Read the individual docs for more details.
+
+* [Crash tracking](features/feature_crash_tracking.md)
+* [ANR tracking](features/feature_anr_tracking.md)
+* [Network monitoring](features/feature_network_monitoring.md)
+* [Network changes](features/feature_network_changes.md)
+* [Gesture tracking](features/feature_gesture_tracking.md)
+* [Layout Snapshots](features/feature_layout_snapshots.md)
+* [Navigation & Lifecycle](features/feature_navigation_and_lifecycle.md)
+* [App launch](features/feature_app_launch.md)
+* [App exit info](features/feature_app_exit_info.md)
+* [CPU monitoring](features/feature_cpu_monitoring.md)
+* [Memory monitoring](features/feature_memory_monitoring.md)
+* [App size](features/feature_app_size.md)
+
+## Identify users
+Corelating sessions with users is crutial for debugging certain issues. Measure allows setting a user ID which can then be used to query sessions and events on the dashboard. User Id is persisted across app 
+launches.
 
 ```kotlin
-throw RuntimeException("This is a test crash")
+Measure.setUserId("user-id")
 ```
 
-Reopen the app and launch the dashboard, you should see the crash report in the dashboard.
+To clear a user ID. 
+```kotlin
+Measure.clearUserId()
+```
 
-> [!CAUTION]
-> Make sure to remove the test crash code before releasing the app to production.
+> It is recommended to avoid the use of PII (Personally Identifiable Information) in the
+user ID like email, phone number or any other sensitive information. Instead, use a hashed
+or anonymized user ID to protect user privacy.
 
-🎉 Congratulations, you have successfully integrated Measure into your app!
 
-# Custom events
+## Track custom events
 
 Custom events provide more context on top of automatically collected events. They provide the context
 specific to the app to debug issues and analyze impact.
@@ -269,16 +335,73 @@ since epoch.
 Measure.trackEvent("event_name", timestamp = 1734443973879L)
 ```
 
-Apart from sending a custom event, the following events can be tracked with a predefined scehama:
+### Performance tracing
 
-* [Handled exceptions](#handled-exceptions)
-* [ScreenView](#screen-view)
+Use the [performance tracing](features/feature_performance_tracing.md) APIs to track performance of any part of your application - API calls,
+
+DB queries, any function, user journey, etc.
+The SDK supports nested spans to track hierarchical operations. Following are some *simplified* examples:
+
+Example - track a user flow
+
+```kotlin
+val onboardingSpan = Measure.startSpan("onboarding-flow")
+try {
+    val signupSpan = Measure.startSpan("signup", parent = onboardingSpan)
+    userSignup()
+    signupSpan.end()
+
+    val tutorialSpan = Measure.startSpan("tutorial", parent = onboardingSpan)
+    showTutorial()
+    tutorialSpan.end(SpanStatus.Ok)
+} finally {
+    onboardingSpan.end(SpanStatus.Error)
+}
+```
+
+This will result in a trace like the following:
+
+```
+onboarding-flow ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ [2.4s] ✓
+┃
+┣━ signup ━━━━━━━━━ [800ms]
+┃
+┗━ tutorial ━━━━━━━━━━━━━━━━ [1.6s]
+```
+
+Example - track HTTP calls using an interceptor
+
+```kotlin
+class HttpInterceptor : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val request = chain.request()
+        val span = Measure.startSpan("${request.method} /${request.url.redact()}")
+
+        return try {
+            val response = chain.proceed(request)
+            span.end(SpanStatus.SUCCESS)
+            response
+        } catch (e: Exception) {
+            span.end(SpanStatus.ERROR)
+            throw e
+        }
+    }
+}
+```
+
+This will result in a trace like the following:
+
+```
+GET /orders ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ [2.4s] ✗
+```
+
+For more detailed API documentation and examples, checkout [performance tracing docs](features/feature_performance_tracing.md).
 
 
 ### Handled exceptions
 
 To track exceptions which were caught and handled by the app, use the `trackHandledException`
-method.
+method. While your app gracefully recovers from these exceptions, tracking them helps identify potential degraded app experience.
 
 ```kotlin
 try {
@@ -305,24 +428,36 @@ a track of the user flow.
 Measure.trackScreenView("checkout")
 ```
 
-# Features
+# Configuration options
 
-All the features supported by the Measure SDK are listed below.
+See all the [configuration options](configuration-options.md) available.
 
-* [Crash tracking](features/feature_crash_tracking.md)
-* [ANR tracking](features/feature_anr_tracking.md)
-* [Network monitoring](features/feature_network_monitoring.md)
-* [Network changes](features/feature_network_changes.md)
-* [Gesture tracking](features/feature_gesture_tracking.md)
-* [Layout Snapshots](features/feature_layout_snapshots.md)
-* [Navigation & Lifecycle](features/feature_navigation_and_lifecycle.md)
-* [App launch](features/feature_app_launch.md)
-* [App exit info](features/feature_app_exit_info.md)
-* [CPU monitoring](features/feature_cpu_monitoring.md)
-* [Memory monitoring](features/feature_memory_monitoring.md)
-* [App size](features/feature_app_size.md)
+# Concepts
 
-# Session
+## Sampling
+
+Sampling controls what percentage of data is collected and sent to the server, helping balance data quality with system performance and storage costs.
+
+#### Session Sampling
+
+Set [samplingRateForErrorFreeSessions](configuration-options.md#samplingrateforerrorfreesessions) to control event collection from sessions without errors. By default, the SDK sends all events from crashed sessions to the server, while collecting no events from error-free sessions.
+
+* 0.0 — No events from error-free sessions (default)
+* 0.1 — 10% of error-free sessions
+* 1.0 — All sessions
+
+Session sampling helps optimize data collection for crash and error analysis.
+
+#### Trace Sampling 
+
+[traceSamplingRate](configuration-options.md#tracesamplingrate) controls performance trace collection independently of session sampling. While session sampling determines which session-level events are sent, trace sampling specifically controls performance monitoring data.
+
+This separation ensures:
+- Performance traces are collected based on their own sampling rate.
+- Critical performance data is captured regardless of session errors.
+- Session data remains focused on crash analysis and debugging.
+
+## Session
 
 A session represents a continuous period of activity in the app. A new session begins when an app is launched for the first time,
 or when there's been no activity for a 20-minute period. A single session can continue across multiple app background and
@@ -334,7 +469,6 @@ The current session can be retrived by using `getSessionId` method.
 ```kotlin
 val sessionId = Measure.getSessionId()
 ```
-
 
 # Performance Impact
 
@@ -366,8 +500,3 @@ or by using [Perfetto](https://perfetto.dev/docs/quickstart/android-tracing) dir
   thread. 
 * `msr-trackGesture` — time spent on the main thread to track a gesture.
 * `msr-generateSvgAttachment` — time spent on background thread to generate a SVG layout.
-
-## Implementation
-
-For details on data storage, syncing behavior, and threading, see
-our [Internal Documentation](../../android/docs/internal-documentation.md).
