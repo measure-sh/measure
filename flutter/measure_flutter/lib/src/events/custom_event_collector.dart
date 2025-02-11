@@ -22,11 +22,10 @@ final class CustomEventCollector {
   void trackCustomEvent(
     String name,
     DateTime? timestamp,
-    Map<String, dynamic> attributes,
   ) {
     if (!enabled) {
       return;
     }
-    // TODO: collect event
+    signalProcessor.trackCustomEvent(name, timestamp ?? DateTime.now());
   }
 }

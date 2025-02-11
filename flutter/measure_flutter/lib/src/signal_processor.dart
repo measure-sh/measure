@@ -1,7 +1,14 @@
 import 'package:measure_flutter/src/logger/logger.dart';
 
+import 'measure_flutter_method_channel.dart';
+
 final class SignalProcessor {
   final Logger logger;
+  final MethodChannelMeasureFlutter channel;
 
-  SignalProcessor({required this.logger});
+  SignalProcessor({required this.logger, required this.channel});
+
+  void trackCustomEvent(String name, DateTime timestamp) {
+    channel.trackCustomEvent(name, timestamp.millisecondsSinceEpoch);
+  }
 }

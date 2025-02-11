@@ -14,8 +14,8 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
-        if (call.method == "getPlatformVersion") {
-            result.success("Android ${android.os.Build.VERSION.RELEASE}")
+        if (call.method == "trackCustomEvent") {
+
         } else {
             result.notImplemented()
         }

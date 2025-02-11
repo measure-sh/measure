@@ -2,7 +2,7 @@ import 'dart:developer' as developer;
 
 import 'package:measure_flutter/src/config/measure_config.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
-import 'package:measure_flutter/src/measure.dart';
+import 'package:measure_flutter/src/measure_interface.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/measure_internal.dart';
 
@@ -35,25 +35,24 @@ class Measure implements IMeasure {
   void trackEvent({
     required String name,
     DateTime? timestamp,
-    Map<String, dynamic> attributes = const {},
   }) {
     if (_isInitialized) {
-      _measure.trackCustomEvent(name, attributes, timestamp);
+      _measure.trackCustomEvent(name, timestamp);
     }
   }
 
   Future<void> _initializeInternal(bool enableLogging) async {
     MeasureInitializer initializer =
-    MeasureInitializer(MeasureConfig(enableLogging: enableLogging));
+        MeasureInitializer(MeasureConfig(enableLogging: enableLogging));
     _measure = MeasureInternal(initializer: initializer);
     await _measure.init();
   }
 
   void _logInitializationFailure(
-      bool enableLogging,
-      Object error,
-      StackTrace stackTrace,
-      ) {
+    bool enableLogging,
+    Object error,
+    StackTrace stackTrace,
+  ) {
     if (enableLogging) {
       developer.log(
         'Failed to initialize measure-flutter',

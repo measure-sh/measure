@@ -5,7 +5,6 @@ abstract class IMeasure {
 
   void trackEvent({
     required String name,
-    DateTime? timestamp,
-    Map<String, dynamic> attributes = const {},
+    required DateTime? timestamp,
   });
 }

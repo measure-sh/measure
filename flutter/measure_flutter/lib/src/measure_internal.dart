@@ -20,8 +20,7 @@ final class MeasureInternal {
     _customEventCollector.register();
   }
 
-  void trackCustomEvent(
-      String name, Map<String, dynamic> attributes, DateTime? timestamp) {
-    _customEventCollector.trackCustomEvent(name, timestamp, attributes);
+  void trackCustomEvent(String name, DateTime? timestamp) {
+    _customEventCollector.trackCustomEvent(name, timestamp);
   }
 }

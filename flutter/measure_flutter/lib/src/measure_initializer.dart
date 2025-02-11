@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
+import 'package:measure_flutter/src/measure_flutter_method_channel.dart';
 import 'package:measure_flutter/src/signal_processor.dart';
 
 import 'config/measure_config.dart';
@@ -9,10 +10,13 @@ import 'logger/logger.dart';
 final class MeasureInitializer {
   final MeasureConfig config;
   late final Logger _logger;
+  late final MethodChannelMeasureFlutter _methodChannel;
   late final CustomEventCollector _customEventCollector;
   late final SignalProcessor _signalProcessor;
 
   Logger get logger => _logger;
+
+  MethodChannelMeasureFlutter get methodChannel => _methodChannel;
 
   CustomEventCollector get customEventCollector => _customEventCollector;
 
@@ -24,7 +28,8 @@ final class MeasureInitializer {
 
   void _initializeDependencies() {
     _logger = FlutterLogger(enabled: config.enableLogging);
-    _signalProcessor = SignalProcessor(logger: logger);
+    _methodChannel = MethodChannelMeasureFlutter();
+    _signalProcessor = SignalProcessor(logger: logger, channel: _methodChannel);
     _customEventCollector = CustomEventCollector(
       logger: logger,
       signalProcessor: signalProcessor,
@@ -38,7 +43,9 @@ final class MeasureInitializer {
     CustomEventCollector? customEventCollector,
   }) {
     _logger = logger ?? FlutterLogger(enabled: config.enableLogging);
-    _signalProcessor = SignalProcessor(logger: _logger);
+    _methodChannel = MethodChannelMeasureFlutter();
+    _signalProcessor =
+        SignalProcessor(logger: _logger, channel: _methodChannel);
     _customEventCollector = customEventCollector ??
         CustomEventCollector(
           logger: _logger,
