@@ -1,4 +1,4 @@
-package com.example.measure_flutter_example
+package sh.measure.flutter
 
 import io.flutter.embedding.android.FlutterActivity
 
