@@ -1,4 +1,4 @@
-import 'measure_flutter_platform_interface.dart';
+import 'src/measure_flutter_platform_interface.dart';
 
 class MeasureFlutter {
   Future<String?> getPlatformVersion() {
