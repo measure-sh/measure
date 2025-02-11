@@ -9,7 +9,7 @@ import (
 	"backend/api/numeric"
 	"backend/api/server"
 	"backend/api/span"
-	"backend/api/symbol"
+	"backend/api/symbolicator"
 	"context"
 	"encoding/json"
 	"errors"
@@ -247,6 +247,13 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 			ev.HotLaunch.Compute()
 		}
 
+		// read platfrom from payload
+		// if we haven't figured out
+		// platform already.
+		if e.platform == "" {
+			e.platform = e.events[0].Attribute.Platform
+		}
+
 		e.events = append(e.events, ev)
 	}
 
@@ -273,6 +280,13 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 
 		e.bumpSize(int64(len(bytes)))
 		sp.AppID = appId
+
+		// read platfrom from payload
+		// if we haven't figured out
+		// platform already.
+		if e.platform == "" {
+			e.platform = e.spans[0].Attributes.Platform
+		}
 
 		e.spans = append(e.spans, sp)
 	}
@@ -2170,61 +2184,74 @@ func PutEvents(c *gin.Context) {
 	}
 
 	if eventReq.needsSymbolication() {
-		// symbolicate
-		symbolicator, err := symbol.NewSymbolicator(&symbol.Options{
-			Origin: os.Getenv("SYMBOLICATOR_ORIGIN"),
-			Store:  server.Server.PgPool,
-		})
-		if err != nil {
-			msg := `failed to initialize symbolicator`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-
+		origin := os.Getenv("SYMBOLICATOR_ORIGIN")
+		platform := eventReq.platform
+		source := symbolicator.NewS3Source("msr-symbols", server.Server.Config.SymbolsBucket, server.Server.Config.SymbolsBucketRegion, server.Server.Config.AWSEndpoint, server.Server.Config.SymbolsAccessKey, server.Server.Config.SymbolsSecretAccessKey)
+		symblctr := symbolicator.New(origin, platform, []symbolicator.Source{source})
 		events := eventReq.getSymbolicationEvents()
 
-		batches := symbolicator.Batch(events)
-
-		// start span to trace symbolication
-		symbolicationTracer := otel.Tracer("symbolication-tracer")
-		_, symbolicationSpan := symbolicationTracer.Start(ctx, "symbolicate-events")
-
-		defer symbolicationSpan.End()
-
-		for i := range batches {
-			// If symoblication fails for whole batch, continue
-			if err := symbolicator.Symbolicate(ctx, batches[i]); err != nil {
-				msg := `failed to symbolicate batch`
-				fmt.Println(msg, err)
-				continue
-			}
-
-			// If symbolication succeeds but has errors while decoding individual frames, log them and proceed
-			if len(batches[i].Errs) > 0 {
-				for _, err := range batches[i].Errs {
-					fmt.Println("symbolication err: ", err.Error())
-				}
-			}
-
-			// rewrite symbolicated events to event request
-			for j := range batches[i].Events {
-				eventId := batches[i].Events[j].ID
-				idx, exists := eventReq.symbolicate[eventId]
-				if !exists {
-					fmt.Printf("event id %q not found in symbolicate cache, batch index: %d, event index: %d\n", eventId, i, j)
-					continue
-				}
-				eventReq.events[idx] = batches[i].Events[j]
-				delete(eventReq.symbolicate, eventId)
-			}
-		}
-
-		eventReq.bumpSymbolication()
+		symblctr.Symbolicate(events)
 	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": "whatever"})
+	return
+
+	// if eventReq.needsSymbolication() {
+	// 	// symbolicate
+	// 	symbolicator, err := symbol.NewSymbolicator(&symbol.Options{
+	// 		Origin: os.Getenv("SYMBOLICATOR_ORIGIN"),
+	// 		Store:  server.Server.PgPool,
+	// 	})
+	// 	if err != nil {
+	// 		msg := `failed to initialize symbolicator`
+	// 		fmt.Println(msg, err)
+	// 		c.JSON(http.StatusInternalServerError, gin.H{
+	// 			"error":   msg,
+	// 			"details": err.Error(),
+	// 		})
+	// 		return
+	// 	}
+
+	// 	events := eventReq.getSymbolicationEvents()
+
+	// 	batches := symbolicator.Batch(events)
+
+	// 	// start span to trace symbolication
+	// 	symbolicationTracer := otel.Tracer("symbolication-tracer")
+	// 	_, symbolicationSpan := symbolicationTracer.Start(ctx, "symbolicate-events")
+
+	// 	defer symbolicationSpan.End()
+
+	// 	for i := range batches {
+	// 		// If symoblication fails for whole batch, continue
+	// 		if err := symbolicator.Symbolicate(ctx, batches[i]); err != nil {
+	// 			msg := `failed to symbolicate batch`
+	// 			fmt.Println(msg, err)
+	// 			continue
+	// 		}
+
+	// 		// If symbolication succeeds but has errors while decoding individual frames, log them and proceed
+	// 		if len(batches[i].Errs) > 0 {
+	// 			for _, err := range batches[i].Errs {
+	// 				fmt.Println("symbolication err: ", err.Error())
+	// 			}
+	// 		}
+
+	// 		// rewrite symbolicated events to event request
+	// 		for j := range batches[i].Events {
+	// 			eventId := batches[i].Events[j].ID
+	// 			idx, exists := eventReq.symbolicate[eventId]
+	// 			if !exists {
+	// 				fmt.Printf("event id %q not found in symbolicate cache, batch index: %d, event index: %d\n", eventId, i, j)
+	// 				continue
+	// 			}
+	// 			eventReq.events[idx] = batches[i].Events[j]
+	// 			delete(eventReq.symbolicate, eventId)
+	// 		}
+	// 	}
+
+	// 	eventReq.bumpSymbolication()
+	// }
 
 	if eventReq.hasAttachments() {
 		// start span to trace attachment uploads

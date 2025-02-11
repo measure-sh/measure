@@ -92,6 +92,8 @@ services:
         condition: service_healthy
       symbolicator-android:
         condition: service_healthy
+      symbolicator:
+        condition: service_healthy
       dbmate-postgres:
         condition: service_completed_successfully
         required: false
@@ -172,6 +174,22 @@ services:
       minio:
         condition: service_healthy
 
+  symbolicator:
+    # FIXME:  Figure out a way to support multiple
+    #         architecutres. arm64 & amd64, for now.
+    image: ghcr.io/measure-sh/symbolicator:arm64-nightly
+    # platform: linux/arm64/v8
+    ports:
+      - "3021:3021"
+    volumes:
+      - ./symbolicator/config.dev.yml:/etc/symbolicator/config.yml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:3021/healthcheck || exit 1"]
+      interval: 3s
+      timeout: 10s
+      retries: 5
+    command: ["run", "-c", "/etc/symbolicator/config.yml"]
+
   minio:
     image: quay.io/minio/minio
     ports:
@@ -220,7 +238,7 @@ services:
         restart: true
     volumes:
       - ./postgres:/opt/postgres
-    command: [ "migrate" ]
+    command: ["migrate"]
 
   dbmate-clickhouse:
     image: ghcr.io/amacneil/dbmate
@@ -239,7 +257,7 @@ services:
         restart: true
     volumes:
       - ./clickhouse:/opt/clickhouse
-    command: [ "migrate" ]
+    command: ["migrate"]
 
   migrator:
     build:

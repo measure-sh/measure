@@ -320,11 +320,40 @@ type ANR struct {
 }
 
 type Exception struct {
-	Handled     bool           `json:"handled" binding:"required"`
-	Exceptions  ExceptionUnits `json:"exceptions" binding:"required"`
-	Threads     Threads        `json:"threads" binding:"required"`
-	Fingerprint string         `json:"fingerprint"`
-	Foreground  bool           `json:"foreground" binding:"required"`
+	Handled      bool           `json:"handled" binding:"required"`
+	Exceptions   ExceptionUnits `json:"exceptions" binding:"required"`
+	Threads      Threads        `json:"threads" binding:"required"`
+	Fingerprint  string         `json:"fingerprint"`
+	Foreground   bool           `json:"foreground" binding:"required"`
+	BinaryImages []BinaryImage  `json:"binary_images"`
+}
+
+// BinaryImage represents each binary image
+// entry as appearning in an Apple crash
+// report.
+//
+// Only applicable for Darwin apps.
+type BinaryImage struct {
+	// StartAddr is the address where the binary
+	// is loaded in virtual memory.
+	StartAddr string `json:"start_addr" binding:"required"`
+	// EndAddr is the upper memory boundary of
+	// the binary.
+	EndAddr string `json:"end_addr" binding:"required"`
+	// System indicates a system binary marker.
+	System bool `json:"system" binding:"required"`
+	// Name is the name of the app, framework
+	// or library binary.
+	Name string `json:"name" binding:"required"`
+	// Arch is the CPU architecture the binary
+	// is compiled for.
+	Arch string `json:"arch" binding:"required"`
+	// Uuid is the unique fingerprint for
+	// the build of the binary.
+	Uuid string `json:"uuid" binding:"required"`
+	// Path is path where the binary was
+	// located at runtime.
+	Path string `json:"path" binding:"required"`
 }
 
 // FingerprintComputer describes the behavior

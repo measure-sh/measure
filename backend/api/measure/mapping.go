@@ -34,6 +34,7 @@ type BuildMapping struct {
 	AppID        uuid.UUID
 	VersionName  string `form:"version_name" binding:"required"`
 	VersionCode  string `form:"version_code" binding:"required"`
+	Platform     string `form:"platform" binding:"required_with=File"`
 	MappingType  string `form:"mapping_type" binding:"required_with=File"`
 	Key          string
 	Location     string
@@ -71,16 +72,30 @@ func (bm BuildMapping) validate(app *App) (code int, err error) {
 		err = fmt.Errorf(`%q file size exceeding %d bytes`, bm.File.Filename, server.Server.Config.MappingFileMaxSize)
 	}
 
-	platformMappingErr := fmt.Errorf("%q mapping type is not valid for %q platform", bm.MappingType, app.Platform)
+	pltfrm := app.Platform
+
+	// deduce platform from app or
+	// from payload. ensure we have
+	// a platform or fail fast.
+	if pltfrm == "" && bm.Platform != "" {
+		pltfrm = bm.Platform
+	}
+
+	if pltfrm == "" {
+		err = errors.New("failed to determine app's platform")
+		return
+	}
+
+	platformMappingErr := fmt.Errorf("%q mapping type is not valid for %q platform", bm.MappingType, pltfrm)
 
 	switch bm.MappingType {
 	case symbol.TypeProguard.String():
-		if app.Platform != platform.Android {
+		if pltfrm != platform.Android {
 			err = platformMappingErr
 		}
 		break
 	case symbol.TypeDsym.String():
-		if app.Platform != platform.IOS {
+		if pltfrm != platform.IOS {
 			err = platformMappingErr
 			break
 		}
