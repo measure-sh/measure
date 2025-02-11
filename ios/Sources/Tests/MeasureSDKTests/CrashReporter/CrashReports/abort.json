@@ -1,0 +1,388 @@
+{
+  "foreground" : true,
+  "handled" : false,
+  "threads" : [
+    {
+      "sequence" : 1,
+      "frames" : [
+        {
+          "binary_name" : "libsystem_kernel.dylib",
+          "offset" : 10998,
+          "binary_address" : "108a41000",
+          "frameIndex" : 0,
+          "symbol_address" : "0000000108a43af6",
+          "in_app" : false
+        },
+        {
+          "offset" : 11229,
+          "binary_name" : "libsystem_pthread.dylib",
+          "binary_address" : "108aa5000",
+          "in_app" : false,
+          "frameIndex" : 1,
+          "symbol_address" : "0000000108aa7bdd"
+        },
+        {
+          "in_app" : false,
+          "binary_name" : "libsystem_pthread.dylib",
+          "offset" : 6863,
+          "binary_address" : "108aa5000",
+          "frameIndex" : 2,
+          "symbol_address" : "0000000108aa6acf"
+        }
+      ],
+      "name" : "Thread 1"
+    },
+    {
+      "name" : "Thread 2",
+      "frames" : [
+        {
+          "binary_name" : "libsystem_kernel.dylib",
+          "offset" : 5070,
+          "binary_address" : "108a41000",
+          "in_app" : false,
+          "frameIndex" : 0,
+          "symbol_address" : "0000000108a423ce"
+        },
+        {
+          "frameIndex" : 1,
+          "symbol_address" : "0000000108a50c88",
+          "offset" : 64648,
+          "binary_address" : "108a41000",
+          "in_app" : false,
+          "binary_name" : "libsystem_kernel.dylib"
+        },
+        {
+          "frameIndex" : 2,
+          "symbol_address" : "0000000108a49510",
+          "in_app" : false,
+          "offset" : 34064,
+          "binary_name" : "libsystem_kernel.dylib",
+          "binary_address" : "108a41000"
+        },
+        {
+          "symbol_address" : "0000000108a426bd",
+          "in_app" : false,
+          "offset" : 5821,
+          "binary_address" : "108a41000",
+          "binary_name" : "libsystem_kernel.dylib",
+          "frameIndex" : 3
+        },
+        {
+          "in_app" : false,
+          "offset" : 579747,
+          "symbol_address" : "00007ff8004298a3",
+          "binary_address" : "7ff80039c000",
+          "frameIndex" : 4,
+          "binary_name" : "CoreFoundation"
+        },
+        {
+          "offset" : 557099,
+          "binary_address" : "7ff80039c000",
+          "frameIndex" : 5,
+          "symbol_address" : "00007ff80042402b",
+          "in_app" : false,
+          "binary_name" : "CoreFoundation"
+        },
+        {
+          "symbol_address" : "00007ff8004236ed",
+          "in_app" : false,
+          "binary_name" : "CoreFoundation",
+          "offset" : 554733,
+          "binary_address" : "7ff80039c000",
+          "frameIndex" : 6
+        },
+        {
+          "offset" : 7355546,
+          "frameIndex" : 7,
+          "symbol_address" : "00007ff800ea8c9a",
+          "binary_address" : "7ff8007a5000",
+          "binary_name" : "Foundation",
+          "in_app" : false
+        },
+        {
+          "symbol_address" : "00007ff800ea8f18",
+          "binary_name" : "Foundation",
+          "offset" : 7356184,
+          "in_app" : false,
+          "frameIndex" : 8,
+          "binary_address" : "7ff8007a5000"
+        },
+        {
+          "binary_address" : "7ff804cbc000",
+          "offset" : 17827754,
+          "binary_name" : "UIKitCore",
+          "frameIndex" : 9,
+          "symbol_address" : "00007ff805dbc7aa",
+          "in_app" : false
+        },
+        {
+          "binary_address" : "7ff8007a5000",
+          "symbol_address" : "00007ff800ed34d5",
+          "in_app" : false,
+          "offset" : 7529685,
+          "frameIndex" : 10,
+          "binary_name" : "Foundation"
+        },
+        {
+          "binary_address" : "108aa5000",
+          "symbol_address" : "0000000108aab18b",
+          "frameIndex" : 11,
+          "binary_name" : "libsystem_pthread.dylib",
+          "offset" : 24971,
+          "in_app" : false
+        },
+        {
+          "in_app" : false,
+          "binary_address" : "108aa5000",
+          "symbol_address" : "0000000108aa6ae3",
+          "offset" : 6883,
+          "frameIndex" : 12,
+          "binary_name" : "libsystem_pthread.dylib"
+        }
+      ],
+      "sequence" : 2
+    },
+    {
+      "name" : "Thread 3",
+      "frames" : [
+        {
+          "frameIndex" : 0,
+          "in_app" : false,
+          "symbol_address" : "0000000000000000",
+          "binary_name" : "???",
+          "binary_address" : "0",
+          "offset" : 0
+        }
+      ],
+      "sequence" : 3
+    }
+  ],
+  "exceptions" : [
+    {
+      "message" : "",
+      "os_build_number" : "23F79",
+      "thread_sequence" : 0,
+      "frames" : [
+        {
+          "in_app" : false,
+          "binary_address" : "108a41000",
+          "offset" : 33098,
+          "binary_name" : "libsystem_kernel.dylib",
+          "symbol_address" : "0000000108a4914a",
+          "frameIndex" : 0
+        },
+        {
+          "frameIndex" : 1,
+          "in_app" : false,
+          "binary_address" : "108aa5000",
+          "binary_name" : "libsystem_pthread.dylib",
+          "offset" : 24253,
+          "symbol_address" : "0000000108aaaebd"
+        },
+        {
+          "offset" : 511260,
+          "binary_name" : "libsystem_c.dylib",
+          "binary_address" : "7ff8000f1000",
+          "frameIndex" : 2,
+          "symbol_address" : "00007ff80016dd1c",
+          "in_app" : false
+        },
+        {
+          "in_app" : false,
+          "binary_name" : "MeasureDemo",
+          "offset" : 11508,
+          "binary_address" : "1084c4000",
+          "frameIndex" : 3,
+          "symbol_address" : "00000001084c6cf4"
+        },
+        {
+          "binary_name" : "MeasureDemo",
+          "binary_address" : "1084c4000",
+          "offset" : 10755,
+          "frameIndex" : 4,
+          "in_app" : false,
+          "symbol_address" : "00000001084c6a03"
+        },
+        {
+          "offset" : 10913,
+          "binary_name" : "MeasureDemo",
+          "binary_address" : "1084c4000",
+          "symbol_address" : "00000001084c6aa1",
+          "in_app" : false,
+          "frameIndex" : 5
+        },
+        {
+          "binary_address" : "7ff804cbc000",
+          "offset" : 19869005,
+          "frameIndex" : 6,
+          "symbol_address" : "00007ff805faed4d",
+          "in_app" : false,
+          "binary_name" : "UIKitCore"
+        },
+        {
+          "frameIndex" : 7,
+          "symbol_address" : "00007ff805faf13d",
+          "in_app" : false,
+          "binary_name" : "UIKitCore",
+          "offset" : 19870013,
+          "binary_address" : "7ff804cbc000"
+        },
+        {
+          "binary_name" : "UIKitCore",
+          "symbol_address" : "00007ff805faf24f",
+          "in_app" : false,
+          "offset" : 19870287,
+          "binary_address" : "7ff804cbc000",
+          "frameIndex" : 8
+        },
+        {
+          "binary_name" : "UIKitCore",
+          "symbol_address" : "00007ff806346231",
+          "offset" : 23634481,
+          "binary_address" : "7ff804cbc000",
+          "frameIndex" : 9,
+          "in_app" : false
+        },
+        {
+          "symbol_address" : "00007ff806346717",
+          "binary_address" : "7ff804cbc000",
+          "in_app" : false,
+          "binary_name" : "UIKitCore",
+          "offset" : 23635735,
+          "frameIndex" : 10
+        },
+        {
+          "binary_address" : "7ff800176000",
+          "offset" : 9196,
+          "binary_name" : "libdispatch.dylib",
+          "symbol_address" : "00007ff8001783ec",
+          "in_app" : false,
+          "frameIndex" : 11
+        },
+        {
+          "symbol_address" : "00007ff8001796d8",
+          "in_app" : false,
+          "binary_address" : "7ff800176000",
+          "binary_name" : "libdispatch.dylib",
+          "offset" : 14040,
+          "frameIndex" : 12
+        },
+        {
+          "symbol_address" : "00007ff80018848c",
+          "binary_address" : "7ff800176000",
+          "in_app" : false,
+          "offset" : 74892,
+          "binary_name" : "libdispatch.dylib",
+          "frameIndex" : 13
+        },
+        {
+          "frameIndex" : 14,
+          "offset" : 73458,
+          "in_app" : false,
+          "binary_name" : "libdispatch.dylib",
+          "binary_address" : "7ff800176000",
+          "symbol_address" : "00007ff800187ef2"
+        },
+        {
+          "binary_name" : "CoreFoundation",
+          "frameIndex" : 15,
+          "symbol_address" : "00007ff800429b34",
+          "in_app" : false,
+          "offset" : 580404,
+          "binary_address" : "7ff80039c000"
+        },
+        {
+          "binary_address" : "7ff80039c000",
+          "offset" : 558191,
+          "frameIndex" : 16,
+          "binary_name" : "CoreFoundation",
+          "symbol_address" : "00007ff80042446f",
+          "in_app" : false
+        },
+        {
+          "in_app" : false,
+          "offset" : 554733,
+          "frameIndex" : 17,
+          "binary_address" : "7ff80039c000",
+          "symbol_address" : "00007ff8004236ed",
+          "binary_name" : "CoreFoundation"
+        },
+        {
+          "binary_name" : "GraphicsServices",
+          "offset" : 12431,
+          "frameIndex" : 18,
+          "binary_address" : "7ff8103b7000",
+          "symbol_address" : "00007ff8103ba08f",
+          "in_app" : false
+        },
+        {
+          "in_app" : false,
+          "binary_address" : "7ff804cbc000",
+          "offset" : 16922350,
+          "frameIndex" : 19,
+          "symbol_address" : "00007ff805cdf6ee",
+          "binary_name" : "UIKitCore"
+        },
+        {
+          "binary_address" : "7ff804cbc000",
+          "in_app" : false,
+          "offset" : 16941422,
+          "frameIndex" : 20,
+          "symbol_address" : "00007ff805ce416e",
+          "binary_name" : "UIKitCore"
+        },
+        {
+          "binary_name" : "UIKitCore",
+          "frameIndex" : 21,
+          "symbol_address" : "00007ff804d5fb73",
+          "in_app" : false,
+          "offset" : 670579,
+          "binary_address" : "7ff804cbc000"
+        },
+        {
+          "in_app" : false,
+          "binary_name" : "MeasureDemo",
+          "offset" : 24075,
+          "binary_address" : "1084c4000",
+          "frameIndex" : 22,
+          "symbol_address" : "00000001084c9e0b"
+        },
+        {
+          "binary_name" : "MeasureDemo",
+          "frameIndex" : 23,
+          "binary_address" : "1084c4000",
+          "offset" : 23943,
+          "symbol_address" : "00000001084c9d87",
+          "in_app" : false
+        },
+        {
+          "in_app" : false,
+          "binary_name" : "MeasureDemo",
+          "symbol_address" : "00000001084c9e78",
+          "frameIndex" : 24,
+          "offset" : 24184,
+          "binary_address" : "1084c4000"
+        },
+        {
+          "frameIndex" : 25,
+          "offset" : 0,
+          "symbol_address" : "00000001089023e0",
+          "binary_name" : "???",
+          "binary_address" : "0",
+          "in_app" : false
+        },
+        {
+          "frameIndex" : 26,
+          "symbol_address" : "000000010c3fd366",
+          "binary_address" : "0",
+          "offset" : 0,
+          "in_app" : false,
+          "binary_name" : "???"
+        }
+      ],
+      "type" : "",
+      "thread_name" : "Thread 0 Crashed",
+      "signal" : "SIGABRT"
+    }
+  ]
+}

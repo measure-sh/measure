@@ -1,2 +1,4 @@
 MeasureSDK.xcodeproj/xcuserdata/
 MeasureSDK.xcodeproj/project.xcworkspace/xcuserdata
+.build/
+Package.resolved
