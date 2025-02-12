@@ -16,10 +16,6 @@ abstract class MeasureFlutterPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<String?> getPlatformVersion() {
-    throw UnimplementedError('platformVersion() has not been implemented.');
-  }
-
   Future<void> trackCustomEvent(
       String name, int timestamp, Map<String, AttributeValue> attributes) {
     throw UnimplementedError('trackCustomEvent() has not been implemented.');

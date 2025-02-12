@@ -9,13 +9,6 @@ class MethodChannelMeasureFlutter extends MeasureFlutterPlatform {
   final methodChannel = const MethodChannel('measure_flutter');
 
   @override
-  Future<String?> getPlatformVersion() async {
-    final version =
-        await methodChannel.invokeMethod<String>('getPlatformVersion');
-    return version;
-  }
-
-  @override
   Future<void> trackCustomEvent(String name, int timestamp,
       Map<String, AttributeValue> attributes) async {
     final encodedAttributes = attributes.encode();
