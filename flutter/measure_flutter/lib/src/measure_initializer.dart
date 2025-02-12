@@ -4,7 +4,7 @@ import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/logger/flutter_logger.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/measure_flutter_method_channel.dart';
-import 'package:measure_flutter/src/signal_processor.dart';
+import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 
 final class MeasureInitializer {
   final MeasureConfig config;

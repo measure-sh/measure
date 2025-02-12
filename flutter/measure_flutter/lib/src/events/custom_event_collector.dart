@@ -1,6 +1,6 @@
 import 'package:measure_flutter/attribute_value.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
-import 'package:measure_flutter/src/signal_processor.dart';
+import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 
 final class CustomEventCollector {
   final Logger logger;

@@ -1,8 +1,8 @@
+/// Represents a value of an attribute. It can be a string, boolean, integer,
+/// or double.
 sealed class AttributeValue {
-  /// The generic value of the attribute
   final Object value;
 
-  /// Private constructor to prevent direct instantiation
   const AttributeValue._(this.value);
 }
 

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:measure_flutter/attribute_value.dart';
+import 'package:measure_flutter/attribute_builder.dart';
 import 'package:measure_flutter/measure.dart';
 
 Future<void> main() async {
@@ -33,11 +33,14 @@ class _MyAppState extends State<MyApp> {
           child: ElevatedButton(
             child: Text("Hello world!"),
             onPressed: () {
-              Measure.instance.trackEvent(name: "event", attributes: {
-                "is_premium": BooleanAttr(true),
-                "integer": IntAttr(1),
-                "string": StringAttr("string"),
-              });
+              final attrs = AttributeBuilder()
+                ..add("is_premium", true)
+                ..add("integer", 1)
+                ..add("string", "string");
+              Measure.instance.trackEvent(
+                name: "event",
+                attributes: attrs.build(),
+              );
             },
           ),
         ),
