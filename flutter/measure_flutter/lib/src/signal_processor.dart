@@ -1,3 +1,5 @@
+import 'package:measure_flutter/attribute_value.dart';
+import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 
 import 'measure_flutter_method_channel.dart';
@@ -8,7 +10,13 @@ final class SignalProcessor {
 
   SignalProcessor({required this.logger, required this.channel});
 
-  void trackCustomEvent(String name, DateTime timestamp) {
-    channel.trackCustomEvent(name, timestamp.millisecondsSinceEpoch);
+  void trackCustomEvent(String name, DateTime timestamp,
+      Map<String, AttributeValue> attributes) {
+    try {
+      channel.trackCustomEvent(
+          name, timestamp.millisecondsSinceEpoch, attributes);
+    } catch(e) {
+      logger.log(LogLevel.error, "Unable to track event", e);
+    }
   }
 }

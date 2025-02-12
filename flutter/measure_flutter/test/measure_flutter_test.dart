@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:measure_flutter/attribute_value.dart';
 import 'package:measure_flutter/src/measure_flutter_method_channel.dart';
 import 'package:measure_flutter/src/measure_flutter_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
@@ -8,6 +9,12 @@ class MockMeasureFlutterPlatform
     implements MeasureFlutterPlatform {
   @override
   Future<String?> getPlatformVersion() => Future.value('42');
+
+  @override
+  Future<void> trackCustomEvent(
+      String name, int timestamp, Map<String, AttributeValue> attributes) {
+    throw UnimplementedError();
+  }
 }
 
 void main() {

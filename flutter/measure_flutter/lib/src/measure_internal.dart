@@ -1,3 +1,4 @@
+import 'package:measure_flutter/attribute_value.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
@@ -20,7 +21,8 @@ final class MeasureInternal {
     _customEventCollector.register();
   }
 
-  void trackCustomEvent(String name, DateTime? timestamp) {
-    _customEventCollector.trackCustomEvent(name, timestamp);
+  void trackCustomEvent(String name, DateTime? timestamp,
+      Map<String, AttributeValue> attributes) {
+    _customEventCollector.trackCustomEvent(name, timestamp, attributes);
   }
 }

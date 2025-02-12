@@ -1,9 +1,10 @@
 import 'dart:developer' as developer;
 
+import 'package:measure_flutter/attribute_value.dart';
 import 'package:measure_flutter/src/config/measure_config.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
-import 'package:measure_flutter/src/measure_interface.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
+import 'package:measure_flutter/src/measure_interface.dart';
 import 'package:measure_flutter/src/measure_internal.dart';
 
 class Measure implements IMeasure {
@@ -34,10 +35,11 @@ class Measure implements IMeasure {
   @override
   void trackEvent({
     required String name,
+    Map<String, AttributeValue> attributes = const {},
     DateTime? timestamp,
   }) {
     if (_isInitialized) {
-      _measure.trackCustomEvent(name, timestamp);
+      _measure.trackCustomEvent(name, timestamp, attributes);
     }
   }
 

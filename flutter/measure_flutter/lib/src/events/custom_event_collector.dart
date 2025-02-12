@@ -1,3 +1,4 @@
+import 'package:measure_flutter/attribute_value.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/signal_processor.dart';
 
@@ -22,10 +23,11 @@ final class CustomEventCollector {
   void trackCustomEvent(
     String name,
     DateTime? timestamp,
+    Map<String, AttributeValue> attributes,
   ) {
     if (!enabled) {
       return;
     }
-    signalProcessor.trackCustomEvent(name, timestamp ?? DateTime.now());
+    signalProcessor.trackCustomEvent(name, timestamp ?? DateTime.now(), attributes);
   }
 }
