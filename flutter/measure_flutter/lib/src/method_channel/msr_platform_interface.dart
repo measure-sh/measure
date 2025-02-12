@@ -1,5 +1,5 @@
 import 'package:measure_flutter/attribute_value.dart';
-import 'package:measure_flutter/src/method_channel/measure_flutter_method_channel.dart';
+import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 abstract class MeasureFlutterPlatform extends PlatformInterface {
@@ -7,7 +7,7 @@ abstract class MeasureFlutterPlatform extends PlatformInterface {
 
   static final Object _token = Object();
 
-  static MeasureFlutterPlatform _instance = MethodChannelMeasureFlutter();
+  static MeasureFlutterPlatform _instance = MsrMethodChannel();
 
   static MeasureFlutterPlatform get instance => _instance;
 
