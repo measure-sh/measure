@@ -15,7 +15,7 @@ protocol InternalConfig {
     /// The threshold after which a session is considered ended. Defaults to 20 minute.
     var sessionEndLastEventThresholdMs: Number { get }
 
-    /// The threshold to determine long press. Defaults to 0.5 second.
+    /// The threshold to determine long press. Defaults to 500 ms.
     var longPressTimeout: TimeInterval { get }
 
     /// The minimum movement before a touch is detected as a scroll. Defaults to 20 points.
