@@ -38,7 +38,7 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
                         is Long -> LongAttr(value)
                         is Float -> FloatAttr(value)
                         is Double -> DoubleAttr(value)
-                        else -> StringAttr("WRONG_PARSE")
+                        else -> throw IllegalArgumentException("Invalid attribute value, $value")
                     }
                 }
                 Log.i("FUCK", convertedAttributes.values.joinToString(","))
