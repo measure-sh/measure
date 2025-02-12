@@ -23,3 +23,5 @@ flutter:
       android:
         package: sh.measure.flutter
         pluginClass: MeasurePlugin
+      ios:
+        pluginClass: MeasurePlugin
