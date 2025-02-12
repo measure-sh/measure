@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import MeasureSDK
 
 public class MeasurePlugin: NSObject, FlutterPlugin {
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -41,7 +42,6 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
     }
     
     private func processCustomEvent(name: String, timestamp: Int64, attributes: [String: AttributeValue]) {
-        // Assuming Measure.trackEvent exists in your iOS SDK
-        Measure.trackEvent(name: name, timestamp: timestamp, attributes: attributes)
+        Measure.shared.trackEvent(name: name, attributes: attributes, timestamp: timestamp)
     }
 }

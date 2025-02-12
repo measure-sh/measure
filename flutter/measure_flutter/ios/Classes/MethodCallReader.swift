@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Flutter
 
 class MethodCallReader {
     private let call: FlutterMethodCall
