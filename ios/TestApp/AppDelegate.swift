@@ -39,7 +39,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         let clientInfo = ClientInfo(apiKey: "test", apiUrl: "test")
         let config = BaseMeasureConfig(enableLogging: true,
-                                       trackScreenshotOnCrash: false,
                                        samplingRateForErrorFreeSessions: 1.0)
         mockMeasureInitializer = MockMeasureInitializer(config: config, client: clientInfo)
         measureInstance.meaureInitializerInternal = mockMeasureInitializer
