@@ -52,7 +52,7 @@ final class BaseConfigProviderTests: XCTestCase {
         XCTAssertEqual(baseConfigProvider.eventsBatchingIntervalMs, 30000) // 30 seconds
         XCTAssertEqual(baseConfigProvider.maxEventsInBatch, 500)
         XCTAssertEqual(baseConfigProvider.timeoutIntervalForRequest, 30) // 30 seconds
-        XCTAssertEqual(baseConfigProvider.longPressTimeout, 0.5) // 0.5 seconds
+        XCTAssertEqual(baseConfigProvider.longPressTimeout, 500) // 500 ms
         XCTAssertEqual(baseConfigProvider.scaledTouchSlop, 3.5) // 3.5 points
         XCTAssertEqual(baseConfigProvider.maxAttachmentSizeInEventsBatchInBytes, 3_000_000) // 3 MB
         XCTAssertEqual(baseConfigProvider.maxSessionDurationMs, 6 * 60 * 60 * 1000) // 6 hours
@@ -79,7 +79,7 @@ final class BaseConfigProviderTests: XCTestCase {
         XCTAssertEqual(baseConfigProvider.eventsBatchingIntervalMs, 30000) // 30 seconds
         XCTAssertEqual(baseConfigProvider.maxEventsInBatch, 500)
         XCTAssertEqual(baseConfigProvider.timeoutIntervalForRequest, 30) // 30 seconds
-        XCTAssertEqual(baseConfigProvider.longPressTimeout, 0.5) // 0.5 seconds
+        XCTAssertEqual(baseConfigProvider.longPressTimeout, 500) // 500 seconds
         XCTAssertEqual(baseConfigProvider.scaledTouchSlop, 3.5) // 3.5 points
         XCTAssertEqual(baseConfigProvider.maxAttachmentSizeInEventsBatchInBytes, 3_000_000) // 3 MB
         XCTAssertEqual(baseConfigProvider.maxSessionDurationMs, 6 * 60 * 60 * 1000) // 6 hours
