@@ -1,7 +1,6 @@
+import 'package:measure_flutter/attribute_value.dart';
+import 'package:measure_flutter/src/method_channel/measure_flutter_method_channel.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-
-import '../attribute_value.dart';
-import 'measure_flutter_method_channel.dart';
 
 abstract class MeasureFlutterPlatform extends PlatformInterface {
   MeasureFlutterPlatform() : super(token: _token);

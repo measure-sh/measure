@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:measure_flutter/attribute_value.dart';
-import 'package:measure_flutter/src/measure_flutter_method_channel.dart';
-import 'package:measure_flutter/src/measure_flutter_platform_interface.dart';
+import 'package:measure_flutter/src/method_channel/measure_flutter_method_channel.dart';
+import 'package:measure_flutter/src/method_channel/measure_flutter_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 class MockMeasureFlutterPlatform

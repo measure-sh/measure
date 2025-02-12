@@ -1,11 +1,10 @@
 import 'package:flutter/cupertino.dart';
+import 'package:measure_flutter/src/config/measure_config.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
-import 'package:measure_flutter/src/measure_flutter_method_channel.dart';
+import 'package:measure_flutter/src/logger/flutter_logger.dart';
+import 'package:measure_flutter/src/logger/logger.dart';
+import 'package:measure_flutter/src/method_channel/measure_flutter_method_channel.dart';
 import 'package:measure_flutter/src/signal_processor.dart';
-
-import 'config/measure_config.dart';
-import 'logger/flutter_logger.dart';
-import 'logger/logger.dart';
 
 final class MeasureInitializer {
   final MeasureConfig config;

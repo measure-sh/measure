@@ -1,9 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:measure_flutter/attribute_value.dart';
-import 'package:measure_flutter/src/attribute_value_codec.dart';
-
-import 'measure_flutter_platform_interface.dart';
+import 'package:measure_flutter/src/method_channel/measure_flutter_platform_interface.dart';
+import 'package:measure_flutter/src/method_channel/attribute_value_codec.dart';
 
 class MethodChannelMeasureFlutter extends MeasureFlutterPlatform {
   @visibleForTesting
