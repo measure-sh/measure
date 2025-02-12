@@ -34,7 +34,6 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
 
     private fun handleTrackCustomEvent(call: MethodCall, result: MethodChannel.Result) {
         val reader = MethodCallReader(call)
-
         val name = reader.requireArg<String>(MethodConstants.ARG_NAME)
         val timestamp = reader.requireArg<Long>(MethodConstants.ARG_TIMESTAMP)
         val rawAttributes = reader.requireArg<Map<String, Any>>(MethodConstants.ARG_ATTRIBUTES)

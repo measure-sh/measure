@@ -1,8 +1,6 @@
 package sh.measure.flutter
 
 import io.flutter.plugin.common.MethodCall
-import io.flutter.plugin.common.MethodChannel
-import org.mockito.Mockito
 import kotlin.test.Test
 
 internal class MeasurePluginTest {
@@ -17,6 +15,7 @@ internal class MeasurePluginTest {
             "boolean_key" to true,
             "double_key" to 3.14,
         )
+        val result = TestMethodResult()
         val call = MethodCall(
             MethodConstants.FUNCTION_TRACK_CUSTOM_EVENT, mapOf(
                 MethodConstants.ARG_NAME to eventName,
@@ -24,8 +23,11 @@ internal class MeasurePluginTest {
                 MethodConstants.ARG_ATTRIBUTES to attributes
             )
         )
-        val mockResult: MethodChannel.Result = Mockito.mock(MethodChannel.Result::class.java)
-        plugin.onMethodCall(call, mockResult)
-        Mockito.verify(mockResult).success(null)
+
+        // When
+        plugin.onMethodCall(call, result)
+
+        // Then
+        result.assertSuccess(null)
     }
 }
