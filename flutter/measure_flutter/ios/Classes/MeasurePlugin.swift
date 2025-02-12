@@ -30,14 +30,11 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
     
     private func handleTrackCustomEvent(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         let reader = MethodCallReader(call)
-        
         let name: String = try reader.requireArg(MethodConstants.argName)
         let timestamp: Int64 = try reader.requireArg(MethodConstants.argTimestamp)
         let rawAttributes: [String: Any] = try reader.requireArg(MethodConstants.argAttributes)
-        
         let convertedAttributes = try AttributeConverter.convertAttributes(rawAttributes)
         processCustomEvent(name: name, timestamp: timestamp, attributes: convertedAttributes)
-        
         result(nil)
     }
     
