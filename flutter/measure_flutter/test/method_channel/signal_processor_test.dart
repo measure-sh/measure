@@ -6,11 +6,24 @@ import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 import '../noop_logger.dart';
 import '../test_method_channel.dart';
 
+import 'package:flutter_test/flutter_test.dart';
+import 'package:measure_flutter/attribute_builder.dart';
+import 'package:measure_flutter/attribute_value.dart';
+import 'package:measure_flutter/src/method_channel/signal_processor.dart';
+
+import '../noop_logger.dart';
+import '../test_method_channel.dart';
+
 void main() {
-  final NoopLogger logger = NoopLogger();
-  final TestMethodChannel channel = TestMethodChannel();
-  final SignalProcessor signalProcessor =
-      SignalProcessor(logger: logger, channel: channel);
+  late NoopLogger logger;
+  late TestMethodChannel channel;
+  late SignalProcessor signalProcessor;
+
+  setUp(() {
+    logger = NoopLogger();
+    channel = TestMethodChannel();
+    signalProcessor = SignalProcessor(logger: logger, channel: channel);
+  });
 
   group('trackCustomEvent', () {
     test('successfully tracks event with attributes', () {
