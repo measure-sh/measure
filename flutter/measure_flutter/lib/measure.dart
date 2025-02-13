@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 
+import 'package:flutter/cupertino.dart';
 import 'package:measure_flutter/attribute_value.dart';
 import 'package:measure_flutter/src/config/measure_config.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
@@ -14,6 +15,9 @@ class Measure implements IMeasure {
 
   late MeasureInternal _measure;
   bool _isInitialized = false;
+
+  @visibleForTesting
+  bool get isInitialized => _isInitialized;
 
   @override
   Future<void> init({
