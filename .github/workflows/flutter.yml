@@ -38,6 +38,8 @@ jobs:
           flutter-version: 3.29.0
       - name: Change to Flutter directory
         run: cd flutter/measure_flutter
+      - name: pwd
+        run: pwd
       - name: Pub get
         run: flutter pub get
       - name: Verify formatting
