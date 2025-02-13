@@ -3,12 +3,21 @@ import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 
-final class SignalProcessor {
+abstract interface class SignalProcessor {
+  void trackCustomEvent(
+      String name,
+      DateTime timestamp,
+      Map<String, AttributeValue> attributes,
+      );
+}
+
+final class DefaultSignalProcessor extends SignalProcessor {
   final Logger logger;
   final MsrMethodChannel channel;
 
-  SignalProcessor({required this.logger, required this.channel});
+  DefaultSignalProcessor({required this.logger, required this.channel});
 
+  @override
   void trackCustomEvent(
       String name, DateTime timestamp, Map<String, AttributeValue> attributes) {
     try {

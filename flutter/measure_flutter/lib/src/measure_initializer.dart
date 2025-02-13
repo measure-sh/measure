@@ -28,7 +28,7 @@ final class MeasureInitializer {
   void _initializeDependencies() {
     _logger = FlutterLogger(enabled: config.enableLogging);
     _methodChannel = MsrMethodChannel();
-    _signalProcessor = SignalProcessor(logger: logger, channel: _methodChannel);
+    _signalProcessor = DefaultSignalProcessor(logger: logger, channel: _methodChannel);
     _customEventCollector = CustomEventCollector(
       logger: logger,
       signalProcessor: signalProcessor,
@@ -44,7 +44,7 @@ final class MeasureInitializer {
     _logger = logger ?? FlutterLogger(enabled: config.enableLogging);
     _methodChannel = MsrMethodChannel();
     _signalProcessor =
-        SignalProcessor(logger: _logger, channel: _methodChannel);
+        DefaultSignalProcessor(logger: _logger, channel: _methodChannel);
     _customEventCollector = customEventCollector ??
         CustomEventCollector(
           logger: _logger,
