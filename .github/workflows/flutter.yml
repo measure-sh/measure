@@ -65,4 +65,4 @@ jobs:
       - name: Check Gradle wrapper
         uses: gradle/actions/wrapper-validation@v3
       - name: Run all checks
-        run: ./gradlew check
+        run: ./gradlew :measure_flutter:check
