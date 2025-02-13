@@ -7,6 +7,8 @@ import android.os.Build
 import androidx.annotation.MainThread
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.MsrShakeListener
+import sh.measure.android.events.EventType
+import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.lifecycle.AppLifecycleListener
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.tracing.Span
@@ -288,6 +290,12 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
 
     fun isShakeToLaunchBugReportEnabled(): Boolean {
         return shakeBugReportCollector.isShakeToLaunchBugReportEnabled()
+    }
+
+    fun trackException(data: ExceptionData, timestamp: Long) {
+        if (isStarted) {
+            signalProcessor.trackCrash(data, timestamp, EventType.EXCEPTION)
+        }
     }
 
     private fun unregisterCollectors() {

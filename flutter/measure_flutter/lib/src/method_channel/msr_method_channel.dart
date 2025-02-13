@@ -18,4 +18,19 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
       MethodConstants.argAttributes: encodedAttributes,
     });
   }
+
+  @override
+  Future<void> triggerNativeCrash() async {
+    await _methodChannel
+        .invokeMethod(MethodConstants.functionTriggerNativeCrash);
+  }
+
+  @override
+  Future<void> trackFlutterException(
+      Map<String, dynamic> exceptionData, int timestamp) async {
+    await _methodChannel.invokeMethod(MethodConstants.functionTrackException, {
+      MethodConstants.argSerializedExceptionData: exceptionData,
+      MethodConstants.argTimestamp: timestamp,
+    });
+  }
 }

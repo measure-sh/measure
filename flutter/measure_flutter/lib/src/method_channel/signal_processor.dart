@@ -9,6 +9,9 @@ abstract interface class SignalProcessor {
     DateTime timestamp,
     Map<String, AttributeValue> attributes,
   );
+
+  void trackFlutterError(
+      Map<String, dynamic> exceptionData, DateTime timestamp);
 }
 
 final class DefaultSignalProcessor extends SignalProcessor {
@@ -25,6 +28,17 @@ final class DefaultSignalProcessor extends SignalProcessor {
           name, timestamp.millisecondsSinceEpoch, attributes);
     } catch (e) {
       logger.log(LogLevel.error, "Unable to track custom event", e);
+    }
+  }
+
+  @override
+  void trackFlutterError(
+      Map<String, dynamic> exceptionData, DateTime timestamp) {
+    try {
+      channel.trackFlutterException(
+          exceptionData, timestamp.millisecondsSinceEpoch);
+    } catch (e) {
+      logger.log(LogLevel.error, "Unable to track exception", e);
     }
   }
 }

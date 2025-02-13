@@ -506,6 +506,12 @@ object Measure {
         }
     }
 
+    fun internalTrackException(exceptionData: ExceptionData, timestamp: Long) {
+        if (isInitialized.get()) {
+            measure.trackException(exceptionData, timestamp)
+        }
+    }
+
     internal fun getBugReportCollector(): BugReportCollector {
         if (isInitialized.get()) {
             return measure.bugReportCollector
