@@ -47,6 +47,20 @@ class Measure implements IMeasure {
     }
   }
 
+  @override
+  void trackFlutterError(Object error, StackTrace? stack, ) {
+    if (_isInitialized) {
+      _measure.trackFlutterError(error, stack);
+    }
+  }
+
+  @override
+  void triggerNativeCrash() {
+    if (_isInitialized) {
+      _measure.triggerNativeCrash();
+    }
+  }
+
   Future<void> _initializeInternal(bool enableLogging) async {
     MeasureInitializer initializer =
         MeasureInitializer(MeasureConfig(enableLogging: enableLogging));

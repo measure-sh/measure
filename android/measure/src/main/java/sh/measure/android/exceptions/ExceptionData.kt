@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
  * Represents an exception in Measure. This is used to track handled and unhandled exceptions.
  */
 @Serializable
-internal data class ExceptionData(
+data class ExceptionData(
     /**
      * A list of exceptions that were thrown. Multiple exceptions represent "chained" exceptions.
      */
@@ -29,7 +29,7 @@ internal data class ExceptionData(
 )
 
 @Serializable
-internal data class MeasureThread(
+data class MeasureThread(
     val name: String,
     val frames: List<Frame>,
 )
@@ -38,7 +38,7 @@ internal data class MeasureThread(
  * Represents a stacktrace in Measure.
  */
 @Serializable
-internal data class ExceptionUnit(
+data class ExceptionUnit(
     /**
      * The fully qualified type of the exception. For example, java.lang.Exception.
      */
@@ -59,7 +59,7 @@ internal data class ExceptionUnit(
  * Represents a stackframe in Measure.
  */
 @Serializable
-internal data class Frame(
+data class Frame(
     /**
      * The fully qualified class name.
      */

@@ -1,4 +1,5 @@
 import 'package:measure_flutter/attribute_value.dart';
+import 'package:measure_flutter/src/exception/exception_data.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
@@ -19,5 +20,13 @@ abstract class MeasureFlutterPlatform extends PlatformInterface {
   Future<void> trackCustomEvent(
       String name, int timestamp, Map<String, AttributeValue> attributes) {
     throw UnimplementedError('trackCustomEvent() has not been implemented.');
+  }
+
+  Future<void> trackFlutterException(Map<String, dynamic> exceptionData, int timestamp) {
+    throw UnimplementedError('trackException() has not been implemented.');
+  }
+
+  Future<void> triggerNativeCrash() {
+    throw UnimplementedError('triggerNativeCrash() has not been implemented.');
   }
 }
