@@ -38,7 +38,7 @@ jobs:
         uses: subosito/flutter-action@f2c4f6686ca8e8d6e6d0f28410eeef506ed66aff
         with:
           channel: stable
-          flutter-version-file: pubspec.yaml
+          flutter-version-file: flutter/measure_flutter/pubspec.yaml
       - name: Pub get
         run: flutter pub get
       - name: Verify formatting
