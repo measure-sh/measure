@@ -48,7 +48,11 @@ jobs:
       - name: Flutter tests
         run: flutter test
       - name: Change to Android directory
-        run: cd example/android
+        run: cd example/android |
+          echo "Current working directory:"
+          pwd
+          echo "Directory contents:"
+          ls -la
       - name: Android checks
         uses: actions/setup-java@v3
         with:
