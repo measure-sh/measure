@@ -1,4 +1,4 @@
-// Package codec provides capabilities around
+// Package codec provides capabilities for
 // encoding/decoding or inflating/deflating
-// scenarios.
+// needs.
 package codec
