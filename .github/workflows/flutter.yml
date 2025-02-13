@@ -27,6 +27,9 @@ jobs:
   flutter-checks:
     name: Flutter checks
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter/measure_flutter
     timeout-minutes: 15
     steps:
       - name: Clone repository
@@ -36,10 +39,6 @@ jobs:
         with:
           channel: stable
           flutter-version: 3.29.0
-      - name: Change to Flutter directory
-        run: cd flutter/measure_flutter
-      - name: pwd
-        run: pwd
       - name: Pub get
         run: flutter pub get
       - name: Verify formatting
@@ -48,10 +47,6 @@ jobs:
         run: flutter analyze
       - name: Flutter tests
         run: flutter test
-      - name: Change to Android directory
-        run: cd example/android
-      - name: pwd
-        run: pwd
       - name: Android checks
         uses: actions/setup-java@v3
         with:
@@ -61,4 +56,4 @@ jobs:
       - name: Check Gradle wrapper
         uses: gradle/actions/wrapper-validation@v3
       - name: Run all checks
-        run: ./gradlew :measure_flutter:check
+        run: ./example/android/gradlew --project-dir ./example/android :measure_flutter:check
