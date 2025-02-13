@@ -3,8 +3,8 @@ import 'package:measure_flutter/attribute_value.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'mocks/mock_signal_processor.dart';
-import 'noop_logger.dart';
+import '../utils/noop_logger.dart';
+import '../utils/mock_signal_processor.dart';
 
 void main() {
   group('CustomEventCollector', () {
