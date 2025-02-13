@@ -5,10 +5,10 @@ import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 
 abstract interface class SignalProcessor {
   void trackCustomEvent(
-      String name,
-      DateTime timestamp,
-      Map<String, AttributeValue> attributes,
-      );
+    String name,
+    DateTime timestamp,
+    Map<String, AttributeValue> attributes,
+  );
 }
 
 final class DefaultSignalProcessor extends SignalProcessor {

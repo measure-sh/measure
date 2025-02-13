@@ -28,7 +28,8 @@ final class MeasureInitializer {
   void _initializeDependencies() {
     _logger = FlutterLogger(enabled: config.enableLogging);
     _methodChannel = MsrMethodChannel();
-    _signalProcessor = DefaultSignalProcessor(logger: logger, channel: _methodChannel);
+    _signalProcessor =
+        DefaultSignalProcessor(logger: logger, channel: _methodChannel);
     _customEventCollector = CustomEventCollector(
       logger: logger,
       signalProcessor: signalProcessor,

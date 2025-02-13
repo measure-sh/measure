@@ -1,0 +1,49 @@
+name: Flutter
+permissions:
+  contents: read
+  pull-requests: read
+on:
+  pull_request:
+    paths:
+      - 'flutter/**'
+      - 'android/measure/api/**'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'flutter/**'
+      - 'android/measure/api/**'
+      - 'ios/Sources/MeasureSDK/Swift/Measure.swift'
+    tags:
+      - 'flutter-*'
+
+env:
+  JAVA_VERSION: 17
+  JAVA_DISTRIBUTION: 'temurin'
+  GITHUB_ACTOR: ${{ github.actor }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  checks:
+    name: Run checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter/measure_flutter
+    timeout-minutes: 15
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@f2c4f6686ca8e8d6e6d0f28410eeef506ed66aff
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+      - name: Pub get
+        run: flutter pub get
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Analyze project source
+        run: flutter analyze
+      - name: Flutter tests
+        run: flutter test

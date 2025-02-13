@@ -12,10 +12,10 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
       Map<String, AttributeValue> attributes) async {
     final encodedAttributes = attributes.encode();
     await _methodChannel
-        .invokeMethod(MethodConstants.FUNCTION_TRACK_CUSTOM_EVENT, {
-      MethodConstants.ARG_NAME: name,
-      MethodConstants.ARG_TIMESTAMP: timestamp,
-      MethodConstants.ARG_ATTRIBUTES: encodedAttributes,
+        .invokeMethod(MethodConstants.functionTrackCustomEvent, {
+      MethodConstants.argName: name,
+      MethodConstants.argTimestamp: timestamp,
+      MethodConstants.argAttributes: encodedAttributes,
     });
   }
 }

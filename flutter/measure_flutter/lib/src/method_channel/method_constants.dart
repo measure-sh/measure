@@ -1,15 +1,15 @@
 class MethodConstants {
   // Function names
-  static const String FUNCTION_TRACK_CUSTOM_EVENT = 'trackCustomEvent';
+  static const String functionTrackCustomEvent = 'trackCustomEvent';
 
   // Argument keys
-  static const String ARG_NAME = 'name';
-  static const String ARG_TIMESTAMP = 'timestamp';
-  static const String ARG_ATTRIBUTES = 'attributes';
+  static const String argName = 'name';
+  static const String argTimestamp = 'timestamp';
+  static const String argAttributes = 'attributes';
 
   // Error codes
-  static const String ERROR_INVALID_ARGUMENT = 'invalid_argument';
-  static const String ERROR_ARGUMENT_MISSING = 'argument_missing';
-  static const String ERROR_INVALID_ATTRIBUTE = 'invalid_attribute';
-  static const String ERROR_UNKNOWN = 'unknown_error';
+  static const String errorInvalidArgument = 'invalid_argument';
+  static const String errorArgumentMissing = 'argument_missing';
+  static const String errorInvalidAttribute = 'invalid_attribute';
+  static const String errorUnknown = 'unknown_error';
 }
