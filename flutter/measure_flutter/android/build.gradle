@@ -49,7 +49,7 @@ android {
     }
 
     dependencies {
-        implementation("sh.measure:measure-android:0.10.0-SNAPSHOT")
+        api("sh.measure:measure-android:0.9.0")
         testImplementation("org.jetbrains.kotlin:kotlin-test")
     }
 

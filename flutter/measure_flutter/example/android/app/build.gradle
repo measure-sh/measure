@@ -34,10 +34,6 @@ android {
     }
 }
 
-dependencies {
-    implementation 'sh.measure:measure-android:0.10.0-SNAPSHOT'
-}
-
 flutter {
     source = "../.."
 }
