@@ -198,6 +198,7 @@
 		529B31952D5B2CBB007A8E45 /* MockLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D196E2D5B2C75009A2E90 /* MockLogger.swift */; };
 		529B31962D5B2CBC007A8E45 /* MockLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D196E2D5B2C75009A2E90 /* MockLogger.swift */; };
 		529B31972D5B2D19007A8E45 /* XCTextCase+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D195C2D5B2C75009A2E90 /* XCTextCase+Extension.swift */; };
+		529B319B2D5B85FC007A8E45 /* BinaryImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529B319A2D5B85FC007A8E45 /* BinaryImage.swift */; };
 		52BCF20A2CB59FBF003102DF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF2092CB59FBF003102DF /* AppDelegate.swift */; };
 		52BCF20C2CB59FBF003102DF /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF20B2CB59FBF003102DF /* SceneDelegate.swift */; };
 		52BCF20E2CB59FBF003102DF /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF20D2CB59FBF003102DF /* ViewController.swift */; };
@@ -531,6 +532,7 @@
 		526D19CA2D5B2C7F009A2E90 /* GestureCollectorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GestureCollectorTests.swift; sourceTree = "<group>"; };
 		526D19CB2D5B2C7F009A2E90 /* LaunchCollectorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LaunchCollectorTests.swift; sourceTree = "<group>"; };
 		526D19CC2D5B2C7F009A2E90 /* LifecycleCollectorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LifecycleCollectorTests.swift; sourceTree = "<group>"; };
+		529B319A2D5B85FC007A8E45 /* BinaryImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BinaryImage.swift; sourceTree = "<group>"; };
 		52BCF2072CB59FBF003102DF /* TestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		52BCF2092CB59FBF003102DF /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		52BCF20B2CB59FBF003102DF /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -748,6 +750,7 @@
 		526D17CD2D5A1913009A2E90 /* Exception */ = {
 			isa = PBXGroup;
 			children = (
+				529B319A2D5B85FC007A8E45 /* BinaryImage.swift */,
 				526D17C92D5A1913009A2E90 /* Exception.swift */,
 				526D17CA2D5A1913009A2E90 /* ExceptionDetail.swift */,
 				526D17CB2D5A1913009A2E90 /* StackFrame.swift */,
@@ -1564,6 +1567,7 @@
 				526D188F2D5A1913009A2E90 /* FrameworkInfo.swift in Sources */,
 				526D182B2D5A1913009A2E90 /* ComputeOnceAttributeProcessor.swift in Sources */,
 				526D18882D5A1913009A2E90 /* SignPost.swift in Sources */,
+				529B319B2D5B85FC007A8E45 /* BinaryImage.swift in Sources */,
 				526D18842D5A1913009A2E90 /* LifecycleObserver.swift in Sources */,
 				526D18502D5A1913009A2E90 /* ExceptionDetail.swift in Sources */,
 				526D182E2D5A1913009A2E90 /* NetworkStateAttributeProcessor.swift in Sources */,

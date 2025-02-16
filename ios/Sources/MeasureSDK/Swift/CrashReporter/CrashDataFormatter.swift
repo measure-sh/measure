@@ -87,10 +87,21 @@ final class CrashDataFormatter {
                                                threadName: crashedThread?.name ?? "",
                                                threadSequence: crashedThread?.sequence ?? 0,
                                                osBuildNumber: crashReport.osBuildNumber)
+        guard let crashedThread = crashedThread, let threads = getExceptionStackTrace() else {
+            return Exception(handled: false,
+                             exceptions: [exceptionDetails],
+                             foreground: true,
+                             threads: nil,
+                             binaryImages: nil)
+        }
+
+        let binaryImages = getBinaryImageInfo([crashedThread] + threads)
+
         return Exception(handled: false,
                          exceptions: [exceptionDetails],
                          foreground: true,
-                         threads: getExceptionStackTrace())
+                         threads: threads,
+                         binaryImages: binaryImages)
     }
 
     private func getCrashedThread() -> ThreadDetail? {
@@ -175,5 +186,80 @@ final class CrashDataFormatter {
                                     symbolAddress: formattedInstructionPointer,
                                     inApp: self.executableName == imageName)
         return stackFrame
+    }
+
+    private func getBinaryImageInfo(_ threads: [ThreadDetail]) -> [BinaryImage]? {
+        var binaryImages: [BinaryImage] = []
+        var lastImageBaseAddress: UInt64 = 0
+
+        guard let images = crashReport.images else {
+            return nil
+        }
+
+        // Collect all binary addresses from StackFrames in threads
+        let relevantBinaryAddresses: Set<String> = Set(
+            threads.flatMap { $0.frames.map { $0.binaryAddress } }
+        )
+
+        for imageInfo in images {
+            let imageBaseAddress = imageInfo.imageBaseAddress
+            if lastImageBaseAddress == imageBaseAddress {
+                continue
+            }
+            lastImageBaseAddress = imageBaseAddress
+
+            let startAddress = String(format: "%llx", imageBaseAddress)
+
+            // Filter based on matching binaryAddress in StackFrame
+            if !relevantBinaryAddresses.contains(startAddress) {
+                continue
+            }
+
+            let endAddress = String(format: "%llx", imageBaseAddress + max(1, imageInfo.imageSize) - 1)
+            let uuid = imageInfo.hasImageUUID ? imageInfo.imageUUID ?? "uuid" : "uuid"
+            let imageName = (imageInfo.imageName as NSString).lastPathComponent
+            let path = imageInfo.imageName ?? "path"
+
+            // Determine the architecture string
+            var arch = "???"
+            if let codeType = imageInfo.codeType, codeType.typeEncoding == PLCrashReportProcessorTypeEncodingMach {
+                let subtype = Int32(codeType.subtype & ~UInt64(CPU_SUBTYPE_MASK))
+                switch Int32(codeType.type) {
+                case CPU_TYPE_ARM:
+                    switch subtype {
+                    case CPU_SUBTYPE_ARM_V6: arch = "armv6"
+                    case CPU_SUBTYPE_ARM_V7: arch = "armv7"
+                    case CPU_SUBTYPE_ARM_V7S: arch = "armv7s"
+                    default: arch = "arm-unknown"
+                    }
+                case CPU_TYPE_ARM64:
+                    switch subtype {
+                    case CPU_SUBTYPE_ARM64_ALL: arch = "arm64"
+                    case CPU_SUBTYPE_ARM64_V8: arch = "armv8"
+                    case CPU_SUBTYPE_ARM64E: arch = "arm64e"
+                    default: arch = "arm64-unknown"
+                    }
+                case CPU_TYPE_X86:
+                    arch = "i386"
+                case CPU_TYPE_X86_64:
+                    arch = "x86_64"
+                case CPU_TYPE_POWERPC:
+                    arch = "powerpc"
+                default:
+                    break
+                }
+            }
+
+            let binaryImage = BinaryImage(startAddress: startAddress,
+                                          endAddress: endAddress,
+                                          system: !(self.executableName == imageName),
+                                          name: imageName,
+                                          arch: arch,
+                                          uuid: uuid,
+                                          path: path)
+            binaryImages.append(binaryImage)
+        }
+
+        return binaryImages.isEmpty ? nil : binaryImages
     }
 }
