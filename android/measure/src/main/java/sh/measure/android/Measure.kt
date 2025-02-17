@@ -359,7 +359,7 @@ object Measure {
     fun trackBugReport(
         description: String,
         attachments: List<MsrAttachment> = listOf(),
-        attributes: MutableMap<String, AttributeValue>,
+        attributes: MutableMap<String, AttributeValue> = mutableMapOf(),
     ) {
         if (isInitialized.get()) {
             return measure.trackBugReport(description, attachments, attributes)
