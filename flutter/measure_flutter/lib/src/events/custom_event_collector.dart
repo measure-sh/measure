@@ -28,6 +28,7 @@ final class CustomEventCollector {
     if (!enabled) {
       return;
     }
-    signalProcessor.trackCustomEvent(name, timestamp ?? DateTime.now(), attributes);
+    signalProcessor.trackCustomEvent(
+        name, timestamp ?? DateTime.now(), attributes);
   }
 }
