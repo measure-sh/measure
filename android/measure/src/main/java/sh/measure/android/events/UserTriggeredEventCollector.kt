@@ -19,7 +19,7 @@ internal interface UserTriggeredEventCollector {
     fun trackBugReport(
         description: String,
         screenshots: List<MsrAttachment>,
-        attributes: MutableMap<String, AttributeValue>
+        attributes: MutableMap<String, AttributeValue>,
     )
 }
 
@@ -42,7 +42,7 @@ internal class UserTriggeredEventCollectorImpl(
     override fun trackBugReport(
         description: String,
         screenshots: List<MsrAttachment>,
-        attributes: MutableMap<String, AttributeValue>
+        attributes: MutableMap<String, AttributeValue>,
     ) {
         if (!enabled.get()) {
             return

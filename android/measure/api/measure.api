@@ -10,7 +10,9 @@ public final class sh/measure/android/Measure {
 	public static final field $stable I
 	public static final field INSTANCE Lsh/measure/android/Measure;
 	public final fun captureLayoutSnapshot (Landroid/app/Activity;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;)V
+	public static synthetic fun captureLayoutSnapshot$default (Lsh/measure/android/Measure;Landroid/app/Activity;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 	public final fun captureScreenshot (Landroid/app/Activity;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;)V
+	public static synthetic fun captureScreenshot$default (Lsh/measure/android/Measure;Landroid/app/Activity;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 	public static final fun clearUserId ()V
 	public final fun createSpanBuilder (Ljava/lang/String;)Lsh/measure/android/tracing/SpanBuilder;
 	public final fun getCurrentTime ()J

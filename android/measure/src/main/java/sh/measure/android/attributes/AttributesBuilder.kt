@@ -36,5 +36,5 @@ class AttributesBuilder {
         return this
     }
 
-    fun build(): Map<String, AttributeValue> = attributes.toMap()
+    fun build(): MutableMap<String, AttributeValue> = attributes.toMutableMap()
 }

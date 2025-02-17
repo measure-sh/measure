@@ -14,6 +14,7 @@ import androidx.core.view.updatePadding
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.textview.MaterialTextView
 import sh.measure.android.Measure
+import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.tracing.SpanStatus
 import sh.measure.sample.fragments.AndroidXFragmentNavigationActivity
 import sh.measure.sample.fragments.FragmentNavigationActivity
@@ -79,8 +80,17 @@ class ExceptionDemoActivity : AppCompatActivity() {
         findViewById<MaterialTextView>(R.id.btn_fragment_androidx_navigation).setOnClickListener {
             startActivity(Intent(this, AndroidXFragmentNavigationActivity::class.java))
         }
-        findViewById<MaterialTextView>(R.id.btn_bug_report).setOnClickListener {
+        findViewById<MaterialTextView>(R.id.btn_launch_bug_report).setOnClickListener {
             Measure.launchBugReportActivity(this)
+        }
+        findViewById<MaterialTextView>(R.id.btn_bug_report).setOnClickListener {
+            Measure.captureLayoutSnapshot(this, onComplete = { snapshot ->
+                Measure.trackBugReport(
+                    "Custom bug report",
+                    attachments = listOf(snapshot),
+                    attributes = AttributesBuilder().put("premium", true).build()
+                )
+            })
         }
         val spanButton = findViewById<MaterialTextView>(R.id.btn_generate_span)
         spanButton.setOnClickListener {

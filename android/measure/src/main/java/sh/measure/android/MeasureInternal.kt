@@ -217,7 +217,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     fun trackBugReport(
         description: String,
         screenshots: List<MsrAttachment>,
-        attributes: MutableMap<String, AttributeValue>
+        attributes: MutableMap<String, AttributeValue>,
     ) {
         userTriggeredEventCollector.trackBugReport(description, screenshots, attributes)
     }
@@ -226,7 +226,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     fun captureScreenshot(
         activity: Activity,
         onComplete: (attachment: MsrAttachment) -> Unit,
-        onError: () -> Unit,
+        onError: (() -> Unit)?,
     ) {
         AttachmentHelper(
             logger,
@@ -239,7 +239,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     fun takeLayoutSnapshot(
         activity: Activity,
         onComplete: (attachment: MsrAttachment) -> Unit,
-        onError: () -> Unit,
+        onError: (() -> Unit)?,
     ) {
         AttachmentHelper(
             logger,

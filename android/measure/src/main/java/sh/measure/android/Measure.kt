@@ -343,17 +343,19 @@ object Measure {
     }
 
     /**
-     * Tracks a but report event.
+     * Tracks a custom bug report.
      *
-     * A bug report contains a mandatory [description], describing the bug and optional attachments.
-     * Attachments can contain screenshots obtained by [captureScreenshot] or layout snapshots obtained
-     * by [captureLayoutSnapshot]. Attachments can also contain a Uri to an image picked using an
-     * image picker, to convert a Uri to a attachment, use [imageUriToAttachment] method.
+     * For a pre-built UI experience to collect bug reports see [launchBugReportActivity].
+     * Attachments can contain screenshots, layout snapshots or images from gallery, see the
+     * following APIs to create an attachment:
      *
-     * A maximum of 5 attachments can be added to a bug report, any additional attachments will be
-     * ignored.
+     * @see [captureScreenshot] For capturing screen images
+     * @see [captureLayoutSnapshot] For capturing view hierarchy information
+     * @see [imageUriToAttachment] For converting image URIs to attachments
      *
-     * @see [launchBugReportActivity] to use the built-in experience for bug reporting.
+     * @param description Description of the bug. Max characters 4000.
+     * @param attachments Optional list of attachments. Max 5.
+     * @param attributes Optional key-value pairs for additional metadata about the bug report.
      */
     @MainThread
     fun trackBugReport(
@@ -382,7 +384,7 @@ object Measure {
     fun captureScreenshot(
         activity: Activity,
         onComplete: (attachment: MsrAttachment) -> Unit,
-        onError: () -> Unit,
+        onError: (() -> Unit)? = null,
     ) {
         if (isInitialized.get()) {
             return measure.captureScreenshot(activity, onComplete, onError)
@@ -407,7 +409,7 @@ object Measure {
     fun captureLayoutSnapshot(
         activity: Activity,
         onComplete: (attachment: MsrAttachment) -> Unit,
-        onError: () -> Unit,
+        onError: (() -> Unit)? = null,
     ) {
         if (isInitialized.get()) {
             return measure.takeLayoutSnapshot(activity, onComplete, onError)

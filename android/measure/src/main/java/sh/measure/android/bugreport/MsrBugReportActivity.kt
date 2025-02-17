@@ -150,7 +150,8 @@ internal class MsrBugReportActivity : Activity() {
             }
         } else {
             ViewCompat.setOnApplyWindowInsetsListener(container) { view, windowInsets ->
-                @Suppress("DEPRECATION") val insets = windowInsets.systemWindowInsets
+                @Suppress("DEPRECATION")
+                val insets = windowInsets.systemWindowInsets
                 view.updatePadding(
                     left = insets.left,
                     top = insets.top,
@@ -313,7 +314,7 @@ internal class MsrBugReportActivity : Activity() {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             isPermissionDeclared(
                 this,
-                READ_MEDIA_VISUAL_USER_SELECTED
+                READ_MEDIA_VISUAL_USER_SELECTED,
             ) || isPermissionDeclared(this, READ_MEDIA_IMAGES)
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             isPermissionDeclared(this, READ_MEDIA_IMAGES)

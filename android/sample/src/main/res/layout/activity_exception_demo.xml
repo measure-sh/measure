@@ -270,6 +270,14 @@
                     app:drawableEndCompat="@drawable/ic_chevron_right" />
 
                 <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_launch_bug_report"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/launch_bug_report"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+
+                <com.google.android.material.textview.MaterialTextView
                     android:id="@+id/btn_bug_report"
                     style="@style/Widget.Material3.TextView.SettingsItem"
                     android:layout_width="match_parent"

@@ -40,7 +40,7 @@ internal class AttachmentHelper(
     fun captureScreenshot(
         activity: Activity,
         onCaptured: (attachment: MsrAttachment) -> Unit,
-        onError: () -> Unit,
+        onError: (() -> Unit)?,
     ) {
         val screenshotMaskConfig = ScreenshotMaskConfig(
             maskHexColor = configProvider.screenshotMaskHexColor,
@@ -50,7 +50,7 @@ internal class AttachmentHelper(
         )
         val bitmap = BitmapHelper.captureBitmap(activity, logger, screenshotMaskConfig)
         if (bitmap == null) {
-            onError()
+            onError?.invoke()
             return
         }
         try {
@@ -61,7 +61,7 @@ internal class AttachmentHelper(
                     logger,
                 )
                 if (result == null) {
-                    mainHandler.post { onError() }
+                    mainHandler.post { onError?.invoke() }
                 } else {
                     mainHandler.post {
                         val (extension, bytes) = result
@@ -76,7 +76,7 @@ internal class AttachmentHelper(
                 }
             }
         } catch (e: RejectedExecutionException) {
-            onError()
+            onError?.invoke()
         }
     }
 
@@ -84,23 +84,23 @@ internal class AttachmentHelper(
     fun captureLayoutSnapshot(
         activity: Activity,
         onComplete: (attachment: MsrAttachment) -> Unit,
-        onError: () -> Unit,
+        onError: (() -> Unit)?,
     ) {
         val window = activity.window ?: run {
             logger.log(LogLevel.Debug, "Unable to take screenshot, window is null.")
-            onError()
+            onError?.invoke()
             return
         }
 
         val decorView = window.peekDecorView() ?: run {
             logger.log(LogLevel.Debug, "Unable to take screenshot, decor view is null.")
-            onError()
+            onError?.invoke()
             return
         }
 
         val view = decorView.rootView ?: run {
             logger.log(LogLevel.Debug, "Unable to take screenshot, root view is null.")
-            onError()
+            onError?.invoke()
             return
         }
 
@@ -108,7 +108,7 @@ internal class AttachmentHelper(
         val height = view.height
         if (width <= 0 || height <= 0) {
             logger.log(LogLevel.Debug, "Unable to take screenshot, invalid view bounds.")
-            onError()
+            onError?.invoke()
             return
         }
         val snapshot = LayoutInspector.capture(view)
@@ -119,7 +119,7 @@ internal class AttachmentHelper(
         context: Context,
         uri: Uri,
         onComplete: (attachment: MsrAttachment) -> Unit,
-        onError: () -> Unit,
+        onError: (() -> Unit)?,
     ) {
         try {
             val contextRef = WeakReference(context)
@@ -130,7 +130,7 @@ internal class AttachmentHelper(
                             LogLevel.Error,
                             "Failed to read Uri, context is no longer available",
                         )
-                        mainHandler.post(onError)
+                        onError?.let { mainHandler.post(it) }
                         return@submit
                     }
 
@@ -146,7 +146,7 @@ internal class AttachmentHelper(
                             LogLevel.Error,
                             "Failed to decode image dimensions from Uri: $uri. Image may be corrupted or in unsupported format.",
                         )
-                        mainHandler.post(onError)
+                        onError?.let { mainHandler.post(it) }
                         return@submit
                     }
                     val sampleSize = if (options.outWidth > MAX_OUTPUT_IMAGE_WIDTH) {
@@ -163,7 +163,7 @@ internal class AttachmentHelper(
                     }
                     if (bitmap == null) {
                         logger.log(LogLevel.Error, "Failed to decode image content from Uri: $uri")
-                        mainHandler.post(onError)
+                        onError?.let { mainHandler.post(it) }
                         return@submit
                     }
                     val compressed = BitmapHelper.compressBitmap(
@@ -173,7 +173,7 @@ internal class AttachmentHelper(
                     )
                     if (compressed == null) {
                         logger.log(LogLevel.Error, "Failed to compress bitmap from Uri: $uri")
-                        mainHandler.post(onError)
+                        onError?.let { mainHandler.post(it) }
                         return@submit
                     }
                     val (extension, bytes) = compressed
@@ -187,12 +187,12 @@ internal class AttachmentHelper(
                         )
                     }
                 } catch (e: Exception) {
-                    mainHandler.post(onError)
+                    onError?.let { mainHandler.post(it) }
                 }
             }
         } catch (e: RejectedExecutionException) {
             logger.log(LogLevel.Error, "Unexpected error while reading image from Uri: $uri", e)
-            onError()
+            onError?.invoke()
         }
     }
 }
