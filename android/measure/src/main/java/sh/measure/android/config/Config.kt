@@ -52,5 +52,5 @@ internal data class Config(
     override val maxInMemorySignalsQueueSize: Int = 30
     override val inMemorySignalsQueueFlushRateMs: Long = 3000
     override val maxAttachmentsInBugReport: Int = 5
-    override val maxDescriptionLengthInBugReport: Int = 1000
+    override val maxDescriptionLengthInBugReport: Int = 4000
 }

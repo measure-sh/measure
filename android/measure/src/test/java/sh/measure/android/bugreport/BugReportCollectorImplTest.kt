@@ -13,6 +13,7 @@ import androidx.concurrent.futures.ResolvableFuture
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -86,6 +87,18 @@ class BugReportCollectorImplTest {
         )
         assertEquals(5, attachmentsCaptor.firstValue.size)
         assertTrue(sessionManager.markedSessionWithBugReport)
+    }
+
+    @Test
+    fun `valid bug report has at least 1 attachment or 1 character`() {
+        val invalid = bugReportCollector.validateBugReport(0, 0)
+        assertFalse(invalid)
+
+        val attachmentOnly = bugReportCollector.validateBugReport(1, 0)
+        assertTrue(attachmentOnly)
+
+        val descriptionOnly = bugReportCollector.validateBugReport(0, 1)
+        assertTrue(descriptionOnly)
     }
 
     @Test

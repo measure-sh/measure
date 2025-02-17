@@ -23,7 +23,6 @@ import androidx.core.content.IntentCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
-import androidx.core.widget.doOnTextChanged
 import sh.measure.android.Measure
 import sh.measure.android.R
 import sh.measure.android.bugreport.BugReportCollector.Companion.INITIAL_SCREENSHOT_EXTRA
@@ -151,8 +150,7 @@ internal class MsrBugReportActivity : Activity() {
             }
         } else {
             ViewCompat.setOnApplyWindowInsetsListener(container) { view, windowInsets ->
-                @Suppress("DEPRECATION")
-                val insets = windowInsets.systemWindowInsets
+                @Suppress("DEPRECATION") val insets = windowInsets.systemWindowInsets
                 view.updatePadding(
                     left = insets.left,
                     top = insets.top,
@@ -174,20 +172,25 @@ internal class MsrBugReportActivity : Activity() {
     }
 
     private fun setupDescriptionField() {
-        val maxDescriptionLength = intent.getIntExtra(MAX_DESCRIPTION_LENGTH, 1000)
+        val maxDescriptionLength = intent.getIntExtra(MAX_DESCRIPTION_LENGTH, 4000)
         etDescription.filters = arrayOf(InputFilter.LengthFilter(maxDescriptionLength))
-        etDescription.doOnTextChanged { text, _, _, _ ->
-            tvSend.isEnabled = !text.isNullOrBlank()
-        }
     }
 
     private fun setupButtons() {
         btnClose.setOnClickListener { finish() }
         tvSend.setOnClickListener {
+            sendBugReport()
+        }
+        updateAddImageClickListener()
+    }
+
+    private fun sendBugReport() {
+        val isValid =
+            bugReportCollector.validateBugReport(attachments.size, etDescription.text.length)
+        if (isValid) {
             trackBugReport()
             finish()
         }
-        updateAddImageClickListener()
     }
 
     private fun showInitialScreenshot() {
@@ -308,8 +311,10 @@ internal class MsrBugReportActivity : Activity() {
 
     private fun canAccessGalleryImages(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            isPermissionDeclared(this, READ_MEDIA_VISUAL_USER_SELECTED) ||
-                isPermissionDeclared(this, READ_MEDIA_IMAGES)
+            isPermissionDeclared(
+                this,
+                READ_MEDIA_VISUAL_USER_SELECTED
+            ) || isPermissionDeclared(this, READ_MEDIA_IMAGES)
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             isPermissionDeclared(this, READ_MEDIA_IMAGES)
         } else {

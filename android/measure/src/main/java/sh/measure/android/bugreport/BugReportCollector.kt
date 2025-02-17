@@ -58,6 +58,8 @@ internal interface BugReportCollector {
         parcelableAttachments: List<ParcelableAttachment>,
         uris: List<Uri>,
     )
+
+    fun validateBugReport(attachments: Int, descriptionLength: Int): Boolean
 }
 
 internal class BugReportCollectorImpl internal constructor(
@@ -188,6 +190,10 @@ internal class BugReportCollectorImpl internal constructor(
                 logger.log(LogLevel.Error, "Failed to track bug report", e)
             }
         }
+    }
+
+    override fun validateBugReport(attachments: Int, descriptionLength: Int): Boolean {
+        return attachments > 0 || descriptionLength > 0
     }
 
     private fun launchImagePickerIntent(activity: Activity) {

@@ -40,7 +40,6 @@
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:background="@drawable/msr_borderless_button_ripple"
-            android:enabled="false"
             android:gravity="center"
             android:paddingHorizontal="16dp"
             android:text="@string/msr_bug_report_send"

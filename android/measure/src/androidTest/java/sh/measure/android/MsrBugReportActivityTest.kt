@@ -13,7 +13,6 @@ import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import sh.measure.android.bugreport.MsrBugReportActivity
 import sh.measure.android.config.MeasureConfig
 
 @RunWith(AndroidJUnit4::class)
@@ -41,20 +40,6 @@ class MsrBugReportActivityTest {
     }
 
     @Test
-    fun testSendButtonState() {
-        // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
-        ActivityScenario.launch(MsrBugReportActivity::class.java).use {
-            it.moveToState(Lifecycle.State.RESUMED)
-
-            // Then
-            robot.assertSendCtaEnabled(enabled = false)
-            robot.enterDescription()
-            robot.assertSendCtaEnabled(enabled = true)
-        }
-    }
-
-    @Test
     fun launchWithInitialScreenshot() {
         // Given
         val initializer = robot.initializeMeasure(MeasureConfig(enableLogging = true))
@@ -68,6 +53,7 @@ class MsrBugReportActivityTest {
             // Then
             robot.assertBugReportActivityLaunched()
             robot.assertTotalScreenshots(1)
+            robot.assertSendCtaEnabled(true)
         }
     }
 
@@ -85,6 +71,7 @@ class MsrBugReportActivityTest {
             // Then
             robot.assertBugReportActivityLaunched()
             robot.assertTotalScreenshots(0)
+            robot.assertSendCtaEnabled(true)
         }
     }
 
@@ -143,7 +130,7 @@ class MsrBugReportActivityTest {
     }
 
     @Test
-    fun tracksBugReportWithoutAttachments() {
+    fun tracksBugReportWithDescriptionOnly() {
         // Given
         val initializer = robot.initializeMeasure(MeasureConfig(enableLogging = true))
         ActivityScenario.launch(TestActivity::class.java).use { activity ->
@@ -155,14 +142,14 @@ class MsrBugReportActivityTest {
             // Then
             robot.assertBugReportActivityLaunched()
             robot.removeScreenshot(index = 0)
-            robot.enterDescription()
+            robot.enterDescription(1)
             robot.clickSendCTA()
             robot.assetBugReportTracked(attachmentCount = 0)
         }
     }
 
     @Test
-    fun tracksBugReportWithAttachment() {
+    fun tracksBugReportWithAttachmentsOnly() {
         // Given
         val initializer = robot.initializeMeasure(MeasureConfig(enableLogging = true))
         ActivityScenario.launch(TestActivity::class.java).use { activity ->
@@ -173,7 +160,24 @@ class MsrBugReportActivityTest {
             }
             // Then
             robot.assertBugReportActivityLaunched()
-            robot.enterDescription()
+            robot.clickSendCTA()
+            robot.assetBugReportTracked(attachmentCount = 1)
+        }
+    }
+
+    @Test
+    fun tracksBugReportWithAttachmentsAndDescription() {
+        // Given
+        val initializer = robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        ActivityScenario.launch(TestActivity::class.java).use { activity ->
+            activity.moveToState(Lifecycle.State.RESUMED)
+            activity.onActivity {
+                // When
+                initializer.bugReportCollector.startBugReportFlow(it)
+            }
+            // Then
+            robot.assertBugReportActivityLaunched()
+            robot.enterDescription(1)
             robot.clickSendCTA()
             robot.assetBugReportTracked(attachmentCount = 1)
         }
