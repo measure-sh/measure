@@ -54,6 +54,12 @@ class Measure implements IMeasure {
     await _measure.init();
   }
 
+  void trackFlutterError(Object exception, StackTrace? stack) {
+    if (_isInitialized) {
+      _measure.trackFlutterError(exception, stack);
+    }
+  }
+
   void _logInitializationFailure(
     bool enableLogging,
     Object error,

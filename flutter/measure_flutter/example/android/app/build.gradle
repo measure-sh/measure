@@ -29,7 +29,16 @@ android {
 
     buildTypes {
         release {
+            // Use signingConfigs.debug for testing; replace with your actual release signing config for production
             signingConfig = signingConfigs.debug
+
+            // Enable minification (R8)
+            minifyEnabled true
+            // Enable resource shrinking (optional, but recommended)
+            shrinkResources true
+
+            // Apply default ProGuard rules and your custom rules
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
