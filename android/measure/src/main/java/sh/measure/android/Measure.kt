@@ -356,9 +356,13 @@ object Measure {
      * @see [launchBugReportActivity] to use the built-in experience for bug reporting.
      */
     @MainThread
-    fun trackBugReport(description: String, attachments: List<MsrAttachment> = listOf()) {
+    fun trackBugReport(
+        description: String,
+        attachments: List<MsrAttachment> = listOf(),
+        attributes: MutableMap<String, AttributeValue>,
+    ) {
         if (isInitialized.get()) {
-            return measure.trackBugReport(description, attachments)
+            return measure.trackBugReport(description, attachments, attributes)
         }
     }
 

@@ -57,6 +57,7 @@ internal interface SignalProcessor {
         timestamp: Long,
         type: String,
         attachments: MutableList<Attachment> = mutableListOf(),
+        userDefinedAttributes: Map<String, AttributeValue> = mapOf(),
     )
 
     /**
@@ -94,13 +95,14 @@ internal class SignalProcessorImpl(
         timestamp: Long,
         type: String,
         attachments: MutableList<Attachment>,
+        userDefinedAttributes: Map<String, AttributeValue>,
     ) {
         track(
             data = data,
             timestamp = timestamp,
             type = type,
             attributes = mutableMapOf(),
-            userDefinedAttributes = mutableMapOf(),
+            userDefinedAttributes = userDefinedAttributes,
             attachments = attachments,
             sessionId = null,
             threadName = null,

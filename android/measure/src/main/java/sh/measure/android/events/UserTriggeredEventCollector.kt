@@ -1,6 +1,7 @@
 package sh.measure.android.events
 
 import sh.measure.android.MsrAttachment
+import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.exceptions.ExceptionFactory
@@ -15,7 +16,11 @@ internal interface UserTriggeredEventCollector {
     fun trackScreenView(screenName: String)
     fun register()
     fun unregister()
-    fun trackBugReport(description: String, screenshots: List<MsrAttachment>)
+    fun trackBugReport(
+        description: String,
+        screenshots: List<MsrAttachment>,
+        attributes: MutableMap<String, AttributeValue>
+    )
 }
 
 internal class UserTriggeredEventCollectorImpl(
@@ -34,7 +39,11 @@ internal class UserTriggeredEventCollectorImpl(
         enabled.compareAndSet(true, false)
     }
 
-    override fun trackBugReport(description: String, screenshots: List<MsrAttachment>) {
+    override fun trackBugReport(
+        description: String,
+        screenshots: List<MsrAttachment>,
+        attributes: MutableMap<String, AttributeValue>
+    ) {
         if (!enabled.get()) {
             return
         }
@@ -48,6 +57,7 @@ internal class UserTriggeredEventCollectorImpl(
             type = EventType.BUG_REPORT,
             timestamp = timestamp,
             attachments = attachments,
+            userDefinedAttributes = attributes,
         )
     }
 

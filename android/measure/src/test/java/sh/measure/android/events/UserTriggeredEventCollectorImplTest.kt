@@ -64,7 +64,7 @@ class UserTriggeredEventCollectorImplTest {
 
         userTriggeredEventCollector.register()
         val screenshots = listOf(screenshot)
-        userTriggeredEventCollector.trackBugReport(data.description, screenshots)
+        userTriggeredEventCollector.trackBugReport(data.description, screenshots, attributes)
         verify(signalProcessor).trackUserTriggered(
             data = eq(data),
             timestamp = eq(timeProvider.now()),
@@ -79,7 +79,7 @@ class UserTriggeredEventCollectorImplTest {
         val data = TestData.getBugReportData()
 
         userTriggeredEventCollector.register()
-        userTriggeredEventCollector.trackBugReport(data.description, listOf())
+        userTriggeredEventCollector.trackBugReport(data.description, listOf(), attributes)
         verify(signalProcessor).trackUserTriggered(
             data = data,
             timestamp = timeProvider.now(),

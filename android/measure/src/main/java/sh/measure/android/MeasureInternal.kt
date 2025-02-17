@@ -214,8 +214,12 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         bugReportCollector.startBugReportFlow(activity, takeScreenshot)
     }
 
-    fun trackBugReport(description: String, screenshots: List<MsrAttachment>) {
-        userTriggeredEventCollector.trackBugReport(description, screenshots)
+    fun trackBugReport(
+        description: String,
+        screenshots: List<MsrAttachment>,
+        attributes: MutableMap<String, AttributeValue>
+    ) {
+        userTriggeredEventCollector.trackBugReport(description, screenshots, attributes)
     }
 
     @MainThread
