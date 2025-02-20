@@ -29,6 +29,10 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
+// MappingFile represents a bundle file
+// used in symbolication of stacktraces
+// that is uploaded to a S3-like remote
+// object store.
 type MappingFile struct {
 	ID             uuid.UUID
 	Header         *multipart.FileHeader
@@ -40,6 +44,8 @@ type MappingFile struct {
 	UploadComplete bool
 }
 
+// BuildMapping represents the set of parameters
+// for handling or storing mapping files.
 type BuildMapping struct {
 	AppID       uuid.UUID
 	VersionName string `form:"version_name" binding:"required"`
@@ -210,10 +216,22 @@ func (bm *BuildMapping) mark(ctx context.Context, tx *pgx.Tx) (err error) {
 		return
 	}
 
+	// there can be many actions that needs
+	// to be taken while handling mapping files.
+	//
+	// 1. an older mapping file replaced with a
+	//    a new one.
+	// 2. new mapping files are added to an older
+	//    build mapping containing less mapping
+	//    files.
+	// 3. new mapping files are added to an older
+	//    build mapping containing more mapping
+	//    files.
 	mlen := len(bm.MappingFiles)
 	elen := len(entries)
 	for i, entry := range entries {
 		if elen <= mlen {
+			// more newer, than older
 			bm.MappingFiles[i].ID = entry.id
 			if entry.hash != bm.MappingFiles[i].Checksum {
 				bm.MappingFiles[i].ShouldUpload = true
@@ -226,6 +244,7 @@ func (bm *BuildMapping) mark(ctx context.Context, tx *pgx.Tx) (err error) {
 				}
 			}
 		} else if elen > mlen {
+			// more older, than newer
 			if i == mlen-1 {
 				for j := i; j < mlen; j++ {
 					bm.MappingFiles[i].ID = entry.id
@@ -256,6 +275,9 @@ func (bm BuildMapping) shouldUpload() (should bool) {
 	return
 }
 
+// shouldUpsert returns true if any of the mapping
+// files was updated on object store and hence needs
+// to be updated in the database.
 func (bm BuildMapping) shouldUpsert() (should bool) {
 	for _, mf := range bm.MappingFiles {
 		if mf.ID != uuid.Nil && mf.Key != "" && mf.Location != "" {
@@ -272,6 +294,7 @@ func (bm BuildMapping) insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	defer stmt.Close()
 
 	for _, mf := range bm.MappingFiles {
+		// ignore old mapping files
 		if mf.ID != uuid.Nil {
 			continue
 		}
@@ -411,23 +434,6 @@ func (bm *BuildMapping) extractDif() (err error) {
 	return
 }
 
-// buildLocation constructs the location of the
-// mapping file object stored or to be stored
-// on the remote S3-like object store.
-func buildLocation(key string) (location string) {
-	config := server.Server.Config
-	// for now, we construct the location manually
-	// implement a better solution later using
-	// EndpointResolverV2 with custom resolvers
-	// for non-AWS clouds like GCS
-	if config.AWSEndpoint != "" {
-		location = fmt.Sprintf("%s/%s/%s", config.AWSEndpoint, config.SymbolsBucket, key)
-	} else {
-		location = fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", config.SymbolsBucket, config.SymbolsBucketRegion, key)
-	}
-	return
-}
-
 // upload prepares and uploads build mapping
 // files to S3-like object storage.
 func (bm *BuildMapping) upload(ctx context.Context) (err error) {
@@ -525,6 +531,9 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 	return
 }
 
+// BuildSize represents an app build's
+// size entry. This is the raw material
+// for computing app size trends over time.
 type BuildSize struct {
 	ID          uuid.UUID
 	AppID       uuid.UUID
@@ -551,6 +560,23 @@ func (bs BuildSize) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
 
 	_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
 
+	return
+}
+
+// buildLocation constructs the location of the
+// mapping file object stored or to be stored
+// on the remote S3-like object store.
+func buildLocation(key string) (location string) {
+	config := server.Server.Config
+	// for now, we construct the location manually
+	// implement a better solution later using
+	// EndpointResolverV2 with custom resolvers
+	// for non-AWS clouds like GCS
+	if config.AWSEndpoint != "" {
+		location = fmt.Sprintf("%s/%s/%s", config.AWSEndpoint, config.SymbolsBucket, key)
+	} else {
+		location = fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", config.SymbolsBucket, config.SymbolsBucketRegion, key)
+	}
 	return
 }
 
@@ -639,7 +665,7 @@ func PutBuild(c *gin.Context) {
 
 	defer tx.Rollback(ctx)
 
-	// no mapping, just process build size
+	// no mapping? just process build size
 	// and return early
 	if !bm.hasMapping() {
 		if err := bs.upsert(ctx, &tx); err != nil {
@@ -671,6 +697,8 @@ func PutBuild(c *gin.Context) {
 		return
 	}
 
+	// nothing to upload? just process build size
+	// and return early
 	if !bm.shouldUpload() {
 		if err := bs.upsert(ctx, &tx); err != nil {
 			msg := `failed to register app build size`
