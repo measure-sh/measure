@@ -29,26 +29,33 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
+type MappingFile struct {
+	ID             uuid.UUID
+	Header         *multipart.FileHeader
+	Checksum       string
+	Key            string
+	Location       string
+	Difs           []*symbol.Dif
+	ShouldUpload   bool
+	UploadComplete bool
+}
+
 type BuildMapping struct {
-	ID           uuid.UUID
-	AppID        uuid.UUID
-	VersionName  string `form:"version_name" binding:"required"`
-	VersionCode  string `form:"version_code" binding:"required"`
-	Platform     string `form:"platform" binding:"required_with=File"`
-	MappingType  string `form:"mapping_type" binding:"required_with=File"`
-	Key          string
-	Location     string
-	ContentHash  string
-	File         *multipart.FileHeader `form:"mapping_file" binding:"required_with=MappingType"`
-	Difs         []*symbol.Dif
-	UploadStatus string
+	AppID       uuid.UUID
+	VersionName string `form:"version_name" binding:"required"`
+	VersionCode string `form:"version_code" binding:"required"`
+	Platform    string `form:"platform"`
+	MappingType string `form:"mapping_type" binding:"required_with=File"`
+	// File         *multipart.FileHeader `form:"mapping_file" binding:"required_with=MappingType"`
+	Files        []*multipart.FileHeader `form:"mapping_file" binding:"required_with=MappingType"`
+	MappingFiles []*MappingFile
 	Timestamp    time.Time
 }
 
 // hasMapping checks if necessary details are
 // valid for mapping build info.
 func (bm BuildMapping) hasMapping() bool {
-	if bm.MappingType != "" && bm.File != nil {
+	if bm.MappingType != "" && len(bm.MappingFiles) > 0 {
 		return true
 	}
 	return false
@@ -57,19 +64,27 @@ func (bm BuildMapping) hasMapping() bool {
 // validate validates build mapping details.
 func (bm BuildMapping) validate(app *App) (code int, err error) {
 	code = http.StatusBadRequest
+	maxSize := int64(server.Server.Config.MappingFileMaxSize)
 
-	if bm.File == nil {
-		code = 0
-		return
-	}
+	for i, mf := range bm.MappingFiles {
+		// none of the mapping files
+		// should be non-existent
+		if mf.Header == nil {
+			code = 0
+			return
+		}
 
-	if bm.File.Size < 1 {
-		err = errors.New(`no data in field "mapping_file"`)
-	}
+		if mf.Header.Size < 1 {
+			err = fmt.Errorf("%q at %d index has zero or invalid size", "mapping_file", i)
+		}
 
-	if bm.File.Size > int64(server.Server.Config.MappingFileMaxSize) {
-		code = http.StatusRequestEntityTooLarge
-		err = fmt.Errorf(`%q file size exceeding %d bytes`, bm.File.Filename, server.Server.Config.MappingFileMaxSize)
+		// none of the mapping files
+		// should exceed maximum allowed
+		// size limit
+		if mf.Header.Size > maxSize {
+			code = http.StatusRequestEntityTooLarge
+			err = fmt.Errorf("%q at %d index exceeds max allowed size in %d bytes", "mapping_file", i, maxSize)
+		}
 	}
 
 	pltfrm := app.Platform
@@ -99,13 +114,15 @@ func (bm BuildMapping) validate(app *App) (code int, err error) {
 			err = platformMappingErr
 			break
 		}
-		f, err := bm.File.Open()
-		defer f.Close()
-		if err != nil {
-			return http.StatusInternalServerError, err
-		}
-		if err := codec.IsTarGz(f); err != nil {
-			return http.StatusBadRequest, err
+		for _, mf := range bm.MappingFiles {
+			f, err := mf.Header.Open()
+			if err != nil {
+				return http.StatusInternalServerError, err
+			}
+			defer f.Close()
+			if err := codec.IsTarGz(f); err != nil {
+				return http.StatusBadRequest, err
+			}
 		}
 	default:
 		err = fmt.Errorf("unknown mapping type %q", bm.MappingType)
@@ -115,10 +132,48 @@ func (bm BuildMapping) validate(app *App) (code int, err error) {
 	return
 }
 
-// shouldUpsert checks if build mapping needs
-// upsertion.
-func (bm BuildMapping) shouldUpsert(ctx context.Context, tx *pgx.Tx) (upload bool, existingId *uuid.UUID, err error) {
-	var existingHash string
+// prepareMappings computes the checksum and
+// prepares each mapping file.
+func (bm *BuildMapping) prepareMappings() (err error) {
+	for _, header := range bm.Files {
+		f, errFile := header.Open()
+		if errFile != nil {
+			err = errFile
+			return
+		}
+
+		hash, errChecksum := cipher.ChecksumFnv1(f)
+		if errChecksum != nil {
+			err = errChecksum
+			return
+		}
+
+		// seek the file offset to the beginning as
+		// the checksum calculation must have moved
+		// the offset towards end of the file
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
+			return err
+		}
+
+		bm.MappingFiles = append(bm.MappingFiles, &MappingFile{
+			Header:   header,
+			Checksum: hash,
+		})
+	}
+
+	return
+}
+
+// mark reads existing mapping files from
+// database and marks each mapping file
+// for upload while assigning ids smartly.
+func (bm *BuildMapping) mark(ctx context.Context, tx *pgx.Tx) (err error) {
+	type entry struct {
+		id   uuid.UUID
+		hash string
+	}
+
+	entries := []entry{}
 
 	stmt := sqlf.PostgreSQL.
 		Select("id").
@@ -131,88 +186,156 @@ func (bm BuildMapping) shouldUpsert(ctx context.Context, tx *pgx.Tx) (upload boo
 
 	defer stmt.Close()
 
-	if err = (*tx).QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&existingId, &existingHash); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			upload = true
-			err = nil
+	rows, _ := (*tx).Query(ctx, stmt.String(), stmt.Args()...)
+
+	for rows.Next() {
+		var entry entry
+		if err = rows.Scan(&entry.id, &entry.hash); err != nil {
+			return
+		}
+
+		entries = append(entries, entry)
+	}
+
+	if err = rows.Err(); err != nil {
+		return
+	}
+
+	// if no match found, mark all for
+	// upload.
+	if len(entries) == 0 {
+		for i := range bm.MappingFiles {
+			bm.MappingFiles[i].ShouldUpload = true
 		}
 		return
 	}
 
-	if err = bm.checksum(); err != nil {
-		return
+	mlen := len(bm.MappingFiles)
+	elen := len(entries)
+	for i, entry := range entries {
+		if elen <= mlen {
+			bm.MappingFiles[i].ID = entry.id
+			if entry.hash != bm.MappingFiles[i].Checksum {
+				bm.MappingFiles[i].ShouldUpload = true
+			}
+			if i == elen-1 {
+				for j := i + 1; j < mlen; j++ {
+					if entry.hash != bm.MappingFiles[i].Checksum {
+						bm.MappingFiles[j].ShouldUpload = true
+					}
+				}
+			}
+		} else if elen > mlen {
+			if i == mlen-1 {
+				for j := i; j < mlen; j++ {
+					bm.MappingFiles[i].ID = entry.id
+					if entry.hash != bm.MappingFiles[i].Checksum {
+						bm.MappingFiles[i].ShouldUpload = true
+					}
+				}
+				break
+			}
+			bm.MappingFiles[i].ID = entry.id
+			if entry.hash != bm.MappingFiles[i].Checksum {
+				bm.MappingFiles[i].ShouldUpload = true
+			}
+		}
 	}
 
-	// the content has changed
-	if bm.ContentHash != existingHash {
-		upload = true
-		return
-	}
+	return
+}
 
+// shouldUpload returns true if any of the mapping
+// files has changed and hence should be uploaded.
+func (bm BuildMapping) shouldUpload() (should bool) {
+	for _, mf := range bm.MappingFiles {
+		if mf.ShouldUpload {
+			return true
+		}
+	}
+	return
+}
+
+func (bm BuildMapping) shouldUpsert() (should bool) {
+	for _, mf := range bm.MappingFiles {
+		if mf.ID != uuid.Nil && mf.Key != "" && mf.Location != "" {
+			return true
+		}
+	}
 	return
 }
 
 // insert inserts a new build mapping entry
 // to database.
 func (bm BuildMapping) insert(ctx context.Context, tx *pgx.Tx) (err error) {
-	// compute checksum if not
-	// already computed
-	if bm.ContentHash == "" {
-		if err = bm.checksum(); err != nil {
-			return
+	stmt := sqlf.PostgreSQL.InsertInto(`build_mappings`)
+	defer stmt.Close()
+
+	for _, mf := range bm.MappingFiles {
+		if mf.ID != uuid.Nil {
+			continue
 		}
+
+		mf.ID = uuid.New()
+
+		stmt.
+			NewRow().
+			Set(`id`, mf.ID).
+			Set(`app_id`, bm.AppID).
+			Set(`version_name`, bm.VersionName).
+			Set(`version_code`, bm.VersionCode).
+			Set(`mapping_type`, bm.MappingType).
+			Set(`key`, mf.Key).
+			Set(`location`, mf.Location).
+			Set(`fnv1_hash`, mf.Checksum).
+			Set(`file_size`, mf.Header.Size).
+			Set(`last_updated`, time.Now())
 	}
 
-	stmt := sqlf.PostgreSQL.
-		InsertInto(`public.build_mappings`).
-		Set(`id`, bm.ID).
-		Set(`app_id`, bm.AppID).
-		Set(`version_name`, bm.VersionName).
-		Set(`version_code`, bm.VersionCode).
-		Set(`mapping_type`, bm.MappingType).
-		Set(`key`, bm.Key).
-		Set(`location`, bm.Location).
-		Set(`fnv1_hash`, bm.ContentHash).
-		Set(`file_size`, bm.File.Size).
-		Set(`last_updated`, time.Now())
-
-	defer stmt.Close()
+	// stop here and don't run
+	// query because it may happen
+	// that there is nothing to insert
+	if len(stmt.Args()) < 1 {
+		return
+	}
 
 	_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
 
 	return
 }
 
-// upsert updates the build mapping
-// entry in database.
+// upsert updates build mapping
+// entries in database.
 func (bm BuildMapping) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
-	// compute checksum if not
-	// already computed
-	if bm.ContentHash == "" {
-		if err = bm.checksum(); err != nil {
+	now := time.Now()
+
+	for _, mf := range bm.MappingFiles {
+		if mf.ID == uuid.Nil {
+			continue
+		}
+		stmt := sqlf.PostgreSQL.Update(`build_mappings`)
+
+		if mf.Key != "" {
+			stmt.Set(`key`, mf.Key)
+		}
+
+		if mf.Location != "" {
+			stmt.Set(`location`, mf.Location)
+		}
+
+		stmt.
+			Set(`fnv1_hash`, mf.Checksum).
+			Set(`file_size`, mf.Header.Size).
+			Set(`last_updated`, now).
+			Where(`id = ?`, mf.ID)
+
+		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
+		if err != nil {
 			return
 		}
+
+		stmt.Close()
 	}
-	stmt := sqlf.PostgreSQL.
-		Update(`build_mappings`)
-
-	if bm.Key != "" {
-		stmt.Set(`key`, bm.Key)
-	}
-
-	if bm.Location != "" {
-		stmt.Set(`location`, bm.Location)
-	}
-
-	stmt.
-		Set(`fnv1_hash`, bm.ContentHash).
-		Set(`file_size`, bm.File.Size).
-		Set(`last_updated`, time.Now()).
-		Where(`id = ?`, bm.ID)
-
-	defer stmt.Close()
-
-	_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
 
 	return
 }
@@ -220,61 +343,65 @@ func (bm BuildMapping) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
 // extractDif extracts the debug information
 // file(s) from build mapping respecting the
 // mapping type.
-func (bm *BuildMapping) extractDif() (difs []*symbol.Dif, err error) {
+func (bm *BuildMapping) extractDif() (err error) {
 	switch bm.MappingType {
 	case symbol.TypeProguard.String():
-		f, err := bm.File.Open()
+		mf := bm.MappingFiles[0]
+		f, err := mf.Header.Open()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		defer func() {
 			if err := f.Close(); err != nil {
-				fmt.Println("failed to close build mapping file")
+				fmt.Println("failed to close proguard mapping file")
 			}
 		}()
 
 		bytes, err := io.ReadAll(f)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("guardsquare.com"))
 		debugId := uuid.NewSHA1(ns, bytes)
-		difs = append(difs, &symbol.Dif{
+
+		mf.Difs = append(mf.Difs, &symbol.Dif{
 			Data: bytes,
 			Key:  symbol.BuildUnifiedLayout(debugId.String()) + "/proguard",
 		})
 	case symbol.TypeDsym.String():
-		f, err := bm.File.Open()
-		if err != nil {
-			return nil, err
-		}
-
-		defer func() {
-			if err := f.Close(); err != nil {
-				fmt.Println("failed to close build mapping file")
-			}
-		}()
-
-		entities, err := symbol.ExtractDsymEntities(f, func(name string) (symbol.DsymType, bool) {
-			parts := strings.Split(name, "/")
-			last := ""
-			if len(parts) > 0 {
-				last = parts[len(parts)-1]
-			}
-			symbolCondition := strings.Count(name, "Contents/Resources/") == 1 && !strings.HasSuffix(name, ".dSYM") && len(parts) == 5 && !strings.HasPrefix(last, "._")
-
-			if symbolCondition {
-				return symbol.TypeDsymDebug, true
+		for i := range bm.MappingFiles {
+			f, err := bm.MappingFiles[i].Header.Open()
+			if err != nil {
+				return err
 			}
 
-			return symbol.TypeDsymUnknown, false
-		})
+			defer func() {
+				if err := f.Close(); err != nil {
+					fmt.Printf("failed to close dSYM mapping file with index %d\n", i)
+				}
+			}()
 
-		for k, v := range entities {
-			if k == symbol.TypeDsymDebug {
-				difs = append(difs, v...)
+			entities, err := symbol.ExtractDsymEntities(f, func(name string) (symbol.DsymType, bool) {
+				parts := strings.Split(name, "/")
+				last := ""
+				if len(parts) > 0 {
+					last = parts[len(parts)-1]
+				}
+				symbolCondition := strings.Count(name, "Contents/Resources/") == 1 && !strings.HasSuffix(name, ".dSYM") && len(parts) == 5 && !strings.HasPrefix(last, "._")
+
+				if symbolCondition {
+					return symbol.TypeDsymDebug, true
+				}
+
+				return symbol.TypeDsymUnknown, false
+			})
+
+			for k, v := range entities {
+				if k == symbol.TypeDsymDebug {
+					bm.MappingFiles[i].Difs = append(bm.MappingFiles[i].Difs, v...)
+				}
 			}
 		}
 	default:
@@ -284,32 +411,26 @@ func (bm *BuildMapping) extractDif() (difs []*symbol.Dif, err error) {
 	return
 }
 
-// checksum computes the checksum of the
-// mapping file.
-func (bm *BuildMapping) checksum() (err error) {
-	file, err := bm.File.Open()
-	if err != nil {
-		return
+// buildLocation constructs the location of the
+// mapping file object stored or to be stored
+// on the remote S3-like object store.
+func buildLocation(key string) (location string) {
+	config := server.Server.Config
+	// for now, we construct the location manually
+	// implement a better solution later using
+	// EndpointResolverV2 with custom resolvers
+	// for non-AWS clouds like GCS
+	if config.AWSEndpoint != "" {
+		location = fmt.Sprintf("%s/%s/%s", config.AWSEndpoint, config.SymbolsBucket, key)
+	} else {
+		location = fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", config.SymbolsBucket, config.SymbolsBucketRegion, key)
 	}
-	hash, err := cipher.ChecksumFnv1(file)
-	if err != nil {
-		return
-	}
-
-	// seek the file offset to the beginning as
-	// the checksum calculation must have moved
-	// the offset towards end of the file
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		return err
-	}
-
-	bm.ContentHash = hash
 	return
 }
 
 // upload prepares and uploads build mapping
 // files to S3-like object storage.
-func (bm *BuildMapping) upload(ctx context.Context) (location *string, err error) {
+func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 	config := server.Server.Config
 	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
 		return aws.Credentials{
@@ -332,72 +453,74 @@ func (bm *BuildMapping) upload(ctx context.Context) (location *string, err error
 	})
 
 	metadata := map[string]string{
-		"original_file_name": bm.File.Filename,
-		"app_id":             bm.AppID.String(),
-		"version_name":       bm.VersionName,
-		"version_code":       bm.VersionCode,
-		"mapping_type":       bm.MappingType,
+		"app_id":       bm.AppID.String(),
+		"version_name": bm.VersionName,
+		"version_code": bm.VersionCode,
+		"mapping_type": bm.MappingType,
 	}
 
 	switch bm.MappingType {
 	case symbol.TypeProguard.String():
-		for _, dif := range bm.Difs {
-			putObjectInput := &s3.PutObjectInput{
-				Bucket:   aws.String(config.SymbolsBucket),
-				Key:      aws.String(dif.Key),
-				Body:     bytes.NewReader(dif.Data),
-				Metadata: metadata,
+		for i, mf := range bm.MappingFiles {
+			if !mf.ShouldUpload {
+				continue
 			}
-			_, err = client.PutObject(ctx, putObjectInput)
-			if err != nil {
-				return
+			metadata["original_file_name"] = mf.Header.Filename
+			for _, dif := range mf.Difs {
+				putObjectInput := &s3.PutObjectInput{
+					Bucket:   aws.String(config.SymbolsBucket),
+					Key:      aws.String(dif.Key),
+					Body:     bytes.NewReader(dif.Data),
+					Metadata: metadata,
+				}
+				_, err = client.PutObject(ctx, putObjectInput)
+				if err != nil {
+					return
+				}
+
+				bm.MappingFiles[i].Key = dif.Key
+				bm.MappingFiles[i].Location = buildLocation(dif.Key)
+				bm.MappingFiles[i].UploadComplete = true
 			}
-			bm.Key = dif.Key
 		}
 	case symbol.TypeDsym.String():
-		for _, dif := range bm.Difs {
-			if !dif.Meta {
-				putObjectInput := &s3.PutObjectInput{
-					Bucket:   aws.String(config.SymbolsBucket),
-					Key:      aws.String(dif.Key),
-					Body:     bytes.NewReader(dif.Data),
-					Metadata: metadata,
-				}
-				_, err = client.PutObject(ctx, putObjectInput)
-				if err != nil {
-					return
-				}
-				bm.Key = dif.Key
+		for i, mf := range bm.MappingFiles {
+			if !mf.ShouldUpload {
+				continue
 			}
-
-			if dif.Meta {
-				putObjectInput := &s3.PutObjectInput{
-					Bucket:   aws.String(config.SymbolsBucket),
-					Key:      aws.String(dif.Key),
-					Body:     bytes.NewReader(dif.Data),
-					Metadata: metadata,
+			metadata["original_file_name"] = mf.Header.Filename
+			for _, dif := range mf.Difs {
+				if !dif.Meta {
+					putObjectInput := &s3.PutObjectInput{
+						Bucket:   aws.String(config.SymbolsBucket),
+						Key:      aws.String(dif.Key),
+						Body:     bytes.NewReader(dif.Data),
+						Metadata: metadata,
+					}
+					_, err = client.PutObject(ctx, putObjectInput)
+					if err != nil {
+						return
+					}
+					bm.MappingFiles[i].Key = dif.Key
+					bm.MappingFiles[i].Location = buildLocation(dif.Key)
+					bm.MappingFiles[i].UploadComplete = true
 				}
-				_, err = client.PutObject(ctx, putObjectInput)
-				if err != nil {
-					return
+
+				if dif.Meta {
+					putObjectInput := &s3.PutObjectInput{
+						Bucket:   aws.String(config.SymbolsBucket),
+						Key:      aws.String(dif.Key),
+						Body:     bytes.NewReader(dif.Data),
+						Metadata: metadata,
+					}
+					_, err = client.PutObject(ctx, putObjectInput)
+					if err != nil {
+						return
+					}
 				}
 			}
 		}
 	}
-
-	loc := ""
-
-	// for now, we construct the location manually
-	// implement a better solution later using
-	// EndpointResolverV2 with custom resolvers
-	// for non-AWS clouds like GCS
-	if config.AWSEndpoint != "" {
-		loc = fmt.Sprintf("%s/%s/%s", config.AWSEndpoint, config.SymbolsBucket, bm.Key)
-	} else {
-		loc = fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", config.SymbolsBucket, config.SymbolsBucketRegion, bm.Key)
-	}
-
-	location = &loc
 
 	return
 }
@@ -422,13 +545,13 @@ func (bs BuildSize) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
 		Set(`version_code`, bs.VersionCode).
 		Set(`build_size`, bs.BuildSize).
 		Set(`build_type`, bs.BuildType).
-		Clause(`on conflict (app_id, version_name, version_code, build_type) do update set build_size = excluded.build_size, updated_at = excluded.updated_at`, nil)
+		Clause(`on conflict (app_id, version_name, version_code, build_type) do update set build_size = excluded.build_size, updated_at = excluded.updated_at`)
 
 	defer stmt.Close()
 
 	_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
 
-	return nil
+	return
 }
 
 func PutBuild(c *gin.Context) {
@@ -463,7 +586,6 @@ func PutBuild(c *gin.Context) {
 	}
 
 	bm := BuildMapping{
-		ID:    uuid.New(),
 		AppID: appId,
 	}
 
@@ -471,6 +593,16 @@ func PutBuild(c *gin.Context) {
 		msg := `build info validation failed. make sure both "mapping_file" and "mapping_type" have valid values`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	if err := bm.prepareMappings(); err != nil {
+		msg := "failed to compute checksums of files"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
@@ -484,17 +616,16 @@ func PutBuild(c *gin.Context) {
 		return
 	}
 
-	difs, err := bm.extractDif()
-	if err != nil {
-		msg := "failed to extract debug id from mapping file"
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
+	if bm.hasMapping() {
+		if err := bm.extractDif(); err != nil {
+			msg := "failed to extract debug id from mapping file"
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
 	}
-
-	bm.Difs = difs
 
 	tx, err := server.Server.PgPool.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel: pgx.ReadCommitted,
@@ -531,44 +662,18 @@ func PutBuild(c *gin.Context) {
 		return
 	}
 
-	shouldUpload, existingId, err := bm.shouldUpsert(ctx, &tx)
-	if err != nil {
-		fmt.Println("failed to detect mapping file upsertion", err.Error())
+	if err := bm.mark(ctx, &tx); err != nil {
+		fmt.Println("failed to detect mapping file upsertion:", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, bm.File.Filename),
+			"error":   "failed to upload mapping file(s)",
+			"details": err.Error(),
 		})
 		return
 	}
 
-	if shouldUpload {
-		// start span to trace mapping file upload
-		mappingFileUploadTracer := otel.Tracer("mapping-file-upload-tracer")
-		_, mappingFileUploadSpan := mappingFileUploadTracer.Start(ctx, "mapping-file-upload")
-		location, err := bm.upload(ctx)
-		if err != nil || location == nil {
-			fmt.Printf("failed to upload mapping file, key: %s with error, %v\n", bm.Key, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, bm.File.Filename),
-			})
-			mappingFileUploadSpan.End()
-			return
-		}
-		mappingFileUploadSpan.End()
-
-		bm.Location = *location
-	}
-
-	if existingId != nil {
-		bm.ID = *existingId
-		if err := bm.upsert(ctx, &tx); err != nil {
-			fmt.Printf("failed to upsert mapping file, key: %s with error, %v\n", bm.Key, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf(`failed to upload build info: "%s"`, bm.File.Filename),
-			})
-			return
-		}
-		if err := tx.Commit(ctx); err != nil {
-			msg := "failed to commit builds upsert db transaction"
+	if !bm.shouldUpload() {
+		if err := bs.upsert(ctx, &tx); err != nil {
+			msg := `failed to register app build size`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error":   msg,
@@ -576,18 +681,70 @@ func PutBuild(c *gin.Context) {
 			})
 			return
 		}
-		msg := `existing build info is already up to date`
-		if shouldUpload {
-			msg = `uploaded build info`
+		if err := tx.Commit(ctx); err != nil {
+			msg := `failed to upload build info`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			return
 		}
-		c.JSON(http.StatusOK, gin.H{"ok": msg})
+
+		c.JSON(http.StatusOK, gin.H{
+			"ok": `uploaded build size info`,
+		})
+
+		return
+	}
+
+	if bm.shouldUpload() {
+		// start span to trace mapping file upload
+		mappingFileUploadTracer := otel.Tracer("mapping-file-upload-tracer")
+		_, mappingFileUploadSpan := mappingFileUploadTracer.Start(ctx, "mapping-file-upload")
+		if err := bm.upload(ctx); err != nil {
+			fmt.Println("failed to upload mapping file(s): ", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, bm.Files[0].Filename),
+			})
+			mappingFileUploadSpan.End()
+			return
+		}
+		mappingFileUploadSpan.End()
+	}
+
+	if bm.shouldUpsert() {
+		if err := bm.upsert(ctx, &tx); err != nil {
+			msg := "failed to upsert mapping file(s)"
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+
+		if err := tx.Commit(ctx); err != nil {
+			msg := "failed to commit builds upsert transaction"
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+		}
+
+		msg := "existing build mapping info is already up to date"
+		if bm.shouldUpload() {
+			msg = "uploaded build info"
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"ok": msg,
+		})
 		return
 	}
 
 	if err := bm.insert(ctx, &tx); err != nil {
-		fmt.Printf("failed to insert mapping file, key: %s with error, %v\n", bm.Key, err)
+		msg := "failed to insert mapping file(s)"
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf(`failed to upload mapping file: "%s"`, bm.File.Filename),
+			"error":   msg,
+			"details": err.Error(),
 		})
 		return
 	}
@@ -595,7 +752,10 @@ func PutBuild(c *gin.Context) {
 	if err := bs.upsert(ctx, &tx); err != nil {
 		msg := `failed to register app build size`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 
