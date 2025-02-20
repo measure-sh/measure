@@ -171,6 +171,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
     }
 
     func testEventEntity_ExceptionSerialization() { // swiftlint:disable:this function_body_length
+        // Stack frame setup
         let stackFrame = StackFrame(
             binaryName: "MyApp",
             binaryAddress: "0x0000000100000000",
@@ -180,6 +181,18 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             inApp: true
         )
 
+        // Binary image setup
+        let binaryImage = BinaryImage(
+            startAddress: "1081da000",
+            endAddress: "1081fffff",
+            system: false,
+            name: "DemoApp",
+            arch: "x86_64",
+            uuid: "a02da00e792a395aa1d40cc1f071946f",
+            path: "/Users/edpu/Library/Developer/CoreSimulator/Devices/B2E2BC7F-41AA-45C4-B5BC-68BC02E0AD8B/data/Containers/Bundle/Application/4E7208D5-F723-4FBF-95F1-8A51C5E37A64/DemoApp.app/DemoApp"
+        )
+
+        // Exception details setup
         let exceptionDetail = ExceptionDetail(
             type: "NullPointerException",
             message: "Attempted to dereference a null object",
@@ -194,9 +207,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             handled: false,
             exceptions: [exceptionDetail],
             foreground: true,
-            threads: [ThreadDetail(name: "main", frames: [stackFrame], sequence: 1)]
+            threads: [ThreadDetail(name: "main", frames: [stackFrame], sequence: 1)],
+            binaryImages: [binaryImage]
         )
 
+        // Event setup
         let event = Event(
             id: "101112",
             sessionId: "sessionId",
@@ -216,6 +231,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             return
         }
 
+        // Deserialize and validate
         let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
@@ -260,6 +276,19 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
                     }
                 } else {
                     XCTFail("Threads are not present in the exception details.")
+                }
+
+                if let binaryImages = exceptionDict["binary_images"] as? [[String: Any]],
+                   let firstBinaryImage = binaryImages.first {
+                    XCTAssertEqual(firstBinaryImage["start_addr"] as? String, "1081da000")
+                    XCTAssertEqual(firstBinaryImage["end_addr"] as? String, "1081fffff")
+                    XCTAssertEqual(firstBinaryImage["system"] as? Bool, false)
+                    XCTAssertEqual(firstBinaryImage["name"] as? String, "DemoApp")
+                    XCTAssertEqual(firstBinaryImage["arch"] as? String, "x86_64")
+                    XCTAssertEqual(firstBinaryImage["uuid"] as? String, "a02da00e792a395aa1d40cc1f071946f")
+                    XCTAssertEqual(firstBinaryImage["path"] as? String, "/Users/edpu/Library/Developer/CoreSimulator/Devices/B2E2BC7F-41AA-45C4-B5BC-68BC02E0AD8B/data/Containers/Bundle/Application/4E7208D5-F723-4FBF-95F1-8A51C5E37A64/DemoApp.app/DemoApp")
+                } else {
+                    XCTFail("Binary images are not present.")
                 }
             } else {
                 XCTFail("Exception data is not present in the serialized event.")

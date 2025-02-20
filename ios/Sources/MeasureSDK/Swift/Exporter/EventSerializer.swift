@@ -178,12 +178,14 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
 
     private func serialiseException(_ exceptionData: Exception) -> String {
         let exceptionsSerialized = exceptionData.exceptions.map { serialiseExceptionDetail($0) }.joined(separator: ",")
-        let threadsSerialized = exceptionData.threads?.map { serialiseThreadDetail($0) }.joined(separator: ",") ?? "[]"
+        let threadsSerialized = exceptionData.threads?.map { serialiseThreadDetail($0) }.joined(separator: ",") ?? ""
+        let binaryImagesSerialized = exceptionData.binaryImages?.map { serialiseBinaryImage($0) }.joined(separator: ",") ?? ""
 
         var result = "{"
         result += "\"handled\":\(exceptionData.handled),"
         result += "\"exceptions\":[\(exceptionsSerialized)],"
         result += "\"foreground\":\(exceptionData.foreground.map { "\($0)" } ?? ""),"
+        result += "\"binary_images\":[\(binaryImagesSerialized)],"
         result += "\"threads\":[\(threadsSerialized)]"
         result += "}"
         return result
@@ -223,6 +225,19 @@ struct EventSerializer { // swiftlint:disable:this type_body_length
         result += "\"frame_index\":\(stackFrame.frameIndex),"
         result += "\"symbol_address\":\"\(escapeString(stackFrame.symbolAddress))\","
         result += "\"in_app\":\(stackFrame.inApp)"
+        result += "}"
+        return result
+    }
+
+    private func serialiseBinaryImage(_ binaryImages: BinaryImage) -> String {
+        var result = "{"
+        result += "\"start_addr\":\"\(binaryImages.startAddress)\","
+        result += "\"end_addr\":\"\(binaryImages.endAddress)\","
+        result += "\"system\":\(binaryImages.system),"
+        result += "\"name\":\"\(binaryImages.name)\","
+        result += "\"arch\":\"\(binaryImages.arch)\","
+        result += "\"uuid\":\"\(binaryImages.uuid)\","
+        result += "\"path\":\"\(binaryImages.path)\""
         result += "}"
         return result
     }
