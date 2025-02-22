@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Implement bug reports
 - (**backend**): Add user defined attrs to spans
 - (**backend**): Add support for iOS exceptions (#1726)
 - (**frontend**): None selection option in filters dropdown
