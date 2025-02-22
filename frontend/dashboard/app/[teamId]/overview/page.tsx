@@ -34,6 +34,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         showLocales={false}
         showDeviceManufacturers={false}
         showDeviceNames={false}
+        showBugReportStatus={false}
         showFreeText={false}
         showUdAttrs={false}
         onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />

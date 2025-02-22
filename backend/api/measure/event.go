@@ -1174,6 +1174,15 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`screen_view.name`, nil)
 		}
 
+		// bug report
+		if e.events[i].IsBugReport() {
+			row.
+				Set(`bug_report.description`, e.events[i].BugReport.Description)
+		} else {
+			row.
+				Set(`bug_report.description`, nil)
+		}
+
 		// custom
 		if e.events[i].IsCustom() {
 			row.

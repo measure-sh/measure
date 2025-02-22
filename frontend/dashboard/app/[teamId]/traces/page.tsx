@@ -76,6 +76,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                 showLocales={true}
                 showDeviceManufacturers={true}
                 showDeviceNames={true}
+                showBugReportStatus={false}
                 showUdAttrs={true}
                 showFreeText={false}
                 onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />

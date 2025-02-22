@@ -101,6 +101,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
         showLocales={true}
         showDeviceManufacturers={true}
         showDeviceNames={true}
+        showBugReportStatus={false}
         showUdAttrs={true}
         showFreeText={false}
         onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />

@@ -62,6 +62,8 @@ const (
 	maxUserDefAttrsKeyChars                   = 256
 	maxUserDefAttrsValsChars                  = 256
 	maxCustomNameChars                        = 64
+	maxBugReportScreenShots                   = 5
+	maxBugReportDescChars                     = 4000
 	customNameKeyPattern                      = "^[a-zA-Z0-9_-]+$"
 )
 
@@ -90,6 +92,7 @@ const TypeTrimMemory = "trim_memory"
 const TypeCPUUsage = "cpu_usage"
 const TypeNavigation = "navigation"
 const TypeScreenView = "screen_view"
+const TypeBugReport = "bug_report"
 
 const NetworkGeneration2G = "2g"
 const NetworkGeneration3G = "3g"
@@ -155,6 +158,7 @@ var androidValidTypes = []string{
 	TypeCPUUsage, TypeNavigation, TypeScreenView,
 	TypeString,
 	TypeCustom,
+	TypeBugReport,
 }
 
 // iOSValidTypes defines a whitelist for all
@@ -171,6 +175,7 @@ var iOSValidTypes = []string{
 	TypeScreenView,
 	TypeString,
 	TypeCustom,
+	TypeBugReport,
 }
 
 // ValidLifecycleActivityTypes defines allowed
@@ -524,6 +529,10 @@ type Custom struct {
 	Name string `json:"name" binding:"required"`
 }
 
+type BugReport struct {
+	Description string `json:"description" binding:"required"`
+}
+
 type EventField struct {
 	ID                      uuid.UUID                `json:"id"`
 	IPv4                    net.IP                   `json:"inet_ipv4"`
@@ -561,6 +570,7 @@ type EventField struct {
 	CPUUsage                *CPUUsage                `json:"cpu_usage,omitempty"`
 	Navigation              *Navigation              `json:"navigation,omitempty"`
 	ScreenView              *ScreenView              `json:"screen_view,omitempty"`
+	BugReport               *BugReport               `json:"bug_report,omitempty"`
 	Custom                  *Custom                  `json:"custom,omitempty"`
 }
 
@@ -623,6 +633,12 @@ func (e EventField) IsUnhandledException() bool {
 // event.
 func (e EventField) IsCustom() bool {
 	return e.Type == TypeCustom
+}
+
+// IsBugReport returns true for bug report
+// event.
+func (e EventField) IsBugReport() bool {
+	return e.Type == TypeBugReport
 }
 
 // IsANR returns true for ANR
@@ -1140,6 +1156,12 @@ func (e *EventField) Validate() error {
 	if e.IsScreenView() {
 		if len(e.ScreenView.Name) > maxScreenViewNameChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `screen_view.name`, maxScreenViewNameChars)
+		}
+	}
+
+	if e.IsBugReport() {
+		if len(e.BugReport.Description) > maxBugReportDescChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `bug_report.description`, maxBugReportDescChars)
 		}
 	}
 

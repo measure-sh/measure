@@ -251,6 +251,36 @@ export enum FetchUsageApiStatus {
   Cancelled
 }
 
+export enum BugReportsOverviewApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled
+}
+
+export enum BugReportsOverviewPlotApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled
+}
+
+export enum BugReportApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled
+}
+
+export enum UpdateBugReportStatusApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled
+}
+
 export enum SessionType {
   All = 'All Sessions',
   Crashes = 'Crash Sessions',
@@ -262,6 +292,11 @@ export enum SpanStatus {
   Unset = "Unset",
   Ok = "Ok",
   Error = "Error"
+}
+
+export enum BugReportStatus {
+  Open = "Open",
+  Closed = "Closed"
 }
 
 export const emptyTeam = { 'id': '', 'name': '' }
@@ -796,6 +831,103 @@ export const emptyUsage = [
   }
 ]
 
+export const emptyBugReportsOverviewResponse = {
+  "meta": {
+    "next": false,
+    "previous": false
+  },
+  "results": [] as {
+    "session_id": string,
+    "app_id": string,
+    "event_id": string,
+    "status": number,
+    "description": string
+    "timestamp": string
+    "attribute": {
+      "installation_id": string
+      "app_version": string,
+      "app_build": string,
+      "app_unique_id": string,
+      "measure_sdk_version": string,
+      "platform": string,
+      "thread_name": string,
+      "user_id": string,
+      "device_name": string,
+      "device_model": string,
+      "device_manufacturer": string,
+      "device_type": string,
+      "device_is_foldable": boolean,
+      "device_is_physical": boolean,
+      "device_density_dpi": number,
+      "device_width_px": number,
+      "device_height_px": number,
+      "device_density": number,
+      "device_locale": string,
+      "device_low_power_mode": boolean,
+      "device_thermal_throttling_enabled": boolean,
+      "device_cpu_arch": string,
+      "os_name": string,
+      "os_version": string,
+      "os_page_size": number,
+      "network_type": string,
+      "network_provider": string,
+      "network_generation": string
+    },
+    "user_defined_attribute": null,
+    "attachments": null,
+    "matched_free_text": string
+  }[]
+}
+
+export const emptyBugReport = {
+  "session_id": "",
+  "app_id": "",
+  "event_id": "",
+  "status": 0,
+  "description": "",
+  "timestamp": "",
+  "attribute": {
+    "installation_id": "",
+    "app_version": "",
+    "app_build": "",
+    "app_unique_id": "",
+    "measure_sdk_version": "",
+    "platform": "",
+    "thread_name": "",
+    "user_id": "",
+    "device_name": "",
+    "device_model": "",
+    "device_manufacturer": "",
+    "device_type": "",
+    "device_is_foldable": false,
+    "device_is_physical": false,
+    "device_density_dpi": 0,
+    "device_width_px": 0,
+    "device_height_px": 0,
+    "device_density": 0,
+    "device_locale": "",
+    "device_low_power_mode": false,
+    "device_thermal_throttling_enabled": false,
+    "device_cpu_arch": "",
+    "os_name": "",
+    "os_version": "",
+    "os_page_size": 0,
+    "network_type": "",
+    "network_provider": "",
+    "network_generation": ""
+  },
+  "user_defined_attribute": null,
+  "attachments": [
+    {
+      "id": "",
+      "name": "",
+      "type": "",
+      "key": "",
+      "location": ""
+    }
+  ]
+}
+
 export class AppVersion {
   name: string;
   code: string;
@@ -935,6 +1067,17 @@ async function applyGenericFiltersToUrl(url: string, filters: Filters, keyId: st
         searchParams.append('span_statuses', "1")
       } else if (v === SpanStatus.Error) {
         searchParams.append('span_statuses', "2")
+      }
+    })
+  }
+
+  // Append bug report statuses if needed
+  if (filters.bugReportStatuses.length > 0) {
+    filters.bugReportStatuses.forEach((v) => {
+      if (v === BugReportStatus.Open) {
+        searchParams.append('bug_report_statuses', "0")
+      } else if (v === BugReportStatus.Closed) {
+        searchParams.append('bug_report_statuses', "1")
       }
     })
   }
@@ -1109,7 +1252,7 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filte
   // fetch the user defined attributes
   url += '?ud_attr_keys=1'
 
-  // if filter is for Crashes or Anrs, we append a query param indicating it
+  // if filter is for Crashes, Anrs or Spans we append a query param indicating it
   if (filtersApiType === FiltersApiType.Crash) {
     url += '&crash=1'
   } else if (filtersApiType === FiltersApiType.Anr) {
@@ -1699,5 +1842,96 @@ export const fetchUsageFromServer = async (teamId: string, router: AppRouterInst
     return { status: FetchUsageApiStatus.Success, data: data }
   } catch {
     return { status: FetchUsageApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchBugReportsOverviewFromServer = async (filters: Filters, limit: number, offset: number, router: AppRouterInstance) => {
+  const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+
+  var url = `${origin}/apps/${filters.app.id}/bugReports?`
+
+  url = await applyGenericFiltersToUrl(url, filters, null, null, limit, offset)
+
+  try {
+    const res = await fetchMeasure(url);
+
+    if (!res.ok) {
+      logoutIfAuthError(auth, router, res)
+      return { status: BugReportsOverviewApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: BugReportsOverviewApiStatus.Success, data: data }
+  } catch {
+    return { status: BugReportsOverviewApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchBugReportsOverviewPlotFromServer = async (filters: Filters, router: AppRouterInstance) => {
+  const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+
+  var url = `${origin}/apps/${filters.app.id}/bugReports/plots/instances?`
+
+  url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
+
+  try {
+    const res = await fetchMeasure(url);
+
+    if (!res.ok) {
+      logoutIfAuthError(auth, router, res)
+      return { status: BugReportsOverviewPlotApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null) {
+      return { status: BugReportsOverviewPlotApiStatus.NoData, data: null }
+    }
+
+    return { status: BugReportsOverviewPlotApiStatus.Success, data: data }
+  } catch {
+    return { status: BugReportsOverviewPlotApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchBugReportFromServer = async (appId: string, bugReportId: string, router: AppRouterInstance) => {
+  const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+
+  try {
+    const res = await fetchMeasure(`${origin}/apps/${appId}/bugReports/${bugReportId}`);
+    if (!res.ok) {
+      logoutIfAuthError(auth, router, res)
+      return { status: BugReportApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: BugReportApiStatus.Success, data: data }
+  } catch {
+    return { status: BugReportApiStatus.Cancelled, data: null }
+  }
+}
+
+export const updateBugReportStatusFromServer = async (appId: string, bugReportId: string, status: number, router: AppRouterInstance) => {
+  const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+
+  const opts = {
+    method: 'PATCH',
+    body: JSON.stringify({ status: Number(status) })
+  };
+
+  try {
+    const res = await fetchMeasure(`${origin}/apps/${appId}/bugReports/${bugReportId}`, opts);
+    const data = await res.json()
+
+    if (!res.ok) {
+      logoutIfAuthError(auth, router, res)
+      return { status: UpdateBugReportStatusApiStatus.Error, error: data.error }
+    }
+
+    return { status: UpdateBugReportStatusApiStatus.Success }
+  } catch {
+    return { status: UpdateBugReportStatusApiStatus.Cancelled }
   }
 }

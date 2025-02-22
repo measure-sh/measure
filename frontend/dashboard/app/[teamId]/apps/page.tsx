@@ -160,6 +160,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         showLocales={false}
         showDeviceManufacturers={false}
         showDeviceNames={false}
+        showBugReportStatus={false}
         showUdAttrs={false}
         showFreeText={false}
         onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />

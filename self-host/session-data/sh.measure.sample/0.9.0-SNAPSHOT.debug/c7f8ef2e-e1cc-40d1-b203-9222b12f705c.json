@@ -977,6 +977,50 @@
                 "device_low_power_mode": false,
                 "device_thermal_throttling_enabled": false
             }
+        },
+        {
+            "id": "27899d97-beeb-462d-863d-0833e998822b",
+            "session_id": "15c351ac-f92e-4ee7-b8e8-2511af71a696",
+            "user_triggered": false,
+            "timestamp": "2024-11-14T04:55:19.37000000Z",
+            "type": "bug_report",
+            "bug_report": {
+                "description": "Screen too slow to load. I'm switching to another app!!!"
+            },
+            "attachments": null,
+            "attribute": {
+                "thread_name": "main",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "phone",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 480,
+                "device_width_px": 1344,
+                "device_height_px": 2992,
+                "device_density": 3.0,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "d6701e60-41ec-41fe-80ec-c61c8c171ba9",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown",
+                "device_low_power_mode": false,
+                "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": {
+                "plan": "premium plus",
+                "discount": false
+            }
         }
     ],
     "spans": []

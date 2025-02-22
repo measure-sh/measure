@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { formatDateToHumanReadableDateTime, formatIsoDateForDateTimeInputField, isValidTimestamp } from "../utils/time_utils";
 import { useEffect, useState } from "react";
-import { AppVersion, AppsApiStatus, FiltersApiStatus, FiltersApiType, OsVersion, SessionType, RootSpanNamesApiStatus, emptyApp, fetchAppsFromServer, fetchFiltersFromServer, fetchRootSpanNamesFromServer, SpanStatus, UserDefAttr } from "../api/api_calls";
+import { AppVersion, AppsApiStatus, FiltersApiStatus, FiltersApiType, OsVersion, SessionType, RootSpanNamesApiStatus, emptyApp, fetchAppsFromServer, fetchFiltersFromServer, fetchRootSpanNamesFromServer, SpanStatus, UserDefAttr, BugReportStatus } from "../api/api_calls";
 import { DateTime } from "luxon";
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 import FilterPill from "./filter_pill";
@@ -37,10 +37,14 @@ interface FiltersProps {
   showLocales: boolean
   showDeviceManufacturers: boolean
   showDeviceNames: boolean
+  showBugReportStatus: boolean
   showUdAttrs: boolean
   showFreeText: boolean
+  freeTextPlaceholder?: string
   onFiltersChanged: (filters: Filters) => void
 }
+
+const defaultFreeTextPlaceholder = "Search anything..."
 
 enum DateRange {
   Last15Mins = 'Last 15 Minutes',
@@ -68,6 +72,7 @@ export type Filters = {
   versions: AppVersion[]
   sessionType: SessionType
   spanStatuses: SpanStatus[]
+  bugReportStatuses: BugReportStatus[],
   osVersions: OsVersion[]
   countries: string[]
   networkProviders: string[]
@@ -96,6 +101,7 @@ export const defaultFilters: Filters = {
   versions: [],
   sessionType: SessionType.All,
   spanStatuses: [],
+  bugReportStatuses: [],
   osVersions: [],
   countries: [],
   networkProviders: [],
@@ -140,8 +146,10 @@ const Filters: React.FC<FiltersProps> = ({
   showLocales,
   showDeviceManufacturers,
   showDeviceNames,
+  showBugReportStatus,
   showUdAttrs,
   showFreeText,
+  freeTextPlaceholder,
   onFiltersChanged }) => {
 
   const router = useRouter()
@@ -195,6 +203,8 @@ const Filters: React.FC<FiltersProps> = ({
   const [selectedRootSpanName, setSelectedRootSpanName] = useState("");
 
   const [selectedSpanStatuses, setSelectedSpanStatuses] = useState(filtersApiType === FiltersApiType.Span ? [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error] : []);
+
+  const [selectedBugReportStatuses, setSelectedBugReportStatuses] = useState([BugReportStatus.Open]);
 
   const [versions, setVersions] = useState([] as AppVersion[]);
   const [selectedVersions, setSelectedVersions] = useState([] as AppVersion[]);
@@ -309,6 +319,7 @@ const Filters: React.FC<FiltersProps> = ({
     setSelectedDeviceNames(defaultFilters.deviceNames)
     setSelectedFreeText(defaultFilters.freeText)
     setSelectedSpanStatuses(defaultFilters.spanStatuses)
+    setSelectedBugReportStatuses(defaultFilters.bugReportStatuses)
   }
 
   const getRootSpanNames = async () => {
@@ -464,6 +475,7 @@ const Filters: React.FC<FiltersProps> = ({
       versions: selectedVersions,
       sessionType: selectedSessionType,
       spanStatuses: selectedSpanStatuses,
+      bugReportStatuses: selectedBugReportStatuses,
       osVersions: selectedOsVersions,
       countries: selectedCountries,
       networkProviders: selectedNetworkProviders,
@@ -478,7 +490,7 @@ const Filters: React.FC<FiltersProps> = ({
 
     sessionStorage.setItem(persistedFiltersStorageKey, JSON.stringify(updatedPersistedFilters))
     onFiltersChanged(updatedSelectedFilters)
-  }, [filtersApiStatus, selectedStartDate, selectedEndDate, selectedVersions, selectedSessionType, selectedOsVersions, selectedCountries, selectedNetworkProviders, selectedNetworkTypes, selectedNetworkGenerations, selectedLocales, selectedDeviceManufacturers, selectedDeviceNames, selectedUdAttrMatchers, selectedFreeText, selectedRootSpanName, selectedSpanStatuses])
+  }, [filtersApiStatus, selectedStartDate, selectedEndDate, selectedVersions, selectedSessionType, selectedOsVersions, selectedCountries, selectedNetworkProviders, selectedNetworkTypes, selectedNetworkGenerations, selectedLocales, selectedDeviceManufacturers, selectedDeviceNames, selectedUdAttrMatchers, selectedFreeText, selectedRootSpanName, selectedSpanStatuses, selectedBugReportStatuses])
 
   return (
     <div>
@@ -554,6 +566,7 @@ const Filters: React.FC<FiltersProps> = ({
             {showAppVersions && <DropdownSelect title="App versions" type={DropdownSelectType.MultiAppVersion} items={versions} initialSelected={selectedVersions} onChangeSelected={(items) => setSelectedVersions(items as AppVersion[])} />}
             {showSessionType && <DropdownSelect title="Session Types" type={DropdownSelectType.SingleString} items={Object.values(SessionType)} initialSelected={selectedSessionType} onChangeSelected={(item) => setSelectedSessionType(getSessionTypeFromString(item as string))} />}
             {filtersApiType === FiltersApiType.Span && <DropdownSelect type={DropdownSelectType.MultiString} title="Span Status" items={Object.values(SpanStatus)} initialSelected={selectedSpanStatuses} onChangeSelected={(items) => setSelectedSpanStatuses(items as SpanStatus[])} />}
+            {showBugReportStatus && <DropdownSelect type={DropdownSelectType.MultiString} title="Bug Report Status" items={Object.values(BugReportStatus)} initialSelected={selectedBugReportStatuses} onChangeSelected={(items) => setSelectedBugReportStatuses(items as BugReportStatus[])} />}
             {showOsVersions && osVersions.length > 0 && <DropdownSelect type={DropdownSelectType.MultiOsVersion} title="OS Versions" items={osVersions} initialSelected={selectedOsVersions} onChangeSelected={(items) => setSelectedOsVersions(items as OsVersion[])} />}
             {showCountries && countries.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Country" items={countries} initialSelected={selectedCountries} onChangeSelected={(items) => setSelectedCountries(items as string[])} />}
             {showNetworkProviders && networkProviders.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Network Provider" items={networkProviders} initialSelected={selectedNetworkProviders} onChangeSelected={(items) => setSelectedNetworkProviders(items as string[])} />}
@@ -563,7 +576,7 @@ const Filters: React.FC<FiltersProps> = ({
             {showDeviceManufacturers && deviceManufacturers.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Manufacturer" items={deviceManufacturers} initialSelected={selectedDeviceManufacturers} onChangeSelected={(items) => setSelectedDeviceManufacturers(items as string[])} />}
             {showDeviceNames && deviceNames.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Device Name" items={deviceNames} initialSelected={selectedDeviceNames} onChangeSelected={(items) => setSelectedDeviceNames(items as string[])} />}
             {showUdAttrs && userDefAttrs.length > 0 && <UserDefAttrSelector attrs={userDefAttrs} ops={userDefAttrOps} onChangeSelected={(udAttrMatchers) => setSelectedUdAttrMatchers(udAttrMatchers)} />}
-            {showFreeText && <DebounceTextInput id="free-text" placeholder="Search User/Session ID, Logs, Event Type, Target View ID, File/Class name or Exception Traces..." initialValue={selectedFreeText} onChange={(input) => setSelectedFreeText(input)} />}
+            {showFreeText && <DebounceTextInput id="free-text" placeholder={freeTextPlaceholder ? freeTextPlaceholder : defaultFreeTextPlaceholder} initialValue={selectedFreeText} onChange={(input) => setSelectedFreeText(input)} />}
           </div>
           <div className="py-4" />
           <div className="flex flex-wrap gap-2 items-center">
@@ -572,6 +585,7 @@ const Filters: React.FC<FiltersProps> = ({
             {showAppVersions && selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).map((v) => v.displayName).join(', ')} />}
             {showSessionType && <FilterPill title={selectedSessionType} />}
             {filtersApiType === FiltersApiType.Span && selectedSpanStatuses.length > 0 && <FilterPill title={Array.from(selectedSpanStatuses).join(', ')} />}
+            {showBugReportStatus && selectedBugReportStatuses.length > 0 && <FilterPill title={Array.from(selectedBugReportStatuses).join(', ')} />}
             {showOsVersions && selectedOsVersions.length > 0 && <FilterPill title={Array.from(selectedOsVersions).map((v) => v.displayName).join(', ')} />}
             {showCountries && selectedCountries.length > 0 && <FilterPill title={Array.from(selectedCountries).join(', ')} />}
             {showNetworkProviders && selectedNetworkProviders.length > 0 && <FilterPill title={Array.from(selectedNetworkProviders).join(', ')} />}
