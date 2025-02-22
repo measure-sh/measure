@@ -36,6 +36,10 @@ export default function DashboardLayout({
       title: 'Sessions',
     },
     {
+      hrefSuffix: 'bug_reports',
+      title: 'Bug Reports',
+    },
+    {
       hrefSuffix: 'team',
       title: 'Team',
     },

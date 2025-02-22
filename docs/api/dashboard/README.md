@@ -134,66 +134,87 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-24)
     - [Response Body](#response-body-24)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-24)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-25)
-    - [Request Body](#request-body-4)
+  - [GET `/apps/:id/bugReports`](#get-appsidbugreports)
     - [Usage Notes](#usage-notes-25)
+    - [Authorization \& Content Type](#authorization--content-type-25)
     - [Response Body](#response-body-25)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-25)
-  - [GET `/teams`](#get-teams)
+  - [GET `/apps/:id/bugReports/plots/instances`](#get-appsidbugreportsplotsinstances)
+    - [Usage Notes](#usage-notes-26)
     - [Authorization \& Content Type](#authorization--content-type-26)
     - [Response Body](#response-body-26)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-26)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-26)
+  - [GET `/apps/:id/bugReports/:bugReportId`](#get-appsidbugreportsbugreportid)
+    - [Usage Notes](#usage-notes-27)
     - [Authorization \& Content Type](#authorization--content-type-27)
     - [Response Body](#response-body-27)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-27)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
-    - [Usage Notes](#usage-notes-27)
+  - [PATCH `/apps/:id/bugReports/:bugReportId`](#patch-appsidbugreportsbugreportid)
+    - [Usage Notes](#usage-notes-28)
+    - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-28)
     - [Response Body](#response-body-28)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-28)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
-    - [Usage Notes](#usage-notes-28)
-    - [Request body](#request-body-5)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-29)
+    - [Request Body](#request-body-5)
+    - [Usage Notes](#usage-notes-29)
     - [Response Body](#response-body-29)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-29)
-  - [POST `/auth/invite`](#post-authinvite)
-    - [Usage Notes](#usage-notes-29)
-    - [Request body](#request-body-30)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-30)
-    - [Response Body](#response-body-26)
+    - [Response Body](#response-body-30)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-30)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-30)
-    - [Request body](#request-body-7)
     - [Authorization \& Content Type](#authorization--content-type-31)
     - [Response Body](#response-body-31)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-31)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-31)
     - [Authorization \& Content Type](#authorization--content-type-32)
     - [Response Body](#response-body-32)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-32)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-32)
+    - [Request body](#request-body-6)
     - [Authorization \& Content Type](#authorization--content-type-33)
     - [Response Body](#response-body-33)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-33)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [POST `/auth/invite`](#post-authinvite)
     - [Usage Notes](#usage-notes-33)
-    - [Request body](#request-body-8)
+    - [Request body](#request-body-7)
     - [Authorization \& Content Type](#authorization--content-type-34)
     - [Response Body](#response-body-34)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-34)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-34)
+    - [Request body](#request-body-8)
     - [Authorization \& Content Type](#authorization--content-type-35)
     - [Response Body](#response-body-35)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-35)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
+    - [Usage Notes](#usage-notes-35)
+    - [Authorization \& Content Type](#authorization--content-type-36)
+    - [Response Body](#response-body-36)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-36)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+    - [Usage Notes](#usage-notes-36)
+    - [Authorization \& Content Type](#authorization--content-type-37)
+    - [Response Body](#response-body-37)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-37)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+    - [Usage Notes](#usage-notes-37)
+    - [Request body](#request-body-9)
+    - [Authorization \& Content Type](#authorization--content-type-38)
+    - [Response Body](#response-body-38)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-38)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+    - [Usage Notes](#usage-notes-38)
+    - [Authorization \& Content Type](#authorization--content-type-39)
+    - [Response Body](#response-body-39)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-39)
 
 ## Apps
 
@@ -222,6 +243,10 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**GET `/apps/:id/spans/instances`**](#get-appsidspansinstances) - Fetch an span's list of instances with optional filters.
 - [**GET `/apps/:id/spans/plot`**](#get-appsidspansplot) - Fetch an span's metrics plot with optional filters.
 - [**GET `/apps/:id/traces/:traceId`**](#get-appsidtracestraceid) - Fetch a trace.
+- [**GET `/apps/:id/bugReports`**](#get-appsidbugreports) - Fetch an app's bug reports with optional filters.
+- [**GET `/apps/:id/bugReports/plots/instances`**](#get-appsidbugreportsplotsinstances) - Fetch an app's bug report instances plot with optional filters.
+- [**GET `/apps/:id/bugReports/:bugReportId`**](#get-appsidbugreportsbugreportid) - Fetch a bug report.
+- [**PATCH `/apps/:id/bugReports/:bugReportId`**](#patch-appsidbugreportsbugreportid) - Update a bug report's status.
 
 ### GET `/apps/:id/journey`
 
@@ -3627,7 +3652,7 @@ Fetch an span's list of instances with optional filters.
   - `offset` (_optional_) - Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
   - `limit` (_optional_) - Number of items to return. Used for pagination. Should be used along with `offset`.
   - `filter_short_code` (_optional_) - Code representing combination of filters.
-  - `span_statuses` (_optional_) - should be 0 (Unset), 1 (Ok) or 2 (Error). If multiple status are required, they should passed as multiple query params like `span_statuses=0&span_statuses=1&span_statuses=2`
+  - `span_statuses` (_optional_) - should be 0 (Unset), 1 (Ok) or 2 (Error). If multiple statuses are required, they should passed as multiple query params like `span_statuses=0&span_statuses=1&span_statuses=2`
 - For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
 - Pass `limit` and `offset` values to paginate results
 
@@ -3915,6 +3940,612 @@ These headers must be present in each request.
   ```
 
 #### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/bugReports`
+
+Fetch an app's bug reports by applying various optional filters.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return only matching sessions.
+  - `version_codes` (_optional_) - List of comma separated version codes to return only matching sessions.
+  - `countries` (_optional_) - List of comma separated country identifier strings to return only matching sessions.
+  - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching sessions.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching sessions.
+  - `locales` (_optional_) - List of comma separated device locale identifier strings to return only matching sessions.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching sessions.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching sessions.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching sessions.
+  - `free_text` (_optional_) - A sequence of characters used to filter sessions matching various criteria like user_id, description and so on.
+  - `bug_report_statuses` (_optional_) - should be 0 (Open) or 1 (Closed). If multiple statuses are required, they should passed as multiple query params like `bug_report_statuses=0&bug_report_statuses=1`
+  - `offset` (_optional_) - Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
+  - `limit` (_optional_) - Number of items to return. Used for pagination. Should be used along with `offset`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+- Pass `limit` and `offset` values to paginate results
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "meta": {
+      "next": true,
+      "previous": false
+    },
+    "results": [
+      {
+        "session_id": "da388337-f9cd-45cb-8349-2beece91b6e3",
+        "app_id": "47cf0390-b11c-4e1f-8f8a-770bf9c159bb",
+        "event_id": "e715585e-e5fb-4b37-86cf-0d9de14e1d61",
+        "status": 0,
+        "description": "Unresponsive button. Kept tapping but nothing happens",
+        "timestamp": "2024-12-16T03:31:07.127Z",
+        "attribute": {
+          "installation_id": "00000000-0000-0000-0000-000000000000",
+          "app_version": "0.9.0-SNAPSHOT.debug",
+          "app_build": "900",
+          "app_unique_id": "",
+          "measure_sdk_version": "",
+          "platform": "",
+          "thread_name": "",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "",
+          "device_is_foldable": false,
+          "device_is_physical": false,
+          "device_density_dpi": 0,
+          "device_width_px": 0,
+          "device_height_px": 0,
+          "device_density": 0,
+          "device_locale": "",
+          "device_low_power_mode": false,
+          "device_thermal_throttling_enabled": false,
+          "device_cpu_arch": "",
+          "os_name": "android",
+          "os_version": "34",
+          "os_page_size": 0,
+          "network_type": "",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "user_defined_attribute": null,
+        "attachments": null,
+        "matched_free_text": ""
+      },
+      {
+        "session_id": "a2768feb-59cd-433f-bf00-d36ab297eddb",
+        "app_id": "47cf0390-b11c-4e1f-8f8a-770bf9c159bb",
+        "event_id": "eaaa0100-0e27-4706-9705-53b5d0b537ef",
+        "status": 0,
+        "description": "This app sucks!",
+        "timestamp": "2024-11-18T14:14:41.622Z",
+        "attribute": {
+          "installation_id": "00000000-0000-0000-0000-000000000000",
+          "app_version": "0.9.0-SNAPSHOT.debug",
+          "app_build": "900",
+          "app_unique_id": "",
+          "measure_sdk_version": "",
+          "platform": "",
+          "thread_name": "",
+          "user_id": "",
+          "device_name": "emu64a16k",
+          "device_model": "sdk_gphone16k_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "",
+          "device_is_foldable": false,
+          "device_is_physical": false,
+          "device_density_dpi": 0,
+          "device_width_px": 0,
+          "device_height_px": 0,
+          "device_density": 0,
+          "device_locale": "",
+          "device_low_power_mode": false,
+          "device_thermal_throttling_enabled": false,
+          "device_cpu_arch": "",
+          "os_name": "android",
+          "os_version": "35",
+          "os_page_size": 0,
+          "network_type": "",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "user_defined_attribute": null,
+        "attachments": null,
+        "matched_free_text": ""
+      },
+      {
+        "session_id": "15c351ac-f92e-4ee7-b8e8-2511af71a696",
+        "app_id": "47cf0390-b11c-4e1f-8f8a-770bf9c159bb",
+        "event_id": "27899d97-beeb-462d-863d-0833e998822b",
+        "status": 0,
+        "description": "Screen too slow to load. I'm switching to another app!!!",
+        "timestamp": "2024-11-14T04:55:19.37Z",
+        "attribute": {
+          "installation_id": "00000000-0000-0000-0000-000000000000",
+          "app_version": "0.9.0-SNAPSHOT.debug",
+          "app_build": "900",
+          "app_unique_id": "",
+          "measure_sdk_version": "",
+          "platform": "",
+          "thread_name": "",
+          "user_id": "",
+          "device_name": "emu64a16k",
+          "device_model": "sdk_gphone16k_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "",
+          "device_is_foldable": false,
+          "device_is_physical": false,
+          "device_density_dpi": 0,
+          "device_width_px": 0,
+          "device_height_px": 0,
+          "device_density": 0,
+          "device_locale": "",
+          "device_low_power_mode": false,
+          "device_thermal_throttling_enabled": false,
+          "device_cpu_arch": "",
+          "os_name": "android",
+          "os_version": "35",
+          "os_page_size": 0,
+          "network_type": "",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "user_defined_attribute": null,
+        "attachments": null,
+        "matched_free_text": ""
+      },
+      {
+        "session_id": "e19be4bf-0896-42bf-a4a0-ba4529c57f1e",
+        "app_id": "47cf0390-b11c-4e1f-8f8a-770bf9c159bb",
+        "event_id": "ea5f4312-af64-47f5-9d36-e7ad5b00362c",
+        "status": 1,
+        "description": "Can't click button. Screen frozen.",
+        "timestamp": "2024-07-25T07:26:16.44Z",
+        "attribute": {
+          "installation_id": "00000000-0000-0000-0000-000000000000",
+          "app_version": "1.0",
+          "app_build": "1",
+          "app_unique_id": "",
+          "measure_sdk_version": "",
+          "platform": "",
+          "thread_name": "",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "",
+          "device_is_foldable": false,
+          "device_is_physical": false,
+          "device_density_dpi": 0,
+          "device_width_px": 0,
+          "device_height_px": 0,
+          "device_density": 0,
+          "device_locale": "",
+          "device_low_power_mode": false,
+          "device_thermal_throttling_enabled": false,
+          "device_cpu_arch": "",
+          "os_name": "android",
+          "os_version": "33",
+          "os_page_size": 0,
+          "network_type": "",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "user_defined_attribute": null,
+        "attachments": null,
+        "matched_free_text": ""
+      },
+      {
+        "session_id": "54cb0c7a-9467-4f3b-b053-dfea451a1e4a",
+        "app_id": "47cf0390-b11c-4e1f-8f8a-770bf9c159bb",
+        "event_id": "d3c0c6ff-f05a-466e-b84a-c4ff236ee7c3",
+        "status": 0,
+        "description": "Clicking button leads to crash.",
+        "timestamp": "2024-06-13T13:37:23.33Z",
+        "attribute": {
+          "installation_id": "00000000-0000-0000-0000-000000000000",
+          "app_version": "1.0",
+          "app_build": "1",
+          "app_unique_id": "",
+          "measure_sdk_version": "",
+          "platform": "",
+          "thread_name": "",
+          "user_id": "",
+          "device_name": "emu64a",
+          "device_model": "sdk_gphone64_arm64",
+          "device_manufacturer": "Google",
+          "device_type": "",
+          "device_is_foldable": false,
+          "device_is_physical": false,
+          "device_density_dpi": 0,
+          "device_width_px": 0,
+          "device_height_px": 0,
+          "device_density": 0,
+          "device_locale": "",
+          "device_low_power_mode": false,
+          "device_thermal_throttling_enabled": false,
+          "device_cpu_arch": "",
+          "os_name": "android",
+          "os_version": "33",
+          "os_page_size": 0,
+          "network_type": "",
+          "network_provider": "",
+          "network_generation": ""
+        },
+        "user_defined_attribute": null,
+        "attachments": null,
+        "matched_free_text": ""
+      }
+    ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/bugReports/plots/instances`
+
+Fetch an app's bug report instances plot by applying various optional filters.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return only matching sessions.
+  - `version_codes` (_optional_) - List of comma separated version codes to return only matching sessions.
+  - `countries` (_optional_) - List of comma separated country identifier strings to return only matching sessions.
+  - `device_names` (_optional_) - List of comma separated device name identifier strings to return only matching sessions.
+  - `device_manufacturers` (_optional_) - List of comma separated device manufacturer identifier strings to return only matching sessions.
+  - `locales` (_optional_) - List of comma separated device locale identifier strings to return only matching sessions.
+  - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching sessions.
+  - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching sessions.
+  - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching sessions.
+  - `free_text` (_optional_) - A sequence of characters used to filter sessions matching various criteria like user_id, description and so on.
+  - `bug_report_statuses` (_optional_) - should be 0 (Open) or 1 (Closed). If multiple statuses are required, they should passed as multiple query params like `bug_report_statuses=0&bug_report_statuses=1`
+  - `offset` (_optional_) - Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
+  - `limit` (_optional_) - Number of items to return. Used for pagination. Should be used along with `offset`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+  - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+- Pass `limit` and `offset` values to paginate results
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  [
+    {
+      "id": "1.0 (1)",
+      "data": [
+        {
+          "datetime": "2024-05-24",
+          "instances": 3
+        },
+        {
+          "datetime": "2024-06-13",
+          "instances": 1
+        },
+        {
+          "datetime": "2024-07-25",
+          "instances": 1
+        }
+      ]
+    },
+    {
+      "id": "0.9.0-SNAPSHOT.debug (900)",
+      "data": [
+        {
+          "datetime": "2024-11-14",
+          "instances": 1
+        },
+        {
+          "datetime": "2024-11-18",
+          "instances": 1
+        },
+        {
+          "datetime": "2024-12-16",
+          "instances": 1
+        }
+      ]
+    }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/bugReports/:bugReportId`
+
+Fetch a bug report.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Bug report Id must be passed in the URI
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "session_id": "a2768feb-59cd-433f-bf00-d36ab297eddb",
+    "app_id": "47cf0390-b11c-4e1f-8f8a-770bf9c159bb",
+    "event_id": "eaaa0100-0e27-4706-9705-53b5d0b537ef",
+    "status": 0,
+    "description": "This app sucks!",
+    "timestamp": "2024-11-18T14:14:41.622Z",
+    "attribute": {
+      "installation_id": "00000000-0000-0000-0000-000000000000",
+      "app_version": "0.9.0-SNAPSHOT.debug",
+      "app_build": "900",
+      "app_unique_id": "",
+      "measure_sdk_version": "",
+      "platform": "",
+      "thread_name": "",
+      "user_id": "",
+      "device_name": "emu64a16k",
+      "device_model": "sdk_gphone16k_arm64",
+      "device_manufacturer": "Google",
+      "device_type": "",
+      "device_is_foldable": false,
+      "device_is_physical": false,
+      "device_density_dpi": 0,
+      "device_width_px": 0,
+      "device_height_px": 0,
+      "device_density": 0,
+      "device_locale": "en-US",
+      "device_low_power_mode": false,
+      "device_thermal_throttling_enabled": false,
+      "device_cpu_arch": "",
+      "os_name": "android",
+      "os_version": "35",
+      "os_page_size": 0,
+      "network_type": "wifi",
+      "network_provider": "unknown",
+      "network_generation": "unknown"
+    },
+    "user_defined_attribute": {
+      "discount": true,
+      "plan": "free"
+    },
+    "attachments": [
+      {
+        "id": "c2001daa-bdc6-476e-b896-0fd047fb2503",
+        "name": "screenshot.webp",
+        "type": "screenshot",
+        "key": "c2001daa-bdc6-476e-b896-0fd047fb2503.webp",
+        "location": "http://localhost:8080/attachments?payload=%2Fmsr-attachments-sandbox%2Fc2001daa-bdc6-476e-b896-0fd047fb2503.webp%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3Dminio%252F20250219%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20250219T122113Z%26X-Amz-Expires%3D172800%26X-Amz-SignedHeaders%3Dhost%26x-id%3DGetObject%26X-Amz-Signature%3Dd96ffacad1239048baeb104dc93d622cdd4eae58d05f4f8fc3f2a41826685d50"
+      }
+    ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### PATCH `/apps/:id/bugReports/:bugReportId`
+
+Update a bug reports's status.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Bug report Id must be passed in the URI
+- Status should be 0 (Open) or 1 (Closed)
+
+#### Request body
+
+  ```json
+  {
+      "status": 1
+  }
+  ```
+
+#### Authorization & Content Type
+
+1. Set the user's access token in `Authorization: Bearer <access-token>` format
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+These headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok" : "done"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
 
 List of HTTP status codes for success and failures.
 

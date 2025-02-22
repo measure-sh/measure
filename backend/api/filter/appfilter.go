@@ -131,6 +131,7 @@ type AppFilter struct {
 	// UDExpression contains the parsed user defined
 	// attribute expression.
 	UDExpression *event.UDExpression
+
 	// Span indicates the filtering should only
 	// consider spans.
 	Span bool `form:"span"`
@@ -138,6 +139,10 @@ type AppFilter struct {
 	// SpanStatuses represents the list of status of
 	// a span to be filtered on.
 	SpanStatuses []int8 `form:"span_statuses"`
+
+	// BugReportStatuses represents the list of status of
+	// a bug report to be filtered on.
+	BugReportStatuses []int8 `form:"bug_report_statuses"`
 
 	// KeyID is the anchor point for keyset
 	// pagination.

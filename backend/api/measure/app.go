@@ -5922,3 +5922,408 @@ func GetTrace(c *gin.Context) {
 
 	c.JSON(http.StatusOK, trace)
 }
+
+func GetBugReportsOverview(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "bug reports overview request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	bugReports, next, previous, err := GetBugReportsWithFilter(ctx, &af)
+	if err != nil {
+		msg := "failed to get app's bug reports"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"results": bugReports,
+		"meta": gin.H{
+			"next":     next,
+			"previous": previous,
+		},
+	})
+}
+
+func GetBugReportsInstancesPlot(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := `bug reports plot request validation failed`
+
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if !af.HasTimezone() {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "missing required field `timezone`",
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	bugReportInstances, err := GetBugReportInstancesPlot(ctx, &af)
+	if err != nil {
+		msg := `failed to query data for bug reports plot`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	type instance struct {
+		ID   string  `json:"id"`
+		Data []gin.H `json:"data"`
+	}
+
+	lut := make(map[string]int)
+	var instances []instance
+
+	for i := range bugReportInstances {
+		instance := instance{
+			ID: bugReportInstances[i].Version,
+			Data: []gin.H{{
+				"datetime":  bugReportInstances[i].DateTime,
+				"instances": bugReportInstances[i].Instances,
+			}},
+		}
+
+		ndx, ok := lut[bugReportInstances[i].Version]
+
+		if ok {
+			instances[ndx].Data = append(instances[ndx].Data, instance.Data...)
+		} else {
+			instances = append(instances, instance)
+			lut[bugReportInstances[i].Version] = len(instances) - 1
+		}
+	}
+
+	c.JSON(http.StatusOK, instances)
+}
+
+func GetBugReport(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	bugReportId := c.Param("bugReportId")
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	bugReport, err := GetBugReportById(ctx, bugReportId)
+	if err != nil {
+		msg := "failed to get bug report"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, bugReport)
+}
+
+func UpdateBugReportStatus(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	bugReportId := c.Param("bugReportId")
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	var payload BugReportStatusUpdatePayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		msg := `failed to parse bug report status update json payload`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	err = UpdateBugReportStatusById(ctx, bugReportId, *payload.Status)
+	if err != nil {
+		msg := "failed to update bug report status"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+}

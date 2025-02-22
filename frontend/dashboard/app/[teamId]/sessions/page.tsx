@@ -76,8 +76,10 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                 showLocales={true}
                 showDeviceManufacturers={true}
                 showDeviceNames={true}
+                showBugReportStatus={false}
                 showUdAttrs={true}
                 showFreeText={true}
+                freeTextPlaceholder='Search User/Session ID, Logs, Event Type, Target View ID, File/Class name or Exception Traces...'
                 onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
             <div className="py-4" />
 

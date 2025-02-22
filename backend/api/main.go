@@ -114,6 +114,10 @@ func main() {
 		apps.GET(":id/spans/instances", measure.GetSpanInstances)
 		apps.GET(":id/spans/plot", measure.GetSpanMetricsPlot)
 		apps.GET(":id/traces/:traceId", measure.GetTrace)
+		apps.GET(":id/bugReports", measure.GetBugReportsOverview)
+		apps.GET(":id/bugReports/plots/instances", measure.GetBugReportsInstancesPlot)
+		apps.GET(":id/bugReports/:bugReportId", measure.GetBugReport)
+		apps.PATCH(":id/bugReports/:bugReportId", measure.UpdateBugReportStatus)
 	}
 
 	teams := r.Group("/teams", measure.ValidateAccessToken())
