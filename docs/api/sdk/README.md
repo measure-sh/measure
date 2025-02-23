@@ -239,12 +239,13 @@ List of all the fields of the multipart request.
 | `platform`     | string | Yes      | Platform of the app. `android` for Android, `ios` for iOS.        |
 
 - Mapping file size should not exceed **512 MiB**.
-- `mapping_type` &amp; `mapping_file` are optional. Both need to be present for mapping file upload to work.
+- `mapping_type` &amp; `mapping_file` are optional. Both need to be present for mapping file uploads to work.
 - `version_name`, `version_code`, `build_size` &amp; `build_type` are required and cannot be skipped.
 - Uploading a previously uploaded mapping file with exact contents for the same combination of `version_name`, `version_code`, `mapping_type` replaces the older mapping file.
 - Putting `build_size` for the same `version_name`, `version_code` and `build_type` combination replaces the last size with the latest size.
 - Depending on the platform, `mapping_type` can be `proguard` for Android or `dsym` for iOS.
 - Depending on the platform, `build_type` can be `aab` for Android or `ipa` for iOS.
+- Multiple `mapping_file` is accepted. iOS builds will typically utilize multiple dSYM mapping files.
 
 #### Authorization \& Content Type
 
