@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Implement bug reports
 - (**backend**): Add user defined attrs to spans
 - (**backend**): Add support for iOS exceptions (#1726)
+- (**frontend**): Rename button to "Close/Re-Open Bug Report"
 - (**frontend**): None selection option in filters dropdown
 - (**frontend**): Implement ud attr filters
 - (**frontend**): Add discord support link to dashboard nav
