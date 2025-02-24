@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"backend/api/codec"
+	"backend/api/platform"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -154,7 +156,7 @@ func IngestSerial(apps *app.Apps, origin string) {
 		apiKey := configData.Apps[app.Name].ApiKey
 
 		fmt.Printf("Uploading build info...")
-		status, err := UploadBuild(buildURL, apiKey, app)
+		status, err := UploadBuilds(buildURL, apiKey, app)
 		if err != nil {
 			if status == "" {
 				status = err.Error()
@@ -221,7 +223,7 @@ func IngestParallel(apps *app.Apps, origin string) {
 		apiKey := configData.Apps[app.Name].ApiKey
 
 		fmt.Printf("Uploading build info...")
-		status, err := UploadBuild(buildURL, apiKey, app)
+		status, err := UploadBuilds(buildURL, apiKey, app)
 		if err != nil {
 			if status == "" {
 				status = err.Error()
@@ -293,72 +295,91 @@ func IngestParallel(apps *app.Apps, origin string) {
 	metrics.setIngestDuration(time.Since(startTime))
 }
 
-// UploadBuild prepares & sends the request to
+// UploadBuilds prepares & sends the request to
 // upload mapping file & build info.
-func UploadBuild(url, apiKey string, app app.App) (string, error) {
+func UploadBuilds(url, apiKey string, app app.App) (string, error) {
 	if dryRun {
 		return http.StatusText(http.StatusOK), nil
 	}
-	var buff bytes.Buffer
-	w := multipart.NewWriter(&buff)
-	w.SetBoundary(multipartBoundary)
-
 	attribute, err := app.Attribute()
 	if err != nil {
 		return "", err
 	}
-
-	fw, err := w.CreateFormField("version_name")
-	if err != nil {
-		return "", err
-	}
-	fw.Write([]byte(attribute.AppVersion))
-
-	fw, err = w.CreateFormField("version_code")
-	if err != nil {
-		return "", err
-	}
-	fw.Write([]byte(attribute.AppBuild))
-
-	if app.MappingFile != "" {
-		f, err := os.Open(app.MappingFile)
-		if err != nil {
-			return "", err
-		}
-
-		fw, err = w.CreateFormFile("mapping_file", filepath.Base(app.MappingFile))
-		if err != nil {
-			return "", err
-		}
-
-		io.Copy(fw, f)
-
-		fw, err = w.CreateFormField("mapping_type")
-		if err != nil {
-			return "", err
-		}
-
-		fw.Write([]byte("proguard"))
-	}
-
-	fw, err = w.CreateFormField("build_size")
-	if err != nil {
-		return "", err
-	}
-	fw.Write([]byte(app.BuildInfo.GetSize()))
-
-	fw, err = w.CreateFormField("build_type")
-	if err != nil {
-		return "", err
-	}
-	fw.Write([]byte(app.BuildInfo.Type))
-	w.Close()
-
 	headers := map[string]string{
 		"Content-Type": fmt.Sprintf("multipart/form-data; boundary=%s", multipartBoundary),
 	}
 
-	return sendRequest(url, apiKey, headers, buff.Bytes())
+	for code, build := range app.Builds {
+		var buff bytes.Buffer
+		w := multipart.NewWriter(&buff)
+		w.SetBoundary(multipartBoundary)
+
+		fw, err := w.CreateFormField("version_name")
+		if err != nil {
+			return "", err
+		}
+		fw.Write([]byte(attribute.AppVersion))
+
+		fw, err = w.CreateFormField("version_code")
+		if err != nil {
+			return "", err
+		}
+		fw.Write([]byte(code))
+		for _, mappingFile := range build.MappingFiles {
+			f, err := os.Open(mappingFile)
+			if err != nil {
+				return "", err
+			}
+
+			defer f.Close()
+
+			fw, err = w.CreateFormFile("mapping_file", filepath.Base(mappingFile))
+			if err != nil {
+				return "", err
+			}
+
+			io.Copy(fw, f)
+
+			fw, err = w.CreateFormField("mapping_type")
+			if err != nil {
+				return "", err
+			}
+
+			mappingType := "proguard"
+
+			switch attribute.Platform {
+			case platform.IOS:
+				if err := codec.IsTarGz(f); err != nil {
+					return "", err
+				}
+				mappingType = "dsym"
+			}
+
+			fw.Write([]byte(mappingType))
+		}
+
+		fw, err = w.CreateFormField("build_size")
+		if err != nil {
+			return "", err
+		}
+		fw.Write([]byte(build.BuildInfo.GetSize()))
+
+		fw, err = w.CreateFormField("build_type")
+		if err != nil {
+			return "", err
+		}
+		fw.Write([]byte(build.BuildInfo.Type))
+		w.Close()
+		status, err := sendRequest(url, apiKey, headers, buff.Bytes())
+
+		if err != nil {
+			return status, err
+		}
+
+		metrics.bumpBuild()
+	}
+
+	return http.StatusText(http.StatusOK), nil
 }
 
 // prepareEventsAndSpansAndSpans prepares request for events.
@@ -598,8 +619,12 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 
 		for i, app := range apps.Items {
 			mapping := "not found"
-			if app.MappingFile != "" {
-				mapping = "found"
+			count := 0
+			for _, build := range app.Builds {
+				count += len(build.MappingFiles)
+			}
+			if count > 0 {
+				mapping = fmt.Sprintf("found %d", count)
 			}
 			fmt.Printf("app (%d): %s\n", i+1, app.FullName())
 			fmt.Printf("event and span files count: %d\n", len(app.EventAndSpanFiles))
