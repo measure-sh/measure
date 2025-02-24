@@ -236,14 +236,16 @@ List of all the fields of the multipart request.
 | `mapping_file` | string | Yes      | File bytes of mapping file                                        |
 | `build_size`   | string | No       | Size of app in bytes                                              |
 | `build_type`   | string | No       | Type of the build. `aab` for Android, `ipa` for iOS.              |
+| `platform`     | string | Yes      | Platform of the app. `android` for Android, `ios` for iOS.        |
 
 - Mapping file size should not exceed **512 MiB**.
-- `mapping_type` &amp; `mapping_file` are optional. Both need to be present for mapping file upload to work.
+- `mapping_type` &amp; `mapping_file` are optional. Both need to be present for mapping file uploads to work.
 - `version_name`, `version_code`, `build_size` &amp; `build_type` are required and cannot be skipped.
 - Uploading a previously uploaded mapping file with exact contents for the same combination of `version_name`, `version_code`, `mapping_type` replaces the older mapping file.
 - Putting `build_size` for the same `version_name`, `version_code` and `build_type` combination replaces the last size with the latest size.
 - Depending on the platform, `mapping_type` can be `proguard` for Android or `dsym` for iOS.
 - Depending on the platform, `build_type` can be `aab` for Android or `ipa` for iOS.
+- Multiple `mapping_file` is accepted. iOS builds will typically utilize multiple dSYM mapping files.
 
 #### Authorization \& Content Type
 
@@ -495,12 +497,13 @@ Each frame object contains further fields.
 
 Use the `exception` type for errors and crashes.
 
-| Field        | Type    | Optional | Comment                                                               |
-| ------------ | ------- | -------- | --------------------------------------------------------------------- |
-| `handled`    | boolean | No       | `false` for crashes, `true` if exceptions are handled                 |
-| `exceptions` | array   | No       | Array of exception objects                                            |
-| `foreground` | boolean | Yes      | `true` if the app was in the foreground at the time of the exception. |
-| `threads`    | array   | Yes      | Array of thread objects                                               |
+| Field           | Type    | Optional | Comment                                                               |
+| --------------- | ------- | -------- | --------------------------------------------------------------------- |
+| `handled`       | boolean | No       | `false` for crashes, `true` if exceptions are handled                 |
+| `exceptions`    | array   | No       | Array of exception objects                                            |
+| `foreground`    | boolean | Yes      | `true` if the app was in the foreground at the time of the exception. |
+| `threads`       | array   | Yes      | Array of thread objects                                               |
+| `binary_images` | array   | Yes      | Array of binary image objects (Darwin only)                           |
 
 `exception` objects
 
@@ -533,6 +536,20 @@ Each frame object contains further fields.
 | `file_name`   | string | Yes      | Name of the originating file   |
 | `class_name`  | string | Yes      | Name of the originating class  |
 | `method_name` | string | Yes      | Name of the originating method |
+
+`binary_image` objects
+
+Each binary_image object contains further fields. Only applies to Apple/Darwin apps.
+
+| Field        | Type    | Optional | Comment                                                        |
+| ------------ | ------- | -------- | -------------------------------------------------------------- |
+| `start_addr` | string  | No       | Start address - where the binary is loaded into virtual memory |
+| `end_addr`   | string  | No       | End address - upper memory boundary of the binary              |
+| `system`     | boolean | No       | Binary marker - indicates a system binary                      |
+| `name`       | string  | No       | Name of the app, framework or libary binary                    |
+| `arch`       | string  | No       | CPU architecture the binary is compiled for                    |
+| `uuid`       | string  | No       | Unique fingerprint for the binary's build                      |
+| `path`       | string  | No       | Full path to where the binary was located at runtime           |
 
 #### **`string`**
 
