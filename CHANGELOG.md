@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Implement bug reports
 - (**backend**): Add user defined attrs to spans
 - (**backend**): Add support for iOS exceptions (#1726)
+- (**frontend**): Show bug reports in session timeline
 - (**frontend**): Show user def attrs in bug report details
 - (**frontend**): Add build number to session replay attr display
 - (**frontend**): Match bug report attr display style with others
