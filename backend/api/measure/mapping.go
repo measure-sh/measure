@@ -47,12 +47,11 @@ type MappingFile struct {
 // BuildMapping represents the set of parameters
 // for handling or storing mapping files.
 type BuildMapping struct {
-	AppID       uuid.UUID
-	VersionName string `form:"version_name" binding:"required"`
-	VersionCode string `form:"version_code" binding:"required"`
-	Platform    string `form:"platform"`
-	MappingType string `form:"mapping_type" binding:"required_with=File"`
-	// File         *multipart.FileHeader `form:"mapping_file" binding:"required_with=MappingType"`
+	AppID        uuid.UUID
+	VersionName  string                  `form:"version_name" binding:"required"`
+	VersionCode  string                  `form:"version_code" binding:"required"`
+	Platform     string                  `form:"platform"`
+	MappingType  string                  `form:"mapping_type" binding:"required_with=File"`
 	Files        []*multipart.FileHeader `form:"mapping_file" binding:"required_with=MappingType"`
 	MappingFiles []*MappingFile
 	Timestamp    time.Time
