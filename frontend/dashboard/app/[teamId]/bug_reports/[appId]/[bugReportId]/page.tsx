@@ -53,8 +53,6 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
     }
   }
 
-  const attrStyle = "text-sm rounded-full px-2 py-1 border border-gray-500 text-gray-500"
-
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
@@ -67,15 +65,14 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
 
       {bugReportApiStatus === BugReportApiStatus.Success &&
         <div>
-          <div className="flex flex-wrap gap-2 items-center">
-            <p className={`w-fit px-2 py-1 rounded-full border text-sm font-sans ${bugReport.status === 0 ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>{bugReport.status === 0 ? 'Open' : 'Closed'}</p>
-            <p className={attrStyle}>{formatDateToHumanReadableDateTime(bugReport.timestamp)}</p>
-            {bugReport.attribute.user_id && <p className={attrStyle}>User ID: {bugReport.attribute.user_id}</p>}
-            <p className={attrStyle}>{bugReport.attribute.app_version} ({bugReport.attribute.app_build})</p>
-            <p className={attrStyle}>{bugReport.attribute.device_manufacturer} {bugReport.attribute.device_model}</p>
-            <p className={attrStyle}>{bugReport.attribute.network_type}</p>
-          </div>
-          <div className="py-4" />
+          <p className={`w-fit px-2 py-1 rounded-full border text-sm font-sans ${bugReport.status === 0 ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>{bugReport.status === 0 ? 'Open' : 'Closed'}</p>
+          <div className="py-2" />
+          <p className="font-sans"> User ID: {bugReport.attribute.user_id !== "" ? bugReport.attribute.user_id : "N/A"}</p>
+          <p className="font-sans"> Time: {formatDateToHumanReadableDateTime(bugReport.timestamp)}</p>
+          <p className="font-sans"> Device: {bugReport.attribute.device_manufacturer + bugReport.attribute.device_model}</p>
+          <p className="font-sans"> App version: {bugReport.attribute.app_version} ({bugReport.attribute.app_build})</p>
+          <p className="font-sans"> Network type: {bugReport.attribute.network_type}</p>
+          <div className="py-6" />
           {bugReport.description && <p className="font-sans text-xl">{bugReport.description}</p>}
           <div className="py-8" />
           <div className="flex flex-row">
