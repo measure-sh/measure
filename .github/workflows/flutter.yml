@@ -26,7 +26,7 @@ env:
 jobs:
   flutter-checks:
     name: Flutter checks
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     defaults:
       run:
         working-directory: flutter/measure_flutter
@@ -59,3 +59,8 @@ jobs:
         run: ../../android/gradlew --project-dir ../../android/ :measure:publishToMavenLocal
       - name: Run all checks
         run: ./example/android/gradlew --project-dir ./example/android :measure_flutter:check
+      - name: Run SwiftLint
+        uses: cirruslabs/swiftlint-action@fdc2695c66b8807e7b1571d08097a99cf1fde41b
+        with:
+          version: latest
+          directory: ios
