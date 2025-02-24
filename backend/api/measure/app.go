@@ -1505,6 +1505,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`cpu_usage.interval`,
 		`cpu_usage.percentage_usage`,
 		`toString(screen_view.name) `,
+		`bug_report.description`,
 		`custom.name`,
 	}
 
@@ -1611,6 +1612,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		var navigation event.Navigation
 		var screenView event.ScreenView
 		var userDefAttr map[string][]any
+		var bugReport event.BugReport
 		var custom event.Custom
 
 		var coldLaunchDuration uint32
@@ -1768,6 +1770,9 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 
 			// screen view
 			&screenView.Name,
+
+			// bug report
+			&bugReport.Description,
 
 			// custom
 			&custom.Name,
@@ -1941,6 +1946,12 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			session.Events = append(session.Events, ev)
 		case event.TypeScreenView:
 			ev.ScreenView = &screenView
+			session.Events = append(session.Events, ev)
+		case event.TypeBugReport:
+			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+				return nil, err
+			}
+			ev.BugReport = &bugReport
 			session.Events = append(session.Events, ev)
 		case event.TypeCustom:
 			ev.Custom = &custom
@@ -5023,6 +5034,7 @@ func GetSession(c *gin.Context) {
 		event.TypeANR,
 		event.TypeHttp,
 		event.TypeScreenView,
+		event.TypeBugReport,
 		event.TypeCustom,
 	}
 
@@ -5062,6 +5074,13 @@ func GetSession(c *gin.Context) {
 		screenViews := timeline.ComputeScreenViews(screenViewEvents)
 		threadedScreenViews := timeline.GroupByThreads(screenViews)
 		threads.Organize(event.TypeScreenView, threadedScreenViews)
+	}
+
+	bugReportEvents := eventMap[event.TypeBugReport]
+	if len(bugReportEvents) > 0 {
+		bugReports := timeline.ComputeBugReport(bugReportEvents)
+		threadedBugReports := timeline.GroupByThreads(bugReports)
+		threads.Organize(event.TypeBugReport, threadedBugReports)
 	}
 
 	customEvents := eventMap[event.TypeCustom]
