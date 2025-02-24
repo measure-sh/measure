@@ -127,8 +127,4 @@ class EventsTestRobot {
             }.build(),
         )
     }
-
-    fun addAttribute(key: String, value: String) {
-        Measure.addAttribute("user_defined_attr_key", "user_defined_attr_value")
-    }
 }

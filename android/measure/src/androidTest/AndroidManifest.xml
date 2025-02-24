@@ -1,5 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="sh.measure.android.test">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
      Workaround required for running tests on API 30 devices.
@@ -7,8 +6,20 @@
      Version 1.3.1 of the AndroidX Test libraries remove the need for this workaround.
      -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
-    <application>
-        <activity android:name="sh.measure.android.TestActivity">
+
+    <!--
+        Permissions required to ensure the tests do not get blocked by
+    -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
+    <application
+        android:exported="false"
+        android:usesCleartextTraffic="true">
+        <activity
+            android:name="sh.measure.android.TestActivity"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -21,5 +32,6 @@
         -->
         <meta-data android:name="sh.measure.android.API_URL" android:value="http://localhost:8080" />
     </application>
+
 </manifest>
 
