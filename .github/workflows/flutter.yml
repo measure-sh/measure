@@ -65,7 +65,4 @@ jobs:
           version: latest
           directory: ios
       - name: Run iOS tests
-        run: xcodebuild test \
-          -workspace example/ios/Runner.xcworkspace \
-          -scheme Runner \
-          -destination 'platform=iOS Simulator,OS=18.2,name=iPhone 16 Pro Max'
+        run: xcodebuild test -workspace example/ios/Runner.xcworkspace -scheme Runner -destination "platform=iOS Simulator,OS=18.2,name=iPhone 16 Pro Max"
