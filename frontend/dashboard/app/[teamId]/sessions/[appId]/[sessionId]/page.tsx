@@ -47,7 +47,7 @@ export default function Session({ params }: { params: { teamId: string, appId: s
           <p className="font-sans"> User ID: {sessionReplay.attribute.user_id !== "" ? sessionReplay.attribute.user_id : "N/A"}</p>
           <p className="font-sans"> Duration: {formatMillisToHumanReadable(sessionReplay.duration as unknown as number)}</p>
           <p className="font-sans"> Device: {sessionReplay.attribute.device_manufacturer + sessionReplay.attribute.device_model}</p>
-          <p className="font-sans"> App version: {sessionReplay.attribute.app_version}</p>
+          <p className="font-sans"> App version: {sessionReplay.attribute.app_version} ({sessionReplay.attribute.app_build})</p>
           <p className="font-sans"> Network type: {sessionReplay.attribute.network_type}</p>
           <div className="py-6" />
           <SessionReplay teamId={params.teamId} appId={params.appId} sessionReplay={sessionReplay} />
