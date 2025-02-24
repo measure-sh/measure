@@ -474,7 +474,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
         <div className='h-full w-2/3 overflow-auto overscroll-y-contain divide-y' ref={eventListContainerRef}
           onScroll={handleEventsScroll}
         >
-          {filteredEvents.map((e, index) => (
+          {filteredEvents.length > 0 && filteredEvents.map((e, index) => (
             <div key={index} className={""} ref={(el) => {
               eventRefs.current[index] = el
             }}>
@@ -485,7 +485,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
         <div className='w-0.5 h-full bg-neutral-950' />
         <div className='h-full w-1/3'
         >
-          <SessionReplayEventDetails teamId={teamId} appId={appId} eventType={filteredEvents[selectedEventIndex].eventType} eventDetails={filteredEvents[selectedEventIndex].details} />
+          {filteredEvents.length > 0 && <SessionReplayEventDetails teamId={teamId} appId={appId} eventType={filteredEvents[selectedEventIndex].eventType} eventDetails={filteredEvents[selectedEventIndex].details} />}
         </div>
       </div>
     </div>
