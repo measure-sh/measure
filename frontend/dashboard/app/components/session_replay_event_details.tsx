@@ -82,8 +82,7 @@ export default function SessionReplayEventDetails({
 
   function getAttachmentsFromEventDetails(): ReactNode {
     if (eventDetails.attachments !== undefined && eventDetails.attachments !== null && eventDetails.attachments.length > 0) {
-      // Return screenshots for exceptions
-      if ((eventType === "exception" && eventDetails.user_triggered === false) || eventType === 'anr' || eventType === 'gesture_click') {
+      if ((eventType === "exception" && eventDetails.user_triggered === false) || eventType === 'anr' || eventType === 'gesture_click' || eventType === 'bug_report') {
         return (
           <div className='flex flex-wrap gap-8 px-4 pt-4 items-center'>
             {eventDetails.attachments.map((attachment: {
@@ -116,10 +115,19 @@ export default function SessionReplayEventDetails({
 
   function getTraceDetailsLinkFromEventDetails(): ReactNode {
     if (eventType === "trace") {
-      console.log("trace_id: " + eventDetails.trace_id)
       return (
         <div className='px-4 pt-8 pb-4'>
           <Link key={eventDetails.id} href={`/${teamId}/traces/${appId}/${eventDetails.trace_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black rounded-md text-white hover:text-black font-display transition-colors duration-100 py-2 px-4">View Trace Details</Link>
+        </div>
+      )
+    }
+  }
+
+  function getBugReportDetailsLinkFromEventDetails(): ReactNode {
+    if (eventType === "bug_report") {
+      return (
+        <div className='px-4 pt-8 pb-4'>
+          <Link key={eventDetails.id} href={`/${teamId}/bug_reports/${appId}/${eventDetails.bug_report_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black rounded-md text-white hover:text-black font-display transition-colors duration-100 py-2 px-4">View Bug Report Details</Link>
         </div>
       )
     }
@@ -132,6 +140,7 @@ export default function SessionReplayEventDetails({
       {getAttachmentsFromEventDetails()}
       {getExceptionOverviewLinkFromEventDetails()}
       {getTraceDetailsLinkFromEventDetails()}
+      {getBugReportDetailsLinkFromEventDetails()}
       {getBodyFromEventDetails()}
     </div>
   )

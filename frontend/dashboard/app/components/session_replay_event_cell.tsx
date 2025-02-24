@@ -32,6 +32,10 @@ export default function SessionReplayEventCell({
       return "bg-red-300"
     }
 
+    if (eventType === "bug_report") {
+      return "bg-red-300"
+    }
+
     if (eventType.includes("gesture")) {
       return "bg-emerald-300"
     }
@@ -58,6 +62,11 @@ export default function SessionReplayEventCell({
   function getTitleFromEventType() {
     if (eventType === "exception" || eventType === "anr") {
       return eventDetails.type + ": " + eventDetails.message
+    }
+
+    if (eventType === "bug_report") {
+      const name = eventDetails.description ? eventDetails.description : eventDetails.bug_report_id
+      return "Bug Report: " + name
     }
 
     if (eventType === "string") {
