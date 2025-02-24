@@ -72,6 +72,14 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
           <p className="font-sans"> Device: {bugReport.attribute.device_manufacturer + bugReport.attribute.device_model}</p>
           <p className="font-sans"> App version: {bugReport.attribute.app_version} ({bugReport.attribute.app_build})</p>
           <p className="font-sans"> Network type: {bugReport.attribute.network_type}</p>
+          {bugReport.user_defined_attribute !== undefined && bugReport.user_defined_attribute !== null && (
+            <div key="user_defined_attribute">
+              {Object.entries(bugReport.user_defined_attribute).map(([attrKey, attrValue]) => (
+                <p key={attrKey + ":" + attrValue} className="font-sans"> {attrKey}: {attrValue?.toString()}</p>
+              ))}
+            </div>
+          )}
+
           <div className="py-6" />
           {bugReport.description && <p className="font-sans text-xl">{bugReport.description}</p>}
           <div className="py-8" />
