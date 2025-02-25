@@ -66,6 +66,9 @@ func DeleteStaleData(ctx context.Context) {
 	// delete span user defined attributes
 	deleteSpanUserDefAttrs(ctx, appRetentions)
 
+	// delete bug reports
+	deleteBugReports(ctx, appRetentions)
+
 	// delete sessions
 	deleteSessions(ctx, appRetentions)
 
@@ -285,6 +288,31 @@ func deleteSpanUserDefAttrs(ctx context.Context, retentions []AppRetention) {
 
 	if errCount < 1 {
 		fmt.Println("Successfully deleted stale span user defined attributes")
+	}
+}
+
+// deleteBugReports deletes stale bug reports for each
+// app's retention threshold.
+func deleteBugReports(ctx context.Context, retentions []AppRetention) {
+	errCount := 0
+	for _, retention := range retentions {
+		stmt := sqlf.
+			DeleteFrom("bug_reports").
+			Where("app_id = toUUID(?)", retention.AppID).
+			Where("timestamp < ?", retention.Threshold)
+
+		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
+			errCount += 1
+			fmt.Printf("Failed to delete stale bug reports for app id %q: %v\n", retention.AppID, err)
+			stmt.Close()
+			continue
+		}
+
+		stmt.Close()
+	}
+
+	if errCount < 1 {
+		fmt.Println("Successfully deleted stale bug reports")
 	}
 }
 
