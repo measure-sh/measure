@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <stroke
+        android:width="?attr/msrScreenshotBorderWidth"
+        android:color="?attr/msrScreenshotBorderColor" />
+    <solid android:color="@android:color/transparent" />
+</shape>

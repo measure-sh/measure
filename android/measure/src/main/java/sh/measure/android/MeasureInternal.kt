@@ -1,11 +1,17 @@
 package sh.measure.android
 
+import android.app.Activity
+import android.content.Context
+import android.net.Uri
 import android.os.Build
+import androidx.annotation.MainThread
 import sh.measure.android.attributes.AttributeValue
+import sh.measure.android.bugreport.MsrShakeListener
 import sh.measure.android.lifecycle.AppLifecycleListener
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.tracing.Span
 import sh.measure.android.tracing.SpanBuilder
+import sh.measure.android.utils.AttachmentHelper
 
 /**
  * Initializes the Measure SDK and hides the internal dependencies from public API.
@@ -20,6 +26,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     val httpEventCollector by lazy { measureInitializer.httpEventCollector }
     val processInfoProvider by lazy { measureInitializer.processInfoProvider }
     val timeProvider by lazy { measureInitializer.timeProvider }
+    val bugReportCollector by lazy { measureInitializer.bugReportCollector }
     private val spanCollector by lazy { measureInitializer.spanCollector }
     private val customEventCollector by lazy { measureInitializer.customEventCollector }
     private val sessionManager by lazy { measureInitializer.sessionManager }
@@ -45,6 +52,8 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private val dataCleanupService by lazy { measureInitializer.dataCleanupService }
     private val powerStateProvider by lazy { measureInitializer.powerStateProvider }
     private val periodicSignalStoreScheduler by lazy { measureInitializer.periodicSignalStoreScheduler }
+    private val executorServiceRegistry by lazy { measureInitializer.executorServiceRegistry }
+    private val shakeBugReportCollector by lazy { measureInitializer.shakeBugReportCollector }
     private var isStarted: Boolean = false
     private var startLock = Any()
 
@@ -201,6 +210,81 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
 
     fun trackEvent(name: String, attributes: Map<String, AttributeValue>, timestamp: Long?) {
         customEventCollector.trackEvent(name, attributes, timestamp)
+    }
+
+    fun startBugReportFlow(
+        takeScreenshot: Boolean,
+        attributes: MutableMap<String, AttributeValue>,
+    ) {
+        bugReportCollector.startBugReportFlow(takeScreenshot, attributes)
+    }
+
+    fun trackBugReport(
+        description: String,
+        screenshots: List<MsrAttachment>,
+        attributes: MutableMap<String, AttributeValue>,
+    ) {
+        userTriggeredEventCollector.trackBugReport(description, screenshots, attributes)
+    }
+
+    @MainThread
+    fun captureScreenshot(
+        activity: Activity,
+        onComplete: (attachment: MsrAttachment) -> Unit,
+        onError: (() -> Unit)?,
+    ) {
+        AttachmentHelper(
+            logger,
+            executorServiceRegistry.ioExecutor(),
+            configProvider,
+        ).captureScreenshot(activity, onComplete, onError)
+    }
+
+    @MainThread
+    fun takeLayoutSnapshot(
+        activity: Activity,
+        onComplete: (attachment: MsrAttachment) -> Unit,
+        onError: (() -> Unit)?,
+    ) {
+        AttachmentHelper(
+            logger,
+            executorServiceRegistry.ioExecutor(),
+            configProvider,
+        ).captureLayoutSnapshot(activity, onComplete, onError)
+    }
+
+    fun imageUriToAttachment(
+        context: Context,
+        uri: Uri,
+        onComplete: (attachment: MsrAttachment) -> Unit,
+        onError: () -> Unit,
+    ) {
+        AttachmentHelper(
+            logger,
+            executorServiceRegistry.ioExecutor(),
+            configProvider,
+        ).imageUriToAttachment(
+            context,
+            uri,
+            onComplete,
+            onError,
+        )
+    }
+
+    fun enableShakeToLaunchBugReport(takeScreenshot: Boolean) {
+        shakeBugReportCollector.enableAutoLaunch(takeScreenshot)
+    }
+
+    fun disableShakeToLaunchBugReport() {
+        shakeBugReportCollector.disableAutoLaunch()
+    }
+
+    fun setShakeListener(shakeListener: MsrShakeListener?) {
+        shakeBugReportCollector.setShakeListener(shakeListener)
+    }
+
+    fun isShakeToLaunchBugReportEnabled(): Boolean {
+        return shakeBugReportCollector.isShakeToLaunchBugReportEnabled()
     }
 
     private fun unregisterCollectors() {

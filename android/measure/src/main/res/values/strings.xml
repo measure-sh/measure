@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="msr_close_button_content_desc">close</string>
+    <string name="msr_report_a_bug">Report a bug</string>
+    <string name="msr_bug_report_send">Send</string>
+    <string name="msr_bug_report_hint">Briefly describe the issue you are facing</string>
+    <string name="msr_br_screenshot_cd">Screenshot</string>
+    <string name="msr_choose_image">Add more images</string>
+</resources>

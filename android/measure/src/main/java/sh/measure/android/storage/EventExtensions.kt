@@ -12,6 +12,7 @@ import sh.measure.android.applaunch.WarmLaunchData
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.attributes.AttributeValueSerializer
 import sh.measure.android.attributes.serializer
+import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.events.CustomEventData
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
@@ -154,6 +155,10 @@ internal fun <T> Event<T>.serializeDataToString(): String {
 
         EventType.SCREEN_VIEW -> {
             json.encodeToString(ScreenViewData.serializer(), data as ScreenViewData)
+        }
+
+        EventType.BUG_REPORT -> {
+            json.encodeToString(BugReportData.serializer(), data as BugReportData)
         }
 
         else -> {
