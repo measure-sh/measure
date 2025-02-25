@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Cleanup stale bug reports
 - (**backend**): Add lifecycle app type for ios (#1767)
 - (**backend**): Add `--skip-apps` option (#1744)
 - (**backend**): Replace email with new user login log
