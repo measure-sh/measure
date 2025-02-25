@@ -4,6 +4,7 @@
 * [Self host compatibility](#self-host-compatibility)
 * [Quick reference](#quick-reference)
 * [Getting started](#getting-started)
+* [Crash Reporting](#crash-reporting)
 * [Custom events](#custom-events)
   * [Screen view](#screen-view)
 * [Features](#features)
@@ -91,6 +92,29 @@ Reopen the app and check the Measure dashboard—you should see the crash report
 > When triggering a crash, **make sure the Xcode debugger is not attached**, as crashes may not be properly reported when running the app in debug mode.
 
 🎉 Congratulations! You have successfully integrated Measure into your app!
+
+# Crash Reporting  
+
+MeasureSDK automatically detects and exports crashes. To symbolicate these crashes, DSYM files need to be uploaded to the server. You can upload DSYM files using a standalone shell script or via Xcode’s Build Phases.  
+
+## Using Shell Script  
+
+Run the `upload_dsyms.sh` script to manually upload DSYM files after building your app.  
+
+```sh
+sh upload_dsyms.sh <path_to_ipa> <path_to_dsym_folder> <api_url> <api_key>
+```
+
+## Using Build Phases  
+
+Add the `upload_dsym_build_phases.sh` script as a **New Run Script Phase** in Xcode to upload DSYM files automatically.  
+
+```sh
+sh "${SRCROOT}/path/to/upload_dsym_build_phases.sh" <api_url> <api_key>
+```
+
+> [!CAUTION]  
+> If you are using Build Phases to upload DSYMs make sure to **upload DSYMs only for release builds**.
 
 # Custom Events
 
