@@ -30,6 +30,20 @@ internal object LayoutInspector {
      * the gesture by performing a hit test.
      *
      * @param rootView The root view to start traversing from.
+     * @return A [LayoutSnapshot] containing information about all visible views and compose elements,
+     *         including which element would consume the gesture
+     */
+    fun capture(
+        rootView: View,
+    ): LayoutSnapshot {
+        return parseLayoutInternal(rootView, null, null)
+    }
+
+    /**
+     * Creates a snapshot of the view hierarchy with information about which element will consume
+     * the gesture by performing a hit test.
+     *
+     * @param rootView The root view to start traversing from.
      * @param gesture The gesture being performed (e.g., click, long press, scroll)
      * @param motionEvent The motion event containing the gesture's coordinates
      * @return A [LayoutSnapshot] containing information about all visible views and compose elements,

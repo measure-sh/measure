@@ -1,12 +1,18 @@
 package sh.measure.android
 
+import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.net.Uri
+import androidx.annotation.MainThread
 import androidx.annotation.VisibleForTesting
 import org.jetbrains.annotations.TestOnly
 import sh.measure.android.applaunch.LaunchState
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.attributes.AttributesBuilder
+import sh.measure.android.bugreport.BugReportCollector
+import sh.measure.android.bugreport.MsrBugReportActivity
+import sh.measure.android.bugreport.MsrShakeListener
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventType
@@ -321,6 +327,190 @@ object Measure {
             return measure.getSessionId()
         }
         return null
+    }
+
+    /**
+     * Enables automatic bug reporting using shake detection.
+     * When the device is shaken, this will automatically launch the [MsrBugReportActivity].
+     *
+     * @see [disableShakeToLaunchBugReport] to disable the feature
+     */
+    fun enableShakeToLaunchBugReport(takeScreenshot: Boolean = true) {
+        if (isInitialized.get()) {
+            measure.enableShakeToLaunchBugReport(takeScreenshot)
+        }
+    }
+
+    /**
+     * Disables automatic bug reporting on shake.
+     * After calling this method, shake gestures will no longer trigger
+     * the bug report flow automatically.
+     */
+    fun disableShakeToLaunchBugReport() {
+        if (isInitialized.get()) {
+            measure.disableShakeToLaunchBugReport()
+        }
+    }
+
+    /**
+     * Checks if automatic bug reporting on shake is currently enabled.
+     *
+     * Returns true if the shake-to-report feature is active and will trigger
+     * the bug report flow when the device is shaken.
+     *
+     * @return Boolean indicating if shake detection for bug reporting is enabled
+     */
+    fun isShakeToLaunchBugReportEnabled(): Boolean {
+        if (isInitialized.get()) {
+            return measure.isShakeToLaunchBugReportEnabled()
+        }
+        return false
+    }
+
+    /**
+     * Sets a custom shake listener for manual bug report handling.
+     *
+     * This method allows defining custom behavior when the device is shaken. The typical use case
+     * is to display a confirmation dialog before initiating the bug report process through
+     * [launchBugReportActivity].
+     *
+     * Key behaviors:
+     * - Setting a non-null listener automatically begins monitoring accelerometer data
+     * - Setting a null listener stops accelerometer monitoring and removes any existing listener
+     * - The listener will only be triggered once every 5 seconds, regardless of how many shakes occur
+     *   during that cooldown period
+     * - This method has no effect if automatic shake detection is already enabled via
+     *   [enableShakeToLaunchBugReport]
+     *
+     * @param listener The [MsrShakeListener] callback to invoke when a shake is detected, or null to
+     *                 disable shake detection and remove the current listener
+     * @see launchBugReportActivity to launch the inbuilt bug reporting flow.
+     */
+    fun setShakeListener(listener: MsrShakeListener?) {
+        if (isInitialized.get()) {
+            measure.setShakeListener(listener)
+        }
+    }
+
+    /**
+     * Takes a screenshot and launches the bug report flow.
+     *
+     * @param takeScreenshot set to false to disable the screenshot.
+     * @param attributes Optional key-value pairs for additional metadata about the bug report.
+     * @see [MsrBugReportActivity] - the activity that will be launched.
+     * @see [trackBugReport] - to track a bug report by using a custom experience instead of the
+     * built-in experience.
+     */
+    fun launchBugReportActivity(
+        takeScreenshot: Boolean = true,
+        attributes: MutableMap<String, AttributeValue> = mutableMapOf(),
+    ) {
+        if (isInitialized.get()) {
+            return measure.startBugReportFlow(takeScreenshot, attributes)
+        }
+    }
+
+    /**
+     * Tracks a custom bug report.
+     *
+     * For a pre-built UI experience to collect bug reports see [launchBugReportActivity].
+     * Attachments can contain screenshots, layout snapshots or images from gallery, see the
+     * following APIs to create an attachment:
+     *
+     * @see [captureScreenshot] For capturing screen images
+     * @see [captureLayoutSnapshot] For capturing view hierarchy information
+     * @see [imageUriToAttachment] For converting image URIs to attachments
+     *
+     * @param description Description of the bug. Max characters 4000.
+     * @param attachments Optional list of attachments. Max 5.
+     * @param attributes Optional key-value pairs for additional metadata about the bug report.
+     */
+    fun trackBugReport(
+        description: String,
+        attachments: List<MsrAttachment> = listOf(),
+        attributes: MutableMap<String, AttributeValue> = mutableMapOf(),
+    ) {
+        if (isInitialized.get()) {
+            return measure.trackBugReport(description, attachments, attributes)
+        }
+    }
+
+    /**
+     * Takes a screenshot of the current activity window. This method must be called from the
+     * main thread.
+     *
+     * The screenshot will be masked for privacy based on the configuration provided during
+     * initialization using [MeasureConfig.screenshotMaskLevel], by default all text and media
+     * is masked.
+     *
+     * @param activity The activity to capture
+     * @param onComplete Callback invoked with the screenshot attachment when successful
+     * @param onError Callback invoked if screenshot capture fails
+     */
+    @MainThread
+    fun captureScreenshot(
+        activity: Activity,
+        onComplete: (attachment: MsrAttachment) -> Unit,
+        onError: (() -> Unit)? = null,
+    ) {
+        if (isInitialized.get()) {
+            return measure.captureScreenshot(activity, onComplete, onError)
+        }
+    }
+
+    /**
+     * Takes a snapshot of the current activity's view hierarchy layout. This method must be called
+     * from the main thread.
+     *
+     * The snapshot captures information about visible elements including their position and
+     * dimensions. It works with both traditional Android Views and Jetpack Compose hierarchies.
+     * These are cheaper to capture and take less storage than screenshots.
+     *
+     * See [docs/android/features/feature_layout_snapshots.md] for more details on layout snapshots.
+     *
+     * @param activity The activity to capture
+     * @param onComplete Callback invoked with the layout snapshot attachment when successful
+     * @param onError Callback invoked if snapshot capture fails
+     */
+    @MainThread
+    fun captureLayoutSnapshot(
+        activity: Activity,
+        onComplete: (attachment: MsrAttachment) -> Unit,
+        onError: (() -> Unit)? = null,
+    ) {
+        if (isInitialized.get()) {
+            return measure.takeLayoutSnapshot(activity, onComplete, onError)
+        }
+    }
+
+    /**
+     * Converts an image Uri to an attachment.
+     *
+     * The image will be scaled down if its width exceeds the maximum allowed width, and
+     * compressed according to the quality settings in [MeasureConfig].
+     *
+     * @param context Android context
+     * @param uri URI of the image to convert
+     * @param onComplete Callback invoked with the image attachment when successful
+     * @param onError Callback invoked if conversion fails
+     */
+    @MainThread
+    fun imageUriToAttachment(
+        context: Context,
+        uri: Uri,
+        onComplete: (attachment: MsrAttachment) -> Unit,
+        onError: () -> Unit,
+    ) {
+        if (isInitialized.get()) {
+            return measure.imageUriToAttachment(context, uri, onComplete, onError)
+        }
+    }
+
+    internal fun getBugReportCollector(): BugReportCollector {
+        if (isInitialized.get()) {
+            return measure.bugReportCollector
+        }
+        throw IllegalAccessException("Attempt to access bug report without initializing the SDK")
     }
 
     internal fun getOkHttpEventCollector(): OkHttpEventCollector? {

@@ -14,13 +14,16 @@ import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
 import sh.measure.android.attributes.PowerStateAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
-import sh.measure.android.attributes.UserDefinedAttribute
-import sh.measure.android.attributes.UserDefinedAttributeImpl
+import sh.measure.android.bugreport.AccelerometerShakeDetector
+import sh.measure.android.bugreport.BugReportCollector
+import sh.measure.android.bugreport.BugReportCollectorImpl
+import sh.measure.android.bugreport.ShakeBugReportCollector
 import sh.measure.android.config.Config
 import sh.measure.android.config.ConfigLoaderImpl
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ConfigProviderImpl
 import sh.measure.android.config.MeasureConfig
+import sh.measure.android.events.CustomEventCollector
 import sh.measure.android.events.DefaultEventTransformer
 import sh.measure.android.events.EventTransformer
 import sh.measure.android.events.SignalProcessor
@@ -126,7 +129,7 @@ internal class TestMeasureInitializer(
     ),
     override val logger: Logger = AndroidLogger(configProvider.enableLogging),
     override val timeProvider: TimeProvider = AndroidTimeProvider(AndroidSystemClock()),
-    private val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
+    override val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
     private val fileStorage: FileStorage = FileStorageImpl(
         rootDir = application.filesDir.path,
         logger = logger,
@@ -178,10 +181,6 @@ internal class TestMeasureInitializer(
     ),
     private val networkStateProvider: NetworkStateProvider = NetworkStateProviderImpl(
         initialNetworkStateProvider = initialNetworkStateProvider,
-    ),
-    override val userDefinedAttribute: UserDefinedAttribute = UserDefinedAttributeImpl(
-        logger,
-        configProvider,
     ),
     override val userAttributeProcessor: UserAttributeProcessor = UserAttributeProcessor(
         logger,
@@ -280,12 +279,12 @@ internal class TestMeasureInitializer(
         screenshotCollector = screenshotCollector,
         eventTransformer = eventTransformer,
         configProvider = configProvider,
-        userDefinedAttribute = userDefinedAttribute,
     ),
     override val userTriggeredEventCollector: UserTriggeredEventCollector = UserTriggeredEventCollectorImpl(
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         processInfoProvider = processInfoProvider,
+        configProvider = configProvider,
     ),
     override val periodicExporter: PeriodicExporter = NoopPeriodicExporter(),
     override val unhandledExceptionCollector: UnhandledExceptionCollector = UnhandledExceptionCollector(
@@ -403,4 +402,29 @@ internal class TestMeasureInitializer(
         traceSampler = traceSampler,
     ),
     override val spanCollector: SpanCollector = SpanCollector(tracer),
+    override val bugReportCollector: BugReportCollector = BugReportCollectorImpl(
+        logger = logger,
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        ioExecutor = executorServiceRegistry.ioExecutor(),
+        fileStorage = fileStorage,
+        idProvider = idProvider,
+        configProvider = configProvider,
+        sessionManager = sessionManager,
+        resumedActivityProvider = resumedActivityProvider,
+    ),
+    override val customEventCollector: CustomEventCollector = CustomEventCollector(
+        logger = logger,
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        configProvider = configProvider,
+    ),
+    override val shakeBugReportCollector: ShakeBugReportCollector = ShakeBugReportCollector(
+        autoLaunchEnabled = configProvider.enableShakeToLaunchBugReport,
+        shakeDetector = AccelerometerShakeDetector(
+            sensorManager = systemServiceProvider.sensorManager,
+            timeProvider = timeProvider,
+            configProvider = configProvider,
+        ),
+    ),
 ) : MeasureInitializer

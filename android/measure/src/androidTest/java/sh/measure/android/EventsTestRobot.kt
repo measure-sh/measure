@@ -127,4 +127,9 @@ class EventsTestRobot {
             }.build(),
         )
     }
+
+    fun trackBugReport(description: String, attachments: List<MsrAttachment>) {
+        Measure.trackBugReport(description, attachments)
+        device.waitForIdle()
+    }
 }

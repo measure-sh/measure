@@ -44,6 +44,11 @@ internal interface SessionManager {
     fun markCrashedSessions(sessionIds: List<String>)
 
     /**
+     * Marks that current session contains a bug report.
+     */
+    fun markSessionWithBugReport()
+
+    /**
      * Call when an event is tracked.
      */
     fun <T> onEventTracked(event: Event<T>)
@@ -141,6 +146,10 @@ internal class SessionManagerImpl(
 
     override fun markCrashedSession(sessionId: String) {
         database.markCrashedSession(sessionId)
+    }
+
+    override fun markSessionWithBugReport() {
+        database.markSessionWithBugReport(sessionId = getSessionId())
     }
 
     private fun createNewSession(): RecentSession {

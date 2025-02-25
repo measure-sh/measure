@@ -13,4 +13,5 @@ internal object DefaultConfig {
     const val SESSION_SAMPLING_RATE: Float = 0f
     const val AUTO_START: Boolean = true
     const val TRACE_SAMPLING_RATE: Float = 0.1f
+    const val ENABLE_SHAKE_TO_LAUNCH_BUG_REPORT: Boolean = false
 }

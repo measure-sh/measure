@@ -117,4 +117,29 @@ internal interface InternalConfig {
      * Defaults to 3000ms.
      */
     val inMemorySignalsQueueFlushRateMs: Long
+
+    /**
+     * The maximum allowed attachments in a bug report. Defaults to 5.
+     */
+    val maxAttachmentsInBugReport: Int
+
+    /**
+     * The maximum allowed characters in a bug report. Defaults to 1000.
+     */
+    val maxDescriptionLengthInBugReport: Int
+
+    /**
+     * The force threshold to trigger a shake (higher = less sensitive). Defaults to 20.
+     */
+    val shakeAccelerationThreshold: Float
+
+    /**
+     *  Minimum time between shake detections in milliseconds. Defaults to 1500 ms.
+     */
+    val shakeMinTimeIntervalMs: Long
+
+    /**
+     * Number of movements required before considering a shake. Defaults to 3.
+     */
+    val shakeSlop: Int
 }

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="MsrBugReport">
+        <!-- Colors -->
+        <attr name="msrBackgroundColor" format="color|reference" />
+        <attr name="msrTextColorPrimary" format="color|reference" />
+        <attr name="msrTextColorSecondary" format="color|reference" />
+        <attr name="msrCloseButtonTint" format="color|reference" />
+        <attr name="msrCloseButtonBackgroundColor" format="color|reference" />
+        <attr name="msrScreenshotBorderColor" format="color|reference" />
+        <attr name="msrOutlineButtonStrokeColor" format="color|reference" />
+        <attr name="msrRippleColor" format="color|reference" />
+
+        <!-- Text Appearances -->
+        <attr name="msrTitleTextAppearance" format="reference" />
+        <attr name="msrDescriptionTextAppearance" format="reference" />
+        <attr name="msrSendButtonTextAppearance" format="reference" />
+        <attr name="msrChooseImageButtonTextAppearance" format="reference" />
+
+        <!-- Dimensions -->
+        <attr name="msrTitleTextSize" format="dimension|reference" />
+        <attr name="msrDescriptionTextSize" format="dimension|reference" />
+        <attr name="msrSendButtonTextSize" format="dimension|reference" />
+        <attr name="msrChooseImageButtonTextSize" format="dimension|reference" />
+        <attr name="msrButtonCornerRadius" format="dimension|reference" />
+        <attr name="msrScreenshotBorderWidth" format="dimension|reference" />
+    </declare-styleable>
+</resources>
