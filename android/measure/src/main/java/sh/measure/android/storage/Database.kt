@@ -194,6 +194,12 @@ internal interface Database : Closeable {
      * Inserts a batch of events and spans in a single transaction.
      */
     fun insertSignals(eventEntities: List<EventEntity>, spanEntities: List<SpanEntity>): Boolean
+
+    /**
+     * Updates session table to indicate the session with given [sessionId] has a bug report
+     * tracked.
+     */
+    fun markSessionWithBugReport(sessionId: String)
 }
 
 /**
@@ -940,6 +946,10 @@ internal class DatabaseImpl(
         } finally {
             writableDatabase.endTransaction()
         }
+    }
+
+    override fun markSessionWithBugReport(sessionId: String) {
+        writableDatabase.execSQL(Sql.markSessionWithBugReport(sessionId))
     }
 
     override fun getSessionForAppExit(pid: Int): AppExitCollector.Session? {

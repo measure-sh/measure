@@ -11,6 +11,7 @@
   * [Performance tracing](#performance-tracing)
   * [Handled exceptions](#handled-exceptions)
   * [Screen views](#screen-view)
+  * [Bug reports](#bug-reports)
 * [Configuration options](#configuration-options)
 * [Concepts](#concepts)
   * [Sampling](#sampling)
@@ -240,7 +241,6 @@ If logs contain `Failed to send batch` or `Request failed with unknown error`:
 
 In case you face any issue, feel free to reach out to us on [Discord](https://discord.gg/f6zGkBCt42).
 
-
 # Manually start or stop the SDK
 
 By default, `Measure.init` starts collection of events. To delay start to a different point in your app
@@ -302,7 +302,6 @@ Measure.clearUserId()
 user ID like email, phone number or any other sensitive information. Instead, use a hashed
 or anonymized user ID to protect user privacy.
 
-
 ## Track custom events
 
 Custom events provide more context on top of automatically collected events. They provide the context
@@ -342,7 +341,7 @@ Use the [performance tracing](features/feature_performance_tracing.md) APIs to t
 DB queries, any function, user journey, etc.
 The SDK supports nested spans to track hierarchical operations. Following are some *simplified* examples:
 
-Example - track a user flow
+Example — track a user flow
 
 ```kotlin
 val onboardingSpan = Measure.startSpan("onboarding-flow")
@@ -369,7 +368,7 @@ onboarding-flow ━━━━━━━━━━━━━━━━━━━━━�
 ┗━ tutorial ━━━━━━━━━━━━━━━━ [1.6s]
 ```
 
-Example - track HTTP calls using an interceptor
+Example — track HTTP calls using an interceptor
 
 ```kotlin
 class HttpInterceptor : Interceptor {
@@ -428,11 +427,41 @@ a track of the user flow.
 Measure.trackScreenView("checkout")
 ```
 
+### Bug Reports
+
+Bug reports enable users to report issues directly from the app. To launch the bug reporting flow:
+
+```kotlin
+Measure.launchBugReportActivity(activity)
+```
+
+You can also capture a bug report by building your own UI using:
+
+```kotlin
+Measure.trackBugReport(description = "Items from cart disappear after reopening the app")
+```
+
+Bug reports can be captured with screenshots and attributes. Read more details about 
+bug reports [here](features/feature_bug_reports.md).
+
 # Configuration options
 
 See all the [configuration options](configuration-options.md) available.
 
 # Concepts
+* [Crash tracking](features/feature_crash_tracking.md)
+* [ANR tracking](features/feature_anr_tracking.md)
+* [Network monitoring](features/feature_network_monitoring.md)
+* [Network changes](features/feature_network_changes.md)
+* [Gesture tracking](features/feature_gesture_tracking.md)
+* [Layout Snapshots](features/feature_layout_snapshots.md)
+* [Navigation & Lifecycle](features/feature_navigation_and_lifecycle.md)
+* [App launch](features/feature_app_launch.md)
+* [App exit info](features/feature_app_exit_info.md)
+* [CPU monitoring](features/feature_cpu_monitoring.md)
+* [Memory monitoring](features/feature_memory_monitoring.md)
+* [App size](features/feature_app_size.md)
+* [Bug Reports](features/feature_bug_reports.md)
 
 ## Sampling
 
@@ -500,3 +529,11 @@ or by using [Perfetto](https://perfetto.dev/docs/quickstart/android-tracing) dir
   thread. 
 * `msr-trackGesture` — time spent on the main thread to track a gesture.
 * `msr-generateSvgAttachment` — time spent on background thread to generate a SVG layout.
+* `msr-captureScreenshot` — time spent on main thread to capture and compress a screenshot.
+* `msr-loadImageFromFile` — time spent on main thread to load an image from a file.
+* `msr-loadImageFromUri` — time spent on main thread to load an image from a Uri.
+
+## Implementation
+
+For details on data storage, syncing behavior, and threading, see
+our [Internal Documentation](../../android/docs/internal-documentation.md).

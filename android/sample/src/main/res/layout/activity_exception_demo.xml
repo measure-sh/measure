@@ -2,115 +2,329 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/sv_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
         android:orientation="vertical"
         tools:context="sh.measure.sample.ExceptionDemoActivity">
 
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/btn_sdk_switch"
-            android:layout_width="wrap_content"
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:padding="16dp"
-            android:text="@string/start_tracking"
-            app:switchPadding="16dp" />
+            android:layout_margin="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
+            app:strokeColor="?attr/colorPrimary"
+            app:strokeWidth="2dp">
 
-        <Button
-            android:id="@+id/btn_single_exception"
-            android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/colorPrimary"
+                android:orientation="vertical">
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/btn_sdk_switch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="16dp"
+                    android:text="@string/enable_tracking"
+                    android:textColor="?attr/colorOnPrimary"
+                    app:switchPadding="16dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/single_exception" />
+            android:fontFamily="sans-serif-condensed-medium"
+            android:paddingHorizontal="8dp"
+            android:paddingTop="8dp"
+            android:text="@string/exception_tests"
+            android:textAppearance="?attr/textAppearanceCaption" />
 
-        <Button
-            android:id="@+id/btn_chained_exception"
-            android:layout_width="wrap_content"
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/chained_exceptions" />
+            android:layout_marginVertical="8dp"
+            app:cardCornerRadius="0dp">
 
-        <Button
-            android:id="@+id/btn_oom_exception"
-            android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_single_exception"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/single_exception"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_chained_exception"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/chained_exceptions"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_oom_exception"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/oom_exception"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_stack_overflow_exception"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/stack_overflow_exception"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/oom_exception" />
+            android:fontFamily="sans-serif-condensed-medium"
+            android:paddingHorizontal="8dp"
+            android:paddingTop="8dp"
+            android:text="@string/anrs"
+            android:textAppearance="?attr/textAppearanceCaption" />
 
-        <Button
-            android:id="@+id/btn_stack_overflow_exception"
-            android:layout_width="wrap_content"
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/stack_overflow_exception" />
+            android:layout_marginVertical="8dp"
+            app:cardCornerRadius="0dp">
 
-        <Button
-            android:id="@+id/btn_infinite_loop"
-            android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_infinite_loop"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/infinite_loop"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_deadlock"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/deadlock"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/infinite_loop" />
+            android:fontFamily="sans-serif-condensed-medium"
+            android:paddingHorizontal="8dp"
+            android:paddingTop="8dp"
+            android:text="@string/navigation"
+            android:textAppearance="?attr/textAppearanceCaption" />
 
-        <Button
-            android:id="@+id/btn_deadlock"
-            android:layout_width="wrap_content"
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/deadlock" />
+            android:layout_marginVertical="8dp"
+            app:cardCornerRadius="0dp">
 
-        <Button
-            android:id="@+id/btn_okhttp"
-            android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_compose"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/compose"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_compose_navigation"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/compose_navigation"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_fragment_navigation"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/fragment_navigation"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_fragment_androidx_navigation"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/androidx_fragment_navigation"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_nested_fragments"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/nested_fragments"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/okhttp" />
+            android:fontFamily="sans-serif-condensed-medium"
+            android:paddingHorizontal="8dp"
+            android:paddingTop="8dp"
+            android:text="@string/screenshot"
+            android:textAppearance="?attr/textAppearanceCaption" />
 
-
-        <Button
-            android:id="@+id/btn_compose"
-            android:layout_width="wrap_content"
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/compose" />
+            android:layout_marginVertical="8dp"
+            app:cardCornerRadius="0dp">
 
-        <Button
-            android:id="@+id/btn_compose_navigation"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/compose_navigation" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
-        <Button
-            android:id="@+id/btn_view_screenshot"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/view_screenshot" />
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_view_screenshot"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/view_screenshot"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
 
-        <Button
-            android:id="@+id/btn_compose_screenshot"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/compose_screenshot" />
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_compose_screenshot"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/compose_screenshot"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
 
-        <Button
-            android:id="@+id/btn_nested_fragments"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/nested_fragments" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-        <Button
-            android:id="@+id/btn_fragment_navigation"
-            android:layout_width="wrap_content"
+        <TextView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/fragment_navigation" />
+            android:fontFamily="sans-serif-condensed-medium"
+            android:paddingHorizontal="8dp"
+            android:paddingTop="8dp"
+            android:text="@string/bug_report"
+            android:textAppearance="?attr/textAppearanceCaption" />
 
-        <Button
-            android:id="@+id/btn_fragment_androidx_navigation"
-            android:layout_width="wrap_content"
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/androidx_fragment_navigation" />
+            android:layout_marginVertical="8dp"
+            app:cardCornerRadius="0dp">
 
-        <Button
-            android:id="@+id/btn_generate_span"
-            android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/btn_enable_shake"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/enable_shake"
+                    app:switchPadding="16dp" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switch_custom_shake_handler"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/custom_shake_handler"
+                    app:switchPadding="16dp" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_launch_bug_report"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/launch_bug_report"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_bug_report"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/report_a_bug"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/create_span" />
+            android:fontFamily="sans-serif-condensed-medium"
+            android:paddingHorizontal="8dp"
+            android:paddingTop="8dp"
+            android:text="@string/misc_tests"
+            android:textAppearance="?attr/textAppearanceCaption" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="8dp"
+            app:cardCornerRadius="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_okhttp"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/okhttp"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/btn_generate_span"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/create_span"
+                    app:drawableEndCompat="@drawable/ic_chevron_right" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 </ScrollView>

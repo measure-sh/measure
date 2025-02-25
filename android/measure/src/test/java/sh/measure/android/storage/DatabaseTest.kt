@@ -748,14 +748,14 @@ class DatabaseTest {
     }
 
     @Test
-    fun `markCrashedSessions marks multiple sessions as crashed and sets needs reporting`() {
+    fun `markSessionWithBugReport marks sets needs reporting to 1`() {
         // given
         database.insertSession(TestData.getSessionEntity("session-id-1"))
         database.insertSession(TestData.getSessionEntity("session-id-2"))
         database.insertSession(TestData.getSessionEntity("session-id-3"))
 
         // when
-        database.markCrashedSessions(listOf("session-id-1", "session-id-2"))
+        database.markSessionWithBugReport("session-id-2")
 
         // then
         val db = database.readableDatabase
@@ -769,13 +769,10 @@ class DatabaseTest {
             null,
         ).use {
             it.moveToFirst()
-            assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_CRASHED)))
+            assertEquals(0, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)))
+            it.moveToNext()
             assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)))
             it.moveToNext()
-            assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_CRASHED)))
-            assertEquals(1, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)))
-            it.moveToNext()
-            assertEquals(0, it.getInt(it.getColumnIndex(SessionsTable.COL_CRASHED)))
             assertEquals(0, it.getInt(it.getColumnIndex(SessionsTable.COL_NEEDS_REPORTING)))
         }
     }
