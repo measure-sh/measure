@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		520C23962D65EBFD00F1C680 /* MeasureModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 520C23942D65EBFC00F1C680 /* MeasureModel.xcdatamodeld */; };
+		520C23972D65EBFD00F1C680 /* MeasureModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 520C23942D65EBFC00F1C680 /* MeasureModel.xcdatamodeld */; };
 		523C1AC52C6B1B850081D1CC /* CrashReporter in Frameworks */ = {isa = PBXBuildFile; productRef = 523C1AC42C6B1B850081D1CC /* CrashReporter */; };
 		524CC5C32C6A4B12001AB506 /* MeasureSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* MeasureSDK.framework */; };
 		526D18212D5A1913009A2E90 /* MSRViewController.h in Headers */ = {isa = PBXBuildFile; fileRef = 526D17922D5A1913009A2E90 /* MSRViewController.h */; };
@@ -118,14 +120,12 @@
 		526D188B2D5A1913009A2E90 /* TimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D18102D5A1913009A2E90 /* TimeProvider.swift */; };
 		526D188C2D5A1913009A2E90 /* UserDefaultStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D18112D5A1913009A2E90 /* UserDefaultStorage.swift */; };
 		526D188D2D5A1913009A2E90 /* UserPermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D18122D5A1913009A2E90 /* UserPermissionManager.swift */; };
-		526D188E2D5A1913009A2E90 /* MeasureModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 526D18142D5A1913009A2E90 /* MeasureModel.xcdatamodeld */; };
 		526D188F2D5A1913009A2E90 /* FrameworkInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D18162D5A1913009A2E90 /* FrameworkInfo.swift */; };
 		526D18902D5A1913009A2E90 /* Measure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D18172D5A1913009A2E90 /* Measure.swift */; };
 		526D18912D5A1913009A2E90 /* MeasureInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D18182D5A1913009A2E90 /* MeasureInitializer.swift */; };
 		526D18922D5A1913009A2E90 /* MeasureInternal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D18192D5A1913009A2E90 /* MeasureInternal.swift */; };
 		526D18932D5A1913009A2E90 /* RecentSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D181A2D5A1913009A2E90 /* RecentSession.swift */; };
 		526D18942D5A1913009A2E90 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D181B2D5A1913009A2E90 /* SessionManager.swift */; };
-		526D192E2D5A1C9D009A2E90 /* MeasureModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 526D18142D5A1913009A2E90 /* MeasureModel.xcdatamodeld */; };
 		526D19882D5B2C75009A2E90 /* AttributeProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D19372D5B2C75009A2E90 /* AttributeProcessorTests.swift */; };
 		526D19892D5B2C75009A2E90 /* ComputeOnceAttributeProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D19382D5B2C75009A2E90 /* ComputeOnceAttributeProcessorTests.swift */; };
 		526D198A2D5B2C75009A2E90 /* InstallationIdAttributeProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D19392D5B2C75009A2E90 /* InstallationIdAttributeProcessorTests.swift */; };
@@ -344,6 +344,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		520C23952D65EBFC00F1C680 /* MeasureModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MeasureModel.xcdatamodel; sourceTree = "<group>"; };
 		524576782CC260FE00B288E5 /* CoreTelephony.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreTelephony.framework; path = System/Library/Frameworks/CoreTelephony.framework; sourceTree = SDKROOT; };
 		524CC5BA2C6A4B11001AB506 /* MeasureSDK.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MeasureSDK.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		524CC5C22C6A4B12001AB506 /* MeasureSDKTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MeasureSDKTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -462,7 +463,6 @@
 		526D18192D5A1913009A2E90 /* MeasureInternal.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MeasureInternal.swift; sourceTree = "<group>"; };
 		526D181A2D5A1913009A2E90 /* RecentSession.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RecentSession.swift; sourceTree = "<group>"; };
 		526D181B2D5A1913009A2E90 /* SessionManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
-		526D18202D5A1913009A2E90 /* MeasureModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MeasureModel.xcdatamodel; sourceTree = "<group>"; };
 		526D19372D5B2C75009A2E90 /* AttributeProcessorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AttributeProcessorTests.swift; sourceTree = "<group>"; };
 		526D19382D5B2C75009A2E90 /* ComputeOnceAttributeProcessorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ComputeOnceAttributeProcessorTests.swift; sourceTree = "<group>"; };
 		526D19392D5B2C75009A2E90 /* InstallationIdAttributeProcessorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = InstallationIdAttributeProcessorTests.swift; sourceTree = "<group>"; };
@@ -899,7 +899,7 @@
 		526D18152D5A1913009A2E90 /* XCDataModel */ = {
 			isa = PBXGroup;
 			children = (
-				526D18142D5A1913009A2E90 /* MeasureModel.xcdatamodeld */,
+				520C23942D65EBFC00F1C680 /* MeasureModel.xcdatamodeld */,
 			);
 			path = XCDataModel;
 			sourceTree = "<group>";
@@ -1272,7 +1272,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 52BCF2182CB59FC2003102DF /* Build configuration list for PBXNativeTarget "TestApp" */;
 			buildPhases = (
-				52C844C32CB6C5F8004BFE71 /* Run Script - SwiftLint */,
 				52BCF2032CB59FBF003102DF /* Sources */,
 				52BCF2042CB59FBF003102DF /* Frameworks */,
 				52BCF2052CB59FBF003102DF /* Resources */,
@@ -1463,25 +1462,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		52C844C32CB6C5F8004BFE71 /* Run Script - SwiftLint */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Run Script - SwiftLint";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\nif [ \"${CONFIGURATION}\" = \"Debug\" ]; then\n    if which swiftlint >/dev/null; then\n        echo $SRCROOT\n        swiftlint --config \"$SRCROOT/.swiftlint.yml\"\n    else\n        echo \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\n    fi\nfi\n";
-		};
 		52C844C52CB6D29A004BFE71 /* Run Script - SwiftLint */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -1550,7 +1530,6 @@
 				526D186A2D5A1913009A2E90 /* LifecycleManager.swift in Sources */,
 				526D18462D5A1913009A2E90 /* AttachmentProcessor.swift in Sources */,
 				526D183D2D5A1913009A2E90 /* EventStore.swift in Sources */,
-				526D188E2D5A1913009A2E90 /* MeasureModel.xcdatamodeld in Sources */,
 				526D188C2D5A1913009A2E90 /* UserDefaultStorage.swift in Sources */,
 				526D182C2D5A1913009A2E90 /* DeviceAttributeProcessor.swift in Sources */,
 				526D18872D5A1913009A2E90 /* Randomizer.swift in Sources */,
@@ -1592,6 +1571,7 @@
 				526D18422D5A1913009A2E90 /* CrashReport.swift in Sources */,
 				526D18412D5A1913009A2E90 /* CrashDataWriter.swift in Sources */,
 				526D18642D5A1913009A2E90 /* URLSessionTaskInterceptor.swift in Sources */,
+				520C23962D65EBFD00F1C680 /* MeasureModel.xcdatamodeld in Sources */,
 				526D18692D5A1913009A2E90 /* LifecycleEvents.swift in Sources */,
 				526D185E2D5A1913009A2E90 /* GestureTargetFinder.swift in Sources */,
 				526D18562D5A1913009A2E90 /* Heartbeat.swift in Sources */,
@@ -1658,10 +1638,10 @@
 				526D19B72D5B2C75009A2E90 /* MockNetworkClient.swift in Sources */,
 				526D19B42D5B2C75009A2E90 /* MockIdProvider.swift in Sources */,
 				526D19C82D5B2C75009A2E90 /* TimeProviderTests.swift in Sources */,
-				526D192E2D5A1C9D009A2E90 /* MeasureModel.xcdatamodeld in Sources */,
 				526D199C2D5B2C75009A2E90 /* HeartbeatTests.swift in Sources */,
 				526D19B22D5B2C75009A2E90 /* MockEventStore.swift in Sources */,
 				526D19AD2D5B2C75009A2E90 /* MockCoreDataManager.swift in Sources */,
+				520C23972D65EBFD00F1C680 /* MeasureModel.xcdatamodeld in Sources */,
 				526D19962D5B2C75009A2E90 /* CrashReportingManagerTests.swift in Sources */,
 				526D199D2D5B2C75009A2E90 /* HttpClientTests.swift in Sources */,
 				526D19A22D5B2C75009A2E90 /* Exception+Extension.swift in Sources */,
@@ -2364,14 +2344,13 @@
 /* End XCSwiftPackageProductDependency section */
 
 /* Begin XCVersionGroup section */
-		526D18142D5A1913009A2E90 /* MeasureModel.xcdatamodeld */ = {
+		520C23942D65EBFC00F1C680 /* MeasureModel.xcdatamodeld */ = {
 			isa = XCVersionGroup;
 			children = (
-				526D18202D5A1913009A2E90 /* MeasureModel.xcdatamodel */,
+				520C23952D65EBFC00F1C680 /* MeasureModel.xcdatamodel */,
 			);
-			currentVersion = 526D18202D5A1913009A2E90 /* MeasureModel.xcdatamodel */;
-			name = MeasureModel.xcdatamodeld;
-			path = /Users/edpu/Documents/Workspace/measure/ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModel.xcdatamodeld;
+			currentVersion = 520C23952D65EBFC00F1C680 /* MeasureModel.xcdatamodel */;
+			path = MeasureModel.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;
 		};
