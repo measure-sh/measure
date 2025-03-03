@@ -2,16 +2,15 @@ import { HighlightInit } from '@highlight-run/next/client'
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Josefin_Sans, Space_Mono } from 'next/font/google'
-import Script from 'next/script'
 
-const display = Josefin_Sans({
+const josefin_sans = Josefin_Sans({
   subsets: ['latin'], display: 'swap', weight: ['100', '200', '300', '400', '500', '600', '700'],
-  variable: '--font-display'
+  variable: '--font-josefin-sans'
 })
 
-const body = Space_Mono({
+const space_mono = Space_Mono({
   subsets: ['latin'], display: 'swap', weight: ['400', '700'],
-  variable: '--font-body'
+  variable: '--font-space-mono'
 })
 
 export const metadata: Metadata = {
@@ -45,7 +44,7 @@ export default function RootLayout({
         }}
       />
       <html lang="en">
-        <body className={`${display.variable} ${body.variable}`}>{children}</body>
+        <body className={`${josefin_sans.variable} ${space_mono.variable}`}>{children}</body>
       </html>
     </>
   )
