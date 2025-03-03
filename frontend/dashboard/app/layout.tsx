@@ -16,7 +16,7 @@ const body = Space_Mono({
 
 export const metadata: Metadata = {
   title: 'Measure',
-  description: 'Open source mobile app monitoring | Alternative to Firebase Crashlytics, Instabug, Sentry, Embrace'
+  description: 'Open Source Mobile App Monitoring'
 }
 
 export const viewport: Viewport = {
