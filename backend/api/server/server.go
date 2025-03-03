@@ -55,6 +55,7 @@ type ServerConfig struct {
 	AttachmentOrigin           string
 	SiteOrigin                 string
 	APIOrigin                  string
+	SymbolicatorOrigin         string
 	OAuthGitHubKey             string
 	OAuthGitHubSecret          string
 	OAuthGoogleKey             string
@@ -125,6 +126,11 @@ func NewConfig() *ServerConfig {
 		log.Fatal("API_ORIGIN env var not set. Need for proxying session attachments.")
 	}
 
+	symbolicatorOrigin := os.Getenv("SYMBOLICATOR_ORIGIN")
+	if symbolicatorOrigin == "" {
+		log.Fatal("SYMBOLICATOR_ORIGIN env var not set. Need for de-obfuscating events.")
+	}
+
 	oauthGitHubKey := os.Getenv("OAUTH_GITHUB_KEY")
 	if oauthGitHubKey == "" {
 		log.Println("OAUTH_GITHUB_KEY env var is not set, dashboard authn won't work")
@@ -187,6 +193,7 @@ func NewConfig() *ServerConfig {
 		AttachmentOrigin:           attachmentOrigin,
 		SiteOrigin:                 siteOrigin,
 		APIOrigin:                  apiOrigin,
+		SymbolicatorOrigin:         symbolicatorOrigin,
 		OAuthGitHubKey:             oauthGitHubKey,
 		OAuthGitHubSecret:          oauthGitHubSecret,
 		OAuthGoogleKey:             oauthGoogleKey,

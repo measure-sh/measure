@@ -25,9 +25,6 @@ type FrameiOS struct {
 	SymbolAddress string `json:"symbol_address"`
 	// Offset is the byte offset.
 	Offset int `json:"offset"`
-	// InApp is `true` if the frame originates
-	// from the app module.
-	InApp bool `json:"in_app"`
 }
 
 type Frame struct {
@@ -43,6 +40,9 @@ type Frame struct {
 	ClassName string `json:"class_name"`
 	// MethodName is the name of the originating method.
 	MethodName string `json:"method_name"`
+	// InApp is `true` if the frame originates
+	// from the app module.
+	InApp bool `json:"in_app"`
 	FrameiOS
 }
 
