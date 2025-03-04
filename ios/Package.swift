@@ -32,13 +32,11 @@ let package = Package(
         ),
         .testTarget(
             name: "MeasureSDKTests",
-            dependencies: ["MeasureSDK"],
-            path: "Tests/MeasureSDKTests"
+            dependencies: ["MeasureSDK"]
         ),
         .testTarget(
             name: "MeasureUITests",
-            dependencies: ["MeasureSDK"],
-            path: "Tests/MeasureUITests"
+            dependencies: ["MeasureSDK"]
         ),
     ]
 )
