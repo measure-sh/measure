@@ -121,17 +121,17 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                             {bugReportsOverview.results?.map(({ event_id, description, status, app_id, timestamp, matched_free_text, attribute }, idx) => (
                                 <Link key={`${idx}-${event_id}`} href={`/${params.teamId}/bug_reports/${app_id}/${event_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
                                     <div className="table-cell p-4">
-                                        <p className={`truncate ${description ? 'text-gray-500' : ''}`}>{event_id}</p>
+                                        <p className="truncate text-xs text-gray-500">{event_id}</p>
                                         <div className='py-1' />
-                                        {description && <p className='truncate text-lg'>{description}</p>}
-                                        {description && <div className='py-1' />}
-                                        <p className='text-sm truncate text-gray-500'>{"v" + attribute.app_version + "(" + attribute.app_build + "), " + attribute.os_name + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
+                                        <p className='truncate'>{description ? description : "No Description"}</p>
+                                        <div className='py-1' />
+                                        <p className='text-xs truncate text-gray-500'>{"v" + attribute.app_version + "(" + attribute.app_build + "), " + attribute.os_name + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
                                         {matched_free_text !== "" && <p className='p-1 mt-2 text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
                                     </div>
                                     <div className="table-cell p-4 text-center">
                                         <p className='truncate'>{formatDateToHumanReadableDate(timestamp)}</p>
                                         <div className='py-1' />
-                                        <p className='text-sm truncate'>{formatDateToHumanReadableTime(timestamp)}</p>
+                                        <p className='text-xs truncate'>{formatDateToHumanReadableTime(timestamp)}</p>
                                     </div>
                                     <div className="table-cell p-4 text-center">
                                         <div className='items-center flex justify-center'>
