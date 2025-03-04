@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="msr_background">#121212</color>
+    <color name="msr_surface">#121212</color>
+    <color name="msr_text_primary">#DEFFFFFF</color>
+    <color name="msr_text_secondary">#99FFFFFF</color>
+    <color name="msr_close_button_bg">#4B4B4B</color>
+    <color name="msr_ripple">#40FFFFFF</color>
+    <color name="msr_screenshot_border">#66575757</color>
+    <color name="msr_outline_stroke">#1FFFFFFF</color>
+    <color name="msr_disabled_text">#40828282</color>
+</resources>

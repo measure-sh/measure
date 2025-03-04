@@ -55,9 +55,30 @@ internal interface FileStorage {
      * Deletes a list of files.
      */
     fun deleteFiles(files: List<File>)
+
+    /**
+     * Deletes a list of files using their path.
+     */
+    fun deleteFilePaths(paths: List<String>)
+
+    /**
+     * Writes a screenshot represented by the [bytes] with the given [name] and [extension].
+     */
+    fun writeTempBugReportScreenshot(
+        name: String,
+        extension: String,
+        bytes: ByteArray,
+        sessionId: String,
+    ): String?
+
+    /**
+     * Returns the directory where bug report data is stored temporarily.
+     */
+    fun getBugReportDir(): File
 }
 
 private const val MEASURE_DIR = "measure"
+private const val BUG_REPORTS_DIR = "bug_reports"
 
 internal class FileStorageImpl(
     private val rootDir: String,
@@ -103,6 +124,28 @@ internal class FileStorageImpl(
         }
     }
 
+    override fun deleteFilePaths(paths: List<String>) {
+        deleteFiles(paths.mapNotNull { getFile(it) })
+    }
+
+    override fun writeTempBugReportScreenshot(
+        name: String,
+        extension: String,
+        bytes: ByteArray,
+        sessionId: String,
+    ): String? {
+        val file = createFile("$name.$extension", "$BUG_REPORTS_DIR/$sessionId")
+        if (file != null) {
+            file.writeBytes(bytes)
+            return file.absolutePath
+        }
+        return null
+    }
+
+    override fun getBugReportDir(): File {
+        return File("$rootDir/$MEASURE_DIR/$BUG_REPORTS_DIR")
+    }
+
     override fun deleteEventsIfExist(eventIds: List<String>, attachmentIds: List<String>) {
         (eventIds + attachmentIds).forEach { id ->
             getFile("$rootDir/$MEASURE_DIR/$id")?.delete()
@@ -117,8 +160,8 @@ internal class FileStorageImpl(
         }
     }
 
-    private fun createFile(id: String): File? {
-        val dirPath = "$rootDir/$MEASURE_DIR"
+    private fun createFile(id: String, subdir: String = ""): File? {
+        val dirPath = "$rootDir/$MEASURE_DIR/$subdir"
         val rootDir = File(dirPath)
 
         // Create directories if they don't exist

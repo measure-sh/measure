@@ -18,6 +18,7 @@ internal interface IMeasureConfig {
     val samplingRateForErrorFreeSessions: Float
     val autoStart: Boolean
     val traceSamplingRate: Float
+    val enableShakeToLaunchBugReport: Boolean
 }
 
 /**
@@ -140,6 +141,17 @@ class MeasureConfig(
      * Setting a value outside the range will throw an [IllegalArgumentException].
      */
     override val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
+
+    /**
+     * Enable or disable shake to automatically launch the bug report flow. Defaults to `false`.
+     *
+     * When enabled, users can shake their device to launch the bug report activity automatically.
+     *
+     * This feature can also be enabled/disabled at runtime using:
+     * @see [Measure.disableShakeToLaunchBugReport] to disable shake to launch bug report.
+     * @see [Measure.enableShakeToLaunchBugReport] to enable shake to launch bug report.
+     */
+    override val enableShakeToLaunchBugReport: Boolean = DefaultConfig.ENABLE_SHAKE_TO_LAUNCH_BUG_REPORT,
 ) : IMeasureConfig {
     init {
         require(samplingRateForErrorFreeSessions in 0.0..1.0) {

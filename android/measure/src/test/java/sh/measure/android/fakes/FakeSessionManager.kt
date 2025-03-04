@@ -7,6 +7,7 @@ internal class FakeSessionManager : SessionManager {
     var crashedSession = ""
     var crashedSessions = mutableListOf<String>()
     var onEventTracked = false
+    var markedSessionWithBugReport = false
 
     override fun init() {
         // no-op
@@ -22,6 +23,10 @@ internal class FakeSessionManager : SessionManager {
 
     override fun markCrashedSessions(sessionIds: List<String>) {
         crashedSessions = sessionIds.toMutableList()
+    }
+
+    override fun markSessionWithBugReport() {
+        markedSessionWithBugReport = true
     }
 
     override fun <T> onEventTracked(event: Event<T>) {

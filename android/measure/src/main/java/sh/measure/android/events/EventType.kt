@@ -21,4 +21,5 @@ internal object EventType {
     const val CPU_USAGE: String = "cpu_usage"
     const val SCREEN_VIEW: String = "screen_view"
     const val CUSTOM: String = "custom"
+    const val BUG_REPORT: String = "bug_report"
 }

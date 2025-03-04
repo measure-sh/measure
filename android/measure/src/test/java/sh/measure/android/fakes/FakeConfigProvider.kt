@@ -41,6 +41,12 @@ internal class FakeConfigProvider : ConfigProvider {
     override val maxCheckpointsPerSpan: Int = 100
     override var maxInMemorySignalsQueueSize: Int = 30
     override val inMemorySignalsQueueFlushRateMs: Long = 3000
+    override val maxAttachmentsInBugReport: Int = 5
+    override val maxDescriptionLengthInBugReport: Int = 1000
+    override val shakeAccelerationThreshold: Float = 20f
+    override val shakeMinTimeIntervalMs: Long = 1500
+    override val shakeSlop: Int = 3
+    override val enableShakeToLaunchBugReport: Boolean = false
 
     var shouldTrackHttpBody = false
 

@@ -643,6 +643,23 @@ class EventsTest {
         }
     }
 
+    @Test
+    fun tracksBugReportEvent() {
+        // Given
+        robot.initializeMeasure(MeasureConfig(enableLogging = true))
+        ActivityScenario.launch(TestActivity::class.java).use {
+            // When
+            it.moveToState(Lifecycle.State.RESUMED)
+            it.onActivity {
+                robot.trackBugReport("description", listOf())
+            }
+            triggerExport()
+
+            // Then
+            assertEventTracked(EventType.BUG_REPORT)
+        }
+    }
+
     private fun String.containsEvent(eventType: String): Boolean {
         return contains("\"type\":\"$eventType\"")
     }
