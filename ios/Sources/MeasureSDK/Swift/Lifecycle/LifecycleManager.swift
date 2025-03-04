@@ -8,8 +8,9 @@
 import Foundation
 import UIKit
 
-@objc public final class LifecycleManager: NSObject {
-    @objc public static let shared = LifecycleManager()
+@objc(LifecycleManagerInternal)
+final class LifecycleManager: NSObject {
+    @objc static let shared = LifecycleManager()
     private var lifecycleCollector: LifecycleCollector?
 
     private override init() {}
@@ -18,7 +19,7 @@ import UIKit
         self.lifecycleCollector = collector
     }
 
-    @objc public func sendLifecycleEvent(_ event: VCLifecycleEventType, for viewController: UIViewController) {
+    @objc func sendLifecycleEvent(_ event: VCLifecycleEventType, for viewController: UIViewController) {
         guard let lifecycleCollector = self.lifecycleCollector else {
             return
         }

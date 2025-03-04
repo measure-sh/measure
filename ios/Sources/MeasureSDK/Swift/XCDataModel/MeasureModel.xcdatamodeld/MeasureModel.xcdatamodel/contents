@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22757" systemVersion="23F79" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
-    <entity name="BatchOb" representedClassName="BatchOb" syncable="YES" codeGenerationType="class">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22757" systemVersion="23F79" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+    <entity name="BatchOb" representedClassName="BatchOb" syncable="YES">
         <attribute name="batchId" attributeType="String"/>
         <attribute name="createdAt" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="eventId" attributeType="String"/>
     </entity>
-    <entity name="EventOb" representedClassName="EventOb" syncable="YES" codeGenerationType="class">
+    <entity name="EventOb" representedClassName="EventOb" syncable="YES">
         <attribute name="attachments" optional="YES" attributeType="Binary" valueTransformerName="NSSecureUnarchiveFromDataTransformerName"/>
         <attribute name="attachmentSize" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="attributes" optional="YES" attributeType="Binary"/>
@@ -35,7 +35,7 @@
         <attribute name="userTriggered" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="warmLaunch" optional="YES" attributeType="Binary"/>
     </entity>
-    <entity name="SessionOb" representedClassName="SessionOb" syncable="YES" codeGenerationType="class">
+    <entity name="SessionOb" representedClassName="SessionOb" syncable="YES">
         <attribute name="crashed" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="createdAt" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="needsReporting" attributeType="Boolean" usesScalarValueType="YES"/>

@@ -6,11 +6,7 @@
 //
 
 #import "MSRViewController.h"
-//#import <MeasureSDK/MeasureSDK-Swift.h>
-
-#if __has_include(<MeasureSDK/MeasureSDK-Swift.h>)
-#import <MeasureSDK/MeasureSDK-Swift.h>
-#endif
+#import "LifecycleManager_Internal.h"
 
 @interface MSRViewController ()
 
@@ -20,11 +16,11 @@
 
 - (void)loadView {
     [super loadView];
-    [LifecycleManager.shared sendLifecycleEvent:VCLifecycleEventTypeLoadView for:self];
+    [LifecycleManagerInternal.shared sendLifecycleEvent:VCLifecycleEventTypeLoadView for:self];
 }
 
 - (void)dealloc {
-    [LifecycleManager.shared sendLifecycleEvent:VCLifecycleEventTypeVcDeinit for:self];
+    [LifecycleManagerInternal.shared sendLifecycleEvent:VCLifecycleEventTypeVcDeinit for:self];
 }
 
 @end
