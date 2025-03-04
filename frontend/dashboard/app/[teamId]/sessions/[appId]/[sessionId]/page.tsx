@@ -35,7 +35,7 @@ export default function Session({ params }: { params: { teamId: string, appId: s
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
-      <p className="font-display font-regular text-4xl">Session: {params.sessionId}</p>
+      <p className="font-display text-4xl">Session: {params.sessionId}</p>
       <div className="py-2" />
 
       {sessionReplayApiStatus === SessionReplayApiStatus.Loading && <p className="text-lg font-display">Fetching session replay...</p>}

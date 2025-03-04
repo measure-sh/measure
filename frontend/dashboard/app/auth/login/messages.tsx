@@ -24,7 +24,7 @@ export default function Messages() {
       )}
       {message && (
         <>
-          <p className="mt-4 font-sans font-regular text-center">{message}</p>
+          <p className="mt-4 font-sans text-center">{message}</p>
         </>
       )}
       {showLink && (
