@@ -81,7 +81,7 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
           )}
 
           <div className="py-6" />
-          {bugReport.description && <p className="font-sans text-xl">{bugReport.description}</p>}
+          {bugReport.description && <p className="font-sans text-lg">{bugReport.description}</p>}
           <div className="py-8" />
           <div className="flex flex-row">
             <Link href={`/${params.teamId}/sessions/${params.appId}/${bugReport.session_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session</Link>
