@@ -1,6 +1,8 @@
 package sh.measure.android.tracing
 
 import sh.measure.android.Measure
+import sh.measure.android.attributes.AttributeValue
+import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.config.MeasureConfig
 
 /**
@@ -104,6 +106,61 @@ interface Span {
      * Note: This operation has no effect if called after the span has ended.
      */
     fun setName(name: String): Span
+
+    /**
+     * Adds an attribute to this span.
+     *
+     * @param key The name of the attribute
+     * @param value The value of the attribute
+     */
+    fun setAttribute(key: String, value: String): Span
+
+    /**
+     * Adds an attribute to this span.
+     *
+     * @param key The name of the attribute
+     * @param value The value of the attribute
+     */
+    fun setAttribute(key: String, value: Long): Span
+
+    /**
+     * Adds an attribute to this span.
+     *
+     * @param key The name of the attribute
+     * @param value The value of the attribute
+     */
+    fun setAttribute(key: String, value: Int): Span
+
+    /**
+     * Adds an attribute to this span.
+     *
+     * @param key The name of the attribute
+     * @param value The value of the attribute
+     */
+    fun setAttribute(key: String, value: Double): Span
+
+    /**
+     * Adds an attribute to this span.
+     *
+     * @param key The name of the attribute
+     * @param value The value of the attribute
+     */
+    fun setAttribute(key: String, value: Boolean): Span
+
+    /**
+     * Adds multiple attributes to this span.
+     *
+     * @see [AttributesBuilder] for a convenient way to build attribute maps.
+     * @param attributes A map of attribute names to values
+     */
+    fun setAttributes(attributes: Map<String, AttributeValue>): Span
+
+    /**
+     * Removes an attribute from this span. No-op if the attribute does not exist.
+     *
+     * @param key The name of the attribute to remove
+     */
+    fun removeAttribute(key: String): Span
 
     /**
      * Marks this span as completed, recording its end time.

@@ -85,6 +85,7 @@ class ExceptionDemoActivity : AppCompatActivity() {
             spanButton.isEnabled = false
             thread {
                 val rootSpan = Measure.startSpan("root")
+                rootSpan.setAttribute("user_segment_premium", true)
                 val startTime = Measure.getCurrentTime()
                 Thread.sleep(1000)
                 val interestsSpan = Measure.startSpan("screen.interests").setParent(rootSpan)

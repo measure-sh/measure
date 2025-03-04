@@ -1,5 +1,7 @@
 package sh.measure.android.tracing
 
+import sh.measure.android.attributes.AttributeValue
+
 internal class InvalidSpan : Span {
     override val traceId: String = "invalid-trace-id"
     override val spanId: String = "invalid-span-id"
@@ -19,6 +21,34 @@ internal class InvalidSpan : Span {
     }
 
     override fun setName(name: String): Span {
+        return this
+    }
+
+    override fun setAttribute(key: String, value: String): Span {
+        return this
+    }
+
+    override fun setAttribute(key: String, value: Long): Span {
+        return this
+    }
+
+    override fun setAttribute(key: String, value: Int): Span {
+        return this
+    }
+
+    override fun setAttribute(key: String, value: Double): Span {
+        return this
+    }
+
+    override fun setAttribute(key: String, value: Boolean): Span {
+        return this
+    }
+
+    override fun setAttributes(attributes: Map<String, AttributeValue>): Span {
+        return this
+    }
+
+    override fun removeAttribute(key: String): Span {
         return this
     }
 

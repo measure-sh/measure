@@ -25,7 +25,7 @@ internal class MsrSpanProcessor(
             { "msr-spanProcessor-onStart" },
             {
                 val threadName = Thread.currentThread().name
-                span.setAttribute(Attribute.THREAD_NAME to threadName)
+                span.setInternalAttribute(Attribute.THREAD_NAME to threadName)
                 val attributes = span.getAttributesMap()
                 attributeProcessors.forEach {
                     it.appendAttributes(attributes)

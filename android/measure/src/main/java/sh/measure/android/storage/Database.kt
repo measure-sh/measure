@@ -458,6 +458,8 @@ internal class DatabaseImpl(
                 val durationIndex = it.getColumnIndex(SpansTable.COL_DURATION)
                 val statusIndex = it.getColumnIndex(SpansTable.COL_STATUS)
                 val serializedAttrsIndex = it.getColumnIndex(SpansTable.COL_SERIALIZED_ATTRS)
+                val serializedUserDefAttrsIndex =
+                    it.getColumnIndex(SpansTable.COL_SERIALIZED_USER_DEFINED_ATTRS)
                 val serializedCheckpointsIndex =
                     it.getColumnIndex(SpansTable.COL_SERIALIZED_SPAN_EVENTS)
 
@@ -471,6 +473,7 @@ internal class DatabaseImpl(
                 val duration = it.getLong(durationIndex)
                 val status = it.getInt(statusIndex)
                 val serializedAttrs = it.getString(serializedAttrsIndex)
+                val serializedUserDefAttrs = it.getString(serializedUserDefAttrsIndex)
                 val serializedCheckpoints = it.getString(serializedCheckpointsIndex)
 
                 spanPackets.add(
@@ -485,6 +488,7 @@ internal class DatabaseImpl(
                         duration = duration,
                         status = status,
                         serializedAttributes = serializedAttrs,
+                        serializedUserDefAttrs = serializedUserDefAttrs,
                         serializedCheckpoints = serializedCheckpoints,
                     ),
                 )
@@ -977,6 +981,7 @@ internal class DatabaseImpl(
             put(SpansTable.COL_END_TIME, spanEntity.endTime)
             put(SpansTable.COL_DURATION, spanEntity.duration)
             put(SpansTable.COL_SERIALIZED_ATTRS, spanEntity.serializedAttributes)
+            put(SpansTable.COL_SERIALIZED_USER_DEFINED_ATTRS, spanEntity.serializedUserDefinedAttrs)
             put(SpansTable.COL_SERIALIZED_SPAN_EVENTS, spanEntity.serializedCheckpoints)
             put(SpansTable.COL_SAMPLED, spanEntity.sampled)
             put(SpansTable.COL_STATUS, spanEntity.status.value)

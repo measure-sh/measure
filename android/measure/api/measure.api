@@ -194,6 +194,13 @@ public abstract interface class sh/measure/android/tracing/Span {
 	public abstract fun getTraceId ()Ljava/lang/String;
 	public abstract fun hasEnded ()Z
 	public abstract fun isSampled ()Z
+	public abstract fun removeAttribute (Ljava/lang/String;)Lsh/measure/android/tracing/Span;
+	public abstract fun setAttribute (Ljava/lang/String;D)Lsh/measure/android/tracing/Span;
+	public abstract fun setAttribute (Ljava/lang/String;I)Lsh/measure/android/tracing/Span;
+	public abstract fun setAttribute (Ljava/lang/String;J)Lsh/measure/android/tracing/Span;
+	public abstract fun setAttribute (Ljava/lang/String;Ljava/lang/String;)Lsh/measure/android/tracing/Span;
+	public abstract fun setAttribute (Ljava/lang/String;Z)Lsh/measure/android/tracing/Span;
+	public abstract fun setAttributes (Ljava/util/Map;)Lsh/measure/android/tracing/Span;
 	public abstract fun setCheckpoint (Ljava/lang/String;)Lsh/measure/android/tracing/Span;
 	public abstract fun setName (Ljava/lang/String;)Lsh/measure/android/tracing/Span;
 	public abstract fun setParent (Lsh/measure/android/tracing/Span;)Lsh/measure/android/tracing/Span;
