@@ -5,19 +5,19 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { formatDateToHumanReadableDateTime, formatMillisToHumanReadable } from '../utils/time_utils'
 
-type SessionReplayEventDetailsProps = {
+type SessionTimelineEventDetailsProps = {
   teamId: string
   appId: string
   eventType: string
   eventDetails: any
 }
 
-export default function SessionReplayEventDetails({
+export default function SessionTimelineEventDetails({
   teamId,
   appId,
   eventType,
   eventDetails
-}: SessionReplayEventDetailsProps) {
+}: SessionTimelineEventDetailsProps) {
 
   function getBodyFromEventDetails(): ReactNode {
     // Remove user defined attrs. In case of http event, remove start_time and end_time as well since they represent uptime in ms and not timestamps.

@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 
-interface SessionReplaySeekBarProps {
+interface SessionTimelineSeekBarProps {
   value: number;
   onChange: (value: number) => void;
 }
@@ -14,7 +14,7 @@ interface CSSProperties extends React.CSSProperties {
   '--progress-percent'?: string;
 }
 
-const SessionReplaySeekBar: React.FC<SessionReplaySeekBarProps> = ({ value, onChange }) => {
+const SessionTimelineSeekBar: React.FC<SessionTimelineSeekBarProps> = ({ value, onChange }) => {
   const rangeRef = useRef<HTMLInputElement>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -107,4 +107,4 @@ const SessionReplaySeekBar: React.FC<SessionReplaySeekBarProps> = ({ value, onCh
   );
 };
 
-export default SessionReplaySeekBar;
+export default SessionTimelineSeekBar;

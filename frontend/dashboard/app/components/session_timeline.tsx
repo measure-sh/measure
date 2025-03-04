@@ -2,33 +2,34 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { LineCanvas } from '@nivo/line'
-import { emptySessionReplay } from '../api/api_calls'
+import { emptySessionTimeline } from '../api/api_calls'
 import { formatChartFormatTimestampToHumanReadable, formatTimestampToChartFormat } from '../utils/time_utils'
 import { kilobytesToMegabytes } from '../utils/number_utils'
 import DropdownSelect, { DropdownSelectType } from './dropdown_select'
 import { DateTime, Duration } from 'luxon'
-import SessionReplayEventDetails from './session_replay_event_details'
-import SessionReplayEventCell from './session_replay_event_cell'
-import SessionReplaySeekBar from './session_replay_seekbar'
-import { useScrollStop } from '../utils/scroll_utils'
 
-interface SessionReplayProps {
+import { useScrollStop } from '../utils/scroll_utils'
+import SessionTimelineSeekBar from './session_timeline_seekbar'
+import SessionTimelineEventCell from './session_timeline_event_cell'
+import SessionTimelineEventDetails from './session_timeline_event_details'
+
+interface SessionTimelineProps {
   teamId: string
   appId: string
-  sessionReplay: typeof emptySessionReplay
+  sessionTimeline: typeof emptySessionTimeline
 }
 
-const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionReplay }) => {
+const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessionTimeline }) => {
 
-  function parseEventsThreadsAndEventTypesFromSessionReplay() {
+  function parseEventsThreadsAndEventTypesFromSessionTimeline() {
     let events: { eventType: string, timestamp: string, thread: string, details: any }[] = []
     let threads = new Set<string>()
     let eventTypes = new Set<string>()
     const traceEventType = "trace"
 
-    Object.keys(sessionReplay.threads).forEach(item => (
+    Object.keys(sessionTimeline.threads).forEach(item => (
       // @ts-ignore
-      sessionReplay.threads[item].forEach((subItem: any) => {
+      sessionTimeline.threads[item].forEach((subItem: any) => {
         events.push({
           eventType: subItem.event_type,
           timestamp: subItem.timestamp,
@@ -40,9 +41,9 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
       })
     ))
 
-    if (sessionReplay.traces !== null) {
+    if (sessionTimeline.traces !== null) {
       eventTypes.add(traceEventType)
-      sessionReplay.traces.forEach((item: any) => {
+      sessionTimeline.traces.forEach((item: any) => {
         events.push({
           eventType: traceEventType,
           timestamp: item.start_time,
@@ -67,7 +68,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
     return { events, threads: threadsArray, eventTypes: eventsTypesArray }
   }
 
-  const { events, threads, eventTypes } = parseEventsThreadsAndEventTypesFromSessionReplay()
+  const { events, threads, eventTypes } = parseEventsThreadsAndEventTypesFromSessionTimeline()
   const firstEventTime = DateTime.fromISO(events[0].timestamp)
   const lastEventTime = DateTime.fromISO(events[events.length - 1].timestamp)
 
@@ -79,10 +80,10 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
     return false
   }
 
-  const cpuData = sessionReplay.cpu_usage != null ? [
+  const cpuData = sessionTimeline.cpu_usage != null ? [
     {
       id: '% CPU Usage',
-      data: sessionReplay.cpu_usage
+      data: sessionTimeline.cpu_usage
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
@@ -91,10 +92,10 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
     }
   ] : null
 
-  const memoryData = sessionReplay.memory_usage != null ? [
+  const memoryData = sessionTimeline.memory_usage != null ? [
     {
       id: 'Java Free Heap',
-      data: sessionReplay.memory_usage
+      data: sessionTimeline.memory_usage
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
@@ -103,7 +104,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
     },
     {
       id: 'Java Max Heap',
-      data: sessionReplay.memory_usage
+      data: sessionTimeline.memory_usage
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
@@ -112,7 +113,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
     },
     {
       id: 'Java Total Heap',
-      data: sessionReplay.memory_usage
+      data: sessionTimeline.memory_usage
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
@@ -121,7 +122,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
     },
     {
       id: 'Native Free Heap',
-      data: sessionReplay.memory_usage
+      data: sessionTimeline.memory_usage
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
@@ -130,7 +131,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
     },
     {
       id: 'Native Total Heap',
-      data: sessionReplay.memory_usage
+      data: sessionTimeline.memory_usage
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
@@ -139,7 +140,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
     },
     {
       id: 'RSS',
-      data: sessionReplay.memory_usage
+      data: sessionTimeline.memory_usage
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
@@ -148,7 +149,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
     },
     {
       id: 'Total PSS',
-      data: sessionReplay.memory_usage
+      data: sessionTimeline.memory_usage
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
@@ -157,10 +158,10 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
     }
   ] : null
 
-  const memoryAbsData = sessionReplay.memory_usage_absolute != null ? [
+  const memoryAbsData = sessionTimeline.memory_usage_absolute != null ? [
     {
       id: 'Max Memory',
-      data: sessionReplay.memory_usage_absolute
+      data: sessionTimeline.memory_usage_absolute
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
@@ -169,7 +170,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
     },
     {
       id: 'Used Memory',
-      data: sessionReplay.memory_usage_absolute
+      data: sessionTimeline.memory_usage_absolute
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
           x: formatTimestampToChartFormat(item.timestamp),
@@ -461,7 +462,7 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
           {/* Vertical Seekbar */}
           <div
             className="w-full py-2" style={{ paddingLeft: `${seekBarIndicatorOffset}px` }}>
-            <SessionReplaySeekBar value={seekBarValue} onChange={handleSeekbarMove} />
+            <SessionTimelineSeekBar value={seekBarValue} onChange={handleSeekbarMove} />
           </div>
         </div>}
       {/* Event filters */}
@@ -478,18 +479,18 @@ const SessionReplay: React.FC<SessionReplayProps> = ({ teamId, appId, sessionRep
             <div key={index} className={""} ref={(el) => {
               eventRefs.current[index] = el
             }}>
-              <SessionReplayEventCell eventType={e.eventType} eventDetails={e.details} timestamp={e.timestamp} threadName={e.thread} index={index} selected={index === selectedEventIndex} onClick={(index) => selectEventAndMoveSeekBar(index)} />
+              <SessionTimelineEventCell eventType={e.eventType} eventDetails={e.details} timestamp={e.timestamp} threadName={e.thread} index={index} selected={index === selectedEventIndex} onClick={(index) => selectEventAndMoveSeekBar(index)} />
             </div>
           ))}
         </div>
         <div className='w-0.5 h-full bg-neutral-950' />
         <div className='h-full w-1/3'
         >
-          {filteredEvents.length > 0 && <SessionReplayEventDetails teamId={teamId} appId={appId} eventType={filteredEvents[selectedEventIndex].eventType} eventDetails={filteredEvents[selectedEventIndex].details} />}
+          {filteredEvents.length > 0 && <SessionTimelineEventDetails teamId={teamId} appId={appId} eventType={filteredEvents[selectedEventIndex].eventType} eventDetails={filteredEvents[selectedEventIndex].details} />}
         </div>
       </div>
     </div>
   )
 }
 
-export default SessionReplay
+export default SessionTimeline

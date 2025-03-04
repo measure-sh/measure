@@ -206,7 +206,7 @@ export enum AuthzAndMembersApiStatus {
   Cancelled
 }
 
-export enum SessionReplayApiStatus {
+export enum SessionTimelineApiStatus {
   Loading,
   Success,
   Error,
@@ -622,7 +622,7 @@ export const defaultAuthzAndMembers = {
   ]
 }
 
-export const emptySessionReplay = {
+export const emptySessionTimeline = {
   "app_id": "2b7ddad4-40a6-42a7-9e21-a90577e08263",
   "attribute": {
     "installation_id": "",
@@ -1569,21 +1569,21 @@ export const fetchAuthzAndMembersFromServer = async (teamId: string, router: App
   }
 }
 
-export const fetchSessionReplayFromServer = async (appId: string, sessionId: string, router: AppRouterInstance) => {
+export const fetchSessionTimelineFromServer = async (appId: string, sessionId: string, router: AppRouterInstance) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
   try {
     const res = await fetchMeasure(`${origin}/apps/${appId}/sessions/${sessionId}`);
     if (!res.ok) {
       logoutIfAuthError(auth, router, res)
-      return { status: SessionReplayApiStatus.Error, data: null }
+      return { status: SessionTimelineApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
-    return { status: SessionReplayApiStatus.Success, data: data }
+    return { status: SessionTimelineApiStatus.Success, data: data }
   } catch {
-    return { status: SessionReplayApiStatus.Cancelled, data: null }
+    return { status: SessionTimelineApiStatus.Cancelled, data: null }
   }
 }
 

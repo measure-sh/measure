@@ -3,7 +3,7 @@
 import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
 import { formatToCamelCase } from '../utils/string_utils'
 
-type SessionReplayEventCellProps = {
+type SessionTimelineEventCellProps = {
   eventType: string
   eventDetails: any
   threadName: string
@@ -13,7 +13,7 @@ type SessionReplayEventCellProps = {
   onClick: (index: number) => void
 }
 
-export default function SessionReplayEventCell({
+export default function SessionTimelineEventCell({
   eventType,
   eventDetails,
   threadName,
@@ -21,7 +21,7 @@ export default function SessionReplayEventCell({
   index,
   selected,
   onClick
-}: SessionReplayEventCellProps) {
+}: SessionTimelineEventCellProps) {
 
   function getColorFromEventType() {
     if ((eventType === "exception" || eventType === "anr") && eventDetails.user_triggered === true) {
