@@ -194,7 +194,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
-      <p className="font-display font-regular text-4xl max-w-6xl text-center">Team</p>
+      <p className="font-display text-4xl max-w-6xl text-center">Team</p>
       <div className="py-4" />
 
       {/* Loading message for team */}
@@ -277,7 +277,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           {inviteMemberApiStatus === InviteMemberApiStatus.Error && <p className="text-sm font-display">{inviteMemberErrorMsg}</p>}
 
           <div className="py-8" />
-          <p className="font-display font-regular text-2xl max-w-6xl text-center">Members</p>
+          <p className="font-display text-2xl max-w-6xl text-center">Members</p>
           <div className="py-2" />
           {/* Loading message for fetch members */}
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Loading && <p className="font-display">Fetching members...</p>}
@@ -352,7 +352,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
               <div className="w-full border border-black h-0" />
               <div className="py-8" />
               <form onSubmit={createTeam} className="flex flex-col">
-                <p className="font-display font-regular text-2xl">Create new team</p>
+                <p className="font-display text-2xl">Create new team</p>
                 <div className="py-2" />
                 <input id="app-name" type="string" placeholder="Enter team name" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" onChange={(event) => setCreateTeamName(event.target.value)} />
                 <div className="py-2" />

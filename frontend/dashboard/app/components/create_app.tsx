@@ -80,7 +80,7 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
         <div className="flex flex-col">
           <p className="text-lg">Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure/blob/main/docs/android/README.md#getting-started'>integration guide</Link> to finish setting up your app.</p>
           <div className="py-4" />
-          <p className="font-display font-regular text-xl max-w-6xl">API key</p>
+          <p className="font-display text-xl max-w-6xl">API key</p>
           <div className="flex flex-row items-center">
             <input id="api-key-input" readOnly={true} type="text" value={existingApiKey !== null ? existingApiKey : data.api_key.key} className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" />
             <button className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(existingApiKey !== null ? existingApiKey : data.api_key.key)}>Copy</button>
