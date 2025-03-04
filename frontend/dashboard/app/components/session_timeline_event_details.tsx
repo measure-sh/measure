@@ -103,7 +103,7 @@ export default function SessionTimelineEventDetails({
     }
   }
 
-  function getExceptionOverviewLinkFromEventDetails(): ReactNode {
+  function getDetailsLinkFromEventDetails(): ReactNode {
     if ((eventType === "exception" && eventDetails.user_triggered === false) || eventType === "anr") {
       return (
         <div className='px-4 pt-4'>
@@ -111,9 +111,6 @@ export default function SessionTimelineEventDetails({
         </div>
       )
     }
-  }
-
-  function getTraceDetailsLinkFromEventDetails(): ReactNode {
     if (eventType === "trace") {
       return (
         <div className='px-4 pt-8 pb-4'>
@@ -121,9 +118,6 @@ export default function SessionTimelineEventDetails({
         </div>
       )
     }
-  }
-
-  function getBugReportDetailsLinkFromEventDetails(): ReactNode {
     if (eventType === "bug_report") {
       return (
         <div className='px-4 pt-8 pb-4'>
@@ -138,9 +132,7 @@ export default function SessionTimelineEventDetails({
       className="flex flex-col items-center bg-neutral-800 h-full selection:bg-yellow-200/50 font-display overflow-y-auto overscroll-y-contain break-words"
     >
       {getAttachmentsFromEventDetails()}
-      {getExceptionOverviewLinkFromEventDetails()}
-      {getTraceDetailsLinkFromEventDetails()}
-      {getBugReportDetailsLinkFromEventDetails()}
+      {getDetailsLinkFromEventDetails()}
       {getBodyFromEventDetails()}
     </div>
   )
