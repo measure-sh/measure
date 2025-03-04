@@ -6,6 +6,7 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
 import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.verify
+import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.FakeTraceSampler
 import sh.measure.android.fakes.NoopLogger
@@ -249,6 +250,77 @@ class MsrSpanTest {
         span.setCheckpoint("event-id")
 
         Assert.assertEquals(0, span.checkpoints.size)
+    }
+
+    @Test
+    fun `setAttribute adds attribute to span`() {
+        val span = MsrSpan.startSpan(
+            "span-name",
+            logger = logger,
+            timeProvider = timeProvider,
+            spanProcessor = spanProcessor,
+            sessionManager = sessionManager,
+            traceSampler = traceSampler,
+            idProvider = idProvider,
+            parentSpan = null,
+        ) as MsrSpan
+        span.setAttribute("key", "value")
+
+        Assert.assertEquals("value", span.getUserDefinedAttrs()["key"])
+    }
+
+    @Test
+    fun `setAttribute on ended span is a no-op`() {
+        val span = MsrSpan.startSpan(
+            "span-name",
+            logger = logger,
+            timeProvider = timeProvider,
+            spanProcessor = spanProcessor,
+            sessionManager = sessionManager,
+            traceSampler = traceSampler,
+            idProvider = idProvider,
+            parentSpan = null,
+        ).end() as MsrSpan
+        span.setAttribute("key", "value")
+
+        Assert.assertEquals(0, span.attributes.size)
+    }
+
+    @Test
+    fun `setAttributes adds multiple attributes to span`() {
+        val attributes = AttributesBuilder().put("key1", "value1").put("key2", "value2").build()
+        val span = MsrSpan.startSpan(
+            "span-name",
+            logger = logger,
+            timeProvider = timeProvider,
+            spanProcessor = spanProcessor,
+            sessionManager = sessionManager,
+            traceSampler = traceSampler,
+            idProvider = idProvider,
+            parentSpan = null,
+        ) as MsrSpan
+        span.setAttributes(attributes)
+
+        Assert.assertEquals("value1", span.getUserDefinedAttrs()["key1"])
+        Assert.assertEquals("value2", span.getUserDefinedAttrs()["key2"])
+    }
+
+    @Test
+    fun `removeAttribute removes attribute from span`() {
+        val span = MsrSpan.startSpan(
+            "span-name",
+            logger = logger,
+            timeProvider = timeProvider,
+            spanProcessor = spanProcessor,
+            sessionManager = sessionManager,
+            traceSampler = traceSampler,
+            idProvider = idProvider,
+            parentSpan = null,
+        ) as MsrSpan
+        span.setAttribute("key", "value")
+        span.removeAttribute("key")
+
+        Assert.assertEquals(0, span.getUserDefinedAttrs().size)
     }
 
     @Test

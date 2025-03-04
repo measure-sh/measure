@@ -1,6 +1,7 @@
 package sh.measure.android.tracing
 
 import sh.measure.android.SessionManager
+import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.IdProvider
@@ -27,6 +28,7 @@ internal class MsrSpan(
     private var hasEnded: EndState = EndState.NotEnded
     override val checkpoints: MutableList<Checkpoint> = mutableListOf()
     override val attributes: MutableMap<String, Any?> = mutableMapOf()
+    private val userDefinedAttrs: MutableMap<String, Any?> = mutableMapOf()
 
     companion object {
         fun startSpan(
@@ -119,6 +121,85 @@ internal class MsrSpan(
         return this
     }
 
+    override fun setAttribute(key: String, value: String): Span {
+        synchronized(lock) {
+            if (hasEnded != EndState.NotEnded) {
+                logger.log(LogLevel.Warning, "Attempt to set attribute after span ended")
+                return this
+            }
+            this.userDefinedAttrs[key] = value
+        }
+        return this
+    }
+
+    override fun setAttribute(key: String, value: Long): Span {
+        synchronized(lock) {
+            if (hasEnded != EndState.NotEnded) {
+                logger.log(LogLevel.Warning, "Attempt to set attribute after span ended")
+                return this
+            }
+            this.userDefinedAttrs[key] = value
+        }
+        return this
+    }
+
+    override fun setAttribute(key: String, value: Int): Span {
+        synchronized(lock) {
+            if (hasEnded != EndState.NotEnded) {
+                logger.log(LogLevel.Warning, "Attempt to set attribute after span ended")
+                return this
+            }
+            this.userDefinedAttrs[key] = value
+        }
+        return this
+    }
+
+    override fun setAttribute(key: String, value: Double): Span {
+        synchronized(lock) {
+            if (hasEnded != EndState.NotEnded) {
+                logger.log(LogLevel.Warning, "Attempt to set attribute after span ended")
+                return this
+            }
+            this.userDefinedAttrs[key] = value
+        }
+        return this
+    }
+
+    override fun setAttribute(key: String, value: Boolean): Span {
+        synchronized(lock) {
+            if (hasEnded != EndState.NotEnded) {
+                logger.log(LogLevel.Warning, "Attempt to set attribute after span ended")
+                return this
+            }
+            this.userDefinedAttrs[key] = value
+        }
+        return this
+    }
+
+    override fun setAttributes(attributes: Map<String, AttributeValue>): Span {
+        synchronized(lock) {
+            if (hasEnded != EndState.NotEnded) {
+                logger.log(LogLevel.Warning, "Attempt to set attribute after span ended")
+                return this
+            }
+            attributes.forEach { (key, value) ->
+                this.userDefinedAttrs[key] = value.value
+            }
+        }
+        return this
+    }
+
+    override fun removeAttribute(key: String): Span {
+        synchronized(lock) {
+            if (hasEnded != EndState.NotEnded) {
+                logger.log(LogLevel.Warning, "Attempt to remove attribute after span ended")
+                return this
+            }
+            this.userDefinedAttrs.remove(key)
+        }
+        return this
+    }
+
     override fun end(): Span {
         endSpanInternal(timeProvider.now())
         return this
@@ -165,7 +246,7 @@ internal class MsrSpan(
         }
     }
 
-    override fun setAttribute(attribute: Pair<String, Any?>) {
+    override fun setInternalAttribute(attribute: Pair<String, Any?>) {
         synchronized(lock) {
             if (hasEnded != EndState.Ended) {
                 attributes[attribute.first] = attribute.second
@@ -184,6 +265,12 @@ internal class MsrSpan(
         }
     }
 
+    override fun getUserDefinedAttrs(): MutableMap<String, Any?> {
+        synchronized(lock) {
+            return userDefinedAttrs
+        }
+    }
+
     override fun toSpanData(): SpanData {
         synchronized(lock) {
             return SpanData(
@@ -198,6 +285,7 @@ internal class MsrSpan(
                 sessionId = sessionId,
                 checkpoints = checkpoints,
                 attributes = attributes,
+                userDefinedAttrs = userDefinedAttrs,
                 duration = calculateDuration(),
                 isSampled = isSampled,
             )

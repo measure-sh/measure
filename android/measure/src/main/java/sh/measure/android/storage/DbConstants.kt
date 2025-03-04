@@ -334,7 +334,8 @@ internal object Sql {
                 ${SpansTable.COL_DURATION},
                 ${SpansTable.COL_STATUS},
                 ${SpansTable.COL_SERIALIZED_ATTRS},
-                ${SpansTable.COL_SERIALIZED_SPAN_EVENTS}
+                ${SpansTable.COL_SERIALIZED_SPAN_EVENTS},
+                ${SpansTable.COL_SERIALIZED_USER_DEFINED_ATTRS}
             FROM ${SpansTable.TABLE_NAME}
             WHERE ${SpansTable.COL_SPAN_ID} IN (${spanIds.joinToString(", ") { "\'$it\'" }})
         """.trimIndent()

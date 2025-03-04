@@ -455,6 +455,7 @@ internal object TestData {
         status: SpanStatus = SpanStatus.Ok,
         hasEnded: Boolean = true,
         attributes: Map<String, Any?> = emptyMap(),
+        userDefinedAttrs: Map<String, Any?> = emptyMap(),
         checkpoints: MutableList<Checkpoint> = mutableListOf(),
         isSampled: Boolean = true,
     ): SpanData {
@@ -470,6 +471,7 @@ internal object TestData {
             status = status,
             hasEnded = hasEnded,
             attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
             checkpoints = checkpoints,
             isSampled = isSampled,
         )
@@ -513,6 +515,7 @@ internal object TestData {
         status: SpanStatus = SpanStatus.Ok,
         hasEnded: Boolean = true,
         attributes: Map<String, Any?> = emptyMap(),
+        userDefinedAttrs: Map<String, Any?> = emptyMap(),
         checkpoints: MutableList<Checkpoint> = mutableListOf(),
     ): SpanEntity {
         return getSpanData(
@@ -527,6 +530,7 @@ internal object TestData {
             status = status,
             hasEnded = hasEnded,
             attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
             checkpoints = checkpoints,
         ).toSpanEntity()
     }
@@ -544,6 +548,7 @@ internal object TestData {
             status = spanEntity.status.value,
             serializedAttributes = spanEntity.serializedAttributes,
             serializedCheckpoints = spanEntity.serializedCheckpoints,
+            serializedUserDefAttrs = spanEntity.serializedUserDefinedAttrs,
         )
     }
 
