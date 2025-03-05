@@ -173,14 +173,13 @@ Measure.shared.trackScreenView("Home")
 
 # Features
 
+* [App launch](../docs/ios/features/feature_app_launch.md)
 * [Crash tracking](../docs/ios/features/feature_crash_tracking.md)
 * [Network monitoring](../docs/ios/features/feature_network_monitoring.md)
 * [Network changes](../docs/ios/features/feature_network_changes.md)
 * [Gesture tracking](../docs/ios/features/feature_gesture_tracking.md)
 * [Layout Snapshots](../docs/ios/features/feature_layout_snapshots.md)
 * [Navigation & Lifecycle](../docs/ios/features/feature_navigation_and_lifecycle.md)
-* [App Lifecycle](../docs/ios/features/feature_app_lifecycle.md)
-* [App launch](../docs/ios/features/feature_app_launch.md)
 * [CPU monitoring](../docs/ios/features/feature_cpu_monitoring.md)
 * [Memory monitoring](../docs/ios/features/feature_memory_monitoring.md)
 
