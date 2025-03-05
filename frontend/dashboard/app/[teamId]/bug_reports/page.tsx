@@ -117,7 +117,7 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                                 <div className="table-cell w-48 p-4 text-center">Status</div>
                             </div>
                         </div>
-                        <div className="table-row-group font-sans">
+                        <div className="table-row-group font-body">
                             {bugReportsOverview.results?.map(({ event_id, description, status, app_id, timestamp, matched_free_text, attribute }, idx) => (
                                 <Link key={`${idx}-${event_id}`} href={`/${params.teamId}/bug_reports/${app_id}/${event_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
                                     <div className="table-cell p-4">
@@ -135,7 +135,7 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                                     </div>
                                     <div className="table-cell p-4 text-center">
                                         <div className='items-center flex justify-center'>
-                                            <p className={`w-20 px-2 py-1 rounded-full border text-sm font-sans ${status === 0 ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>{status === 0 ? 'Open' : 'Closed'}</p>
+                                            <p className={`w-20 px-2 py-1 rounded-full border text-sm font-body ${status === 0 ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>{status === 0 ? 'Open' : 'Closed'}</p>
                                         </div>
                                     </div>
                                 </Link>

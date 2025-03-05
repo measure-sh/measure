@@ -65,7 +65,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
   }, [exceptionsType, exceptionsGroupId, filters]);
 
   return (
-    <div className="flex border border-black font-sans items-center justify-center w-full h-[32rem]">
+    <div className="flex border border-black font-body items-center justify-center w-full h-[32rem]">
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Loading && <LoadingSpinner />}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}

@@ -42,7 +42,7 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({ appName, exceptionsType, 
   return (
     <button className="flex group relative outline-none justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(llmContext)}>
       Copy AI Context
-      <span className="pointer-events-none z-50 max-w-xl absolute font-sans text-sm text-white rounded-md p-2 bg-neutral-800 -bottom-12 left-0 w-max opacity-0 transition-opacity group-hover:opacity-100">
+      <span className="pointer-events-none z-50 max-w-xl absolute font-body text-sm text-white rounded-md p-2 bg-neutral-800 -bottom-12 left-0 w-max opacity-0 transition-opacity group-hover:opacity-100">
         Copy full exception context for easy pasting in your favorite LLM
       </span>
     </button>

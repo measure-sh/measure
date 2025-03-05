@@ -236,7 +236,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
   }, [selectedNode]);
 
   return (
-    <div className="flex items-center justify-center border border-black text-black font-sans text-sm w-full h-full overflow-hidden">
+    <div className="flex items-center justify-center border border-black text-black font-body text-sm w-full h-full overflow-hidden">
       {journeyApiStatus === JourneyApiStatus.Loading && <LoadingSpinner />}
       {journeyApiStatus === JourneyApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
       {journeyApiStatus === JourneyApiStatus.NoData && <p className="text-lg font-display text-center p-4">No data</p>}
@@ -277,13 +277,13 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
             linkTooltip={({
               link
             }) =>
-              <div className={`flex flex-col p-2 text-xs font-sans rounded bg-neutral-800 text-white max-w-72 break-words`}>
+              <div className={`flex flex-col p-2 text-xs font-body rounded bg-neutral-800 text-white max-w-72 break-words`}>
                 <p className='p-2'>{link.source.id.split(".").pop()} → {link.target.id.split(".").pop()}: {link.value > 1 ? link.value + ' sessions' : link.value + ' session'}</p>
               </div>}
             nodeTooltip={({
               node
             }) =>
-              <div className={`flex flex-col p-2 text-xs font-sans rounded bg-neutral-800 text-white max-w-72 break-words`}>
+              <div className={`flex flex-col p-2 text-xs font-body rounded bg-neutral-800 text-white max-w-72 break-words`}>
                 <p className='p-2'>{node.id}</p>
 
                 {node.issues?.crashes?.length! > 0 &&
@@ -312,13 +312,13 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
                 <p className='mt-6 text-lg'>{selectedNode!.id}</p>
                 {selectedNode.issues?.crashes?.length! > 0 && (
                   <div>
-                    <p className="font-sans text-white mt-4">Crashes:</p>
+                    <p className="font-body text-white mt-4">Crashes:</p>
                     <ul className="list-disc list-inside text-white pt-2 pb-4 pl-2 pr-2">
                       {selectedNode.issues?.crashes?.map(({ id, title, count }) => (
                         <li key={title}>
                           {/* Show clickable link if overview journey type */}
                           {journeyType === JourneyType.Overview &&
-                            <span className="font-sans text-xs">
+                            <span className="font-body text-xs">
                               <Link href={`/${teamId}/crashes/${filters.app.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
                                 {title} - {formatter.format(count)}
                               </Link>
@@ -326,7 +326,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
                           }
                           {/* Show only title and count if crash or anr journey type */}
                           {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
-                            <span className="font-sans text-xs">
+                            <span className="font-body text-xs">
                               {title} - {formatter.format(count)}
                             </span>
                           }
@@ -337,13 +337,13 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
                 )}
                 {selectedNode.issues?.anrs?.length! > 0 && (
                   <div>
-                    <p className="font-sans text-white pt-2">ANRs:</p>
+                    <p className="font-body text-white pt-2">ANRs:</p>
                     <ul className="list-disc list-inside text-white pt-2 pb-4 pl-2 pr-2">
                       {selectedNode.issues?.anrs?.map(({ id, title, count }) => (
                         <li key={title}>
                           {/* Show clickable link if overview journey type */}
                           {journeyType === JourneyType.Overview &&
-                            <span className="font-sans text-xs">
+                            <span className="font-body text-xs">
                               <Link href={`/${teamId}/anrs/${filters.app.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
                                 {title} - {formatter.format(count)}
                               </Link>
@@ -351,7 +351,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
                           }
                           {/* Show only title and count if crash or anr journey type */}
                           {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
-                            <span className="font-sans text-xs">
+                            <span className="font-body text-xs">
                               {title} - {formatter.format(count)}
                             </span>
                           }

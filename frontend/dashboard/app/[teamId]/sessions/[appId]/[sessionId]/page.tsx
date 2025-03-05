@@ -44,11 +44,11 @@ export default function Session({ params }: { params: { teamId: string, appId: s
 
       {sessionTimelineApiStatus === SessionTimelineApiStatus.Success &&
         <div>
-          <p className="font-sans"> User ID: {sessionTimeline.attribute.user_id !== "" ? sessionTimeline.attribute.user_id : "N/A"}</p>
-          <p className="font-sans"> Duration: {formatMillisToHumanReadable(sessionTimeline.duration as unknown as number)}</p>
-          <p className="font-sans"> Device: {sessionTimeline.attribute.device_manufacturer + sessionTimeline.attribute.device_model}</p>
-          <p className="font-sans"> App version: {sessionTimeline.attribute.app_version} ({sessionTimeline.attribute.app_build})</p>
-          <p className="font-sans"> Network type: {sessionTimeline.attribute.network_type}</p>
+          <p className="font-body"> User ID: {sessionTimeline.attribute.user_id !== "" ? sessionTimeline.attribute.user_id : "N/A"}</p>
+          <p className="font-body"> Duration: {formatMillisToHumanReadable(sessionTimeline.duration as unknown as number)}</p>
+          <p className="font-body"> Device: {sessionTimeline.attribute.device_manufacturer + sessionTimeline.attribute.device_model}</p>
+          <p className="font-body"> App version: {sessionTimeline.attribute.app_version} ({sessionTimeline.attribute.app_build})</p>
+          <p className="font-body"> Network type: {sessionTimeline.attribute.network_type}</p>
           <div className="py-6" />
           <SessionTimeline teamId={params.teamId} appId={params.appId} sessionTimeline={sessionTimeline} />
         </div>}

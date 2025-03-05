@@ -42,7 +42,7 @@ exports[`Accordion renders correctly in collapsed state 1`] = `
         </h2>
         <div
           aria-labelledby="accordion-title-ID"
-          class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
+          class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
           id="accordion-text-ID"
           role="region"
         >
@@ -97,7 +97,7 @@ exports[`Accordion renders correctly in collapsed state 1`] = `
       </h2>
       <div
         aria-labelledby="accordion-title-ID"
-        class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
+        class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
         id="accordion-text-ID"
         role="region"
       >
@@ -209,7 +209,7 @@ exports[`Accordion renders correctly in opened state 1`] = `
         </h2>
         <div
           aria-labelledby="accordion-title-ID"
-          class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
+          class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
           id="accordion-text-ID"
           role="region"
         >
@@ -264,7 +264,7 @@ exports[`Accordion renders correctly in opened state 1`] = `
       </h2>
       <div
         aria-labelledby="accordion-title-ID"
-        class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
+        class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
         id="accordion-text-ID"
         role="region"
       >
@@ -376,7 +376,7 @@ exports[`Accordion renders correctly once it's openened and closed again 1`] = `
         </h2>
         <div
           aria-labelledby="accordion-title-ID"
-          class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
+          class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
           id="accordion-text-ID"
           role="region"
         >
@@ -431,7 +431,7 @@ exports[`Accordion renders correctly once it's openened and closed again 1`] = `
       </h2>
       <div
         aria-labelledby="accordion-title-ID"
-        class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
+        class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
         id="accordion-text-ID"
         role="region"
       >
@@ -543,7 +543,7 @@ exports[`Accordion renders correctly once it's openened and closed again 2`] = `
         </h2>
         <div
           aria-labelledby="accordion-title-ID"
-          class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
+          class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
           id="accordion-text-ID"
           role="region"
         >
@@ -598,7 +598,7 @@ exports[`Accordion renders correctly once it's openened and closed again 2`] = `
       </h2>
       <div
         aria-labelledby="accordion-title-ID"
-        class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
+        class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
         id="accordion-text-ID"
         role="region"
       >

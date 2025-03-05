@@ -116,7 +116,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                                 <div className="table-cell w-48 p-4 text-center">Duration</div>
                             </div>
                         </div>
-                        <div className="table-row-group font-sans">
+                        <div className="table-row-group font-body">
                             {sessionsOverview.results?.map(({ session_id, app_id, first_event_time, duration, matched_free_text, attribute }, idx) => (
                                 <Link key={`${idx}-${session_id}`} href={`/${params.teamId}/sessions/${app_id}/${session_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
                                     <div className="table-cell p-4">

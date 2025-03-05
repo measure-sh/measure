@@ -45,12 +45,12 @@ export default function TraceDetails({ params }: { params: { teamId: string, app
 
       {traceApiStatus === TraceApiStatus.Success &&
         <div>
-          <p className="font-sans"> User ID: {trace.user_id !== "" ? trace.user_id : "N/A"}</p>
-          <p className="font-sans"> Start Time: {formatDateToHumanReadableDateTime(trace.start_time)}</p>
-          <p className="font-sans"> Duration: {formatMillisToHumanReadable(trace.duration)}</p>
-          <p className="font-sans"> Device: {trace.device_manufacturer + trace.device_model}</p>
-          <p className="font-sans"> App version: {trace.app_version}</p>
-          <p className="font-sans"> Network type: {trace.network_type}</p>
+          <p className="font-body"> User ID: {trace.user_id !== "" ? trace.user_id : "N/A"}</p>
+          <p className="font-body"> Start Time: {formatDateToHumanReadableDateTime(trace.start_time)}</p>
+          <p className="font-body"> Duration: {formatMillisToHumanReadable(trace.duration)}</p>
+          <p className="font-body"> Device: {trace.device_manufacturer + trace.device_model}</p>
+          <p className="font-body"> App version: {trace.app_version}</p>
+          <p className="font-body"> Network type: {trace.network_type}</p>
           <div className="py-4" />
           <Link href={`/${params.teamId}/sessions/${params.appId}/${trace.session_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session</Link>
           <div className="py-4" />

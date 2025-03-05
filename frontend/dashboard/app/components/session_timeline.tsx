@@ -278,7 +278,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
   });
 
   return (
-    <div className="flex flex-col w-[1100px] font-sans text-black">
+    <div className="flex flex-col w-[1100px] font-body text-black">
       {/* Graphs container */}
       {(cpuData != null || memoryData != null || memoryAbsData != null) &&
         <div className="relative"

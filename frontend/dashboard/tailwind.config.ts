@@ -13,7 +13,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         display: ['var(--font-josefin-sans)'],
-        sans: ['var(--font-space-mono)']
+        body: ['var(--font-space-mono)']
       },
       colors: {
         'redd': '#ff6286'

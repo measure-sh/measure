@@ -116,7 +116,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                                 <div className="table-cell w-48 p-4 text-center">Status</div>
                             </div>
                         </div>
-                        <div className="table-row-group font-sans">
+                        <div className="table-row-group font-body">
                             {spanInstances.results?.map(({ app_id, span_name, span_id, trace_id, status, start_time, duration, app_version, app_build, os_name, os_version, device_manufacturer, device_model }, idx) => (
                                 <Link key={`${idx}-${span_id}`} href={`/${params.teamId}/traces/${app_id}/${trace_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
                                     <div className="table-cell p-4">

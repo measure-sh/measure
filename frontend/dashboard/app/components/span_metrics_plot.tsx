@@ -111,7 +111,7 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
   }, [spanMetricsPlotApiData, quantile]);
 
   return (
-    <div className="flex border border-black font-sans items-center justify-center w-full h-[36rem]">
+    <div className="flex border border-black font-body items-center justify-center w-full h-[36rem]">
       {spanMetricsPlotApiStatus === SpanMetricsPlotApiStatus.Loading && <LoadingSpinner />}
       {spanMetricsPlotApiStatus === SpanMetricsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {spanMetricsPlotApiStatus === SpanMetricsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
