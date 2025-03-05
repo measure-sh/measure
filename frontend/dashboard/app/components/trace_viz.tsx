@@ -214,7 +214,7 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
   }
 
   return (
-    <div className="flex flex-col w-[1100px] h-[600px] relative font-sans text-black border border-black rounded-md overflow-hidden">
+    <div className="flex flex-col w-[1100px] h-[600px] relative font-body text-black border border-black rounded-md overflow-hidden">
 
       {/* timing indicator */}
       <div className='w-[800px] ml-[300px] flex flex-row justify-between p-[8px]'>

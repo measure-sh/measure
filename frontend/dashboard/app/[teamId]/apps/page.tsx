@@ -170,7 +170,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       {filters.ready &&
         <div>
           {/* Modal for confirming app name change */}
-          <DangerConfirmationModal body={<p className="font-sans">Are you sure you want to rename app <span className="font-display font-bold">{filters.app.name}</span> to <span className="font-display font-bold">{appName}</span>?</p>} open={appNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to rename app <span className="font-display font-bold">{filters.app.name}</span> to <span className="font-display font-bold">{appName}</span>?</p>} open={appNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
               setAppNameConfirmationModalOpen(false)
               changeAppName()
@@ -178,7 +178,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             onCancelAction={() => setAppNameConfirmationModalOpen(false)}
           />
 
-          <div className="font-sans">
+          <div className="font-body">
             <div className="flex flex-col">
               <div className="flex flex-row items-center">
                 <p>App name:</p>
@@ -189,7 +189,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                     setAppName(event.target.value)
                     setAppNameChangeApiStatus(AppNameChangeApiStatus.Init)
                   }}
-                  className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" />
+                  className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400" />
                 <button disabled={saveAppNameButtonDisabled || appNameChangeApiStatus === AppNameChangeApiStatus.Loading} className="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => setAppNameConfirmationModalOpen(true)}>Save</button>
                 {appNameChangeApiStatus === AppNameChangeApiStatus.Loading && <p className="text-sm align-bottom font-display">Changing app name...</p>}
                 {appNameChangeApiStatus === AppNameChangeApiStatus.Error && <p className="text-sm align-bottom font-display">Error changing app name, please try again</p>}
@@ -208,18 +208,18 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success && <DropdownSelect type={DropdownSelectType.SingleString} title="Data Retention Period" items={Array.from(retentionPeriodToDisplayTextMap.values())} initialSelected={retentionPeriodToDisplayTextMap.get(appSettings.retention_period!)!} onChangeSelected={(item) => handleRetentionPeriodChange(item as string)} />}
               {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success && <button className="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" disabled={!currentUserCanChangeAppSettings || updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading || appSettings.retention_period === updatedAppSettings.retention_period} onClick={() => saveAppSettings()}>Save</button>}
               <div className="py-1" />
-              {updateAppSettingsApiStatus !== UpdateAppSettingsApiStatus.Init && <p className="text-sm font-sans">{updateAppSettingsMsg}</p>}
+              {updateAppSettingsApiStatus !== UpdateAppSettingsApiStatus.Init && <p className="text-sm font-body">{updateAppSettingsMsg}</p>}
             </div>
             <div className="flex flex-row items-center">
               <p>Base URL</p>
               <div className="px-2" />
-              <input type="text" readOnly={true} value={process.env.NEXT_PUBLIC_API_BASE_URL} className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" />
+              <input type="text" readOnly={true} value={process.env.NEXT_PUBLIC_API_BASE_URL} className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400" />
               <button className="m-4 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(process.env.NEXT_PUBLIC_API_BASE_URL!)}>Copy</button>
             </div>
             <div className="flex flex-row items-center">
               <p>API key</p>
               <div className="px-3" />
-              <input type="text" readOnly={true} value={filters.app.api_key.key} className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" />
+              <input type="text" readOnly={true} value={filters.app.api_key.key} className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400" />
               <button className="mx-4 my-1 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(filters.app.api_key.key)}>Copy</button>
             </div>
           </div>

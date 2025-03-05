@@ -14,7 +14,7 @@ exports[`FilterPill renders correctly 1`] = `
           TITLE
         </p>
         <span
-          class="pointer-events-none z-50 absolute max-w-xl w-max font-sans text-xs text-white rounded-md p-4 bg-neutral-800 left-0 top-0 transform translate-y-8 opacity-0 transition-opacity group-hover:opacity-100"
+          class="pointer-events-none z-50 absolute max-w-xl w-max font-body text-xs text-white rounded-md p-4 bg-neutral-800 left-0 top-0 transform translate-y-8 opacity-0 transition-opacity group-hover:opacity-100"
         >
           TITLE
         </span>
@@ -31,7 +31,7 @@ exports[`FilterPill renders correctly 1`] = `
         TITLE
       </p>
       <span
-        class="pointer-events-none z-50 absolute max-w-xl w-max font-sans text-xs text-white rounded-md p-4 bg-neutral-800 left-0 top-0 transform translate-y-8 opacity-0 transition-opacity group-hover:opacity-100"
+        class="pointer-events-none z-50 absolute max-w-xl w-max font-body text-xs text-white rounded-md p-4 bg-neutral-800 left-0 top-0 transform translate-y-8 opacity-0 transition-opacity group-hover:opacity-100"
       >
         TITLE
       </span>

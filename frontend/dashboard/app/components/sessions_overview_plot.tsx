@@ -67,7 +67,7 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) 
   }, [filters]);
 
   return (
-    <div className="flex border border-black font-sans items-center justify-center w-full h-[36rem]">
+    <div className="flex border border-black font-body items-center justify-center w-full h-[36rem]">
       {sessionsOverviewPlotApiStatus === SessionsOverviewPlotApiStatus.Loading && <LoadingSpinner />}
       {sessionsOverviewPlotApiStatus === SessionsOverviewPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {sessionsOverviewPlotApiStatus === SessionsOverviewPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}

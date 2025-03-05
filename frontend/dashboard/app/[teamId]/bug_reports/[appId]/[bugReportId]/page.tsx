@@ -65,23 +65,23 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
 
       {bugReportApiStatus === BugReportApiStatus.Success &&
         <div>
-          <p className={`w-fit px-2 py-1 rounded-full border text-sm font-sans ${bugReport.status === 0 ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>{bugReport.status === 0 ? 'Open' : 'Closed'}</p>
+          <p className={`w-fit px-2 py-1 rounded-full border text-sm font-body ${bugReport.status === 0 ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>{bugReport.status === 0 ? 'Open' : 'Closed'}</p>
           <div className="py-2" />
-          <p className="font-sans"> User ID: {bugReport.attribute.user_id !== "" ? bugReport.attribute.user_id : "N/A"}</p>
-          <p className="font-sans"> Time: {formatDateToHumanReadableDateTime(bugReport.timestamp)}</p>
-          <p className="font-sans"> Device: {bugReport.attribute.device_manufacturer + bugReport.attribute.device_model}</p>
-          <p className="font-sans"> App version: {bugReport.attribute.app_version} ({bugReport.attribute.app_build})</p>
-          <p className="font-sans"> Network type: {bugReport.attribute.network_type}</p>
+          <p className="font-body"> User ID: {bugReport.attribute.user_id !== "" ? bugReport.attribute.user_id : "N/A"}</p>
+          <p className="font-body"> Time: {formatDateToHumanReadableDateTime(bugReport.timestamp)}</p>
+          <p className="font-body"> Device: {bugReport.attribute.device_manufacturer + bugReport.attribute.device_model}</p>
+          <p className="font-body"> App version: {bugReport.attribute.app_version} ({bugReport.attribute.app_build})</p>
+          <p className="font-body"> Network type: {bugReport.attribute.network_type}</p>
           {bugReport.user_defined_attribute !== undefined && bugReport.user_defined_attribute !== null && (
             <div key="user_defined_attribute">
               {Object.entries(bugReport.user_defined_attribute).map(([attrKey, attrValue]) => (
-                <p key={attrKey + ":" + attrValue} className="font-sans"> {attrKey}: {attrValue?.toString()}</p>
+                <p key={attrKey + ":" + attrValue} className="font-body"> {attrKey}: {attrValue?.toString()}</p>
               ))}
             </div>
           )}
 
           <div className="py-6" />
-          {bugReport.description && <p className="font-sans text-lg">{bugReport.description}</p>}
+          {bugReport.description && <p className="font-body text-lg">{bugReport.description}</p>}
           <div className="py-8" />
           <div className="flex flex-row">
             <Link href={`/${params.teamId}/sessions/${params.appId}/${bugReport.session_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session</Link>

@@ -129,7 +129,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
           {(exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Success || exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading) &&
             <div className='flex flex-col'>
               <div className="flex flex-col md:flex-row md:items-center w-full">
-                <p className="font-sans text-3xl"> Stack traces</p>
+                <p className="font-body text-3xl"> Stack traces</p>
                 <div className="grow" />
                 <Paginator prevEnabled={exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading ? false : exceptionsDetails.meta.previous} nextEnabled={exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading ? false : exceptionsDetails.meta.next} displayText=""
                   onNext={() => {
@@ -149,10 +149,10 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
               {exceptionsDetails.results?.length > 0 &&
                 <div className={`${exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading ? 'invisible' : 'visible'}`}>
                   <p className="font-display text-xl"> Id: {exceptionsDetails.results[0].id}</p>
-                  <p className="font-sans"> Date & time: {formatDateToHumanReadableDateTime(exceptionsDetails.results[0].timestamp)}</p>
-                  <p className="font-sans"> Device: {exceptionsDetails.results[0].attribute.device_manufacturer + exceptionsDetails.results[0].attribute.device_model}</p>
-                  <p className="font-sans"> App version: {exceptionsDetails.results[0].attribute.app_version}</p>
-                  <p className="font-sans"> Network type: {exceptionsDetails.results[0].attribute.network_type}</p>
+                  <p className="font-body"> Date & time: {formatDateToHumanReadableDateTime(exceptionsDetails.results[0].timestamp)}</p>
+                  <p className="font-body"> Device: {exceptionsDetails.results[0].attribute.device_manufacturer + exceptionsDetails.results[0].attribute.device_model}</p>
+                  <p className="font-body"> App version: {exceptionsDetails.results[0].attribute.app_version}</p>
+                  <p className="font-body"> Network type: {exceptionsDetails.results[0].attribute.network_type}</p>
                   {/* show screenshots if they exist */}
                   {exceptionsDetails.results[0].attachments !== undefined && exceptionsDetails.results[0].attachments !== null && exceptionsDetails.results[0].attachments.length > 0 &&
                     <div className='flex mt-8 flex-wrap gap-8 items-center'>

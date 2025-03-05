@@ -135,7 +135,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
                 <div className="table-cell w-48 p-4 text-center">Percentage contribution</div>
               </div>
             </div>
-            <div className="table-row-group font-sans">
+            <div className="table-row-group font-body">
               {exceptionsOverview.results?.map(({ id, type, message, method_name, file_name, line_number, count, percentage_contribution }) => (
                 <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${filters.app.id}/${id}/${type + (file_name !== "" ? "@" + file_name : "")}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
                   <div className="table-cell p-4">

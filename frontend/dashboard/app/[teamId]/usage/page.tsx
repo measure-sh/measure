@@ -128,7 +128,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         </div>}
 
       {/* Main UI */}
-      {fetchUsageApiStatus === FetchUsageApiStatus.Loading && <p className='font-sans'> Fetching usage data...</p>}
+      {fetchUsageApiStatus === FetchUsageApiStatus.Loading && <p className='font-body'> Fetching usage data...</p>}
       {fetchUsageApiStatus === FetchUsageApiStatus.Success &&
         <div className="flex flex-col items-start">
           <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={months!} initialSelected={selectedMonth!} onChangeSelected={(item) => setSelectedMonth(item as string)} />

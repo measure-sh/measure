@@ -58,7 +58,7 @@ export default function Home() {
         <div className="py-16" />
         <p className="font-display font-regular text-black text-8xl max-w-6xl text-center">measure</p>
         <div className="py-2" />
-        <p className="text-lg leading-relaxed font-sans text-black max-w-4xl text-center">open source tool to monitor mobile apps</p>
+        <p className="text-lg leading-relaxed font-body text-black max-w-4xl text-center">open source tool to monitor mobile apps</p>
         <div className="py-8" />
         <div className='w-80 h-80 md:w-[56rem] md:h-[40rem]'>
           <Lottie animationData={landingHeroAnim} />
@@ -68,7 +68,7 @@ export default function Home() {
           <div className="flex flex-col items-center max-w-4xl">
             <p className="text-6xl font-regular text-black font-display text-center">Session Timelines</p>
             <div className="py-2" />
-            <p className="text-lg text-center leading-relaxed font-sans text-black">Debug issues easily with full session timelines. Get the complete context with automatic tracking for clicks, navigations, http calls and more.</p>
+            <p className="text-lg text-center leading-relaxed font-body text-black">Debug issues easily with full session timelines. Get the complete context with automatic tracking for clicks, navigations, http calls and more.</p>
           </div>
           <div className="py-8" />
           <div className='border border-cyan-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-cyan-200'>
@@ -96,7 +96,7 @@ export default function Home() {
           <div className="flex flex-col items-center max-w-4xl">
             <p className="text-6xl font-regular text-black font-display text-center">Performance Traces</p>
             <div className="py-2" />
-            <p className="text-lg text-center leading-relaxed font-sans text-black">Analyze app performance with traces and spans. Break down complex issues and intelligently smoothen out bottlenecks.</p>
+            <p className="text-lg text-center leading-relaxed font-body text-black">Analyze app performance with traces and spans. Break down complex issues and intelligently smoothen out bottlenecks.</p>
           </div>
           <div className="py-8" />
           <div className='border border-pink-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-pink-200'>
@@ -124,7 +124,7 @@ export default function Home() {
           <div className="flex flex-col items-center max-w-4xl">
             <p className="text-6xl font-regular text-black font-display text-center">User Journeys</p>
             <div className="py-2" />
-            <p className="text-lg text-center leading-relaxed font-sans text-black">Understand how users move through your app. Easily visualise screens most affected by issues.</p>
+            <p className="text-lg text-center leading-relaxed font-body text-black">Understand how users move through your app. Easily visualise screens most affected by issues.</p>
           </div>
           <div className="py-8" />
           <div className='border border-emerald-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-emerald-200'>
@@ -152,7 +152,7 @@ export default function Home() {
           <div className="flex flex-col items-center max-w-4xl">
             <p className="text-6xl font-regular text-black font-display text-center">App Health</p>
             <div className="py-2" />
-            <p className="text-lg text-center leading-relaxed font-sans text-black">Monitor important metrics to stay on top of app health. Quickly see deltas to make sure you&apos;re moving in the right direction.</p>
+            <p className="text-lg text-center leading-relaxed font-body text-black">Monitor important metrics to stay on top of app health. Quickly see deltas to make sure you&apos;re moving in the right direction.</p>
           </div>
           <div className="py-8" />
           <div className='border border-violet-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-violet-200'>
@@ -180,7 +180,7 @@ export default function Home() {
           <div className="flex flex-col items-center max-w-4xl">
             <p className="text-6xl font-regular text-black font-display text-center">Crashes and ANRs</p>
             <div className="py-2" />
-            <p className="text-lg text-center leading-relaxed font-sans text-black">Automatically track Crashes and ANRs. Dive deeper with screenshots, filters and detailed stacktraces.</p>
+            <p className="text-lg text-center leading-relaxed font-body text-black">Automatically track Crashes and ANRs. Dive deeper with screenshots, filters and detailed stacktraces.</p>
           </div>
           <div className="py-8" />
           <div className='border border-rose-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-rose-200'>
@@ -206,7 +206,7 @@ export default function Home() {
         <div className="py-12 md:py-16" />
         <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Open Source and Self hosted</p>
         <div className="py-4" />
-        <p className="text-lg text-center leading-relaxed max-w-4xl font-sans text-black">Your data never leaves your servers. Open Source with a welcoming community led by experienced mobile devs who&apos;ve shipped apps to hundreds of millions of users since the early days of iOS and Android.</p>
+        <p className="text-lg text-center leading-relaxed max-w-4xl font-body text-black">Your data never leaves your servers. Open Source with a welcoming community led by experienced mobile devs who&apos;ve shipped apps to hundreds of millions of users since the early days of iOS and Android.</p>
         <div className="py-16" />
         <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Measure on every platform</p>
         <div className="py-4 md:py-8" />
@@ -231,7 +231,7 @@ export default function Home() {
           </div>
         </div>
         <div className="py-12 md:py-16" />
-        <p className="font-sans text-black text-lg leading-relaxed max-w-4xl text-center">Let&apos;s get to the root cause:</p>
+        <p className="font-body text-black text-lg leading-relaxed max-w-4xl text-center">Let&apos;s get to the root cause:</p>
         <div className="py-2" />
         <Link href="https://github.com/measure-sh/measure" className='m-4 outline-none flex flex-row place-items-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4'>
           <Image
