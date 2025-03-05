@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump nanoid from 3.3.7 to 3.3.8 in /frontend/dashboard (#1708)
 - (**deps**): Bump golang.org/x/crypto in /backend/cleanup (#1707)
 - (**deps**): Bump golang.org/x/crypto in /backend/api (#1701)
+- (**frontend**): Change font-sans to font-body
 - (**frontend**): Refactor details link fetch in session timeline event details
 - (**frontend**): Rename session 'replay' to 'timeline'
 - (**frontend**): Remove 'font-regular'
