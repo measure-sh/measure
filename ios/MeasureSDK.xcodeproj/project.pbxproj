@@ -11,8 +11,6 @@
 		520C23972D65EBFD00F1C680 /* MeasureModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 520C23942D65EBFC00F1C680 /* MeasureModel.xcdatamodeld */; };
 		523C1AC52C6B1B850081D1CC /* CrashReporter in Frameworks */ = {isa = PBXBuildFile; productRef = 523C1AC42C6B1B850081D1CC /* CrashReporter */; };
 		524CC5C32C6A4B12001AB506 /* MeasureSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* MeasureSDK.framework */; };
-		526D18212D5A1913009A2E90 /* MSRViewController.h in Headers */ = {isa = PBXBuildFile; fileRef = 526D17922D5A1913009A2E90 /* MSRViewController.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		526D18222D5A1913009A2E90 /* MSRViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 526D17942D5A1913009A2E90 /* MSRViewController.m */; };
 		526D18232D5A1913009A2E90 /* AppLaunchCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17962D5A1913009A2E90 /* AppLaunchCollector.swift */; };
 		526D18242D5A1913009A2E90 /* AppLaunchEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17972D5A1913009A2E90 /* AppLaunchEvents.swift */; };
 		526D18252D5A1913009A2E90 /* LaunchCallbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17982D5A1913009A2E90 /* LaunchCallbacks.swift */; };
@@ -210,7 +208,6 @@
 		52B7F1982D76AFBB001498BC /* SessionOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F18C2D76AFBB001498BC /* SessionOb+CoreDataProperties.swift */; };
 		52B7F1992D76AFBB001498BC /* BatchOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F18D2D76AFBB001498BC /* BatchOb+CoreDataClass.swift */; };
 		52B7F19A2D76AFBB001498BC /* BatchOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F18E2D76AFBB001498BC /* BatchOb+CoreDataProperties.swift */; };
-		52B7F19C2D76B423001498BC /* LifecycleManager_Internal.h in Headers */ = {isa = PBXBuildFile; fileRef = 52B7F19B2D76B423001498BC /* LifecycleManager_Internal.h */; };
 		52BCF20A2CB59FBF003102DF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF2092CB59FBF003102DF /* AppDelegate.swift */; };
 		52BCF20C2CB59FBF003102DF /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF20B2CB59FBF003102DF /* SceneDelegate.swift */; };
 		52BCF20E2CB59FBF003102DF /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF20D2CB59FBF003102DF /* ViewController.swift */; };
@@ -360,8 +357,6 @@
 		524576782CC260FE00B288E5 /* CoreTelephony.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreTelephony.framework; path = System/Library/Frameworks/CoreTelephony.framework; sourceTree = SDKROOT; };
 		524CC5BA2C6A4B11001AB506 /* MeasureSDK.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MeasureSDK.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		524CC5C22C6A4B12001AB506 /* MeasureSDKTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MeasureSDKTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		526D17922D5A1913009A2E90 /* MSRViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MSRViewController.h; sourceTree = "<group>"; };
-		526D17942D5A1913009A2E90 /* MSRViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MSRViewController.m; sourceTree = "<group>"; };
 		526D17962D5A1913009A2E90 /* AppLaunchCollector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppLaunchCollector.swift; sourceTree = "<group>"; };
 		526D17972D5A1913009A2E90 /* AppLaunchEvents.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppLaunchEvents.swift; sourceTree = "<group>"; };
 		526D17982D5A1913009A2E90 /* LaunchCallbacks.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LaunchCallbacks.swift; sourceTree = "<group>"; };
@@ -551,7 +546,6 @@
 		52B7F18C2D76AFBB001498BC /* SessionOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		52B7F18D2D76AFBB001498BC /* BatchOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BatchOb+CoreDataClass.swift"; sourceTree = "<group>"; };
 		52B7F18E2D76AFBB001498BC /* BatchOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BatchOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
-		52B7F19B2D76B423001498BC /* LifecycleManager_Internal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LifecycleManager_Internal.h; sourceTree = "<group>"; };
 		52BCF2072CB59FBF003102DF /* TestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		52BCF2092CB59FBF003102DF /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		52BCF20B2CB59FBF003102DF /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -654,24 +648,6 @@
 				52D51A872CCE8601008F30A6 /* SwiftUIDemo.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		526D17932D5A1913009A2E90 /* include */ = {
-			isa = PBXGroup;
-			children = (
-				526D17922D5A1913009A2E90 /* MSRViewController.h */,
-			);
-			path = include;
-			sourceTree = "<group>";
-		};
-		526D17952D5A1913009A2E90 /* Objc */ = {
-			isa = PBXGroup;
-			children = (
-				526D17932D5A1913009A2E90 /* include */,
-				526D17942D5A1913009A2E90 /* MSRViewController.m */,
-				52B7F19B2D76B423001498BC /* LifecycleManager_Internal.h */,
-			);
-			path = Objc;
 			sourceTree = "<group>";
 		};
 		526D179A2D5A1913009A2E90 /* AppLaunch */ = {
@@ -960,7 +936,6 @@
 		526D181D2D5A1913009A2E90 /* MeasureSDK */ = {
 			isa = PBXGroup;
 			children = (
-				526D17952D5A1913009A2E90 /* Objc */,
 				526D181C2D5A1913009A2E90 /* Swift */,
 			);
 			path = MeasureSDK;
@@ -1255,8 +1230,6 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				52B7F19C2D76B423001498BC /* LifecycleManager_Internal.h in Headers */,
-				526D18212D5A1913009A2E90 /* MSRViewController.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1563,7 +1536,6 @@
 				526D18522D5A1913009A2E90 /* ThreadDetail.swift in Sources */,
 				526D18362D5A1913009A2E90 /* MeasureConfig.swift in Sources */,
 				526D18542D5A1913009A2E90 /* EventExporter.swift in Sources */,
-				526D18222D5A1913009A2E90 /* MSRViewController.m in Sources */,
 				526D184F2D5A1913009A2E90 /* Exception.swift in Sources */,
 				526D18812D5A1913009A2E90 /* Constants.swift in Sources */,
 				526D18332D5A1913009A2E90 /* ConfigLoader.swift in Sources */,
