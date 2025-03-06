@@ -412,9 +412,9 @@ func FetchTracesForSessionId(ctx context.Context, appId uuid.UUID, sessionID uui
 	return
 }
 
-// GetSpanInstancesWithFilter provides list of span instances that matches various
+// GetSpansForSpanNameWithFilter provides list of spans for the given span name that matches various
 // filter criteria in a paginated fashion.
-func GetSpanInstancesWithFilter(ctx context.Context, spanName string, af *filter.AppFilter) (rootSpans []RootSpanDisplay, next, previous bool, err error) {
+func GetSpansForSpanNameWithFilter(ctx context.Context, spanName string, af *filter.AppFilter) (rootSpans []RootSpanDisplay, next, previous bool, err error) {
 	stmt := sqlf.
 		Select("app_id").
 		Select("toString(span_name)").
@@ -540,9 +540,9 @@ func GetSpanInstancesWithFilter(ctx context.Context, spanName string, af *filter
 	return
 }
 
-// GetSpanMetricsPlotWithFilter provides p50, p90, p95 and p99 duration metrics
-// for the given span with the applied filtering criteria
-func GetSpanMetricsPlotWithFilter(ctx context.Context, spanName string, af *filter.AppFilter) (spanMetricsPlotInstances []SpanMetricsPlotInstance, err error) {
+// GetMetricsPlotForSpanNameWithFilter provides p50, p90, p95 and p99 duration metrics
+// for the given span name with the applied filtering criteria
+func GetMetricsPlotForSpanNameWithFilter(ctx context.Context, spanName string, af *filter.AppFilter) (spanMetricsPlotInstances []SpanMetricsPlotInstance, err error) {
 	stmt := sqlf.From("span_metrics").
 		Select("concat(tupleElement(app_version, 1), ' ', '(', tupleElement(app_version, 2), ')') app_version_fmt").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) datetime", af.Timezone).

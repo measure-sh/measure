@@ -35,7 +35,7 @@ export enum SpanMetricsPlotApiStatus {
   Cancelled
 }
 
-export enum SpanInstancesApiStatus {
+export enum SpansApiStatus {
   Loading,
   Success,
   Error,
@@ -426,7 +426,7 @@ export const emptySessionsOverviewResponse = {
   }[]
 }
 
-export const emptySpanInstancesResponse = {
+export const emptySpansResponse = {
   "meta": {
     "next": false,
     "previous": false
@@ -1176,10 +1176,10 @@ export const fetchRootSpanNamesFromServer = async (selectedApp: typeof emptyApp,
   }
 }
 
-export const fetchSpanInstancesFromServer = async (filters: Filters, limit: number, offset: number, router: AppRouterInstance) => {
+export const fetchSpansFromServer = async (filters: Filters, limit: number, offset: number, router: AppRouterInstance) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-  var url = `${origin}/apps/${filters.app.id}/spans/instances?`
+  var url = `${origin}/apps/${filters.app.id}/spans?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null, limit, offset)
 
@@ -1188,21 +1188,21 @@ export const fetchSpanInstancesFromServer = async (filters: Filters, limit: numb
 
     if (!res.ok) {
       logoutIfAuthError(auth, router, res)
-      return { status: SpanInstancesApiStatus.Error, data: null }
+      return { status: SpansApiStatus.Error, data: null }
     }
 
     const data = await res.json()
 
-    return { status: SpanInstancesApiStatus.Success, data: data }
+    return { status: SpansApiStatus.Success, data: data }
   } catch {
-    return { status: SpanInstancesApiStatus.Cancelled, data: null }
+    return { status: SpansApiStatus.Cancelled, data: null }
   }
 }
 
 export const fetchSpanMetricsPlotFromServer = async (filters: Filters, router: AppRouterInstance) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-  var url = `${origin}/apps/${filters.app.id}/spans/plot?`
+  var url = `${origin}/apps/${filters.app.id}/spans/plots/metrics?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 

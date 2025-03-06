@@ -119,12 +119,12 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-21)
     - [Response Body](#response-body-21)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-21)
-  - [GET `/apps/:id/spans/instances`](#get-appsidspansinstances)
+  - [GET `/apps/:id/spans`](#get-appsidspans)
     - [Usage Notes](#usage-notes-22)
     - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-22)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-22)
-  - [GET `/apps/:id/spans/plot`](#get-appsidspansplot)
+  - [GET `/apps/:id/spans/plots/metrics`](#get-appsidspansplotsmetrics)
     - [Usage Notes](#usage-notes-23)
     - [Authorization \& Content Type](#authorization--content-type-23)
     - [Response Body](#response-body-23)
@@ -240,8 +240,8 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**PATCH `/apps/:id/settings`**](#patch-appsidsettings) - Update an app's settings.
 - [**POST `/apps/:id/shortFilters`**](#post-appsidshortfilters) - Create a shortcode to represent a combination of various app filters.
 - [**GET `/apps/:id/spans/roots/names`**](#get-appsidspansrootsnames) - Fetch an app's root span names list with optional filters.
-- [**GET `/apps/:id/spans/instances`**](#get-appsidspansinstances) - Fetch an span's list of instances with optional filters.
-- [**GET `/apps/:id/spans/plot`**](#get-appsidspansplot) - Fetch an span's metrics plot with optional filters.
+- [**GET `/apps/:id/spans`**](#get-appsidspans) - Fetch a span's list of instances with optional filters.
+- [**GET `/apps/:id/spans/plots/metrics`**](#get-appsidspansplotsmetrics) - Fetch a span's metrics plot with optional filters.
 - [**GET `/apps/:id/traces/:traceId`**](#get-appsidtracestraceid) - Fetch a trace.
 - [**GET `/apps/:id/bugReports`**](#get-appsidbugreports) - Fetch an app's bug reports with optional filters.
 - [**GET `/apps/:id/bugReports/plots/instances`**](#get-appsidbugreportsplotsinstances) - Fetch an app's bug report instances plot with optional filters.
@@ -3628,9 +3628,9 @@ List of HTTP status codes for success and failures.
 
 </details>
 
-### GET `/apps/:id/spans/instances`
+### GET `/apps/:id/spans`
 
-Fetch an span's list of instances with optional filters.
+Fetch a span's list of instances with optional filters.
 
 #### Usage Notes
 
@@ -3767,9 +3767,9 @@ List of HTTP status codes for success and failures.
 
 </details>
 
-### GET `/apps/:id/spans/plot`
+### GET `/apps/:id/spans/plots/metrics`
 
-Fetch an span's metrics plot with optional filters.
+Fetch a span's metrics plot with optional filters.
 
 #### Usage Notes
 
