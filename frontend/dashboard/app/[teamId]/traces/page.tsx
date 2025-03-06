@@ -1,6 +1,6 @@
 "use client"
 
-import { FiltersApiType, emptySpanInstancesResponse, SpanInstancesApiStatus, fetchSpanInstancesFromServer } from '@/app/api/api_calls';
+import { FiltersApiType, emptySpansResponse, SpansApiStatus, fetchSpansFromServer } from '@/app/api/api_calls';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
 import LoadingBar from '@/app/components/loading_bar';
 import Paginator from '@/app/components/paginator';
@@ -15,23 +15,23 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
 
     const [filters, setFilters] = useState(defaultFilters);
 
-    const [spanInstances, setSpanInstances] = useState(emptySpanInstancesResponse);
-    const [spanInstancesApiStatus, setSpanInstancesApiStatus] = useState(SpanInstancesApiStatus.Loading)
+    const [spans, setSpans] = useState(emptySpansResponse);
+    const [spansApiStatus, setSpansApiStatus] = useState(SpansApiStatus.Loading)
     const paginationLimit = 5
     const [paginationOffset, setPaginationOffset] = useState(0)
 
     const getSpanInstances = async () => {
-        setSpanInstancesApiStatus(SpanInstancesApiStatus.Loading)
+        setSpansApiStatus(SpansApiStatus.Loading)
 
-        const result = await fetchSpanInstancesFromServer(filters, paginationLimit, paginationOffset, router)
+        const result = await fetchSpansFromServer(filters, paginationLimit, paginationOffset, router)
 
         switch (result.status) {
-            case SpanInstancesApiStatus.Error:
-                setSpanInstancesApiStatus(SpanInstancesApiStatus.Error)
+            case SpansApiStatus.Error:
+                setSpansApiStatus(SpansApiStatus.Error)
                 break
-            case SpanInstancesApiStatus.Success:
-                setSpanInstancesApiStatus(SpanInstancesApiStatus.Success)
-                setSpanInstances(result.data)
+            case SpansApiStatus.Success:
+                setSpansApiStatus(SpansApiStatus.Success)
+                setSpans(result.data)
                 break
         }
     }
@@ -84,19 +84,19 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
 
             {/* Error state for sessions fetch */}
             {filters.ready
-                && spanInstancesApiStatus === SpanInstancesApiStatus.Error
+                && spansApiStatus === SpansApiStatus.Error
                 && <p className="text-lg font-display">Error fetching list of traces, please change filters, refresh page or select a different app to try again</p>}
 
             {/* Main root spans list UI */}
             {filters.ready
-                && (spanInstancesApiStatus === SpanInstancesApiStatus.Success || spanInstancesApiStatus === SpanInstancesApiStatus.Loading) &&
+                && (spansApiStatus === SpansApiStatus.Success || spansApiStatus === SpansApiStatus.Loading) &&
                 <div className="flex flex-col items-center w-full">
                     <div className="py-4" />
                     <SpanMetricsPlot
                         filters={filters} />
                     <div className="py-4" />
                     <div className='self-end'>
-                        <Paginator prevEnabled={spanInstancesApiStatus === SpanInstancesApiStatus.Loading ? false : spanInstances.meta.previous} nextEnabled={spanInstancesApiStatus === SpanInstancesApiStatus.Loading ? false : spanInstances.meta.next} displayText=''
+                        <Paginator prevEnabled={spansApiStatus === SpansApiStatus.Loading ? false : spans.meta.previous} nextEnabled={spansApiStatus === SpansApiStatus.Loading ? false : spans.meta.next} displayText=''
                             onNext={() => {
                                 setPaginationOffset(paginationOffset + paginationLimit)
                             }}
@@ -104,7 +104,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                                 setPaginationOffset(paginationOffset - paginationLimit)
                             }} />
                     </div>
-                    <div className={`py-1 w-full ${spanInstancesApiStatus === SpanInstancesApiStatus.Loading ? 'visible' : 'invisible'}`}>
+                    <div className={`py-1 w-full ${spansApiStatus === SpansApiStatus.Loading ? 'visible' : 'invisible'}`}>
                         <LoadingBar />
                     </div>
                     <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
@@ -117,7 +117,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                             </div>
                         </div>
                         <div className="table-row-group font-body">
-                            {spanInstances.results?.map(({ app_id, span_name, span_id, trace_id, status, start_time, duration, app_version, app_build, os_name, os_version, device_manufacturer, device_model }, idx) => (
+                            {spans.results?.map(({ app_id, span_name, span_id, trace_id, status, start_time, duration, app_version, app_build, os_name, os_version, device_manufacturer, device_model }, idx) => (
                                 <Link key={`${idx}-${span_id}`} href={`/${params.teamId}/traces/${app_id}/${trace_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
                                     <div className="table-cell p-4">
                                         <p className='truncate'>{span_name}</p>

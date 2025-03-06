@@ -5592,7 +5592,7 @@ func GetRootSpanNames(c *gin.Context) {
 	})
 }
 
-func GetSpanInstances(c *gin.Context) {
+func GetSpansForSpanName(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -5707,7 +5707,7 @@ func GetSpanInstances(c *gin.Context) {
 		return
 	}
 
-	spans, next, previous, err := span.GetSpanInstancesWithFilter(ctx, spanName, &af)
+	spans, next, previous, err := span.GetSpansForSpanNameWithFilter(ctx, spanName, &af)
 	if err != nil {
 		msg := "failed to get app's root spans"
 		fmt.Println(msg, err)
@@ -5724,7 +5724,7 @@ func GetSpanInstances(c *gin.Context) {
 	})
 }
 
-func GetSpanMetricsPlot(c *gin.Context) {
+func GetMetricsPlotForSpanName(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -5839,7 +5839,7 @@ func GetSpanMetricsPlot(c *gin.Context) {
 		return
 	}
 
-	spanMetricsPlotInstances, err := span.GetSpanMetricsPlotWithFilter(ctx, spanName, &af)
+	spanMetricsPlotInstances, err := span.GetMetricsPlotForSpanNameWithFilter(ctx, spanName, &af)
 	if err != nil {
 		msg := "failed to get span's plot"
 		fmt.Println(msg, err)
