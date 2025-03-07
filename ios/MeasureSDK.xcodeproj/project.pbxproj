@@ -1373,6 +1373,7 @@
 				52F377352CB41DDF006147E8 /* Frameworks */,
 				52F377362CB41DDF006147E8 /* Resources */,
 				52F377602CB41F5F006147E8 /* Embed Frameworks */,
+				52B7F0DD2D6D97DC001498BC /* ShellScript */,
 			);
 			buildRules = (
 			);
