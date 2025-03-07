@@ -17,7 +17,6 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -661,6 +660,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		exceptionExceptions := "[]"
 		exceptionThreads := "[]"
 		attachments := "[]"
+		binaryImages := "[]"
 
 		if e.events[i].IsANR() {
 			marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
@@ -691,6 +691,14 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			exceptionThreads = string(marshalledThreads)
 			if err := e.events[i].Exception.ComputeFingerprint(); err != nil {
 				return err
+			}
+
+			if e.events[i].Exception.BinaryImages != nil && len(e.events[i].Exception.BinaryImages) > 0 {
+				marshalledImages, err := json.Marshal(e.events[i].Exception.BinaryImages)
+				if err != nil {
+					return err
+				}
+				binaryImages = string(marshalledImages)
 			}
 		}
 
@@ -773,14 +781,16 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.fingerprint`, e.events[i].Exception.Fingerprint).
 				Set(`exception.exceptions`, exceptionExceptions).
 				Set(`exception.threads`, exceptionThreads).
-				Set(`exception.foreground`, e.events[i].Exception.Foreground)
+				Set(`exception.foreground`, e.events[i].Exception.Foreground).
+				Set(`exception.binary_images`, binaryImages)
 		} else {
 			row.
 				Set(`exception.handled`, nil).
 				Set(`exception.fingerprint`, nil).
 				Set(`exception.exceptions`, nil).
 				Set(`exception.threads`, nil).
-				Set(`exception.foreground`, nil)
+				Set(`exception.foreground`, nil).
+				Set(`exception.binary_images`, nil)
 		}
 
 		// app exit
@@ -2184,17 +2194,27 @@ func PutEvents(c *gin.Context) {
 	}
 
 	if eventReq.needsSymbolication() {
-		origin := os.Getenv("SYMBOLICATOR_ORIGIN")
+		config := server.Server.Config
+		origin := config.SymbolicatorOrigin
 		platform := eventReq.platform
-		source := symbolicator.NewS3Source("msr-symbols", server.Server.Config.SymbolsBucket, server.Server.Config.SymbolsBucketRegion, server.Server.Config.AWSEndpoint, server.Server.Config.SymbolsAccessKey, server.Server.Config.SymbolsSecretAccessKey)
+		source := symbolicator.NewS3Source("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey)
 		symblctr := symbolicator.New(origin, platform, []symbolicator.Source{source})
-		events := eventReq.getSymbolicationEvents()
 
-		symblctr.Symbolicate(events)
+		// start span to trace symbolication
+		symbolicationTracer := otel.Tracer("symbolication-tracer")
+		_, symbolicationSpan := symbolicationTracer.Start(ctx, "symbolicate-events")
+
+		defer symbolicationSpan.End()
+
+		if err := symblctr.Symbolicate(ctx, server.Server.PgPool, eventReq.appId, eventReq.events); err != nil {
+			fmt.Printf("failed to symbolicate batch %q containing %d events: %v\n", eventReq.id, len(eventReq.events), err.Error())
+		}
+
+		// bytes, _ := json.MarshalIndent(eventReq.events, "", "  ")
+		// fmt.Println("ios events", string(bytes))
+
+		eventReq.bumpSymbolication()
 	}
-
-	c.JSON(http.StatusOK, gin.H{"ok": "whatever"})
-	return
 
 	// if eventReq.needsSymbolication() {
 	// 	// symbolicate

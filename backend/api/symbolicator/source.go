@@ -28,7 +28,7 @@ func NewS3Source(id, bucket, region, origin, accessKey, secretKey string) (sourc
 	source.PathStyle = true
 	source.AccessKey = accessKey
 	source.SecretKey = secretKey
-	source.Filters.FileTypes = []string{"mach_debug"}
+	source.Filters.FileTypes = []string{"mach_debug", "proguard"}
 	source.Filters.PathPatterns = []string{}
 	source.Layout.Type = "unified"
 	source.Layout.Casing = "lowercase"

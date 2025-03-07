@@ -288,7 +288,7 @@ type ExceptionUnit struct {
 	Message string `json:"message"`
 	// Frames is a collection of exception's frames.
 	Frames Frames `json:"frames" binding:"required"`
-	ExceptionUnitiOS
+	*ExceptionUnitiOS
 }
 
 type ExceptionUnits []ExceptionUnit
@@ -306,7 +306,7 @@ type Thread struct {
 	Name string `json:"name" binding:"required"`
 	// Frames is the collection of stackframe objects.
 	Frames Frames `json:"frames" binding:"required"`
-	ThreadiOS
+	*ThreadiOS
 }
 
 type Threads []Thread
@@ -325,7 +325,7 @@ type Exception struct {
 	Threads      Threads        `json:"threads" binding:"required"`
 	Fingerprint  string         `json:"fingerprint"`
 	Foreground   bool           `json:"foreground" binding:"required"`
-	BinaryImages []BinaryImage  `json:"binary_images"`
+	BinaryImages []BinaryImage  `json:"binary_images,omitempty"`
 }
 
 // BinaryImage represents each binary image
@@ -796,42 +796,49 @@ func (e EventField) IsScreenView() bool {
 func (e EventField) NeedsSymbolication() (result bool) {
 	result = false
 
-	if e.IsException() || e.IsANR() {
-		result = true
-		return
-	}
+	switch e.Attribute.Platform {
+	case platform.Android:
+		if e.IsException() || e.IsANR() {
+			result = true
+			return
+		}
+		if e.IsAppExit() && len(e.AppExit.Trace) > 0 {
+			result = true
+			return
+		}
 
-	if e.IsAppExit() && len(e.AppExit.Trace) > 0 {
-		result = true
-		return
-	}
+		if e.IsLifecycleActivity() && len(e.LifecycleActivity.ClassName) > 0 {
+			result = true
+			return
+		}
 
-	if e.IsLifecycleActivity() && len(e.LifecycleActivity.ClassName) > 0 {
-		result = true
-		return
-	}
+		if e.IsLifecycleFragment() {
+			hasClassName := len(e.LifecycleFragment.ClassName) > 0
+			hasParentActivity := len(e.LifecycleFragment.ParentActivity) > 0
+			hasParentFragment := len(e.LifecycleFragment.ParentFragment) > 0
 
-	if e.IsColdLaunch() && len(e.ColdLaunch.LaunchedActivity) > 0 {
-		result = true
-		return
-	}
+			if hasClassName || hasParentActivity || hasParentFragment {
+				result = true
+				return
+			}
+		}
 
-	if e.IsWarmLaunch() && len(e.WarmLaunch.LaunchedActivity) > 0 {
-		result = true
-		return
-	}
+		if e.IsColdLaunch() && len(e.ColdLaunch.LaunchedActivity) > 0 {
+			result = true
+			return
+		}
 
-	if e.IsHotLaunch() && len(e.HotLaunch.LaunchedActivity) > 0 {
-		result = true
-		return
-	}
+		if e.IsWarmLaunch() && len(e.WarmLaunch.LaunchedActivity) > 0 {
+			result = true
+			return
+		}
 
-	if e.IsLifecycleFragment() {
-		hasClassName := len(e.LifecycleFragment.ClassName) > 0
-		hasParentActivity := len(e.LifecycleFragment.ParentActivity) > 0
-		hasParentFragment := len(e.LifecycleFragment.ParentFragment) > 0
-
-		if hasClassName || hasParentActivity || hasParentFragment {
+		if e.IsHotLaunch() && len(e.HotLaunch.LaunchedActivity) > 0 {
+			result = true
+			return
+		}
+	case platform.IOS:
+		if e.IsException() {
 			result = true
 			return
 		}
