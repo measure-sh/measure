@@ -122,11 +122,12 @@ class MultipartDataFactoryTest {
         val endTime: Long = 5000
         val checkpoint = TestData.getCheckpoint()
         fun expectedSerializedValue(): String {
-            return "{\"name\":\"span-name\",\"trace_id\":\"trace-id\",\"span_id\":\"span-id\",\"parent_id\":\"parent-id\",\"session_id\":\"session-id\",\"start_time\":\"${startTime.iso8601Timestamp()}\",\"end_time\":\"${endTime.iso8601Timestamp()}\",\"duration\":4000,\"status\":1,\"attributes\":{\"key\":\"value\"},\"checkpoints\":[{\"name\":\"${checkpoint.name}\",\"timestamp\":\"${checkpoint.timestamp.iso8601Timestamp()}\"}]}"
+            return "{\"name\":\"span-name\",\"trace_id\":\"trace-id\",\"span_id\":\"span-id\",\"parent_id\":\"parent-id\",\"session_id\":\"session-id\",\"start_time\":\"${startTime.iso8601Timestamp()}\",\"end_time\":\"${endTime.iso8601Timestamp()}\",\"duration\":4000,\"status\":1,\"attributes\":{\"key\":\"value\"},\"user_defined_attribute\":{\"user_key\":\"user_value\"},\"checkpoints\":[{\"name\":\"${checkpoint.name}\",\"timestamp\":\"${checkpoint.timestamp.iso8601Timestamp()}\"}]}"
         }
 
         // Given
         val attributes = mapOf("key" to "value")
+        val userDefinedAttrs = mapOf("user_key" to "user_value")
         val spanEntity = TestData.getSpanEntity(
             spanId = "span-id",
             checkpoints = mutableListOf(checkpoint),
@@ -134,6 +135,7 @@ class MultipartDataFactoryTest {
             endTime = endTime,
             duration = endTime - startTime,
             attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
         )
         val spanPacket = TestData.getSpanPacket(spanEntity)
 
@@ -153,11 +155,12 @@ class MultipartDataFactoryTest {
         val endTime: Long = 5000
         val checkpoint = TestData.getCheckpoint()
         fun expectedSerializedValue(): String {
-            return "{\"name\":\"span-name\",\"trace_id\":\"trace-id\",\"span_id\":\"span-id\",\"parent_id\":null,\"session_id\":\"session-id\",\"start_time\":\"${startTime.iso8601Timestamp()}\",\"end_time\":\"${endTime.iso8601Timestamp()}\",\"duration\":4000,\"status\":1,\"attributes\":{\"key\":\"value\"},\"checkpoints\":[{\"name\":\"${checkpoint.name}\",\"timestamp\":\"${checkpoint.timestamp.iso8601Timestamp()}\"}]}"
+            return "{\"name\":\"span-name\",\"trace_id\":\"trace-id\",\"span_id\":\"span-id\",\"parent_id\":null,\"session_id\":\"session-id\",\"start_time\":\"${startTime.iso8601Timestamp()}\",\"end_time\":\"${endTime.iso8601Timestamp()}\",\"duration\":4000,\"status\":1,\"attributes\":{\"key\":\"value\"},\"user_defined_attribute\":{\"user_key\":\"user_value\"},\"checkpoints\":[{\"name\":\"${checkpoint.name}\",\"timestamp\":\"${checkpoint.timestamp.iso8601Timestamp()}\"}]}"
         }
 
         // Given
         val attributes = mapOf("key" to "value")
+        val userDefinedAttrs = mapOf("user_key" to "user_value")
         val spanEntity = TestData.getSpanEntity(
             spanId = "span-id",
             parentId = null,
@@ -166,6 +169,7 @@ class MultipartDataFactoryTest {
             endTime = endTime,
             duration = endTime - startTime,
             attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
         )
         val spanPacket = TestData.getSpanPacket(spanEntity)
 
