@@ -323,6 +323,15 @@
                     android:text="@string/create_span"
                     app:drawableEndCompat="@drawable/ic_chevron_right" />
 
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switch_set_user"
+                    style="@style/Widget.Material3.TextView.SettingsItem"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/set_user"
+                    app:switchPadding="16dp" />
+
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
