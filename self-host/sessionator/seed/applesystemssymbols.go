@@ -24,7 +24,10 @@ import (
 	"google.golang.org/api/option"
 )
 
+// driveFolderRe is the regular expression
+// used to extract the Google Drive's folder id.
 var driveFolderRe = regexp.MustCompile(`(?:folders/|folderview\?id=)([a-zA-Z0-9_-]+)`)
+
 var ErrParseArchive = errors.New("failed to extract details of archive file")
 var ErrDiskFull = errors.New("not enough free disk space available")
 
@@ -36,7 +39,6 @@ type archive7z struct {
 	size      int64
 	file      *drive.File
 	entries   []string
-	difs      [][]*symbol.Dif
 	difsCount int
 }
 
@@ -56,10 +58,15 @@ type AppleFramework struct {
 	completion      float64
 }
 
+// Settings defines all the settings
+// required for processing system symbol
+// files.
 type Settings struct {
 	Versions []string
 }
 
+// getLatestURLs returns archive links for the
+// latest OS version.
 func (a AppleFramework) getLatestURLs() (latest []string) {
 	curr := 0
 	latestKey := ""
@@ -87,6 +94,8 @@ func (a AppleFramework) getLatestURLs() (latest []string) {
 	return
 }
 
+// getBetaURLs returns archive links for the
+// beta OS version.
 func (a AppleFramework) getBetaURLs() (beta []string) {
 	beta, ok := a.sources["beta"]
 	if !ok {
@@ -95,14 +104,27 @@ func (a AppleFramework) getBetaURLs() (beta []string) {
 	return
 }
 
-func (a AppleFramework) getAllURLs() (urls []string) {
-	for _, v := range a.sources {
-		urls = append(urls, v...)
+// totalFileCount returns the total count of binary
+// files from each archive.
+func (a AppleFramework) totalFileCount() (count int) {
+	for _, archive := range a.archives {
+		count += len(archive.entries)
+	}
+	return
+}
+
+// getDifsCount returns the total count of dif
+// files from each archive.
+func (a AppleFramework) getDifsCount() (count int) {
+	for _, archive := range a.archives {
+		count += archive.difsCount
 	}
 
 	return
 }
 
+// GetURLs returns relevant archive URLs as
+// configured using settings.
 func (a AppleFramework) GetURLs() (urls []string) {
 	for _, version := range a.settings.Versions {
 		if version == "latest" {
@@ -144,29 +166,6 @@ func (a AppleFramework) GetURLs() (urls []string) {
 	return
 }
 
-func (a AppleFramework) totalFileCount() (count int) {
-	for _, archive := range a.archives {
-		count += len(archive.entries)
-	}
-	return
-}
-
-func (a AppleFramework) getDifs() (difs [][]*symbol.Dif) {
-	for _, archive := range a.archives {
-		difs = append(difs, archive.difs...)
-	}
-
-	return
-}
-
-func (a AppleFramework) getDifsCount() (count int) {
-	for _, archive := range a.archives {
-		count += archive.difsCount
-	}
-
-	return
-}
-
 // PrintIntro logs current configuration and what
 // information is going to be processed.
 func (a AppleFramework) PrintIntro() {
@@ -194,6 +193,8 @@ func (a AppleFramework) PrintOutro() {
 	fmt.Println("time taken:", a.took)
 }
 
+// tick computes the current progress of
+// the operation.
 func (a *AppleFramework) tick(i int) {
 	total := len(a.archives)
 	if total == 0 {
@@ -204,10 +205,51 @@ func (a *AppleFramework) tick(i int) {
 	a.completion = (float64(curr) / float64(total)) * 100
 }
 
-func (a *AppleFramework) Finish() {
-	a.took = time.Since(a.start)
+// addArchive only adds the archive if it does not
+// exist already.
+func (a *AppleFramework) addArchive(archive *archive7z) {
+	found := false
+
+	for _, entry := range a.archives {
+		if entry.version == archive.version && entry.build == archive.build {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		a.archives = append(a.archives, archive)
+	}
 }
 
+// uploadToBucket uploads a list of difs
+// to the bucket.
+func (a *AppleFramework) uploadToBucket(ctx context.Context, difs []*symbol.Dif) (err error) {
+	bucket := a.storage.Bucket(a.bucket)
+
+	for _, dif := range difs {
+		obj := bucket.Object(dif.Key)
+		writer := obj.NewWriter(ctx)
+
+		if _, err = writer.Write(dif.Data); err != nil {
+			return
+		}
+
+		// writer may return nil in some error
+		// situations, so we always check error
+		// on .Close()
+		if err = writer.Close(); err != nil {
+			return
+		}
+
+		fmt.Printf("Uploaded %s\n", dif.Key)
+	}
+
+	return
+}
+
+// ReadLinks reads each binary file under each
+// link and remembers them for further processing.
 func (a *AppleFramework) ReadLinks(links []string) (err error) {
 	for _, link := range links {
 		id, errExtract := extractFolderID(link)
@@ -262,21 +304,9 @@ func (a *AppleFramework) ReadLinks(links []string) (err error) {
 	return
 }
 
-func (a *AppleFramework) addArchive(archive *archive7z) {
-	found := false
-
-	for _, entry := range a.archives {
-		if entry.version == archive.version && entry.build == archive.build {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		a.archives = append(a.archives, archive)
-	}
-}
-
+// DownloadAndProcess downloads each archive file
+// deflates it, makes dif for each binary file
+// and uploads to the bucket.
 func (a *AppleFramework) DownloadAndProcess(ctx context.Context) (err error) {
 	for i, archive := range a.archives {
 		free, errFree := getFreeDiskSpace()
@@ -351,7 +381,6 @@ func (a *AppleFramework) DownloadAndProcess(ctx context.Context) (err error) {
 			}
 
 			a.uploadCount += 1
-			// archive.difs = append(archive.difs, difs)
 		}
 
 		// delete file from disk, after we're
@@ -377,24 +406,8 @@ func (a *AppleFramework) DownloadAndProcess(ctx context.Context) (err error) {
 	return
 }
 
-func (a *AppleFramework) uploadToBucket(ctx context.Context, difs []*symbol.Dif) (err error) {
-	bucket := a.storage.Bucket(a.bucket)
-
-	for _, dif := range difs {
-		obj := bucket.Object(dif.Key)
-		writer := obj.NewWriter(ctx)
-		defer writer.Close()
-
-		if _, err = writer.Write(dif.Data); err != nil {
-			return
-		}
-
-		fmt.Printf("Uploaded %s\n", dif.Key)
-	}
-
-	return
-}
-
+// Init initializes necessary resources before
+// performing primary operations.
 func (a *AppleFramework) Init(ctx context.Context, key, bucket string, credentials []byte) (err error) {
 	driveClient, err := createDriveClient(ctx, key)
 	if err != nil {
@@ -412,6 +425,13 @@ func (a *AppleFramework) Init(ctx context.Context, key, bucket string, credentia
 	return
 }
 
+// Finish marks the processing as complete.
+func (a *AppleFramework) Finish() {
+	a.took = time.Since(a.start)
+}
+
+// NewAppleFramework creates a new instance while
+// overriding settings, if there's any.
 func NewAppleFramework(settings ...Settings) (fw *AppleFramework) {
 	defaultSettings := Settings{
 		Versions: []string{"latest"},
@@ -435,6 +455,7 @@ func NewAppleFramework(settings ...Settings) (fw *AppleFramework) {
 	}
 }
 
+// createDriveClient creates a new Google Drive client.
 func createDriveClient(ctx context.Context, key string) (service *drive.Service, err error) {
 	service, err = drive.NewService(ctx, option.WithAPIKey(key))
 	if err != nil {
@@ -443,6 +464,7 @@ func createDriveClient(ctx context.Context, key string) (service *drive.Service,
 	return
 }
 
+// createStorageClient creates a new Google Cloud Storage client.
 func createStorageClient(ctx context.Context, credentials []byte) (client *storage.Client) {
 	client, err := storage.NewClient(ctx, option.WithCredentialsJSON(credentials))
 	if err != nil {
@@ -452,6 +474,8 @@ func createStorageClient(ctx context.Context, credentials []byte) (client *stora
 	return
 }
 
+// extractFolderID extracts the folder id from
+// a Google Drive folder link.
 func extractFolderID(link string) (folderId string, err error) {
 	matches := driveFolderRe.FindStringSubmatch(link)
 	if len(matches) < 2 {
@@ -464,6 +488,9 @@ func extractFolderID(link string) (folderId string, err error) {
 	return
 }
 
+// createArchive creates a new archive7z instance
+// to represent and store references to each binary
+// file and metadata.
 func createArchive(file *drive.File) (archive *archive7z, err error) {
 	archive = &archive7z{}
 	parts := strings.Split(file.Name, " ")
@@ -499,6 +526,8 @@ func createArchive(file *drive.File) (archive *archive7z, err error) {
 	return
 }
 
+// getFreeDiskSpace probes to find out available
+// disk space of runtime environment.
 func getFreeDiskSpace() (free uint64, err error) {
 	usage, err := disk.Usage("/")
 	if err != nil {
@@ -509,6 +538,7 @@ func getFreeDiskSpace() (free uint64, err error) {
 	return
 }
 
+// makeDif creates dif files from each binary file.
 func makeDif(file *sevenzip.File) (difs []*symbol.Dif, err error) {
 	rc, err := file.Open()
 	if err != nil {
