@@ -349,7 +349,7 @@ func writeBuild(c *gin.Context) {
 		file, err := header.Open()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   fmt.Errorf("failed to read mapping file %q with index %d", header.Filename),
+				"error":   fmt.Errorf("failed to read mapping file %q with index %d", header.Filename, i),
 				"details": err.Error(),
 			})
 		}
