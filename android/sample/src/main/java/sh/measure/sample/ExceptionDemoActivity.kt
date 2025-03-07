@@ -153,9 +153,9 @@ class ExceptionDemoActivity : AppCompatActivity() {
                 }
             }
         }
-        val switch = findViewById<SwitchMaterial>(R.id.btn_sdk_switch)
-        switch.isChecked = true
-        switch.setOnCheckedChangeListener { _, isChecked ->
+        val sdkSwitch = findViewById<SwitchMaterial>(R.id.btn_sdk_switch)
+        sdkSwitch.isChecked = true
+        sdkSwitch.setOnCheckedChangeListener { _, isChecked ->
             when (isChecked) {
                 true -> {
                     Measure.start()
@@ -166,6 +166,22 @@ class ExceptionDemoActivity : AppCompatActivity() {
                 }
             }
         }
+
+        val userSwitch = findViewById<SwitchMaterial>(R.id.switch_set_user)
+        userSwitch.isChecked = false
+        userSwitch.setOnCheckedChangeListener { _, isChecked ->
+            when (isChecked) {
+                true -> {
+                    Measure.setUserId("dummy-user-id")
+                }
+
+                false -> {
+                    Measure.clearUserId()
+                }
+            }
+        }
+
+
         span.setStatus(SpanStatus.Ok).end()
     }
 

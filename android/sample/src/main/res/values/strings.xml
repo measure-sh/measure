@@ -40,4 +40,5 @@
     <string name="bug_report">Bug reports</string>
     <string name="enable_shake">Enable shake to report</string>
     <string name="custom_shake_handler">Custom shake handler</string>
+    <string name="set_user">Set User</string>
 </resources>
