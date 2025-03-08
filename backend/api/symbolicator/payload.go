@@ -1,5 +1,7 @@
 package symbolicator
 
+import "slices"
+
 type frameNative struct {
 	Status          string `json:"status"`
 	OriginalIndex   int    `json:"original_index"`
@@ -66,13 +68,6 @@ type responseJVM struct {
 	Errors      []moduleJVM       `json:"errors"`
 }
 
-func (r responseJVM) countFrames() (count int) {
-	for _, stacktrace := range r.Stacktraces {
-		count += len(stacktrace.Frames)
-	}
-	return
-}
-
 // requestJVM represents the payload sent
 // to Sentry's Symbolicator for JVM
 // symbolication.
@@ -116,10 +111,8 @@ func (r *requestJVM) AddModule(debugId string, mType string) {
 // AddClass adds a class to the JVM request
 // payload only if not already present.
 func (r *requestJVM) AddClass(className string) {
-	for _, c := range r.Classes {
-		if c == className {
-			return
-		}
+	if slices.Contains(r.Classes, className) {
+		return
 	}
 
 	r.Classes = append(r.Classes, className)

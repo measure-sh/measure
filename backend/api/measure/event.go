@@ -7,6 +7,7 @@ import (
 	"backend/api/group"
 	"backend/api/inet"
 	"backend/api/numeric"
+	"backend/api/platform"
 	"backend/api/server"
 	"backend/api/span"
 	"backend/api/symbolicator"
@@ -2196,9 +2197,22 @@ func PutEvents(c *gin.Context) {
 	if eventReq.needsSymbolication() {
 		config := server.Server.Config
 		origin := config.SymbolicatorOrigin
-		platform := eventReq.platform
-		source := symbolicator.NewS3Source("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey)
-		symblctr := symbolicator.New(origin, platform, []symbolicator.Source{source})
+		pltfrm := eventReq.platform
+		sources := []symbolicator.Source{}
+
+		// configure correct sources as per
+		// platform
+		switch pltfrm {
+		case platform.Android:
+			sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+		case platform.IOS:
+			// by default only symbolicate app's own symbols. to symbolicate iOS
+			// system framework symbols, append a GCSSourceApple source containing
+			// all iOS system framework symbol debug information files.
+			sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+		}
+
+		symblctr := symbolicator.New(origin, pltfrm, sources)
 
 		// start span to trace symbolication
 		symbolicationTracer := otel.Tracer("symbolication-tracer")
@@ -2207,11 +2221,10 @@ func PutEvents(c *gin.Context) {
 		defer symbolicationSpan.End()
 
 		if err := symblctr.Symbolicate(ctx, server.Server.PgPool, eventReq.appId, eventReq.events); err != nil {
+			// in case there was symbolication failure, we don't fail
+			// ingestion. ignore the error, log it and continue.
 			fmt.Printf("failed to symbolicate batch %q containing %d events: %v\n", eventReq.id, len(eventReq.events), err.Error())
 		}
-
-		// bytes, _ := json.MarshalIndent(eventReq.events, "", "  ")
-		// fmt.Println("ios events", string(bytes))
 
 		eventReq.bumpSymbolication()
 	}
