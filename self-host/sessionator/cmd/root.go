@@ -17,7 +17,11 @@ func init() {
 	rootCmd.AddCommand(ingestCmd)
 	rootCmd.AddCommand(recordCmd)
 	rootCmd.AddCommand(removeCmd)
+	rootCmd.AddCommand(seedCmd)
 
+	// don't want to distract anyone with
+	// unnecessary commands so hide the default
+	// completion command.
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 }
 

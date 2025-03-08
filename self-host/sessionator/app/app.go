@@ -12,13 +12,18 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+type Build struct {
+	VersionCode  string
+	MappingFiles []string
+	BuildInfo    BuildInfo
+}
+
 // App represents each combination of app and version
 // along with its events and related build info.
 type App struct {
 	Name              string
-	Version           string
-	MappingFile       string
-	BuildInfo         BuildInfo
+	VersionName       string
+	Builds            map[string]*Build
 	EventAndSpanFiles []string
 	BlobFiles         []string
 }
@@ -30,8 +35,8 @@ type EventAndSpanFileData struct {
 
 // ReadBuild decodes and parses build info data
 // from build configuration file.
-func (a *App) ReadBuild(path string) error {
-	_, err := toml.DecodeFile(path, &a.BuildInfo)
+func (a *App) ReadBuild(path string, target any) error {
+	_, err := toml.DecodeFile(path, target)
 	if err != nil {
 		return err
 	}
@@ -49,7 +54,6 @@ func (a *App) Attribute() (attribute *event.Attribute, err error) {
 	fileData := EventAndSpanFileData{}
 
 	if err := json.Unmarshal(content, &fileData); err != nil {
-		fmt.Println("goo 0")
 		return nil, err
 	}
 
@@ -87,7 +91,7 @@ func (a *App) Attribute() (attribute *event.Attribute, err error) {
 // FullName returns the app's name along with its
 // version.
 func (a App) FullName() string {
-	return a.Name + ":" + a.Version
+	return a.Name + ":" + a.VersionName
 }
 
 // Apps is a collection of apps.
@@ -99,8 +103,9 @@ type Apps struct {
 // Add adds a new app to the apps collection.
 func (apps *Apps) Add(name, version string) {
 	app := App{
-		Name:    name,
-		Version: version,
+		Name:        name,
+		VersionName: version,
+		Builds:      make(map[string]*Build),
 	}
 
 	if apps.index == nil {

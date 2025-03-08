@@ -1,0 +1,8 @@
+# see a detailed example
+# https://github.com/getsentry/symbolicator/blob/dc235b81bce6bf99bd9dfd48952aa342f4f04365/local.example.yml
+# or see documentation
+# https://getsentry.github.io/symbolicator/
+logging:
+  level: trace
+  enable_backtraces: true
+cache_dir: null

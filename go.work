@@ -1,9 +1,10 @@
-go 1.22.7
+go 1.24.0
 
-toolchain go1.23.4
+toolchain go1.24.0
 
 use (
 	./backend/api
 	./backend/cleanup
+	./backend/migrator
 	./self-host/sessionator
 )

@@ -74,27 +74,13 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				app.EventAndSpanFiles = append(app.EventAndSpanFiles, path)
 			}
 
-			mapping, err := filepath.Match("*/*/mapping.txt", rel)
-			if err != nil {
-				return err
-			}
-			if mapping {
-				app := apps.Lookup(parts[0], parts[1])
-				info, err := d.Info()
-				if err != nil {
-					return err
-				}
-				if info.Size() < 1 {
-					return fmt.Errorf("%q has empty mapping.txt file. check %q", app.FullName(), rel)
-				}
-				app.MappingFile = path
-			}
+			code := filepath.Base(filepath.Dir(rel))
 
-			build, err := filepath.Match("*/*/build.toml", rel)
+			buildToml, err := filepath.Match("*/*/*/build.toml", rel)
 			if err != nil {
 				return err
 			}
-			if build {
+			if buildToml {
 				app := apps.Lookup(parts[0], parts[1])
 				info, err := d.Info()
 				if err != nil {
@@ -103,15 +89,58 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				if info.Size() < 1 {
 					return fmt.Errorf("%q has empty build.toml. check %q", app.FullName(), rel)
 				}
-				if err := app.ReadBuild(path); err != nil {
+				build := &Build{
+					VersionCode: code,
+				}
+				if err := app.ReadBuild(path, &build.BuildInfo); err != nil {
 					return err
 				}
-				if app.BuildInfo.Size < 1 {
+				if build.BuildInfo.Size < 1 {
 					return fmt.Errorf("%q has zero build size. check %q", app.FullName(), rel)
 				}
-				if app.BuildInfo.Type == "" {
+				if build.BuildInfo.Type == "" {
 					return fmt.Errorf("%q has empty build type. check %q", app.FullName(), rel)
 				}
+
+				app.Builds[code] = build
+			}
+
+			proguardMapping, err := filepath.Match("*/*/*/mapping.txt", rel)
+			if err != nil {
+				return err
+			}
+			if proguardMapping {
+				app := apps.Lookup(parts[0], parts[1])
+				info, err := d.Info()
+				if err != nil {
+					return err
+				}
+				if info.Size() < 1 {
+					return fmt.Errorf("%q has empty mapping.txt file. check %q", app.FullName(), rel)
+				}
+
+				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)
+			}
+
+			dSYMMapping, err := filepath.Match("*/*/*/*.tgz", rel)
+			if err != nil {
+				return err
+			}
+			if dSYMMapping {
+				app := apps.Lookup(parts[0], parts[1])
+				info, err := d.Info()
+				if err != nil {
+					return err
+				}
+				if info.Size() < 1 {
+					return fmt.Errorf(`%q has empty dSYM mapping file. check %q`, app.FullName(), rel)
+				}
+				_, ok := app.Builds[code]
+				if !ok {
+					return fmt.Errorf("failed to create build for code: %s", code)
+				}
+
+				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)
 			}
 
 			blob, err := filepath.Match("*/*/blobs/*", rel)
