@@ -1,4 +1,0 @@
-logging:
-  level: trace
-  enable_backtraces: true
-cache_dir: null

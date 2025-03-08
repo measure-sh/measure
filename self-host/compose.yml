@@ -182,7 +182,7 @@ services:
     ports:
       - "3021:3021"
     volumes:
-      - ./symbolicator/config.dev.yml:/etc/symbolicator/config.yml:ro
+      - ./symbolicator/config.yml:/etc/symbolicator/config.yml:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -s http://localhost:3021/healthcheck || exit 1"]
       interval: 3s
