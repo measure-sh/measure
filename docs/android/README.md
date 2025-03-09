@@ -9,6 +9,8 @@
   * [Identify users](#identify-users)
   * [Track custom events](#track-custom-events)
   * [Performance tracing](#performance-tracing)
+    * [Activity load time](#activity-load-time)
+    * [Custom performance traces](#custom-performance-traces)
   * [Handled exceptions](#handled-exceptions)
   * [Screen views](#screen-view)
   * [Bug reports](#bug-reports)
@@ -284,9 +286,12 @@ The following data is automatically collected by Measure. Read the individual do
 * [CPU monitoring](features/feature_cpu_monitoring.md)
 * [Memory monitoring](features/feature_memory_monitoring.md)
 * [App size](features/feature_app_size.md)
+* [Activity load time](features/feature_activity_load_time.md)
 
 ## Identify users
-Corelating sessions with users is crutial for debugging certain issues. Measure allows setting a user ID which can then be used to query sessions and events on the dashboard. User Id is persisted across app 
+
+Correlating sessions with users is critical for debugging certain issues. Measure allows setting a user ID which can
+then be used to query sessions and events on the dashboard. User ID is persisted across app
 launches.
 
 ```kotlin
@@ -299,8 +304,8 @@ Measure.clearUserId()
 ```
 
 > It is recommended to avoid the use of PII (Personally Identifiable Information) in the
-user ID like email, phone number or any other sensitive information. Instead, use a hashed
-or anonymized user ID to protect user privacy.
+> user ID like email, phone number or any other sensitive information. Instead, use a hashed
+> or anonymized user ID to protect user privacy.
 
 ## Track custom events
 
@@ -337,9 +342,24 @@ Measure.trackEvent("event_name", timestamp = 1734443973879L)
 ### Performance tracing
 
 Use the [performance tracing](features/feature_performance_tracing.md) APIs to track performance of any part of your application - API calls,
+DB queries, any function, user journey, etc. The SDK supports nested spans to track hierarchical operations.
 
-DB queries, any function, user journey, etc.
-The SDK supports nested spans to track hierarchical operations. Following are some *simplified* examples:
+#### Activity load time
+
+Measure can automatically track the time taken to load an Activity. This feature is enabled by default and
+can be disabled during SDK initialization.
+
+To disable Activity load time tracking, use the following configuration:
+
+```kotlin
+Measure.init(context, config = MeasureConfig(trackActivityLoadTime = false))
+```
+
+See [Activity load time](features/feature_activity_load_time.md) for more details.
+
+#### Custom performance traces
+
+Following are some *simplified* examples:
 
 Example — track a user flow
 

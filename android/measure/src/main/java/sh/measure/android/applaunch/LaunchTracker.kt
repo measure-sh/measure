@@ -4,11 +4,18 @@ import android.app.Activity
 import android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
 import android.os.Bundle
 import curtains.onNextDraw
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.lifecycle.ActivityLifecycleAdapter
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.mainHandler
 import sh.measure.android.postAtFrontOfQueueAsync
+import sh.measure.android.tracing.CheckpointName
+import sh.measure.android.tracing.Span
+import sh.measure.android.tracing.SpanAttribute
+import sh.measure.android.tracing.SpanName
+import sh.measure.android.tracing.SpanStatus
+import sh.measure.android.tracing.Tracer
 import sh.measure.android.utils.TimeProvider
 
 internal interface LaunchCallbacks {
@@ -24,6 +31,8 @@ internal interface LaunchCallbacks {
 internal class LaunchTracker(
     private val logger: Logger,
     private val timeProvider: TimeProvider,
+    private val configProvider: ConfigProvider,
+    private val tracer: Tracer,
 ) : ActivityLifecycleAdapter {
 
     private var callbacks: LaunchCallbacks? = null
@@ -35,6 +44,7 @@ internal class LaunchTracker(
         val hasSavedState: Boolean,
         val intentData: String?,
         val activityName: String,
+        val ttidSpan: Span? = null,
     )
 
     private val createdActivities = mutableMapOf<String, OnCreateRecord>()
@@ -52,11 +62,19 @@ internal class LaunchTracker(
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         val identityHash = Integer.toHexString(System.identityHashCode(activity))
         val hasSavedState = savedInstanceState != null
+
+        val activityTtidSpan = if (savedInstanceState == null) {
+            startActivityTtidSpan(activity)
+        } else {
+            null
+        }
+
         createdActivities[identityHash] = OnCreateRecord(
             sameMessage = true,
             hasSavedState = hasSavedState,
             intentData = activity.intent.dataString,
             activityName = activity.javaClass.name,
+            ttidSpan = activityTtidSpan,
         )
 
         // Helps differentiating between warm and hot launches.
@@ -90,6 +108,10 @@ internal class LaunchTracker(
         }
         val identityHash = Integer.toHexString(System.identityHashCode(activity))
         startedActivities += identityHash
+
+        createdActivities[identityHash]?.let { onCreateRecord ->
+            onCreateRecord.ttidSpan?.setCheckpoint(CheckpointName.ACTIVITY_STARTED)
+        }
     }
 
     private fun appMightBecomeVisible() {
@@ -101,88 +123,103 @@ internal class LaunchTracker(
     }
 
     override fun onActivityResumed(activity: Activity) {
-        if (!launchInProgress) return
-
         val identityHash = Integer.toHexString(System.identityHashCode(activity))
         resumedActivities += identityHash
         val onCreateRecord = createdActivities[identityHash]
+        onCreateRecord?.ttidSpan?.setCheckpoint(CheckpointName.ACTIVITY_RESUMED)
         activity.window.onNextDraw {
             mainHandler.postAtFrontOfQueueAsync {
-                if (!launchInProgress) return@postAtFrontOfQueueAsync
-                launchInProgress = false
-
-                val onNextDrawElapsedRealtime = timeProvider.elapsedRealtime
-                onCreateRecord?.let { onCreateRecord ->
-                    when (val launchType = computeLaunchType(onCreateRecord)) {
-                        "Cold" -> {
-                            coldLaunchComplete = true
-                            callbacks?.onColdLaunch(
-                                coldLaunchData = ColdLaunchData(
-                                    process_start_uptime = LaunchState.processStartElapsedRealtime,
-                                    process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
-                                    content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
-                                    on_next_draw_uptime = onNextDrawElapsedRealtime,
-                                    launched_activity = onCreateRecord.activityName,
-                                    has_saved_state = onCreateRecord.hasSavedState,
-                                    intent_data = onCreateRecord.intentData,
-                                ),
-                            )
-                        }
-
-                        "Hot" -> {
-                            LaunchState.lastAppVisibleElapsedRealtime?.let {
-                                callbacks?.onHotLaunch(
-                                    HotLaunchData(
-                                        app_visible_uptime = it,
-                                        on_next_draw_uptime = onNextDrawElapsedRealtime,
-                                        launched_activity = onCreateRecord.activityName,
-                                        has_saved_state = onCreateRecord.hasSavedState,
-                                        intent_data = onCreateRecord.intentData,
-                                    ),
-                                )
-                            } ?: logger.log(
-                                LogLevel.Error,
-                                "lastAppVisibleTime is null, cannot calculate hot launch time",
-                            )
-                        }
-
-                        "Warm" -> {
-                            callbacks?.onWarmLaunch(
-                                WarmLaunchData(
-                                    process_start_uptime = LaunchState.processStartElapsedRealtime,
-                                    process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
-                                    content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
-                                    app_visible_uptime = LaunchState.lastAppVisibleElapsedRealtime ?: 0,
-                                    on_next_draw_uptime = onNextDrawElapsedRealtime,
-                                    launched_activity = onCreateRecord.activityName,
-                                    has_saved_state = onCreateRecord.hasSavedState,
-                                    intent_data = onCreateRecord.intentData,
-                                    is_lukewarm = false,
-                                ),
-                            )
-                        }
-
-                        "Lukewarm" -> {
-                            callbacks?.onWarmLaunch(
-                                WarmLaunchData(
-                                    process_start_uptime = LaunchState.processStartElapsedRealtime,
-                                    process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
-                                    content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
-                                    app_visible_uptime = LaunchState.lastAppVisibleElapsedRealtime ?: 0,
-                                    on_next_draw_uptime = onNextDrawElapsedRealtime,
-                                    launched_activity = onCreateRecord.activityName,
-                                    has_saved_state = onCreateRecord.hasSavedState,
-                                    intent_data = onCreateRecord.intentData,
-                                    is_lukewarm = true,
-                                ),
-                            )
-                        }
-
-                        else -> {
-                            logger.log(LogLevel.Error, "Unknown launch type: $launchType")
-                        }
+                if (launchInProgress) {
+                    val onNextDrawElapsedRealtime = timeProvider.elapsedRealtime
+                    onCreateRecord?.let { onCreateRecord ->
+                        val launchType = computeLaunchType(onCreateRecord)
+                        trackLaunchEvent(
+                            launchType,
+                            onNextDrawElapsedRealtime,
+                            onCreateRecord,
+                        )
+                        endActivityTtidSpan(identityHash, onCreateRecord.ttidSpan, launchType)
+                        launchInProgress = false
                     }
+                } else {
+                    endActivityTtidSpan(identityHash, createdActivities[identityHash]?.ttidSpan)
                 }
+            }
+        }
+    }
+
+    private fun trackLaunchEvent(
+        launchType: String,
+        onNextDrawElapsedRealtime: Long,
+        onCreateRecord: OnCreateRecord,
+    ) {
+        when (launchType) {
+            "Cold" -> {
+                coldLaunchComplete = true
+                callbacks?.onColdLaunch(
+                    coldLaunchData = ColdLaunchData(
+                        process_start_uptime = LaunchState.processStartElapsedRealtime,
+                        process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
+                        content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
+                        on_next_draw_uptime = onNextDrawElapsedRealtime,
+                        launched_activity = onCreateRecord.activityName,
+                        has_saved_state = onCreateRecord.hasSavedState,
+                        intent_data = onCreateRecord.intentData,
+                    ),
+                )
+            }
+
+            "Hot" -> {
+                LaunchState.lastAppVisibleElapsedRealtime?.let {
+                    callbacks?.onHotLaunch(
+                        HotLaunchData(
+                            app_visible_uptime = it,
+                            on_next_draw_uptime = onNextDrawElapsedRealtime,
+                            launched_activity = onCreateRecord.activityName,
+                            has_saved_state = onCreateRecord.hasSavedState,
+                            intent_data = onCreateRecord.intentData,
+                        ),
+                    )
+                } ?: logger.log(
+                    LogLevel.Error,
+                    "lastAppVisibleTime is null, cannot calculate hot launch time",
+                )
+            }
+
+            "Warm" -> {
+                callbacks?.onWarmLaunch(
+                    WarmLaunchData(
+                        process_start_uptime = LaunchState.processStartElapsedRealtime,
+                        process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
+                        content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
+                        app_visible_uptime = LaunchState.lastAppVisibleElapsedRealtime ?: 0,
+                        on_next_draw_uptime = onNextDrawElapsedRealtime,
+                        launched_activity = onCreateRecord.activityName,
+                        has_saved_state = onCreateRecord.hasSavedState,
+                        intent_data = onCreateRecord.intentData,
+                        is_lukewarm = false,
+                    ),
+                )
+            }
+
+            "Lukewarm" -> {
+                callbacks?.onWarmLaunch(
+                    WarmLaunchData(
+                        process_start_uptime = LaunchState.processStartElapsedRealtime,
+                        process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
+                        content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
+                        app_visible_uptime = LaunchState.lastAppVisibleElapsedRealtime ?: 0,
+                        on_next_draw_uptime = onNextDrawElapsedRealtime,
+                        launched_activity = onCreateRecord.activityName,
+                        has_saved_state = onCreateRecord.hasSavedState,
+                        intent_data = onCreateRecord.intentData,
+                        is_lukewarm = true,
+                    ),
+                )
+            }
+
+            else -> {
+                logger.log(LogLevel.Error, "Unknown launch type: $launchType")
             }
         }
     }
@@ -232,5 +269,37 @@ internal class LaunchTracker(
             // lastAppVisibleElapsedRealtime as it won't be set in this case.
             else -> "Lukewarm"
         }
+    }
+
+    private fun startActivityTtidSpan(activity: Activity): Span? {
+        if (!isActivityTtidSpanEnabled()) {
+            return null
+        }
+        val span = tracer.spanBuilder(SpanName.activityTtidSpan(activity)).startSpan()
+        span.setCheckpoint(CheckpointName.ACTIVITY_CREATED)
+        return span
+    }
+
+    private fun endActivityTtidSpan(
+        activityIdentityHash: String,
+        ttidSpan: Span?,
+        launchType: String? = null,
+    ) {
+        if (launchType == "Cold") {
+            ttidSpan?.setAttribute(
+                SpanAttribute.APP_LAUNCH_TYPE_KEY,
+                SpanAttribute.APP_LAUNCH_TYPE_COLD,
+            )
+        }
+        ttidSpan?.setStatus(SpanStatus.Ok)?.end()
+        if (activityIdentityHash in createdActivities && ttidSpan != null) {
+            createdActivities[activityIdentityHash]?.copy(ttidSpan = null)?.let {
+                createdActivities[activityIdentityHash] = it
+            }
+        }
+    }
+
+    private fun isActivityTtidSpanEnabled(): Boolean {
+        return configProvider.trackActivityLoadTime
     }
 }

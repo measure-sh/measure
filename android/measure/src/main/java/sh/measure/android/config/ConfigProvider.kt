@@ -124,6 +124,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { shakeSlop }
     override val enableShakeToLaunchBugReport: Boolean
         get() = getMergedConfig { enableShakeToLaunchBugReport }
+    override val trackActivityLoadTime: Boolean
+        get() = getMergedConfig { trackActivityLoadTime }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (!trackHttpBody) {
