@@ -16,6 +16,7 @@ internal data class Config(
     override val autoStart: Boolean = DefaultConfig.AUTO_START,
     override val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
     override val enableShakeToLaunchBugReport: Boolean = DefaultConfig.ENABLE_SHAKE_TO_LAUNCH_BUG_REPORT,
+    override val trackActivityLoadTime: Boolean = DefaultConfig.TRACK_ACTIVITY_LOAD_TIME,
 ) : InternalConfig, IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25

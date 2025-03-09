@@ -354,7 +354,7 @@ internal class TestMeasureInitializer(
         defaultExecutor = executorServiceRegistry.defaultExecutor(),
         layoutSnapshotThrottler = LayoutSnapshotThrottler(timeProvider),
     ),
-    private val launchTracker: LaunchTracker = LaunchTracker(logger, timeProvider),
+    private val launchTracker: LaunchTracker = LaunchTracker(logger, timeProvider, configProvider),
     override val appLaunchCollector: AppLaunchCollector = AppLaunchCollector(
         logger = logger,
         application = application,

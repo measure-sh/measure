@@ -130,6 +130,7 @@ internal class MeasureInitializerImpl(
             autoStart = inputConfig.autoStart,
             traceSamplingRate = inputConfig.traceSamplingRate,
             enableShakeToLaunchBugReport = inputConfig.enableShakeToLaunchBugReport,
+            trackActivityLoadTime = inputConfig.trackActivityLoadTime,
         ),
         configLoader = ConfigLoaderImpl(),
     ),
@@ -375,7 +376,7 @@ internal class MeasureInitializerImpl(
         defaultExecutor = executorServiceRegistry.defaultExecutor(),
         layoutSnapshotThrottler = LayoutSnapshotThrottler(timeProvider),
     ),
-    private val launchTracker: LaunchTracker = LaunchTracker(logger, timeProvider),
+    private val launchTracker: LaunchTracker = LaunchTracker(logger, timeProvider, configProvider),
     override val appLaunchCollector: AppLaunchCollector = AppLaunchCollector(
         logger = logger,
         application = application,

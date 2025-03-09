@@ -20,7 +20,7 @@ internal class MsrSpanProcessor(
     private val configProvider: ConfigProvider,
 ) : SpanProcessor {
     override fun onStart(span: InternalSpan) {
-        logger.log(LogLevel.Debug, "Starting span: ${span.name}")
+        logger.log(LogLevel.Debug, "Span start: ${span.name}")
         InternalTrace.trace(
             { "msr-spanProcessor-onStart" },
             {
@@ -38,8 +38,8 @@ internal class MsrSpanProcessor(
     }
 
     override fun onEnded(span: InternalSpan) {
-        logger.log(LogLevel.Debug, "Span ended: ${span.name}")
         val spanData = span.toSpanData()
+        logger.log(LogLevel.Debug, "Span end: ${span.name}, ${spanData.duration}ms")
         if (!spanData.sanitize()) {
             return
         }
