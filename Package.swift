@@ -17,26 +17,25 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "MeasureSDKObjc",
-            dependencies: [],
-            path: "Sources/MeasureSDK/Objc",
-            publicHeadersPath: "include"
-        ),
-        .target(
             name: "MeasureSDK",
             dependencies: [
-                "MeasureSDKObjc",
                 .product(name: "CrashReporter", package: "plcrashreporter")
             ],
-            path: "Sources/MeasureSDK/Swift"
+            path: "ios/Sources/MeasureSDK/Swift",
+            resources: [
+                .process("XCDataModel/MeasureModel.xcdatamodeld"),
+                .copy("Resources/PrivacyInfo.xcprivacy")
+            ]
         ),
         .testTarget(
             name: "MeasureSDKTests",
-            dependencies: ["MeasureSDK"]
+            dependencies: ["MeasureSDK"],
+            path: "ios/Tests/MeasureSDKTests"
         ),
         .testTarget(
             name: "MeasureUITests",
-            dependencies: ["MeasureSDK"]
+            dependencies: ["MeasureSDK"],
+            path: "ios/Tests/MeasureUITests"
         ),
     ]
 )
