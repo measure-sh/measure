@@ -23,7 +23,7 @@ export default function LandingHeader() {
   return (
     <header onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)} className={`w-full flex flex-col z-50 bg-white fixed top-0 transition-transform duration-100 ease-in-out ${scrollDir === 'scrolling down' && isFocused === false ? '-translate-y-full' : 'translate-y-0'}`}>
       <div className="w-full flex flex-col md:flex-row space-between items-center py-4 pl-4 pr-2">
-        <button className="outline-none overflow-hidden p-1 border border-black rounded-full hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 bg-black font-display font-display transition-colors duration-100" onClick={() => router.push('/')}>
+        <button className="outline-hidden overflow-hidden p-1 border border-black rounded-full hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 bg-black font-display font-display transition-colors duration-100" onClick={() => router.push('/')}>
           <Image
             src='/images/measure_logo.svg'
             width={24}
@@ -31,8 +31,8 @@ export default function LandingHeader() {
             alt={'Measure logo'} />
         </button>
         <div className="py-2 md:py-0 md:flex md:grow" />
-        {selfHosted && <Link href="/auth/login" className='outline-none flex flex-row place-items-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4'>Login</Link>}
-        {!selfHosted && <Link href="https://github.com/measure-sh/measure" className='outline-none flex flex-row place-items-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4'>
+        {selfHosted && <Link href="/auth/login" className='outline-hidden flex flex-row place-items-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4'>Login</Link>}
+        {!selfHosted && <Link href="https://github.com/measure-sh/measure" className='outline-hidden flex flex-row place-items-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4'>
           <Image
             src='/images/github_logo.svg'
             width={24}

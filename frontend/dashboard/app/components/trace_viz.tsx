@@ -251,7 +251,7 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
       >
         {selectedSpan !== undefined &&
           <div>
-            <button className="outline-none select-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black active:border-black focus-visible:border-black hover:text-black active:text-black focus-visible:text-black rounded-md font-display transition-colors duration-100 py-2 px-4"
+            <button className="outline-hidden select-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black active:border-black focus-visible:border-black hover:text-black active:text-black focus-visible:text-black rounded-md font-display transition-colors duration-100 py-2 px-4"
               onClick={() => {
                 setSelectedSpan(undefined)
                 setSelectedCheckpoint(undefined)

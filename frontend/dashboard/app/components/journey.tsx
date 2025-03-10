@@ -277,13 +277,13 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
             linkTooltip={({
               link
             }) =>
-              <div className={`flex flex-col p-2 text-xs font-body rounded bg-neutral-800 text-white max-w-72 break-words`}>
+              <div className={`flex flex-col p-2 text-xs font-body rounded-sm bg-neutral-800 text-white max-w-72 break-words`}>
                 <p className='p-2'>{link.source.id.split(".").pop()} → {link.target.id.split(".").pop()}: {link.value > 1 ? link.value + ' sessions' : link.value + ' session'}</p>
               </div>}
             nodeTooltip={({
               node
             }) =>
-              <div className={`flex flex-col p-2 text-xs font-body rounded bg-neutral-800 text-white max-w-72 break-words`}>
+              <div className={`flex flex-col p-2 text-xs font-body rounded-sm bg-neutral-800 text-white max-w-72 break-words`}>
                 <p className='p-2'>{node.id}</p>
 
                 {node.issues?.crashes?.length! > 0 &&
@@ -308,7 +308,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
           >
             {selectedNode !== undefined &&
               <div>
-                <button className="outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black active:border-black focus-visible:border-black hover:text-black active:text-black focus-visible:text-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => setSelectedNode(undefined)}>Close</button>
+                <button className="outline-hidden flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black active:border-black focus-visible:border-black hover:text-black active:text-black focus-visible:text-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => setSelectedNode(undefined)}>Close</button>
                 <p className='mt-6 text-lg'>{selectedNode!.id}</p>
                 {selectedNode.issues?.crashes?.length! > 0 && (
                   <div>

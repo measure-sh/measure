@@ -233,7 +233,7 @@ export default function Home() {
         <div className="py-12 md:py-16" />
         <p className="font-body text-black text-lg leading-relaxed max-w-4xl text-center">Let&apos;s get to the root cause:</p>
         <div className="py-2" />
-        <Link href="https://github.com/measure-sh/measure" className='m-4 outline-none flex flex-row place-items-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4'>
+        <Link href="https://github.com/measure-sh/measure" className='m-4 outline-hidden flex flex-row place-items-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4'>
           <Image
             src='/images/github_logo.svg'
             width={24}

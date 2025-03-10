@@ -32,7 +32,7 @@ const SessionTimelineSeekBar: React.FC<SessionTimelineSeekBarProps> = ({ value, 
         max="100"
         value={value}
         onChange={handleInputChange}
-        className="relative w-full h-1 bg-gray-200 rounded appearance-none focus:outline-none cursor-pointer"
+        className="relative w-full h-1 bg-gray-200 rounded-sm appearance-none focus:outline-hidden cursor-pointer"
         style={{
           '--thumb-width': '2px',
           '--thumb-height': '400px',

@@ -42,7 +42,7 @@ const DebounceTextInput: React.FC<DebounceTextInputProps> = ({
       id={id}
       type="text"
       placeholder={placeholder}
-      className="w-full border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400"
+      className="w-full border border-black rounded-md outline-hidden focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400"
       value={inputValue}
       onChange={handleInputChange}
     />

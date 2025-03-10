@@ -20,7 +20,7 @@ exports[`Alert Dialog Modal renders correctly in closed state 1`] = `
               class="py-2"
             />
             <button
-              class="outline-none hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4"
+              class="outline-hidden hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4"
               type="button"
             >
               SOME AFFIRMATIVE TEXT
@@ -46,7 +46,7 @@ exports[`Alert Dialog Modal renders correctly in closed state 1`] = `
             class="py-2"
           />
           <button
-            class="outline-none hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4"
+            class="outline-hidden hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4"
             type="button"
           >
             SOME AFFIRMATIVE TEXT
@@ -129,7 +129,7 @@ exports[`Alert Dialog Modal renders correctly in opened state 1`] = `
               class="py-2"
             />
             <button
-              class="outline-none hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4"
+              class="outline-hidden hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4"
               type="button"
             >
               SOME AFFIRMATIVE TEXT
@@ -155,7 +155,7 @@ exports[`Alert Dialog Modal renders correctly in opened state 1`] = `
             class="py-2"
           />
           <button
-            class="outline-none hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4"
+            class="outline-hidden hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4"
             type="button"
           >
             SOME AFFIRMATIVE TEXT

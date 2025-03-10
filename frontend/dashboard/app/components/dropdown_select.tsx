@@ -135,11 +135,11 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
     onChangeSelected?.(selected);
   }, [selected]);
 
-  const buttonStyle = "block px-2 py-2 w-full truncate text-white bg-neutral-950 hover:text-black font-display text-left hover:bg-yellow-200 active:bg-yellow-300 outline-none focus:bg-yellow-200"
-  const groupSelectButtonStyle = "text-white text-xs font-display rounded-md border border-white p-1 bg-neutral-950 hover:text-black hover:bg-yellow-200 hover:border-black focus-visible:bg-yellow-200 focus-visible:text-black focus-visible:border-black active:bg-yellow-300 outline-none"
-  const checkboxContainerStyle = "px-2 py-2 bg-neutral-950 truncate text-white font-display text-left outline-none hover:text-black hover:bg-yellow-200 focus:text-black focus:bg-yellow-200 active:bg-yellow-300"
-  const checkboxInputStyle = "appearance-none pointer-events-none border-white rounded-sm font-display bg-neutral-950 checked:bg-neutral-950 checked:hover:bg-neutral-950 checked:focus:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
-  const searchInputStyle = "w-full bg-neutral-950 text-white text-sm border border-white rounded-md py-2 px-4 font-body placeholder:text-gray-400 focus:outline-none focus:border-yellow-300 focus:ring-1 focus:ring-yellow-300"
+  const buttonStyle = "block px-2 py-2 w-full truncate text-white bg-neutral-950 hover:text-black font-display text-left hover:bg-yellow-200 active:bg-yellow-300 outline-hidden focus:bg-yellow-200"
+  const groupSelectButtonStyle = "text-white text-xs font-display rounded-md border border-white p-1 bg-neutral-950 hover:text-black hover:bg-yellow-200 hover:border-black focus-visible:bg-yellow-200 focus-visible:text-black focus-visible:border-black active:bg-yellow-300 outline-hidden"
+  const checkboxContainerStyle = "px-2 py-2 bg-neutral-950 truncate text-white font-display text-left outline-hidden hover:text-black hover:bg-yellow-200 focus:text-black focus:bg-yellow-200 active:bg-yellow-300"
+  const checkboxInputStyle = "appearance-none pointer-events-none border-white rounded-xs font-display bg-neutral-950 checked:bg-neutral-950 checked:hover:bg-neutral-950 checked:focus:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
+  const searchInputStyle = "w-full bg-neutral-950 text-white text-sm border border-white rounded-md py-2 px-4 font-body placeholder:text-gray-400 focus:outline-hidden focus:border-yellow-300 focus:ring-1 focus:ring-yellow-300"
 
   return (
     <div className="relative inline-block text-left select-none" ref={dropdownRef} >
@@ -147,7 +147,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
         <button
           type="button"
           onClick={toggleDropdown}
-          className="inline-flex justify-center w-full font-display border border-black rounded-md outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
+          className="inline-flex justify-center w-full font-display border border-black rounded-md outline-hidden hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
           {type === DropdownSelectType.SingleString && <span className="px-6 py-2">{selected as string}</span>}
           {type === DropdownSelectType.SingleAppVersion && <span className="px-6 py-2">{(selected as AppVersion).displayName}</span>}
           {type === DropdownSelectType.SingleOsVersion && <span className="px-6 py-2">{(selected as OsVersion).displayName}</span>}

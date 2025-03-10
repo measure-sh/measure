@@ -16,7 +16,7 @@ const AlertDialogModal: React.FC<AlertDialogModalProps> = ({ body, open, affirma
                 <div className="flex flex-col bg-white rounded-lg border border-black py-4 px-8">
                     {body}
                     <div className="py-2" />
-                    <button type="button" className="outline-none hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4" onClick={onAffirmativeAction}>{affirmativeText}</button>
+                    <button type="button" className="outline-hidden hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4" onClick={onAffirmativeAction}>{affirmativeText}</button>
                 </div>
             </div>
         </div>
