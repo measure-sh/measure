@@ -175,10 +175,7 @@ services:
         condition: service_healthy
 
   symbolicator:
-    # FIXME:  Figure out a way to support multiple
-    #         architecutres. arm64 & amd64, for now.
-    image: ghcr.io/measure-sh/symbolicator:arm64-nightly
-    # platform: linux/arm64/v8
+    image: ghcr.io/measure-sh/symbolicator
     ports:
       - "3021:3021"
     volumes:
