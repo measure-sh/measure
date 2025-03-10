@@ -9,7 +9,7 @@ exports[`Paginator renders correctly when prev and next buttons are disabled 1`]
         class="flex flex-row items-center justify-self-center"
       >
         <button
-          class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+          class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
           disabled=""
         >
           Previous
@@ -20,7 +20,7 @@ exports[`Paginator renders correctly when prev and next buttons are disabled 1`]
           TITLE
         </p>
         <button
-          class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+          class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
           disabled=""
         >
           Next
@@ -33,7 +33,7 @@ exports[`Paginator renders correctly when prev and next buttons are disabled 1`]
       class="flex flex-row items-center justify-self-center"
     >
       <button
-        class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+        class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
         disabled=""
       >
         Previous
@@ -44,7 +44,7 @@ exports[`Paginator renders correctly when prev and next buttons are disabled 1`]
         TITLE
       </p>
       <button
-        class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+        class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
         disabled=""
       >
         Next
@@ -114,7 +114,7 @@ exports[`Paginator renders correctly when prev and next buttons are enabled 1`] 
         class="flex flex-row items-center justify-self-center"
       >
         <button
-          class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+          class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
         >
           Previous
         </button>
@@ -124,7 +124,7 @@ exports[`Paginator renders correctly when prev and next buttons are enabled 1`] 
           TITLE
         </p>
         <button
-          class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+          class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
         >
           Next
         </button>
@@ -136,7 +136,7 @@ exports[`Paginator renders correctly when prev and next buttons are enabled 1`] 
       class="flex flex-row items-center justify-self-center"
     >
       <button
-        class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+        class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
       >
         Previous
       </button>
@@ -146,7 +146,7 @@ exports[`Paginator renders correctly when prev and next buttons are enabled 1`] 
         TITLE
       </p>
       <button
-        class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+        class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
       >
         Next
       </button>
@@ -215,7 +215,7 @@ exports[`Paginator renders correctly when prev button is disabled and next butto
         class="flex flex-row items-center justify-self-center"
       >
         <button
-          class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+          class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
           disabled=""
         >
           Previous
@@ -226,7 +226,7 @@ exports[`Paginator renders correctly when prev button is disabled and next butto
           TITLE
         </p>
         <button
-          class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+          class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
         >
           Next
         </button>
@@ -238,7 +238,7 @@ exports[`Paginator renders correctly when prev button is disabled and next butto
       class="flex flex-row items-center justify-self-center"
     >
       <button
-        class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+        class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
         disabled=""
       >
         Previous
@@ -249,7 +249,7 @@ exports[`Paginator renders correctly when prev button is disabled and next butto
         TITLE
       </p>
       <button
-        class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+        class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
       >
         Next
       </button>
@@ -318,7 +318,7 @@ exports[`Paginator renders correctly when prev button is enabled and next button
         class="flex flex-row items-center justify-self-center"
       >
         <button
-          class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+          class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
         >
           Previous
         </button>
@@ -328,7 +328,7 @@ exports[`Paginator renders correctly when prev button is enabled and next button
           TITLE
         </p>
         <button
-          class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+          class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
           disabled=""
         >
           Next
@@ -341,7 +341,7 @@ exports[`Paginator renders correctly when prev button is enabled and next button
       class="flex flex-row items-center justify-self-center"
     >
       <button
-        class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+        class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
       >
         Previous
       </button>
@@ -351,7 +351,7 @@ exports[`Paginator renders correctly when prev button is enabled and next button
         TITLE
       </p>
       <button
-        class="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
+        class="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4"
         disabled=""
       >
         Next

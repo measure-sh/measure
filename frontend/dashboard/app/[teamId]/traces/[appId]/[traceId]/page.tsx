@@ -52,7 +52,7 @@ export default function TraceDetails({ params }: { params: { teamId: string, app
           <p className="font-body"> App version: {trace.app_version}</p>
           <p className="font-body"> Network type: {trace.network_type}</p>
           <div className="py-4" />
-          <Link href={`/${params.teamId}/sessions/${params.appId}/${trace.session_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session</Link>
+          <Link href={`/${params.teamId}/sessions/${params.appId}/${trace.session_id}`} className="outline-hidden justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session</Link>
           <div className="py-4" />
           <TraceViz inputTrace={trace} />
         </div>}

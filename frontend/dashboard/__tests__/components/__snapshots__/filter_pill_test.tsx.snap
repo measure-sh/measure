@@ -9,7 +9,7 @@ exports[`FilterPill renders correctly 1`] = `
         class="group relative select-none"
       >
         <p
-          class="px-2 py-1 max-w-72 whitespace-nowrap text-ellipsis overflow-hidden text-white bg-neutral-950 font-display text-sm border border-black rounded-full outline-none transition ease-in-out transition-colors duration-100"
+          class="px-2 py-1 max-w-72 whitespace-nowrap text-ellipsis overflow-hidden text-white bg-neutral-950 font-display text-sm border border-black rounded-full outline-hidden transition ease-in-out transition-colors duration-100"
         >
           TITLE
         </p>
@@ -26,7 +26,7 @@ exports[`FilterPill renders correctly 1`] = `
       class="group relative select-none"
     >
       <p
-        class="px-2 py-1 max-w-72 whitespace-nowrap text-ellipsis overflow-hidden text-white bg-neutral-950 font-display text-sm border border-black rounded-full outline-none transition ease-in-out transition-colors duration-100"
+        class="px-2 py-1 max-w-72 whitespace-nowrap text-ellipsis overflow-hidden text-white bg-neutral-950 font-display text-sm border border-black rounded-full outline-hidden transition ease-in-out transition-colors duration-100"
       >
         TITLE
       </p>

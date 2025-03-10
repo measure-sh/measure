@@ -66,7 +66,7 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
         type="button"
         onClick={toggleTeamSwitcher}
         disabled={teamsSwitcherStatus === TeamsSwitcherStatus.Loading || teamsSwitcherStatus === TeamsSwitcherStatus.Error}
-        className="aspect-square w-full text-xl font-display border border-black rounded-full outline-none hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300">
+        className="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300">
         {teamsSwitcherStatus == TeamsSwitcherStatus.Loading && <p className="pl-8 truncate w-max">Updating...</p>}
         {teamsSwitcherStatus == TeamsSwitcherStatus.Error && <p className="pl-8 truncate w-max">Error</p>}
         {teamsSwitcherStatus == TeamsSwitcherStatus.Success &&
@@ -87,7 +87,7 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
               <button
                 key={item}
                 onClick={() => selectItem(item)}
-                className="block w-full px-2 py-2 text-white bg-neutral-950 font-display text-left hover:text-black hover:bg-yellow-200 active:bg-yellow-300 outline-none focus:bg-yellow-200"
+                className="block w-full px-2 py-2 text-white bg-neutral-950 font-display text-left hover:text-black hover:bg-yellow-200 active:bg-yellow-300 outline-hidden focus:bg-yellow-200"
                 role="menuitem"
               >
                 {item}

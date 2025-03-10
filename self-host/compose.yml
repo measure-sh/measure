@@ -41,9 +41,11 @@ services:
       interval: 5s
       timeout: 10s
       retries: 5
-    volumes:
-      - ../frontend/dashboard:/app
-      - ../frontend/dashboard/public:/app/public
+    develop:
+      watch:
+      - path: ../frontend/dashboard
+        action: sync
+        target: /app
 
   api:
     build:

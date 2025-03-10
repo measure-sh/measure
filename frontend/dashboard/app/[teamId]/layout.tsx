@@ -121,12 +121,12 @@ export default function DashboardLayout({
               <ul>
                 {menuItems.map(({ hrefSuffix, title }) => (
                   <li key={title}>
-                    <Link href={`/${selectedTeam}/${hrefSuffix}`} className={`mx-4 mb-3 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) ? 'bg-neutral-950 text-white hover:text-black focus-visible:text-black' : ''}`}>{title}</Link>
+                    <Link href={`/${selectedTeam}/${hrefSuffix}`} className={`mx-4 mb-3 outline-hidden flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) ? 'bg-neutral-950 text-white hover:text-black focus-visible:text-black' : ''}`}>{title}</Link>
                   </li>
                 ))}
               </ul>}
             <div className="grow" />
-            <a href="https://discord.gg/f6zGkBCt42" target="_blank" className='mx-4 mb-3 outline-none flex flex-row justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4'>
+            <a href="https://discord.gg/f6zGkBCt42" target="_blank" className='mx-4 mb-3 outline-hidden flex flex-row justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4'>
               <Image
                 src='/images/discord_logo.svg'
                 width={24}
@@ -135,7 +135,7 @@ export default function DashboardLayout({
               <div className='px-1' />
               <p className='mt-1'>Support</p>
             </a>
-            <button className="mx-4 mb-2 outline-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => logoutUser()}>Logout</button>
+            <button className="mx-4 mb-2 outline-hidden flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => logoutUser()}>Logout</button>
           </nav>
         </aside>
         {teamsApiStatus === TeamsApiStatus.Success && <main className="md:overflow-auto">{children}</main>}

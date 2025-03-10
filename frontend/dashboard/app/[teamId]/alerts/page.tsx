@@ -53,7 +53,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     handleEmailChange,
   }) => {
 
-    const checkboxStyle = "appearance-none border-black rounded-sm font-display checked:bg-neutral-950 checked:hover:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:focus:bg-neutral-950"
+    const checkboxStyle = "appearance-none border-black rounded-xs font-display checked:bg-neutral-950 checked:hover:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:focus:bg-neutral-950"
 
     return (
       <div className="table-row-group">
@@ -198,7 +198,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
                 />
               </div>
               <div className="py-4" />
-              <button disabled={areAlertPrefsSame(alertPrefs, updatedAlertPrefs) || updateAlertPrefsApiStatus === UpdateAlertPrefsApiStatus.Loading} className="outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={saveAlertPrefs}>Save</button>
+              <button disabled={areAlertPrefsSame(alertPrefs, updatedAlertPrefs) || updateAlertPrefsApiStatus === UpdateAlertPrefsApiStatus.Loading} className="outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={saveAlertPrefs}>Save</button>
               <div className="py-1" />
               {updateAlertPrefsApiStatus !== UpdateAlertPrefsApiStatus.Init && <p className="text-sm font-body">{updatePrefsMsg}</p>}
             </div>}
