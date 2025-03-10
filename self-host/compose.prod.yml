@@ -20,6 +20,14 @@ services:
     develop: !reset null
     restart: unless-stopped
 
+  symbolicator:
+    volumes:
+      # no need to !reset or !override as compose merges entries
+      # for `volumes` because target shares as a unique key
+      #
+      # see: https://docs.docker.com/reference/compose-file/merge/#unique-resources
+      - ./symbolicator/config.prod.yml:/etc/symbolicator/config.yml:ro
+
   symbolicator-android:
     environment:
       - DEVELOPMENT_MODE=false
@@ -27,6 +35,7 @@ services:
     restart: unless-stopped
 
   clickhouse:
-    ports: !reset # see: https://docs.docker.com/compose/compose-file/13-merge/#reset-value
+    ports:
+      !reset # see: https://docs.docker.com/compose/compose-file/13-merge/#reset-value
       - "9000:9000/tcp"
     restart: unless-stopped
