@@ -1,0 +1,79 @@
+[changelog]
+header = """
+# Changelog\n
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n
+"""
+
+body = """
+{% if version -%}
+    ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else -%}
+    ## [Unreleased]
+{% endif -%}\n
+{% for group, commits in commits | group_by(attribute="group") %}
+    {% if commits | length > 0 %}### {{ group | striptags | trim | upper_first }}\n{% endif -%}
+    {% for scope, commits in commits | filter(attribute="merge_commit", value=false) | group_by(attribute="scope") %}
+        {% for commit in commits %}
+            - {% if commit.scope != "other" %}(**{{ commit.scope }}**): {% endif %}\
+              {{ commit.message | upper_first }}\
+              {% if commit.remote.username %} by @{{ commit.remote.username }}{%- endif %}\
+              {% if commit.remote.pr_number %} in #{{ commit.remote.pr_number }}{%- endif -%}
+        {%- endfor -%}
+    {% endfor %}
+{% endfor %}\n
+"""
+
+footer = """
+{% for release in releases -%}
+    {% if release.version -%}
+        {% if release.previous.version -%}
+            [{{ release.version | trim_start_matches(pat="v") }}]: \
+                https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}\
+                /compare/{{ release.previous.version }}..{{ release.version }}
+        {% endif -%}
+    {% else -%}
+        [unreleased]: https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}\
+            /compare/{{ release.previous.version }}..HEAD
+    {% endif -%}
+{% endfor %}
+"""
+
+trim = true
+
+[git]
+# Enable conventional commit parsing
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+
+# Only include commits that start with (ios)
+filter_commits_regex = "^.*\\(ios\\):.*$"
+
+commit_parsers = [
+  { message = "^ci\\(ios\\):", skip = true },
+  { message = "^docs\\(ios\\):", group = ":books: Documentation", default_scope = "other" },
+  { message = "^chore\\(ios\\):", group = ":hammer: Misc", default_scope = "other" },
+  { message = "^feat\\(ios\\):", group = ":sparkles: New features" },
+  { message = "^test\\(ios\\):", group = ":test_tube: Testing", skip = true },
+  { message = "^fix\\(ios\\):", group = ":bug: Bug fixes" },
+  { message = "^perf\\(ios\\):", group = ":zap: Performance" },
+  { message = "^refactor\\(ios\\):", group = ":recycle: Refactor" },
+  { message = "^remove\\(ios\\):", group = ":coffin: Removed" },
+  { message = "^delete\\(ios\\):", group = ":coffin: Removed" },
+]
+
+protect_breaking_commits = false
+filter_commits = true
+
+# Only match tags for iOS
+tag_pattern = "^ios-v[0-9]+\\.[0-9]+\\.[0-9]+$"
+
+# Ignore non-iOS tags
+ignore_tags = "^(android|backend|frontend|webapp|flutter|rn)"
+
+# Sorting and ordering
+topo_order = false
+sort_commits = "newest"
