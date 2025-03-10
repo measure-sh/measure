@@ -175,7 +175,7 @@ services:
         condition: service_healthy
 
   symbolicator:
-    image: ghcr.io/measure-sh/symbolicator
+    image: ghcr.io/measure-sh/symbolicator:nightly
     ports:
       - "3021:3021"
     volumes:
