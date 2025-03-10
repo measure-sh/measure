@@ -354,7 +354,30 @@ internal class TestMeasureInitializer(
         defaultExecutor = executorServiceRegistry.defaultExecutor(),
         layoutSnapshotThrottler = LayoutSnapshotThrottler(timeProvider),
     ),
-    private val launchTracker: LaunchTracker = LaunchTracker(logger, timeProvider),
+    private val spanProcessor: SpanProcessor = MsrSpanProcessor(
+        signalProcessor = signalProcessor,
+        attributeProcessors = emptyList(),
+        logger = logger,
+        configProvider = configProvider,
+    ),
+    private val traceSampler: TraceSampler = TraceSamplerImpl(
+        randomizer = randomizer,
+        configProvider = configProvider,
+    ),
+    private val tracer: Tracer = MsrTracer(
+        logger = logger,
+        sessionManager = sessionManager,
+        spanProcessor = spanProcessor,
+        idProvider = idProvider,
+        timeProvider = timeProvider,
+        traceSampler = traceSampler,
+    ),
+    private val launchTracker: LaunchTracker = LaunchTracker(
+        logger,
+        timeProvider,
+        configProvider,
+        tracer,
+    ),
     override val appLaunchCollector: AppLaunchCollector = AppLaunchCollector(
         logger = logger,
         application = application,
@@ -382,24 +405,6 @@ internal class TestMeasureInitializer(
         logger = logger,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
-    ),
-    private val spanProcessor: SpanProcessor = MsrSpanProcessor(
-        signalProcessor = signalProcessor,
-        attributeProcessors = emptyList(),
-        logger = logger,
-        configProvider = configProvider,
-    ),
-    private val traceSampler: TraceSampler = TraceSamplerImpl(
-        randomizer = randomizer,
-        configProvider = configProvider,
-    ),
-    private val tracer: Tracer = MsrTracer(
-        logger = logger,
-        sessionManager = sessionManager,
-        spanProcessor = spanProcessor,
-        idProvider = idProvider,
-        timeProvider = timeProvider,
-        traceSampler = traceSampler,
     ),
     override val spanCollector: SpanCollector = SpanCollector(tracer),
     override val bugReportCollector: BugReportCollector = BugReportCollectorImpl(
