@@ -48,10 +48,11 @@ class Measure implements IMeasure {
   }
 
   @override
-  void trackFlutterError(Object error, StackTrace? stack, ) {
+  Future<void> trackFlutterError(Object error, StackTrace? stack, ) {
     if (_isInitialized) {
-      _measure.trackFlutterError(error, stack);
+      return _measure.trackFlutterError(error, stack);
     }
+    return Future.value();
   }
 
   @override

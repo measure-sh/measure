@@ -21,12 +21,12 @@ final class ExceptionCollector {
     enabled = false;
   }
 
-  void trackFlutterError(Object error, StackTrace? stack) {
-    if (!enabled) return;
+  Future<void> trackFlutterError(Object error, StackTrace? stack) {
+    if (!enabled) return Future.value();
     var timestamp = DateTime.now();
     final ExceptionData exceptionData =
         ExceptionFactory.from(error, stack);
     var serializedExceptionData = exceptionData.toJson();
-    signalProcessor.trackFlutterError(serializedExceptionData, timestamp);
+    return signalProcessor.trackFlutterError(serializedExceptionData, timestamp);
   }
 }

@@ -42,7 +42,7 @@ data class ExceptionUnit(
     /**
      * The fully qualified type of the exception. For example, java.lang.Exception.
      */
-    val type: String,
+    val type: String?,
 
     /**
      * A message which describes the exception.

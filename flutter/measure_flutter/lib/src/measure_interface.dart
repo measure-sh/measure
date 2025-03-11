@@ -8,7 +8,7 @@ abstract class IMeasure {
     required DateTime? timestamp,
   });
 
-  void trackFlutterError(Object error, StackTrace? stack);
+  Future<void> trackFlutterError(Object error, StackTrace? stack);
 
   void triggerNativeCrash();
 }

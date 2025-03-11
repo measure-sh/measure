@@ -33,8 +33,8 @@ final class MeasureInternal {
     _customEventCollector.trackCustomEvent(name, timestamp, attributes);
   }
 
-  void trackFlutterError(Object error, StackTrace? stack) {
-    _exceptionCollector.trackFlutterError(error, stack);
+  Future<void> trackFlutterError(Object error, StackTrace? stack) {
+    return _exceptionCollector.trackFlutterError(error, stack);
   }
 
   void triggerNativeCrash() {

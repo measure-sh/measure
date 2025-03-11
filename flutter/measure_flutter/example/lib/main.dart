@@ -1,22 +1,25 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:measure_flutter/attribute_builder.dart';
 import 'package:measure_flutter/measure.dart';
 import 'package:measure_flutter_example/src/list_item.dart';
 import 'package:stack_trace/stack_trace.dart';
 
 Future<void> main() async {
-  FlutterError.onError = (FlutterErrorDetails details) {
-    Measure.instance.trackFlutterError(details.exception, details.stack);
+  FlutterError.onError = (FlutterErrorDetails details) async {
+    await Measure.instance.trackFlutterError(details.exception, details.stack);
+    exit(1);
   };
 
   runZonedGuarded(() async {
     await Measure.instance.init(enableLogging: true);
     runApp(MyApp());
-  }, (error, stackTrace) {
-    Measure.instance.trackFlutterError(error, stackTrace);
+  }, (error, stackTrace) async {
+    await Measure.instance.trackFlutterError(error, stackTrace);
   });
 }
 
@@ -58,16 +61,13 @@ class _MyAppState extends State<MyApp> {
             ),
             ListItem(
               title: "Native crash",
-              onPressed: () {
-                _throwNativeCrash();
-              },
+              onPressed: _throwNativeCrash,
             ),
             ListItem(
               title: "Throw OOM",
-              onPressed: () {
-                _throwOOM();
-              },
+              onPressed: _throwOOM,
             ),
+            ListItem(title: "No method channel", onPressed: _noMethodChannel),
           ],
         ),
       ),
@@ -127,5 +127,10 @@ class _MyAppState extends State<MyApp> {
     while (true) {
       list.addAll(List.filled(1024 * 1024, 42));
     }
+  }
+
+  void _noMethodChannel() async {
+    await MethodChannel('non_existent_channel')
+        .invokeMethod('non_existent_method');
   }
 }

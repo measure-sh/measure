@@ -1,6 +1,7 @@
 package sh.measure.flutter
 
 import android.os.Looper
+import android.util.Log
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -35,6 +36,7 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
                 "Unexpected method channel error when calling ${call.method}",
                 "${e.message}"
             )
+            Log.e("Measure", "Unexpected method channel error when calling ${call.method}", e)
         }
     }
 
@@ -72,7 +74,7 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
             }
 
             ExceptionUnit(
-                type = exception["type"] as String,
+                type = exception["type"] as? String,
                 message = exception["message"] as? String,
                 frames = frames
             )
