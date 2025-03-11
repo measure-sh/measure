@@ -10,9 +10,9 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.mainHandler
 import sh.measure.android.postAtFrontOfQueueAsync
+import sh.measure.android.tracing.AttributeName
 import sh.measure.android.tracing.CheckpointName
 import sh.measure.android.tracing.Span
-import sh.measure.android.tracing.SpanAttribute
 import sh.measure.android.tracing.SpanName
 import sh.measure.android.tracing.SpanStatus
 import sh.measure.android.tracing.Tracer
@@ -286,10 +286,7 @@ internal class LaunchTracker(
         launchType: String? = null,
     ) {
         if (launchType == "Cold") {
-            ttidSpan?.setAttribute(
-                SpanAttribute.APP_LAUNCH_TYPE_KEY,
-                SpanAttribute.APP_LAUNCH_TYPE_COLD,
-            )
+            ttidSpan?.setAttribute(AttributeName.APP_STARTUP_FIRST_ACTIVITY, true)
         }
         ttidSpan?.setStatus(SpanStatus.Ok)?.end()
         if (activityIdentityHash in createdActivities && ttidSpan != null) {

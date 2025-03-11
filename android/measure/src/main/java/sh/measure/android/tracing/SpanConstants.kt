@@ -14,9 +14,8 @@ internal object SpanName {
 /**
  * Centralized definitions of span attributes for spans created by the Measure SDK.
  */
-internal object SpanAttribute {
-    const val APP_LAUNCH_TYPE_KEY = "app_launch_type"
-    const val APP_LAUNCH_TYPE_COLD = "app_launch_type_cold"
+internal object AttributeName {
+    const val APP_STARTUP_FIRST_ACTIVITY = "app_startup_first_activity"
 }
 
 /**
