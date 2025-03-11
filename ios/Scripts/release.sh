@@ -92,22 +92,3 @@ else
     echo "❌ Skipping changelog generation."
     exit 0
 fi
-
-# Commit message
-COMMIT_MESSAGE="chore(ios): prepare sdk release $NEW_VERSION"
-echo "📝 Commit message: $COMMIT_MESSAGE"
-
-# Ask user if they want to create tag and push changes
-read -p "🚀 Do you want to create a tag and push changes? (y/n): " push_changes
-
-if [[ "$push_changes" == "y" ]]; then
-    echo "🚀 Committing and pushing changes..."
-    git add .
-    git commit -m "$COMMIT_MESSAGE"
-    git tag -a "ios-v$NEW_VERSION" -m "ios-v$NEW_VERSION"
-    git push origin main --tags
-    echo "✅ Release $NEW_VERSION created and pushed successfully!"
-else
-    echo "❌ Skipping git actions. Exiting."
-    exit 0
-fi
