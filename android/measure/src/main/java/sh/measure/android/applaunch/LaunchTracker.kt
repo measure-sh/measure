@@ -59,8 +59,25 @@ internal class LaunchTracker(
         this.callbacks = null
     }
 
+    override fun onActivityPreCreated(activity: Activity, savedInstanceState: Bundle?) {
+        val identityHash = Integer.toHexString(System.identityHashCode(activity))
+        if (createdActivities[identityHash] == null) {
+            handleActivityOnCreate(activity, savedInstanceState, identityHash)
+        }
+    }
+
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         val identityHash = Integer.toHexString(System.identityHashCode(activity))
+        if (createdActivities[identityHash] == null) {
+            handleActivityOnCreate(activity, savedInstanceState, identityHash)
+        }
+    }
+
+    private fun handleActivityOnCreate(
+        activity: Activity,
+        savedInstanceState: Bundle?,
+        identityHash: String,
+    ) {
         val hasSavedState = savedInstanceState != null
 
         val activityTtidSpan = if (savedInstanceState == null) {
@@ -114,14 +131,6 @@ internal class LaunchTracker(
         }
     }
 
-    private fun appMightBecomeVisible() {
-        LaunchState.lastAppVisibleElapsedRealtime = timeProvider.elapsedRealtime
-        logger.log(
-            LogLevel.Debug,
-            "Updated last app visible time: ${LaunchState.lastAppVisibleElapsedRealtime}",
-        )
-    }
-
     override fun onActivityResumed(activity: Activity) {
         val identityHash = Integer.toHexString(System.identityHashCode(activity))
         resumedActivities += identityHash
@@ -146,6 +155,21 @@ internal class LaunchTracker(
                 }
             }
         }
+    }
+
+    override fun onActivityPaused(activity: Activity) {
+        val identityHash = Integer.toHexString(System.identityHashCode(activity))
+        resumedActivities.remove(identityHash)
+    }
+
+    override fun onActivityStopped(activity: Activity) {
+        val identityHash = Integer.toHexString(System.identityHashCode(activity))
+        startedActivities.remove(identityHash)
+    }
+
+    override fun onActivityDestroyed(activity: Activity) {
+        val identityHash = Integer.toHexString(System.identityHashCode(activity))
+        createdActivities.remove(identityHash)
     }
 
     private fun trackLaunchEvent(
@@ -224,19 +248,12 @@ internal class LaunchTracker(
         }
     }
 
-    override fun onActivityPaused(activity: Activity) {
-        val identityHash = Integer.toHexString(System.identityHashCode(activity))
-        resumedActivities.remove(identityHash)
-    }
-
-    override fun onActivityStopped(activity: Activity) {
-        val identityHash = Integer.toHexString(System.identityHashCode(activity))
-        startedActivities.remove(identityHash)
-    }
-
-    override fun onActivityDestroyed(activity: Activity) {
-        val identityHash = Integer.toHexString(System.identityHashCode(activity))
-        createdActivities.remove(identityHash)
+    private fun appMightBecomeVisible() {
+        LaunchState.lastAppVisibleElapsedRealtime = timeProvider.elapsedRealtime
+        logger.log(
+            LogLevel.Debug,
+            "Updated last app visible time: ${LaunchState.lastAppVisibleElapsedRealtime}",
+        )
     }
 
     private fun computeLaunchType(onCreateRecord: OnCreateRecord): String {
