@@ -100,6 +100,9 @@ services:
       dbmate-clickhouse:
         condition: service_completed_successfully
         required: false
+      migrator:
+        condition: service_completed_successfully
+        required: false
       mc:
         condition: service_completed_successfully
         required: false
@@ -141,6 +144,9 @@ services:
         condition: service_completed_successfully
         required: false
       dbmate-clickhouse:
+        condition: service_completed_successfully
+        required: false
+      migrator:
         condition: service_completed_successfully
         required: false
       mc:
