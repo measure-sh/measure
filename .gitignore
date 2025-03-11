@@ -9,3 +9,8 @@ node_modules
 
 # vscode multi-root workspace
 *.code-workspace
+
+# ios
+.build/
+.swiftpm/
+Package.resolved
