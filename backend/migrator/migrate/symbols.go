@@ -186,19 +186,15 @@ func MigrateSymbolsToUnifiedLayout(ctx context.Context, sc SymbolsConfig) (resul
 	return
 }
 
+// RollbackSymbolsToLegacyLayout is a no-op for proguard
+// legacy symbols object migration.
 func RollbackSymbolsToLegacyLayout(ctx context.Context, sc SymbolsConfig) (err error) {
-	symbolsClient := NewSymbolsClient(sc)
-
-	objects, err := symbolsClient.ListObjectsByPattern(ctx, unifiedLayoutRegex)
-	if err != nil {
-		return
-	}
-
-	if len(objects) == 0 {
-		return
-	}
-
-	fmt.Println(len(objects))
-
+	// rollback is a no-op in this case, because
+	// the old object keys were in the <uuid.txt>
+	// format.
+	// we'll have to store the old -> new key names
+	// and then use that map to effectively perform
+	// the rollback.
+	// not sure if the effort needed is worth it.
 	return
 }
