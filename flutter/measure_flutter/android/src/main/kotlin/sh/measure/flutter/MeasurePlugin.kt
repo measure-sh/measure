@@ -65,7 +65,9 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
                     file_name = frame["fileName"] as? String,
                     line_num = (frame["lineNum"] as? Number)?.toInt(),
                     col_num = (frame["colNum"] as? Number)?.toInt(),
-                    module_name = frame["moduleName"] as? String
+                    module_name = frame["moduleName"] as? String,
+                    binary_addr = frame["binaryAddr"] as? String,
+                    instruction_addr = frame["instructionAddr"] as? String
                 )
             }
 

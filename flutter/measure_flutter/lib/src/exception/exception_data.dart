@@ -44,7 +44,7 @@ class ExceptionData {
       MethodConstants.argExceptionDataFrameColNum: frame.colNum,
       MethodConstants.argExceptionDataFrameIndex: frame.frameIndex,
       MethodConstants.argExceptionDataFrameBinaryAddr: frame.binaryAddr,
-      MethodConstants.argExceptionDataFrameSymbolAddr: frame.symbolAddress,
+      MethodConstants.argExceptionDataFrameInstructionAddress: frame.instructionAddr,
     };
   }
 }
@@ -67,7 +67,7 @@ class ExceptionUnit {
   });
 }
 
-/// Represents a stackframe in Measure.
+/// Represents a stack frame in Measure.
 class MsrFrame {
   /// The fully qualified class name.
   final String? className;
@@ -91,6 +91,8 @@ class MsrFrame {
 
   final String? symbolAddress;
 
+  final String? instructionAddr;
+
   MsrFrame({
     this.className,
     this.methodName,
@@ -101,5 +103,6 @@ class MsrFrame {
     this.frameIndex,
     this.binaryAddr,
     this.symbolAddress,
+    this.instructionAddr,
   });
 }

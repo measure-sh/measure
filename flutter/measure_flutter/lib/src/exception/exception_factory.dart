@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:measure_flutter/src/exception/exception_data.dart';
 import 'package:stack_trace/stack_trace.dart';
 
@@ -76,7 +78,7 @@ final class ExceptionFactory {
       return MsrFrame(
           frameIndex: index,
           binaryAddr: '0x$binaryAddr',
-          symbolAddress: '0x${symbolAddr.replaceAll(RegExp(r'^0+'), '')}');
+          instructionAddr: '0x${symbolAddr.replaceAll(RegExp(r'^0+'), '')}');
     }
     return null;
   }

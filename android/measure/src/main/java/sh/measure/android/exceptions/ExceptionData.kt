@@ -83,4 +83,8 @@ data class Frame(
     val module_name: String? = null,
 
     val col_num: Int? = null,
+
+    val instruction_addr: String? = null,
+
+    val binary_addr: String? = null,
 )
