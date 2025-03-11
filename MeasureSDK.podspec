@@ -9,7 +9,7 @@ Pod::Spec.new do |spec|
   spec.swift_version = "5.10"
   spec.static_framework = true
   spec.source       = { :git => "https://github.com/measure-sh/measure.git",
-                        :tag => "ios-v#{spec.version}" }
+                        :tag => "ios-v#{spec.version}-rc1" }
   spec.source_files = "ios/Sources/MeasureSDK/Swift/**/*.{swift}", "ios/Sources/MeasureSDK/Objc/**/*.{h,m}"
   spec.public_header_files = "ios/Sources/MeasureSDK/Objc/include/**/*.h"
   spec.resources    = ["ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModel.xcdatamodeld", "ios/Sources/MeasureSDK/Swift/Resources/PrivacyInfo.xcprivacy"]
