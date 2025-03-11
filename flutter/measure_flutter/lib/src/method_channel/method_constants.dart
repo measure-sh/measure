@@ -23,8 +23,8 @@ class MethodConstants {
   static const String argExceptionDataFrameModuleName = 'moduleName';
   static const String argExceptionDataFrameColNum = 'colNum';
   static const String argExceptionDataFrameIndex = 'index';
-  static const String argExceptionDataFrameSymbolAddr = "symbolAddr";
   static const String argExceptionDataFrameBinaryAddr = 'binaryAddr';
+  static const String argExceptionDataFrameInstructionAddress = 'instructionAddr';
 
   // Error codes
   static const String argExceptionDataFrame = 'frameIndex';
