@@ -369,9 +369,9 @@ func (bm *BuildMapping) extractDif() (err error) {
 	switch bm.MappingType {
 	case symbol.TypeProguard.String():
 		mf := bm.MappingFiles[0]
-		f, err := mf.Header.Open()
-		if err != nil {
-			return err
+		f, errHeader := mf.Header.Open()
+		if errHeader != nil {
+			return errHeader
 		}
 
 		defer func() {
@@ -380,9 +380,18 @@ func (bm *BuildMapping) extractDif() (err error) {
 			}
 		}()
 
-		bytes, err := io.ReadAll(f)
-		if err != nil {
-			return err
+		bytes, errRead := io.ReadAll(f)
+		if errRead != nil {
+			return errRead
+		}
+
+		// compress bytes using zstd, if not
+		// already compressed
+		if !codec.IsZstdCompressed(bytes) {
+			bytes, err = codec.CompressZstd(bytes)
+			if err != nil {
+				return
+			}
 		}
 
 		ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("guardsquare.com"))
