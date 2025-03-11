@@ -2,6 +2,13 @@ on:
   pull_request:
     paths:
       - 'ios/**'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'ios/**'
+    tags:
+      - 'ios-*'
 
 jobs:
   ios_lint_and_tests:
@@ -31,3 +38,24 @@ jobs:
             -sdk iphonesimulator \
             -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
             ONLY_ACTIVE_ARCH=YES
+
+  publish-ios:
+    runs-on: macos-latest
+    needs: [ ios_lint_and_tests ]
+    if: startsWith(github.ref, 'refs/tags/ios-v')
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install CocoaPods
+        run: |
+          sudo gem install cocoapods
+          pod --version  # Verify installation
+
+      - name: Lint CocoaPods
+        run: |
+          pod trunk push MeasureSDK.podspec
