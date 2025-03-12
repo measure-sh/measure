@@ -10,7 +10,7 @@ func TestParseRawUDExpression(t *testing.T) {
 		UDExpressionRaw: `{"and":[{"cmp":{"key":"paid_user","type":"bool","op":"eq","value":"true"}},{"cmp":{"key":"credit_balance","type":"int64","op":"gte","value":"1000"}}]}`,
 	}
 
-	afOne.parseUDExpression()
+	_ = afOne.parseUDExpression()
 
 	// assert expression exists
 	if afOne.UDExpression == nil {
