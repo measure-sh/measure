@@ -90,8 +90,6 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      symbolicator-android:
-        condition: service_healthy
       symbolicator:
         condition: service_healthy
       dbmate-postgres:
@@ -152,33 +150,6 @@ services:
       mc:
         condition: service_completed_successfully
         required: false
-
-  symbolicator-android:
-    build:
-      context: ../backend/symbolicator-android
-    ports:
-      - "8181:8181"
-    environment:
-      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
-      - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
-      - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
-      - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
-      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
-      - DEVELOPMENT_MODE=true
-    volumes:
-      - symbolicator-volume:/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:8181/ping || exit 1"]
-      interval: 3s
-      timeout: 10s
-      retries: 5
-    develop:
-      watch:
-        - path: ../backend/symbolicator-android
-          action: rebuild
-    depends_on:
-      minio:
-        condition: service_healthy
 
   symbolicator:
     image: ghcr.io/measure-sh/symbolicator
@@ -334,7 +305,6 @@ services:
 
 volumes:
   clickhouse-volume:
-  symbolicator-volume:
   migrator-volume:
   minio-data:
   pgdata:

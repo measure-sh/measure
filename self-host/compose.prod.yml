@@ -27,11 +27,6 @@ services:
       #
       # see: https://docs.docker.com/reference/compose-file/merge/#unique-resources
       - ./symbolicator/config.prod.yml:/etc/symbolicator/config.yml:ro
-
-  symbolicator-android:
-    environment:
-      - DEVELOPMENT_MODE=false
-    develop: !reset null
     restart: unless-stopped
 
   migrator:
