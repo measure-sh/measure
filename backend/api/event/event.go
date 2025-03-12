@@ -1225,9 +1225,7 @@ func (e Exception) IsNested() bool {
 // for certain OutOfMemory stacktraces in
 // Android.
 func (e Exception) HasNoFrames() bool {
-	pltfrm := e.GetPlatform()
-
-	switch pltfrm {
+	switch e.GetPlatform() {
 	case platform.Android:
 		return len(e.Exceptions[len(e.Exceptions)-1].Frames) == 0
 	case platform.IOS:
@@ -1235,6 +1233,37 @@ func (e Exception) HasNoFrames() bool {
 	}
 
 	return false
+}
+
+// GetRelevantFrame finds and returns the first
+// in app frame if found, otherwise returns the
+// first exception unit's first frame.
+func (e Exception) GetRelevantFrame() (frame Frame) {
+	unitIndex := -1
+	frameIndex := -1
+
+	for i, unit := range e.Exceptions {
+		for j, frame := range unit.Frames {
+			if frame.InApp {
+				unitIndex = i
+				frameIndex = j
+				break
+			}
+		}
+
+		if frameIndex != -1 {
+			break
+		}
+	}
+
+	if unitIndex != -1 && frameIndex != -1 {
+		return e.Exceptions[unitIndex].Frames[frameIndex]
+	} else {
+		// if there is no in app frame then
+		// use then fallback to the first unit's
+		// first frame.
+		return e.Exceptions[0].Frames[0]
+	}
 }
 
 // GetTitle provides the combined
@@ -1247,9 +1276,7 @@ func (e Exception) GetTitle() string {
 // GetType provides the type of
 // the exception.
 func (e Exception) GetType() string {
-	pltfrm := e.GetPlatform()
-
-	switch pltfrm {
+	switch e.GetPlatform() {
 	default:
 		return "unknown type"
 	case platform.Android:
@@ -1262,15 +1289,15 @@ func (e Exception) GetType() string {
 // GetMessage provides the message of
 // the exception.
 func (e Exception) GetMessage() string {
-	pltfrm := e.GetPlatform()
-
-	switch pltfrm {
+	switch e.GetPlatform() {
 	default:
 		return "unknown message"
 	case platform.Android:
 		return e.Exceptions[len(e.Exceptions)-1].Message
 	case platform.IOS:
-		return e.Exceptions[0].ThreadName
+		// iOS doesn't have a typical message to
+		// use for an exception
+		return ""
 	}
 }
 
@@ -1282,12 +1309,11 @@ func (e Exception) GetFileName() string {
 		return ""
 	}
 
-	pltfrm := e.GetPlatform()
-	switch pltfrm {
+	switch e.GetPlatform() {
 	case platform.Android:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
 	case platform.IOS:
-		return e.Exceptions[0].Frames[0].FileName
+		return e.GetRelevantFrame().FileName
 	}
 
 	return ""
@@ -1301,12 +1327,11 @@ func (e Exception) GetLineNumber() int {
 		return 0
 	}
 
-	pltfrm := e.GetPlatform()
-	switch pltfrm {
+	switch e.GetPlatform() {
 	case platform.Android:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
 	case platform.IOS:
-		return e.Exceptions[0].Frames[0].LineNum
+		return e.GetRelevantFrame().LineNum
 	}
 
 	return 0
@@ -1320,13 +1345,11 @@ func (e Exception) GetMethodName() string {
 		return ""
 	}
 
-	pltfrm := e.GetPlatform()
-
-	switch pltfrm {
+	switch e.GetPlatform() {
 	case platform.Android:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
 	case platform.IOS:
-		return e.Exceptions[0].Frames[0].MethodName
+		return e.GetRelevantFrame().MethodName
 	}
 
 	return ""
@@ -1415,24 +1438,19 @@ func (e *Exception) ComputeFingerprint() (err error) {
 			}
 		}
 	case platform.IOS:
-		// get the first exception unit
-		// FIXME: might need to use ThreadSequence here
-		firstUnit := e.Exceptions[0]
+		// initialize with the exception type
+		input = e.GetType()
 
-		input = firstUnit.Type
+		// find the relevant frame - which is
+		// either the first in app frame or the
+		// first frame.
+		frame := e.GetRelevantFrame()
 
-		if len(firstUnit.Frames) < 1 {
-			break
+		if frame.MethodName != "" {
+			input += sep + frame.MethodName
 		}
-
-		methodName := firstUnit.Frames[0].MethodName
-		fileName := firstUnit.Frames[0].FileName
-
-		if methodName != "" {
-			input += sep + methodName
-		}
-		if fileName != "" {
-			input += sep + fileName
+		if frame.FileName != "" {
+			input += sep + frame.FileName
 		}
 	default:
 		return errors.New("failed to compute fingerprint for unknown platform")
