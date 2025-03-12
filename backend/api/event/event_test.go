@@ -11,7 +11,7 @@ func readException(path string) (exception Exception, err error) {
 	if err != nil {
 		return
 	}
-	json.Unmarshal(bytes, &exception)
+	_ = json.Unmarshal(bytes, &exception)
 	return
 }
 
@@ -20,7 +20,7 @@ func readANR(path string) (anr ANR, err error) {
 	if err != nil {
 		return
 	}
-	json.Unmarshal(bytes, &anr)
+	_ = json.Unmarshal(bytes, &anr)
 	return
 }
 

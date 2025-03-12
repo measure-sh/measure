@@ -1,6 +1,7 @@
 package event
 
 import (
+	"backend/api/platform"
 	"backend/api/text"
 	"fmt"
 	"strconv"
@@ -25,9 +26,6 @@ type FrameiOS struct {
 	SymbolAddress string `json:"symbol_address"`
 	// Offset is the byte offset.
 	Offset int `json:"offset"`
-	// InApp is `true` if the frame originates
-	// from the app module.
-	InApp bool `json:"in_app"`
 }
 
 type Frame struct {
@@ -43,10 +41,23 @@ type Frame struct {
 	ClassName string `json:"class_name"`
 	// MethodName is the name of the originating method.
 	MethodName string `json:"method_name"`
-	FrameiOS
+	// InApp is `true` if the frame originates
+	// from the app module.
+	InApp bool `json:"in_app"`
+	*FrameiOS
 }
 
 type Frames []Frame
+
+// GetPlatform figures out the frame's
+// app platform by inspection.
+func (f Frame) GetPlatform() string {
+	if f.FrameiOS != nil && f.BinaryName != "" {
+		return platform.IOS
+	} else {
+		return platform.Android
+	}
+}
 
 // CodeInfo provides a serialized
 // version of the frame's code information.
@@ -73,12 +84,44 @@ func (f Frame) FileInfo() string {
 // String provides a serialized
 // version of the frame.
 func (f Frame) String() string {
-	codeInfo := f.CodeInfo()
-	fileInfo := f.FileInfo()
+	switch f.GetPlatform() {
+	// consider "Android" as default
+	// platform
+	default:
+		codeInfo := f.CodeInfo()
+		fileInfo := f.FileInfo()
 
-	if fileInfo != "" {
-		fileInfo = fmt.Sprintf(`(%s)`, fileInfo)
+		if fileInfo != "" {
+			fileInfo = fmt.Sprintf(`(%s)`, fileInfo)
+		}
+
+		return fmt.Sprintf(`%s%s`, codeInfo, fileInfo)
+	case platform.IOS:
+		binaryName := f.BinaryName
+		methodName := f.MethodName
+		className := f.ClassName
+		fileInfo := f.FileInfo()
+		sep := "\t"
+
+		// if method & class is empty
+		// replace with symbol address
+		// and binary address to show
+		// unsymbolicated details
+		{
+			if methodName == "" {
+				methodName = f.SymbolAddress
+			}
+
+			if className == "" {
+				className = f.BinaryAddress
+			}
+		}
+
+		if fileInfo == "" {
+			fileInfo = fmt.Sprintf("+ %d", f.Offset)
+			sep = " "
+		}
+
+		return fmt.Sprintf("%d\t%s\t\t\t\t%s\t%s%s%s", f.FrameIndex, binaryName, methodName, className, sep, fileInfo)
 	}
-
-	return fmt.Sprintf(`%s%s`, codeInfo, fileInfo)
 }

@@ -2,6 +2,7 @@ package event
 
 import (
 	"backend/api/platform"
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"errors"
@@ -10,6 +11,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/google/uuid"
@@ -293,7 +295,7 @@ type ExceptionUnit struct {
 	Message string `json:"message"`
 	// Frames is a collection of exception's frames.
 	Frames Frames `json:"frames" binding:"required"`
-	ExceptionUnitiOS
+	*ExceptionUnitiOS
 }
 
 type ExceptionUnits []ExceptionUnit
@@ -311,7 +313,7 @@ type Thread struct {
 	Name string `json:"name" binding:"required"`
 	// Frames is the collection of stackframe objects.
 	Frames Frames `json:"frames" binding:"required"`
-	ThreadiOS
+	*ThreadiOS
 }
 
 type Threads []Thread
@@ -325,11 +327,40 @@ type ANR struct {
 }
 
 type Exception struct {
-	Handled     bool           `json:"handled" binding:"required"`
-	Exceptions  ExceptionUnits `json:"exceptions" binding:"required"`
-	Threads     Threads        `json:"threads" binding:"required"`
-	Fingerprint string         `json:"fingerprint"`
-	Foreground  bool           `json:"foreground" binding:"required"`
+	Handled      bool           `json:"handled" binding:"required"`
+	Exceptions   ExceptionUnits `json:"exceptions" binding:"required"`
+	Threads      Threads        `json:"threads" binding:"required"`
+	Fingerprint  string         `json:"fingerprint"`
+	Foreground   bool           `json:"foreground" binding:"required"`
+	BinaryImages []BinaryImage  `json:"binary_images,omitempty"`
+}
+
+// BinaryImage represents each binary image
+// entry as appearning in an Apple crash
+// report.
+//
+// Only applicable for Darwin apps.
+type BinaryImage struct {
+	// StartAddr is the address where the binary
+	// is loaded in virtual memory.
+	StartAddr string `json:"start_addr" binding:"required"`
+	// EndAddr is the upper memory boundary of
+	// the binary.
+	EndAddr string `json:"end_addr" binding:"required"`
+	// System indicates a system binary marker.
+	System bool `json:"system" binding:"required"`
+	// Name is the name of the app, framework
+	// or library binary.
+	Name string `json:"name" binding:"required"`
+	// Arch is the CPU architecture the binary
+	// is compiled for.
+	Arch string `json:"arch" binding:"required"`
+	// Uuid is the unique fingerprint for
+	// the build of the binary.
+	Uuid string `json:"uuid" binding:"required"`
+	// Path is path where the binary was
+	// located at runtime.
+	Path string `json:"path" binding:"required"`
 }
 
 // FingerprintComputer describes the behavior
@@ -783,42 +814,49 @@ func (e EventField) IsScreenView() bool {
 func (e EventField) NeedsSymbolication() (result bool) {
 	result = false
 
-	if e.IsException() || e.IsANR() {
-		result = true
-		return
-	}
+	switch e.Attribute.Platform {
+	case platform.Android:
+		if e.IsException() || e.IsANR() {
+			result = true
+			return
+		}
+		if e.IsAppExit() && len(e.AppExit.Trace) > 0 {
+			result = true
+			return
+		}
 
-	if e.IsAppExit() && len(e.AppExit.Trace) > 0 {
-		result = true
-		return
-	}
+		if e.IsLifecycleActivity() && len(e.LifecycleActivity.ClassName) > 0 {
+			result = true
+			return
+		}
 
-	if e.IsLifecycleActivity() && len(e.LifecycleActivity.ClassName) > 0 {
-		result = true
-		return
-	}
+		if e.IsLifecycleFragment() {
+			hasClassName := len(e.LifecycleFragment.ClassName) > 0
+			hasParentActivity := len(e.LifecycleFragment.ParentActivity) > 0
+			hasParentFragment := len(e.LifecycleFragment.ParentFragment) > 0
 
-	if e.IsColdLaunch() && len(e.ColdLaunch.LaunchedActivity) > 0 {
-		result = true
-		return
-	}
+			if hasClassName || hasParentActivity || hasParentFragment {
+				result = true
+				return
+			}
+		}
 
-	if e.IsWarmLaunch() && len(e.WarmLaunch.LaunchedActivity) > 0 {
-		result = true
-		return
-	}
+		if e.IsColdLaunch() && len(e.ColdLaunch.LaunchedActivity) > 0 {
+			result = true
+			return
+		}
 
-	if e.IsHotLaunch() && len(e.HotLaunch.LaunchedActivity) > 0 {
-		result = true
-		return
-	}
+		if e.IsWarmLaunch() && len(e.WarmLaunch.LaunchedActivity) > 0 {
+			result = true
+			return
+		}
 
-	if e.IsLifecycleFragment() {
-		hasClassName := len(e.LifecycleFragment.ClassName) > 0
-		hasParentActivity := len(e.LifecycleFragment.ParentActivity) > 0
-		hasParentFragment := len(e.LifecycleFragment.ParentFragment) > 0
-
-		if hasClassName || hasParentActivity || hasParentFragment {
+		if e.IsHotLaunch() && len(e.HotLaunch.LaunchedActivity) > 0 {
+			result = true
+			return
+		}
+	case platform.IOS:
+		if e.IsException() {
 			result = true
 			return
 		}
@@ -1187,12 +1225,9 @@ func (e Exception) GetPlatform() (p string) {
 		return p
 	}
 
-	// Might be possible to detect the platform
-	// in a more robust manner
-	//
-	// FIXME: Revisit the heuristics for platform
-	// determination
-	if e.Exceptions[0].Signal != "" && e.Threads[0].Sequence != 0 {
+	// If ExceptionUnitiOS is not nil, then we can
+	// safely assume the platform as iOS
+	if e.Exceptions[0].ExceptionUnitiOS != nil && e.Exceptions[0].Signal != "" {
 		p = platform.IOS
 	} else {
 		p = platform.Android
@@ -1214,7 +1249,45 @@ func (e Exception) IsNested() bool {
 // for certain OutOfMemory stacktraces in
 // Android.
 func (e Exception) HasNoFrames() bool {
-	return len(e.Exceptions[len(e.Exceptions)-1].Frames) == 0
+	switch e.GetPlatform() {
+	case platform.Android:
+		return len(e.Exceptions[len(e.Exceptions)-1].Frames) == 0
+	case platform.IOS:
+		return len(e.Exceptions[0].Frames) == 0
+	}
+
+	return false
+}
+
+// GetRelevantFrame finds and returns the first
+// in app frame if found, otherwise returns the
+// first exception unit's first frame.
+func (e Exception) GetRelevantFrame() (frame Frame) {
+	unitIndex := -1
+	frameIndex := -1
+
+	for i, unit := range e.Exceptions {
+		for j, frame := range unit.Frames {
+			if frame.InApp {
+				unitIndex = i
+				frameIndex = j
+				break
+			}
+		}
+
+		if frameIndex != -1 {
+			break
+		}
+	}
+
+	if unitIndex != -1 && frameIndex != -1 {
+		return e.Exceptions[unitIndex].Frames[frameIndex]
+	} else {
+		// if there is no in app frame then
+		// use then fallback to the first unit's
+		// first frame.
+		return e.Exceptions[0].Frames[0]
+	}
 }
 
 // GetTitle provides the combined
@@ -1227,13 +1300,29 @@ func (e Exception) GetTitle() string {
 // GetType provides the type of
 // the exception.
 func (e Exception) GetType() string {
-	return e.Exceptions[len(e.Exceptions)-1].Type
+	switch e.GetPlatform() {
+	default:
+		return "unknown type"
+	case platform.Android:
+		return e.Exceptions[len(e.Exceptions)-1].Type
+	case platform.IOS:
+		return e.Exceptions[0].Signal
+	}
 }
 
 // GetMessage provides the message of
 // the exception.
 func (e Exception) GetMessage() string {
-	return e.Exceptions[len(e.Exceptions)-1].Message
+	switch e.GetPlatform() {
+	default:
+		return "unknown message"
+	case platform.Android:
+		return e.Exceptions[len(e.Exceptions)-1].Message
+	case platform.IOS:
+		// iOS doesn't have a typical message to
+		// use for an exception
+		return ""
+	}
 }
 
 // GetFileName provides the file name of
@@ -1243,7 +1332,15 @@ func (e Exception) GetFileName() string {
 	if e.HasNoFrames() {
 		return ""
 	}
-	return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
+
+	switch e.GetPlatform() {
+	case platform.Android:
+		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
+	case platform.IOS:
+		return e.GetRelevantFrame().FileName
+	}
+
+	return ""
 }
 
 // GetLineNumber provides the line number of
@@ -1253,7 +1350,15 @@ func (e Exception) GetLineNumber() int {
 	if e.HasNoFrames() {
 		return 0
 	}
-	return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
+
+	switch e.GetPlatform() {
+	case platform.Android:
+		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
+	case platform.IOS:
+		return e.GetRelevantFrame().LineNum
+	}
+
+	return 0
 }
 
 // GetMethodName provides the method name of
@@ -1263,13 +1368,28 @@ func (e Exception) GetMethodName() string {
 	if e.HasNoFrames() {
 		return ""
 	}
-	return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
+
+	switch e.GetPlatform() {
+	case platform.Android:
+		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
+	case platform.IOS:
+		return e.GetRelevantFrame().MethodName
+	}
+
+	return ""
 }
 
 // GetDisplayTitle provides a user friendly display
 // name for the exception.
 func (e Exception) GetDisplayTitle() string {
-	return e.GetType() + "@" + e.GetFileName()
+	title := e.GetType()
+	filename := e.GetFileName()
+
+	if filename != "" {
+		title += "@" + filename
+	}
+
+	return title
 }
 
 // Stacktrace writes a formatted stacktrace
@@ -1277,36 +1397,74 @@ func (e Exception) GetDisplayTitle() string {
 func (e Exception) Stacktrace() string {
 	var b strings.Builder
 
-	for i := len(e.Exceptions) - 1; i >= 0; i-- {
-		firstException := i == len(e.Exceptions)-1
-		lastException := i == 0
-		exType := e.Exceptions[i].Type
-		message := e.Exceptions[i].Message
-		hasFrames := len(e.Exceptions[i].Frames) > 0
+	switch e.GetPlatform() {
+	case platform.Android:
+		for i := len(e.Exceptions) - 1; i >= 0; i-- {
+			firstException := i == len(e.Exceptions)-1
+			lastException := i == 0
+			exType := e.Exceptions[i].Type
+			message := e.Exceptions[i].Message
+			hasFrames := len(e.Exceptions[i].Frames) > 0
 
-		title := makeTitle(exType, message)
+			title := makeTitle(exType, message)
 
-		if firstException {
-			b.WriteString(title)
-		} else if e.IsNested() {
-			prevType := e.Exceptions[i+1].Type
-			prevMsg := e.Exceptions[i+1].Message
-			title := makeTitle(prevType, prevMsg)
-			b.WriteString("Caused by" + GenericPrefix + title)
-		}
+			if firstException {
+				b.WriteString(title)
+			} else if e.IsNested() {
+				prevType := e.Exceptions[i+1].Type
+				prevMsg := e.Exceptions[i+1].Message
+				title := makeTitle(prevType, prevMsg)
+				b.WriteString("Caused by" + GenericPrefix + title)
+			}
 
-		if hasFrames {
-			b.WriteString("\n")
-		}
-
-		for j := range e.Exceptions[i].Frames {
-			lastFrame := j == len(e.Exceptions[i].Frames)-1
-			frame := e.Exceptions[i].Frames[j].String()
-			b.WriteString(FramePrefix + frame)
-			if !lastFrame || !lastException {
+			if hasFrames {
 				b.WriteString("\n")
 			}
+
+			for j := range e.Exceptions[i].Frames {
+				lastFrame := j == len(e.Exceptions[i].Frames)-1
+				frame := e.Exceptions[i].Frames[j].String()
+				b.WriteString(FramePrefix + frame)
+				if !lastFrame || !lastException {
+					b.WriteString("\n")
+				}
+			}
 		}
+	case platform.IOS:
+		// iOS Stacktrace syntax
+		//
+		// See more: https://developer.apple.com/documentation/xcode/adding-identifiable-symbol-names-to-a-crash-report
+		//
+		// symbolicated
+		// <thread_name>:
+		// <seq>	<binary_name>		<method_name> <class_name> <file_name:line_num>
+		// <seq>	<binary_name>		<method_name> <class_name> <file_name:line_num>
+		//
+		// unsymbolicated
+		// <thread_name>:
+		// <seq>	<binary_name>		<symbol_address> <binary_address> + <offset>
+		// <seq>	<binary_name>		<symbol_address> <binary_address> + <offset>
+		//
+		// symbolicated + unsymbolicated
+		// <thread_name>:
+		// <seq>	<binary_name>		<method_name> <class_name> <file_name:line_num>
+		// <seq>	<binary_name>		<symbol_address> <binary_address> + <offset>
+		// <seq>	<binary_name>		<method_name> <class_name> <file_name:line_num>
+		// <seq>	<binary_name>		<symbol_address> <binary_address> + <offset>
+		//
+		var buf bytes.Buffer
+		w := &buf
+		t := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+
+		for _, exception := range e.Exceptions {
+			b.WriteString(exception.ThreadName + ":\n")
+			for _, frame := range exception.Frames {
+				fmt.Fprintln(t, frame.String())
+			}
+		}
+
+		t.Flush()
+		b.WriteString(buf.String())
 	}
 
 	return b.String()
@@ -1349,24 +1507,19 @@ func (e *Exception) ComputeFingerprint() (err error) {
 			}
 		}
 	case platform.IOS:
-		// get the first exception unit
-		// FIXME: might need to use ThreadSequence here
-		firstUnit := e.Exceptions[0]
+		// initialize with the exception type
+		input = e.GetType()
 
-		input = firstUnit.Type
+		// find the relevant frame - which is
+		// either the first in app frame or the
+		// first frame.
+		frame := e.GetRelevantFrame()
 
-		if len(firstUnit.Frames) < 1 {
-			break
+		if frame.MethodName != "" {
+			input += sep + frame.MethodName
 		}
-
-		methodName := firstUnit.Frames[0].MethodName
-		fileName := firstUnit.Frames[0].FileName
-
-		if methodName != "" {
-			input += sep + methodName
-		}
-		if fileName != "" {
-			input += sep + fileName
+		if frame.FileName != "" {
+			input += sep + frame.FileName
 		}
 	default:
 		return errors.New("failed to compute fingerprint for unknown platform")

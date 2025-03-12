@@ -18,7 +18,7 @@ func readEvents(path string) (events []event.EventField, err error) {
 		return
 	}
 	events = []event.EventField{}
-	json.Unmarshal(bytes, &events)
+	_ = json.Unmarshal(bytes, &events)
 	return
 }
 
@@ -916,7 +916,7 @@ func TestExceptionGroupAccessors(t *testing.T) {
 		t.Errorf("Expected %d exception groups, but got %d", expectedLen, gotLen)
 	}
 
-	journey.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
+	_ = journey.SetNodeExceptionGroups(func(eventIds []uuid.UUID) (exceptionGroups []group.ExceptionGroup, err error) {
 		return []group.ExceptionGroup{groupOne}, nil
 	})
 
@@ -958,7 +958,7 @@ func TestANRGroupAccessors(t *testing.T) {
 		t.Errorf("Expected %d exception groups, but got %d", expectedLen, gotLen)
 	}
 
-	journey.SetNodeANRGroups(func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error) {
+	_ = journey.SetNodeANRGroups(func(eventIds []uuid.UUID) (anrGroups []group.ANRGroup, err error) {
 		return []group.ANRGroup{groupOne}, nil
 	})
 

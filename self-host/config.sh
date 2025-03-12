@@ -11,9 +11,9 @@ ENV_WEB_FILE=../frontend/dashboard/.env.local
 
 # Measure insignia
 ENV_HEADER=$(cat <<'EOF'
-#                                                            ( )    
-#   ___ ___     __     _ _   ___  _   _  _ __   __       ___ | |__  
-# /' _ ` _ `\ /'__`\ /'_` )/',__)( ) ( )( '__)/'__`\   /',__)|  _ `\ 
+#                                                            ( )
+#   ___ ___     __     _ _   ___  _   _  _ __   __       ___ | |__
+# /' _ ` _ `\ /'__`\ /'_` )/',__)( ) ( )( '__)/'__`\   /',__)|  _ `\
 # | ( ) ( ) |(  ___/( (_| |\__, \| (_) || |  (  ___/ _ \__, \| | | |
 # (_) (_) (_)`\____)`\__,_)(____/`\___/'(_)  `\____)(_)(____/(_) (_)
 EOF
@@ -202,7 +202,7 @@ ATTACHMENTS_SECRET_ACCESS_KEY=minio123
 # Measure Services #
 ####################
 
-SYMBOLICATOR_ORIGIN=http://symbolicator-android:8181
+SYMBOLICATOR_ORIGIN=http://symbolicator:3021
 
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
@@ -315,7 +315,7 @@ ATTACHMENTS_SECRET_ACCESS_KEY=$ATTACHMENTS_SECRET_ACCESS_KEY
 # Measure Services #
 ####################
 
-SYMBOLICATOR_ORIGIN=http://symbolicator-android:8181
+SYMBOLICATOR_ORIGIN=http://symbolicator:3021
 
 NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL

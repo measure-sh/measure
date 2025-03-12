@@ -1,0 +1,24 @@
+# see a detailed example
+# https://github.com/getsentry/symbolicator/blob/dc235b81bce6bf99bd9dfd48952aa342f4f04365/local.example.yml
+# or see documentation
+# https://getsentry.github.io/symbolicator/
+
+# log
+logging:
+  level: error
+  enable_backtraces: false
+
+# cache
+cache_dir: /data
+caches:
+  downloaded:
+    max_unused_for: 2d
+    retry_misses_after: 16s
+    retry_malformed_after: 32s
+  derived:
+    max_unused_for: 2d
+    retry_misses_after: 16s
+    retry_malformed_after: 32s
+
+# network
+max_concurrent_requests: 1024

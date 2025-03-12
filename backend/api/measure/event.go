@@ -7,9 +7,10 @@ import (
 	"backend/api/group"
 	"backend/api/inet"
 	"backend/api/numeric"
+	"backend/api/platform"
 	"backend/api/server"
 	"backend/api/span"
-	"backend/api/symbol"
+	"backend/api/symbolicator"
 	"context"
 	"encoding/json"
 	"errors"
@@ -17,7 +18,6 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -226,6 +226,12 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 			}
 		}
 
+		// attachment blobs must be present if
+		// any event has attachments
+		if e.hasAttachments() && len(form.File) < 1 {
+			return fmt.Errorf(`some events has attachments, but payload does not contain any attachment blob`)
+		}
+
 		// compute launch timings
 		if ev.IsColdLaunch() {
 			ev.ColdLaunch.Compute()
@@ -245,6 +251,13 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		}
 		if ev.IsHotLaunch() {
 			ev.HotLaunch.Compute()
+		}
+
+		// read platfrom from payload
+		// if we haven't figured out
+		// platform already.
+		if e.platform == "" {
+			e.platform = e.events[0].Attribute.Platform
 		}
 
 		e.events = append(e.events, ev)
@@ -273,6 +286,13 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 
 		e.bumpSize(int64(len(bytes)))
 		sp.AppID = appId
+
+		// read platfrom from payload
+		// if we haven't figured out
+		// platform already.
+		if e.platform == "" {
+			e.platform = e.spans[0].Attributes.Platform
+		}
 
 		e.spans = append(e.spans, sp)
 	}
@@ -461,20 +481,6 @@ func (e eventreq) hasAttachments() bool {
 	return len(e.attachments) > 0
 }
 
-// getSymbolicationEvents extracts events from
-// the event request that should be symbolicated.
-func (e eventreq) getSymbolicationEvents() (events []event.EventField) {
-	if !e.needsSymbolication() {
-		return
-	}
-
-	for _, v := range e.symbolicate {
-		events = append(events, e.events[v])
-	}
-
-	return
-}
-
 // getUnhandledExceptions returns unhandled excpetions
 // from the event payload.
 func (e eventreq) getUnhandledExceptions() (events []event.EventField) {
@@ -659,6 +665,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		exceptionExceptions := "[]"
 		exceptionThreads := "[]"
 		attachments := "[]"
+		binaryImages := "[]"
 
 		if e.events[i].IsANR() {
 			marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
@@ -689,6 +696,14 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			exceptionThreads = string(marshalledThreads)
 			if err := e.events[i].Exception.ComputeFingerprint(); err != nil {
 				return err
+			}
+
+			if len(e.events[i].Exception.BinaryImages) > 0 {
+				marshalledImages, err := json.Marshal(e.events[i].Exception.BinaryImages)
+				if err != nil {
+					return err
+				}
+				binaryImages = string(marshalledImages)
 			}
 		}
 
@@ -771,14 +786,16 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.fingerprint`, e.events[i].Exception.Fingerprint).
 				Set(`exception.exceptions`, exceptionExceptions).
 				Set(`exception.threads`, exceptionThreads).
-				Set(`exception.foreground`, e.events[i].Exception.Foreground)
+				Set(`exception.foreground`, e.events[i].Exception.Foreground).
+				Set(`exception.binary_images`, binaryImages)
 		} else {
 			row.
 				Set(`exception.handled`, nil).
 				Set(`exception.fingerprint`, nil).
 				Set(`exception.exceptions`, nil).
 				Set(`exception.threads`, nil).
-				Set(`exception.foreground`, nil)
+				Set(`exception.foreground`, nil).
+				Set(`exception.binary_images`, nil)
 		}
 
 		// app exit
@@ -2193,24 +2210,24 @@ func PutEvents(c *gin.Context) {
 	}
 
 	if eventReq.needsSymbolication() {
-		// symbolicate
-		symbolicator, err := symbol.NewSymbolicator(&symbol.Options{
-			Origin: os.Getenv("SYMBOLICATOR_ORIGIN"),
-			Store:  server.Server.PgPool,
-		})
-		if err != nil {
-			msg := `failed to initialize symbolicator`
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
+		config := server.Server.Config
+		origin := config.SymbolicatorOrigin
+		pltfrm := eventReq.platform
+		sources := []symbolicator.Source{}
+
+		// configure correct sources as per
+		// platform
+		switch pltfrm {
+		case platform.Android:
+			sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+		case platform.IOS:
+			// by default only symbolicate app's own symbols. to symbolicate iOS
+			// system framework symbols, append a GCSSourceApple source containing
+			// all iOS system framework symbol debug information files.
+			sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
 		}
 
-		events := eventReq.getSymbolicationEvents()
-
-		batches := symbolicator.Batch(events)
+		symblctr := symbolicator.New(origin, pltfrm, sources)
 
 		// start span to trace symbolication
 		symbolicationTracer := otel.Tracer("symbolication-tracer")
@@ -2218,32 +2235,10 @@ func PutEvents(c *gin.Context) {
 
 		defer symbolicationSpan.End()
 
-		for i := range batches {
-			// If symoblication fails for whole batch, continue
-			if err := symbolicator.Symbolicate(ctx, batches[i]); err != nil {
-				msg := `failed to symbolicate batch`
-				fmt.Println(msg, err)
-				continue
-			}
-
-			// If symbolication succeeds but has errors while decoding individual frames, log them and proceed
-			if len(batches[i].Errs) > 0 {
-				for _, err := range batches[i].Errs {
-					fmt.Println("symbolication err: ", err.Error())
-				}
-			}
-
-			// rewrite symbolicated events to event request
-			for j := range batches[i].Events {
-				eventId := batches[i].Events[j].ID
-				idx, exists := eventReq.symbolicate[eventId]
-				if !exists {
-					fmt.Printf("event id %q not found in symbolicate cache, batch index: %d, event index: %d\n", eventId, i, j)
-					continue
-				}
-				eventReq.events[idx] = batches[i].Events[j]
-				delete(eventReq.symbolicate, eventId)
-			}
+		if err := symblctr.Symbolicate(ctx, server.Server.PgPool, eventReq.appId, eventReq.events); err != nil {
+			// in case there was symbolication failure, we don't fail
+			// ingestion. ignore the error, log it and continue.
+			fmt.Printf("failed to symbolicate batch %q containing %d events: %v\n", eventReq.id, len(eventReq.events), err.Error())
 		}
 
 		eventReq.bumpSymbolication()

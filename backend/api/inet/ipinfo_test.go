@@ -6,7 +6,7 @@ import (
 )
 
 func TestIsBogon(t *testing.T) {
-	Init()
+	_ = Init()
 
 	ipOne := net.ParseIP("127.0.0.1")
 	ipTwo := net.ParseIP("192.168.1.10")
