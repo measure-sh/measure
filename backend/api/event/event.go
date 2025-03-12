@@ -1201,12 +1201,9 @@ func (e Exception) GetPlatform() (p string) {
 		return p
 	}
 
-	// Might be possible to detect the platform
-	// in a more robust manner
-	//
-	// FIXME: Revisit the heuristics for platform
-	// determination
-	if e.Exceptions[0].Signal != "" && e.Threads[0].Sequence != 0 {
+	// If ExceptionUnitiOS is not nil, then we can
+	// safely assume the platform as iOS
+	if e.Exceptions[0].ExceptionUnitiOS != nil {
 		p = platform.IOS
 	} else {
 		p = platform.Android
