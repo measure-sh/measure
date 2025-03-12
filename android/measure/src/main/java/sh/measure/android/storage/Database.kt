@@ -932,6 +932,7 @@ internal class DatabaseImpl(
                     put(SpansTable.COL_END_TIME, span.endTime)
                     put(SpansTable.COL_DURATION, span.duration)
                     put(SpansTable.COL_SERIALIZED_ATTRS, span.serializedAttributes)
+                    put(SpansTable.COL_SERIALIZED_USER_DEFINED_ATTRS, span.serializedUserDefinedAttrs)
                     put(SpansTable.COL_SERIALIZED_SPAN_EVENTS, span.serializedCheckpoints)
                     put(SpansTable.COL_SAMPLED, span.sampled)
                     put(SpansTable.COL_STATUS, span.status.value)
