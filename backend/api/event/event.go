@@ -2,6 +2,7 @@ package event
 
 import (
 	"backend/api/platform"
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"errors"
@@ -10,6 +11,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/google/uuid"
@@ -1203,7 +1205,7 @@ func (e Exception) GetPlatform() (p string) {
 
 	// If ExceptionUnitiOS is not nil, then we can
 	// safely assume the platform as iOS
-	if e.Exceptions[0].ExceptionUnitiOS != nil {
+	if e.Exceptions[0].ExceptionUnitiOS != nil && e.Exceptions[0].Signal != "" {
 		p = platform.IOS
 	} else {
 		p = platform.Android
@@ -1373,36 +1375,74 @@ func (e Exception) GetDisplayTitle() string {
 func (e Exception) Stacktrace() string {
 	var b strings.Builder
 
-	for i := len(e.Exceptions) - 1; i >= 0; i-- {
-		firstException := i == len(e.Exceptions)-1
-		lastException := i == 0
-		exType := e.Exceptions[i].Type
-		message := e.Exceptions[i].Message
-		hasFrames := len(e.Exceptions[i].Frames) > 0
+	switch e.GetPlatform() {
+	case platform.Android:
+		for i := len(e.Exceptions) - 1; i >= 0; i-- {
+			firstException := i == len(e.Exceptions)-1
+			lastException := i == 0
+			exType := e.Exceptions[i].Type
+			message := e.Exceptions[i].Message
+			hasFrames := len(e.Exceptions[i].Frames) > 0
 
-		title := makeTitle(exType, message)
+			title := makeTitle(exType, message)
 
-		if firstException {
-			b.WriteString(title)
-		} else if e.IsNested() {
-			prevType := e.Exceptions[i+1].Type
-			prevMsg := e.Exceptions[i+1].Message
-			title := makeTitle(prevType, prevMsg)
-			b.WriteString("Caused by" + GenericPrefix + title)
-		}
+			if firstException {
+				b.WriteString(title)
+			} else if e.IsNested() {
+				prevType := e.Exceptions[i+1].Type
+				prevMsg := e.Exceptions[i+1].Message
+				title := makeTitle(prevType, prevMsg)
+				b.WriteString("Caused by" + GenericPrefix + title)
+			}
 
-		if hasFrames {
-			b.WriteString("\n")
-		}
-
-		for j := range e.Exceptions[i].Frames {
-			lastFrame := j == len(e.Exceptions[i].Frames)-1
-			frame := e.Exceptions[i].Frames[j].String()
-			b.WriteString(FramePrefix + frame)
-			if !lastFrame || !lastException {
+			if hasFrames {
 				b.WriteString("\n")
 			}
+
+			for j := range e.Exceptions[i].Frames {
+				lastFrame := j == len(e.Exceptions[i].Frames)-1
+				frame := e.Exceptions[i].Frames[j].String()
+				b.WriteString(FramePrefix + frame)
+				if !lastFrame || !lastException {
+					b.WriteString("\n")
+				}
+			}
 		}
+	case platform.IOS:
+		// iOS Stacktrace syntax
+		//
+		// See more: https://developer.apple.com/documentation/xcode/adding-identifiable-symbol-names-to-a-crash-report
+		//
+		// symbolicated
+		// <thread_name>:
+		// <seq>	<binary_name>		<method_name> <class_name> <file_name:line_num>
+		// <seq>	<binary_name>		<method_name> <class_name> <file_name:line_num>
+		//
+		// unsymbolicated
+		// <thread_name>:
+		// <seq>	<binary_name>		<symbol_address> <binary_address> + <offset>
+		// <seq>	<binary_name>		<symbol_address> <binary_address> + <offset>
+		//
+		// symbolicated + unsymbolicated
+		// <thread_name>:
+		// <seq>	<binary_name>		<method_name> <class_name> <file_name:line_num>
+		// <seq>	<binary_name>		<symbol_address> <binary_address> + <offset>
+		// <seq>	<binary_name>		<method_name> <class_name> <file_name:line_num>
+		// <seq>	<binary_name>		<symbol_address> <binary_address> + <offset>
+		//
+		var buf bytes.Buffer
+		w := &buf
+		t := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+
+		for _, exception := range e.Exceptions {
+			b.WriteString(exception.ThreadName + ":\n")
+			for _, frame := range exception.Frames {
+				fmt.Fprintln(t, frame.String())
+			}
+		}
+
+		t.Flush()
+		b.WriteString(buf.String())
 	}
 
 	return b.String()

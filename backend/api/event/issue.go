@@ -2,6 +2,10 @@ package event
 
 import (
 	"backend/api/chrono"
+	"backend/api/platform"
+	"bytes"
+	"strings"
+	"text/tabwriter"
 
 	"github.com/google/uuid"
 )
@@ -75,12 +79,30 @@ func (e *EventException) ComputeView() {
 		Message:    e.Exception.GetMessage(),
 	}
 
+	var buf bytes.Buffer
+	w := &buf
+
 	for i := range e.Exception.Threads {
 		var tv ThreadView
+		t := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 		tv.Name = e.Exception.Threads[i].Name
+
 		for j := range e.Exception.Threads[i].Frames {
-			tv.Frames = append(tv.Frames, e.Exception.Threads[i].Frames[j].String())
+			frame := e.Exception.Threads[i].Frames[j]
+			switch frame.GetPlatform() {
+			default:
+				tv.Frames = append(tv.Frames, frame.String())
+			case platform.IOS:
+				t.Write(append([]byte(frame.String()), '\n'))
+
+				// flush on last frame
+				if j == len(e.Exception.Threads[i].Frames)-1 {
+					t.Flush()
+					tv.Frames = strings.Split(buf.String(), "\n")
+				}
+			}
 		}
 		e.Threads = append(e.Threads, tv)
+		w.Reset()
 	}
 }
