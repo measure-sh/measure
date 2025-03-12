@@ -1358,7 +1358,14 @@ func (e Exception) GetMethodName() string {
 // GetDisplayTitle provides a user friendly display
 // name for the exception.
 func (e Exception) GetDisplayTitle() string {
-	return e.GetType() + "@" + e.GetFileName()
+	title := e.GetType()
+	filename := e.GetFileName()
+
+	if filename != "" {
+		title += "@" + filename
+	}
+
+	return title
 }
 
 // Stacktrace writes a formatted stacktrace
