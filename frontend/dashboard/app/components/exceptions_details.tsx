@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Accordion from "@/app/components/accordion";
 import Link from "next/link";
-import { ExceptionsDetailsApiStatus, ExceptionsType, emptyCrashExceptionsDetailsResponse, emptyAnrExceptionsDetailsResponse, fetchExceptionsDetailsFromServer, FiltersApiType } from '@/app/api/api_calls';
+import { ExceptionsDetailsApiStatus, ExceptionsType, emptyCrashExceptionsDetailsResponse, emptyAnrExceptionsDetailsResponse, fetchExceptionsDetailsFromServer, FilterSource } from '@/app/api/api_calls';
 import { useRouter } from 'next/navigation';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { formatDateToHumanReadableDateTime } from '../utils/time_utils';
@@ -84,7 +84,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
       <Filters
         teamId={teamId}
         appId={appId}
-        filtersApiType={exceptionsType === ExceptionsType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
+        filterSource={exceptionsType === ExceptionsType.Crash ? FilterSource.Crashes : FilterSource.Anrs}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
         showCreateApp={true}
         showNoData={true}
@@ -101,6 +101,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
         showLocales={true}
         showDeviceManufacturers={true}
         showDeviceNames={true}
+        showBugReportStatus={false}
         showUdAttrs={true}
         showFreeText={false}
         onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
@@ -128,7 +129,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
           {(exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Success || exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading) &&
             <div className='flex flex-col'>
               <div className="flex flex-col md:flex-row md:items-center w-full">
-                <p className="font-sans text-3xl"> Stack traces</p>
+                <p className="font-body text-3xl"> Stack traces</p>
                 <div className="grow" />
                 <Paginator prevEnabled={exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading ? false : exceptionsDetails.meta.previous} nextEnabled={exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading ? false : exceptionsDetails.meta.next} displayText=""
                   onNext={() => {
@@ -148,10 +149,10 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
               {exceptionsDetails.results?.length > 0 &&
                 <div className={`${exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading ? 'invisible' : 'visible'}`}>
                   <p className="font-display text-xl"> Id: {exceptionsDetails.results[0].id}</p>
-                  <p className="font-sans"> Date & time: {formatDateToHumanReadableDateTime(exceptionsDetails.results[0].timestamp)}</p>
-                  <p className="font-sans"> Device: {exceptionsDetails.results[0].attribute.device_manufacturer + exceptionsDetails.results[0].attribute.device_model}</p>
-                  <p className="font-sans"> App version: {exceptionsDetails.results[0].attribute.app_version}</p>
-                  <p className="font-sans"> Network type: {exceptionsDetails.results[0].attribute.network_type}</p>
+                  <p className="font-body"> Date & time: {formatDateToHumanReadableDateTime(exceptionsDetails.results[0].timestamp)}</p>
+                  <p className="font-body"> Device: {exceptionsDetails.results[0].attribute.device_manufacturer + exceptionsDetails.results[0].attribute.device_model}</p>
+                  <p className="font-body"> App version: {exceptionsDetails.results[0].attribute.app_version}</p>
+                  <p className="font-body"> Network type: {exceptionsDetails.results[0].attribute.network_type}</p>
                   {/* show screenshots if they exist */}
                   {exceptionsDetails.results[0].attachments !== undefined && exceptionsDetails.results[0].attachments !== null && exceptionsDetails.results[0].attachments.length > 0 &&
                     <div className='flex mt-8 flex-wrap gap-8 items-center'>
@@ -169,7 +170,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                     </div>}
                   <div className="py-4" />
                   <div className='flex flex-row items-center'>
-                    <Link key={exceptionsDetails.results[0].id} href={`/${teamId}/sessions/${appId}/${exceptionsDetails.results[0].session_id}`} className="outline-none justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session</Link>
+                    <Link key={exceptionsDetails.results[0].id} href={`/${teamId}/sessions/${appId}/${exceptionsDetails.results[0].session_id}`} className="outline-hidden justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session</Link>
                     <div className='px-2' />
                     <CopyAiContext appName={filters.app.name} exceptionsType={exceptionsType} exceptionsDetails={exceptionsDetails} />
                   </div>

@@ -53,7 +53,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     handleEmailChange,
   }) => {
 
-    const checkboxStyle = "appearance-none border-black rounded-sm font-display checked:bg-neutral-950 checked:hover:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:focus:bg-neutral-950"
+    const checkboxStyle = "appearance-none border-black rounded-xs font-display checked:bg-neutral-950 checked:hover:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:focus:bg-neutral-950"
 
     return (
       <div className="table-row-group">
@@ -152,7 +152,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
-      <p className="font-display font-regular text-4xl max-w-6xl text-center">Alerts</p>
+      <p className="font-display text-4xl max-w-6xl text-center">Alerts</p>
       <div className="py-4" />
 
       {/* Error states for apps fetch */}
@@ -170,11 +170,11 @@ export default function Overview({ params }: { params: { teamId: string } }) {
           <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={apps[0].name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
           <div className="py-4" />
 
-          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Loading && <p className='font-sans'> Fetching alert preferences...</p>}
-          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Error && <p className='font-sans'> Failed to fetch alert preferences. Please change selected app or refresh page to try again</p>}
+          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Loading && <p className='font-body'> Fetching alert preferences...</p>}
+          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Error && <p className='font-body'> Failed to fetch alert preferences. Please change selected app or refresh page to try again</p>}
           {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Success &&
             <div>
-              <div className="table font-sans">
+              <div className="table font-body">
                 <div className="table-header-group ">
                   <div className="table-row">
                     <div className="table-cell py-2 font-display">Alert type</div>
@@ -198,9 +198,9 @@ export default function Overview({ params }: { params: { teamId: string } }) {
                 />
               </div>
               <div className="py-4" />
-              <button disabled={areAlertPrefsSame(alertPrefs, updatedAlertPrefs) || updateAlertPrefsApiStatus === UpdateAlertPrefsApiStatus.Loading} className="outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={saveAlertPrefs}>Save</button>
+              <button disabled={areAlertPrefsSame(alertPrefs, updatedAlertPrefs) || updateAlertPrefsApiStatus === UpdateAlertPrefsApiStatus.Loading} className="outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={saveAlertPrefs}>Save</button>
               <div className="py-1" />
-              {updateAlertPrefsApiStatus !== UpdateAlertPrefsApiStatus.Init && <p className="text-sm font-sans">{updatePrefsMsg}</p>}
+              {updateAlertPrefsApiStatus !== UpdateAlertPrefsApiStatus.Init && <p className="text-sm font-body">{updatePrefsMsg}</p>}
             </div>}
         </div>}
     </div>

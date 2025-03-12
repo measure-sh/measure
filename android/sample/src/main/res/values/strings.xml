@@ -29,5 +29,16 @@
     <string name="open_fragment_3">Open Fragment 3</string>
     <string name="androidx_fragment_navigation">AndroidX Fragment Navigation</string>
     <string name="create_span">Create span</string>
-    <string name="start_tracking">Start tracking</string>
+    <string name="enable_tracking">Enable tracking</string>
+    <string name="launch_bug_report">Launch bug report flow</string>
+    <string name="report_a_bug">Submit bug report</string>
+    <string name="exception_tests">Crashes</string>
+    <string name="anrs">ANRs</string>
+    <string name="navigation">Navigation</string>
+    <string name="misc_tests">Others</string>
+    <string name="screenshot">Screenshot</string>
+    <string name="bug_report">Bug reports</string>
+    <string name="enable_shake">Enable shake to report</string>
+    <string name="custom_shake_handler">Custom shake handler</string>
+    <string name="set_user">Set User</string>
 </resources>

@@ -334,7 +334,8 @@ internal object Sql {
                 ${SpansTable.COL_DURATION},
                 ${SpansTable.COL_STATUS},
                 ${SpansTable.COL_SERIALIZED_ATTRS},
-                ${SpansTable.COL_SERIALIZED_SPAN_EVENTS}
+                ${SpansTable.COL_SERIALIZED_SPAN_EVENTS},
+                ${SpansTable.COL_SERIALIZED_USER_DEFINED_ATTRS}
             FROM ${SpansTable.TABLE_NAME}
             WHERE ${SpansTable.COL_SPAN_ID} IN (${spanIds.joinToString(", ") { "\'$it\'" }})
         """.trimIndent()
@@ -358,6 +359,14 @@ internal object Sql {
         return """
             UPDATE ${SessionsTable.TABLE_NAME}
             SET ${SessionsTable.COL_CRASHED} = 1, ${SessionsTable.COL_NEEDS_REPORTING} = 1
+            WHERE ${SessionsTable.COL_SESSION_ID} = '$sessionId'
+        """.trimIndent()
+    }
+
+    fun markSessionWithBugReport(sessionId: String): String {
+        return """
+            UPDATE ${SessionsTable.TABLE_NAME}
+            SET ${SessionsTable.COL_NEEDS_REPORTING} = 1
             WHERE ${SessionsTable.COL_SESSION_ID} = '$sessionId'
         """.trimIndent()
     }

@@ -629,6 +629,18 @@ func (e eventreq) validate() error {
 		if err := e.spans[i].Validate(); err != nil {
 			return err
 		}
+
+		// only process user defined attributes
+		// if the payload contains any.
+		//
+		// this check is super important to have
+		// because SDKs without support for user
+		// defined attributes won't ever send these.
+		if !e.spans[i].UserDefinedAttribute.Empty() {
+			if err := e.spans[i].UserDefinedAttribute.Validate(); err != nil {
+				return err
+			}
+		}
 	}
 
 	if e.size >= int64(maxBatchSize) {
@@ -1179,6 +1191,15 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`screen_view.name`, nil)
 		}
 
+		// bug report
+		if e.events[i].IsBugReport() {
+			row.
+				Set(`bug_report.description`, e.events[i].BugReport.Description)
+		} else {
+			row.
+				Set(`bug_report.description`, nil)
+		}
+
 		// custom
 		if e.events[i].IsCustom() {
 			row.
@@ -1244,7 +1265,9 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 			Set(`attribute.device_manufacturer`, e.spans[i].Attributes.DeviceManufacturer).
 			Set(`attribute.device_locale`, e.spans[i].Attributes.DeviceLocale).
 			Set(`attribute.device_low_power_mode`, e.spans[i].Attributes.LowPowerModeEnabled).
-			Set(`attribute.device_thermal_throttling_enabled`, e.spans[i].Attributes.ThermalThrottlingEnabled)
+			Set(`attribute.device_thermal_throttling_enabled`, e.spans[i].Attributes.ThermalThrottlingEnabled).
+			// user defined attribute
+			Set(`user_defined_attribute`, e.spans[i].UserDefinedAttribute.Parameterize())
 	}
 
 	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)

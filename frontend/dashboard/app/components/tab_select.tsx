@@ -22,7 +22,7 @@ const TabSelect: React.FC<TabSelectProps> = ({ items, selected, onChangeSelected
           font-display 
           rounded-md 
           transition-colors
-          outline-none
+          outline-hidden
           ${selected === item
               ? 'bg-neutral-950 text-white'
               : 'text-black border border-white hover:bg-yellow-200 hover:border-black focus:bg-yellow-200 focus:border-black'

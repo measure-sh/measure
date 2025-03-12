@@ -194,7 +194,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
-      <p className="font-display font-regular text-4xl max-w-6xl text-center">Team</p>
+      <p className="font-display text-4xl max-w-6xl text-center">Team</p>
       <div className="py-4" />
 
       {/* Loading message for team */}
@@ -207,7 +207,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
         <div className="flex flex-col items-start">
 
           {/* Modal for confirming team name change */}
-          <DangerConfirmationModal body={<p className="font-sans">Are you sure you want to rename team <span className="font-display font-bold">{team.name}</span> to <span className="font-display font-bold">{newTeamName}</span>?</p>} open={teamNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to rename team <span className="font-display font-bold">{team.name}</span> to <span className="font-display font-bold">{newTeamName}</span>?</p>} open={teamNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
               setTeamNameConfirmationModalOpen(false)
               changeTeamName()
@@ -216,7 +216,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           />
 
           {/* Modal for confirming role change */}
-          <DangerConfirmationModal body={<p className="font-sans">Are you sure you want to change the role of <span className="font-display font-bold">{roleChangeMemberEmail}</span> from <span className="font-display font-bold">{roleChangeOldRole}</span> to <span className="font-display font-bold">{roleChangeNewRole}</span>?</p>} open={changeRoleConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to change the role of <span className="font-display font-bold">{roleChangeMemberEmail}</span> from <span className="font-display font-bold">{roleChangeOldRole}</span> to <span className="font-display font-bold">{roleChangeNewRole}</span>?</p>} open={changeRoleConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
               setChangeRoleConfirmationModalOpen(false)
               changeRole()
@@ -225,7 +225,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           />
 
           {/* Modal for confirming member removal */}
-          <DangerConfirmationModal body={<p className="font-sans">Are you sure you want to remove <span className="font-display font-bold">{removeMemberEmail}</span> from team <span className="font-display font-bold">{team.name}</span>?</p>} open={removeMemberConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to remove <span className="font-display font-bold">{removeMemberEmail}</span> from team <span className="font-display font-bold">{team.name}</span>?</p>} open={removeMemberConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
               setRemoveMemberConfirmationModalOpen(false)
               removeMember()
@@ -234,14 +234,14 @@ export default function Team({ params }: { params: { teamId: string } }) {
           />
 
           {/* Modal for acknowledging new team creation */}
-          <AlertDialogModal body={<p className="font-sans">New team <span className="font-display font-bold">{createTeamName}</span> created!</p>} open={createTeamAlertModalOpen} affirmativeText="Okay"
+          <AlertDialogModal body={<p className="font-body">New team <span className="font-display font-bold">{createTeamName}</span> created!</p>} open={createTeamAlertModalOpen} affirmativeText="Okay"
             onAffirmativeAction={() => {
               setCreateTeamAlertModalOpen(false)
               location.reload()
             }}
           />
 
-          <p className="font-sans max-w-6xl text-center">Team name</p>
+          <p className="font-body max-w-6xl text-center">Team name</p>
           <div className="py-1" />
           <div className="flex flex-row items-center">
             <input id="change-team-name-input" type="text" defaultValue={team.name}
@@ -250,8 +250,8 @@ export default function Team({ params }: { params: { teamId: string } }) {
                 setNewTeamName(event.target.value)
                 setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Init)
               }}
-              className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" />
-            <button disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading} className="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => setTeamNameConfirmationModalOpen(true)}>Save</button>
+              className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400" />
+            <button disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading} className="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => setTeamNameConfirmationModalOpen(true)}>Save</button>
           </div>
           {teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading || teamNameChangeApiStatus === TeamNameChangeApiStatus.Error && <div className="py-1" />}
           {/* Loading message for team name change */}
@@ -260,13 +260,13 @@ export default function Team({ params }: { params: { teamId: string } }) {
           {teamNameChangeApiStatus === TeamNameChangeApiStatus.Error && <p className="text-sm font-display">Error changing team name, please try again</p>}
 
           <div className="py-4" />
-          <p className="font-sans max-w-6xl text-center">Invite team members</p>
+          <p className="font-body max-w-6xl text-center">Invite team members</p>
           <div className="py-1" />
           <div className="flex flex-row items-center">
-            <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300  py-2 px-4 font-sans placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} defaultValue={inviteMemberEmail} />
+            <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300  py-2 px-4 font-body placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} defaultValue={inviteMemberEmail} />
             <div className="px-2" />
             <DropdownSelect title="Roles" type={DropdownSelectType.SingleString} items={authzAndMembers.can_invite.map((i) => formatToCamelCase(i))} initialSelected={formatToCamelCase(authzAndMembers.can_invite[0])} onChangeSelected={(item) => setInviteMemberRole(item as string)} />
-            <button disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""} onClick={inviteMember} className="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
+            <button disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""} onClick={inviteMember} className="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
           </div>
           {inviteMemberApiStatus !== InviteMemberApiStatus.Init && <div className="py-1" />}
           {/* Loading message for invite member */}
@@ -277,7 +277,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           {inviteMemberApiStatus === InviteMemberApiStatus.Error && <p className="text-sm font-display">{inviteMemberErrorMsg}</p>}
 
           <div className="py-8" />
-          <p className="font-display font-regular text-2xl max-w-6xl text-center">Members</p>
+          <p className="font-display text-2xl max-w-6xl text-center">Members</p>
           <div className="py-2" />
           {/* Loading message for fetch members */}
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Loading && <p className="font-display">Fetching members...</p>}
@@ -287,7 +287,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success &&
             <div className="table-row-group">
               {authzAndMembers.members.map(({ id, email, role, authz }) => (
-                <div key={id} className="table-row font-sans">
+                <div key={id} className="table-row font-body">
                   <div className="table-cell p-4 pl-0 text-lg">{email}</div>
 
                   {/* Show only if row is current user */}
@@ -310,7 +310,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
                   {/* Show change role button if not current user */}
                   {id !== currentUserId &&
                     <div className="table-cell p-4 pl-0">
-                      <button disabled={selectedDropdownRolesMap.get(id) === undefined || selectedDropdownRolesMap.get(id) === role} className="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
+                      <button disabled={selectedDropdownRolesMap.get(id) === undefined || selectedDropdownRolesMap.get(id) === role} className="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
                         setRoleChangeMemberId(id)
                         setRoleChangeMemberEmail(authzAndMembers.members.filter((i) => i.id === id)[0].email)
                         setRoleChangeOldRole(formatToCamelCase(authzAndMembers.members.filter((i) => i.id === id)[0].role))
@@ -329,7 +329,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
                   {/* Show remove member button if not current user */}
                   {id !== currentUserId &&
                     <div className="table-cell p-4 pl-0">
-                      <button disabled={authz.can_remove === false || removeMemberApiStatus === RemoveMemberApiStatus.Loading} className="m-4 outline-none flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
+                      <button disabled={authz.can_remove === false || removeMemberApiStatus === RemoveMemberApiStatus.Loading} className="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
                         setRemoveMemberId(id)
                         setRemoveMemberEmail(authzAndMembers.members.filter((i) => i.id === id)[0].email)
                         setRemoveMemberConfirmationModalOpen(true)
@@ -352,11 +352,11 @@ export default function Team({ params }: { params: { teamId: string } }) {
               <div className="w-full border border-black h-0" />
               <div className="py-8" />
               <form onSubmit={createTeam} className="flex flex-col">
-                <p className="font-display font-regular text-2xl">Create new team</p>
+                <p className="font-display text-2xl">Create new team</p>
                 <div className="py-2" />
-                <input id="app-name" type="string" placeholder="Enter team name" className="w-96 border border-black rounded-md outline-none focus-visible:outline-yellow-300 py-2 px-4 font-sans placeholder:text-neutral-400" onChange={(event) => setCreateTeamName(event.target.value)} />
+                <input id="app-name" type="string" placeholder="Enter team name" className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400" onChange={(event) => setCreateTeamName(event.target.value)} />
                 <div className="py-2" />
-                <button type="submit" disabled={createTeamApiStatus === CreateTeamApiStatus.Loading || createTeamName.length === 0} className={`w-fit outline-none hover:enabled:bg-yellow-200 focus-visible:enabled:bg-yellow-200 active:enabled:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4 ${(createTeamApiStatus === CreateTeamApiStatus.Loading) ? 'pointer-events-none' : 'pointer-events-auto'}`}>Create Team</button>
+                <button type="submit" disabled={createTeamApiStatus === CreateTeamApiStatus.Loading || createTeamName.length === 0} className={`w-fit outline-hidden hover:enabled:bg-yellow-200 focus-visible:enabled:bg-yellow-200 active:enabled:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4 ${(createTeamApiStatus === CreateTeamApiStatus.Loading) ? 'pointer-events-none' : 'pointer-events-auto'}`}>Create Team</button>
                 <div className="py-2" />
               </form>
               {createTeamApiStatus === CreateTeamApiStatus.Loading && <p className="font-display">Creating team...</p>}

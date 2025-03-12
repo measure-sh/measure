@@ -127,14 +127,14 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, o
     onChangeSelected?.(udAttrMatchers);
   }, [selectedAttrs, ...selectedAttrs.map(attr => selectedKeyOpMap.get(attr.key)), ...selectedAttrs.map(attr => selectedKeyValMap.get(attr.key))]);
 
-  const clearButtonStyle = "text-white text-xs font-display rounded-md border border-white p-1 bg-neutral-950 hover:text-black hover:bg-yellow-200 hover:border-black focus-visible:bg-yellow-200 focus-visible:text-black focus-visible:border-black active:bg-yellow-300 outline-none"
-  const checkboxContainerStyle = "flex flex-row items-center px-2 py-2 bg-neutral-950 text-white font-display text-left outline-none hover:text-black hover:bg-yellow-200 focus:text-black focus:bg-yellow-200 active:bg-yellow-300"
-  const checkboxInputStyle = "appearance-none pointer-events-none border-white rounded-sm font-display bg-neutral-950 checked:bg-neutral-950 checked:hover:bg-neutral-950 checked:focus:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
-  const searchInputStyle = "w-full py-2 px-4 bg-neutral-950 text-white text-sm border border-white rounded-md font-sans placeholder:text-gray-400 focus:outline-none focus:border-yellow-300 focus:ring-1 focus:ring-yellow-300"
-  const innerDropdownStyle = "px-4 py-2 w-40 border border-white text-white text-sm bg-neutral-950 rounded-md font-sans placeholder:text-gray-400 focus:outline-none focus:border-yellow-300 focus:ring-1 focus:ring-yellow-300"
+  const clearButtonStyle = "text-white text-xs font-display rounded-md border border-white p-1 bg-neutral-950 hover:text-black hover:bg-yellow-200 hover:border-black focus-visible:bg-yellow-200 focus-visible:text-black focus-visible:border-black active:bg-yellow-300 outline-hidden"
+  const checkboxContainerStyle = "flex flex-row items-center px-2 py-2 bg-neutral-950 text-white font-display text-left outline-hidden hover:text-black hover:bg-yellow-200 focus:text-black focus:bg-yellow-200 active:bg-yellow-300"
+  const checkboxInputStyle = "appearance-none pointer-events-none border-white rounded-xs font-display bg-neutral-950 checked:bg-neutral-950 checked:hover:bg-neutral-950 checked:focus:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
+  const searchInputStyle = "w-full py-2 px-4 bg-neutral-950 text-white text-sm border border-white rounded-md font-body placeholder:text-gray-400 focus:outline-hidden focus:border-yellow-300 focus:ring-1 focus:ring-yellow-300"
+  const innerDropdownStyle = "px-4 py-2 w-40 border border-white text-white text-sm bg-neutral-950 rounded-md font-body placeholder:text-gray-400 focus:outline-hidden focus:border-yellow-300 focus:ring-1 focus:ring-yellow-300"
   const innerOpDropdownStyle = innerDropdownStyle + " ml-2"
   const innerValueDropdownStyle = innerDropdownStyle + " ml-4"
-  const valueInputStyle = "py-2 px-4 ml-4 w-40 bg-neutral-950 text-white text-sm border border-white rounded-md font-sans placeholder:text-gray-400 focus:outline-none focus:border-yellow-300 focus:ring-1 focus:ring-yellow-300"
+  const valueInputStyle = "py-2 px-4 ml-4 w-40 bg-neutral-950 text-white text-sm border border-white rounded-md font-body placeholder:text-gray-400 focus:outline-hidden focus:border-yellow-300 focus:ring-1 focus:ring-yellow-300"
 
   const renderValueInput = (attr: UserDefAttr) => {
     switch (attr.type) {
@@ -197,14 +197,14 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, o
         <button
           type="button"
           onClick={toggleDropdown}
-          className="inline-flex justify-center w-full font-display border border-black rounded-md outline-none hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
+          className="inline-flex justify-center w-full font-display border border-black rounded-md outline-hidden hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
           <span className="px-6 py-2">User Defined Attrs</span>
           <span className="border border-black border-t-0 border-r-0 border-b-0 px-4 py-2">⏷</span>
         </button>
       </div>
 
       {isOpen && (
-        <div className="z-50 origin-top-right absolute left-0 mt-2 w-[600px] max-h-96 overflow-auto rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
+        <div className={`z-50 origin-top-right absolute mt-2 w-[600px] max-h-96 overflow-auto rounded-md shadow-lg ring-1 ring-black ring-opacity-5 ${dropdownRef.current && dropdownRef.current.getBoundingClientRect().left > window.innerWidth / 2 ? 'right-0' : 'left-0'}`}>
           <div
             role="menu"
             aria-orientation="vertical"

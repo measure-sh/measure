@@ -1,11 +1,14 @@
 package sh.measure.android.fakes
 
+import sh.measure.android.MsrAttachment
 import sh.measure.android.appexit.AppExit
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
 import sh.measure.android.attributes.AttributeValue
+import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.events.Attachment
+import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.Event
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionFactory
@@ -452,6 +455,7 @@ internal object TestData {
         status: SpanStatus = SpanStatus.Ok,
         hasEnded: Boolean = true,
         attributes: Map<String, Any?> = emptyMap(),
+        userDefinedAttrs: Map<String, Any?> = emptyMap(),
         checkpoints: MutableList<Checkpoint> = mutableListOf(),
         isSampled: Boolean = true,
     ): SpanData {
@@ -467,6 +471,7 @@ internal object TestData {
             status = status,
             hasEnded = hasEnded,
             attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
             checkpoints = checkpoints,
             isSampled = isSampled,
         )
@@ -510,6 +515,7 @@ internal object TestData {
         status: SpanStatus = SpanStatus.Ok,
         hasEnded: Boolean = true,
         attributes: Map<String, Any?> = emptyMap(),
+        userDefinedAttrs: Map<String, Any?> = emptyMap(),
         checkpoints: MutableList<Checkpoint> = mutableListOf(),
     ): SpanEntity {
         return getSpanData(
@@ -524,6 +530,7 @@ internal object TestData {
             status = status,
             hasEnded = hasEnded,
             attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
             checkpoints = checkpoints,
         ).toSpanEntity()
     }
@@ -541,6 +548,7 @@ internal object TestData {
             status = spanEntity.status.value,
             serializedAttributes = spanEntity.serializedAttributes,
             serializedCheckpoints = spanEntity.serializedCheckpoints,
+            serializedUserDefAttrs = spanEntity.serializedUserDefinedAttrs,
         )
     }
 
@@ -549,5 +557,17 @@ internal object TestData {
             name = "name",
             timestamp = 98765432L,
         )
+    }
+
+    fun getBugReportData(): BugReportData {
+        return BugReportData("Bug report description")
+    }
+
+    fun getMsrAttachment(
+        name: String = "attachment",
+        content: ByteArray = "content".toByteArray(),
+        type: String = AttachmentType.SCREENSHOT,
+    ): MsrAttachment {
+        return MsrAttachment(name, content, type = type)
     }
 }

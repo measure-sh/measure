@@ -12,8 +12,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        display: ['var(--font-display)'],
-        sans: ['var(--font-body)']
+        display: ['var(--font-josefin-sans)'],
+        body: ['var(--font-space-mono)']
       },
       colors: {
         'redd': '#ff6286'

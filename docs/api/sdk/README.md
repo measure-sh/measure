@@ -359,6 +359,7 @@ Events can contain the following attributes, some of which are mandatory.
 | `network_type`                      | string  | No       | One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network   |
 | `network_provider`                  | string  | No       | Example: airtel, T-mobile or "unknown" if unavailable.                      |
 | `network_generation`                | string  | No       | One of:<br/>- 2g<br/>- 3g<br/>- 4g<br/>- 5g<br/>- unknown                   |
+| `device_cpu_arch`                   | string  | No       | The CPU architecture, eg. arm64                                             |
 
 ### User Defined Attributes
 
@@ -503,39 +504,66 @@ Use the `exception` type for errors and crashes.
 | `exceptions`    | array   | No       | Array of exception objects                                            |
 | `foreground`    | boolean | Yes      | `true` if the app was in the foreground at the time of the exception. |
 | `threads`       | array   | Yes      | Array of thread objects                                               |
-| `binary_images` | array   | Yes      | Array of binary image objects (Darwin only)                           |
+| `binary_images` | array   | Yes      | An optional array of all the `binary_image` needed for symbolication. |
 
 `exception` objects
 
-Each exception object contains further fields.
+Each exception object contains the thread information of the crashed thread and its stackframes along with the metadata required for symbolication.
 
-| Field     | Type   | Optional | Comment                     |
-| --------- | ------ | -------- | --------------------------- |
-| `type`    | string | No       | Type of the exception       |
-| `message` | string | No       | Error message text          |
-| `frames`  | array  | Yes      | Array of stackframe objects |
+| Field             | Type   | Optional | Comment                                                                                                                       |
+| ----------------- | ------ | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `type`            | string | Yes      | Type of the exception                                                                                                         |
+| `message`         | string | Yes      | Error message text                                                                                                            |
+| `frames`          | array  | Yes      | Array of stackframe objects                                                                                                   |
+| `signal`          | string | Yes      | BSD termination signal                                                                                                        |
+| `thread_name`     | string | Yes      | Name of thread                                                                                                                |
+| `thread_sequence` | number | Yes      | The thread number used for ordering threads in a stacktrace. Used by Apple OSes.                                              |
+| `os_build_number` | string | Yes      | OS build number used to select system binary image for Apple OSes. Example, `22D72` is the build number for iPhone OS 18.3.1. |
 
 `thread` objects
 
 Each thread object contains further fields.
+Note: Only non-crashed threads are to be send in thread object.
 
-| Field    | Type   | Optional | Comment                     |
-| -------- | ------ | -------- | --------------------------- |
-| `name`   | string | Yes      | Name of thread              |
-| `frames` | array  | Yes      | Array of stackframe objects |
+| Field      | Type   | Optional | Comment                                                                       |
+| ---------- | ------ | -------- | ----------------------------------------------------------------------------- |
+| `name`     | string | Yes      | Name of thread                                                                |
+| `frames`   | array  | Yes      | Array of stackframe objects                                                   |
+| `sequence` | number | Yes      | The frame index used for ordering frames in a stacktrace. Used by Apple OSes. |
 
 `frame` objects
 
 Each frame object contains further fields.
 
-| Field         | Type   | Optional | Comment                        |
-| ------------- | ------ | -------- | ------------------------------ |
-| `line_num`    | int    | Yes      | Line number of the method      |
-| `col_num`     | int    | Yes      | Column number of the method    |
-| `module_name` | string | Yes      | Name of the originating module |
-| `file_name`   | string | Yes      | Name of the originating file   |
-| `class_name`  | string | Yes      | Name of the originating class  |
-| `method_name` | string | Yes      | Name of the originating method |
+| Field            | Type    | Optional | Comment                                                                                                                                                |
+| ---------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `line_num`       | number  | Yes      | Line number of the method                                                                                                                              |
+| `col_num`        | number  | Yes      | Column number of the method                                                                                                                            |
+| `module_name`    | string  | Yes      | Name of the originating module                                                                                                                         |
+| `file_name`      | string  | Yes      | Name of the originating file                                                                                                                           |
+| `class_name`     | string  | Yes      | Name of the originating class                                                                                                                          |
+| `method_name`    | string  | Yes      | Name of the originating method                                                                                                                         |
+| `binary_name`    | string  | Yes      | Name of the iOS binary image. For example, `UIKitCore`. Used for selecting the binary image to use for symbolication.                                  |
+| `symbol_address` | string  | Yes      | Address of the symbol to symbolicate. This is a hexadecimal number prefixed with `0x`. Use along with `offset` and `binary_address` for symbolication. |
+| `offset`         | number  | Yes      | The byte offset, used along with `symbol_address` and `binary_address` for symbolication.                                                              |
+| `binary_address` | string  | Yes      | The binary load address, used along with `symbol_address` and `offset` for symbolication.                                                              |
+| `in_app`         | boolean | No       | `true` if the frame originates from the app module                                                                                                     |
+| `frame_index`    | number  | Yes      | The index of the frame in the stack trace                                                                                                              |
+
+`binary_image` objects
+
+Each thread object contains further fields.
+
+| Field        | Type    | Optional | Comment                                                |
+| ------------ | ------- | -------- | ------------------------------------------------------ |
+| `start_addr` | string  | No       | Address where the binary is loaded into virtual memory |
+| `end_addr`   | string  | No       | Upper memory boundary of the binary                    |
+| `system`     | boolean | No       | Indicates if the binary is a system binary             |
+| `name`       | string  | No       | Name of the app, framework, or library binary          |
+| `arch`       | string  | No       | CPU architecture the binary is compiled for            |
+| `uuid`       | string  | No       | Unique fingerprint for the binary's build              |
+| `path`       | string  | No       | Full path to where the binary was located at runtime   |
+
 
 `binary_image` objects
 

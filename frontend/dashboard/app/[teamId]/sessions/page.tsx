@@ -1,6 +1,6 @@
 "use client"
 
-import { emptySessionsOverviewResponse, SessionsOverviewApiStatus, fetchSessionsOverviewFromServer, FiltersApiType } from '@/app/api/api_calls';
+import { emptySessionsOverviewResponse, SessionsOverviewApiStatus, fetchSessionsOverviewFromServer, FilterSource } from '@/app/api/api_calls';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
 import LoadingBar from '@/app/components/loading_bar';
 import Paginator from '@/app/components/paginator';
@@ -54,12 +54,12 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
             <div className="py-4" />
-            <p className="font-display font-regular text-4xl max-w-6xl text-center">Sessions</p>
+            <p className="font-display text-4xl max-w-6xl text-center">Sessions</p>
             <div className="py-4" />
 
             <Filters
                 teamId={params.teamId}
-                filtersApiType={FiltersApiType.All}
+                filterSource={FilterSource.Events}
                 appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
                 showCreateApp={true}
                 showNoData={true}
@@ -76,8 +76,10 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                 showLocales={true}
                 showDeviceManufacturers={true}
                 showDeviceNames={true}
+                showBugReportStatus={false}
                 showUdAttrs={true}
                 showFreeText={true}
+                freeTextPlaceholder='Search User/Session ID, Logs, Event Type, Target View ID, File/Class name or Exception Traces...'
                 onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
             <div className="py-4" />
 
@@ -114,7 +116,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                                 <div className="table-cell w-48 p-4 text-center">Duration</div>
                             </div>
                         </div>
-                        <div className="table-row-group font-sans">
+                        <div className="table-row-group font-body">
                             {sessionsOverview.results?.map(({ session_id, app_id, first_event_time, duration, matched_free_text, attribute }, idx) => (
                                 <Link key={`${idx}-${session_id}`} href={`/${params.teamId}/sessions/${app_id}/${session_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
                                     <div className="table-cell p-4">

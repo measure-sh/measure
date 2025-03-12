@@ -12,7 +12,7 @@ exports[`Accordion renders correctly in collapsed state 1`] = `
           <button
             aria-controls="accordion-text-ID"
             aria-expanded="false"
-            class="flex items-center justify-between w-full text-left py-2 outline-none focus-visible:outline-yellow-300"
+            class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
           >
             <span>
               TITLE
@@ -42,7 +42,7 @@ exports[`Accordion renders correctly in collapsed state 1`] = `
         </h2>
         <div
           aria-labelledby="accordion-title-ID"
-          class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
+          class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
           id="accordion-text-ID"
           role="region"
         >
@@ -67,7 +67,7 @@ exports[`Accordion renders correctly in collapsed state 1`] = `
         <button
           aria-controls="accordion-text-ID"
           aria-expanded="false"
-          class="flex items-center justify-between w-full text-left py-2 outline-none focus-visible:outline-yellow-300"
+          class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
         >
           <span>
             TITLE
@@ -97,7 +97,7 @@ exports[`Accordion renders correctly in collapsed state 1`] = `
       </h2>
       <div
         aria-labelledby="accordion-title-ID"
-        class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
+        class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
         id="accordion-text-ID"
         role="region"
       >
@@ -179,7 +179,7 @@ exports[`Accordion renders correctly in opened state 1`] = `
           <button
             aria-controls="accordion-text-ID"
             aria-expanded="true"
-            class="flex items-center justify-between w-full text-left py-2 outline-none focus-visible:outline-yellow-300"
+            class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
           >
             <span>
               TITLE
@@ -191,14 +191,14 @@ exports[`Accordion renders correctly in opened state 1`] = `
               xmlns="http://www.w3.org/2000/svg"
             >
               <rect
-                class="ttransform origin-center transition duration-200 ease-out !rotate-180"
+                class="ttransform origin-center transition duration-200 ease-out rotate-180!"
                 height="2"
                 rx="1"
                 width="16"
                 y="7"
               />
               <rect
-                class="transform origin-center rotate-90 transition duration-200 ease-out !rotate-180"
+                class="transform origin-center rotate-90 transition duration-200 ease-out rotate-180!"
                 height="2"
                 rx="1"
                 width="16"
@@ -209,7 +209,7 @@ exports[`Accordion renders correctly in opened state 1`] = `
         </h2>
         <div
           aria-labelledby="accordion-title-ID"
-          class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
+          class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
           id="accordion-text-ID"
           role="region"
         >
@@ -234,7 +234,7 @@ exports[`Accordion renders correctly in opened state 1`] = `
         <button
           aria-controls="accordion-text-ID"
           aria-expanded="true"
-          class="flex items-center justify-between w-full text-left py-2 outline-none focus-visible:outline-yellow-300"
+          class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
         >
           <span>
             TITLE
@@ -246,14 +246,14 @@ exports[`Accordion renders correctly in opened state 1`] = `
             xmlns="http://www.w3.org/2000/svg"
           >
             <rect
-              class="ttransform origin-center transition duration-200 ease-out !rotate-180"
+              class="ttransform origin-center transition duration-200 ease-out rotate-180!"
               height="2"
               rx="1"
               width="16"
               y="7"
             />
             <rect
-              class="transform origin-center rotate-90 transition duration-200 ease-out !rotate-180"
+              class="transform origin-center rotate-90 transition duration-200 ease-out rotate-180!"
               height="2"
               rx="1"
               width="16"
@@ -264,7 +264,7 @@ exports[`Accordion renders correctly in opened state 1`] = `
       </h2>
       <div
         aria-labelledby="accordion-title-ID"
-        class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
+        class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
         id="accordion-text-ID"
         role="region"
       >
@@ -346,7 +346,7 @@ exports[`Accordion renders correctly once it's openened and closed again 1`] = `
           <button
             aria-controls="accordion-text-ID"
             aria-expanded="true"
-            class="flex items-center justify-between w-full text-left py-2 outline-none focus-visible:outline-yellow-300"
+            class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
           >
             <span>
               TITLE
@@ -358,14 +358,14 @@ exports[`Accordion renders correctly once it's openened and closed again 1`] = `
               xmlns="http://www.w3.org/2000/svg"
             >
               <rect
-                class="ttransform origin-center transition duration-200 ease-out !rotate-180"
+                class="ttransform origin-center transition duration-200 ease-out rotate-180!"
                 height="2"
                 rx="1"
                 width="16"
                 y="7"
               />
               <rect
-                class="transform origin-center rotate-90 transition duration-200 ease-out !rotate-180"
+                class="transform origin-center rotate-90 transition duration-200 ease-out rotate-180!"
                 height="2"
                 rx="1"
                 width="16"
@@ -376,7 +376,7 @@ exports[`Accordion renders correctly once it's openened and closed again 1`] = `
         </h2>
         <div
           aria-labelledby="accordion-title-ID"
-          class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
+          class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
           id="accordion-text-ID"
           role="region"
         >
@@ -401,7 +401,7 @@ exports[`Accordion renders correctly once it's openened and closed again 1`] = `
         <button
           aria-controls="accordion-text-ID"
           aria-expanded="true"
-          class="flex items-center justify-between w-full text-left py-2 outline-none focus-visible:outline-yellow-300"
+          class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
         >
           <span>
             TITLE
@@ -413,14 +413,14 @@ exports[`Accordion renders correctly once it's openened and closed again 1`] = `
             xmlns="http://www.w3.org/2000/svg"
           >
             <rect
-              class="ttransform origin-center transition duration-200 ease-out !rotate-180"
+              class="ttransform origin-center transition duration-200 ease-out rotate-180!"
               height="2"
               rx="1"
               width="16"
               y="7"
             />
             <rect
-              class="transform origin-center rotate-90 transition duration-200 ease-out !rotate-180"
+              class="transform origin-center rotate-90 transition duration-200 ease-out rotate-180!"
               height="2"
               rx="1"
               width="16"
@@ -431,7 +431,7 @@ exports[`Accordion renders correctly once it's openened and closed again 1`] = `
       </h2>
       <div
         aria-labelledby="accordion-title-ID"
-        class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
+        class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[1fr] opacity-100"
         id="accordion-text-ID"
         role="region"
       >
@@ -513,7 +513,7 @@ exports[`Accordion renders correctly once it's openened and closed again 2`] = `
           <button
             aria-controls="accordion-text-ID"
             aria-expanded="false"
-            class="flex items-center justify-between w-full text-left py-2 outline-none focus-visible:outline-yellow-300"
+            class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
           >
             <span>
               TITLE
@@ -543,7 +543,7 @@ exports[`Accordion renders correctly once it's openened and closed again 2`] = `
         </h2>
         <div
           aria-labelledby="accordion-title-ID"
-          class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
+          class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
           id="accordion-text-ID"
           role="region"
         >
@@ -568,7 +568,7 @@ exports[`Accordion renders correctly once it's openened and closed again 2`] = `
         <button
           aria-controls="accordion-text-ID"
           aria-expanded="false"
-          class="flex items-center justify-between w-full text-left py-2 outline-none focus-visible:outline-yellow-300"
+          class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
         >
           <span>
             TITLE
@@ -598,7 +598,7 @@ exports[`Accordion renders correctly once it's openened and closed again 2`] = `
       </h2>
       <div
         aria-labelledby="accordion-title-ID"
-        class="grid text-sm font-sans overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
+        class="grid text-sm font-body overflow-hidden transition-all duration-300 ease-in-out grid-rows-[0fr] opacity-0"
         id="accordion-text-ID"
         role="region"
       >

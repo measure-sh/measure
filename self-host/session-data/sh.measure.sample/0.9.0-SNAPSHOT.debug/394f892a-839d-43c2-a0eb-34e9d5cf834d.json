@@ -1199,6 +1199,12 @@
                 "device_low_power_mode": false,
                 "device_thermal_throttling_enabled": false
             },
+            "user_defined_attribute": {
+                "plan": "premium",
+                "client_id": 156039,
+                "revenue": 2000.00,
+                "onboarded": true
+            },
             "checkpoints": []
         },
         {
@@ -1231,6 +1237,12 @@
                 "network_provider": "unknown",
                 "device_low_power_mode": false,
                 "device_thermal_throttling_enabled": false
+            },
+            "user_defined_attribute": {
+                "plan": "free",
+                "client_id": 143892,
+                "revenue": 0.00,
+                "onboarded": false
             },
             "checkpoints": []
         },

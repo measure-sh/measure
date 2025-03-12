@@ -58,9 +58,14 @@ internal interface InternalSpan : Span {
     fun getAttributesMap(): MutableMap<String, Any?>
 
     /**
-     * Adds an attribute.
+     * Returns a modifiable map of user-defined attributes.
      */
-    fun setAttribute(attribute: Pair<String, Any?>)
+    fun getUserDefinedAttrs(): MutableMap<String, Any?>
+
+    /**
+     * Adds an attribute to this span.
+     */
+    fun setInternalAttribute(attribute: Pair<String, Any?>)
 
     /**
      * Converts the span to a data class for further processing and export.

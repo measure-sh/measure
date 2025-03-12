@@ -46,6 +46,9 @@ internal data class SpanPacket(
     @SerialName("attributes")
     @Serializable(with = RawJsonSerializer::class)
     val serializedAttributes: String?,
+    @SerialName("user_defined_attribute")
+    @Serializable(with = RawJsonSerializer::class)
+    val serializedUserDefAttrs: String?,
     @SerialName("checkpoints")
     @Serializable(with = RawJsonSerializer::class)
     val serializedCheckpoints: String?,

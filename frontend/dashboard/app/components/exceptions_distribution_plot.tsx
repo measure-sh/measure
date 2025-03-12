@@ -78,7 +78,7 @@ const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({
   }, [exceptionsType, exceptionsGroupId, filters]);
 
   return (
-    <div className="flex border border-black font-sans items-center justify-center w-full h-[32rem]">
+    <div className="flex border border-black font-body items-center justify-center w-full h-[32rem]">
       {exceptionsDistributionPlotApiStatus === ExceptionsDistributionPlotApiStatus.Loading && <LoadingSpinner />}
       {exceptionsDistributionPlotApiStatus === ExceptionsDistributionPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {exceptionsDistributionPlotApiStatus === ExceptionsDistributionPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}

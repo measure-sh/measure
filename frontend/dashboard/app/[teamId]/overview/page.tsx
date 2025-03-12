@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Journey, { JourneyType } from "@/app/components/journey";
 import MetricsOverview from '@/app/components/metrics_overview';
-import { FiltersApiType } from '@/app/api/api_calls';
+import { FilterSource } from '@/app/api/api_calls';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
 
 export default function Overview({ params }: { params: { teamId: string } }) {
@@ -12,12 +12,12 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
-      <p className="font-display font-regular text-4xl max-w-6xl text-center">Overview</p>
+      <p className="font-display text-4xl max-w-6xl text-center">Overview</p>
       <div className="py-4" />
 
       <Filters
         teamId={params.teamId}
-        filtersApiType={FiltersApiType.All}
+        filterSource={FilterSource.Events}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
         showCreateApp={true}
         showNoData={true}
@@ -34,6 +34,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         showLocales={false}
         showDeviceManufacturers={false}
         showDeviceNames={false}
+        showBugReportStatus={false}
         showFreeText={false}
         showUdAttrs={false}
         onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />

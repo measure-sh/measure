@@ -1216,6 +1216,54 @@
                 "network_generation": "unknown",
                 "network_provider": "unknown"
             }
+        },
+        {
+            "id": "eaaa0100-0e27-4706-9705-53b5d0b537ef",
+            "session_id": "a2768feb-59cd-433f-bf00-d36ab297eddb",
+            "user_triggered": false,
+            "timestamp": "2024-11-18T14:14:41.62200000Z",
+            "type": "bug_report",
+            "bug_report": {
+                "description": "This app sucks!"
+            },
+            "attachments": [
+                {
+                    "id": "c2001daa-bdc6-476e-b896-0fd047fb2503",
+                    "type": "screenshot",
+                    "name": "screenshot.webp"
+                }
+            ],
+            "attribute": {
+                "thread_name": "main",
+                "user_id": null,
+                "device_name": "emu64a16k",
+                "device_model": "sdk_gphone16k_arm64",
+                "device_manufacturer": "Google",
+                "device_type": "phone",
+                "device_is_foldable": false,
+                "device_is_physical": false,
+                "device_density_dpi": 480,
+                "device_width_px": 1344,
+                "device_height_px": 2992,
+                "device_density": 3.0,
+                "device_locale": "en-US",
+                "os_name": "android",
+                "os_version": "35",
+                "os_page_size": 16,
+                "platform": "android",
+                "app_version": "0.9.0-SNAPSHOT.debug",
+                "app_build": "900",
+                "app_unique_id": "sh.measure.sample",
+                "measure_sdk_version": "0.9.0-SNAPSHOT",
+                "installation_id": "2ee2d03e-ed76-43e7-8d63-9e146f1df618",
+                "network_type": "wifi",
+                "network_generation": "unknown",
+                "network_provider": "unknown"
+            },
+            "user_defined_attribute": {
+                "plan": "free",
+                "discount": true
+            }
         }
     ],
     "spans": [

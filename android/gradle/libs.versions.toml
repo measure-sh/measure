@@ -15,12 +15,12 @@ measure-android = "0.10.0-SNAPSHOT"
 androidx-activity-compose = "1.7.2"
 androidx-appcompat = "1.6.1"
 androidx-constraintlayout = "2.1.4"
-androidx-core-ktx = "1.12.0"
+androidx-core-ktx = "1.15.0"
 androidx-junit = "1.1.5"
 androidx-compose-ui = "1.4.3"
 androidx-compose-material3 = "1.0.1"
 androidx-runtime-android = "1.5.4"
-androidx-espresso-core = "3.5.1"
+androidx-espresso = "3.5.1"
 androidx-fragment-ktx = "1.2.5"
 androidx-annotation = "1.7.1"
 androidx-test-rules = "1.5.0"
@@ -45,7 +45,7 @@ squareup-curtains = "1.2.5"
 squareup-okhttp = "4.12.0"
 squareup-okio = "3.7.0"
 squareup-leakcanary = "2.14"
-robolectric = "4.11.1"
+robolectric = "4.14.1"
 kolinx-binary-compatibility-validator = "0.13.2"
 diffplug-spotless = "6.24.0"
 compose-plugin = "1.5.11"
@@ -61,7 +61,7 @@ androidx-benchmark-junit4 = { module = "androidx.benchmark:benchmark-junit4", ve
 androidx-benchmark-macro-junit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark-macro-junit4" }
 androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "androidx-constraintlayout" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core-ktx" }
-androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-espresso-core" }
+androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-espresso" }
 androidx-fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "androidx-fragment-ktx" }
 androidx-fragment-testing = { module = "androidx.fragment:fragment-testing", version.ref = "androidx-fragment-ktx" }
 androidx-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-junit" }

@@ -1,0 +1,40 @@
+on:
+  pull_request:
+    paths:
+      - 'ios/**'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'ios/**'
+    tags:
+      - 'ios-*'
+
+jobs:
+  ios_lint_and_tests:
+    runs-on: macos-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run SwiftLint
+        uses: cirruslabs/swiftlint-action@fdc2695c66b8807e7b1571d08097a99cf1fde41b
+        with:
+          version: latest
+          directory: ios
+
+      - name: Clean Derived Data
+        run: |
+          rm -rf ~/Library/Developer/Xcode/DerivedData
+
+      - name: Run Unit Tests
+        run: |
+          xcodebuild test \
+            -project ios/MeasureSDK.xcodeproj \
+            -scheme MeasureSDK \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
+            ONLY_ACTIVE_ARCH=YES

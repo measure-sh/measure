@@ -23,6 +23,10 @@ internal fun SpanData.toSpanEntity(): SpanEntity {
             JsonElement.serializer(),
             attributes.toJsonElement(),
         ),
+        serializedUserDefinedAttrs = Json.encodeToString(
+            JsonElement.serializer(),
+            userDefinedAttrs.toJsonElement(),
+        ),
         hasEnded = hasEnded,
     )
 }

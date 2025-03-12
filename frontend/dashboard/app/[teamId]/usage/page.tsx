@@ -115,7 +115,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
-      <p className="font-display font-regular text-4xl max-w-6xl text-center">Usage</p>
+      <p className="font-display text-4xl max-w-6xl text-center">Usage</p>
       <div className="py-4" />
 
       {/* Error states */}
@@ -128,7 +128,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         </div>}
 
       {/* Main UI */}
-      {fetchUsageApiStatus === FetchUsageApiStatus.Loading && <p className='font-sans'> Fetching usage data...</p>}
+      {fetchUsageApiStatus === FetchUsageApiStatus.Loading && <p className='font-body'> Fetching usage data...</p>}
       {fetchUsageApiStatus === FetchUsageApiStatus.Success &&
         <div className="flex flex-col items-start">
           <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={months!} initialSelected={selectedMonth!} onChangeSelected={(item) => setSelectedMonth(item as string)} />

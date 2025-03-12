@@ -143,6 +143,108 @@ ORDER BY
     timestamp ASC,
     app_version ASC;
 
+CREATE TABLE default.bug_reports
+(
+    `event_id` UUID COMMENT 'bug report event id' CODEC(ZSTD(3)),
+    `app_id` UUID COMMENT 'unique id of the app' CODEC(ZSTD(3)),
+    `session_id` UUID COMMENT 'session id' CODEC(ZSTD(3)),
+    `timestamp` DateTime64(9, 'UTC') COMMENT 'timestamp of the bug report' CODEC(DoubleDelta, ZSTD(3)),
+    `status` UInt8 COMMENT 'status of the bug report 0 (Closed) or 1 (Open)' CODEC(ZSTD(3)),
+    `description` String COMMENT 'description of the bug report' CODEC(ZSTD(3)),
+    `app_version` Tuple(
+        LowCardinality(String),
+        LowCardinality(String)) COMMENT 'composite app version' CODEC(ZSTD(3)),
+    `os_version` Tuple(
+        LowCardinality(String),
+        LowCardinality(String)) COMMENT 'composite os version' CODEC(ZSTD(3)),
+    `country_code` LowCardinality(String) COMMENT 'country code' CODEC(ZSTD(3)),
+    `network_provider` LowCardinality(String) COMMENT 'name of the network service provider' CODEC(ZSTD(3)),
+    `network_type` LowCardinality(String) COMMENT 'wifi, cellular, vpn and so on' CODEC(ZSTD(3)),
+    `network_generation` LowCardinality(String) COMMENT '2g, 3g, 4g and so on' CODEC(ZSTD(3)),
+    `device_locale` LowCardinality(String) COMMENT 'rfc 5646 locale string' CODEC(ZSTD(3)),
+    `device_manufacturer` LowCardinality(String) COMMENT 'manufacturer of the device' CODEC(ZSTD(3)),
+    `device_name` LowCardinality(String) COMMENT 'name of the device' CODEC(ZSTD(3)),
+    `device_model` LowCardinality(String) COMMENT 'model of the device' CODEC(ZSTD(3)),
+    `user_id` LowCardinality(String) COMMENT 'attributed user id' CODEC(ZSTD(3)),
+    `device_low_power_mode` Bool COMMENT 'true if low power mode is enabled',
+    `device_thermal_throttling_enabled` Bool COMMENT 'true if thermal throttling is enabled',
+    `user_defined_attribute` Map(LowCardinality(String), Tuple(
+        Enum8('string' = 1, 'int64' = 2, 'float64' = 3, 'bool' = 4),
+        String)) COMMENT 'user defined attributes' CODEC(ZSTD(3)),
+    `attachments` String COMMENT 'attachment metadata'
+)
+ENGINE = ReplacingMergeTree
+PARTITION BY toYYYYMM(timestamp)
+ORDER BY (app_id, os_version, app_version, session_id, timestamp, event_id)
+SETTINGS index_granularity = 8192
+COMMENT 'aggregated app bug reports';
+
+CREATE MATERIALIZED VIEW default.bug_reports_mv TO default.bug_reports
+(
+    `event_id` UUID,
+    `app_id` UUID,
+    `session_id` UUID,
+    `timestamp` DateTime64(9, 'UTC'),
+    `status` UInt8,
+    `description` String,
+    `app_version` Tuple(
+        String,
+        String),
+    `os_version` Tuple(
+        String,
+        String),
+    `country_code` String,
+    `network_provider` String,
+    `network_type` String,
+    `network_generation` String,
+    `device_locale` String,
+    `device_manufacturer` String,
+    `device_name` String,
+    `device_model` String,
+    `user_id` String,
+    `device_low_power_mode` Bool,
+    `device_thermal_throttling_enabled` Bool,
+    `user_defined_attribute` Map(String, Tuple(
+        Enum8('string' = 1, 'int64' = 2, 'float64' = 3, 'bool' = 4),
+        String)),
+    `attachments` String
+)
+AS SELECT DISTINCT
+    id AS event_id,
+    app_id,
+    session_id,
+    any(timestamp) AS timestamp,
+    0 AS status,
+    any(bug_report.description) AS description,
+    any((toString(attribute.app_version), toString(attribute.app_build))) AS app_version,
+    any((toString(attribute.os_name), toString(attribute.os_version))) AS os_version,
+    any(toString(inet.country_code)) AS country_code,
+    any(toString(attribute.network_provider)) AS network_provider,
+    any(toString(attribute.network_type)) AS network_type,
+    any(toString(attribute.network_generation)) AS network_generation,
+    any(toString(attribute.device_locale)) AS device_locale,
+    any(toString(attribute.device_manufacturer)) AS device_manufacturer,
+    any(toString(attribute.device_name)) AS device_name,
+    any(toString(attribute.device_model)) AS device_model,
+    any(toString(attribute.user_id)) AS user_id,
+    any(attribute.device_low_power_mode) AS device_low_power_mode,
+    any(attribute.device_thermal_throttling_enabled) AS device_thermal_throttling_enabled,
+    any(user_defined_attribute) AS user_defined_attribute,
+    any(attachments) AS attachments
+FROM default.events
+WHERE type = 'bug_report'
+GROUP BY
+    app_id,
+    session_id,
+    event_id
+ORDER BY
+    app_id ASC,
+    os_version ASC,
+    app_version ASC,
+    session_id ASC,
+    timestamp ASC,
+    event_id ASC;
+
 CREATE TABLE default.events
 (
     `id` UUID COMMENT 'unique event id' CODEC(LZ4),
@@ -315,6 +417,7 @@ CREATE TABLE default.events
     `navigation.from` FixedString(128) COMMENT 'source page or screen from where the navigation was triggered' CODEC(ZSTD(3)),
     `navigation.source` FixedString(128) COMMENT 'how the event was collected example a library or framework name' CODEC(ZSTD(3)),
     `screen_view.name` FixedString(128) COMMENT 'name of the screen viewed' CODEC(ZSTD(3)),
+    `bug_report.description` String COMMENT 'description of the bug report',
     `custom.name` LowCardinality(FixedString(64)) COMMENT 'name of the custom event',
     `attachments` String COMMENT 'attachment metadata' CODEC(ZSTD(3)),
     INDEX attribute_app_version_idx `attribute.app_version` TYPE minmax GRANULARITY 2,
@@ -680,6 +783,75 @@ ORDER BY
     device_low_power_mode ASC,
     device_thermal_throttling_enabled ASC;
 
+CREATE TABLE default.span_user_def_attrs
+(
+    `app_id` UUID COMMENT 'associated app id' CODEC(LZ4),
+    `span_id` FixedString(16) COMMENT 'id of the span' CODEC(ZSTD(3)),
+    `session_id` UUID COMMENT 'id of the session' CODEC(LZ4),
+    `end_of_month` DateTime COMMENT 'last day of the month' CODEC(DoubleDelta, ZSTD(3)),
+    `app_version` Tuple(
+        LowCardinality(String),
+        LowCardinality(String)) COMMENT 'composite app version' CODEC(ZSTD(3)),
+    `os_version` Tuple(
+        LowCardinality(String),
+        LowCardinality(String)) COMMENT 'composite os version' CODEC(ZSTD(3)),
+    `key` LowCardinality(String) COMMENT 'key of the user defined attribute' CODEC(ZSTD(3)),
+    `type` Enum8('string' = 1, 'int64' = 2, 'float64' = 3, 'bool' = 4) COMMENT 'type of the user defined attribute' CODEC(ZSTD(3)),
+    `value` String COMMENT 'value of the user defined attribute' CODEC(ZSTD(3)),
+    INDEX end_of_month_minmax_idx end_of_month TYPE minmax GRANULARITY 2,
+    INDEX key_bloom_idx key TYPE bloom_filter(0.05) GRANULARITY 1,
+    INDEX key_set_idx key TYPE set(1000) GRANULARITY 2,
+    INDEX session_bloom_idx session_id TYPE bloom_filter GRANULARITY 2
+)
+ENGINE = ReplacingMergeTree
+PARTITION BY toYYYYMM(end_of_month)
+ORDER BY (app_id, end_of_month, app_version, os_version, key, type, value, span_id, session_id)
+SETTINGS index_granularity = 8192
+COMMENT 'derived span user defined attributes';
+
+CREATE MATERIALIZED VIEW default.span_user_def_attrs_mv TO default.span_user_def_attrs
+(
+    `app_id` UUID,
+    `span_id` FixedString(16),
+    `session_id` UUID,
+    `end_of_month` Date,
+    `app_version` Tuple(
+        LowCardinality(String),
+        LowCardinality(String)),
+    `os_version` Tuple(
+        LowCardinality(String),
+        LowCardinality(String)),
+    `key` LowCardinality(String),
+    `type` Enum8('string' = 1, 'int64' = 2, 'float64' = 3, 'bool' = 4),
+    `value` String
+)
+AS SELECT DISTINCT
+    app_id,
+    span_id,
+    session_id,
+    toLastDayOfMonth(start_time) AS end_of_month,
+    attribute.app_version AS app_version,
+    attribute.os_version AS os_version,
+    arr_key AS key,
+    arr_val.1 AS type,
+    arr_val.2 AS value
+FROM default.spans
+ARRAY JOIN
+    mapKeys(user_defined_attribute) AS arr_key,
+    mapValues(user_defined_attribute) AS arr_val
+WHERE length(user_defined_attribute) > 0
+GROUP BY
+    app_id,
+    end_of_month,
+    app_version,
+    os_version,
+    key,
+    type,
+    value,
+    span_id,
+    session_id
+ORDER BY app_id ASC;
+
 CREATE TABLE default.spans
 (
     `app_id` UUID COMMENT 'unique id of the app' CODEC(ZSTD(3)),
@@ -716,12 +888,17 @@ CREATE TABLE default.spans
     `attribute.device_locale` LowCardinality(String) COMMENT 'rfc 5646 locale string' CODEC(ZSTD(3)),
     `attribute.device_low_power_mode` Bool COMMENT 'true if device is in power saving mode' CODEC(ZSTD(3)),
     `attribute.device_thermal_throttling_enabled` Bool COMMENT 'true if device is has thermal throttling enabled' CODEC(ZSTD(3)),
+    `user_defined_attribute` Map(LowCardinality(String), Tuple(
+        Enum8('string' = 1, 'int64' = 2, 'float64' = 3, 'bool' = 4),
+        String)) CODEC(ZSTD(3)),
     INDEX span_name_bloom_idx span_name TYPE bloom_filter GRANULARITY 2,
     INDEX span_id_bloom_idx span_id TYPE bloom_filter GRANULARITY 2,
     INDEX trace_id_bloom_idx trace_id TYPE bloom_filter GRANULARITY 2,
     INDEX parent_id_bloom_idx parent_id TYPE bloom_filter GRANULARITY 2,
     INDEX start_time_minmax_idx start_time TYPE minmax GRANULARITY 2,
-    INDEX end_time_minmax_idx end_time TYPE minmax GRANULARITY 2
+    INDEX end_time_minmax_idx end_time TYPE minmax GRANULARITY 2,
+    INDEX user_defined_attribute_key_bloom_idx mapKeys(user_defined_attribute) TYPE bloom_filter(0.01) GRANULARITY 16,
+    INDEX user_defined_attribute_key_minmax_idx mapKeys(user_defined_attribute) TYPE minmax GRANULARITY 16
 )
 ENGINE = MergeTree
 PARTITION BY toYYYYMMDD(start_time)
@@ -847,4 +1024,10 @@ INSERT INTO schema_migrations (version) VALUES
     ('20241128084916'),
     ('20241128085921'),
     ('20241204135555'),
-    ('20241210052709');
+    ('20241210052709'),
+    ('20250204070350'),
+    ('20250204070357'),
+    ('20250204070548'),
+    ('20250210121718'),
+    ('20250212094815'),
+    ('20250212102310');

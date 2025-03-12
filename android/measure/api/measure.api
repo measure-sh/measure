@@ -9,24 +9,45 @@ public final class sh/measure/android/BuildConfig {
 public final class sh/measure/android/Measure {
 	public static final field $stable I
 	public static final field INSTANCE Lsh/measure/android/Measure;
+	public final fun captureLayoutSnapshot (Landroid/app/Activity;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;)V
+	public static synthetic fun captureLayoutSnapshot$default (Lsh/measure/android/Measure;Landroid/app/Activity;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
+	public final fun captureScreenshot (Landroid/app/Activity;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;)V
+	public static synthetic fun captureScreenshot$default (Lsh/measure/android/Measure;Landroid/app/Activity;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 	public static final fun clearUserId ()V
 	public final fun createSpanBuilder (Ljava/lang/String;)Lsh/measure/android/tracing/SpanBuilder;
+	public final fun disableShakeToLaunchBugReport ()V
+	public final fun enableShakeToLaunchBugReport (Z)V
+	public static synthetic fun enableShakeToLaunchBugReport$default (Lsh/measure/android/Measure;ZILjava/lang/Object;)V
 	public final fun getCurrentTime ()J
 	public final fun getSessionId ()Ljava/lang/String;
 	public final fun getTraceParentHeaderKey ()Ljava/lang/String;
 	public final fun getTraceParentHeaderValue (Lsh/measure/android/tracing/Span;)Ljava/lang/String;
+	public final fun imageUriToAttachment (Landroid/content/Context;Landroid/net/Uri;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;)V
 	public static final fun init (Landroid/content/Context;)V
 	public static final fun init (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;)V
 	public static synthetic fun init$default (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;ILjava/lang/Object;)V
+	public final fun isShakeToLaunchBugReportEnabled ()Z
+	public final fun launchBugReportActivity (ZLjava/util/Map;)V
+	public static synthetic fun launchBugReportActivity$default (Lsh/measure/android/Measure;ZLjava/util/Map;ILjava/lang/Object;)V
+	public final fun setShakeListener (Lsh/measure/android/bugreport/MsrShakeListener;)V
 	public static final fun setUserId (Ljava/lang/String;)V
 	public final fun start ()V
 	public final fun startSpan (Ljava/lang/String;)Lsh/measure/android/tracing/Span;
 	public final fun startSpan (Ljava/lang/String;J)Lsh/measure/android/tracing/Span;
 	public final fun stop ()V
+	public final fun trackBugReport (Ljava/lang/String;Ljava/util/List;Ljava/util/Map;)V
+	public static synthetic fun trackBugReport$default (Lsh/measure/android/Measure;Ljava/lang/String;Ljava/util/List;Ljava/util/Map;ILjava/lang/Object;)V
 	public final fun trackEvent (Ljava/lang/String;Ljava/util/Map;Ljava/lang/Long;)V
 	public static synthetic fun trackEvent$default (Lsh/measure/android/Measure;Ljava/lang/String;Ljava/util/Map;Ljava/lang/Long;ILjava/lang/Object;)V
 	public static final fun trackHandledException (Ljava/lang/Throwable;)V
 	public static final fun trackScreenView (Ljava/lang/String;)V
+}
+
+public final class sh/measure/android/MsrAttachment {
+	public static final field $stable I
+	public final fun getBytes ()[B
+	public final fun getName ()Ljava/lang/String;
+	public final fun getType ()Ljava/lang/String;
 }
 
 public abstract interface class sh/measure/android/attributes/AttributeValue {
@@ -139,13 +160,18 @@ public final class sh/measure/android/attributes/StringAttr : sh/measure/android
 	public final synthetic fun unbox-impl ()Ljava/lang/String;
 }
 
+public abstract interface class sh/measure/android/bugreport/MsrShakeListener {
+	public abstract fun onShake ()V
+}
+
 public final class sh/measure/android/config/MeasureConfig : sh/measure/android/config/IMeasureConfig {
 	public static final field $stable I
 	public fun <init> ()V
-	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZF)V
-	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZ)V
+	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun getAutoStart ()Z
 	public fun getEnableLogging ()Z
+	public fun getEnableShakeToLaunchBugReport ()Z
 	public fun getHttpHeadersBlocklist ()Ljava/util/List;
 	public fun getHttpUrlAllowlist ()Ljava/util/List;
 	public fun getHttpUrlBlocklist ()Ljava/util/List;
@@ -153,6 +179,7 @@ public final class sh/measure/android/config/MeasureConfig : sh/measure/android/
 	public fun getScreenshotMaskLevel ()Lsh/measure/android/config/ScreenshotMaskLevel;
 	public fun getTraceSamplingRate ()F
 	public fun getTrackActivityIntentData ()Z
+	public fun getTrackActivityLoadTime ()Z
 	public fun getTrackHttpBody ()Z
 	public fun getTrackHttpHeaders ()Z
 	public fun getTrackScreenshotOnCrash ()Z
@@ -194,6 +221,13 @@ public abstract interface class sh/measure/android/tracing/Span {
 	public abstract fun getTraceId ()Ljava/lang/String;
 	public abstract fun hasEnded ()Z
 	public abstract fun isSampled ()Z
+	public abstract fun removeAttribute (Ljava/lang/String;)Lsh/measure/android/tracing/Span;
+	public abstract fun setAttribute (Ljava/lang/String;D)Lsh/measure/android/tracing/Span;
+	public abstract fun setAttribute (Ljava/lang/String;I)Lsh/measure/android/tracing/Span;
+	public abstract fun setAttribute (Ljava/lang/String;J)Lsh/measure/android/tracing/Span;
+	public abstract fun setAttribute (Ljava/lang/String;Ljava/lang/String;)Lsh/measure/android/tracing/Span;
+	public abstract fun setAttribute (Ljava/lang/String;Z)Lsh/measure/android/tracing/Span;
+	public abstract fun setAttributes (Ljava/util/Map;)Lsh/measure/android/tracing/Span;
 	public abstract fun setCheckpoint (Ljava/lang/String;)Lsh/measure/android/tracing/Span;
 	public abstract fun setName (Ljava/lang/String;)Lsh/measure/android/tracing/Span;
 	public abstract fun setParent (Lsh/measure/android/tracing/Span;)Lsh/measure/android/tracing/Span;

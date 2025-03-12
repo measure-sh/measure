@@ -30,6 +30,7 @@ interface Span {
   leftOffset?: number
   width?: number
   visibility?: SpanVisibility
+  user_defined_attributes?: Map<string, string> | null
   checkpoints: Checkpoint[] | null
 }
 
@@ -213,7 +214,7 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
   }
 
   return (
-    <div className="flex flex-col w-[1100px] h-[600px] relative font-sans text-black border border-black rounded-md overflow-hidden">
+    <div className="flex flex-col w-[1100px] h-[600px] relative font-body text-black border border-black rounded-md overflow-hidden">
 
       {/* timing indicator */}
       <div className='w-[800px] ml-[300px] flex flex-row justify-between p-[8px]'>
@@ -250,7 +251,7 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
       >
         {selectedSpan !== undefined &&
           <div>
-            <button className="outline-none select-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black active:border-black focus-visible:border-black hover:text-black active:text-black focus-visible:text-black rounded-md font-display transition-colors duration-100 py-2 px-4"
+            <button className="outline-hidden select-none flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black active:border-black focus-visible:border-black hover:text-black active:text-black focus-visible:text-black rounded-md font-display transition-colors duration-100 py-2 px-4"
               onClick={() => {
                 setSelectedSpan(undefined)
                 setSelectedCheckpoint(undefined)
@@ -289,6 +290,12 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
               <p className={keyStyle}>Span Status</p>
               <p className={`${valueStyle} ${selectedSpan.status === 1 ? "text-green-300" : selectedSpan.status === 2 ? "text-red-300" : ""}`}> {selectedSpan.status === 0 ? "Unset" : selectedSpan.status === 1 ? "Okay" : "Error"}</p>
             </div>
+            {selectedSpan.user_defined_attributes !== null && selectedSpan.user_defined_attributes !== undefined && Object.entries(selectedSpan.user_defined_attributes!).map(([attrKey, attrValue]) => (
+              <div className="flex flex-row mt-1" key={attrKey}>
+                <p className={keyStyle}>{attrKey}</p>
+                <p className={valueStyle}>{attrValue?.toString()}</p>
+              </div>
+            ))}
             <div className='flex flex-row mt-1'>
               <p className={keyStyle}>Checkpoints</p>
               <p className={`${valueStyle}`}>{selectedSpan.checkpoints !== null && selectedSpan.checkpoints.length > 0 ? ": " : ": []"}</p>

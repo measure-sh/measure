@@ -1,0 +1,471 @@
+{
+  "foreground" : true,
+  "threads" : [
+    {
+      "name" : "Thread 1",
+      "sequence" : 1,
+      "frames" : [
+        {
+          "in_app" : false,
+          "binary_address" : "108a41000",
+          "binary_name" : "libsystem_kernel.dylib",
+          "offset" : 10998,
+          "frameIndex" : 0,
+          "symbol_address" : "0000000108a43af6"
+        },
+        {
+          "binary_address" : "108aa5000",
+          "binary_name" : "libsystem_pthread.dylib",
+          "offset" : 11229,
+          "symbol_address" : "0000000108aa7bdd",
+          "frameIndex" : 1,
+          "in_app" : false
+        },
+        {
+          "offset" : 6863,
+          "frameIndex" : 2,
+          "binary_name" : "libsystem_pthread.dylib",
+          "in_app" : false,
+          "symbol_address" : "0000000108aa6acf",
+          "binary_address" : "108aa5000"
+        }
+      ]
+    },
+    {
+      "frames" : [
+        {
+          "offset" : 5070,
+          "symbol_address" : "0000000108a423ce",
+          "in_app" : false,
+          "frameIndex" : 0,
+          "binary_address" : "108a41000",
+          "binary_name" : "libsystem_kernel.dylib"
+        },
+        {
+          "binary_address" : "108a41000",
+          "binary_name" : "libsystem_kernel.dylib",
+          "frameIndex" : 1,
+          "symbol_address" : "0000000108a50c88",
+          "in_app" : false,
+          "offset" : 64648
+        },
+        {
+          "binary_address" : "108a41000",
+          "frameIndex" : 2,
+          "offset" : 34064,
+          "binary_name" : "libsystem_kernel.dylib",
+          "symbol_address" : "0000000108a49510",
+          "in_app" : false
+        },
+        {
+          "offset" : 5821,
+          "binary_address" : "108a41000",
+          "frameIndex" : 3,
+          "binary_name" : "libsystem_kernel.dylib",
+          "in_app" : false,
+          "symbol_address" : "0000000108a426bd"
+        },
+        {
+          "offset" : 579747,
+          "binary_name" : "CoreFoundation",
+          "binary_address" : "7ff80039c000",
+          "frameIndex" : 4,
+          "symbol_address" : "00007ff8004298a3",
+          "in_app" : false
+        },
+        {
+          "binary_address" : "7ff80039c000",
+          "binary_name" : "CoreFoundation",
+          "symbol_address" : "00007ff80042402b",
+          "offset" : 557099,
+          "frameIndex" : 5,
+          "in_app" : false
+        },
+        {
+          "symbol_address" : "00007ff8004236ed",
+          "in_app" : false,
+          "binary_name" : "CoreFoundation",
+          "offset" : 554733,
+          "frameIndex" : 6,
+          "binary_address" : "7ff80039c000"
+        },
+        {
+          "offset" : 7355546,
+          "binary_name" : "Foundation",
+          "symbol_address" : "00007ff800ea8c9a",
+          "frameIndex" : 7,
+          "in_app" : false,
+          "binary_address" : "7ff8007a5000"
+        },
+        {
+          "binary_address" : "7ff8007a5000",
+          "symbol_address" : "00007ff800ea8f18",
+          "in_app" : false,
+          "offset" : 7356184,
+          "binary_name" : "Foundation",
+          "frameIndex" : 8
+        },
+        {
+          "binary_address" : "7ff804cbc000",
+          "frameIndex" : 9,
+          "in_app" : false,
+          "symbol_address" : "00007ff805dbc7aa",
+          "binary_name" : "UIKitCore",
+          "offset" : 17827754
+        },
+        {
+          "binary_name" : "Foundation",
+          "symbol_address" : "00007ff800ed34d5",
+          "binary_address" : "7ff8007a5000",
+          "offset" : 7529685,
+          "frameIndex" : 10,
+          "in_app" : false
+        },
+        {
+          "symbol_address" : "0000000108aab18b",
+          "offset" : 24971,
+          "binary_name" : "libsystem_pthread.dylib",
+          "binary_address" : "108aa5000",
+          "frameIndex" : 11,
+          "in_app" : false
+        },
+        {
+          "symbol_address" : "0000000108aa6ae3",
+          "in_app" : false,
+          "frameIndex" : 12,
+          "binary_name" : "libsystem_pthread.dylib",
+          "binary_address" : "108aa5000",
+          "offset" : 6883
+        }
+      ],
+      "sequence" : 2,
+      "name" : "Thread 2"
+    },
+    {
+      "sequence" : 3,
+      "frames" : [
+        {
+          "symbol_address" : "0000000000000000",
+          "in_app" : false,
+          "binary_address" : "0",
+          "binary_name" : "???",
+          "offset" : 0,
+          "frameIndex" : 0
+        }
+      ],
+      "name" : "Thread 3"
+    }
+  ],
+  "handled" : false,
+  "exceptions" : [
+    {
+      "thread_sequence" : 0,
+      "message" : "",
+      "thread_name" : "Thread 0 Crashed",
+      "signal" : "SIGABRT",
+      "frames" : [
+        {
+          "binary_name" : "libsystem_kernel.dylib",
+          "in_app" : false,
+          "frameIndex" : 0,
+          "offset" : 33098,
+          "binary_address" : "108a41000",
+          "symbol_address" : "0000000108a4914a"
+        },
+        {
+          "offset" : 24253,
+          "in_app" : false,
+          "binary_name" : "libsystem_pthread.dylib",
+          "binary_address" : "108aa5000",
+          "frameIndex" : 1,
+          "symbol_address" : "0000000108aaaebd"
+        },
+        {
+          "offset" : 511260,
+          "in_app" : false,
+          "frameIndex" : 2,
+          "binary_address" : "7ff8000f1000",
+          "symbol_address" : "00007ff80016dd1c",
+          "binary_name" : "libsystem_c.dylib"
+        },
+        {
+          "symbol_address" : "00000001084c6cf4",
+          "in_app" : false,
+          "binary_address" : "1084c4000",
+          "binary_name" : "MeasureDemo",
+          "offset" : 11508,
+          "frameIndex" : 3
+        },
+        {
+          "offset" : 10755,
+          "symbol_address" : "00000001084c6a03",
+          "frameIndex" : 4,
+          "in_app" : false,
+          "binary_address" : "1084c4000",
+          "binary_name" : "MeasureDemo"
+        },
+        {
+          "in_app" : false,
+          "symbol_address" : "00000001084c6aa1",
+          "offset" : 10913,
+          "binary_name" : "MeasureDemo",
+          "frameIndex" : 5,
+          "binary_address" : "1084c4000"
+        },
+        {
+          "offset" : 19869005,
+          "frameIndex" : 6,
+          "in_app" : false,
+          "binary_address" : "7ff804cbc000",
+          "binary_name" : "UIKitCore",
+          "symbol_address" : "00007ff805faed4d"
+        },
+        {
+          "frameIndex" : 7,
+          "symbol_address" : "00007ff805faf13d",
+          "binary_address" : "7ff804cbc000",
+          "offset" : 19870013,
+          "in_app" : false,
+          "binary_name" : "UIKitCore"
+        },
+        {
+          "symbol_address" : "00007ff805faf24f",
+          "binary_name" : "UIKitCore",
+          "binary_address" : "7ff804cbc000",
+          "offset" : 19870287,
+          "frameIndex" : 8,
+          "in_app" : false
+        },
+        {
+          "binary_name" : "UIKitCore",
+          "binary_address" : "7ff804cbc000",
+          "offset" : 23634481,
+          "frameIndex" : 9,
+          "symbol_address" : "00007ff806346231",
+          "in_app" : false
+        },
+        {
+          "binary_address" : "7ff804cbc000",
+          "symbol_address" : "00007ff806346717",
+          "binary_name" : "UIKitCore",
+          "offset" : 23635735,
+          "in_app" : false,
+          "frameIndex" : 10
+        },
+        {
+          "in_app" : false,
+          "offset" : 9196,
+          "binary_name" : "libdispatch.dylib",
+          "frameIndex" : 11,
+          "binary_address" : "7ff800176000",
+          "symbol_address" : "00007ff8001783ec"
+        },
+        {
+          "symbol_address" : "00007ff8001796d8",
+          "binary_name" : "libdispatch.dylib",
+          "offset" : 14040,
+          "in_app" : false,
+          "frameIndex" : 12,
+          "binary_address" : "7ff800176000"
+        },
+        {
+          "symbol_address" : "00007ff80018848c",
+          "in_app" : false,
+          "binary_address" : "7ff800176000",
+          "binary_name" : "libdispatch.dylib",
+          "offset" : 74892,
+          "frameIndex" : 13
+        },
+        {
+          "symbol_address" : "00007ff800187ef2",
+          "in_app" : false,
+          "binary_address" : "7ff800176000",
+          "frameIndex" : 14,
+          "offset" : 73458,
+          "binary_name" : "libdispatch.dylib"
+        },
+        {
+          "binary_address" : "7ff80039c000",
+          "symbol_address" : "00007ff800429b34",
+          "binary_name" : "CoreFoundation",
+          "offset" : 580404,
+          "frameIndex" : 15,
+          "in_app" : false
+        },
+        {
+          "frameIndex" : 16,
+          "binary_name" : "CoreFoundation",
+          "offset" : 558191,
+          "symbol_address" : "00007ff80042446f",
+          "binary_address" : "7ff80039c000",
+          "in_app" : false
+        },
+        {
+          "binary_address" : "7ff80039c000",
+          "frameIndex" : 17,
+          "symbol_address" : "00007ff8004236ed",
+          "in_app" : false,
+          "binary_name" : "CoreFoundation",
+          "offset" : 554733
+        },
+        {
+          "offset" : 12431,
+          "symbol_address" : "00007ff8103ba08f",
+          "in_app" : false,
+          "frameIndex" : 18,
+          "binary_name" : "GraphicsServices",
+          "binary_address" : "7ff8103b7000"
+        },
+        {
+          "frameIndex" : 19,
+          "symbol_address" : "00007ff805cdf6ee",
+          "binary_address" : "7ff804cbc000",
+          "offset" : 16922350,
+          "in_app" : false,
+          "binary_name" : "UIKitCore"
+        },
+        {
+          "offset" : 16941422,
+          "in_app" : false,
+          "binary_address" : "7ff804cbc000",
+          "frameIndex" : 20,
+          "symbol_address" : "00007ff805ce416e",
+          "binary_name" : "UIKitCore"
+        },
+        {
+          "binary_address" : "7ff804cbc000",
+          "symbol_address" : "00007ff804d5fb73",
+          "binary_name" : "UIKitCore",
+          "offset" : 670579,
+          "frameIndex" : 21,
+          "in_app" : false
+        },
+        {
+          "in_app" : false,
+          "symbol_address" : "00000001084c9e0b",
+          "frameIndex" : 22,
+          "binary_address" : "1084c4000",
+          "binary_name" : "MeasureDemo",
+          "offset" : 24075
+        },
+        {
+          "offset" : 23943,
+          "frameIndex" : 23,
+          "binary_name" : "MeasureDemo",
+          "binary_address" : "1084c4000",
+          "in_app" : false,
+          "symbol_address" : "00000001084c9d87"
+        },
+        {
+          "symbol_address" : "00000001084c9e78",
+          "frameIndex" : 24,
+          "in_app" : false,
+          "offset" : 24184,
+          "binary_name" : "MeasureDemo",
+          "binary_address" : "1084c4000"
+        },
+        {
+          "in_app" : false,
+          "offset" : 0,
+          "binary_address" : "0",
+          "binary_name" : "???",
+          "frameIndex" : 25,
+          "symbol_address" : "00000001089023e0"
+        },
+        {
+          "offset" : 0,
+          "binary_name" : "???",
+          "frameIndex" : 26,
+          "symbol_address" : "000000010c3fd366",
+          "in_app" : false,
+          "binary_address" : "0"
+        }
+      ],
+      "type" : "",
+      "os_build_number" : "23F79"
+    }
+  ],
+  "binary_images" : [
+    {
+      "end_addr" : "1084d1fff",
+      "start_addr" : "1084c4000",
+      "arch" : "x86_64",
+      "system" : true,
+      "name" : "MeasureDemo",
+      "uuid" : "df8a3fadfcae3c9f93653b50aefbdcd2",
+      "path" : "\/Users\/edpu\/Library\/Developer\/CoreSimulator\/Devices\/B2E2BC7F-41AA-45C4-B5BC-68BC02E0AD8B\/data\/Containers\/Bundle\/Application\/29137FD4-5D35-4A52-A92F-30BD7A2BAE90\/MeasureDemo.app\/MeasureDemo"
+    },
+    {
+      "arch" : "x86_64",
+      "system" : true,
+      "name" : "Foundation",
+      "start_addr" : "7ff8007a5000",
+      "path" : "\/Library\/Developer\/CoreSimulator\/Volumes\/iOS_21E213\/Library\/Developer\/CoreSimulator\/Profiles\/Runtimes\/iOS 17.4.simruntime\/Contents\/Resources\/RuntimeRoot\/System\/Library\/Frameworks\/Foundation.framework\/Foundation",
+      "end_addr" : "7ff801325ff1",
+      "uuid" : "d46728175def3e47839842a94131f8ee"
+    },
+    {
+      "start_addr" : "7ff80039c000",
+      "name" : "CoreFoundation",
+      "uuid" : "2862dd340e5f3ce99a6f58f645dbada8",
+      "system" : true,
+      "path" : "\/Library\/Developer\/CoreSimulator\/Volumes\/iOS_21E213\/Library\/Developer\/CoreSimulator\/Profiles\/Runtimes\/iOS 17.4.simruntime\/Contents\/Resources\/RuntimeRoot\/System\/Library\/Frameworks\/CoreFoundation.framework\/CoreFoundation",
+      "end_addr" : "7ff80072aff4",
+      "arch" : "x86_64"
+    },
+    {
+      "system" : true,
+      "name" : "libdispatch.dylib",
+      "uuid" : "34cd1427ad683f63ba8fb8564dfd7f6c",
+      "arch" : "x86_64",
+      "start_addr" : "7ff800176000",
+      "path" : "\/Library\/Developer\/CoreSimulator\/Volumes\/iOS_21E213\/Library\/Developer\/CoreSimulator\/Profiles\/Runtimes\/iOS 17.4.simruntime\/Contents\/Resources\/RuntimeRoot\/usr\/lib\/system\/libdispatch.dylib",
+      "end_addr" : "7ff8001c1ff9"
+    },
+    {
+      "uuid" : "e754e59d877d3fa585c05c06ef1cf20f",
+      "arch" : "x86_64",
+      "start_addr" : "7ff8000f1000",
+      "path" : "\/Library\/Developer\/CoreSimulator\/Volumes\/iOS_21E213\/Library\/Developer\/CoreSimulator\/Profiles\/Runtimes\/iOS 17.4.simruntime\/Contents\/Resources\/RuntimeRoot\/usr\/lib\/system\/libsystem_c.dylib",
+      "end_addr" : "7ff800175fff",
+      "system" : true,
+      "name" : "libsystem_c.dylib"
+    },
+    {
+      "end_addr" : "108a7bfff",
+      "start_addr" : "108a41000",
+      "uuid" : "13597eeb2ea03d488be1dfc4872a784b",
+      "path" : "\/usr\/lib\/system\/libsystem_kernel.dylib",
+      "arch" : "x86_64",
+      "system" : true,
+      "name" : "libsystem_kernel.dylib"
+    },
+    {
+      "arch" : "x86_64",
+      "name" : "libsystem_pthread.dylib",
+      "path" : "\/usr\/lib\/system\/libsystem_pthread.dylib",
+      "uuid" : "25b2f3eb07b43cb994572c26210c27c8",
+      "end_addr" : "108ab0fff",
+      "start_addr" : "108aa5000",
+      "system" : true
+    },
+    {
+      "system" : true,
+      "name" : "UIKitCore",
+      "uuid" : "72a9f44f8f9236cdacf2457558970fd3",
+      "path" : "\/Library\/Developer\/CoreSimulator\/Volumes\/iOS_21E213\/Library\/Developer\/CoreSimulator\/Profiles\/Runtimes\/iOS 17.4.simruntime\/Contents\/Resources\/RuntimeRoot\/System\/Library\/PrivateFrameworks\/UIKitCore.framework\/UIKitCore",
+      "end_addr" : "7ff806ae0fff",
+      "arch" : "x86_64",
+      "start_addr" : "7ff804cbc000"
+    },
+    {
+      "uuid" : "0bb300b139083c0d84917ff7d85c25c1",
+      "end_addr" : "7ff8103beffe",
+      "path" : "\/Library\/Developer\/CoreSimulator\/Volumes\/iOS_21E213\/Library\/Developer\/CoreSimulator\/Profiles\/Runtimes\/iOS 17.4.simruntime\/Contents\/Resources\/RuntimeRoot\/System\/Library\/PrivateFrameworks\/GraphicsServices.framework\/GraphicsServices",
+      "system" : true,
+      "start_addr" : "7ff8103b7000",
+      "name" : "GraphicsServices",
+      "arch" : "x86_64"
+    }
+  ]
+}

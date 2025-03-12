@@ -15,6 +15,10 @@ import sh.measure.android.attributes.NetworkStateAttributeProcessor
 import sh.measure.android.attributes.PowerStateAttributeProcessor
 import sh.measure.android.attributes.SpanDeviceAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
+import sh.measure.android.bugreport.AccelerometerShakeDetector
+import sh.measure.android.bugreport.BugReportCollector
+import sh.measure.android.bugreport.BugReportCollectorImpl
+import sh.measure.android.bugreport.ShakeBugReportCollector
 import sh.measure.android.config.Config
 import sh.measure.android.config.ConfigLoaderImpl
 import sh.measure.android.config.ConfigProvider
@@ -125,12 +129,14 @@ internal class MeasureInitializerImpl(
             samplingRateForErrorFreeSessions = inputConfig.samplingRateForErrorFreeSessions,
             autoStart = inputConfig.autoStart,
             traceSamplingRate = inputConfig.traceSamplingRate,
+            enableShakeToLaunchBugReport = inputConfig.enableShakeToLaunchBugReport,
+            trackActivityLoadTime = inputConfig.trackActivityLoadTime,
         ),
         configLoader = ConfigLoaderImpl(),
     ),
     override val logger: Logger = AndroidLogger(configProvider.enableLogging),
     override val timeProvider: TimeProvider = AndroidTimeProvider(AndroidSystemClock()),
-    private val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
+    override val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
     private val fileStorage: FileStorage = FileStorageImpl(
         rootDir = application.filesDir.path,
         logger = logger,
@@ -285,6 +291,7 @@ internal class MeasureInitializerImpl(
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         processInfoProvider = processInfoProvider,
+        configProvider = configProvider,
     ),
     private val periodicHeartbeat: Heartbeat = HeartbeatImpl(
         logger,
@@ -369,30 +376,6 @@ internal class MeasureInitializerImpl(
         defaultExecutor = executorServiceRegistry.defaultExecutor(),
         layoutSnapshotThrottler = LayoutSnapshotThrottler(timeProvider),
     ),
-    private val launchTracker: LaunchTracker = LaunchTracker(logger, timeProvider),
-    override val appLaunchCollector: AppLaunchCollector = AppLaunchCollector(
-        logger = logger,
-        application = application,
-        signalProcessor = signalProcessor,
-        timeProvider = timeProvider,
-        launchTracker = launchTracker,
-    ),
-    override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
-        logger = logger,
-        context = application,
-        signalProcessor = signalProcessor,
-        systemServiceProvider = systemServiceProvider,
-        timeProvider = timeProvider,
-        networkStateProvider = networkStateProvider,
-    ),
-    override val dataCleanupService: DataCleanupService = DataCleanupServiceImpl(
-        logger = logger,
-        fileStorage = fileStorage,
-        database = database,
-        ioExecutor = executorServiceRegistry.ioExecutor(),
-        sessionManager = sessionManager,
-        configProvider = configProvider,
-    ),
     private val spanDeviceAttributeProcessor: SpanDeviceAttributeProcessor = SpanDeviceAttributeProcessor(
         localeProvider = localeProvider,
     ),
@@ -420,11 +403,60 @@ internal class MeasureInitializerImpl(
     override val spanCollector: SpanCollector = SpanCollector(
         tracer = tracer,
     ),
+
+    private val launchTracker: LaunchTracker = LaunchTracker(
+        logger,
+        timeProvider,
+        configProvider,
+        tracer,
+    ),
+    override val appLaunchCollector: AppLaunchCollector = AppLaunchCollector(
+        logger = logger,
+        application = application,
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        launchTracker = launchTracker,
+    ),
+    override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
+        logger = logger,
+        context = application,
+        signalProcessor = signalProcessor,
+        systemServiceProvider = systemServiceProvider,
+        timeProvider = timeProvider,
+        networkStateProvider = networkStateProvider,
+    ),
+    override val dataCleanupService: DataCleanupService = DataCleanupServiceImpl(
+        logger = logger,
+        fileStorage = fileStorage,
+        database = database,
+        ioExecutor = executorServiceRegistry.ioExecutor(),
+        sessionManager = sessionManager,
+        configProvider = configProvider,
+    ),
     override val customEventCollector: CustomEventCollector = CustomEventCollector(
         logger = logger,
         configProvider = configProvider,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
+    ),
+    override val bugReportCollector: BugReportCollector = BugReportCollectorImpl(
+        logger = logger,
+        fileStorage = fileStorage,
+        configProvider = configProvider,
+        ioExecutor = executorServiceRegistry.ioExecutor(),
+        idProvider = idProvider,
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        sessionManager = sessionManager,
+        resumedActivityProvider = resumedActivityProvider,
+    ),
+    override val shakeBugReportCollector: ShakeBugReportCollector = ShakeBugReportCollector(
+        autoLaunchEnabled = configProvider.enableShakeToLaunchBugReport,
+        shakeDetector = AccelerometerShakeDetector(
+            sensorManager = systemServiceProvider.sensorManager,
+            timeProvider = timeProvider,
+            configProvider = configProvider,
+        ),
     ),
 ) : MeasureInitializer
 
@@ -460,4 +492,7 @@ internal interface MeasureInitializer {
     val spanCollector: SpanCollector
     val customEventCollector: CustomEventCollector
     val periodicSignalStoreScheduler: PeriodicSignalStoreScheduler
+    val bugReportCollector: BugReportCollector
+    val executorServiceRegistry: ExecutorServiceRegistry
+    val shakeBugReportCollector: ShakeBugReportCollector
 }

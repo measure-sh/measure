@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/ll_bug_report_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/msrBackgroundColor"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="64dp">
+
+        <ImageButton
+            android:id="@+id/btn_close"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/msr_borderless_button_ripple"
+            android:contentDescription="@string/msr_close_button_content_desc"
+            android:padding="12dp"
+            android:src="@drawable/msr_ic_close_24"
+            android:tint="?attr/msrCloseButtonTint" />
+
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:layout_marginVertical="16dp"
+            android:text="@string/msr_report_a_bug"
+            android:textAppearance="?attr/msrTitleTextAppearance" />
+
+        <TextView
+            android:id="@+id/tv_send"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/msr_borderless_button_ripple"
+            android:gravity="center"
+            android:paddingHorizontal="16dp"
+            android:text="@string/msr_bug_report_send"
+            android:textAppearance="?attr/msrSendButtonTextAppearance"
+            tools:ignore="RelativeOverlap" />
+    </RelativeLayout>
+
+    <EditText
+        android:id="@+id/et_description"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginBottom="16dp"
+        android:layout_weight="0.6"
+        android:background="@null"
+        android:gravity="top"
+        android:hint="@string/msr_bug_report_hint"
+        android:inputType="textMultiLine"
+        android:minLines="3"
+        android:padding="16dp"
+        android:scrollbars="vertical"
+        android:scrollHorizontally="false"
+        android:textAppearance="?attr/msrDescriptionTextAppearance"
+        android:textColor="?attr/msrTextColorPrimary"
+        android:textColorHint="?attr/msrTextColorSecondary" />
+
+    <HorizontalScrollView
+        android:id="@+id/hsv_screenshots"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.4"
+        android:clipToPadding="false"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/sl_screenshots_container"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
+
+    <TextView
+        android:id="@+id/tv_choose_image"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_margin="16dp"
+        android:background="@drawable/msr_outline_button_bg"
+        android:gravity="center"
+        android:text="@string/msr_choose_image"
+        android:textAppearance="?attr/msrChooseImageButtonTextAppearance" />
+</LinearLayout>

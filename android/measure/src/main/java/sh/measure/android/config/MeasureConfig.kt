@@ -18,6 +18,8 @@ internal interface IMeasureConfig {
     val samplingRateForErrorFreeSessions: Float
     val autoStart: Boolean
     val traceSamplingRate: Float
+    val enableShakeToLaunchBugReport: Boolean
+    val trackActivityLoadTime: Boolean
 }
 
 /**
@@ -140,6 +142,31 @@ class MeasureConfig(
      * Setting a value outside the range will throw an [IllegalArgumentException].
      */
     override val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
+
+    /**
+     * Enable or disable shake to automatically launch the bug report flow. Defaults to `false`.
+     *
+     * When enabled, users can shake their device to launch the bug report activity automatically.
+     *
+     * This feature can also be enabled/disabled at runtime using:
+     * @see [Measure.disableShakeToLaunchBugReport] to disable shake to launch bug report.
+     * @see [Measure.enableShakeToLaunchBugReport] to enable shake to launch bug report.
+     */
+    override val enableShakeToLaunchBugReport: Boolean = DefaultConfig.ENABLE_SHAKE_TO_LAUNCH_BUG_REPORT,
+
+    /**
+     * Enable or disable automatic collection of Activity load time. Defaults to `true`.
+     *
+     * Activity load time measures the time between the Activity being created and the first
+     * frame being drawn on the screen. This is also known as Time to First Frame (TTF) or
+     * Time to Initial Display (TTID). A large value for this metric would mean users are waiting
+     * for a long time before they see anything on the screen while navigating through the app.
+     *
+     * Each Activity load time is captured using a span with the name `Activity TTID` followed
+     * by the fully qualified class name of the Activity. For example, for
+     * `com.example.MainActivity` the span name would be `Activity TTID com.example.MainActivity`.
+     */
+    override val trackActivityLoadTime: Boolean = DefaultConfig.TRACK_ACTIVITY_LOAD_TIME,
 ) : IMeasureConfig {
     init {
         require(samplingRateForErrorFreeSessions in 0.0..1.0) {

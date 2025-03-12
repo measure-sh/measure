@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
-import { ExceptionsOverviewApiStatus, ExceptionsType, FiltersApiType, emptyExceptionsOverviewResponse, fetchExceptionsOverviewFromServer } from '@/app/api/api_calls';
+import { ExceptionsOverviewApiStatus, ExceptionsType, FilterSource, emptyExceptionsOverviewResponse, fetchExceptionsOverviewFromServer } from '@/app/api/api_calls';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters';
 import ExceptionsOverviewPlot from './exceptions_overview_plot';
@@ -71,12 +71,12 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
       <div className="py-4" />
-      <p className="font-display font-regular text-4xl max-w-6xl text-center">{exceptionsType === ExceptionsType.Crash ? 'Crashes' : 'ANRs'}</p>
+      <p className="font-display text-4xl max-w-6xl text-center">{exceptionsType === ExceptionsType.Crash ? 'Crashes' : 'ANRs'}</p>
       <div className="py-4" />
 
       <Filters
         teamId={teamId}
-        filtersApiType={exceptionsType === ExceptionsType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
+        filterSource={exceptionsType === ExceptionsType.Crash ? FilterSource.Crashes : FilterSource.Anrs}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
         showCreateApp={true}
         showNoData={true}
@@ -93,6 +93,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         showLocales={true}
         showDeviceManufacturers={true}
         showDeviceNames={true}
+        showBugReportStatus={false}
         showUdAttrs={true}
         showFreeText={false}
         onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
@@ -134,7 +135,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
                 <div className="table-cell w-48 p-4 text-center">Percentage contribution</div>
               </div>
             </div>
-            <div className="table-row-group font-sans">
+            <div className="table-row-group font-body">
               {exceptionsOverview.results?.map(({ id, type, message, method_name, file_name, line_number, count, percentage_contribution }) => (
                 <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${filters.app.id}/${id}/${type + (file_name !== "" ? "@" + file_name : "")}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
                   <div className="table-cell p-4">

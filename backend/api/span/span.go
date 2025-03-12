@@ -1,6 +1,7 @@
 package span
 
 import (
+	"backend/api/event"
 	"backend/api/filter"
 	"backend/api/platform"
 	"backend/api/server"
@@ -97,17 +98,18 @@ type SpanAttributes struct {
 }
 
 type SpanField struct {
-	AppID       uuid.UUID         `json:"app_id" binding:"required"`
-	SpanName    string            `json:"name" binding:"required"`
-	SpanID      string            `json:"span_id" binding:"required"`
-	ParentID    string            `json:"parent_id"`
-	TraceID     string            `json:"trace_id" binding:"required"`
-	SessionID   uuid.UUID         `json:"session_id" binding:"required"`
-	Status      uint8             `json:"status" binding:"required"`
-	StartTime   time.Time         `json:"start_time" binding:"required"`
-	EndTime     time.Time         `json:"end_time" binding:"required"`
-	CheckPoints []CheckPointField `json:"checkpoints"`
-	Attributes  SpanAttributes    `json:"attributes"`
+	AppID                uuid.UUID         `json:"app_id" binding:"required"`
+	SpanName             string            `json:"name" binding:"required"`
+	SpanID               string            `json:"span_id" binding:"required"`
+	ParentID             string            `json:"parent_id"`
+	TraceID              string            `json:"trace_id" binding:"required"`
+	SessionID            uuid.UUID         `json:"session_id" binding:"required"`
+	Status               uint8             `json:"status" binding:"required"`
+	StartTime            time.Time         `json:"start_time" binding:"required"`
+	EndTime              time.Time         `json:"end_time" binding:"required"`
+	CheckPoints          []CheckPointField `json:"checkpoints"`
+	Attributes           SpanAttributes    `json:"attributes"`
+	UserDefinedAttribute event.UDAttribute `json:"user_defined_attribute" binding:"required"`
 }
 
 type RootSpanDisplay struct {
@@ -138,6 +140,7 @@ type SpanDisplay struct {
 	ThreadName               string            `json:"thread_name"`
 	LowPowerModeEnabled      bool              `json:"device_low_power_mode"`
 	ThermalThrottlingEnabled bool              `json:"device_thermal_throttling_enabled"`
+	UserDefinedAttribute     event.UDAttribute `json:"user_defined_attributes"`
 	CheckPoints              []CheckPointField `json:"checkpoints"`
 }
 
@@ -409,9 +412,9 @@ func FetchTracesForSessionId(ctx context.Context, appId uuid.UUID, sessionID uui
 	return
 }
 
-// GetSpanInstancesWithFilter provides list of span instances that matches various
+// GetSpansForSpanNameWithFilter provides list of spans for the given span name that matches various
 // filter criteria in a paginated fashion.
-func GetSpanInstancesWithFilter(ctx context.Context, spanName string, af *filter.AppFilter) (rootSpans []RootSpanDisplay, next, previous bool, err error) {
+func GetSpansForSpanNameWithFilter(ctx context.Context, spanName string, af *filter.AppFilter) (rootSpans []RootSpanDisplay, next, previous bool, err error) {
 	stmt := sqlf.
 		Select("app_id").
 		Select("toString(span_name)").
@@ -427,19 +430,10 @@ func GetSpanInstancesWithFilter(ctx context.Context, spanName string, af *filter
 		Select("attribute.device_manufacturer").
 		Select("attribute.device_model").
 		From("spans").
-		Clause("prewhere app_id = toUUID(?) and span_name = ? and start_time >= ? and end_time <= ?", af.AppID, spanName, af.From, af.To).
-		OrderBy("start_time desc")
+		Clause("prewhere app_id = toUUID(?) and span_name = ? and start_time >= ? and end_time <= ?", af.AppID, spanName, af.From, af.To)
 
 	if len(af.SpanStatuses) > 0 {
 		stmt.Where("status").In(af.SpanStatuses)
-	}
-
-	if af.Limit > 0 {
-		stmt.Limit(uint64(af.Limit) + 1)
-	}
-
-	if af.Offset >= 0 {
-		stmt.Offset(uint64(af.Offset))
 	}
 
 	if af.HasVersions() {
@@ -488,6 +482,24 @@ func GetSpanInstancesWithFilter(ctx context.Context, spanName string, af *filter
 		stmt.Where("attribute.device_name in ?", af.DeviceNames)
 	}
 
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("span_user_def_attrs").
+			Select("span_id id").
+			Where("app_id = toUUID(?)", af.AppID)
+		af.UDExpression.Augment(subQuery)
+		stmt.Clause("AND span_id in").SubQuery("(", ")", subQuery)
+	}
+
+	stmt.OrderBy("start_time desc")
+
+	if af.Limit > 0 {
+		stmt.Limit(uint64(af.Limit) + 1)
+	}
+
+	if af.Offset >= 0 {
+		stmt.Offset(uint64(af.Offset))
+	}
+
 	defer stmt.Close()
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -528,9 +540,9 @@ func GetSpanInstancesWithFilter(ctx context.Context, spanName string, af *filter
 	return
 }
 
-// GetSpanMetricsPlotWithFilter provides p50, p90, p95 and p99 duration metrics
-// for the given span with the applied filtering criteria
-func GetSpanMetricsPlotWithFilter(ctx context.Context, spanName string, af *filter.AppFilter) (spanMetricsPlotInstances []SpanMetricsPlotInstance, err error) {
+// GetMetricsPlotForSpanNameWithFilter provides p50, p90, p95 and p99 duration metrics
+// for the given span name with the applied filtering criteria
+func GetMetricsPlotForSpanNameWithFilter(ctx context.Context, spanName string, af *filter.AppFilter) (spanMetricsPlotInstances []SpanMetricsPlotInstance, err error) {
 	stmt := sqlf.From("span_metrics").
 		Select("concat(tupleElement(app_version, 1), ' ', '(', tupleElement(app_version, 2), ')') app_version_fmt").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) datetime", af.Timezone).
@@ -590,6 +602,14 @@ func GetSpanMetricsPlotWithFilter(ctx context.Context, spanName string, af *filt
 		stmt.Where("device_name in ?", af.DeviceNames)
 	}
 
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("span_user_def_attrs").
+			Select("span_id id").
+			Where("app_id = toUUID(?)", af.AppID)
+		af.UDExpression.Augment(subQuery)
+		stmt.Clause("AND span_id in").SubQuery("(", ")", subQuery)
+	}
+
 	stmt.GroupBy("app_version, datetime")
 	stmt.OrderBy("datetime, tupleElement(app_version, 2) desc")
 
@@ -639,6 +659,7 @@ func GetTrace(ctx context.Context, traceId string) (trace TraceDisplay, err erro
 		Select("toString(attribute.thread_name)").
 		Select("attribute.device_low_power_mode").
 		Select("attribute.device_thermal_throttling_enabled").
+		Select("user_defined_attribute").
 		From("spans").
 		Where("trace_id = ?", traceId).
 		OrderBy("start_time desc")
@@ -654,9 +675,10 @@ func GetTrace(ctx context.Context, traceId string) (trace TraceDisplay, err erro
 
 	for rows.Next() {
 		var rawCheckpoints [][]interface{}
+		var rawUserDefAttr map[string][]any
 		span := SpanField{}
 
-		if err = rows.Scan(&span.AppID, &span.TraceID, &span.SessionID, &span.Attributes.UserID, &span.SpanID, &span.SpanName, &span.ParentID, &span.StartTime, &span.EndTime, &span.Status, &rawCheckpoints, &span.Attributes.AppVersion, &span.Attributes.AppBuild, &span.Attributes.OSName, &span.Attributes.OSVersion, &span.Attributes.DeviceManufacturer, &span.Attributes.DeviceModel, &span.Attributes.NetworkType, &span.Attributes.ThreadName, &span.Attributes.LowPowerModeEnabled, &span.Attributes.ThermalThrottlingEnabled); err != nil {
+		if err = rows.Scan(&span.AppID, &span.TraceID, &span.SessionID, &span.Attributes.UserID, &span.SpanID, &span.SpanName, &span.ParentID, &span.StartTime, &span.EndTime, &span.Status, &rawCheckpoints, &span.Attributes.AppVersion, &span.Attributes.AppBuild, &span.Attributes.OSName, &span.Attributes.OSVersion, &span.Attributes.DeviceManufacturer, &span.Attributes.DeviceModel, &span.Attributes.NetworkType, &span.Attributes.ThreadName, &span.Attributes.LowPowerModeEnabled, &span.Attributes.ThermalThrottlingEnabled, &rawUserDefAttr); err != nil {
 			fmt.Println(err)
 			return
 		}
@@ -665,7 +687,12 @@ func GetTrace(ctx context.Context, traceId string) (trace TraceDisplay, err erro
 			return
 		}
 
-		// Map rawCheckpoints into CheckPointField
+		// Map rawUserDefAttr
+		if len(rawUserDefAttr) > 0 {
+			span.UserDefinedAttribute.Scan(rawUserDefAttr)
+		}
+
+		// Map rawCheckpoints
 		for _, cp := range rawCheckpoints {
 			rawName, _ := cp[0].(string)
 			name := strings.ReplaceAll(rawName, "\u0000", "")
@@ -699,6 +726,7 @@ func GetTrace(ctx context.Context, traceId string) (trace TraceDisplay, err erro
 			span.Attributes.ThreadName,
 			span.Attributes.LowPowerModeEnabled,
 			span.Attributes.ThermalThrottlingEnabled,
+			span.UserDefinedAttribute,
 			span.CheckPoints,
 		}
 

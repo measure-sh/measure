@@ -112,6 +112,20 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { maxInMemorySignalsQueueSize }
     override val inMemorySignalsQueueFlushRateMs: Long
         get() = getMergedConfig { inMemorySignalsQueueFlushRateMs }
+    override val maxAttachmentsInBugReport: Int
+        get() = getMergedConfig { maxAttachmentsInBugReport }
+    override val maxDescriptionLengthInBugReport: Int
+        get() = getMergedConfig { maxDescriptionLengthInBugReport }
+    override val shakeMinTimeIntervalMs: Long
+        get() = getMergedConfig { shakeMinTimeIntervalMs }
+    override val shakeAccelerationThreshold: Float
+        get() = getMergedConfig { shakeAccelerationThreshold }
+    override val shakeSlop: Int
+        get() = getMergedConfig { shakeSlop }
+    override val enableShakeToLaunchBugReport: Boolean
+        get() = getMergedConfig { enableShakeToLaunchBugReport }
+    override val trackActivityLoadTime: Boolean
+        get() = getMergedConfig { trackActivityLoadTime }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (!trackHttpBody) {

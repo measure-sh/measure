@@ -9,7 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Implement bug reports
+- (**backend**): Add user defined attrs to spans
 - (**backend**): Add support for iOS exceptions (#1726)
+- (**frontend**): Update bug report details desc text size
+- (**frontend**): Adjust bug report table text sizes
+- (**frontend**): Update website description
+- (**frontend**): Show bug reports in session timeline
+- (**frontend**): Show user def attrs in bug report details
+- (**frontend**): Add build number to session replay attr display
+- (**frontend**): Match bug report attr display style with others
+- (**frontend**): Rename button to "Close/Re-Open Bug Report"
 - (**frontend**): None selection option in filters dropdown
 - (**frontend**): Implement ud attr filters
 - (**frontend**): Add discord support link to dashboard nav
@@ -20,11 +30,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Clean up event batches stuck for a long time (#1770)
 - (**backend**): Only apply span statuses where clause if available
 - (**backend**): Query all user defined attributes (#1738)
+- (**frontend**): Handle no events selected case in session timeline
+- (**frontend**): Make user def attr dropdown stay in viewport
 - (**frontend**): Hide filter pill when no span statuses are selected
 - (**frontend**): Set default session type to All
 
 ### :hammer: Misc
 
+- (**backend**): Rename span api endpoints for consistency
+- (**backend**): Refactor event, attachment & span cleanup
+- (**backend**): Cleanup stale bug reports
 - (**backend**): Add lifecycle app type for ios (#1767)
 - (**backend**): Add `--skip-apps` option (#1744)
 - (**backend**): Replace email with new user login log
@@ -37,6 +52,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump nanoid from 3.3.7 to 3.3.8 in /frontend/dashboard (#1708)
 - (**deps**): Bump golang.org/x/crypto in /backend/cleanup (#1707)
 - (**deps**): Bump golang.org/x/crypto in /backend/api (#1701)
+- (**frontend**): Refactor FiltersApiType to FilterSource
+- (**frontend**): Upgrade to nivo 0.88
+- (**frontend**): Update to tailwind 4.0 with dashboard container file sync
+- (**frontend**): Change font-sans to font-body
+- (**frontend**): Refactor details link fetch in session timeline event details
+- (**frontend**): Rename session 'replay' to 'timeline'
+- (**frontend**): Remove 'font-regular'
+- (**frontend**): Rename font variables
+- (**frontend**): Add .node-version
 - (**frontend**): Update iOS lifecycle events display name
 - (**frontend**): Rename "None" to "Clear"
 - (**frontend**): Allow unchecking last item in dropdown select if "None" is available
@@ -48,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Improve self hosting faq section (#1728)
 - (**backend**): Address clickhouse high cpu usage (#1727)
+- Update sdk readme (#1118)
 - Update readme
 - (**readme**): Update banner image
 
