@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { formatDateToHumanReadableDateTime, formatIsoDateForDateTimeInputField, isValidTimestamp } from "../utils/time_utils";
 import { useEffect, useState } from "react";
-import { AppVersion, AppsApiStatus, FiltersApiStatus, FiltersApiType, OsVersion, SessionType, RootSpanNamesApiStatus, emptyApp, fetchAppsFromServer, fetchFiltersFromServer, fetchRootSpanNamesFromServer, SpanStatus, UserDefAttr, BugReportStatus } from "../api/api_calls";
+import { AppVersion, AppsApiStatus, FiltersApiStatus, FilterSource, OsVersion, SessionType, RootSpanNamesApiStatus, emptyApp, fetchAppsFromServer, fetchFiltersFromServer, fetchRootSpanNamesFromServer, SpanStatus, UserDefAttr, BugReportStatus } from "../api/api_calls";
 import { DateTime } from "luxon";
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 import FilterPill from "./filter_pill";
@@ -20,7 +20,7 @@ export enum AppVersionsInitialSelectionType {
 interface FiltersProps {
   teamId: string,
   appId?: string,
-  filtersApiType: FiltersApiType,
+  filterSource: FilterSource,
   appVersionsInitialSelectionType: AppVersionsInitialSelectionType,
   showCreateApp: boolean
   showNoData: boolean
@@ -129,7 +129,7 @@ function getSessionTypeFromString(value: string): SessionType {
 const Filters: React.FC<FiltersProps> = ({
   teamId,
   appId,
-  filtersApiType,
+  filterSource,
   appVersionsInitialSelectionType,
   showCreateApp,
   showNoData,
@@ -202,7 +202,7 @@ const Filters: React.FC<FiltersProps> = ({
   const [rootSpanNames, setRootSpanNames] = useState([] as string[]);
   const [selectedRootSpanName, setSelectedRootSpanName] = useState("");
 
-  const [selectedSpanStatuses, setSelectedSpanStatuses] = useState(filtersApiType === FiltersApiType.Span ? [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error] : []);
+  const [selectedSpanStatuses, setSelectedSpanStatuses] = useState(filterSource === FilterSource.Spans ? [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error] : []);
 
   const [selectedBugReportStatuses, setSelectedBugReportStatuses] = useState([BugReportStatus.Open]);
 
@@ -343,8 +343,8 @@ const Filters: React.FC<FiltersProps> = ({
   }
 
   useEffect(() => {
-    // Don't try to fetch trace names if selected app is not yet set or if FilterType is not span
-    if (selectedApp.id === "" || filtersApiType !== FiltersApiType.Span) {
+    // Don't try to fetch trace names if selected app is not yet set or if FilterSource is not spans
+    if (selectedApp.id === "" || filterSource !== FilterSource.Spans) {
       return
     }
 
@@ -354,7 +354,7 @@ const Filters: React.FC<FiltersProps> = ({
   const getFilters = async () => {
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
-    const result = await fetchFiltersFromServer(selectedApp, filtersApiType, router)
+    const result = await fetchFiltersFromServer(selectedApp, filterSource, router)
 
     switch (result.status) {
       case FiltersApiStatus.NotOnboarded:
@@ -450,13 +450,13 @@ const Filters: React.FC<FiltersProps> = ({
 
     let ready = false
     if (showNoData && showNotOnboarded) {
-      ready = AppsApiStatus.Success && ((filtersApiType === FiltersApiType.Span && rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) || filtersApiType !== FiltersApiType.Span) && filtersApiStatus === FiltersApiStatus.Success
+      ready = AppsApiStatus.Success && ((filterSource === FilterSource.Spans && rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) || filterSource !== FilterSource.Spans) && filtersApiStatus === FiltersApiStatus.Success
     } else if (showNoData) {
-      ready = AppsApiStatus.Success && ((filtersApiType === FiltersApiType.Span && rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) || filtersApiType !== FiltersApiType.Span) && (filtersApiStatus === FiltersApiStatus.Success || filtersApiStatus === FiltersApiStatus.NotOnboarded)
+      ready = AppsApiStatus.Success && ((filterSource === FilterSource.Spans && rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) || filterSource !== FilterSource.Spans) && (filtersApiStatus === FiltersApiStatus.Success || filtersApiStatus === FiltersApiStatus.NotOnboarded)
     } else if (showNotOnboarded) {
-      ready = AppsApiStatus.Success && ((filtersApiType === FiltersApiType.Span && rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) || filtersApiType !== FiltersApiType.Span) && (filtersApiStatus === FiltersApiStatus.Success || filtersApiStatus === FiltersApiStatus.NoData)
+      ready = AppsApiStatus.Success && ((filterSource === FilterSource.Spans && rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) || filterSource !== FilterSource.Spans) && (filtersApiStatus === FiltersApiStatus.Success || filtersApiStatus === FiltersApiStatus.NoData)
     } else {
-      ready = AppsApiStatus.Success && ((filtersApiType === FiltersApiType.Span && rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) || filtersApiType !== FiltersApiType.Span) && (filtersApiStatus === FiltersApiStatus.Success || filtersApiStatus === FiltersApiStatus.NoData || filtersApiStatus === FiltersApiStatus.NotOnboarded)
+      ready = AppsApiStatus.Success && ((filterSource === FilterSource.Spans && rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) || filterSource !== FilterSource.Spans) && (filtersApiStatus === FiltersApiStatus.Success || filtersApiStatus === FiltersApiStatus.NoData || filtersApiStatus === FiltersApiStatus.NotOnboarded)
     }
 
     const updatedPersistedFilters: PersistedFilters = {
@@ -515,13 +515,13 @@ const Filters: React.FC<FiltersProps> = ({
             </div>}
           <div className="py-4" />
           {filtersApiStatus === FiltersApiStatus.Error && <p className="text-lg font-display">Error fetching filters, please refresh page or select a different app to try again</p>}
-          {showNoData && filtersApiStatus === FiltersApiStatus.NoData && <p className="text-lg font-display">No {filtersApiType === FiltersApiType.Crash ? 'crashes' : filtersApiType === FiltersApiType.Anr ? 'ANRs' : 'data'} received for this app yet</p>}
+          {showNoData && filtersApiStatus === FiltersApiStatus.NoData && <p className="text-lg font-display">No {filterSource === FilterSource.Crashes ? 'crashes' : filterSource === FilterSource.Anrs ? 'ANRs' : 'data'} received for this app yet</p>}
           {showNotOnboarded && filtersApiStatus === FiltersApiStatus.NotOnboarded && <CreateApp teamId={teamId} existingAppName={selectedApp.name} existingApiKey={selectedApp.api_key.key} />}
         </div>
       }
 
       {/* Error states for app success and filter success but traces loading or failure */}
-      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && filtersApiType === FiltersApiType.Span && rootSpanNamesApiStatus !== RootSpanNamesApiStatus.Success &&
+      {appsApiStatus === AppsApiStatus.Success && filtersApiStatus === FiltersApiStatus.Success && filterSource === FilterSource.Spans && rootSpanNamesApiStatus !== RootSpanNamesApiStatus.Success &&
         <div className="flex flex-col">
           {showAppSelector &&
             <div className="flex flex-wrap gap-8 items-center">
@@ -535,12 +535,12 @@ const Filters: React.FC<FiltersProps> = ({
       }
 
       {/* Success states for app, trace and filters fetch */}
-      {appsApiStatus === AppsApiStatus.Success && ((filtersApiType === FiltersApiType.Span && rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) || filtersApiType !== FiltersApiType.Span) && filtersApiStatus === FiltersApiStatus.Success &&
+      {appsApiStatus === AppsApiStatus.Success && ((filterSource === FilterSource.Spans && rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) || filterSource !== FilterSource.Spans) && filtersApiStatus === FiltersApiStatus.Success &&
         <div>
           <div className="flex flex-wrap gap-8 items-center">
             {showAppSelector && <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={selectedApp.name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />}
 
-            {filtersApiType === FiltersApiType.Span && <DropdownSelect title="Trace Name" type={DropdownSelectType.SingleString} items={rootSpanNames} initialSelected={selectedRootSpanName} onChangeSelected={(item) => setSelectedRootSpanName(item as string)} />}
+            {filterSource === FilterSource.Spans && <DropdownSelect title="Trace Name" type={DropdownSelectType.SingleString} items={rootSpanNames} initialSelected={selectedRootSpanName} onChangeSelected={(item) => setSelectedRootSpanName(item as string)} />}
 
             <div className="flex flex-row items-center">
               {showDates && <DropdownSelect title="Date Range" type={DropdownSelectType.SingleString} items={Object.values(DateRange)} initialSelected={selectedDateRange} onChangeSelected={(item) => setSelectedDateRange(item as string)} />}
@@ -565,7 +565,7 @@ const Filters: React.FC<FiltersProps> = ({
             </div>
             {showAppVersions && <DropdownSelect title="App versions" type={DropdownSelectType.MultiAppVersion} items={versions} initialSelected={selectedVersions} onChangeSelected={(items) => setSelectedVersions(items as AppVersion[])} />}
             {showSessionType && <DropdownSelect title="Session Types" type={DropdownSelectType.SingleString} items={Object.values(SessionType)} initialSelected={selectedSessionType} onChangeSelected={(item) => setSelectedSessionType(getSessionTypeFromString(item as string))} />}
-            {filtersApiType === FiltersApiType.Span && <DropdownSelect type={DropdownSelectType.MultiString} title="Span Status" items={Object.values(SpanStatus)} initialSelected={selectedSpanStatuses} onChangeSelected={(items) => setSelectedSpanStatuses(items as SpanStatus[])} />}
+            {filterSource === FilterSource.Spans && <DropdownSelect type={DropdownSelectType.MultiString} title="Span Status" items={Object.values(SpanStatus)} initialSelected={selectedSpanStatuses} onChangeSelected={(items) => setSelectedSpanStatuses(items as SpanStatus[])} />}
             {showBugReportStatus && <DropdownSelect type={DropdownSelectType.MultiString} title="Bug Report Status" items={Object.values(BugReportStatus)} initialSelected={selectedBugReportStatuses} onChangeSelected={(items) => setSelectedBugReportStatuses(items as BugReportStatus[])} />}
             {showOsVersions && osVersions.length > 0 && <DropdownSelect type={DropdownSelectType.MultiOsVersion} title="OS Versions" items={osVersions} initialSelected={selectedOsVersions} onChangeSelected={(items) => setSelectedOsVersions(items as OsVersion[])} />}
             {showCountries && countries.length > 0 && <DropdownSelect type={DropdownSelectType.MultiString} title="Country" items={countries} initialSelected={selectedCountries} onChangeSelected={(items) => setSelectedCountries(items as string[])} />}
@@ -580,11 +580,11 @@ const Filters: React.FC<FiltersProps> = ({
           </div>
           <div className="py-4" />
           <div className="flex flex-wrap gap-2 items-center">
-            {filtersApiType === FiltersApiType.Span && <FilterPill title={selectedRootSpanName} />}
+            {filterSource === FilterSource.Spans && <FilterPill title={selectedRootSpanName} />}
             {showDates && <FilterPill title={`${selectedFormattedStartDate} to ${selectedFormattedEndDate}`} />}
             {showAppVersions && selectedVersions.length > 0 && <FilterPill title={Array.from(selectedVersions).map((v) => v.displayName).join(', ')} />}
             {showSessionType && <FilterPill title={selectedSessionType} />}
-            {filtersApiType === FiltersApiType.Span && selectedSpanStatuses.length > 0 && <FilterPill title={Array.from(selectedSpanStatuses).join(', ')} />}
+            {filterSource === FilterSource.Spans && selectedSpanStatuses.length > 0 && <FilterPill title={Array.from(selectedSpanStatuses).join(', ')} />}
             {showBugReportStatus && selectedBugReportStatuses.length > 0 && <FilterPill title={Array.from(selectedBugReportStatuses).join(', ')} />}
             {showOsVersions && selectedOsVersions.length > 0 && <FilterPill title={Array.from(selectedOsVersions).map((v) => v.displayName).join(', ')} />}
             {showCountries && selectedCountries.length > 0 && <FilterPill title={Array.from(selectedCountries).join(', ')} />}

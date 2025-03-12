@@ -1,6 +1,6 @@
 "use client"
 
-import { AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppNameFromServer, emptyAppSettings, FetchAppSettingsApiStatus, fetchAppSettingsFromServer, fetchAuthzAndMembersFromServer, FiltersApiType, UpdateAppSettingsApiStatus, updateAppSettingsFromServer } from "@/app/api/api_calls";
+import { AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppNameFromServer, emptyAppSettings, FetchAppSettingsApiStatus, fetchAppSettingsFromServer, fetchAuthzAndMembersFromServer, FilterSource, UpdateAppSettingsApiStatus, updateAppSettingsFromServer } from "@/app/api/api_calls";
 import CreateApp from "@/app/components/create_app";
 import DangerConfirmationModal from "@/app/components/danger_confirmation_modal";
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select";
@@ -143,7 +143,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       <div className="py-4" />
       <Filters
         teamId={params.teamId}
-        filtersApiType={FiltersApiType.All}
+        filterSource={FilterSource.Events}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
         showCreateApp={false}
         showNoData={false}

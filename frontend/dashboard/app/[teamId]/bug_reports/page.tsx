@@ -1,12 +1,12 @@
 "use client"
 
-import { emptyBugReportsOverviewResponse, BugReportsOverviewApiStatus, fetchBugReportsOverviewFromServer, FiltersApiType } from '@/app/api/api_calls';
+import { emptyBugReportsOverviewResponse, BugReportsOverviewApiStatus, fetchBugReportsOverviewFromServer, FilterSource } from '@/app/api/api_calls';
 import BugReportsOverviewPlot from '@/app/components/bug_reports_overview_plot';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
 import LoadingBar from '@/app/components/loading_bar';
 import Paginator from '@/app/components/paginator';
 
-import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils';
+import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
@@ -60,7 +60,7 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
 
             <Filters
                 teamId={params.teamId}
-                filtersApiType={FiltersApiType.All}
+                filterSource={FilterSource.Events}
                 appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
                 showCreateApp={true}
                 showNoData={true}
