@@ -726,7 +726,6 @@ func (s *Symbolicator) retry(d time.Duration) error {
 // makeAppleCrashReport creates an Apple crash report
 // from a list of exception events.
 func makeAppleCrashReport(event event.EventField) (report []byte) {
-	const sep = "    "
 	var b strings.Builder
 
 	for j, exception := range event.Exception.Exceptions {
