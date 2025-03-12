@@ -1225,7 +1225,16 @@ func (e Exception) IsNested() bool {
 // for certain OutOfMemory stacktraces in
 // Android.
 func (e Exception) HasNoFrames() bool {
-	return len(e.Exceptions[len(e.Exceptions)-1].Frames) == 0
+	pltfrm := e.GetPlatform()
+
+	switch pltfrm {
+	case platform.Android:
+		return len(e.Exceptions[len(e.Exceptions)-1].Frames) == 0
+	case platform.IOS:
+		return len(e.Exceptions[0].Frames) == 0
+	}
+
+	return false
 }
 
 // GetTitle provides the combined
@@ -1238,13 +1247,31 @@ func (e Exception) GetTitle() string {
 // GetType provides the type of
 // the exception.
 func (e Exception) GetType() string {
-	return e.Exceptions[len(e.Exceptions)-1].Type
+	pltfrm := e.GetPlatform()
+
+	switch pltfrm {
+	default:
+		return "unknown type"
+	case platform.Android:
+		return e.Exceptions[len(e.Exceptions)-1].Type
+	case platform.IOS:
+		return e.Exceptions[0].Signal
+	}
 }
 
 // GetMessage provides the message of
 // the exception.
 func (e Exception) GetMessage() string {
-	return e.Exceptions[len(e.Exceptions)-1].Message
+	pltfrm := e.GetPlatform()
+
+	switch pltfrm {
+	default:
+		return "unknown message"
+	case platform.Android:
+		return e.Exceptions[len(e.Exceptions)-1].Message
+	case platform.IOS:
+		return e.Exceptions[0].ThreadName
+	}
 }
 
 // GetFileName provides the file name of
@@ -1254,7 +1281,16 @@ func (e Exception) GetFileName() string {
 	if e.HasNoFrames() {
 		return ""
 	}
-	return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
+
+	pltfrm := e.GetPlatform()
+	switch pltfrm {
+	case platform.Android:
+		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
+	case platform.IOS:
+		return e.Exceptions[0].Frames[0].FileName
+	}
+
+	return ""
 }
 
 // GetLineNumber provides the line number of
@@ -1264,7 +1300,16 @@ func (e Exception) GetLineNumber() int {
 	if e.HasNoFrames() {
 		return 0
 	}
-	return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
+
+	pltfrm := e.GetPlatform()
+	switch pltfrm {
+	case platform.Android:
+		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
+	case platform.IOS:
+		return e.Exceptions[0].Frames[0].LineNum
+	}
+
+	return 0
 }
 
 // GetMethodName provides the method name of
@@ -1274,7 +1319,17 @@ func (e Exception) GetMethodName() string {
 	if e.HasNoFrames() {
 		return ""
 	}
-	return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
+
+	pltfrm := e.GetPlatform()
+
+	switch pltfrm {
+	case platform.Android:
+		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
+	case platform.IOS:
+		return e.Exceptions[0].Frames[0].MethodName
+	}
+
+	return ""
 }
 
 // GetDisplayTitle provides a user friendly display
