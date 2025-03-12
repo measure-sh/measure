@@ -34,6 +34,9 @@ services:
     develop: !reset null
     restart: unless-stopped
 
+  migrator:
+    develop: !reset null
+
   clickhouse:
     ports:
       !reset # see: https://docs.docker.com/compose/compose-file/13-merge/#reset-value
