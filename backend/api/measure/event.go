@@ -226,6 +226,12 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 			}
 		}
 
+		// attachment blobs must be present if
+		// any event has attachments
+		if e.hasAttachments() && len(form.File) < 1 {
+			return fmt.Errorf(`some events has attachments, but payload does not contain any attachment blob`)
+		}
+
 		// compute launch timings
 		if ev.IsColdLaunch() {
 			ev.ColdLaunch.Compute()
@@ -475,20 +481,6 @@ func (e eventreq) hasAttachments() bool {
 	return len(e.attachments) > 0
 }
 
-// getSymbolicationEvents extracts events from
-// the event request that should be symbolicated.
-func (e eventreq) getSymbolicationEvents() (events []event.EventField) {
-	if !e.needsSymbolication() {
-		return
-	}
-
-	for _, v := range e.symbolicate {
-		events = append(events, e.events[v])
-	}
-
-	return
-}
-
 // getUnhandledExceptions returns unhandled excpetions
 // from the event payload.
 func (e eventreq) getUnhandledExceptions() (events []event.EventField) {
@@ -694,7 +686,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				return err
 			}
 
-			if e.events[i].Exception.BinaryImages != nil && len(e.events[i].Exception.BinaryImages) > 0 {
+			if len(e.events[i].Exception.BinaryImages) > 0 {
 				marshalledImages, err := json.Marshal(e.events[i].Exception.BinaryImages)
 				if err != nil {
 					return err
@@ -2228,63 +2220,6 @@ func PutEvents(c *gin.Context) {
 
 		eventReq.bumpSymbolication()
 	}
-
-	// if eventReq.needsSymbolication() {
-	// 	// symbolicate
-	// 	symbolicator, err := symbol.NewSymbolicator(&symbol.Options{
-	// 		Origin: os.Getenv("SYMBOLICATOR_ORIGIN"),
-	// 		Store:  server.Server.PgPool,
-	// 	})
-	// 	if err != nil {
-	// 		msg := `failed to initialize symbolicator`
-	// 		fmt.Println(msg, err)
-	// 		c.JSON(http.StatusInternalServerError, gin.H{
-	// 			"error":   msg,
-	// 			"details": err.Error(),
-	// 		})
-	// 		return
-	// 	}
-
-	// 	events := eventReq.getSymbolicationEvents()
-
-	// 	batches := symbolicator.Batch(events)
-
-	// 	// start span to trace symbolication
-	// 	symbolicationTracer := otel.Tracer("symbolication-tracer")
-	// 	_, symbolicationSpan := symbolicationTracer.Start(ctx, "symbolicate-events")
-
-	// 	defer symbolicationSpan.End()
-
-	// 	for i := range batches {
-	// 		// If symoblication fails for whole batch, continue
-	// 		if err := symbolicator.Symbolicate(ctx, batches[i]); err != nil {
-	// 			msg := `failed to symbolicate batch`
-	// 			fmt.Println(msg, err)
-	// 			continue
-	// 		}
-
-	// 		// If symbolication succeeds but has errors while decoding individual frames, log them and proceed
-	// 		if len(batches[i].Errs) > 0 {
-	// 			for _, err := range batches[i].Errs {
-	// 				fmt.Println("symbolication err: ", err.Error())
-	// 			}
-	// 		}
-
-	// 		// rewrite symbolicated events to event request
-	// 		for j := range batches[i].Events {
-	// 			eventId := batches[i].Events[j].ID
-	// 			idx, exists := eventReq.symbolicate[eventId]
-	// 			if !exists {
-	// 				fmt.Printf("event id %q not found in symbolicate cache, batch index: %d, event index: %d\n", eventId, i, j)
-	// 				continue
-	// 			}
-	// 			eventReq.events[idx] = batches[i].Events[j]
-	// 			delete(eventReq.symbolicate, eventId)
-	// 		}
-	// 	}
-
-	// 	eventReq.bumpSymbolication()
-	// }
 
 	if eventReq.hasAttachments() {
 		// start span to trace attachment uploads

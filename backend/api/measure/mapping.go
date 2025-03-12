@@ -113,7 +113,6 @@ func (bm BuildMapping) validate(app *App) (code int, err error) {
 		if pltfrm != platform.Android {
 			err = platformMappingErr
 		}
-		break
 	case symbol.TypeDsym.String():
 		if pltfrm != platform.IOS {
 			err = platformMappingErr
@@ -403,9 +402,9 @@ func (bm *BuildMapping) extractDif() (err error) {
 		})
 	case symbol.TypeDsym.String():
 		for i := range bm.MappingFiles {
-			f, err := bm.MappingFiles[i].Header.Open()
-			if err != nil {
-				return err
+			f, errHeader := bm.MappingFiles[i].Header.Open()
+			if errHeader != nil {
+				return errHeader
 			}
 
 			defer func() {
@@ -414,7 +413,7 @@ func (bm *BuildMapping) extractDif() (err error) {
 				}
 			}()
 
-			entities, err := symbol.ExtractDsymEntities(f, func(name string) (symbol.DsymType, bool) {
+			entities, errExtract := symbol.ExtractDsymEntities(f, func(name string) (symbol.DsymType, bool) {
 				parts := strings.Split(name, "/")
 				last := ""
 				if len(parts) > 0 {
@@ -428,6 +427,10 @@ func (bm *BuildMapping) extractDif() (err error) {
 
 				return symbol.TypeDsymUnknown, false
 			})
+
+			if errExtract != nil {
+				return errExtract
+			}
 
 			for k, v := range entities {
 				if k == symbol.TypeDsymDebug {
