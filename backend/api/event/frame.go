@@ -100,20 +100,21 @@ func (f Frame) String() string {
 		binaryName := f.BinaryName
 		methodName := f.MethodName
 		className := f.ClassName
-		fileInfo := f.FileName
-		lineNum := f.LineNum
+		fileInfo := f.FileInfo()
 		sep := "\t"
 
-		if methodName == "" {
-			methodName = f.SymbolAddress
-		}
+		// if method & class is empty
+		// replace with symbol address
+		// and binary address to show
+		// unsymbolicated details
+		{
+			if methodName == "" {
+				methodName = f.SymbolAddress
+			}
 
-		if className == "" {
-			className = f.BinaryAddress
-		}
-
-		if lineNum != 0 {
-			fileInfo += fmt.Sprintf(":%d", lineNum)
+			if className == "" {
+				className = f.BinaryAddress
+			}
 		}
 
 		if fileInfo == "" {
