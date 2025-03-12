@@ -184,7 +184,7 @@ final class CrashDataFormatter {
                                     offset: Int(offset) ?? 0,
                                     frameIndex: Number(frameIndex),
                                     symbolAddress: formattedInstructionPointer,
-                                    inApp: self.executableName == imageName)
+                                    inApp: (self.executableName == imageName) || (imageName.contains(self.executableName ?? "")))
         return stackFrame
     }
 
