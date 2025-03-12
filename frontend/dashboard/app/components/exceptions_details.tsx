@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Accordion from "@/app/components/accordion";
 import Link from "next/link";
-import { ExceptionsDetailsApiStatus, ExceptionsType, emptyCrashExceptionsDetailsResponse, emptyAnrExceptionsDetailsResponse, fetchExceptionsDetailsFromServer, FiltersApiType } from '@/app/api/api_calls';
+import { ExceptionsDetailsApiStatus, ExceptionsType, emptyCrashExceptionsDetailsResponse, emptyAnrExceptionsDetailsResponse, fetchExceptionsDetailsFromServer, FilterSource } from '@/app/api/api_calls';
 import { useRouter } from 'next/navigation';
 import Paginator, { PaginationDirection } from '@/app/components/paginator';
 import { formatDateToHumanReadableDateTime } from '../utils/time_utils';
@@ -84,7 +84,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
       <Filters
         teamId={teamId}
         appId={appId}
-        filtersApiType={exceptionsType === ExceptionsType.Crash ? FiltersApiType.Crash : FiltersApiType.Anr}
+        filterSource={exceptionsType === ExceptionsType.Crash ? FilterSource.Crashes : FilterSource.Anrs}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
         showCreateApp={true}
         showNoData={true}

@@ -64,11 +64,11 @@ export enum SaveFiltersApiStatus {
   Cancelled
 }
 
-export enum FiltersApiType {
-  All,
-  Crash,
-  Anr,
-  Span
+export enum FilterSource {
+  Events,
+  Crashes,
+  Anrs,
+  Spans
 }
 
 export enum JourneyApiStatus {
@@ -1244,7 +1244,7 @@ export const fetchTraceFromServer = async (appId: string, traceId: string, route
   }
 }
 
-export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filtersApiType: FiltersApiType, router: AppRouterInstance) => {
+export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filterSource: FilterSource, router: AppRouterInstance) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
   let url = `${origin}/apps/${selectedApp.id}/filters`
@@ -1253,11 +1253,11 @@ export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filte
   url += '?ud_attr_keys=1'
 
   // if filter is for Crashes, Anrs or Spans we append a query param indicating it
-  if (filtersApiType === FiltersApiType.Crash) {
+  if (filterSource === FilterSource.Crashes) {
     url += '&crash=1'
-  } else if (filtersApiType === FiltersApiType.Anr) {
+  } else if (filterSource === FilterSource.Anrs) {
     url += '&anr=1'
-  } else if (filtersApiType === FiltersApiType.Span) {
+  } else if (filterSource === FilterSource.Spans) {
     url += '&span=1'
   }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { FiltersApiType, emptySpansResponse, SpansApiStatus, fetchSpansFromServer } from '@/app/api/api_calls';
+import { FilterSource, emptySpansResponse, SpansApiStatus, fetchSpansFromServer } from '@/app/api/api_calls';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
 import LoadingBar from '@/app/components/loading_bar';
 import Paginator from '@/app/components/paginator';
@@ -59,7 +59,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
 
             <Filters
                 teamId={params.teamId}
-                filtersApiType={FiltersApiType.Span}
+                filterSource={FilterSource.Spans}
                 appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
                 showCreateApp={true}
                 showNoData={true}

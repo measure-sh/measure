@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Journey, { JourneyType } from "@/app/components/journey";
 import MetricsOverview from '@/app/components/metrics_overview';
-import { FiltersApiType } from '@/app/api/api_calls';
+import { FilterSource } from '@/app/api/api_calls';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
 
 export default function Overview({ params }: { params: { teamId: string } }) {
@@ -17,7 +17,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
       <Filters
         teamId={params.teamId}
-        filtersApiType={FiltersApiType.All}
+        filterSource={FilterSource.Events}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
         showCreateApp={true}
         showNoData={true}

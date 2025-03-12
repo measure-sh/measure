@@ -1,6 +1,6 @@
 "use client"
 
-import { emptySessionsOverviewResponse, SessionsOverviewApiStatus, fetchSessionsOverviewFromServer, FiltersApiType } from '@/app/api/api_calls';
+import { emptySessionsOverviewResponse, SessionsOverviewApiStatus, fetchSessionsOverviewFromServer, FilterSource } from '@/app/api/api_calls';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
 import LoadingBar from '@/app/components/loading_bar';
 import Paginator from '@/app/components/paginator';
@@ -59,7 +59,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
 
             <Filters
                 teamId={params.teamId}
-                filtersApiType={FiltersApiType.All}
+                filterSource={FilterSource.Events}
                 appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
                 showCreateApp={true}
                 showNoData={true}
