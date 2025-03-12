@@ -227,6 +227,10 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         userTriggeredEventCollector.trackBugReport(description, screenshots, attributes)
     }
 
+    fun reportFullyDrawn(activity: Activity) {
+        appLaunchCollector.reportFullyDrawn(activity)
+    }
+
     @MainThread
     fun captureScreenshot(
         activity: Activity,

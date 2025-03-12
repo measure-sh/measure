@@ -9,6 +9,10 @@ internal object SpanName {
     fun activityTtidSpan(activity: Activity): String {
         return "Activity TTID ${activity.javaClass.name}"
     }
+
+    fun activityTtfdSpan(activity: Activity): String {
+        return "Activity TTFD ${activity.javaClass.name}"
+    }
 }
 
 /**
@@ -22,6 +26,7 @@ internal object AttributeName {
  * Centralized definitions of checkpoint names for checkpoints created by the Measure SDK.
  */
 internal object CheckpointName {
+    const val ACTIVITY_FIRST_FRAME_DRAWN: String = "activity_first_frame_drawn"
     const val ACTIVITY_CREATED: String = "activity_lifecycle_created"
     const val ACTIVITY_STARTED: String = "activity_lifecycle_started"
     const val ACTIVITY_RESUMED: String = "activity_lifecycle_resumed"

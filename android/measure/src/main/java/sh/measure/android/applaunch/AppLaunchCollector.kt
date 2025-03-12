@@ -1,5 +1,6 @@
 package sh.measure.android.applaunch
 
+import android.app.Activity
 import android.app.Application
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
@@ -26,6 +27,10 @@ internal class AppLaunchCollector(
     fun unregister() {
         application.unregisterActivityLifecycleCallbacks(launchTracker)
         launchTracker.unregisterCallbacks()
+    }
+
+    fun reportFullyDrawn(activity: Activity) {
+        launchTracker.reportFullyDrawn(activity)
     }
 
     override fun onColdLaunch(coldLaunchData: ColdLaunchData) {

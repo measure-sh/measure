@@ -3,6 +3,7 @@ package sh.measure.android.applaunch
 import android.app.Activity
 import android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
 import android.os.Bundle
+import androidx.activity.ComponentActivity
 import curtains.onNextDraw
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.lifecycle.ActivityLifecycleAdapter
@@ -17,12 +18,17 @@ import sh.measure.android.tracing.SpanName
 import sh.measure.android.tracing.SpanStatus
 import sh.measure.android.tracing.Tracer
 import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.isClassAvailable
 
 internal interface LaunchCallbacks {
     fun onColdLaunch(coldLaunchData: ColdLaunchData)
     fun onWarmLaunch(warmLaunchData: WarmLaunchData)
     fun onHotLaunch(hotLaunchData: HotLaunchData)
 }
+
+private typealias OnFullyDrawnListener = () -> Unit
+
+private const val ANDROIDX_COMPONENT_ACTIVITY_NAME = "androidx.activity.ComponentActivity"
 
 /**
  * Tracks cold, warm and hot launch.
@@ -45,6 +51,8 @@ internal class LaunchTracker(
         val intentData: String?,
         val activityName: String,
         val ttidSpan: Span? = null,
+        val ttfdSpan: Span? = null,
+        val fullyDrawnListener: OnFullyDrawnListener? = null,
     )
 
     private val createdActivities = mutableMapOf<String, OnCreateRecord>()
@@ -80,11 +88,11 @@ internal class LaunchTracker(
     ) {
         val hasSavedState = savedInstanceState != null
 
-        val activityTtidSpan = if (savedInstanceState == null) {
-            startActivityTtidSpan(activity)
-        } else {
-            null
-        }
+        val startTime = timeProvider.now()
+        val activityTtidSpan = startActivityTtidSpan(savedInstanceState, activity, startTime)
+        val (activityTtfdSpan, onDrawListener) = startActivityTtfdSpan(
+            savedInstanceState, activity, startTime
+        )
 
         createdActivities[identityHash] = OnCreateRecord(
             sameMessage = true,
@@ -92,6 +100,8 @@ internal class LaunchTracker(
             intentData = activity.intent.dataString,
             activityName = activity.javaClass.name,
             ttidSpan = activityTtidSpan,
+            ttfdSpan = activityTtfdSpan,
+            fullyDrawnListener = onDrawListener,
         )
 
         // Helps differentiating between warm and hot launches.
@@ -128,6 +138,7 @@ internal class LaunchTracker(
 
         createdActivities[identityHash]?.let { onCreateRecord ->
             onCreateRecord.ttidSpan?.setCheckpoint(CheckpointName.ACTIVITY_STARTED)
+            onCreateRecord.ttfdSpan?.setCheckpoint(CheckpointName.ACTIVITY_STARTED)
         }
     }
 
@@ -136,6 +147,7 @@ internal class LaunchTracker(
         resumedActivities += identityHash
         val onCreateRecord = createdActivities[identityHash]
         onCreateRecord?.ttidSpan?.setCheckpoint(CheckpointName.ACTIVITY_RESUMED)
+        onCreateRecord?.ttfdSpan?.setCheckpoint(CheckpointName.ACTIVITY_RESUMED)
         activity.window.onNextDraw {
             mainHandler.postAtFrontOfQueueAsync {
                 if (launchInProgress) {
@@ -147,11 +159,18 @@ internal class LaunchTracker(
                             onNextDrawElapsedRealtime,
                             onCreateRecord,
                         )
-                        endActivityTtidSpan(identityHash, onCreateRecord.ttidSpan, launchType)
+                        updateSpansOnFirstFrameRender(
+                            identityHash,
+                            onCreateRecord.ttidSpan,
+                            onCreateRecord.ttfdSpan,
+                            launchType
+                        )
                         launchInProgress = false
                     }
                 } else {
-                    endActivityTtidSpan(identityHash, createdActivities[identityHash]?.ttidSpan)
+                    updateSpansOnFirstFrameRender(
+                        identityHash, onCreateRecord?.ttidSpan, onCreateRecord?.ttfdSpan, null
+                    )
                 }
             }
         }
@@ -288,23 +307,56 @@ internal class LaunchTracker(
         }
     }
 
-    private fun startActivityTtidSpan(activity: Activity): Span? {
-        if (!isActivityTtidSpanEnabled()) {
+    private fun startActivityTtidSpan(
+        savedInstanceState: Bundle?,
+        activity: Activity,
+        startTime: Long,
+    ): Span? {
+        if (!isActivityLoadTimeSpanEnabled()) {
             return null
         }
-        val span = tracer.spanBuilder(SpanName.activityTtidSpan(activity)).startSpan()
+        if (savedInstanceState != null) {
+            return null
+        }
+        val span = tracer.spanBuilder(SpanName.activityTtidSpan(activity)).startSpan(startTime)
         span.setCheckpoint(CheckpointName.ACTIVITY_CREATED)
         return span
     }
 
-    private fun endActivityTtidSpan(
+    private fun startActivityTtfdSpan(
+        savedInstanceState: Bundle?, activity: Activity, startTime: Long,
+    ): Pair<Span?, OnFullyDrawnListener?> {
+        if (!isActivityLoadTimeSpanEnabled()) {
+            return Pair(null, null)
+        }
+        if (savedInstanceState != null) {
+            return Pair(null, null)
+        }
+        if (!isClassAvailable(ANDROIDX_COMPONENT_ACTIVITY_NAME)) {
+            return Pair(null, null)
+        }
+        val onDrawListener: (() -> Unit)? = if (activity is ComponentActivity) {
+            val onDrawListener: OnFullyDrawnListener = { endTtfdSpan(activity) }
+            activity.fullyDrawnReporter.addOnReportDrawnListener(onDrawListener)
+            onDrawListener
+        } else {
+            null
+        }
+        val span = tracer.spanBuilder(SpanName.activityTtfdSpan(activity)).startSpan(startTime)
+        return Pair(span, onDrawListener)
+    }
+
+    private fun updateSpansOnFirstFrameRender(
         activityIdentityHash: String,
         ttidSpan: Span?,
+        ttfdSpan: Span?,
         launchType: String? = null,
     ) {
         if (launchType == "Cold") {
             ttidSpan?.setAttribute(AttributeName.APP_STARTUP_FIRST_ACTIVITY, true)
+            ttfdSpan?.setAttribute(AttributeName.APP_STARTUP_FIRST_ACTIVITY, true)
         }
+        ttfdSpan?.setCheckpoint(CheckpointName.ACTIVITY_FIRST_FRAME_DRAWN)
         ttidSpan?.setStatus(SpanStatus.Ok)?.end()
         if (activityIdentityHash in createdActivities && ttidSpan != null) {
             createdActivities[activityIdentityHash]?.copy(ttidSpan = null)?.let {
@@ -313,7 +365,22 @@ internal class LaunchTracker(
         }
     }
 
-    private fun isActivityTtidSpanEnabled(): Boolean {
+    private fun endTtfdSpan(activity: Activity) {
+        val activityIdentityHash = activity.hashCode().toString()
+        val ttfdSpan = createdActivities[activityIdentityHash]?.ttfdSpan
+        ttfdSpan?.setStatus(SpanStatus.Ok)?.end()
+        createdActivities[activityIdentityHash]?.fullyDrawnListener?.let {
+            if (isClassAvailable(ANDROIDX_COMPONENT_ACTIVITY_NAME)) {
+                if (activity is ComponentActivity) {
+                    activity.fullyDrawnReporter.removeOnReportDrawnListener(it)
+                }
+            }
+        }
+        createdActivities[activityIdentityHash]?.copy(ttfdSpan = null, fullyDrawnListener = null)
+            ?.let { createdActivities[activityIdentityHash] = it }
+    }
+
+    private fun isActivityLoadTimeSpanEnabled(): Boolean {
         return configProvider.trackActivityLoadTime
     }
 }
