@@ -2,7 +2,6 @@ package sh.measure.android
 
 import android.os.Bundle
 import androidx.fragment.app.FragmentActivity
-import sh.measure.android.lifecycle.TestFragment
 
 internal class TestLifecycleActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

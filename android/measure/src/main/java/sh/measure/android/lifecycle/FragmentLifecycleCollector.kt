@@ -50,7 +50,7 @@ internal class FragmentLifecycleCollector(
         v: View,
         savedInstanceState: Bundle?,
     ) {
-        if (savedInstanceState != null) {
+        if (savedInstanceState == null) {
             endFragmentTtidSpan(f)
         } else {
             // Only track Fragment TTID spans for first time launch,
@@ -106,7 +106,7 @@ internal class FragmentLifecycleCollector(
     }
 
     private fun startFragmentTtidSpan(f: Fragment) {
-        if (!configProvider.trackActivityLoadTime) {
+        if (!configProvider.trackFragmentLoadTime) {
             return
         }
         val identityHash = getIdentityHash(f)
