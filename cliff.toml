@@ -57,7 +57,6 @@ split_commits = false
 # regex for parsing and grouping commits
 commit_parsers = [
   { message = "^ci:", skip = true },
-  { message = ".*sessionator.*", skip = true },
   { message = "^.*\\(android\\):", skip = true },
   { message = "^.*\\(ios\\):", skip = true },
   { message = "^.*\\(flutter\\):", skip = true },

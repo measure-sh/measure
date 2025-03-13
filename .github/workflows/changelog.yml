@@ -9,6 +9,8 @@ jobs:
     name: Generate changelog
     if: ${{ github.event.pull_request.merged }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -16,8 +18,8 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
 
-      - name: Generate changelog using git-cliff
-        uses: orhun/git-cliff-action@v3
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
         id: git-cliff
         with:
           config: cliff.toml
@@ -26,8 +28,12 @@ jobs:
           OUTPUT: CHANGELOG.md
           GITHUB_REPO: ${{ github.repository }}
 
+      - name: Print the changelog
+        run: cat "${{ steps.git-cliff.outputs.changelog }}"
+
       - name: Commit the changelog
         run: |
+          git checkout main
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           set +e
