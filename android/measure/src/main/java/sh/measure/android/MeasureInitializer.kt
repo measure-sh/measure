@@ -131,6 +131,7 @@ internal class MeasureInitializerImpl(
             traceSamplingRate = inputConfig.traceSamplingRate,
             enableShakeToLaunchBugReport = inputConfig.enableShakeToLaunchBugReport,
             trackActivityLoadTime = inputConfig.trackActivityLoadTime,
+            trackFragmentLoadTime = inputConfig.trackFragmentLoadTime,
         ),
         configLoader = ConfigLoaderImpl(),
     ),
@@ -359,23 +360,6 @@ internal class MeasureInitializerImpl(
         signalProcessor = signalProcessor,
     ),
     override val appLifecycleManager: AppLifecycleManager = AppLifecycleManager(application),
-    override val activityLifecycleCollector: ActivityLifecycleCollector = ActivityLifecycleCollector(
-        signalProcessor = signalProcessor,
-        timeProvider = timeProvider,
-        appLifecycleManager = appLifecycleManager,
-    ),
-    override val appLifecycleCollector: AppLifecycleCollector = AppLifecycleCollector(
-        signalProcessor = signalProcessor,
-        timeProvider = timeProvider,
-        appLifecycleManager = appLifecycleManager,
-    ),
-    override val gestureCollector: GestureCollector = GestureCollector(
-        logger = logger,
-        signalProcessor = signalProcessor,
-        timeProvider = timeProvider,
-        defaultExecutor = executorServiceRegistry.defaultExecutor(),
-        layoutSnapshotThrottler = LayoutSnapshotThrottler(timeProvider),
-    ),
     private val spanDeviceAttributeProcessor: SpanDeviceAttributeProcessor = SpanDeviceAttributeProcessor(
         localeProvider = localeProvider,
     ),
@@ -400,10 +384,28 @@ internal class MeasureInitializerImpl(
         sessionManager = sessionManager,
         traceSampler = TraceSamplerImpl(randomizer, configProvider),
     ),
+    override val activityLifecycleCollector: ActivityLifecycleCollector = ActivityLifecycleCollector(
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        appLifecycleManager = appLifecycleManager,
+        configProvider = configProvider,
+        tracer = tracer,
+    ),
+    override val appLifecycleCollector: AppLifecycleCollector = AppLifecycleCollector(
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        appLifecycleManager = appLifecycleManager,
+    ),
+    override val gestureCollector: GestureCollector = GestureCollector(
+        logger = logger,
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        defaultExecutor = executorServiceRegistry.defaultExecutor(),
+        layoutSnapshotThrottler = LayoutSnapshotThrottler(timeProvider),
+    ),
     override val spanCollector: SpanCollector = SpanCollector(
         tracer = tracer,
     ),
-
     private val launchTracker: LaunchTracker = LaunchTracker(
         logger,
         timeProvider,

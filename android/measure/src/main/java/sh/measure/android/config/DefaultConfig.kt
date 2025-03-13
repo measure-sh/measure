@@ -15,4 +15,5 @@ internal object DefaultConfig {
     const val TRACE_SAMPLING_RATE: Float = 0.1f
     const val ENABLE_SHAKE_TO_LAUNCH_BUG_REPORT: Boolean = false
     const val TRACK_ACTIVITY_LOAD_TIME: Boolean = true
+    const val TRACK_FRAGMENT_LOAD_TIME: Boolean = true
 }

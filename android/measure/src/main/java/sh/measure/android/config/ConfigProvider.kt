@@ -126,6 +126,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { enableShakeToLaunchBugReport }
     override val trackActivityLoadTime: Boolean
         get() = getMergedConfig { trackActivityLoadTime }
+    override val trackFragmentLoadTime: Boolean
+        get() = getMergedConfig { trackFragmentLoadTime }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (!trackHttpBody) {

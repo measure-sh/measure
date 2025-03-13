@@ -337,23 +337,6 @@ internal class TestMeasureInitializer(
     override val appLifecycleManager: AppLifecycleManager = AppLifecycleManager(
         application = application,
     ),
-    override val activityLifecycleCollector: ActivityLifecycleCollector = ActivityLifecycleCollector(
-        signalProcessor = signalProcessor,
-        timeProvider = timeProvider,
-        appLifecycleManager = appLifecycleManager,
-    ),
-    override val appLifecycleCollector: AppLifecycleCollector = AppLifecycleCollector(
-        signalProcessor = signalProcessor,
-        timeProvider = timeProvider,
-        appLifecycleManager = appLifecycleManager,
-    ),
-    override val gestureCollector: GestureCollector = GestureCollector(
-        logger = logger,
-        signalProcessor = signalProcessor,
-        timeProvider = timeProvider,
-        defaultExecutor = executorServiceRegistry.defaultExecutor(),
-        layoutSnapshotThrottler = LayoutSnapshotThrottler(timeProvider),
-    ),
     private val spanProcessor: SpanProcessor = MsrSpanProcessor(
         signalProcessor = signalProcessor,
         attributeProcessors = emptyList(),
@@ -371,6 +354,25 @@ internal class TestMeasureInitializer(
         idProvider = idProvider,
         timeProvider = timeProvider,
         traceSampler = traceSampler,
+    ),
+    override val activityLifecycleCollector: ActivityLifecycleCollector = ActivityLifecycleCollector(
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        appLifecycleManager = appLifecycleManager,
+        configProvider = configProvider,
+        tracer = tracer,
+    ),
+    override val appLifecycleCollector: AppLifecycleCollector = AppLifecycleCollector(
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        appLifecycleManager = appLifecycleManager,
+    ),
+    override val gestureCollector: GestureCollector = GestureCollector(
+        logger = logger,
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        defaultExecutor = executorServiceRegistry.defaultExecutor(),
+        layoutSnapshotThrottler = LayoutSnapshotThrottler(timeProvider),
     ),
     private val launchTracker: LaunchTracker = LaunchTracker(
         logger,

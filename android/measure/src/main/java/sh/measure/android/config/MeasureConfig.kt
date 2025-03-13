@@ -20,6 +20,7 @@ internal interface IMeasureConfig {
     val traceSamplingRate: Float
     val enableShakeToLaunchBugReport: Boolean
     val trackActivityLoadTime: Boolean
+    val trackFragmentLoadTime: Boolean
 }
 
 /**
@@ -167,6 +168,17 @@ class MeasureConfig(
      * `com.example.MainActivity` the span name would be `Activity TTID com.example.MainActivity`.
      */
     override val trackActivityLoadTime: Boolean = DefaultConfig.TRACK_ACTIVITY_LOAD_TIME,
+
+    /**
+     * Enable or disable automatic collection of Fragment load time. Defaults to `true`.
+     *
+     * Fragment load time measures the time between the Fragment view being created and the
+     * first frame being drawn on the screen. This is also known as Time to First Frame (TTF)
+     * or Time to Initial Display (TTID). A large value for this metric would mean users are
+     * waiting for a long time before they see anything on the screen while navigating
+     * through the app.
+     */
+    override val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
 ) : IMeasureConfig {
     init {
         require(samplingRateForErrorFreeSessions in 0.0..1.0) {
