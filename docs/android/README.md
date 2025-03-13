@@ -286,7 +286,7 @@ The following data is automatically collected by Measure. Read the individual do
 * [CPU monitoring](features/feature_cpu_monitoring.md)
 * [Memory monitoring](features/feature_memory_monitoring.md)
 * [App size](features/feature_app_size.md)
-* [Activity load time](features/feature_activity_load_time.md)
+* [Screen load time](features/feature_screen_load_time.md)
 
 ## Identify users
 
@@ -339,14 +339,14 @@ since epoch.
 Measure.trackEvent("event_name", timestamp = 1734443973879L)
 ```
 
-### Performance tracing
+## Performance tracing
 
 Use the [performance tracing](features/feature_performance_tracing.md) APIs to track performance of any part of your application - API calls,
 DB queries, any function, user journey, etc. The SDK supports nested spans to track hierarchical operations.
 
-#### Activity load time
+### Screen load time
 
-Measure can automatically track the time taken to load an Activity. This feature is enabled by default and
+Measure can automatically track the time taken to load an Activity/Fragment. This feature is enabled by default and
 can be disabled during SDK initialization.
 
 To disable Activity load time tracking, use the following configuration:
@@ -355,9 +355,15 @@ To disable Activity load time tracking, use the following configuration:
 Measure.init(context, config = MeasureConfig(trackActivityLoadTime = false))
 ```
 
-See [Activity load time](features/feature_activity_load_time.md) for more details.
+To disable Fragment load time tracking, use the following configuration:
 
-#### Custom performance traces
+```kotlin
+Measure.init(context, config = MeasureConfig(trackFragmentLoadTime = false))
+```
+
+See [Screen load time](features/feature_screen_load_time.md) for more details.
+
+### Custom performance traces
 
 Following are some *simplified* examples:
 

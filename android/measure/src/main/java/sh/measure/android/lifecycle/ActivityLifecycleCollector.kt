@@ -3,8 +3,10 @@ package sh.measure.android.lifecycle
 import android.app.Activity
 import android.os.Bundle
 import androidx.fragment.app.FragmentActivity
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.tracing.Tracer
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isClassAvailable
 import java.util.concurrent.atomic.AtomicBoolean
@@ -13,9 +15,11 @@ internal class ActivityLifecycleCollector(
     private val appLifecycleManager: AppLifecycleManager,
     private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
+    private val configProvider: ConfigProvider,
+    private val tracer: Tracer,
 ) : ActivityLifecycleListener {
     private val fragmentLifecycleCollector by lazy {
-        FragmentLifecycleCollector(signalProcessor, timeProvider)
+        FragmentLifecycleCollector(signalProcessor, timeProvider, configProvider, tracer)
     }
     private val androidXFragmentNavigationCollector by lazy {
         AndroidXFragmentNavigationCollector(signalProcessor, timeProvider)

@@ -48,6 +48,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override val shakeSlop: Int = 3
     override val enableShakeToLaunchBugReport: Boolean = false
     override val trackActivityLoadTime: Boolean = false
+    override val trackFragmentLoadTime: Boolean = false
 
     var shouldTrackHttpBody = false
 

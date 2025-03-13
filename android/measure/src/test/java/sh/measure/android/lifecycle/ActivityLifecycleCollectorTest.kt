@@ -20,6 +20,8 @@ import org.robolectric.android.controller.ActivityController
 import sh.measure.android.TestLifecycleActivity
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.fakes.FakeConfigProvider
+import sh.measure.android.tracing.Tracer
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.TestClock
 
@@ -29,10 +31,14 @@ class ActivityLifecycleCollectorTest {
     private val timeProvider = AndroidTimeProvider(TestClock.create())
     private val application = InstrumentationRegistry.getInstrumentation().context as Application
     private val appLifecycleManager = AppLifecycleManager(application)
+    private val configProvider = FakeConfigProvider()
+    private val tracer = mock<Tracer>()
     private var activityLifecycleCollector: ActivityLifecycleCollector = ActivityLifecycleCollector(
         appLifecycleManager,
         signalProcessor,
         timeProvider,
+        configProvider,
+        tracer,
     )
     private lateinit var controller: ActivityController<TestLifecycleActivity>
 
