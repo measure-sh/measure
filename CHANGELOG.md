@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Codeql integer conversion error (#1897) by @detj in #1897
 - (**backend**): Sessionator would fail deleting objects (#1891) by @detj in #1891
 - (**backend**): Svg layout attachments are not visible sometimes (#1777) by @detj in #1777
 - (**backend**): Clean up event batches stuck for a long time (#1770) by @detj in #1770
