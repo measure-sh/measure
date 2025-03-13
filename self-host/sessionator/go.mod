@@ -1,8 +1,6 @@
 module sessionator
 
-go 1.24
-
-toolchain go1.24.0
+go 1.24.1
 
 require (
 	backend/api v0.0.0-00010101000000-000000000000
@@ -11,6 +9,7 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.32.2
 	github.com/aws/aws-sdk-go-v2 v1.36.3
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.78.1
+	github.com/aws/smithy-go v1.22.3
 	github.com/bodgit/sevenzip v1.6.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gin-gonic/gin v1.10.0
@@ -46,7 +45,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.6.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.15 // indirect
-	github.com/aws/smithy-go v1.22.3 // indirect
 	github.com/bodgit/plumbing v1.3.0 // indirect
 	github.com/bodgit/windows v1.0.1 // indirect
 	github.com/bytedance/sonic v1.12.10 // indirect

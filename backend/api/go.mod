@@ -2,8 +2,6 @@ module backend/api
 
 go 1.24.1
 
-toolchain go1.24.0
-
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.32.2
 	github.com/aws/aws-sdk-go-v2 v1.36.3
