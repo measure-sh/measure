@@ -69,10 +69,15 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
   }
 
   const { events, threads, eventTypes } = parseEventsThreadsAndEventTypesFromSessionTimeline()
-  const firstEventTime = DateTime.fromISO(events[0].timestamp)
-  const lastEventTime = DateTime.fromISO(events[events.length - 1].timestamp)
+
+  const firstEventTime = events.length > 0 ? DateTime.fromISO(events[0].timestamp) : null
+  const lastEventTime = events.length > 0 ? DateTime.fromISO(events[events.length - 1].timestamp) : null
 
   function isWithinEventTimeRange(timestamp: string): boolean {
+    // If no events, consider it as within range
+    if (firstEventTime == null || lastEventTime == null) {
+      return true
+    }
     const time = DateTime.fromISO(timestamp)
     if (time >= firstEventTime && time <= lastEventTime) {
       return true
@@ -201,6 +206,10 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
   }
 
   const scrollToEvent = (seekBarValue: number) => {
+    // If no events, no need to scroll
+    if (firstEventTime === null || lastEventTime === null) {
+      return
+    }
     const duration = lastEventTime.diff(firstEventTime)
     const resultTimestamp = firstEventTime.plus(Duration.fromMillis(duration.toMillis() * seekBarValue / 100))
 
@@ -223,7 +232,8 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
   }
 
   const selectEventAndMoveSeekBar = (eventIndex: number) => {
-    if (!graphContainerRef.current) {
+    // If no events, no need to select event or move seek bar
+    if (!graphContainerRef.current || firstEventTime === null || lastEventTime === null) {
       return
     }
 
@@ -299,8 +309,8 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                   format: '%Y-%m-%d %I:%M:%S:%L %p',
                   precision: 'second',
                   type: 'time',
-                  min: DateTime.fromISO(events[0].timestamp).toLocal().toJSDate(),
-                  max: DateTime.fromISO(events[events.length - 1].timestamp).toLocal().toJSDate(),
+                  min: events.length > 0 ? DateTime.fromISO(events[0].timestamp).toLocal().toJSDate() : "auto",
+                  max: events.length > 0 ? DateTime.fromISO(events[events.length - 1].timestamp).toLocal().toJSDate() : "auto",
                   useUTC: false
                 }}
                 yScale={{
@@ -354,8 +364,8 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                   format: '%Y-%m-%d %I:%M:%S:%L %p',
                   precision: 'second',
                   type: 'time',
-                  min: DateTime.fromISO(events[0].timestamp).toLocal().toJSDate(),
-                  max: DateTime.fromISO(events[events.length - 1].timestamp).toLocal().toJSDate(),
+                  min: events.length > 0 ? DateTime.fromISO(events[0].timestamp).toLocal().toJSDate() : "auto",
+                  max: events.length > 0 ? DateTime.fromISO(events[events.length - 1].timestamp).toLocal().toJSDate() : "auto",
                   useUTC: false
                 }}
                 yScale={{
@@ -409,8 +419,8 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                   format: '%Y-%m-%d %I:%M:%S:%L %p',
                   precision: 'second',
                   type: 'time',
-                  min: DateTime.fromISO(events[0].timestamp).toLocal().toJSDate(),
-                  max: DateTime.fromISO(events[events.length - 1].timestamp).toLocal().toJSDate(),
+                  min: events.length > 0 ? DateTime.fromISO(events[0].timestamp).toLocal().toJSDate() : "auto",
+                  max: events.length > 0 ? DateTime.fromISO(events[events.length - 1].timestamp).toLocal().toJSDate() : "auto",
                   useUTC: false
                 }}
                 yScale={{
