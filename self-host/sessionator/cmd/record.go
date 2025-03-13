@@ -427,7 +427,7 @@ func writeBuild(c *gin.Context) {
 	defer out.Close()
 
 	buildInfo := app.BuildInfo{
-		Size: uint32(buildSize),
+		Size: uint(buildSize),
 		Type: buildType,
 	}
 

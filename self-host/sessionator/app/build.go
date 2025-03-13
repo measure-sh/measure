@@ -7,7 +7,7 @@ import (
 // BuildInfo represents build metadata for an
 // app version's build.
 type BuildInfo struct {
-	Size uint32 `toml:"size"`
+	Size uint   `toml:"size"`
 	Type string `toml:"type"`
 }
 
