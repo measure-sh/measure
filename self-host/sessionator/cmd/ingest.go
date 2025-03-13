@@ -642,11 +642,11 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 
 		if clean {
 			if err := rmAppResources(ctx, configData); err != nil {
-				log.Fatal("failed to clean old data", err)
+				log.Fatal("failed to clean old data: ", err)
 			}
 		} else if cleanAll {
 			if err := rmAll(ctx, configData); err != nil {
-				log.Fatal("failed to clean all old data", err)
+				log.Fatal("failed to clean all old data: ", err)
 			}
 		}
 

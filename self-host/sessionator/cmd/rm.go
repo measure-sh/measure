@@ -1,10 +1,14 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
+	"crypto/md5"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"sessionator/config"
 	"strings"
 
@@ -12,6 +16,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go/middleware"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -20,6 +26,47 @@ import (
 type janitor struct {
 	config *config.Config
 	appIds []uuid.UUID
+}
+
+type S3Options struct {
+	MiddlewareStackFuncs []func(stack *middleware.Stack) error
+}
+
+// stackFunc is the common stack middleware creation function
+// that's required for adding a `Content-Md5` header to the
+// smithy http request used internally by newer versions of
+// aws-sdk-go-v2.
+var stackFunc = func(stack *middleware.Stack) error {
+	return stack.Finalize.Add(middleware.FinalizeMiddlewareFunc("addContentMd5Hash", func(ctx context.Context, in middleware.FinalizeInput, next middleware.FinalizeHandler) (out middleware.FinalizeOutput, metadata middleware.Metadata, err error) {
+		// assert the request is an http request
+		req, ok := in.Request.(*smithyhttp.Request)
+		if !ok {
+			return next.HandleFinalize(ctx, in)
+		}
+
+		if strings.Contains(req.URL.RawQuery, "delete") {
+			var bodyBytes []byte
+			if req.Body != nil {
+				bodyBytes, err = io.ReadAll(req.Body)
+				if err != nil {
+					return out, metadata, err
+				}
+
+				// reset the body so it can be read
+				// by the client later
+				req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+			}
+
+			// compute md5 checksum
+			hash := md5.Sum(bodyBytes)
+			md5Base64 := base64.StdEncoding.EncodeToString(hash[:])
+
+			// set the `Content-Md5` header
+			req.Header.Set("Content-Md5", md5Base64)
+		}
+
+		return next.HandleFinalize(ctx, in)
+	}), middleware.After)
 }
 
 // parameterize parameterizes placeholder
@@ -219,7 +266,13 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 		config: c,
 	}
 
-	symbolsClient := j.getSymbolsClient()
+	options := []S3Options{
+		{
+			MiddlewareStackFuncs: []func(stack *middleware.Stack) error{stackFunc},
+		},
+	}
+
+	symbolsClient := j.getSymbolsClient(options...)
 	symbolsBucket := aws.String(j.config.Storage["symbols_s3_bucket"])
 	attachmentsClient := j.getAttachmentsClient()
 	attachmentsBucket := aws.String(j.config.Storage["attachments_s3_bucket"])
@@ -295,7 +348,7 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 
 // getSymbolsClient creates an S3 client for operating
 // on symbols S3 bucket.
-func (j *janitor) getSymbolsClient() (client *s3.Client) {
+func (j *janitor) getSymbolsClient(options ...S3Options) (client *s3.Client) {
 	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
 		return aws.Credentials{
 			AccessKeyID:     j.config.Storage["symbols_access_key"],
@@ -314,21 +367,29 @@ func (j *janitor) getSymbolsClient() (client *s3.Client) {
 			o.BaseEndpoint = aws.String(endpoint)
 			o.UsePathStyle = *aws.Bool(true)
 		}
+
+		if len(options) > 0 {
+			for _, opt := range options {
+				for _, stackFunc := range opt.MiddlewareStackFuncs {
+					o.APIOptions = append(o.APIOptions, stackFunc)
+				}
+			}
+		}
 	})
 }
 
 // getAttachmentsClient creates an S3 client for operating
 // on attachments S3 bucket.
-func (j *janitor) getAttachmentsClient() (client *s3.Client) {
+func (j *janitor) getAttachmentsClient(options ...S3Options) (client *s3.Client) {
 	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
 		return aws.Credentials{
-			AccessKeyID:     j.config.Storage["symbols_access_key"],
-			SecretAccessKey: j.config.Storage["symbols_secret_access_key"],
+			AccessKeyID:     j.config.Storage["attachments_access_key"],
+			SecretAccessKey: j.config.Storage["attachments_secret_access_key"],
 		}, nil
 	}
 
 	awsConfig := &aws.Config{
-		Region:      j.config.Storage["symbols_s3_bucket_region"],
+		Region:      j.config.Storage["attachments_s3_bucket_region"],
 		Credentials: credentialsProvider,
 	}
 
@@ -337,6 +398,14 @@ func (j *janitor) getAttachmentsClient() (client *s3.Client) {
 		if endpoint != "" {
 			o.BaseEndpoint = aws.String(endpoint)
 			o.UsePathStyle = *aws.Bool(true)
+		}
+
+		if len(options) > 0 {
+			for _, opt := range options {
+				for _, stackFunc := range opt.MiddlewareStackFuncs {
+					o.APIOptions = append(o.APIOptions, stackFunc)
+				}
+			}
 		}
 	})
 }
@@ -807,25 +876,13 @@ func (j *janitor) rmAttachmentObjects(ctx context.Context, objectIds []types.Obj
 		Delete: &types.Delete{Objects: objectIds},
 	}
 
-	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
-		return aws.Credentials{
-			AccessKeyID:     j.config.Storage["attachments_access_key"],
-			SecretAccessKey: j.config.Storage["attachments_secret_access_key"],
-		}, nil
+	options := []S3Options{
+		{
+			MiddlewareStackFuncs: []func(stack *middleware.Stack) error{stackFunc},
+		},
 	}
 
-	awsConfig := &aws.Config{
-		Region:      j.config.Storage["attachments_s3_bucket_region"],
-		Credentials: credentialsProvider,
-	}
-
-	client := s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
-		endpoint := j.config.Storage["aws_endpoint_url"]
-		if endpoint != "" {
-			o.BaseEndpoint = aws.String(endpoint)
-			o.UsePathStyle = *aws.Bool(true)
-		}
-	})
+	client := j.getAttachmentsClient(options...)
 
 	// ignoring delete objects output
 	_, err = client.DeleteObjects(ctx, deleteObjectsInput)
@@ -847,25 +904,13 @@ func (j *janitor) rmMappingObjects(ctx context.Context, objectIds []types.Object
 		Delete: &types.Delete{Objects: objectIds},
 	}
 
-	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
-		return aws.Credentials{
-			AccessKeyID:     j.config.Storage["symbols_access_key"],
-			SecretAccessKey: j.config.Storage["symbols_secret_access_key"],
-		}, nil
+	options := []S3Options{
+		{
+			MiddlewareStackFuncs: []func(stack *middleware.Stack) error{stackFunc},
+		},
 	}
 
-	awsConfig := &aws.Config{
-		Region:      j.config.Storage["symbols_s3_bucket_region"],
-		Credentials: credentialsProvider,
-	}
-
-	client := s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
-		endpoint := j.config.Storage["aws_endpoint_url"]
-		if endpoint != "" {
-			o.BaseEndpoint = aws.String(endpoint)
-			o.UsePathStyle = *aws.Bool(true)
-		}
-	})
+	client := j.getSymbolsClient(options...)
 
 	// ignoring delete objects output
 	_, err = client.DeleteObjects(ctx, deleteObjectsInput)
