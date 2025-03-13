@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Update go deps (#1896) by @detj in #1896
 - (**backend**): Update go toolchain version (#1894) by @detj in #1894
 - (**backend**): Update ci changelog (#1893) by @detj in #1893
 - (**backend**): Rename span api endpoints for consistency by @anupcowkur in #1864
