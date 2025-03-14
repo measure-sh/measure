@@ -1,0 +1,8 @@
+# stackoverflow.yaml
+
+appId: sh.measure.sample
+---
+- runFlow: walkthrough.yaml
+- tapOn:
+    id: "sh.measure.sample:id/btn_stack_overflow_exception"
+- launchApp

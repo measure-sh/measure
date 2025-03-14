@@ -1,0 +1,48 @@
+# bug-report-walkthrough.yaml
+
+appId: sh.measure.sample
+---
+- launchApp
+- scrollUntilVisible:
+    direction: "DOWN"
+    element:
+      id: "sh.measure.sample:id/btn_launch_bug_report"
+- tapOn:
+    id: "sh.measure.sample:id/btn_launch_bug_report"
+- assertVisible:
+    id: "sh.measure.sample:id/imageView"
+    index: 0
+- "back"
+- tapOn:
+    id: "sh.measure.sample:id/btn_launch_bug_report"
+- addMedia:
+  - "../assets/screenshot.png"
+- tapOn:
+    id: "sh.measure.sample:id/tv_choose_image"
+- tapOn:
+    id: "com.google.android.documentsui:id/icon_thumb"
+- assertVisible:
+    id: "sh.measure.sample:id/imageView"
+    index: 1
+- tapOn:
+    id: "sh.measure.sample:id/closeButton"
+    index: 1
+- assertNotVisible:
+    id: "sh.measure.sample:id/imageView"
+    index: 1
+- tapOn:
+    id: "sh.measure.sample:id/tv_choose_image"
+- tapOn:
+    id: "com.google.android.documentsui:id/icon_thumb"
+- tapOn:
+    id: "sh.measure.sample:id/tv_send"
+- tapOn:
+    id: "sh.measure.sample:id/btn_launch_bug_report"
+- tapOn:
+    id: "sh.measure.sample:id/closeButton"
+    index: 0
+- tapOn:
+    id: "sh.measure.sample:id/et_description"
+- "inputRandomText"
+- tapOn:
+    id: "sh.measure.sample:id/tv_send"
