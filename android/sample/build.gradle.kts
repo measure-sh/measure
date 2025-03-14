@@ -20,7 +20,7 @@ android {
         applicationId = "sh.measure.sample"
         minSdk = 21
         targetSdk = 35
-        versionCode = computeVersionCode(measureSdkVersion)
+        versionCode = computeVersionCode()
         versionName = measureSdkVersion
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -96,15 +96,13 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
-
 /**
- * Computes version code based on the measure SDK version.
- * Examples:
- * 1.2.3 -> 10203
- * 0.4.0-SNAPSHOT -> 400
+ * Computes the version code based on the current system time in minutes since epoch.
+ *
+ * This is typically a not a good idea, but it's done so that we always get a unique
+ * version code for every build so that every time we record data from sample app,
+ * it shows up as a separate version on the dashboard.
  */
-fun computeVersionCode(measureSdkVersion: String): Int {
-    val versionWithoutSuffix = measureSdkVersion.split("-")[0]
-    val version = versionWithoutSuffix.split(".").map { it.toInt() }
-    return version[0] * 10000 + version[1] * 100 + version[2]
+fun computeVersionCode(): Int {
+    return (System.currentTimeMillis() / (1000 * 60)).toInt()
 }
