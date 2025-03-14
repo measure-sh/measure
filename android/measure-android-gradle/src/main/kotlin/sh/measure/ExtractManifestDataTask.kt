@@ -19,6 +19,7 @@ private const val KEY_VERSION_NAME = "android:versionName"
 private const val KEY_PACKAGE = "package"
 private const val KEY_API_KEY = "sh.measure.android.API_KEY"
 private const val KEY_API_URL = "sh.measure.android.API_URL"
+private const val KEY_BUILD_API_URL = "sh.measure.android.BUILD_API_URL"
 private const val TAG_MANIFEST = "manifest"
 private const val TAG_META_DATA = "meta-data"
 private const val ATTR_ANDROID_NAME = "android:name"
@@ -101,6 +102,14 @@ abstract class ExtractManifestDataTask : DefaultTask() {
 
     private fun extractApiUrl(doc: Document): String? {
         val metaDataNodes = doc.getElementsByTagName(TAG_META_DATA)
+
+        val buildApiUrlMeta = (0 until metaDataNodes.length).asSequence().map { metaDataNodes.item(it) }
+            .filter { it.nodeType == Node.ELEMENT_NODE }.map { it as Element }
+            .firstOrNull { it.getAttribute(ATTR_ANDROID_NAME) == KEY_BUILD_API_URL }
+        if (buildApiUrlMeta != null) {
+            return buildApiUrlMeta.getAttribute(ATTR_ANDROID_VALUE)
+        }
+
         return (0 until metaDataNodes.length).asSequence().map { metaDataNodes.item(it) }
             .filter { it.nodeType == Node.ELEMENT_NODE }.map { it as Element }
             .firstOrNull { it.getAttribute(ATTR_ANDROID_NAME) == KEY_API_URL }
