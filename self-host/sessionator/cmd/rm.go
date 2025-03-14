@@ -222,7 +222,19 @@ func rmAppResources(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
+	if err = j.rmSpanUserDefAttrs(ctx); err != nil {
+		return
+	}
+
 	if err = j.rmSpans(ctx); err != nil {
+		return
+	}
+
+	if err = j.rmUserDefAttrs(ctx); err != nil {
+		return
+	}
+
+	if err = j.rmBugReports(ctx); err != nil {
 		return
 	}
 
@@ -335,7 +347,15 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
+	if err = chconn.Exec(ctx, "truncate table span_user_def_attrs;"); err != nil {
+		return
+	}
+
 	if err = chconn.Exec(ctx, "truncate table spans;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table bug_reports;"); err != nil {
 		return
 	}
 
@@ -736,6 +756,41 @@ func (j *janitor) rmSpanMetrics(ctx context.Context) (err error) {
 	return
 }
 
+// rmSpanUserDefAttrs removes app's span user defined
+// attributes for apps in config.
+func (j *janitor) rmSpanUserDefAttrs(ctx context.Context) (err error) {
+	deleteSpanUserDefAttrs := `delete from span_user_def_attrs where app_id = toUUID(@app_id);`
+
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing span user defined attributes")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteSpanUserDefAttrs, namedAppId); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
 // rmSpans removes spans
 // for apps in config.
 func (j *janitor) rmSpans(ctx context.Context) (err error) {
@@ -834,6 +889,41 @@ func (j *janitor) rmUserDefAttrs(ctx context.Context) (err error) {
 		namedAppId := clickhouse.Named("app_id", j.appIds[i])
 
 		if err := conn.Exec(ctx, deleteUserDefAttrs, namedAppId); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+// rmBugReports removes app's bug reports for apps
+// in config.
+func (j *janitor) rmBugReports(ctx context.Context) (err error) {
+	deleteBugReports := `delete from bug_reports where app_id = toUUID(@app_id);`
+
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing bug reports")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteBugReports, namedAppId); err != nil {
 			return err
 		}
 	}
