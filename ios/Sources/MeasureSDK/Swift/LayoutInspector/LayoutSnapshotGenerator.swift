@@ -45,9 +45,9 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
         }
 
         return attachmentProcessor.getAttachmentObject(for: layoutSnapshot,
-                                                name: layoutSnapshotName,
-                                                storageType: .data,
-                                                attachmentType: .layoutSnapshot)
+                                                       name: layoutSnapshotName,
+                                                       storageType: .data,
+                                                       attachmentType: .layoutSnapshot)
     }
 
     private func collectFrames(in view: UIView, rootView: UIView) -> [CGRect] {

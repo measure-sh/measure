@@ -156,6 +156,9 @@ Measure.shared.trackEvent(name: "event_name", timestamp: 1734443973879)
 Apart from sending custom events, the following event can be tracked with a predefined schema:
 
 - [ScreenView](#screen-view)
+- [SwiftUI Lifecycle](#swiftui-lifecycle)
+- [ViewController Lifecycle](#viewcontroller-lifecycle)
+- [Network Monitoring](#network-monitoring)
 
 
 ### Screen View
@@ -171,16 +174,96 @@ Measure.shared.trackScreenView("Home")
 [[Measure shared] trackScreenView:@"Home"];
 ```
 
+### SwiftUI Lifecycle
+
+Measure can track SwiftUI component's `onAppear` and `onDisappear` if you wrap your view with the `MsrMoniterView`. Measure also provides an extension function on View that wraps the view in an `MsrMoniterView` to monitor its lifecycle events.
+
+To track SwiftUI lifecycle events, you can use the following methods:
+
+#### Using `MsrMoniterView`
+
+```swift
+struct ContentView: View {
+    var body: some View {
+        MsrMoniterView("ContentView") {
+            Text("Hello, World!")
+        }
+    }
+}
+```
+
+#### Using `moniterWithMsr`
+
+```swift
+struct ContentView: View {
+    var body: some View {
+        Text("Hello, World!")
+            .moniterWithMsr("ContentView")
+    }
+}
+```
+
+### ViewController Lifecycle
+
+Measure automatically tracks the following View Controller lifecycle events:
+
+1. viewDidLoad
+2. viewWillAppear
+3. viewDidAppear
+4. viewWillDisappear
+5. viewDidDisappear
+6. didReceiveMemoryWarning
+7. initWithNibName
+8. initWithCoder
+
+You can also track `loadView` and `deinit`/`dealloc` by inheriting from `MeasureViewController` for swift and `MSRViewController` for Objective-C.
+
+```swift
+   class ViewController: MeasureViewController {
+     ...
+   }
+```
+
+```objc
+   @interface ObjcDetailViewController: MSRViewController
+    ...
+   @end
+```
+
+### Network Monitoring
+
+Measure SDK automatically monitors all API calls happening in the app. You can view the collected HTTP data [here](../docs/api/sdk/README.md#http).  
+This is achieved by swizzling `NSURLSessionTask`'s `setState:` method. However, there is one limitation: **response bodies cannot be tracked** using this method.  
+
+If you also want to track response bodies, you can use `NetworkInterceptor`.  
+The `NetworkInterceptor` modifies the provided `URLSessionConfiguration` to inject the `NetworkInterceptorProtocol` into its `protocolClasses`.  
+
+If the interceptor is already enabled, subsequent calls to this method will have no effect.  
+  
+```swift
+  let config = URLSessionConfiguration.default
+  NetworkInterceptor.enable(on: config)
+  let session = URLSession(configuration: config)
+```
+
+```objc
+  NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
+  [NetworkInterceptor enableOn:config];
+  NSURLSession *session = [NSURLSession sessionWithConfiguration:config];
+```
+
+> [!Note]
+> Ensure you call this method before creating a `URLSession` instance with the given configuration.
+
 # Features
 
+* [App launch](../docs/ios/features/feature_app_launch.md)
 * [Crash tracking](../docs/ios/features/feature_crash_tracking.md)
 * [Network monitoring](../docs/ios/features/feature_network_monitoring.md)
 * [Network changes](../docs/ios/features/feature_network_changes.md)
 * [Gesture tracking](../docs/ios/features/feature_gesture_tracking.md)
 * [Layout Snapshots](../docs/ios/features/feature_layout_snapshots.md)
 * [Navigation & Lifecycle](../docs/ios/features/feature_navigation_and_lifecycle.md)
-* [App Lifecycle](../docs/ios/features/feature_app_lifecycle.md)
-* [App launch](../docs/ios/features/feature_app_launch.md)
 * [CPU monitoring](../docs/ios/features/feature_cpu_monitoring.md)
 * [Memory monitoring](../docs/ios/features/feature_memory_monitoring.md)
 
