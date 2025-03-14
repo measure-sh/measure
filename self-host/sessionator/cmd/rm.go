@@ -756,8 +756,8 @@ func (j *janitor) rmSpanMetrics(ctx context.Context) (err error) {
 	return
 }
 
-// rmSpanUserDefAttrs removes app's span filters for
-// apps in config.
+// rmSpanUserDefAttrs removes app's span user defined
+// attributes for apps in config.
 func (j *janitor) rmSpanUserDefAttrs(ctx context.Context) (err error) {
 	deleteSpanUserDefAttrs := `delete from span_user_def_attrs where app_id = toUUID(@app_id);`
 
