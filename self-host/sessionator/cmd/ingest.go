@@ -325,27 +325,14 @@ func UploadBuilds(url, apiKey string, app app.App) (string, error) {
 			return "", err
 		}
 		fw.Write([]byte(code))
+
+		mappingType := "proguard"
+
 		for _, mappingFile := range build.MappingFiles {
 			f, err := os.Open(mappingFile)
 			if err != nil {
 				return "", err
 			}
-
-			defer f.Close()
-
-			fw, err = w.CreateFormFile("mapping_file", filepath.Base(mappingFile))
-			if err != nil {
-				return "", err
-			}
-
-			io.Copy(fw, f)
-
-			fw, err = w.CreateFormField("mapping_type")
-			if err != nil {
-				return "", err
-			}
-
-			mappingType := "proguard"
 
 			switch attribute.Platform {
 			case platform.IOS:
@@ -355,8 +342,29 @@ func UploadBuilds(url, apiKey string, app app.App) (string, error) {
 				mappingType = "dsym"
 			}
 
-			fw.Write([]byte(mappingType))
+			fw, err = w.CreateFormFile("mapping_file", filepath.Base(mappingFile))
+			if err != nil {
+				return "", err
+			}
+
+			if _, err := io.Copy(fw, f); err != nil {
+				return "", err
+			}
+
+			f.Close()
 		}
+
+		fw, err = w.CreateFormField("mapping_type")
+		if err != nil {
+			return "", err
+		}
+		fw.Write([]byte(mappingType))
+
+		fw, err = w.CreateFormField("platform")
+		if err != nil {
+			return "", err
+		}
+		fw.Write([]byte(attribute.Platform))
 
 		fw, err = w.CreateFormField("build_size")
 		if err != nil {
