@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Clean more resources in sessionator (#1899) by @detj in #1899
 - (**backend**): Update go deps (#1896) by @detj in #1896
 - (**backend**): Update go toolchain version (#1894) by @detj in #1894
 - (**backend**): Update ci changelog (#1893) by @detj in #1893
