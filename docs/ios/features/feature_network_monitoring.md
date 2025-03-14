@@ -11,7 +11,9 @@ While the swizzling of the `setState:` method provides sufficient information ab
 To address the limitation of not being able to track response objects, Measure also provides an option for developers to enable network tracking for a given `URLSession`. All you need to do is add the following code:
 
 ```swift
+let configuration = URLSessionConfiguration.default
 NetworkInterceptor.enable(on: configuration)
+self.session = URLSession(configuration: configuration)
 ```
 
 If the NetworkInterceptor is enabled for a particular URLSession, automated network tracking is disabled, and only the network requests of the enabled URLSession are tracked.

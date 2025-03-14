@@ -9,6 +9,7 @@ node_modules
 
 # vscode multi-root workspace
 *.code-workspace
+.vscode/
 
 # ios
 .build/
