@@ -399,20 +399,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Support http request and response body by @abhaysood
 - (**backend**): Add navigation event by @abhaysood
 - (**backend**): Ingest cpu and memory performance metrics by @abhaysood in #258
-- (**backend**): Ingest http event by @abhaysood
-- (**backend**): Remove http_request and http_response events by @abhaysood
-- (**backend**): Ingest device_locale with ANR & exception by @abhaysood in #223
-- (**backend**): Ingest device_locale with resource by @abhaysood
-- (**backend**): Add network properties to resource by @abhaysood
-- (**backend**): Track n/w props for ANR & exception by @abhaysood
-- (**backend**): Ingest network change event by @abhaysood
-- (**backend**): Ingest cold, warm and hot launch by @abhaysood in #189
-- (**backend**): Add new attachment type: android_method_trace by @abhaysood
-- (**backend**): Ingest cold launch event (#158) by @abhaysood in #158
-- (**backend**): Ingest lifecycle events (#134) by @abhaysood in #134
-- (**backend**): Upload session attachments (#124) by @detj in #124
-- (**backend**): Implement symbolicator with retrace (#126) by @abhaysood in #126
-- (**backend**): Add symbolication (#79) by @detj in #79
+- (**backend**): Ingest http event
+- (**backend**): Remove http_request and http_response events
+- (**backend**): Ingest device_locale with ANR & exception
+- (**backend**): Ingest device_locale with resource
+- (**backend**): Add network properties to resource
+- (**backend**): Track n/w props for ANR & exception
+- (**backend**): Ingest network change event
+- (**backend**): Ingest cold, warm and hot launch
+- (**backend**): Add new attachment type: android_method_trace
+- (**backend**): Ingest cold launch event (#158)
+- (**backend**): Ingest lifecycle events (#134)
+- (**backend**): Upload session attachments (#124)
+- (**backend**): Implement symbolicator with retrace (#126)
+- (**backend**): Add symbolication (#79)
 - (**webapp**): Enable retention period app setting by @anupcowkur
 - (**webapp**): Add date selection presets to filters by @anupcowkur in #968
 - (**webapp**): Update exceptions overview list format by @anupcowkur in #937
@@ -489,23 +489,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Hide change role & remove user for current user in Team page by @anupcowkur in #276
 - (**webapp**): Add ability to remove team members by @anupcowkur
 - (**webapp**): Change role using API in Team page by @anupcowkur in #269
-- (**webapp**): Fetch authz roles from API and set invite roles dropdown accordingly by @anupcowkur in #259
-- (**webapp**): Fetch team members from API by @anupcowkur
-- (**webapp**): Handle invite member states - success, error, loading and auth error by @anupcowkur
-- (**webapp**): Add team rename feature in Team page by @anupcowkur in #251
-- (**webapp**): Add copy API key functionality to CreateApp component & Apps page by @anupcowkur in #247
-- (**webapp**): Fetch & display apps from api in Apps page by @anupcowkur in #240
-- (**webapp**): Add CreateApp to apps page by @anupcowkur in #238
-- (**webapp**): Handle no apps/no data for app cases in Overview page by @anupcowkur
-- (**webapp**): Use supabase auth token to make API calls by @anupcowkur
-- (**webapp**): Update navigation to use API retrieved app ids by @anupcowkur
-- (**webapp**): Fetch overview filters from filters api by @anupcowkur in #207
-- (**webapp**): Fetch app launch time overview metrics from API by @anupcowkur in #195
-- (**webapp**): Fetch metrics overview data from API by @anupcowkur in #193
-- (**webapp**): Fetch user flow data from API in overview page by @anupcowkur in #190
-- (**webapp**): Add "Sign-in and sign-up with Google" (#163) by @detj in #163
-- (**webapp**): Logout (#153) by @detj in #153
-- (**webapp**): Add basic signup/in flow (#150) by @detj in #150
+- (**webapp**): Fetch authz roles from API and set invite roles dropdown accordingly
+- (**webapp**): Fetch team members from API
+- (**webapp**): Handle invite member states - success, error, loading and auth error
+- (**webapp**): Add team rename feature in Team page
+- (**webapp**): Add copy API key functionality to CreateApp component & Apps page
+- (**webapp**): Fetch & display apps from api in Apps page
+- (**webapp**): Add CreateApp to apps page
+- (**webapp**): Handle no apps/no data for app cases in Overview page
+- (**webapp**): Use supabase auth token to make API calls
+- (**webapp**): Update navigation to use API retrieved app ids
+- (**webapp**): Fetch overview filters from filters api
+- (**webapp**): Fetch app launch time overview metrics from API
+- (**webapp**): Fetch metrics overview data from API
+- (**webapp**): Fetch user flow data from API in overview page
+- (**webapp**): Add "Sign-in and sign-up with Google" (#163)
+- (**webapp**): Logout (#153)
+- (**webapp**): Add basic signup/in flow (#150)
 
 ### :bug: Bug fixes
 
@@ -597,21 +597,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Role validation logic (#270) by @detj in #270
 - (**backend**): Add validation for thread name in anr and exception by @abhaysood in #267
 - (**backend**): Increase thread name max size to 64 by @abhaysood
-- (**backend**): Pre authz logic for teams by @detj in #264
-- (**backend**): Change teamId to id to match client response expectation by @anupcowkur in #224
-- (**backend**): Use correct table name in CH migrations by @abhaysood in #211
-- (**backend**): Invalid error format (#215) by @detj in #215
-- (**backend**): Use correct column name in query to get mapping key by @abhaysood in #217
-- (**backend**): Validate all events (#142) by @detj in #142
-- (**backend**): Resolve go-staticcheck warnings (#116) by @detj in #116
-- (**backend**): Partial symbolication should work (#113) by @detj in #113
-- (**backend**): Separate anrs (#110) by @detj in #110
-- (**backend**): Issues with types (#107) by @detj in #107
-- (**backend**): Fix schema for gestures (#101) by @abhaysood in #101
-- (**backend**): Accept session if no mapping file (#97) by @detj in #97
-- (**backend**): Retrace symbolication algorithm (#93) by @detj in #93
-- (**backend**): App_exit symbolication (#91) by @detj in #91
-- (**backend**): Change names of exception columns (#52) by @detj in #52
+- (**backend**): Pre authz logic for teams
+- (**backend**): Change teamId to id to match client response expectation
+- (**backend**): Use correct table name in CH migrations
+- (**backend**): Invalid error format (#215)
+- (**backend**): Use correct column name in query to get mapping key
+- (**backend**): Validate all events (#142)
+- (**backend**): Resolve go-staticcheck warnings (#116)
+- (**backend**): Partial symbolication should work (#113)
+- (**backend**): Separate anrs (#110)
+- (**backend**): Issues with types (#107)
+- (**backend**): Fix schema for gestures (#101)
+- (**backend**): Accept session if no mapping file (#97)
+- (**backend**): Retrace symbolication algorithm (#93)
+- (**backend**): App_exit symbolication (#91)
+- (**backend**): Change names of exception columns (#52)
 - (**frontend**): Use node env for auth.ts jest test by @anupcowkur in #1060
 - (**webapp**): Remove env checks causing vercel build failure by @anupcowkur in #983
 - (**webapp**): Import lottie dynamically to fix ssr error by @anupcowkur in #963
@@ -683,22 +683,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Handle existing invite flow by @detj
 - (**webapp**): Set remove member API error message correctly by @anupcowkur
 - (**webapp**): Handle can_change_roles being null in Team page by @anupcowkur
-- (**webapp**): Incorrect formatting in invite message by @detj in #260
-- (**webapp**): Fix TeamSwitcher text overflow by @anupcowkur in #262
-- (**webapp**): Show API key in create app from new apps API response format by @anupcowkur in #244
-- (**webapp**): Fix typo by @anupcowkur in #237
-- (**webapp**): Put conditional state inside useState to avoid calling useState conditionally by @anupcowkur in #236
-- (**webapp**): Add missing return on overview filters api failure by @anupcowkur
-- (**webapp**): Update param names for journey & metrics apis by @anupcowkur in #202
-- (**webapp**): Set max & min limits for date filters by @anupcowkur
-- (**webapp**): Update date & uuids format to match journey & metrics api formats by @anupcowkur
-- (**webapp**): Fix server renderd HTML mismatch error for date filter pills by @anupcowkur in #192
-- (**webapp**): Save date filter state in crash details page by @anupcowkur in #182
-- (**webapp**): Change env var name (#165) by @detj in #165
-- (**webapp**): Fix comment syntax by @anupcowkur
-- (**webapp**): Change text to black on side nav button on focus visible by @anupcowkur in #86
-- (**webapp**): Set header z-index so it's always on top by @anupcowkur in #66
-- (**webapp**): Center align section headers on small screens by @anupcowkur
+- (**webapp**): Incorrect formatting in invite message
+- (**webapp**): Fix TeamSwitcher text overflow
+- (**webapp**): Show API key in create app from new apps API response format
+- (**webapp**): Fix typo
+- (**webapp**): Put conditional state inside useState to avoid calling useState conditionally
+- (**webapp**): Add missing return on overview filters api failure
+- (**webapp**): Update param names for journey & metrics apis
+- (**webapp**): Set max & min limits for date filters
+- (**webapp**): Update date & uuids format to match journey & metrics api formats
+- (**webapp**): Fix server renderd HTML mismatch error for date filter pills
+- (**webapp**): Save date filter state in crash details page
+- (**webapp**): Change env var name (#165)
+- (**webapp**): Fix comment syntax
+- (**webapp**): Change text to black on side nav button on focus visible
+- (**webapp**): Set header z-index so it's always on top
+- (**webapp**): Center align section headers on small screens
 
 ### :hammer: Misc
 
@@ -1248,74 +1248,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Modify postgres schema by @detj
 - (**backend**): Update clickhouse schema dump by @detj
 - (**backend**): Add rigmarole.sh to clickhouse migrations by @detj
-- (**backend**): Remove all clickhouse migrations by @abhaysood in #265
-- (**backend**): Remove invitation related db modifications by @detj in #261
-- (**backend**): Remove invitations relation sql by @detj
-- (**backend**): Add change member role api by @detj in #256
-- (**backend**): Add method to validate role by @detj
-- (**backend**): Add remove team member api by @detj in #255
-- (**backend**): Use chrono package for time by @detj in #253
-- (**backend**): Create custom time package by @detj
-- (**backend**): Add get team members api by @detj
-- (**backend**): Change method name by @detj
-- (**backend**): Update `/teams/:id/authz` rbac logic by @detj
-- (**backend**): Change method name by @detj in #250
-- (**backend**): Add `/teams/:id/authz` api by @detj
-- (**backend**): Update rbac logic by @detj in #241
-- (**backend**): Modify postgres table definitions by @detj
-- (**backend**): Update json response by @detj
-- (**backend**): Add team rename api by @detj
-- (**backend**): Suspend invite record creation by @detj
-- (**backend**): Implement rbac for team invite by @detj
-- (**backend**): Add team invite api by @detj
-- (**backend**): Add sqlf package by @detj
-- (**backend**): Handle custom rank json marshalling and unmarshalling by @detj
-- (**backend**): Modify team_invitations schema by @detj
-- (**backend**): Add cipher package by @detj
-- (**backend**): Update get team apps api by @detj in #239
-- (**backend**): Remove unneeded statements by @detj
-- (**backend**): Update get app details api by @detj
-- (**backend**): Increase access token expiration by @detj
-- (**backend**): Add app details api by @detj
-- (**backend**): Handle not found condition (#235) by @detj in #235
-- (**backend**): Remove log line by @detj in #234
-- (**backend**): Return apps from db by @detj
-- (**backend**): Wip get team apps api by @detj
-- (**backend**): Change name of app key by @detj in #233
-- (**backend**): Fix types of create app response by @detj
-- (**backend**): Return response in app create api by @detj in #227
-- (**backend**): Add create app by @detj in #226
-- (**backend**): Update jwt package by @detj
-- (**backend**): Add api keys by @detj
-- (**backend**): Add rbac by @detj
-- (**backend**): Move server into a separate package by @detj
-- (**backend**): Schema changes for creating app by @detj
-- (**backend**): Add env var (#220) by @detj in #220
-- (**backend**): Rename migration files by @abhaysood
-- (**backend**): Add github oauth redirection (#219) by @detj in #219
-- (**backend**): Remove old sql files by @detj in #213
-- (**backend**): Update docker compose by @detj
-- (**backend**): Drop old clickhouse table by @detj
-- (**backend**): Change a column in `mapping_files` by @detj
-- (**backend**): Change events table name by @detj
-- (**backend**): Add migrations infra by @detj
-- (**backend**): Change container names by @detj in #210
-- (**backend**): Change mapping files parameter (#204) by @detj in #204
-- (**backend**): Add app filters stub api by @detj in #201
-- (**backend**): Add teams stub apis (#199) by @detj in #199
-- (**backend**): App request filtering (#198) by @detj in #198
-- (**backend**): Add missing metrics by @detj in #194
-- (**backend**): Change cors origin (#188) by @detj in #188
-- (**backend**): Add cors config (#187) by @detj in #187
-- (**backend**): Fix incorrect version in go.mod (#186) by @detj in #186
-- (**backend**): Add api server build action (#179) by @detj in #179
-- (**backend**): Fix syntax (#176) by @detj in #176
-- (**backend**): Add rest of the events to symbolication (#141) by @detj in #141
-- (**backend**): Refactor magic strings (#139) by @detj in #139
-- (**backend**): Symbolication codec (#137) by @detj in #137
-- (**backend**): Modify docker compose (#128) by @detj in #128
-- (**backend**): Count session payload size (#122) by @detj in #122
-- (**backend**): Improve example dotenv files (#123) by @detj in #123
+- (**backend**): Remove all clickhouse migrations
+- (**backend**): Remove invitation related db modifications
+- (**backend**): Remove invitations relation sql
+- (**backend**): Add change member role api
+- (**backend**): Add method to validate role
+- (**backend**): Add remove team member api
+- (**backend**): Use chrono package for time
+- (**backend**): Create custom time package
+- (**backend**): Add get team members api
+- (**backend**): Change method name
+- (**backend**): Update `/teams/:id/authz` rbac logic
+- (**backend**): Change method name
+- (**backend**): Add `/teams/:id/authz` api
+- (**backend**): Update rbac logic
+- (**backend**): Modify postgres table definitions
+- (**backend**): Update json response
+- (**backend**): Add team rename api
+- (**backend**): Suspend invite record creation
+- (**backend**): Implement rbac for team invite
+- (**backend**): Add team invite api
+- (**backend**): Add sqlf package
+- (**backend**): Handle custom rank json marshalling and unmarshalling
+- (**backend**): Modify team_invitations schema
+- (**backend**): Add cipher package
+- (**backend**): Update get team apps api
+- (**backend**): Remove unneeded statements
+- (**backend**): Update get app details api
+- (**backend**): Increase access token expiration
+- (**backend**): Add app details api
+- (**backend**): Handle not found condition (#235)
+- (**backend**): Remove log line
+- (**backend**): Return apps from db
+- (**backend**): Wip get team apps api
+- (**backend**): Change name of app key
+- (**backend**): Fix types of create app response
+- (**backend**): Return response in app create api
+- (**backend**): Add create app
+- (**backend**): Update jwt package
+- (**backend**): Add api keys
+- (**backend**): Add rbac
+- (**backend**): Move server into a separate package
+- (**backend**): Schema changes for creating app
+- (**backend**): Add env var (#220)
+- (**backend**): Rename migration files
+- (**backend**): Add github oauth redirection (#219)
+- (**backend**): Remove old sql files
+- (**backend**): Update docker compose
+- (**backend**): Drop old clickhouse table
+- (**backend**): Change a column in `mapping_files`
+- (**backend**): Change events table name
+- (**backend**): Add migrations infra
+- (**backend**): Change container names
+- (**backend**): Change mapping files parameter (#204)
+- (**backend**): Add app filters stub api
+- (**backend**): Add teams stub apis (#199)
+- (**backend**): App request filtering (#198)
+- (**backend**): Add missing metrics
+- (**backend**): Change cors origin (#188)
+- (**backend**): Add cors config (#187)
+- (**backend**): Fix incorrect version in go.mod (#186)
+- (**backend**): Add api server build action (#179)
+- (**backend**): Fix syntax (#176)
+- (**backend**): Add rest of the events to symbolication (#141)
+- (**backend**): Refactor magic strings (#139)
+- (**backend**): Symbolication codec (#137)
+- (**backend**): Modify docker compose (#128)
+- (**backend**): Count session payload size (#122)
+- (**backend**): Improve example dotenv files (#123)
 - (**frontend**): Revert google ux_mode by @detj
 - (**frontend**): Remove commented code by @anupcowkur in #1083
 - (**frontend**): Lazy load landing page videos by @anupcowkur in #1082
@@ -1333,36 +1333,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update root go work sum by @detj in #832
 - Report status and errors (#324) by @detj in #324
 - Remove supabase dependency from root folder by @anupcowkur in #318
-- Update supabase config (#216) by @detj in #216
-- Move docker compose by @detj
-- Streamline self-host by @detj
-- Change commitlint config (#54) by @detj in #54
-- Add husky & commitlint (#36) by @detj in #36
-- Improve landing page copy by @anupcowkur in #37
-- Expose clickhouse http port by @detj in #33
-- Remove unused imports by @anupcowkur in #28
-- Link contribution guidelines in README by @anupcowkur
-- Improve security by @detj
-- Add docker-compose script by @detj
-- Improve kdoc by @abhaysood
-- Rearrange sinks to have DbSink initialized first by @abhaysood
-- Rename package in test source by @abhaysood
-- Abstract session ID management to separate class by @abhaysood
-- Add measure SDK version to resource by @abhaysood
-- Improve event validation by @detj
-- Fix incorrect data type by @detj
-- Update benchmark by @detj
-- Accepts arrays in events endpoint by @detj
-- Remove extra nesting by @detj
-- Restructure events request by @detj
-- Remove use of dotenv by @detj
-- Update events and deploy settings by @detj
-- Upgrade clickhouse-go by @detj
-- Add /events endpoint by @detj
-- Add api endpoints and sql statements by @detj
-- Add initial backend code by @detj
-- Rename bodyValue to value for brevity by @abhaysood
-- Fix incorrect package name by @abhaysood
+- Update supabase config (#216)
+- Move docker compose
+- Streamline self-host
+- Change commitlint config (#54)
+- Add husky & commitlint (#36)
+- Improve landing page copy
+- Expose clickhouse http port
+- Remove unused imports
+- Link contribution guidelines in README
+- Improve security
+- Add docker-compose script
+- Improve kdoc
+- Rearrange sinks to have DbSink initialized first
+- Rename package in test source
+- Abstract session ID management to separate class
+- Add measure SDK version to resource
+- Improve event validation
+- Fix incorrect data type
+- Update benchmark
+- Accepts arrays in events endpoint
+- Remove extra nesting
+- Restructure events request
+- Remove use of dotenv
+- Update events and deploy settings
+- Upgrade clickhouse-go
+- Add /events endpoint
+- Add api endpoints and sql statements
+- Add initial backend code
+- Rename bodyValue to value for brevity
+- Fix incorrect package name
 - (**webapp**): Limit filter pill width & show tooltip by @anupcowkur in #1005
 - (**webapp**): Update dockerfile by @detj
 - (**webapp**): Update landing page with new tagline by @anupcowkur in #978
@@ -1530,113 +1530,113 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Refactor role names camel case conversions into a function by @anupcowkur
 - (**webapp**): Update change role/remove member error msg alignment in Team page by @anupcowkur in #273
 - (**webapp**): Fetch members + authz roles from same API in teams page by @anupcowkur
-- (**webapp**): Remove unnecessary 'text-black' classes by @anupcowkur in #263
-- (**webapp**): Handle invalid invites by @detj
-- (**webapp**): Rename variables for clarity by @anupcowkur in #254
-- (**webapp**): Fetch team from API in Team page by @anupcowkur in #249
-- (**webapp**): Format code by @anupcowkur in #248
-- (**webapp**): Set session on invite redirect by @detj
-- (**webapp**): Remove old auth handler by @detj
-- (**webapp**): Add logout by @detj
-- (**webapp**): Modify github signin by @detj
-- (**webapp**): Modify supabase auth routes by @detj
-- (**webapp**): Add new environment variable by @detj
-- (**webapp**): Upgrade dependencies by @detj
-- (**webapp**): Update supabase email templates by @detj
-- (**webapp**): Adjust spacing in Apps page by @anupcowkur in #246
-- (**webapp**): Update spacing in Apps page by @anupcowkur in #245
-- (**webapp**): Update ui + add comments to overview page ui by @anupcowkur
-- (**webapp**): Update CreateApp ui by @anupcowkur
-- (**webapp**): Open first step of create app setup by default by @anupcowkur
-- (**webapp**): Use &apos instead of apostrophe by @anupcowkur
-- (**webapp**): Add CreateApp component by @anupcowkur
-- (**webapp**): Add example env var (#225) by @detj in #225
-- (**webapp**): Improve sign-in flow error handling (#221) by @detj in #221
-- (**webapp**): Handle error on logout (#222) by @detj in #222
-- (**webapp**): Remove unused function by @anupcowkur in #218
-- (**webapp**): Use env variable for API base URL by @anupcowkur
-- (**webapp**): Improve error message in UserFlow by @anupcowkur in #212
-- (**webapp**): Fetch apps list in overview from API by @anupcowkur
-- (**webapp**): Disable react hooks exhaustive deps rule by @anupcowkur in #209
-- (**webapp**): Store selected team state in side nav by @anupcowkur
-- (**webapp**): Fix indent in Dropdown component by @anupcowkur
-- (**webapp**): Add onChangeSelectedItemListener & initialItemIndex params to TeamSwitcher by @anupcowkur
-- (**webapp**): Fetch teams from API by @anupcowkur
-- (**webapp**): Update TeamSwitcher layout by @anupcowkur
-- (**webapp**): Add new line by @anupcowkur
-- (**webapp**): Handle metrics api status with enum by @anupcowkur in #208
-- (**webapp**): Handle journey api status with enum by @anupcowkur
-- (**webapp**): Handle filters api status with enum by @anupcowkur
-- (**webapp**): Store & use app id + app name in overview app filter by @anupcowkur
-- (**webapp**): Update date filter pill format in overview page by @anupcowkur in #181
-- (**webapp**): Save filter states in crashes and crash details pages by @anupcowkur
-- (**webapp**): Remove interactivity from FilterPills by @anupcowkur
-- (**webapp**): Save selected filter states in overview page by @anupcowkur in #180
-- (**webapp**): Auth ui improvements (#173) by @detj in #173
-- (**webapp**): Add google auth log (#172) by @detj in #172
-- (**webapp**): Add API key field to Apps page by @anupcowkur in #171
-- (**webapp**): Add basic sign in with github (#168) by @detj
-- (**webapp**): Add Apps page ui by @anupcowkur in #170
-- (**webapp**): Fix indent by @anupcowkur
-- (**webapp**): Add landing page animation for app health section by @anupcowkur in #166
-- (**webapp**): Update landing page hero animation by @anupcowkur
-- (**webapp**): Remove nav right border on small screens by @anupcowkur
-- (**webapp**): Add change team name field to Team page by @anupcowkur
-- (**webapp**): Remove text-center alignment from remove button in team page by @anupcowkur in #161
-- (**webapp**): Fix width of role selector button in team page by @anupcowkur
-- (**webapp**): Fix dropdown components z-index so that they are always on top of other UI by @anupcowkur
-- (**webapp**): Add team page ui by @anupcowkur
-- (**webapp**): Combine thread events into single chart in session replay by @anupcowkur in #155
-- (**webapp**): Show only time on x-axis in session replay by @anupcowkur
-- (**webapp**): Add info fields to session replay by @anupcowkur
-- (**webapp**): Add session replay by @anupcowkur in #151
-- (**webapp**): Add multithread stack traces with accordiong to crash details by @anupcowkur in #148
-- (**webapp**): Add exception count chart instead of rate chart to crash details by @anupcowkur
-- (**webapp**): Add user id to crash details session list by @anupcowkur
-- (**webapp**): Remove hover styling on session list table column by @anupcowkur
-- (**webapp**): Add crash details page by @anupcowkur in #145
-- (**webapp**): Keep side nav link highlighted even when navigating to sub paths by @anupcowkur
-- (**webapp**): Fix user flow tooltip anr length check by @anupcowkur
-- (**webapp**): Fix crash details route by @anupcowkur
-- (**webapp**): Remove unused imports by @anupcowkur
-- (**webapp**): Add selected date filter pill to crashes by @anupcowkur in #133
-- (**webapp**): Add selected filters pills to overview by @anupcowkur
-- (**webapp**): Change grid gap in overview filters by @anupcowkur
-- (**webapp**): Add selected filters pills to crashes by @anupcowkur
-- (**webapp**): Update search field text in crashes by @anupcowkur
-- (**webapp**): Remove network provider and type filter from crashes by @anupcowkur
-- (**webapp**): Add crash list to crashes page by @anupcowkur in #132
-- (**webapp**): Add country, network provider, network type and free search filters to crashes by @anupcowkur
-- (**webapp**): Adjust crashes page padding and element sizes by @anupcowkur
-- (**webapp**): Adjusting overview page padding and element sizes by @anupcowkur
-- (**webapp**): Adjust crash rate chart positioning by @anupcowkur
-- (**webapp**): Add crash rate line chart and app version checkbox dropdown to crashes page by @anupcowkur in #130
-- (**webapp**): Remove unnecessary items-center class on info circle flex wrap by @anupcowkur in #127
-- (**webapp**): Reduce horiontal gap between info circles on smaller screens by @anupcowkur
-- (**webapp**): Remove unnecessary flex-1 from dashboard side nav by @anupcowkur
-- (**webapp**): Change main to div in overview page by @anupcowkur
-- (**webapp**): Make dashboard side nav stick on medium+ screen sizes by @anupcowkur
-- (**webapp**): Add app size info circle to overview by @anupcowkur
-- (**webapp**): Update app adoption tooltip text in overview by @anupcowkur
-- (**webapp**): Add warm and hot launch time to overview by @anupcowkur
-- (**webapp**): Update user flow tooltips with issues and ui changes by @anupcowkur in #125
-- (**webapp**): Adjust user flow diagram margins by @anupcowkur
-- (**webapp**): Make tooltip show up only on hover over info circle by @anupcowkur
-- (**webapp**): Add hover effects for info circles by @anupcowkur
-- (**webapp**): Adjust tooltip positioning for info circles by @anupcowkur
-- (**webapp**): Add multiple crash & ANR info circles by @anupcowkur
-- (**webapp**): Add tooltips to info circles by @anupcowkur
-- (**webapp**): Add user flow diagram to overview by @anupcowkur in #117
-- (**webapp**): Reduce text size for delta value in info circles by @anupcowkur
-- (**webapp**): Add version users & total users for to adoption info circle by @anupcowkur
-- (**webapp**): Add info circles to overview by @anupcowkur in #111
-- (**webapp**): Add high level filters for ovrview page by @anupcowkur in #102
-- (**webapp**): Add team switcher to side nav by @anupcowkur
-- (**webapp**): Change z-index and bg color for dropdown component by @anupcowkur
-- (**webapp**): Change side nav selected button color to neutral-950 by @anupcowkur
-- (**webapp**): Add side nav with dashboard page links by @anupcowkur in #83
-- (**webapp**): Adjust landing page spacing by @anupcowkur in #65
-- (**webapp**): Add hero animation to landing page by @anupcowkur in #63
+- (**webapp**): Remove unnecessary 'text-black' classes
+- (**webapp**): Handle invalid invites
+- (**webapp**): Rename variables for clarity
+- (**webapp**): Fetch team from API in Team page
+- (**webapp**): Format code
+- (**webapp**): Set session on invite redirect
+- (**webapp**): Remove old auth handler
+- (**webapp**): Add logout
+- (**webapp**): Modify github signin
+- (**webapp**): Modify supabase auth routes
+- (**webapp**): Add new environment variable
+- (**webapp**): Upgrade dependencies
+- (**webapp**): Update supabase email templates
+- (**webapp**): Adjust spacing in Apps page
+- (**webapp**): Update spacing in Apps page
+- (**webapp**): Update ui + add comments to overview page ui
+- (**webapp**): Update CreateApp ui
+- (**webapp**): Open first step of create app setup by default
+- (**webapp**): Use &apos instead of apostrophe
+- (**webapp**): Add CreateApp component
+- (**webapp**): Add example env var (#225)
+- (**webapp**): Improve sign-in flow error handling (#221)
+- (**webapp**): Handle error on logout (#222)
+- (**webapp**): Remove unused function
+- (**webapp**): Use env variable for API base URL
+- (**webapp**): Improve error message in UserFlow
+- (**webapp**): Fetch apps list in overview from API
+- (**webapp**): Disable react hooks exhaustive deps rule
+- (**webapp**): Store selected team state in side nav
+- (**webapp**): Fix indent in Dropdown component
+- (**webapp**): Add onChangeSelectedItemListener & initialItemIndex params to TeamSwitcher
+- (**webapp**): Fetch teams from API
+- (**webapp**): Update TeamSwitcher layout
+- (**webapp**): Add new line
+- (**webapp**): Handle metrics api status with enum
+- (**webapp**): Handle journey api status with enum
+- (**webapp**): Handle filters api status with enum
+- (**webapp**): Store & use app id + app name in overview app filter
+- (**webapp**): Update date filter pill format in overview page
+- (**webapp**): Save filter states in crashes and crash details pages
+- (**webapp**): Remove interactivity from FilterPills
+- (**webapp**): Save selected filter states in overview page
+- (**webapp**): Auth ui improvements (#173)
+- (**webapp**): Add google auth log (#172)
+- (**webapp**): Add API key field to Apps page
+- (**webapp**): Add basic sign in with github (#168)
+- (**webapp**): Add Apps page ui
+- (**webapp**): Fix indent
+- (**webapp**): Add landing page animation for app health section
+- (**webapp**): Update landing page hero animation
+- (**webapp**): Remove nav right border on small screens
+- (**webapp**): Add change team name field to Team page
+- (**webapp**): Remove text-center alignment from remove button in team page
+- (**webapp**): Fix width of role selector button in team page
+- (**webapp**): Fix dropdown components z-index so that they are always on top of other UI
+- (**webapp**): Add team page ui
+- (**webapp**): Combine thread events into single chart in session replay
+- (**webapp**): Show only time on x-axis in session replay
+- (**webapp**): Add info fields to session replay
+- (**webapp**): Add session replay
+- (**webapp**): Add multithread stack traces with accordiong to crash details
+- (**webapp**): Add exception count chart instead of rate chart to crash details
+- (**webapp**): Add user id to crash details session list
+- (**webapp**): Remove hover styling on session list table column
+- (**webapp**): Add crash details page
+- (**webapp**): Keep side nav link highlighted even when navigating to sub paths
+- (**webapp**): Fix user flow tooltip anr length check
+- (**webapp**): Fix crash details route
+- (**webapp**): Remove unused imports
+- (**webapp**): Add selected date filter pill to crashes
+- (**webapp**): Add selected filters pills to overview
+- (**webapp**): Change grid gap in overview filters
+- (**webapp**): Add selected filters pills to crashes
+- (**webapp**): Update search field text in crashes
+- (**webapp**): Remove network provider and type filter from crashes
+- (**webapp**): Add crash list to crashes page
+- (**webapp**): Add country, network provider, network type and free search filters to crashes
+- (**webapp**): Adjust crashes page padding and element sizes
+- (**webapp**): Adjusting overview page padding and element sizes
+- (**webapp**): Adjust crash rate chart positioning
+- (**webapp**): Add crash rate line chart and app version checkbox dropdown to crashes page
+- (**webapp**): Remove unnecessary items-center class on info circle flex wrap
+- (**webapp**): Reduce horiontal gap between info circles on smaller screens
+- (**webapp**): Remove unnecessary flex-1 from dashboard side nav
+- (**webapp**): Change main to div in overview page
+- (**webapp**): Make dashboard side nav stick on medium+ screen sizes
+- (**webapp**): Add app size info circle to overview
+- (**webapp**): Update app adoption tooltip text in overview
+- (**webapp**): Add warm and hot launch time to overview
+- (**webapp**): Update user flow tooltips with issues and ui changes
+- (**webapp**): Adjust user flow diagram margins
+- (**webapp**): Make tooltip show up only on hover over info circle
+- (**webapp**): Add hover effects for info circles
+- (**webapp**): Adjust tooltip positioning for info circles
+- (**webapp**): Add multiple crash & ANR info circles
+- (**webapp**): Add tooltips to info circles
+- (**webapp**): Add user flow diagram to overview
+- (**webapp**): Reduce text size for delta value in info circles
+- (**webapp**): Add version users & total users for to adoption info circle
+- (**webapp**): Add info circles to overview
+- (**webapp**): Add high level filters for ovrview page
+- (**webapp**): Add team switcher to side nav
+- (**webapp**): Change z-index and bg color for dropdown component
+- (**webapp**): Change side nav selected button color to neutral-950
+- (**webapp**): Add side nav with dashboard page links
+- (**webapp**): Adjust landing page spacing
+- (**webapp**): Add hero animation to landing page
 
 ### :recycle: Refactor
 
@@ -1716,7 +1716,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Rename files by @detj
 - (**backend**): Add measure pkg by @detj
 - (**backend**): Move server into its own package by @detj in #268
-- (**backend**): Update team apps get api by @detj
+- (**backend**): Update team apps get api
 - (**webapp**): Format by @detj
 
 ### :books: Documentation
@@ -1810,9 +1810,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update postgres readme by @detj
 - (**backend**): Update postgres readme by @detj
 - (**backend**): Update readme by @detj
-- (**backend**): Update self host guide by @detj
-- (**backend**): Add launch time metrics by @detj in #205
-- (**backend**): Fix a mistake by @detj
+- (**backend**): Update self host guide
+- (**backend**): Add launch time metrics
+- (**backend**): Fix a mistake
 - Add team section to README by @anupcowkur in #1077
 - Update README.md by @anupcowkur in #1065
 - Update contributing.md (#1059) by @detj in #1059
@@ -1879,30 +1879,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update sdk api docs by @detj
 - Remove unused target_user_readable_name from gesture_click by @abhaysood in #483
 - Update self-host guide (#384) by @detj in #384
-- Update self-host guide (#214) by @detj in #214
-- Update self-host readme by @detj
-- Update docs by @detj
-- Update api docs (#191) by @detj in #191
-- Talk about session idempotency (#61) by @detj in #61
-- Throw some light on tailing clickhouse logs (#60) by @detj in #60
-- Update contribution guide (#53) by @detj in #53
-- Improve self hosting guide by @detj
-- Improve self hosting docs by @detj
-- Wrote basic self hosting guide by @detj
-- Improve meaning by @detj
-- Improve meaning by @detj
-- Improve meaning by @detj
-- Improve meaning by @detj
-- Add success & failure response shapes by @detj
-- Improve meaning by @detj
-- Improve meaning by @detj
-- Add charset utf8 by @detj
-- Fix formatting by @detj
-- Add named anchors by @detj
-- Fix links by @detj
-- Add basic api docs by @detj
-- Update measure-go readme by @detj
-- Add contributing file by @detj
+- Update self-host guide (#214)
+- Update self-host readme
+- Update docs
+- Update api docs (#191)
+- Talk about session idempotency (#61)
+- Throw some light on tailing clickhouse logs (#60)
+- Update contribution guide (#53)
+- Improve self hosting guide
+- Improve self hosting docs
+- Wrote basic self hosting guide
+- Improve meaning
+- Improve meaning
+- Improve meaning
+- Improve meaning
+- Add success & failure response shapes
+- Improve meaning
+- Improve meaning
+- Add charset utf8
+- Fix formatting
+- Add named anchors
+- Fix links
+- Add basic api docs
+- Update measure-go readme
+- Add contributing file
 - (**webapp**): Replace team/:id/invite docs with /auth/invite docs by @anupcowkur in #367
 - (**webapp**): Add API docs for crash & ANR groups APIs by @anupcowkur in #350
 
