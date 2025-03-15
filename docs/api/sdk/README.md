@@ -774,7 +774,7 @@ Use the `cpu_usage` type for CPU usage of a Linux based OS.
 | Field              | Type    | Optional | Description                                                         |
 | ------------------ | :------ | :------- | ------------------------------------------------------------------- |
 | `num_cores`        | uint8   | No       | Number of cores in the device.                                      |
-| `clock_speed`      | uint32  | No       | Clock speed of the device, in Hz.                                   |
+| `clock_speed`      | uint64  | No       | Clock speed of the device, in Hz.                                   |
 | `uptime`           | uint64  | No       | Time since the device booted, in ms.                                |
 | `utime`            | uint64  | No       | Time spent executing code in user mode, in Jiffies.                 |
 | `stime`            | uint64  | No       | Time spent executing code in kernel mode, in Jiffies.               |

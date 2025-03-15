@@ -535,7 +535,7 @@ type TrimMemory struct {
 
 type CPUUsage struct {
 	NumCores        uint8   `json:"num_cores" binding:"required"`
-	ClockSpeed      uint32  `json:"clock_speed" binding:"required"`
+	ClockSpeed      uint64  `json:"clock_speed" binding:"required"`
 	StartTime       uint64  `json:"start_time" binding:"required"`
 	Uptime          uint64  `json:"uptime" binding:"required"`
 	UTime           uint64  `json:"utime" binding:"required"`
