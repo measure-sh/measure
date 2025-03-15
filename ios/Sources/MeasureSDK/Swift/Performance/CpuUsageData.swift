@@ -9,7 +9,7 @@ import Foundation
 
 struct CpuUsageData: Codable {
     let numCores: UInt8
-    let clockSpeed: UInt32
+    let clockSpeed: UInt64
     let startTime: Int
     let uptime: Int
     let utime: Int
