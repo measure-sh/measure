@@ -89,9 +89,13 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				if info.Size() < 1 {
 					return fmt.Errorf("%q has empty build.toml. check %q", app.FullName(), rel)
 				}
-				build := &Build{
-					VersionCode: code,
+				_, ok := app.Builds[code]
+				if !ok {
+					app.Builds[code] = &Build{
+						VersionCode: code,
+					}
 				}
+				build := app.Builds[code]
 				if err := app.ReadBuild(path, &build.BuildInfo); err != nil {
 					return err
 				}
@@ -101,8 +105,6 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				if build.BuildInfo.Type == "" {
 					return fmt.Errorf("%q has empty build type. check %q", app.FullName(), rel)
 				}
-
-				app.Builds[code] = build
 			}
 
 			proguardMapping, err := filepath.Match("*/*/*/mapping.txt", rel)
@@ -117,6 +119,13 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				}
 				if info.Size() < 1 {
 					return fmt.Errorf("%q has empty mapping.txt file. check %q", app.FullName(), rel)
+				}
+
+				_, ok := app.Builds[code]
+				if !ok {
+					app.Builds[code] = &Build{
+						VersionCode: code,
+					}
 				}
 
 				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)
@@ -137,7 +146,9 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				}
 				_, ok := app.Builds[code]
 				if !ok {
-					return fmt.Errorf("failed to create build for code: %s", code)
+					app.Builds[code] = &Build{
+						VersionCode: code,
+					}
 				}
 
 				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)

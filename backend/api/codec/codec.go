@@ -12,7 +12,7 @@ import (
 
 // IsTarGz validates that the expected file
 // is a valid gzipped tarball.
-func IsTarGz(file io.Reader) (err error) {
+func IsTarGz(file io.ReadSeeker) (err error) {
 	// check if gzip file
 	gzipReader, err := gzip.NewReader(file)
 	if err != nil {
@@ -31,6 +31,12 @@ func IsTarGz(file io.Reader) (err error) {
 	_, err = tarReader.Next()
 	if err != nil {
 		err = errors.Join(errors.New("not a valid tar file"), err)
+		return
+	}
+
+	// important to seek the file pointer
+	// to the very start
+	if _, err = file.Seek(0, 0); err != nil {
 		return
 	}
 

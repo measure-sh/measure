@@ -257,7 +257,7 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		// if we haven't figured out
 		// platform already.
 		if e.platform == "" {
-			e.platform = e.events[0].Attribute.Platform
+			e.platform = ev.Attribute.Platform
 		}
 
 		e.events = append(e.events, ev)
