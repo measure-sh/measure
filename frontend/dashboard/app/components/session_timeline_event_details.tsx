@@ -82,7 +82,7 @@ export default function SessionTimelineEventDetails({
 
   function getAttachmentsFromEventDetails(): ReactNode {
     if (eventDetails.attachments !== undefined && eventDetails.attachments !== null && eventDetails.attachments.length > 0) {
-      if ((eventType === "exception" && eventDetails.user_triggered === false) || eventType === 'anr' || eventType === 'gesture_click' || eventType === 'bug_report') {
+      if ((eventType === "exception" && eventDetails.user_triggered === false) || eventType === 'anr' || eventType === 'gesture_click' || eventType === 'gesture_long_click' || eventType === 'gesture_scroll' || eventType === 'bug_report') {
         return (
           <div className='flex flex-wrap gap-8 px-4 pt-4 items-center'>
             {eventDetails.attachments.map((attachment: {
