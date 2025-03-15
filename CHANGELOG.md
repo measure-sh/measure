@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Send attachments for more gesture events by @detj
 - (**backend**): Clean more resources in sessionator (#1899) by @detj in #1899
 - (**backend**): Update go deps (#1896) by @detj in #1896
 - (**backend**): Update go toolchain version (#1894) by @detj in #1894
@@ -67,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump nanoid from 3.3.7 to 3.3.8 in /frontend/dashboard (#1708) by @dependabot[bot] in #1708
 - (**deps**): Bump golang.org/x/crypto in /backend/cleanup (#1707) by @dependabot[bot] in #1707
 - (**deps**): Bump golang.org/x/crypto in /backend/api (#1701) by @dependabot[bot] in #1701
+- (**frontend**): Render attachments for more gesture events by @detj in #1910
 - (**frontend**): Refactor FiltersApiType to FilterSource by @anupcowkur in #1883
 - (**frontend**): Upgrade to nivo 0.88 by @anupcowkur in #1880
 - (**frontend**): Update to tailwind 4.0 with dashboard container file sync by @anupcowkur in #1870
