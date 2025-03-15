@@ -81,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Allow unchecking last item in dropdown select if "None" is available by @anupcowkur in #1760
 - (**frontend**): Remove "None" for app version selection by @anupcowkur in #1757
 - (**frontend**): Update landing page + readme with perf traces by @anupcowkur in #1697
+- Add sessionator data (#1908) by @adwinross in #1908
 - Improve automated changelog formatting (#1706) by @detj in #1706
 
 ### :books: Documentation
