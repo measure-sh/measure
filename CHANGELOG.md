@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Fixed an issue where clock_speed validation was failing for iOS (#1907) by @detj in #1907
 - (**backend**): Fix errors in sessionator record & ingest (#1902) by @detj in #1902
 - (**backend**): Codeql integer conversion error (#1897) by @detj in #1897
 - (**backend**): Sessionator would fail deleting objects (#1891) by @detj in #1891
