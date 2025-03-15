@@ -46,6 +46,7 @@ type GestureLongClick struct {
 	X           float32            `json:"x"`
 	Y           float32            `json:"y"`
 	Timestamp   time.Time          `json:"timestamp"`
+	Attachments []event.Attachment `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -74,6 +75,7 @@ type GestureScroll struct {
 	EndY        float32            `json:"end_y"`
 	Direction   string             `json:"direction"`
 	Timestamp   time.Time          `json:"timestamp"`
+	Attachments []event.Attachment `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -126,6 +128,7 @@ func ComputeGestureLongClicks(events []event.EventField) (result []ThreadGrouper
 			event.GestureLongClick.X,
 			event.GestureLongClick.Y,
 			event.Timestamp,
+			event.Attachments,
 		}
 		result = append(result, gestureLongClicks)
 	}
@@ -149,6 +152,7 @@ func ComputeGestureScrolls(events []event.EventField) (result []ThreadGrouper) {
 			event.GestureScroll.EndY,
 			event.GestureScroll.Direction,
 			event.Timestamp,
+			event.Attachments,
 		}
 		result = append(result, gestureScrolls)
 	}

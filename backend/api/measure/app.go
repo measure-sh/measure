@@ -1891,15 +1891,36 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			ev.LogString = &logString
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureLongClick:
+			// only unmarshal attachments if more than
+			// 8 characters
+			if len(attachments) > 8 {
+				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+					return nil, err
+				}
+			}
 			ev.GestureLongClick = &gestureLongClick
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureClick:
+			// only unmarshal attachments if more than
+			// 8 characters
+			if len(attachments) > 8 {
+				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+					return nil, err
+				}
+			}
 			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
 				return nil, err
 			}
 			ev.GestureClick = &gestureClick
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureScroll:
+			// only unmarshal attachments if more than
+			// 8 characters
+			if len(attachments) > 8 {
+				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+					return nil, err
+				}
+			}
 			ev.GestureScroll = &gestureScroll
 			session.Events = append(session.Events, ev)
 		case event.TypeLifecycleActivity:
