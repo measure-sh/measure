@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 402 874">
+    <defs>
+        <pattern id="d" width="24" height="24" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <line y1="0" y2="24" stroke="#fef08a" stroke-width="3"/>
+        </pattern>
+        <linearGradient id="text-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#fef08a;stop-opacity:0.1"/>
+            <stop offset="100%" style="stop-color:#fef08a;stop-opacity:0.05"/>
+        </linearGradient>
+        <style>
+            .base-rect { fill: none; }
+            .grey-rect { stroke: #64748b; stroke-width: 2; }
+            .text-rect { fill: url(#text-gradient); }
+            .target-rect { fill: url(#d); stroke: #fef08a; stroke-width: 3; }
+        </style>
+    </defs>
+    <g>
+        <rect width="100%" height="100%" fill="#262626"/><g class="base-rect grey-rect"><rect x="0" y="0" width="402" height="874"/><rect x="135" y="100" width="130" height="31"/><rect x="135" y="100" width="65" height="31"/><rect x="200" y="100" width="1" height="31"/><rect x="201" y="100" width="64" height="31"/><rect x="266" y="100" width="1" height="31"/><rect x="132" y="97" width="71" height="37"/><rect x="211" y="108" width="46" height="15"/><rect x="154" y="108" width="27" height="15"/><rect x="176" y="147" width="51" height="31"/><rect x="176" y="147" width="510" height="31"/><rect x="215" y="163" width="0" height="0"/><rect x="188" y="163" width="0" height="0"/><rect x="190" y="144" width="43" height="43"/><rect x="182" y="194" width="37" height="37"/><rect x="142" y="247" width="117" height="40"/><rect x="154" y="254" width="93" height="26"/><rect x="122" y="303" width="157" height="40"/><rect x="134" y="310" width="133" height="26"/><rect x="0" y="56" width="402" height="44"/><rect x="0" y="-5" width="402" height="106"/><rect x="0" y="100" width="402" height="0"/><rect x="386" y="56" width="8" height="44"/><rect x="0" y="56" width="189" height="44" class="target-rect"/><rect x="30" y="65" width="159" height="25"/><rect x="30" y="66" width="159" height="24"/><rect x="8" y="64" width="19" height="28"/><rect x="24" y="56" width="165" height="44"/><rect x="7" y="66" width="16" height="23"/><rect x="0" y="56" width="0" height="0"/><rect x="0" y="874" width="402" height="49"/><rect x="0" y="874" width="402" height="83"/><rect x="0" y="873" width="402" height="0"/><rect x="0" y="874" width="0" height="0"/></g></g></svg>
