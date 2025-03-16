@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Clean up event batches stuck for a long time (#1770) by @detj in #1770
 - (**backend**): Only apply span statuses where clause if available by @anupcowkur in #1764
 - (**backend**): Query all user defined attributes (#1738) by @detj in #1738
+- (**frontend**): Improve crash display for ios (#1916) by @detj in #1916
 - (**frontend**): Handle session timeline with no events by @anupcowkur in #1898
 - (**frontend**): Handle no events selected case in session timeline by @anupcowkur in #1836
 - (**frontend**): Make user def attr dropdown stay in viewport by @anupcowkur in #1784
