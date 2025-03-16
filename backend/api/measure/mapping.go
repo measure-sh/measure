@@ -432,9 +432,9 @@ func (bm *BuildMapping) extractDif() (err error) {
 				return errExtract
 			}
 
-			for k, v := range entities {
-				if k == symbol.TypeDsymDebug {
-					bm.MappingFiles[i].Difs = append(bm.MappingFiles[i].Difs, v...)
+			for _, entity := range entities {
+				for _, difs := range entity {
+					bm.MappingFiles[i].Difs = append(bm.MappingFiles[i].Difs, difs)
 				}
 			}
 		}
