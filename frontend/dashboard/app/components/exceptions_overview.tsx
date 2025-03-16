@@ -141,7 +141,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
                   <div className="table-cell p-4">
                     <p className='truncate'>{(file_name !== "" ? file_name : "unknown_file") + ": " + (method_name !== "" ? method_name : "unknown_method") + "()"}</p>
                     <div className='py-1' />
-                    <p className='text-xs truncate text-gray-500'>{type + ":" + message}</p>
+                    <p className='text-xs truncate text-gray-500'>{`${type}${message ? `:${message}` : ''}`}</p>
                   </div>
                   <div className="table-cell p-4 text-center">{count}</div>
                   <div className="table-cell p-4 text-center">{percentage_contribution}%</div>
