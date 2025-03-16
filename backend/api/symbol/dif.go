@@ -66,7 +66,7 @@ type Dif struct {
 // ExtractDsymEntities extracts data from Mach-O
 // binary by reading a gzipped tarball while
 // matching a caller provided predicate.
-func ExtractDsymEntities(file io.Reader, filter func(string) (DsymType, bool)) (entities map[DsymType][]*Dif, err error) {
+func ExtractDsymEntities(file io.Reader, filter func(string) (DsymType, bool)) (entities [][]*Dif, err error) {
 	gzipReader, err := gzip.NewReader(file)
 	if err != nil {
 		return
@@ -93,11 +93,7 @@ func ExtractDsymEntities(file io.Reader, filter func(string) (DsymType, bool)) (
 			continue
 		}
 
-		if dSYMType, ok := filter(header.Name); ok {
-			if entities == nil {
-				entities = make(map[DsymType][]*Dif)
-			}
-
+		if _, ok := filter(header.Name); ok {
 			debugBytes, err := io.ReadAll(tarReader)
 			if err != nil {
 				return nil, err
@@ -160,7 +156,7 @@ func ExtractDsymEntities(file io.Reader, filter func(string) (DsymType, bool)) (
 				},
 			}
 
-			entities[dSYMType] = difs
+			entities = append(entities, difs)
 		}
 	}
 

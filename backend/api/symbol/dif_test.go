@@ -3,7 +3,6 @@ package symbol
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -49,7 +48,6 @@ func TestExtractDsymEntities(t *testing.T) {
 			symbolCondition := strings.Count(name, "Contents/Resources/") == 1 && !strings.HasSuffix(name, ".dSYM") && len(parts) == 5 && !strings.HasPrefix(last, "._")
 
 			if symbolCondition {
-				fmt.Println("name", name)
 				return TypeDsymDebug, true
 			}
 
@@ -75,8 +73,8 @@ func TestExtractDsymEntities(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		expected := map[DsymType][]*Dif{
-			TypeDsymDebug: {
+		expected := [][]*Dif{
+			{
 				{
 					Data: debugBytes,
 					Meta: false,
@@ -91,33 +89,33 @@ func TestExtractDsymEntities(t *testing.T) {
 		}
 
 		// assertions for debuginfo
-		if len(expected[TypeDsymDebug][0].Data) != len(got[TypeDsymDebug][0].Data) {
-			t.Errorf("Expected %d length, but got %d", len(expected[TypeDsymDebug][0].Data), len(got[TypeDsymDebug][0].Data))
+		if len(expected[0][0].Data) != len(got[0][0].Data) {
+			t.Errorf("Expected %d length, but got %d", len(expected[0][0].Data), len(got[0][0].Data))
 		}
 
-		if !bytes.Equal(expected[TypeDsymDebug][0].Data, got[TypeDsymDebug][0].Data) {
-			t.Errorf("Expected debuginfo bytes %v, but got %v", expected[TypeDsymDebug][0].Data, got[TypeDsymDebug][0].Data)
+		if !bytes.Equal(expected[0][0].Data, got[0][0].Data) {
+			t.Errorf("Expected debuginfo bytes %v, but got %v", expected[0][0].Data, got[0][0].Data)
 		}
 
-		if expected[TypeDsymDebug][0].Meta != got[TypeDsymDebug][0].Meta {
-			t.Errorf("Expected meta %v, but got %v", expected[TypeDsymDebug][0].Meta, got[TypeDsymDebug][0].Meta)
+		if expected[0][0].Meta != got[0][0].Meta {
+			t.Errorf("Expected meta %v, but got %v", expected[0][0].Meta, got[0][0].Meta)
 		}
 
-		if expected[TypeDsymDebug][0].Key != got[TypeDsymDebug][0].Key {
-			t.Errorf("Expected debuginfo key %v, but got %v", expected[TypeDsymDebug][0].Key, got[TypeDsymDebug][0].Key)
+		if expected[0][0].Key != got[0][0].Key {
+			t.Errorf("Expected debuginfo key %v, but got %v", expected[0][0].Key, got[0][0].Key)
 		}
 
 		// assertions for meta file
-		if !bytes.Equal(expected[TypeDsymDebug][1].Data, got[TypeDsymDebug][1].Data) {
-			t.Errorf("Expected meta bytes %v, but got %v", expected[TypeDsymDebug][1].Data, got[TypeDsymDebug][1].Data)
+		if !bytes.Equal(expected[0][1].Data, got[0][1].Data) {
+			t.Errorf("Expected meta bytes %v, but got %v", expected[0][1].Data, got[0][1].Data)
 		}
 
-		if expected[TypeDsymDebug][1].Meta != got[TypeDsymDebug][1].Meta {
-			t.Errorf("Expected meta %v, but got %v", expected[TypeDsymDebug][1].Meta, got[TypeDsymDebug][1].Meta)
+		if expected[0][1].Meta != got[0][1].Meta {
+			t.Errorf("Expected meta %v, but got %v", expected[0][1].Meta, got[0][1].Meta)
 		}
 
-		if expected[TypeDsymDebug][1].Key != got[TypeDsymDebug][1].Key {
-			t.Errorf("Expected key %v, but got %v", expected[TypeDsymDebug][1].Key, got[TypeDsymDebug][1].Key)
+		if expected[0][1].Key != got[0][1].Key {
+			t.Errorf("Expected key %v, but got %v", expected[0][1].Key, got[0][1].Key)
 		}
 	}
 }
