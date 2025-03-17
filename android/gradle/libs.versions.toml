@@ -1,5 +1,5 @@
 [versions]
-agp = "8.7.3"
+agp = "8.9.0"
 # This is the lowest version of AGP supported by the measure gradle plugin
 agp741 = "7.4.1"
 bundletool = "1.17.0"
@@ -15,7 +15,7 @@ measure-android = "0.10.0-SNAPSHOT"
 androidx-activity-compose = "1.7.2"
 androidx-appcompat = "1.6.1"
 androidx-constraintlayout = "2.1.4"
-androidx-core-ktx = "1.15.0"
+androidx-core-ktx = "1.13.1"
 androidx-junit = "1.1.5"
 androidx-compose-ui = "1.4.3"
 androidx-compose-material3 = "1.0.1"
@@ -50,7 +50,7 @@ kolinx-binary-compatibility-validator = "0.13.2"
 diffplug-spotless = "6.24.0"
 compose-plugin = "1.5.11"
 gradle-plugin-publish = "1.2.0"
-autonomousapps-testkit = "0.10"
+autonomousapps-testkit = "0.12"
 mavenPublish = "0.29.0"
 
 [libraries]
