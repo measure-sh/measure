@@ -563,10 +563,13 @@ func (s Symbolicator) rewriteN(evs []event.EventField) {
 			n := entry[5]
 			switch evs[i].Type {
 			case event.TypeException, event.TypeANR:
-				exceptions := evs[i].Exception.Exceptions
-				threads := evs[i].Exception.Threads
+				var exceptions event.ExceptionUnits
+				var threads event.Threads
 
-				if evs[i].IsANR() {
+				if evs[i].IsException() {
+					exceptions = evs[i].Exception.Exceptions
+					threads = evs[i].Exception.Threads
+				} else if evs[i].IsANR() {
 					exceptions = evs[i].ANR.Exceptions
 					threads = evs[i].ANR.Threads
 				}
