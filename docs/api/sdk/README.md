@@ -228,24 +228,25 @@ Measure will use build information like mapping files, build sizes uploaded via 
 
 List of all the fields of the multipart request.
 
-| Field          | Type   | Optional | Comment                                                           |
-| -------------- | ------ | -------- | ----------------------------------------------------------------- |
-| `version_name` | string | No       | Version name of the build. Like "1.0"                             |
-| `version_code` | string | No       | Version code of the build. Like "999"                             |
-| `mapping_type` | string | Yes      | Type of the mapping file. `proguard` for Android, `dsym` for iOS. |
-| `mapping_file` | string | Yes      | File bytes of mapping file                                        |
-| `build_size`   | string | No       | Size of app in bytes                                              |
-| `build_type`   | string | No       | Type of the build. `aab` for Android, `ipa` for iOS.              |
-| `platform`     | string | Yes      | Platform of the app. `android` for Android, `ios` for iOS.        |
+| Field          | Type   | Optional | Comment                                                                       |
+| -------------- | ------ | -------- | ----------------------------------------------------------------------------- |
+| `version_name` | string | No       | Version name of the build. Like "1.0"                                         |
+| `version_code` | string | No       | Version code of the build. Like "999"                                         |
+| `mapping_type` | string | Yes      | Type of the mapping file.<br />- `proguard` for Android<br />- `dsym` for iOS |
+| `mapping_file` | string | Yes      | File bytes of mapping file.<br />Can be repeated for each mapping file.       |
+| `build_size`   | string | No       | Size of app in bytes                                                          |
+| `build_type`   | string | No       | Type of the build.<br />- `aab` for Android<br />- `ipa` for iOS              |
+| `platform`     | string | Yes      | Platform of the app.<br />- `android` for Android<br />- `ios` for iOS        |
 
 - Mapping file size should not exceed **512 MiB**.
 - `mapping_type` &amp; `mapping_file` are optional. Both need to be present for mapping file uploads to work.
 - `version_name`, `version_code`, `build_size` &amp; `build_type` are required and cannot be skipped.
-- Uploading a previously uploaded mapping file with exact contents for the same combination of `version_name`, `version_code`, `mapping_type` replaces the older mapping file.
+- Uploading a previously uploaded mapping file with exact contents for the same combination of `version_name`, `version_code`, `mapping_type` replaces the older mapping file(s).
 - Putting `build_size` for the same `version_name`, `version_code` and `build_type` combination replaces the last size with the latest size.
 - Depending on the platform, `mapping_type` can be `proguard` for Android or `dsym` for iOS.
 - Depending on the platform, `build_type` can be `aab` for Android or `ipa` for iOS.
 - Multiple `mapping_file` is accepted. iOS builds will typically utilize multiple dSYM mapping files.
+- Each mapping file for iOS must be gzipped tarball of `dSYM` bundles ending with a `.tgz` file extension.
 
 #### Authorization \& Content Type
 
@@ -261,7 +262,7 @@ List of all the fields of the multipart request.
 
   ```json
   {
-    "ok": "uploaded mapping file: <filename.extension>"
+    "ok": "uploaded build info"
   }
   ```
 
@@ -299,6 +300,10 @@ Content-Disposition: form-data; name="build_size"
 Content-Disposition: form-data; name="build_type"
 
 aab
+--boundary
+Content-Disposition: form-data; name="platform"
+
+android
 ```
 
 </details>
@@ -403,11 +408,11 @@ Events can optionally contain attributes defined by the SDK user. A `user_define
 
 Attachments are arbitrary files associated with the session each having the following properties.
 
-| Field  | Type   | Optional | Comment                                                                 |
-| ------ | ------ | -------- | ----------------------------------------------------------------------- |
-| `id`   | string | No       | id of the attachment                                                    |
-| `name` | string | No       | name of the attachment                                                  |
-| `type` | string | No       | One of the following:<br />- `screenshot`<br />- `android_method_trace` |
+| Field  | Type   | Optional | Comment                                                                                          |
+| ------ | ------ | -------- | ------------------------------------------------------------------------------------------------ |
+| `id`   | string | No       | id of the attachment                                                                             |
+| `name` | string | No       | name of the attachment                                                                           |
+| `type` | string | No       | One of the following:<br />- `screenshot`<br />- `android_method_trace`<br />- `layout_snapshot` |
 
 ### Events
 
