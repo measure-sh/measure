@@ -6,7 +6,10 @@
 * [Getting started](#getting-started)
 * [Crash Reporting](#crash-reporting)
 * [Custom events](#custom-events)
-  * [Screen view](#screen-view)
+  * [ScreenView](#screen-view)
+  * [SwiftUI Lifecycle](#swiftui-lifecycle)
+  * [ViewController Lifecycle](#viewcontroller-lifecycle)
+  * [Network Monitoring](#network-monitoring)
 * [Features](#features)
 * [Session](#session)
 
@@ -235,20 +238,20 @@ You can also track `loadView` and `deinit`/`dealloc` by inheriting from `Measure
 Measure SDK automatically monitors all API calls happening in the app. You can view the collected HTTP data [here](../docs/api/sdk/README.md#http).  
 This is achieved by swizzling `NSURLSessionTask`'s `setState:` method. However, there is one limitation: **response bodies cannot be tracked** using this method.  
 
-If you also want to track response bodies, you can use `NetworkInterceptor`.  
-The `NetworkInterceptor` modifies the provided `URLSessionConfiguration` to inject the `NetworkInterceptorProtocol` into its `protocolClasses`.  
+If you also want to track response bodies, you can use `MsrNetworkInterceptor`.  
+The `MsrNetworkInterceptor` modifies the provided `URLSessionConfiguration` to inject the `NetworkInterceptorProtocol` into its `protocolClasses`.  
 
 If the interceptor is already enabled, subsequent calls to this method will have no effect.  
   
 ```swift
   let config = URLSessionConfiguration.default
-  NetworkInterceptor.enable(on: config)
+  MsrNetworkInterceptor.enable(on: config)
   let session = URLSession(configuration: config)
 ```
 
 ```objc
   NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-  [NetworkInterceptor enableOn:config];
+  [MsrNetworkInterceptor enableOn:config];
   NSURLSession *session = [NSURLSession sessionWithConfiguration:config];
 ```
 

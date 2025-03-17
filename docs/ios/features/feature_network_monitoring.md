@@ -12,11 +12,11 @@ To address the limitation of not being able to track response objects, Measure a
 
 ```swift
 let configuration = URLSessionConfiguration.default
-NetworkInterceptor.enable(on: configuration)
+MsrNetworkInterceptor.enable(on: configuration)
 self.session = URLSession(configuration: configuration)
 ```
 
-If the NetworkInterceptor is enabled for a particular URLSession, automated network tracking is disabled, and only the network requests of the enabled URLSession are tracked.
+If the `MsrNetworkInterceptor` is enabled for a particular URLSession, automated network tracking is disabled, and only the network requests of the enabled URLSession are tracked.
 
 ### Data collected
 

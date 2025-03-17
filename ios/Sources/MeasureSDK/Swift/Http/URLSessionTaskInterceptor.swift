@@ -44,7 +44,7 @@ final class URLSessionTaskInterceptor {
     }
 
     func urlSessionTask(_ task: URLSessionTask, setState state: URLSessionTask.State) { // swiftlint:disable:this cyclomatic_complexity
-        guard !NetworkInterceptor.isEnabled else { return }
+        guard !MsrNetworkInterceptor.isEnabled else { return }
 
         guard let httpInterceptorCallbacks = self.httpInterceptorCallbacks,
               let timeProvider = self.timeProvider,
