@@ -76,7 +76,7 @@
 		526D185F2D5A1913009A2E90 /* HttpData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17DC2D5A1913009A2E90 /* HttpData.swift */; };
 		526D18602D5A1913009A2E90 /* HttpEventCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17DD2D5A1913009A2E90 /* HttpEventCollector.swift */; };
 		526D18612D5A1913009A2E90 /* HttpInterceptorCallbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17DE2D5A1913009A2E90 /* HttpInterceptorCallbacks.swift */; };
-		526D18622D5A1913009A2E90 /* NetworkInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17DF2D5A1913009A2E90 /* NetworkInterceptor.swift */; };
+		526D18622D5A1913009A2E90 /* MsrNetworkInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17DF2D5A1913009A2E90 /* MsrNetworkInterceptor.swift */; };
 		526D18632D5A1913009A2E90 /* NetworkInterceptorProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17E02D5A1913009A2E90 /* NetworkInterceptorProtocol.swift */; };
 		526D18642D5A1913009A2E90 /* URLSessionTaskInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17E12D5A1913009A2E90 /* URLSessionTaskInterceptor.swift */; };
 		526D18652D5A1913009A2E90 /* URLSessionTaskSwizzler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17E22D5A1913009A2E90 /* URLSessionTaskSwizzler.swift */; };
@@ -425,7 +425,7 @@
 		526D17DC2D5A1913009A2E90 /* HttpData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HttpData.swift; sourceTree = "<group>"; };
 		526D17DD2D5A1913009A2E90 /* HttpEventCollector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HttpEventCollector.swift; sourceTree = "<group>"; };
 		526D17DE2D5A1913009A2E90 /* HttpInterceptorCallbacks.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HttpInterceptorCallbacks.swift; sourceTree = "<group>"; };
-		526D17DF2D5A1913009A2E90 /* NetworkInterceptor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NetworkInterceptor.swift; sourceTree = "<group>"; };
+		526D17DF2D5A1913009A2E90 /* MsrNetworkInterceptor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MsrNetworkInterceptor.swift; sourceTree = "<group>"; };
 		526D17E02D5A1913009A2E90 /* NetworkInterceptorProtocol.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NetworkInterceptorProtocol.swift; sourceTree = "<group>"; };
 		526D17E12D5A1913009A2E90 /* URLSessionTaskInterceptor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = URLSessionTaskInterceptor.swift; sourceTree = "<group>"; };
 		526D17E22D5A1913009A2E90 /* URLSessionTaskSwizzler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = URLSessionTaskSwizzler.swift; sourceTree = "<group>"; };
@@ -813,7 +813,7 @@
 				526D17DC2D5A1913009A2E90 /* HttpData.swift */,
 				526D17DD2D5A1913009A2E90 /* HttpEventCollector.swift */,
 				526D17DE2D5A1913009A2E90 /* HttpInterceptorCallbacks.swift */,
-				526D17DF2D5A1913009A2E90 /* NetworkInterceptor.swift */,
+				526D17DF2D5A1913009A2E90 /* MsrNetworkInterceptor.swift */,
 				526D17E02D5A1913009A2E90 /* NetworkInterceptorProtocol.swift */,
 				526D17E12D5A1913009A2E90 /* URLSessionTaskInterceptor.swift */,
 				526D17E22D5A1913009A2E90 /* URLSessionTaskSwizzler.swift */,
@@ -1651,7 +1651,7 @@
 				526D183C2D5A1913009A2E90 /* DataCleanupService.swift in Sources */,
 				526D182F2D5A1913009A2E90 /* UserAttributeProcessor.swift in Sources */,
 				526D18482D5A1913009A2E90 /* CustomEventCollector.swift in Sources */,
-				526D18622D5A1913009A2E90 /* NetworkInterceptor.swift in Sources */,
+				526D18622D5A1913009A2E90 /* MsrNetworkInterceptor.swift in Sources */,
 				526D18472D5A1913009A2E90 /* AttachmentType.swift in Sources */,
 				526D186B2D5A1913009A2E90 /* MeasureViewController.swift in Sources */,
 				526D18292D5A1913009A2E90 /* AttributeProcessor.swift in Sources */,
