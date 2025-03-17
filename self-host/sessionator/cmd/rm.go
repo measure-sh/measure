@@ -286,7 +286,7 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 
 	symbolsClient := j.getSymbolsClient(options...)
 	symbolsBucket := aws.String(j.config.Storage["symbols_s3_bucket"])
-	attachmentsClient := j.getAttachmentsClient()
+	attachmentsClient := j.getAttachmentsClient(options...)
 	attachmentsBucket := aws.String(j.config.Storage["attachments_s3_bucket"])
 
 	fmt.Println("removing all app resources")
