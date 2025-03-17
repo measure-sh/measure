@@ -29,7 +29,7 @@ A hot launch occurs when a user reenters your app from either the home screen or
 
 Checkout the data collected by Measure for [Cold Launch](../../api/sdk/README.md#coldlaunch), [Warm Launch](../../api/sdk/README.md#warmlaunch) and [Hot Launch](../../api/sdk/README.md#hotlaunch) sections respectively.
 
-### Further reading
+## Further reading
 
 * [WWDC talk on app startup](https://developer.apple.com/videos/play/wwdc2019/423)
 * [Reducing your app launch time](https://developer.apple.com/documentation/xcode/reducing-your-app-s-launch-time)
