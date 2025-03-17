@@ -91,6 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**backend**): Update sdk api docs (#1918) by @detj in #1918
 - (**backend**): Improve self hosting faq section (#1728) by @detj in #1728
 - (**backend**): Address clickhouse high cpu usage (#1727) by @detj in #1727
 - Update sdk readme (#1118) by @adwinross in #1118
