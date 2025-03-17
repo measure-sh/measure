@@ -11,7 +11,7 @@ import XCTest
 final class GestureTargetFinderTests: XCTestCase {
     var targetFinder: BaseGestureTargetFinder!
     var window: UIWindow!
-    let viewDepth = 1500
+    let viewDepth = 20
 
     override func setUp() {
         super.setUp()
