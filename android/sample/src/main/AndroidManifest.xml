@@ -76,6 +76,9 @@
         <meta-data
             android:name="sh.measure.android.API_URL"
             android:value="http://10.0.2.2:8080" />
+        <meta-data
+            android:name="sh.measure.android.BUILD_API_URL"
+            android:value="http://localhost:8080" />
     </application>
 
 </manifest>

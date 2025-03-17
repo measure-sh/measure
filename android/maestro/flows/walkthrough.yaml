@@ -1,0 +1,129 @@
+# walkthrough.yaml
+
+appId: sh.measure.sample
+---
+- launchApp
+- pressKey: "Home"
+- launchApp
+- tapOn:
+    id: "sh.measure.sample:id/btn_compose"
+- "scroll"
+- tapOn:
+    point: "50%,47%"
+- "scroll"
+- tapOn:
+    point: "50%,53%"
+- "back"
+- tapOn:
+    id: "sh.measure.sample:id/btn_compose_navigation"
+- tapOn: "Checkout"
+- "back"
+- tapOn: "Profile"
+- "back"
+- "back"
+- scrollUntilVisible:
+    direction: "DOWN"
+    element:
+      id: "sh.measure.sample:id/btn_fragment_navigation"
+- tapOn:
+    id: "sh.measure.sample:id/btn_fragment_navigation"
+- tapOn: "PAGE 2"
+- tapOn: "PAGE 3"
+- tapOn: "PAGE 4"
+- tapOn: "PAGE 5"
+- tapOn:
+    id: "sh.measure.sample:id/btn_open_product"
+- tapOn:
+    id: "sh.measure.sample:id/btn_open_checkout"
+- "back"
+- "back"
+- swipe:
+    direction: "RIGHT"
+- swipe:
+    direction: "RIGHT"
+- swipe:
+    direction: "RIGHT"
+- swipe:
+    direction: "RIGHT"
+- "back"
+- scrollUntilVisible:
+    direction: "DOWN"
+    element:
+      id: "sh.measure.sample:id/btn_fragment_androidx_navigation"
+- tapOn:
+    id: "sh.measure.sample:id/btn_fragment_androidx_navigation"
+- tapOn:
+    id: "sh.measure.sample:id/btnOpenFragment2"
+- tapOn:
+    id: "sh.measure.sample:id/btnOpenFragment3"
+- "back"
+- "back"
+- "back"
+- scrollUntilVisible:
+    direction: "DOWN"
+    element:
+      id: "sh.measure.sample:id/btn_nested_fragments"
+- tapOn:
+    id: "sh.measure.sample:id/btn_nested_fragments"
+- "back"
+- scrollUntilVisible:
+    direction: "DOWN"
+    element:
+      id: "sh.measure.sample:id/btn_view_screenshot"
+- tapOn:
+    id: "sh.measure.sample:id/btn_view_screenshot"
+- tapOn: "Email"
+- "inputRandomEmail"
+- tapOn: "Input field"
+- "inputRandomPersonName"
+- hideKeyboard
+- "back"
+- "toggleAirplaneMode"
+- scrollUntilVisible:
+    direction: "DOWN"
+    element:
+      id: "sh.measure.sample:id/btn_compose_screenshot"
+- tapOn:
+    id: "sh.measure.sample:id/btn_compose_screenshot"
+- tapOn:
+    text: "Email"
+    index: 1
+- "inputRandomEmail"
+- hideKeyboard
+- "back"
+- scrollUntilVisible:
+    direction: "DOWN"
+    element:
+      id: "sh.measure.sample:id/btn_launch_bug_report"
+- tapOn:
+    id: "sh.measure.sample:id/btn_launch_bug_report"
+- tapOn:
+    id: "sh.measure.sample:id/et_description"
+- "inputRandomText"
+- hideKeyboard
+- tapOn:
+    id: "sh.measure.sample:id/tv_send"
+- scrollUntilVisible:
+    direction: "DOWN"
+    element:
+      id: "sh.measure.sample:id/btn_okhttp"
+- tapOn:
+    id: "sh.measure.sample:id/btn_okhttp"
+- "back"
+- "toggleAirplaneMode"
+- scrollUntilVisible:
+    direction: "DOWN"
+    element:
+      id: "sh.measure.sample:id/btn_generate_span"
+- tapOn:
+    id: "sh.measure.sample:id/btn_generate_span"
+- scrollUntilVisible:
+    direction: "DOWN"
+    element:
+      id: "sh.measure.sample:id/switch_set_user"
+- tapOn:
+    id: "sh.measure.sample:id/switch_set_user"
+- swipe:
+    direction: "DOWN"
+- pressKey: "Home"
+- launchApp

@@ -1,0 +1,11 @@
+# anr.yaml
+
+appId: sh.measure.sample
+---
+- runFlow: walkthrough.yaml
+- tapOn:
+    id: sh.measure.sample:id/btn_deadlock
+- extendedWaitUntil:
+    visible: "Close app"
+    timeout: 10000
+- launchApp

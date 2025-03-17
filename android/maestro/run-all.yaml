@@ -1,0 +1,11 @@
+# run-all.yaml
+
+appId: sh.measure.sample
+---
+- runFlow: flows/clear-walkthrough.yaml
+- runFlow: flows/crash.yaml
+- runFlow: flows/oom.yaml
+- runFlow: flows/stackoverlow.yaml
+- runFlow: flows/anr.yaml
+- runFlow: flows/walkthrough.yaml
+- runFlow: flows/bug-report-walkthrough.yaml
