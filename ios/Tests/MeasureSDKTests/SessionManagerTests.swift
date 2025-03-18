@@ -56,9 +56,8 @@ final class SessionManagerTests: XCTestCase {
     }
 
     func testSessionCrash_IfSessionIdDoesNotExist() {
-        expectFatalError(expectedMessage: "Session ID is null. Ensure that start() is called before acessing sessionId.") {
-            let _ = self.sessionManager.sessionId // swiftlint:disable:this redundant_discardable_let
-        }
+        let _ = self.sessionManager.sessionId // swiftlint:disable:this redundant_discardable_let
+        XCTAssertEqual(logger.logs.first, "Session ID is null. Ensure that start() is called before accessing sessionId.", "Expected sessionManager to throw an exception.")
     }
 
     func testSessionStart() {

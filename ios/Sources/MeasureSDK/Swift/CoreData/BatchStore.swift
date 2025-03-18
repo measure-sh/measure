@@ -24,7 +24,10 @@ final class BaseBatchStore: BatchStore {
     }
 
     func insertBatch(_ batch: BatchEntity) -> Bool {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return false
+        }
         var insertionSuccessful = false
 
         context.performAndWait { [weak self] in
@@ -46,7 +49,10 @@ final class BaseBatchStore: BatchStore {
     }
 
     func getBatches(_ maxNumberOfBatches: Int) -> [BatchEntity] {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return [BatchEntity]()
+        }
         let fetchRequest: NSFetchRequest<BatchOb> = BatchOb.fetchRequest()
         fetchRequest.fetchLimit = maxNumberOfBatches
 
@@ -73,7 +79,10 @@ final class BaseBatchStore: BatchStore {
     }
 
     func deleteBatch(_ batchId: String) {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return
+        }
         let fetchRequest: NSFetchRequest<BatchOb> = BatchOb.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "batchId == %@", batchId)
         fetchRequest.fetchLimit = 1

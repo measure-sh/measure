@@ -79,9 +79,11 @@ import Foundation
                 measureInternal = MeasureInternal(meaureInitializer)
                 meaureInitializer.logger.log(level: .info, message: "SDK enabled in testing mode.", error: nil, data: nil)
             } else {
-                let meaureInitializer = BaseMeasureInitializer(config: config ?? BaseMeasureConfig(),
-                                                               client: client)
-                measureInternal = MeasureInternal(meaureInitializer)
+                if !client.apiKey.isEmpty {
+                    let meaureInitializer = BaseMeasureInitializer(config: config ?? BaseMeasureConfig(),
+                                                                   client: client)
+                    measureInternal = MeasureInternal(meaureInitializer)
+                }
             }
         }
     }
@@ -149,11 +151,7 @@ import Foundation
             } else if let doubleVal = value as? Double {
                 transformedAttributes[key] = .double(doubleVal)
             } else {
-                #if DEBUG
-                fatalError("Attribute value can only be a string, boolean, integer, or double.")
-                #else
                 logger.log(level: .fatal, message: "Attribute value can only be a string, boolean, integer, or double.", error: nil, data: nil)
-                #endif
             }
         }
 

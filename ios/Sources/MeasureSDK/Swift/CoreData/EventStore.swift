@@ -30,7 +30,10 @@ final class BaseEventStore: EventStore {
     }
 
     func insertEvent(event: EventEntity) {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return
+        }
         context.perform { [weak self] in
             let eventOb = EventOb(context: context)
 
@@ -72,7 +75,10 @@ final class BaseEventStore: EventStore {
     }
 
     func getEvents(eventIds: [String]) -> [EventEntity]? {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return nil
+        }
         let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
         fetchRequest.fetchLimit = eventIds.count
         fetchRequest.predicate = NSPredicate(format: "id IN %@", eventIds)
@@ -120,7 +126,10 @@ final class BaseEventStore: EventStore {
     }
 
     func getEventsForSessions(sessions: [String]) -> [EventEntity]? {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return nil
+        }
         let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessions)
 
@@ -167,7 +176,10 @@ final class BaseEventStore: EventStore {
     }
 
     func deleteEvents(eventIds: [String]) {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return
+        }
         let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
         fetchRequest.fetchLimit = eventIds.count
         fetchRequest.predicate = NSPredicate(format: "id IN %@", eventIds)
@@ -187,7 +199,10 @@ final class BaseEventStore: EventStore {
     }
 
     func getAllEvents() -> [EventEntity]? {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return nil
+        }
         let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
 
         var events = [EventEntity]()
@@ -235,7 +250,10 @@ final class BaseEventStore: EventStore {
     }
 
     func getUnBatchedEventsWithAttachmentSize(eventCount: Number, ascending: Bool, sessionId: String?) -> [String: Number] {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return ["": 0]
+        }
         let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
 
         fetchRequest.fetchLimit = Int(eventCount)
@@ -275,7 +293,10 @@ final class BaseEventStore: EventStore {
     }
 
     func updateBatchId(_ batchId: String, for events: [String]) {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return
+        }
         let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "id IN %@", events)
 
@@ -296,7 +317,10 @@ final class BaseEventStore: EventStore {
     }
 
     func updateNeedsReportingForAllEvents(sessionId: String, needsReporting: Bool) {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return
+        }
         let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
 
@@ -315,7 +339,10 @@ final class BaseEventStore: EventStore {
     }
 
     func deleteEvents(sessionIds: [String]) {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return
+        }
         let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "sessionId IN %@ AND needsReporting == %d", sessionIds, false)
 

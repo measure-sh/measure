@@ -66,7 +66,7 @@ final class MockMeasureInitializer: MeasureInitializer {
         self.timeProvider = BaseTimeProvider()
         self.logger = MockLogger()
         self.idProvider = UUIDProvider()
-        self.coreDataManager = BaseCoreDataManager()
+        self.coreDataManager = BaseCoreDataManager(logger: logger)
         self.sessionStore = BaseSessionStore(coreDataManager: coreDataManager,
                                              logger: logger)
         self.eventStore = BaseEventStore(coreDataManager: coreDataManager,
