@@ -43,7 +43,8 @@ final class BaseSessionManager: SessionManager {
         if let id = currentSessionId {
             return id
         } else {
-            fatalError("Session ID is null. Ensure that start() is called before acessing sessionId.")
+            logger.log(level: .fatal, message: "Session ID is null. Ensure that start() is called before accessing sessionId.", error: nil, data: nil)
+            return ""
         }
     }
 

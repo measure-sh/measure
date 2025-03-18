@@ -31,7 +31,10 @@ final class BaseSessionStore: SessionStore {
     }
 
     func insertSession(_ session: SessionEntity) {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return
+        }
         context.performAndWait { [weak self] in
             let sessionOb = SessionOb(context: context)
 
@@ -51,7 +54,10 @@ final class BaseSessionStore: SessionStore {
     }
 
     func getSession(byId sessionId: String) -> SessionEntity? {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return nil
+        }
         let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
         fetchRequest.fetchLimit = 1
         fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
@@ -76,7 +82,10 @@ final class BaseSessionStore: SessionStore {
     }
 
     func getAllSessions() -> [SessionEntity]? {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return nil
+        }
         let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
 
         var sessions = [SessionEntity]()
@@ -99,7 +108,10 @@ final class BaseSessionStore: SessionStore {
     }
 
     func deleteSession(_ sessionId: String) {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return
+        }
         let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
         fetchRequest.fetchLimit = 1
         fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
@@ -118,7 +130,10 @@ final class BaseSessionStore: SessionStore {
     }
 
     func markCrashedSessions(sessionIds: [String]) {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return
+        }
         let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
         fetchRequest.fetchLimit = sessionIds.count
         fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
@@ -138,7 +153,10 @@ final class BaseSessionStore: SessionStore {
     }
 
     func markCrashedSession(sessionId: String) {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return
+        }
         let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
         fetchRequest.fetchLimit = 1
         fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
@@ -157,7 +175,10 @@ final class BaseSessionStore: SessionStore {
     }
 
     func updateNeedsReporting(sessionId: String, needsReporting: Bool) {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return
+        }
         let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
         fetchRequest.fetchLimit = 1
         fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
@@ -176,7 +197,10 @@ final class BaseSessionStore: SessionStore {
     }
 
     func getOldestSession() -> String? {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return nil
+        }
         let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
         fetchRequest.fetchLimit = 1
         fetchRequest.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
@@ -195,7 +219,10 @@ final class BaseSessionStore: SessionStore {
     }
 
     func deleteSessions(_ sessionIds: [String]) {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return
+        }
         let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
         fetchRequest.fetchLimit = sessionIds.count
         fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
@@ -215,7 +242,10 @@ final class BaseSessionStore: SessionStore {
     }
 
     func getSessionsToDelete() -> [String]? {
-        let context = coreDataManager.backgroundContext
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
+            return nil
+        }
         let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "needsReporting == %d", false)
 

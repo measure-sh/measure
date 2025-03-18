@@ -165,7 +165,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.timeProvider = BaseTimeProvider()
         self.logger = MeasureLogger(enabled: configProvider.enableLogging)
         self.idProvider = UUIDProvider()
-        self.coreDataManager = BaseCoreDataManager()
+        self.coreDataManager = BaseCoreDataManager(logger: logger)
         self.sessionStore = BaseSessionStore(coreDataManager: coreDataManager,
                                              logger: logger)
         self.eventStore = BaseEventStore(coreDataManager: coreDataManager,

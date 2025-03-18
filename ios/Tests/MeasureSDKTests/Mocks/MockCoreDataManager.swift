@@ -10,8 +10,8 @@ import Foundation
 @testable import MeasureSDK
 
 final class MockCoreDataManager: CoreDataManager {
-    var backgroundContext: NSManagedObjectContext
-    var mainContext: NSManagedObjectContext
+    var backgroundContext: NSManagedObjectContext?
+    var mainContext: NSManagedObjectContext?
 
     init() {
         guard let modelURL = Bundle(for: type(of: self)).url(forResource: "MeasureModel", withExtension: "momd") else {

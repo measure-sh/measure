@@ -29,14 +29,14 @@ protocol Client {
     ///   - apiUrl: `API URL` from the Measure dashboard.
     @objc public init(apiKey: String,
                       apiUrl: String) {
-        guard !apiKey.isEmpty else {
-            fatalError("apiKey cannot be empty.")
+        if !apiKey.isEmpty {
+            debugPrint("Measure apiKey is missing, skipping initialization")
         }
-        guard let apiUrl = URL(string: apiUrl) else {
-            fatalError("Invalid apiUrl: \(apiUrl).")
+        if let apiUrl = URL(string: apiUrl) {
+            debugPrint("Measure apiUrl is invalid, skipping initialization.")
         }
 
         self.apiKey = apiKey
-        self.apiUrl = apiUrl
+        self.apiUrl = URL(string: apiUrl) ?? URL(string: "http://localhost:8080")!
     }
 }
