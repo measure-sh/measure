@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Fix partial android symbolication (#1933) by @detj in #1933
 - (**backend**): Fix a panic during anr symbolication (#1927) by @detj in #1927
 - (**backend**): Fix issue with sessionator clean-all flag (#1924) by @detj in #1924
 - (**backend**): Fixed an issue where clock_speed validation was failing for iOS (#1907) by @detj in #1907
