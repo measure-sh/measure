@@ -69,7 +69,6 @@ func (bm BuildMapping) hasMapping() bool {
 // validate validates build mapping details.
 func (bm BuildMapping) validate(app *App) (code int, err error) {
 	code = http.StatusBadRequest
-	maxSize := int64(server.Server.Config.MappingFileMaxSize)
 
 	for i, mf := range bm.MappingFiles {
 		// none of the mapping files
@@ -81,14 +80,6 @@ func (bm BuildMapping) validate(app *App) (code int, err error) {
 
 		if mf.Header.Size < 1 {
 			err = fmt.Errorf("%q at %d index has zero or invalid size", "mapping_file", i)
-		}
-
-		// none of the mapping files
-		// should exceed maximum allowed
-		// size limit
-		if mf.Header.Size > maxSize {
-			code = http.StatusRequestEntityTooLarge
-			err = fmt.Errorf("%q at %d index exceeds max allowed size in %d bytes", "mapping_file", i, maxSize)
 		}
 	}
 

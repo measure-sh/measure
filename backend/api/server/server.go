@@ -5,7 +5,6 @@ import (
 	"context"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -42,7 +41,6 @@ type ClickhouseConfig struct {
 type ServerConfig struct {
 	PG                         PostgresConfig
 	CH                         ClickhouseConfig
-	MappingFileMaxSize         uint64
 	SymbolsBucket              string
 	SymbolsBucketRegion        string
 	SymbolsAccessKey           string
@@ -65,12 +63,6 @@ type ServerConfig struct {
 }
 
 func NewConfig() *ServerConfig {
-	mappingFileMaxSize, err := strconv.ParseUint(os.Getenv("MAPPING_FILE_MAX_SIZE"), 10, 64)
-	if err != nil {
-		log.Println("using default value of MAPPING_FILE_MAX_SIZE")
-		mappingFileMaxSize = 524_288_000
-	}
-
 	symbolsBucket := os.Getenv("SYMBOLS_S3_BUCKET")
 	if symbolsBucket == "" {
 		log.Println("SYMBOLS_S3_BUCKET env var not set, mapping file uploads won't work")
@@ -180,7 +172,6 @@ func NewConfig() *ServerConfig {
 		CH: ClickhouseConfig{
 			DSN: clickhouseDSN,
 		},
-		MappingFileMaxSize:         mappingFileMaxSize,
 		SymbolsBucket:              symbolsBucket,
 		SymbolsBucketRegion:        symbolsBucketRegion,
 		SymbolsAccessKey:           symbolsAccessKey,
