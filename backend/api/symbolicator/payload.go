@@ -1,6 +1,8 @@
 package symbolicator
 
-import "slices"
+import (
+	"slices"
+)
 
 type frameNative struct {
 	Status          string `json:"status"`
@@ -66,6 +68,16 @@ type responseJVM struct {
 	Stacktraces []stacktraceJVM   `json:"stacktraces"`
 	Classes     map[string]string `json:"classes"`
 	Errors      []moduleJVM       `json:"errors"`
+}
+
+// rewriteClass is a helper method to provide a mapped
+// class if found or return the fallback.
+func (r responseJVM) rewriteClass(needle, fallback string) string {
+	if value, ok := r.Classes[needle]; ok {
+		return value
+	}
+
+	return fallback
 }
 
 // requestJVM represents the payload sent

@@ -43,9 +43,9 @@ services:
       retries: 5
     develop:
       watch:
-      - path: ../frontend/dashboard
-        action: sync
-        target: /app
+        - path: ../frontend/dashboard
+          action: sync
+          target: /app
 
   api:
     build:
@@ -76,6 +76,7 @@ services:
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
       - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+      - SYMBOLICATE_JVM_LAMBDA_REWRITE=true
     develop:
       watch:
         - path: ../backend/api

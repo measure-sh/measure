@@ -15,6 +15,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
+	"os"
 	"strings"
 	"time"
 
@@ -167,6 +168,17 @@ type Symbolicator struct {
 	// symbolicator response. Currently, used by
 	// Apple platform apps.
 	responseNative *responseNative
+	// jvmLambdaWorkaround determines if each of the
+	// JVM stacktrace class names should be matched
+	// and replaced during the rewrite stage of
+	// symbolication.
+	//
+	// This was introduced to work around a bug
+	// in Sentry's Symbolicator, where for lambda
+	// methods, it would produce non-sensical results
+	// like `J3.ExceptionDemoActivity...` - where the
+	// J3 is totally unwarranted.
+	jvmLambdaWorkaround bool
 }
 
 // New creates a new Symbolicator.
@@ -178,6 +190,15 @@ func New(origin, platform string, sources []Source) (symbolicator *Symbolicator)
 
 	if len(sources) > 0 {
 		symbolicator.Sources = sources
+	}
+
+	// rewrite jvm stacktrace classnames by matching all
+	// resolved classnames from symbolicator response.
+	//
+	// at the moment, we only replace if a special substring
+	// `SyntheticLambda` is present in the obfuscated classname
+	if os.Getenv("SYMBOLICATE_JVM_LAMBDA_REWRITE") != "" {
+		symbolicator.jvmLambdaWorkaround = true
 	}
 
 	return
@@ -259,6 +280,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 							LineNo:   line,
 							Module:   frame.ClassName,
 						})
+						s.requestJVM.AddClass(frame.ClassName)
 						s.stacktraceLUT = append(s.stacktraceLUT, stacktraceEntry{i, j, k, -1, -1, len(s.requestJVM.Stacktraces)})
 					}
 					s.requestJVM.Stacktraces = append(s.requestJVM.Stacktraces, stacktraceJVM{
@@ -281,6 +303,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 							LineNo:   line,
 							Module:   frame.ClassName,
 						})
+						s.requestJVM.AddClass(frame.ClassName)
 						s.stacktraceLUT = append(s.stacktraceLUT, stacktraceEntry{i, -1, -1, l, m, len(s.requestJVM.Stacktraces)})
 					}
 					s.requestJVM.Stacktraces = append(s.requestJVM.Stacktraces, stacktraceJVM{
@@ -288,19 +311,19 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 					})
 				}
 			case event.TypeLifecycleActivity:
-				s.requestJVM.Classes = append(s.requestJVM.Classes, ev.LifecycleActivity.ClassName)
+				s.requestJVM.AddClass(ev.LifecycleActivity.ClassName)
 			case event.TypeLifecycleFragment:
-				s.requestJVM.Classes = append(s.requestJVM.Classes, ev.LifecycleFragment.ClassName)
-				s.requestJVM.Classes = append(s.requestJVM.Classes, ev.LifecycleFragment.ParentActivity)
-				s.requestJVM.Classes = append(s.requestJVM.Classes, ev.LifecycleFragment.ParentFragment)
+				s.requestJVM.AddClass(ev.LifecycleFragment.ClassName)
+				s.requestJVM.AddClass(ev.LifecycleFragment.ParentActivity)
+				s.requestJVM.AddClass(ev.LifecycleFragment.ParentFragment)
 			case event.TypeColdLaunch:
-				s.requestJVM.Classes = append(s.requestJVM.Classes, ev.ColdLaunch.LaunchedActivity)
+				s.requestJVM.AddClass(ev.ColdLaunch.LaunchedActivity)
 			case event.TypeWarmLaunch:
-				s.requestJVM.Classes = append(s.requestJVM.Classes, ev.WarmLaunch.LaunchedActivity)
+				s.requestJVM.AddClass(ev.WarmLaunch.LaunchedActivity)
 			case event.TypeHotLaunch:
-				s.requestJVM.Classes = append(s.requestJVM.Classes, ev.HotLaunch.LaunchedActivity)
+				s.requestJVM.AddClass(ev.HotLaunch.LaunchedActivity)
 			case event.TypeAppExit:
-				s.requestJVM.Classes = append(s.requestJVM.Classes, ev.AppExit.Trace)
+				s.requestJVM.AddClass(ev.AppExit.Trace)
 			}
 
 			s.requestJVM.AddModule(debugId, symbol.TypeProguard.String())
@@ -549,6 +572,7 @@ func (s Symbolicator) rewriteN(evs []event.EventField) {
 	case platform.Android:
 		stacktraces := s.responseJVM.Stacktraces
 		classes := s.responseJVM.Classes
+		lambdaSubstr := "SyntheticLambda"
 
 		// exception and ANR events are handled and
 		// rewritten at one go. while other kinds of
@@ -575,7 +599,9 @@ func (s Symbolicator) rewriteN(evs []event.EventField) {
 				}
 
 				if j != -1 && k != -1 {
+					origClass := exceptions[j].Frames[k].ClassName
 					if len(stacktraces[n].Frames) > len(exceptions[j].Frames) {
+						// fmt.Println("res frames", stacktraces[n].Frames)
 						// when count of symbolicated output frames is more
 						// than count of unsymbolicated input frames, it implies
 						// that symbolicator came across an inline frame and
@@ -584,10 +610,14 @@ func (s Symbolicator) rewriteN(evs []event.EventField) {
 						// to capture all the output frame data.
 						frames := event.Frames{}
 						for _, frameJVM := range stacktraces[n].Frames {
+							className := frameJVM.Module
+							if s.jvmLambdaWorkaround && strings.Contains(className, lambdaSubstr) {
+								className = s.responseJVM.rewriteClass(origClass, className)
+							}
 							frame := event.Frame{
 								LineNum:    frameJVM.LineNo,
 								MethodName: frameJVM.Function,
-								ClassName:  frameJVM.Module,
+								ClassName:  className,
 								FileName:   frameJVM.Filename,
 							}
 							frames = append(frames, frame)
@@ -598,19 +628,28 @@ func (s Symbolicator) rewriteN(evs []event.EventField) {
 						// object parameters with output frame object parameters.
 						exceptions[j].Frames[k].MethodName = stacktraces[n].Frames[k].Function
 						exceptions[j].Frames[k].FileName = stacktraces[n].Frames[k].Filename
-						exceptions[j].Frames[k].ClassName = stacktraces[n].Frames[k].Module
+						className := stacktraces[n].Frames[k].Module
+						if s.jvmLambdaWorkaround && strings.Contains(className, lambdaSubstr) {
+							className = s.responseJVM.rewriteClass(origClass, className)
+						}
+						exceptions[j].Frames[k].ClassName = className
 						exceptions[j].Frames[k].LineNum = stacktraces[n].Frames[k].LineNo
 					}
 				}
 
 				if l != -1 && m != -1 {
+					origClass := threads[l].Frames[m].ClassName
 					if len(stacktraces[n].Frames) > len(threads[l].Frames) {
 						frames := event.Frames{}
 						for _, frameJVM := range stacktraces[n].Frames {
+							className := frameJVM.Module
+							if s.jvmLambdaWorkaround && strings.Contains(className, lambdaSubstr) {
+								className = s.responseJVM.rewriteClass(origClass, className)
+							}
 							frame := event.Frame{
 								LineNum:    frameJVM.LineNo,
 								MethodName: frameJVM.Function,
-								ClassName:  frameJVM.Module,
+								ClassName:  className,
 								FileName:   frameJVM.Filename,
 							}
 							frames = append(frames, frame)
@@ -619,7 +658,11 @@ func (s Symbolicator) rewriteN(evs []event.EventField) {
 					} else {
 						threads[l].Frames[m].MethodName = stacktraces[n].Frames[m].Function
 						threads[l].Frames[m].FileName = stacktraces[n].Frames[m].Filename
-						threads[l].Frames[m].ClassName = stacktraces[n].Frames[m].Module
+						className := stacktraces[n].Frames[m].Module
+						if s.jvmLambdaWorkaround && strings.Contains(className, lambdaSubstr) {
+							className = s.responseJVM.rewriteClass(origClass, className)
+						}
+						threads[l].Frames[m].ClassName = className
 						threads[l].Frames[m].LineNum = stacktraces[n].Frames[m].LineNo
 					}
 				}
