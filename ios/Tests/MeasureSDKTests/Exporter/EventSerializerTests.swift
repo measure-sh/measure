@@ -38,12 +38,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent should not return nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -92,12 +91,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -144,12 +142,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -226,13 +223,12 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
         // Deserialize and validate
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -325,12 +321,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
                 XCTAssertEqual(jsonDict["id"] as? String, "eventId")
@@ -361,12 +356,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: false
         )
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: EventEntity(event, needsReporting: true)) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: EventEntity(event, needsReporting: true)) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -419,12 +413,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -455,12 +448,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -492,12 +484,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -540,12 +531,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -589,12 +579,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -633,12 +622,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -679,12 +667,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -727,12 +714,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -781,12 +767,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -801,7 +786,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
                 if let requestHeaders = httpDataDict["request_headers"] as? [String: String] {
                     XCTAssertEqual(requestHeaders["Content-Type"], "application/json")
-                    XCTAssertEqual(requestHeaders["Authorization"], "Bearertoken")
+                    XCTAssertEqual(requestHeaders["Authorization"], "Bearer token")
                 } else {
                     XCTFail("Request headers are not serialized correctly.")
                 }
@@ -840,12 +825,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
