@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Update migration script for seamless migration (#1937) by @detj in #1937
 - (**backend**): Support .dylib mapping files in ios (#1914) by @detj in #1914
 - (**backend**): Send attachments for more gesture events by @detj
 - (**backend**): Clean more resources in sessionator (#1899) by @detj in #1899
