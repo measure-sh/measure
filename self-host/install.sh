@@ -309,7 +309,6 @@ detect_compose_command() {
 # ------------------------------------------------------------------------------
 update_symbolicator_origin() {
   update_env_variable SYMBOLICATOR_ORIGIN "http://symbolicator:3021"
-  info "Updated SYMBOLICATOR_ORIGIN in $env_file to http://symbolicator:3021"
 }
 
 # ------------------------------------------------------------------------------
