@@ -308,21 +308,22 @@ detect_compose_command() {
 # update_symbolicator_origin updates value of a variable in .env file.
 # ------------------------------------------------------------------------------
 update_symbolicator_origin() {
-  local env_file="./.env"
+  # local env_file="./.env"
 
-  if [[ ! -f "$env_file" ]]; then
-    warn "'.env' file not found in current directory. Please manually update .env file."
-    info "SYMBOLICATOR_ORIGIN=http://symbolicator:3021"
-    return 0
-  fi
+  # if [[ ! -f "$env_file" ]]; then
+  #   warn "'.env' file not found in current directory. Please manually update .env file."
+  #   info "SYMBOLICATOR_ORIGIN=http://symbolicator:3021"
+  #   return 0
+  # fi
 
-  if is_macOS; then
-    sed -i '' 's|^SYMBOLICATOR_ORIGIN=.*|SYMBOLICATOR_ORIGIN=http://symbolicator:3021|' "$env_file"
-  else
-    sed -i 's|^SYMBOLICATOR_ORIGIN=.*|SYMBOLICATOR_ORIGIN=http://symbolicator:3021|' "$env_file"
-  fi
+  # if is_macOS; then
+  #   sed -i '' 's|^SYMBOLICATOR_ORIGIN=.*|SYMBOLICATOR_ORIGIN=http://symbolicator:3021|' "$env_file"
+  # else
+  #   sed -i 's|^SYMBOLICATOR_ORIGIN=.*|SYMBOLICATOR_ORIGIN=http://symbolicator:3021|' "$env_file"
+  # fi
 
-  info "Updated SYMBOLICATOR_ORIGIN in $env_file to http://symbolicator:3021"
+  # info "Updated SYMBOLICATOR_ORIGIN in $env_file to http://symbolicator:3021"
+  update_env_variable SYMBOLICATOR_ORIGIN "http://symbolicator:3021"
 }
 
 # ------------------------------------------------------------------------------
@@ -342,20 +343,7 @@ stop_docker_compose() {
 # start_docker_compose starts services using docker compose.
 # ------------------------------------------------------------------------------
 start_docker_compose() {
-  # local dockercmd="docker"
-
-  # if [[ $DEBUG -eq 1 ]]; then
-  #   dockercmd="docker -D"
-  #   debug "Docker is in debug mode"
-  # fi
-
   info "Starting Measure docker containers"
-
-  # local dockercomposecmd="$dockercmd compose"
-
-  # if [[ $DOCKER_COMPOSE_BIN -eq 1 ]]; then
-  #   dockercomposecmd="docker-compose"
-  # fi
 
   $DOCKER_COMPOSE_CMD \
     --progress plain \
@@ -365,10 +353,50 @@ start_docker_compose() {
     --file compose.prod.yml \
     up \
     --build \
-    --pull policy \
+    --pull always \
     --detach \
     --remove-orphans \
     --wait
+}
+
+# ------------------------------------------------------------------------------
+# update_env_variable updates and existing .env file key with value.
+# ------------------------------------------------------------------------------
+update_env_variable() {
+  local key="$1"
+  local new_value="$2"
+  local env_file="./.env"
+
+  if [ ! -f "$env_file" ]; then
+    warn ".env file not found, cannot update .env file automatically"
+    return
+  fi
+
+  if [[ "$(uname)" == "Darwin" ]]; then
+    sed -i '' "s|^${key}=.*|${key}=${new_value}|" "$env_file"
+  else
+    sed -i "s|^${key}=.*|${key}=${new_value}|" "$env_file"
+  fi
+
+  info "Updated ${key} in ${env_file} to ${new_value}"
+}
+
+# ------------------------------------------------------------------------------
+# cleanup detects and removes unused resources.
+# ------------------------------------------------------------------------------
+cleanup() {
+  # detect and remove `symbolicator-android` image.
+  local image_ids
+  image_ids=$(docker images --format '{{.Repository}} {{.ID}}' | awk '$1 ~ /symbolicator-android$/ {print $2}')
+
+  if [ -z "$image_ids" ]; then
+    return 0
+  fi
+
+  for id in $image_ids; do
+    echo "Removing image ID: $id"
+    docker rmi "$id"
+  done
 }
 
 # ------------------------------------------------------------------------------
@@ -469,3 +497,4 @@ ensure_config
 detect_compose_command
 update_symbolicator_origin
 start_docker_compose
+cleanup
