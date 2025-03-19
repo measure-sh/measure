@@ -75,7 +75,7 @@ error() {
 # has_command checks availability of commands.
 # ------------------------------------------------------------------------------
 has_command() {
-  if command -v "$1" &> /dev/null; then
+  if command -v "$1" &>/dev/null; then
     return 0
   else
     return 1
@@ -107,16 +107,16 @@ is_debian() {
 # ------------------------------------------------------------------------------
 detect_os() {
   case "$(uname)" in
-    Linux*)
+  Linux*)
     DETECTED_OS="Linux"
     ;;
-    Darwin*)
+  Darwin*)
     DETECTED_OS="macOS"
     ;;
-    CYGWIN*|MSYS*|MINGW*)
+  CYGWIN* | MSYS* | MINGW*)
     DETECTED_OS="Windows"
     ;;
-    *)
+  *)
     DETECTED_OS="unknown"
     ;;
   esac
@@ -174,12 +174,27 @@ detect_docker() {
     info "Docker: $DETECTED_DOCKER_VERSION"
   fi
 
-  docker compose version
+  # if 'docker compose` works, then use that for
+  # successive invocation
+  # if `docker-compose` works, then use that for
+  # successive invocation
+  if docker compose version >/dev/null 2>&1; then
+    DOCKER_COMPOSE="docker compose"
+    DOCKER_COMPOSE_BIN=0
+  elif has_command docker-compose; then
+    DOCKER_COMPOSE="docker-compose"
+    DOCKER_COMPOSE_BIN=1
+  else
+    warn "Neither 'docker compose' nor 'docker-compose' is available" >&2
+    return 1
+  fi
+
+  $DOCKER_COMPOSE version
   if ! [ $? -eq 0 ]; then
     warn "Docker Compose: not found"
     return 1
   else
-    DETECTED_DOCKER_COMPOSE_VERSION=$(docker compose version | cut -d' ' -f4 | cut -d'v' -f2)
+    DETECTED_DOCKER_COMPOSE_VERSION=$($DOCKER_COMPOSE version | cut -d' ' -f4 | cut -d'v' -f2)
     info "Docker Compose: $DETECTED_DOCKER_COMPOSE_VERSION"
   fi
 
@@ -213,7 +228,7 @@ install_docker() {
     chmod a+r /etc/apt/keyrings/docker.asc
 
     # Add the repository to Apt sources:
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null
 
     $PKGMAN update
     $PKGMAN -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
@@ -230,7 +245,7 @@ install_docker() {
     curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
     chmod a+r /etc/apt/keyrings/docker.asc
 
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null
 
     $PKGMAN update
     $PKGMAN -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
@@ -262,47 +277,87 @@ uninstall_docker() {
 
   if is_ubuntu; then
     $PKGMAN purge -y \
-      docker.io\
-      docker-compose\
-      docker-compose-v2\
-      docker-doc\
-      podman-docker\
-      docker-ce-cli\
-      containerd.io\
-      docker-buildx-plugin\
-      docker-compose-plugin\
-      docker-ce-rootless-extras || true
+      docker.io docker-compose docker-compose-v2 docker-doc podman-docker docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras || true
   fi
 
   if is_debian; then
     $PKGMAN -y purge \
-      docker.io\
-      docker-compose\
-      docker-compose-v2\
-      docker-doc\
-      podman-docker\
-      docker-ce-cli\
-      containerd.io\
-      docker-buildx-plugin\
-      docker-compose-plugin\
-      docker-ce-rootless-extras
+      docker.io docker-compose docker-compose-v2 docker-doc podman-docker docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras
   fi
+}
+
+# ------------------------------------------------------------------------------
+# detect_compose_command determines the correct docker compose command.
+# ------------------------------------------------------------------------------
+detect_compose_command() {
+  DOCKER_CMD="docker"
+
+  if [[ $DEBUG -eq 1 ]]; then
+    DOCKER_CMD="$DOCKER_CMD -D"
+    debug "Docker is in debug mode"
+  fi
+
+  DOCKER_COMPOSE_CMD="$DOCKER_CMD compose"
+
+  if [[ $DOCKER_COMPOSE_BIN -eq 1 ]]; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# update_symbolicator_origin updates value of a variable in .env file.
+# ------------------------------------------------------------------------------
+update_symbolicator_origin() {
+  local env_file="./.env"
+
+  if [[ ! -f "$env_file" ]]; then
+    warn "'.env' file not found in current directory. Please manually update .env file."
+    info "SYMBOLICATOR_ORIGIN=http://symbolicator:3021"
+    return 0
+  fi
+
+  if is_macOS; then
+    sed -i '' 's|^SYMBOLICATOR_ORIGIN=.*|SYMBOLICATOR_ORIGIN=http://symbolicator:3021|' "$env_file"
+  else
+    sed -i 's|^SYMBOLICATOR_ORIGIN=.*|SYMBOLICATOR_ORIGIN=http://symbolicator:3021|' "$env_file"
+  fi
+
+  info "Updated SYMBOLICATOR_ORIGIN in $env_file to http://symbolicator:3021"
+}
+
+# ------------------------------------------------------------------------------
+# stop_docker_compose stops services using docker compose.
+# ------------------------------------------------------------------------------
+stop_docker_compose() {
+  $DOCKER_COMPOSE_CMD \
+    --progress plain \
+    --profile init \
+    --profile migrate \
+    --file compose.yml \
+    --file compose.prod.yml \
+    down
 }
 
 # ------------------------------------------------------------------------------
 # start_docker_compose starts services using docker compose.
 # ------------------------------------------------------------------------------
 start_docker_compose() {
-  local dockercmd="docker"
+  # local dockercmd="docker"
 
-  if [[ $DEBUG -eq 1 ]]; then
-    dockercmd="docker -D"
-    debug "Docker is in debug mode"
-  fi
+  # if [[ $DEBUG -eq 1 ]]; then
+  #   dockercmd="docker -D"
+  #   debug "Docker is in debug mode"
+  # fi
 
   info "Starting Measure docker containers"
 
-  $dockercmd compose \
+  # local dockercomposecmd="$dockercmd compose"
+
+  # if [[ $DOCKER_COMPOSE_BIN -eq 1 ]]; then
+  #   dockercomposecmd="docker-compose"
+  # fi
+
+  $DOCKER_COMPOSE_CMD \
     --progress plain \
     --profile init \
     --profile migrate \
@@ -310,7 +365,10 @@ start_docker_compose() {
     --file compose.prod.yml \
     up \
     --build \
-    --detach
+    --pull \
+    --detach \
+    --remove-orphans \
+    --wait
 }
 
 # ------------------------------------------------------------------------------
@@ -319,7 +377,7 @@ start_docker_compose() {
 set_package_manager() {
   if is_macOS; then
     PKGMAN="brew"
-  fi 
+  fi
 
   if is_linux; then
     if [[ $DISTRO_NAME == "Red Hat"* || $DISTRO_NAME == "Amazon Linux"* || $DISTRO_NAME == "Rocky Linux"* ]]; then
@@ -408,4 +466,6 @@ init
 ensure_docker
 start_docker
 ensure_config
+detect_compose_command
+update_symbolicator_origin
 start_docker_compose
