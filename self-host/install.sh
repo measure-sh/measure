@@ -401,7 +401,6 @@ set_package_manager() {
       PKGMAN="zypper"
     fi
   fi
-
 }
 
 # ------------------------------------------------------------------------------
@@ -474,7 +473,7 @@ init() {
   info "Package manager: $PKGMAN"
 }
 
-# kickstart installation
+# kickstart
 init
 ensure_docker
 start_docker
