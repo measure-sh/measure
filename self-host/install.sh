@@ -481,5 +481,5 @@ start_docker
 ensure_config
 detect_compose_command
 update_symbolicator_origin
-cleanup
 start_docker_compose
+cleanup
