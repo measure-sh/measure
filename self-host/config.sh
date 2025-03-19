@@ -10,7 +10,8 @@ ENV_FILE=.env
 ENV_WEB_FILE=../frontend/dashboard/.env.local
 
 # Measure insignia
-ENV_HEADER=$(cat <<'EOF'
+ENV_HEADER=$(
+  cat <<'EOF'
 #                                                            ( )
 #   ___ ___     __     _ _   ___  _   _  _ __   __       ___ | |__
 # /' _ ` _ `\ /'__`\ /'_` )/',__)( ) ( )( '__)/'__`\   /',__)|  _ `\
@@ -49,7 +50,6 @@ validate_name() {
     return 1
   fi
 
-
   # must not contain spaces
   if [[ "$1" =~ \  ]]; then
     return 1
@@ -86,20 +86,20 @@ to manually enter: " choice
 
   while true; do
     case "$choice" in
-      a)
-        password=$(generate_password "$length" "$passprompt")
-        break
-        ;;
-      m)
-        read -p "$passprompt" password
-        if [[ -z "$password" ]]; then
-          continue
-        fi
-        break
-        ;;
-      *)
-        echo "Invalid choice. Please try again."
-        ;;
+    a)
+      password=$(generate_password "$length" "$passprompt")
+      break
+      ;;
+    m)
+      read -p "$passprompt" password
+      if [[ -z "$password" ]]; then
+        continue
+      fi
+      break
+      ;;
+    *)
+      echo "Invalid choice. Please try again."
+      ;;
     esac
   done
 
@@ -152,7 +152,7 @@ create_ns() {
 
 # Writes environment file for development
 write_dev_env() {
-  cat <<EOF > "$ENV_FILE"
+  cat <<EOF >"$ENV_FILE"
 $ENV_HEADER
 
 # 🚨 Attention 🚨
@@ -230,7 +230,7 @@ EOF
 }
 
 write_web_dev_env() {
-  cat <<EOF > "$ENV_WEB_FILE"
+  cat <<EOF >"$ENV_WEB_FILE"
 $ENV_HEADER
 
 # 🚨 Attention 🚨
@@ -268,7 +268,7 @@ EOF
 
 # Writes environment file for production
 write_prod_env() {
-  cat <<EOF > "$ENV_FILE"
+  cat <<EOF >"$ENV_FILE"
 $ENV_HEADER
 
 # 🚨 Attention 🚨
@@ -343,7 +343,7 @@ EOF
 }
 
 write_web_prod_env() {
-  cat <<EOF > "$ENV_WEB_FILE"
+  cat <<EOF >"$ENV_WEB_FILE"
 $ENV_HEADER
 
 # 🚨 Attention 🚨
@@ -495,12 +495,12 @@ END
 
   echo -e "\nSet Google OAuth"
   echo -e "To create a Google OAuth app, visit: https://support.google.com/cloud/answer/6158849?hl=en"
-  OAUTH_GOOGLE_KEY=$(prompt_value_manual "Enter Google oauth app key: ")
+  OAUTH_GOOGLE_KEY=$(prompt_value_manual "Enter Google OAuth app key: ")
 
   echo -e "\nSet GitHub OAuth"
   echo -e "To create a GitHub OAuth app, visit: https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app"
-  OAUTH_GITHUB_KEY=$(prompt_value_manual "Enter GitHub oauth app key: ")
-  OAUTH_GITHUB_SECRET=$(prompt_password_manual "Enter GitHub oauth app secret: ")
+  OAUTH_GITHUB_KEY=$(prompt_value_manual "Enter GitHub OAuth app key: ")
+  OAUTH_GITHUB_SECRET=$(prompt_password_manual "Enter GitHub OAuth app secret: ")
   SESSION_ACCESS_SECRET=$(generate_password 44)
   SESSION_REFRESH_SECRET=$(generate_password 44)
 
