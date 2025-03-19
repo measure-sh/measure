@@ -365,7 +365,7 @@ start_docker_compose() {
     --file compose.prod.yml \
     up \
     --build \
-    --pull \
+    --pull policy \
     --detach \
     --remove-orphans \
     --wait
