@@ -10,7 +10,7 @@
           "binary_address" : "108a41000",
           "binary_name" : "libsystem_kernel.dylib",
           "offset" : 10998,
-          "frameIndex" : 0,
+          "frame_index" : 0,
           "symbol_address" : "0000000108a43af6"
         },
         {
@@ -18,12 +18,12 @@
           "binary_name" : "libsystem_pthread.dylib",
           "offset" : 11229,
           "symbol_address" : "0000000108aa7bdd",
-          "frameIndex" : 1,
+          "frame_index" : 1,
           "in_app" : false
         },
         {
           "offset" : 6863,
-          "frameIndex" : 2,
+          "frame_index" : 2,
           "binary_name" : "libsystem_pthread.dylib",
           "in_app" : false,
           "symbol_address" : "0000000108aa6acf",
@@ -37,21 +37,21 @@
           "offset" : 5070,
           "symbol_address" : "0000000108a423ce",
           "in_app" : false,
-          "frameIndex" : 0,
+          "frame_index" : 0,
           "binary_address" : "108a41000",
           "binary_name" : "libsystem_kernel.dylib"
         },
         {
           "binary_address" : "108a41000",
           "binary_name" : "libsystem_kernel.dylib",
-          "frameIndex" : 1,
+          "frame_index" : 1,
           "symbol_address" : "0000000108a50c88",
           "in_app" : false,
           "offset" : 64648
         },
         {
           "binary_address" : "108a41000",
-          "frameIndex" : 2,
+          "frame_index" : 2,
           "offset" : 34064,
           "binary_name" : "libsystem_kernel.dylib",
           "symbol_address" : "0000000108a49510",
@@ -60,7 +60,7 @@
         {
           "offset" : 5821,
           "binary_address" : "108a41000",
-          "frameIndex" : 3,
+          "frame_index" : 3,
           "binary_name" : "libsystem_kernel.dylib",
           "in_app" : false,
           "symbol_address" : "0000000108a426bd"
@@ -69,7 +69,7 @@
           "offset" : 579747,
           "binary_name" : "CoreFoundation",
           "binary_address" : "7ff80039c000",
-          "frameIndex" : 4,
+          "frame_index" : 4,
           "symbol_address" : "00007ff8004298a3",
           "in_app" : false
         },
@@ -78,7 +78,7 @@
           "binary_name" : "CoreFoundation",
           "symbol_address" : "00007ff80042402b",
           "offset" : 557099,
-          "frameIndex" : 5,
+          "frame_index" : 5,
           "in_app" : false
         },
         {
@@ -86,14 +86,14 @@
           "in_app" : false,
           "binary_name" : "CoreFoundation",
           "offset" : 554733,
-          "frameIndex" : 6,
+          "frame_index" : 6,
           "binary_address" : "7ff80039c000"
         },
         {
           "offset" : 7355546,
           "binary_name" : "Foundation",
           "symbol_address" : "00007ff800ea8c9a",
-          "frameIndex" : 7,
+          "frame_index" : 7,
           "in_app" : false,
           "binary_address" : "7ff8007a5000"
         },
@@ -103,11 +103,11 @@
           "in_app" : false,
           "offset" : 7356184,
           "binary_name" : "Foundation",
-          "frameIndex" : 8
+          "frame_index" : 8
         },
         {
           "binary_address" : "7ff804cbc000",
-          "frameIndex" : 9,
+          "frame_index" : 9,
           "in_app" : false,
           "symbol_address" : "00007ff805dbc7aa",
           "binary_name" : "UIKitCore",
@@ -118,7 +118,7 @@
           "symbol_address" : "00007ff800ed34d5",
           "binary_address" : "7ff8007a5000",
           "offset" : 7529685,
-          "frameIndex" : 10,
+          "frame_index" : 10,
           "in_app" : false
         },
         {
@@ -126,13 +126,13 @@
           "offset" : 24971,
           "binary_name" : "libsystem_pthread.dylib",
           "binary_address" : "108aa5000",
-          "frameIndex" : 11,
+          "frame_index" : 11,
           "in_app" : false
         },
         {
           "symbol_address" : "0000000108aa6ae3",
           "in_app" : false,
-          "frameIndex" : 12,
+          "frame_index" : 12,
           "binary_name" : "libsystem_pthread.dylib",
           "binary_address" : "108aa5000",
           "offset" : 6883
@@ -150,7 +150,7 @@
           "binary_address" : "0",
           "binary_name" : "???",
           "offset" : 0,
-          "frameIndex" : 0
+          "frame_index" : 0
         }
       ],
       "name" : "Thread 3"
@@ -167,7 +167,7 @@
         {
           "binary_name" : "libsystem_kernel.dylib",
           "in_app" : false,
-          "frameIndex" : 0,
+          "frame_index" : 0,
           "offset" : 33098,
           "binary_address" : "108a41000",
           "symbol_address" : "0000000108a4914a"
@@ -177,13 +177,13 @@
           "in_app" : false,
           "binary_name" : "libsystem_pthread.dylib",
           "binary_address" : "108aa5000",
-          "frameIndex" : 1,
+          "frame_index" : 1,
           "symbol_address" : "0000000108aaaebd"
         },
         {
           "offset" : 511260,
           "in_app" : false,
-          "frameIndex" : 2,
+          "frame_index" : 2,
           "binary_address" : "7ff8000f1000",
           "symbol_address" : "00007ff80016dd1c",
           "binary_name" : "libsystem_c.dylib"
@@ -194,12 +194,12 @@
           "binary_address" : "1084c4000",
           "binary_name" : "MeasureDemo",
           "offset" : 11508,
-          "frameIndex" : 3
+          "frame_index" : 3
         },
         {
           "offset" : 10755,
           "symbol_address" : "00000001084c6a03",
-          "frameIndex" : 4,
+          "frame_index" : 4,
           "in_app" : false,
           "binary_address" : "1084c4000",
           "binary_name" : "MeasureDemo"
@@ -209,19 +209,19 @@
           "symbol_address" : "00000001084c6aa1",
           "offset" : 10913,
           "binary_name" : "MeasureDemo",
-          "frameIndex" : 5,
+          "frame_index" : 5,
           "binary_address" : "1084c4000"
         },
         {
           "offset" : 19869005,
-          "frameIndex" : 6,
+          "frame_index" : 6,
           "in_app" : false,
           "binary_address" : "7ff804cbc000",
           "binary_name" : "UIKitCore",
           "symbol_address" : "00007ff805faed4d"
         },
         {
-          "frameIndex" : 7,
+          "frame_index" : 7,
           "symbol_address" : "00007ff805faf13d",
           "binary_address" : "7ff804cbc000",
           "offset" : 19870013,
@@ -233,14 +233,14 @@
           "binary_name" : "UIKitCore",
           "binary_address" : "7ff804cbc000",
           "offset" : 19870287,
-          "frameIndex" : 8,
+          "frame_index" : 8,
           "in_app" : false
         },
         {
           "binary_name" : "UIKitCore",
           "binary_address" : "7ff804cbc000",
           "offset" : 23634481,
-          "frameIndex" : 9,
+          "frame_index" : 9,
           "symbol_address" : "00007ff806346231",
           "in_app" : false
         },
@@ -250,13 +250,13 @@
           "binary_name" : "UIKitCore",
           "offset" : 23635735,
           "in_app" : false,
-          "frameIndex" : 10
+          "frame_index" : 10
         },
         {
           "in_app" : false,
           "offset" : 9196,
           "binary_name" : "libdispatch.dylib",
-          "frameIndex" : 11,
+          "frame_index" : 11,
           "binary_address" : "7ff800176000",
           "symbol_address" : "00007ff8001783ec"
         },
@@ -265,7 +265,7 @@
           "binary_name" : "libdispatch.dylib",
           "offset" : 14040,
           "in_app" : false,
-          "frameIndex" : 12,
+          "frame_index" : 12,
           "binary_address" : "7ff800176000"
         },
         {
@@ -274,13 +274,13 @@
           "binary_address" : "7ff800176000",
           "binary_name" : "libdispatch.dylib",
           "offset" : 74892,
-          "frameIndex" : 13
+          "frame_index" : 13
         },
         {
           "symbol_address" : "00007ff800187ef2",
           "in_app" : false,
           "binary_address" : "7ff800176000",
-          "frameIndex" : 14,
+          "frame_index" : 14,
           "offset" : 73458,
           "binary_name" : "libdispatch.dylib"
         },
@@ -289,11 +289,11 @@
           "symbol_address" : "00007ff800429b34",
           "binary_name" : "CoreFoundation",
           "offset" : 580404,
-          "frameIndex" : 15,
+          "frame_index" : 15,
           "in_app" : false
         },
         {
-          "frameIndex" : 16,
+          "frame_index" : 16,
           "binary_name" : "CoreFoundation",
           "offset" : 558191,
           "symbol_address" : "00007ff80042446f",
@@ -302,7 +302,7 @@
         },
         {
           "binary_address" : "7ff80039c000",
-          "frameIndex" : 17,
+          "frame_index" : 17,
           "symbol_address" : "00007ff8004236ed",
           "in_app" : false,
           "binary_name" : "CoreFoundation",
@@ -312,12 +312,12 @@
           "offset" : 12431,
           "symbol_address" : "00007ff8103ba08f",
           "in_app" : false,
-          "frameIndex" : 18,
+          "frame_index" : 18,
           "binary_name" : "GraphicsServices",
           "binary_address" : "7ff8103b7000"
         },
         {
-          "frameIndex" : 19,
+          "frame_index" : 19,
           "symbol_address" : "00007ff805cdf6ee",
           "binary_address" : "7ff804cbc000",
           "offset" : 16922350,
@@ -328,7 +328,7 @@
           "offset" : 16941422,
           "in_app" : false,
           "binary_address" : "7ff804cbc000",
-          "frameIndex" : 20,
+          "frame_index" : 20,
           "symbol_address" : "00007ff805ce416e",
           "binary_name" : "UIKitCore"
         },
@@ -337,20 +337,20 @@
           "symbol_address" : "00007ff804d5fb73",
           "binary_name" : "UIKitCore",
           "offset" : 670579,
-          "frameIndex" : 21,
+          "frame_index" : 21,
           "in_app" : false
         },
         {
           "in_app" : false,
           "symbol_address" : "00000001084c9e0b",
-          "frameIndex" : 22,
+          "frame_index" : 22,
           "binary_address" : "1084c4000",
           "binary_name" : "MeasureDemo",
           "offset" : 24075
         },
         {
           "offset" : 23943,
-          "frameIndex" : 23,
+          "frame_index" : 23,
           "binary_name" : "MeasureDemo",
           "binary_address" : "1084c4000",
           "in_app" : false,
@@ -358,7 +358,7 @@
         },
         {
           "symbol_address" : "00000001084c9e78",
-          "frameIndex" : 24,
+          "frame_index" : 24,
           "in_app" : false,
           "offset" : 24184,
           "binary_name" : "MeasureDemo",
@@ -369,13 +369,13 @@
           "offset" : 0,
           "binary_address" : "0",
           "binary_name" : "???",
-          "frameIndex" : 25,
+          "frame_index" : 25,
           "symbol_address" : "00000001089023e0"
         },
         {
           "offset" : 0,
           "binary_name" : "???",
-          "frameIndex" : 26,
+          "frame_index" : 26,
           "symbol_address" : "000000010c3fd366",
           "in_app" : false,
           "binary_address" : "0"

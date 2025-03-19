@@ -43,8 +43,8 @@ class HttpClientTests: XCTestCase {
 
     func testCreateMultipartBody() {
         let multipartData: [MultipartData] = [
-            .formField(name: "field1", value: "value1"),
-            .formField(name: "field2", value: "value2")
+            .formField(name: "field1", value: Data("value1".utf8)),
+            .formField(name: "field2", value: Data("value2".utf8))
         ]
 
         let body = client.createMultipartBody(multipartData)

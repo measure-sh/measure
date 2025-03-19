@@ -159,7 +159,7 @@ final class EventProcessorTests: XCTestCase {
         XCTAssertEqual(event.attachments?.first, Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path"))
         XCTAssertEqual(event.userTriggered, false)
         XCTAssertEqual(event.attributes, attributes)
-        XCTAssertEqual(event.data, exception)
+        XCTAssertEqual(event.exception, exception)
     }
 
     func testTrackExceptionEventWithAllData() { // swiftlint:disable:this function_body_length
@@ -259,6 +259,6 @@ final class EventProcessorTests: XCTestCase {
         XCTAssertEqual(event.attachments?.first, Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path"))
         XCTAssertEqual(event.userTriggered, false)
         XCTAssertEqual(event.attributes, updatedAttributes)
-        XCTAssertEqual(event.data, exception)
+        XCTAssertEqual(event.exception, exception)
     }
 }
