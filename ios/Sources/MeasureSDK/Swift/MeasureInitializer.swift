@@ -212,7 +212,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                  timeProvider: timeProvider,
                                                  crashDataPersistence: crashDataPersistence,
                                                  eventStore: eventStore)
-        self.systemCrashReporter = BaseSystemCrashReporter()
+        self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
         self.crashReportManager = CrashReportingManager(logger: logger,
                                                         eventProcessor: eventProcessor,
                                                         crashDataPersistence: crashDataPersistence,

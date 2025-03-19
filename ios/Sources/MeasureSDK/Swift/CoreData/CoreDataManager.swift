@@ -27,6 +27,7 @@ final class BaseCoreDataManager: CoreDataManager {
         guard let modelURL = Bundle.module.url(forResource: "MeasureModel", withExtension: "momd"),
               let model = NSManagedObjectModel(contentsOf: modelURL) else {
             logger.log(level: .fatal, message: "Error loading model from Swift Package bundle", error: nil, data: nil)
+            return
         }
         #else
         // Use `Bundle(for:)` for CocoaPods or direct integration
