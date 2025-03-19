@@ -308,22 +308,8 @@ detect_compose_command() {
 # update_symbolicator_origin updates value of a variable in .env file.
 # ------------------------------------------------------------------------------
 update_symbolicator_origin() {
-  # local env_file="./.env"
-
-  # if [[ ! -f "$env_file" ]]; then
-  #   warn "'.env' file not found in current directory. Please manually update .env file."
-  #   info "SYMBOLICATOR_ORIGIN=http://symbolicator:3021"
-  #   return 0
-  # fi
-
-  # if is_macOS; then
-  #   sed -i '' 's|^SYMBOLICATOR_ORIGIN=.*|SYMBOLICATOR_ORIGIN=http://symbolicator:3021|' "$env_file"
-  # else
-  #   sed -i 's|^SYMBOLICATOR_ORIGIN=.*|SYMBOLICATOR_ORIGIN=http://symbolicator:3021|' "$env_file"
-  # fi
-
-  # info "Updated SYMBOLICATOR_ORIGIN in $env_file to http://symbolicator:3021"
   update_env_variable SYMBOLICATOR_ORIGIN "http://symbolicator:3021"
+  info "Updated SYMBOLICATOR_ORIGIN in $env_file to http://symbolicator:3021"
 }
 
 # ------------------------------------------------------------------------------
@@ -343,7 +329,7 @@ stop_docker_compose() {
 # start_docker_compose starts services using docker compose.
 # ------------------------------------------------------------------------------
 start_docker_compose() {
-  info "Starting Measure docker containers"
+  info "Starting measure.sh docker containers"
 
   $DOCKER_COMPOSE_CMD \
     --progress plain \
@@ -496,5 +482,5 @@ start_docker
 ensure_config
 detect_compose_command
 update_symbolicator_origin
-start_docker_compose
 cleanup
+start_docker_compose
