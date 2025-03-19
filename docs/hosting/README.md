@@ -1,6 +1,6 @@
 # Self Hosting Guide <!-- omit in toc -->
 
-Measure is designed from the ground up for easy self-hosting. Follow along to run Measure on your own infrastructure.
+measure.sh is designed from the ground up for easy self-hosting. Follow along to run measure.sh on your own infrastructure.
 
 ## Contents <!-- omit in toc -->
 
@@ -14,12 +14,11 @@ Measure is designed from the ground up for easy self-hosting. Follow along to ru
   - [4. Configure and start your self hosted measure instance](#4-configure-and-start-your-self-hosted-measure-instance)
   - [5. Setup a reverse proxy server](#5-setup-a-reverse-proxy-server)
   - [6. Setup DNS A records](#6-setup-dns-a-records)
-  - [7. Access your Measure dashboard](#7-access-your-measure-dashboard)
+  - [7. Access your measure.sh dashboard](#7-access-your-measuresh-dashboard)
 - [Upgrade a Self Hosted Installation](#upgrade-a-self-hosted-installation)
 - [Run on macOS locally](#run-on-macos-locally)
   - [System Requirements](#system-requirements-1)
   - [1. Clone the measure repo](#1-clone-the-measure-repo)
-  - [2. Install dependencies](#2-install-dependencies)
   - [2. Run `config.sh` script to configure](#2-run-configsh-script-to-configure)
   - [3. Start the containers](#3-start-the-containers)
   - [4. Access your Measure dashboard](#4-access-your-measure-dashboard)
@@ -56,7 +55,7 @@ Measure is designed from the ground up for easy self-hosting. Follow along to ru
 
 ## Deploy on a Linux virtual machine
 
-Follow these step-by-step instructions to deploy Measure on a single Linux VM instance.
+Follow these step-by-step instructions to deploy measure.sh on a single Linux VM instance.
 
 ### 1. SSH into your VM
 
@@ -101,7 +100,7 @@ Run the install script with `sudo`.
 sudo ./install.sh
 ```
 
-The measure install script will check your system's requirements and start the installation. It can take a few minutes to complete.
+The measure.sh install script will check your system's requirements and start the installation. It can take a few minutes to complete.
 
 ### 4. Configure and start your self hosted measure instance
 
@@ -113,7 +112,7 @@ For the first prompt, it'll ask for a namespace for your company or team. This t
   <img src="https://github.com/user-attachments/assets/70e5aa2c-8916-4b84-930a-e57a5c020e2a" alt="Measure Configuration Wizard" />
 </p>
 
-For the next prompt, you'll be asked to enter the URL to access Measure's web dashboard. Typically, this might look like a subdomain on your primary domain, for example, if your domain is `yourcompany.com`, enter `https://measure.yourcompany.com`.
+For the next prompt, you'll be asked to enter the URL to access measure.sh's web dashboard. Typically, this might look like a subdomain on your primary domain, for example, if your domain is `yourcompany.com`, enter `https://measure.yourcompany.com`.
 
 Next, you'll be asked to enter the URL to access Measure's REST API endpoint. Typically, this might look like, `https://measure-api.yourcompany.com`.
 
@@ -123,7 +122,7 @@ Next, you'll be asked to enter the URL to access Measure's REST API endpoint. Ty
 
 Later in this guide, you'll be setting DNS A records for the above subdomains you entered. For now, let's move on to the next prompt.
 
-For the next few prompts, you'll need to obtain a Google & GitHub OAuth Application's credentials. This is required to setup authentication in Measure dashboard. Follow the below links to obtain Google & GitHub OAuth credentials.
+For the next few prompts, you'll need to obtain a Google & GitHub OAuth Application's credentials. This is required to setup authentication in measure.sh dashboard. Follow the below links to obtain Google & GitHub OAuth credentials.
 
 - [Create a Google OAuth App](./google-oauth.md)
 - [Create a GitHub OAuth App](./github-oauth.md)
@@ -202,13 +201,13 @@ measure-api.yourcompany.com     IN A        101.102.103.104
 
 Depending on your domain provider, it might take a few mins to couple of hours for the above DNS records to take effect.
 
-### 7. Access your Measure dashboard
+### 7. Access your measure.sh dashboard
 
 Visit `https://measure.yourcompany.com` to access your dashboard and sign in to continue. Replace `yourcompany.com` with your domain.
 
 ## Upgrade a Self Hosted Installation
 
-To upgrade to a specific or latest version of Measure, SSH to your VM instance first and run these commands.
+To upgrade to a specific or latest version of measure.sh, SSH to your VM instance first and run these commands.
 
 For certain target versions, you will need to run extra migration scripts. Check out our [Migration Guides](../hosting/migration-guides/README.md).
 
@@ -244,20 +243,11 @@ Change to `self-host` directory and run `sudo ./install.sh` to perform the upgra
 # change to `self-host` directory
 cd self-host
 
-# bring down all containers
-sudo docker compose -f compose.yml -f compose.prod.yml \
-  --profile init \
-  --profile migrate \
-  down
-
-# pull fresh images
-sudo docker compose pull
-
-# bring up all containers
+# run the `install.sh` script
 sudo ./install.sh
 ```
 
-It'll take a few seconds for the containers to come back up.
+It'll take a few minutes for the upgrade to complete.
 
 > [!NOTE]
 >
@@ -265,7 +255,7 @@ It'll take a few seconds for the containers to come back up.
 
 ## Run on macOS locally
 
-You can run Measure locally on macOS for trying it out quickly, but keep in mind that not all features may not work as expected on macOS.
+You can run measure.sh locally on macOS for trying it out quickly, but keep in mind that not all features may not work as expected on macOS.
 
 > [!WARNING]
 >
@@ -300,15 +290,7 @@ Checkout to git a tag. Replace `GIT-TAG` with an existing git tag. You can find 
 git checkout GIT-TAG
 ```
 
-### 2. Install dependencies
-
-Install frontend dashboard app's dependencies.
-
-```sh
-npm --prefix frontend/dashboard install
-```
-
-Next, change into the `self-host` directory. All commands will be run mostly from the `self-host` directory after this point.
+Next, change to the `self-host` directory. All commands will be run from the `self-host` directory after this point.
 
 ```sh
 cd self-host
