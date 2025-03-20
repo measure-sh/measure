@@ -7,6 +7,7 @@ import (
 	"backend/api/server"
 	"context"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -26,6 +27,11 @@ const NetworkTypeWifi = "wifi"
 const NetworkTypeVpn = "vpn"
 const NetworkTypeNoNetwork = "no_network"
 const NetworkTypeUnknown = "unknown"
+
+// ttidClassRE defines the regular expression
+// to extact the class name from a TTID span's
+// name.
+var ttidClassRE = regexp.MustCompile(`^(?:Activity|Fragment)\s+TTID\s+([A-Za-z0-9.]+)`)
 
 // ValidNetworkTypes defines allowed
 // `network_type` values.
@@ -110,72 +116,6 @@ type SpanField struct {
 	CheckPoints          []CheckPointField `json:"checkpoints"`
 	Attributes           SpanAttributes    `json:"attributes"`
 	UserDefinedAttribute event.UDAttribute `json:"user_defined_attribute" binding:"required"`
-}
-
-type RootSpanDisplay struct {
-	AppID              uuid.UUID     `json:"app_id" binding:"required"`
-	SpanName           string        `json:"span_name" binding:"required"`
-	SpanID             string        `json:"span_id" binding:"required"`
-	TraceID            string        `json:"trace_id" binding:"required"`
-	Status             uint8         `json:"status" binding:"required"`
-	StartTime          time.Time     `json:"start_time" binding:"required"`
-	EndTime            time.Time     `json:"end_time" binding:"required"`
-	Duration           time.Duration `json:"duration" binding:"required"`
-	AppVersion         string        `json:"app_version" binding:"required"`
-	AppBuild           string        `json:"app_build" binding:"required"`
-	OSName             string        `json:"os_name" binding:"required"`
-	OSVersion          string        `json:"os_version" binding:"required"`
-	DeviceModel        string        `json:"device_model"`
-	DeviceManufacturer string        `json:"device_manufacturer"`
-}
-
-type SpanDisplay struct {
-	SpanName                 string            `json:"span_name" binding:"required"`
-	SpanID                   string            `json:"span_id" binding:"required"`
-	ParentID                 string            `json:"parent_id" binding:"required"`
-	Status                   uint8             `json:"status" binding:"required"`
-	StartTime                time.Time         `json:"start_time" binding:"required"`
-	EndTime                  time.Time         `json:"end_time" binding:"required"`
-	Duration                 time.Duration     `json:"duration" binding:"required"`
-	ThreadName               string            `json:"thread_name"`
-	LowPowerModeEnabled      bool              `json:"device_low_power_mode"`
-	ThermalThrottlingEnabled bool              `json:"device_thermal_throttling_enabled"`
-	UserDefinedAttribute     event.UDAttribute `json:"user_defined_attributes"`
-	CheckPoints              []CheckPointField `json:"checkpoints"`
-}
-
-type TraceDisplay struct {
-	AppID              uuid.UUID     `json:"app_id" binding:"required"`
-	TraceID            string        `json:"trace_id" binding:"required"`
-	SessionID          uuid.UUID     `json:"session_id" binding:"required"`
-	UserID             string        `json:"user_id"`
-	StartTime          time.Time     `json:"start_time" binding:"required"`
-	EndTime            time.Time     `json:"end_time" binding:"required"`
-	Duration           time.Duration `json:"duration" binding:"required"`
-	AppVersion         string        `json:"app_version"`
-	OSVersion          string        `json:"os_version" binding:"required"`
-	DeviceManufacturer string        `json:"device_manufacturer"`
-	DeviceModel        string        `json:"device_model"`
-	NetworkType        string        `json:"network_type"`
-	Spans              []SpanDisplay `json:"spans"  binding:"required"`
-}
-
-type TraceSessionTimelineDisplay struct {
-	TraceID    string        `json:"trace_id" binding:"required"`
-	TraceName  string        `json:"trace_name" binding:"required"`
-	ThreadName string        `json:"thread_name"`
-	StartTime  time.Time     `json:"start_time" binding:"required"`
-	EndTime    time.Time     `json:"end_time" binding:"required"`
-	Duration   time.Duration `json:"duration" binding:"required"`
-}
-
-type SpanMetricsPlotInstance struct {
-	Version  string   `json:"version"`
-	DateTime string   `json:"datetime"`
-	P50      *float64 `json:"p50"`
-	P90      *float64 `json:"p90"`
-	P95      *float64 `json:"p95"`
-	P99      *float64 `json:"p99"`
 }
 
 // Validate validates the span for data
@@ -333,6 +273,115 @@ func (s *SpanField) Validate() error {
 	}
 
 	return nil
+}
+
+// NeedsSymbolication returns true if the span needs
+// symbolication, false otherwise.
+func (s SpanField) NeedsSymbolication() (result bool) {
+	result = false
+
+	if s.SpanName == "" {
+		return
+	}
+
+	switch s.Attributes.Platform {
+	case platform.Android:
+		matches := ttidClassRE.FindStringSubmatch(s.SpanName)
+
+		if len(matches) > 1 {
+			result = true
+		}
+	}
+
+	return
+}
+
+// GetTTIDClass provides the class name of the span
+// matching the TTID span naming pattern.
+func (s SpanField) GetTTIDClass() (class string) {
+	matches := ttidClassRE.FindStringSubmatch(s.SpanName)
+	if len(matches) < 2 {
+		return
+	}
+
+	return matches[1]
+}
+
+// SetTTIDClass sets the class name of the span
+// matching the TTID span naming pattern.
+func (s *SpanField) SetTTIDClass(c string) {
+	index := strings.LastIndex(s.SpanName, " ")
+	if index == -1 {
+		return
+	}
+
+	s.SpanName = s.SpanName[:index+1] + c
+}
+
+type RootSpanDisplay struct {
+	AppID              uuid.UUID     `json:"app_id" binding:"required"`
+	SpanName           string        `json:"span_name" binding:"required"`
+	SpanID             string        `json:"span_id" binding:"required"`
+	TraceID            string        `json:"trace_id" binding:"required"`
+	Status             uint8         `json:"status" binding:"required"`
+	StartTime          time.Time     `json:"start_time" binding:"required"`
+	EndTime            time.Time     `json:"end_time" binding:"required"`
+	Duration           time.Duration `json:"duration" binding:"required"`
+	AppVersion         string        `json:"app_version" binding:"required"`
+	AppBuild           string        `json:"app_build" binding:"required"`
+	OSName             string        `json:"os_name" binding:"required"`
+	OSVersion          string        `json:"os_version" binding:"required"`
+	DeviceModel        string        `json:"device_model"`
+	DeviceManufacturer string        `json:"device_manufacturer"`
+}
+
+type SpanDisplay struct {
+	SpanName                 string            `json:"span_name" binding:"required"`
+	SpanID                   string            `json:"span_id" binding:"required"`
+	ParentID                 string            `json:"parent_id" binding:"required"`
+	Status                   uint8             `json:"status" binding:"required"`
+	StartTime                time.Time         `json:"start_time" binding:"required"`
+	EndTime                  time.Time         `json:"end_time" binding:"required"`
+	Duration                 time.Duration     `json:"duration" binding:"required"`
+	ThreadName               string            `json:"thread_name"`
+	LowPowerModeEnabled      bool              `json:"device_low_power_mode"`
+	ThermalThrottlingEnabled bool              `json:"device_thermal_throttling_enabled"`
+	UserDefinedAttribute     event.UDAttribute `json:"user_defined_attributes"`
+	CheckPoints              []CheckPointField `json:"checkpoints"`
+}
+
+type TraceDisplay struct {
+	AppID              uuid.UUID     `json:"app_id" binding:"required"`
+	TraceID            string        `json:"trace_id" binding:"required"`
+	SessionID          uuid.UUID     `json:"session_id" binding:"required"`
+	UserID             string        `json:"user_id"`
+	StartTime          time.Time     `json:"start_time" binding:"required"`
+	EndTime            time.Time     `json:"end_time" binding:"required"`
+	Duration           time.Duration `json:"duration" binding:"required"`
+	AppVersion         string        `json:"app_version"`
+	OSVersion          string        `json:"os_version" binding:"required"`
+	DeviceManufacturer string        `json:"device_manufacturer"`
+	DeviceModel        string        `json:"device_model"`
+	NetworkType        string        `json:"network_type"`
+	Spans              []SpanDisplay `json:"spans"  binding:"required"`
+}
+
+type TraceSessionTimelineDisplay struct {
+	TraceID    string        `json:"trace_id" binding:"required"`
+	TraceName  string        `json:"trace_name" binding:"required"`
+	ThreadName string        `json:"thread_name"`
+	StartTime  time.Time     `json:"start_time" binding:"required"`
+	EndTime    time.Time     `json:"end_time" binding:"required"`
+	Duration   time.Duration `json:"duration" binding:"required"`
+}
+
+type SpanMetricsPlotInstance struct {
+	Version  string   `json:"version"`
+	DateTime string   `json:"datetime"`
+	P50      *float64 `json:"p50"`
+	P90      *float64 `json:"p90"`
+	P95      *float64 `json:"p95"`
+	P99      *float64 `json:"p99"`
 }
 
 // FetchRootSpanNames returns list of root span names for a given app id

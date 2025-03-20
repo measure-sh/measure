@@ -75,7 +75,8 @@ type eventreq struct {
 	appId                  uuid.UUID
 	status                 status
 	platform               string
-	symbolicate            map[uuid.UUID]int
+	symbolicateEvents      map[uuid.UUID]int
+	symbolicateSpans       map[string]int
 	exceptionIds           []int
 	anrIds                 []int
 	size                   int64
@@ -199,7 +200,7 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		ev.AppID = appId
 
 		if ev.NeedsSymbolication() {
-			e.symbolicate[ev.ID] = i
+			e.symbolicateEvents[ev.ID] = i
 		}
 
 		if ev.IsUnhandledException() {
@@ -287,11 +288,15 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		e.bumpSize(int64(len(bytes)))
 		sp.AppID = appId
 
+		if sp.NeedsSymbolication() {
+			e.symbolicateSpans[sp.SpanName] = i
+		}
+
 		// read platfrom from payload
 		// if we haven't figured out
 		// platform already.
 		if e.platform == "" {
-			e.platform = e.spans[0].Attributes.Platform
+			e.platform = sp.Attributes.Platform
 		}
 
 		e.spans = append(e.spans, sp)
@@ -586,7 +591,7 @@ func (e eventreq) bucketANRs(ctx context.Context, tx *pgx.Tx) (err error) {
 // needsSymbolication returns true if payload
 // contains events that should be symbolicated.
 func (e eventreq) needsSymbolication() bool {
-	return len(e.symbolicate) > 0
+	return len(e.symbolicateEvents) > 0 || len(e.symbolicateSpans) > 0
 }
 
 // validate validates the integrity of each event
@@ -2084,11 +2089,12 @@ func PutEvents(c *gin.Context) {
 
 	msg := `failed to parse event request payload`
 	eventReq := eventreq{
-		appId:       appId,
-		platform:    app.Platform,
-		symbolicate: make(map[uuid.UUID]int),
-		attachments: make(map[uuid.UUID]*blob),
-		createdAt:   time.Now(),
+		appId:             appId,
+		platform:          app.Platform,
+		symbolicateEvents: make(map[uuid.UUID]int),
+		symbolicateSpans:  make(map[string]int),
+		attachments:       make(map[uuid.UUID]*blob),
+		createdAt:         time.Now(),
 	}
 
 	if err := eventReq.read(c, appId); err != nil {
@@ -2235,10 +2241,10 @@ func PutEvents(c *gin.Context) {
 
 		defer symbolicationSpan.End()
 
-		if err := symblctr.Symbolicate(ctx, server.Server.PgPool, eventReq.appId, eventReq.events); err != nil {
+		if err := symblctr.Symbolicate(ctx, server.Server.PgPool, eventReq.appId, eventReq.events, eventReq.spans); err != nil {
 			// in case there was symbolication failure, we don't fail
 			// ingestion. ignore the error, log it and continue.
-			fmt.Printf("failed to symbolicate batch %q containing %d events: %v\n", eventReq.id, len(eventReq.events), err.Error())
+			fmt.Printf("failed to symbolicate batch %q containing %d events & %d spans: %v\n", eventReq.id, len(eventReq.events), len(eventReq.spans), err.Error())
 		}
 
 		eventReq.bumpSymbolication()

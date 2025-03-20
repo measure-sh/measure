@@ -5,6 +5,7 @@ import (
 	"backend/api/chrono"
 	"backend/api/event"
 	"backend/api/platform"
+	"backend/api/span"
 	"backend/api/symbol"
 	"bytes"
 	"context"
@@ -158,6 +159,7 @@ type Symbolicator struct {
 	// & restoring JVM stacktrace frames before &
 	// after symbolication.
 	stacktraceLUT []stacktraceEntry
+	ttidSpans     []int
 	// requestJVM contains the payload for JVM
 	// symbolicator request.
 	requestJVM *requestJVM
@@ -207,7 +209,7 @@ func New(origin, platform string, sources []Source) (symbolicator *Symbolicator)
 // Symbolicate performs symbolication by retrieving
 // appropriate mapping file and managing symbolicator
 // request to response cycle.
-func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appId uuid.UUID, events []event.EventField) (err error) {
+func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appId uuid.UUID, events []event.EventField, spans []span.SpanField) (err error) {
 	switch s.Platform {
 	case platform.Android:
 		if s.requestJVM == nil {
@@ -334,6 +336,24 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 			s.requestJVM.AddModule(debugId, symbol.TypeProguard.String())
 		}
 
+		for i := range spans {
+			if spans[i].Attributes.Platform != platform.Android {
+				continue
+			}
+			if !spans[i].NeedsSymbolication() {
+				continue
+			}
+
+			class := spans[i].GetTTIDClass()
+
+			if class == "" {
+				continue
+			}
+
+			s.requestJVM.AddClass(class)
+			s.ttidSpans = append(s.ttidSpans, i)
+		}
+
 		if err = s.makeRequest(); err != nil {
 			return
 		}
@@ -342,7 +362,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 			s.logResponse()
 		}
 
-		s.rewriteN(events)
+		s.rewriteN(events, spans)
 		s.reset()
 	case platform.IOS:
 		for _, ev := range events {
@@ -572,7 +592,7 @@ func (s Symbolicator) rewrite(ev event.EventField) {
 
 // rewriteN partially updates the original
 // events with symbolicated data.
-func (s Symbolicator) rewriteN(evs []event.EventField) {
+func (s Symbolicator) rewriteN(evs []event.EventField, sps []span.SpanField) {
 	switch s.Platform {
 	case platform.Android:
 		stacktraces := s.responseJVM.Stacktraces
@@ -748,6 +768,20 @@ func (s Symbolicator) rewriteN(evs []event.EventField) {
 				}
 			}
 		}
+
+		// rewrite TTID spans whose names are like
+		//
+		// Activity TTID {class_name}
+		// Fragment TTID {class_name}
+		for _, i := range s.ttidSpans {
+			oldClass := sps[i].GetTTIDClass()
+			if oldClass == "" {
+				continue
+			}
+
+			newClass := s.responseJVM.rewriteClass(oldClass, oldClass)
+			sps[i].SetTTIDClass(newClass)
+		}
 	}
 }
 
@@ -760,6 +794,7 @@ func (s *Symbolicator) reset() {
 	s.retryCount = 0
 	s.lineNoLUT = []lineNoEntry{}
 	s.stacktraceLUT = []stacktraceEntry{}
+	s.ttidSpans = []int{}
 	s.requestJVM = nil
 	s.responseJVM = nil
 	s.responseNative = nil
