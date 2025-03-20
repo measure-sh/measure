@@ -266,6 +266,11 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 					s.requestJVM.Exceptions = append(s.requestJVM.Exceptions, exceptionJVM{
 						Type: excep.Type,
 					})
+
+					// symbolicate each exception unit's type
+					// by matching classes
+					s.requestJVM.AddClass(excep.Type)
+
 					frameJVMs := []frameJVM{}
 					for k, frame := range excep.Frames {
 						line := frame.LineNum
@@ -593,15 +598,26 @@ func (s Symbolicator) rewriteN(evs []event.EventField) {
 				if evs[i].IsException() {
 					exceptions = evs[i].Exception.Exceptions
 					threads = evs[i].Exception.Threads
+
+					// rewrite each exception's unit type from
+					// mapped classnames
+					for eIdx := range evs[i].Exception.Exceptions {
+						evs[i].Exception.Exceptions[eIdx].Type = s.responseJVM.rewriteClass(evs[i].Exception.Exceptions[eIdx].Type, evs[i].Exception.Exceptions[eIdx].Type)
+					}
 				} else if evs[i].IsANR() {
 					exceptions = evs[i].ANR.Exceptions
 					threads = evs[i].ANR.Threads
+
+					// rewrite each anr's type from
+					// mapped calssnames
+					for eIdx := range evs[i].ANR.Exceptions {
+						evs[i].ANR.Exceptions[eIdx].Type = s.responseJVM.rewriteClass(evs[i].ANR.Exceptions[eIdx].Type, evs[i].ANR.Exceptions[eIdx].Type)
+					}
 				}
 
 				if j != -1 && k != -1 {
 					origClass := exceptions[j].Frames[k].ClassName
 					if len(stacktraces[n].Frames) > len(exceptions[j].Frames) {
-						// fmt.Println("res frames", stacktraces[n].Frames)
 						// when count of symbolicated output frames is more
 						// than count of unsymbolicated input frames, it implies
 						// that symbolicator came across an inline frame and
