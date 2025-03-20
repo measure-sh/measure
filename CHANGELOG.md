@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Anr exception type was not symbolicated (#1944) by @detj in #1944
 - (**backend**): Remove mapping file size validation (#1935) by @detj in #1935
 - (**backend**): Fix partial android symbolication (#1933) by @detj in #1933
 - (**backend**): Fix a panic during anr symbolication (#1927) by @detj in #1927
