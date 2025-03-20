@@ -106,7 +106,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
   const toggleCheckboxOsVersionItem = (item: OsVersion) => {
     let curSelected = selected as OsVersion[]
     if (isOsVersionSelected(item)) {
-      setSelected(curSelected.filter(a => a != item))
+      setSelected(curSelected.filter(a => a.displayName != item.displayName))
     } else {
       setSelected([item, ...curSelected])
     }

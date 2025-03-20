@@ -1,13 +1,21 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
-import Link from "next/link";
-import { useRouter } from 'next/navigation';
-import { ExceptionsOverviewApiStatus, ExceptionsType, FilterSource, emptyExceptionsOverviewResponse, fetchExceptionsOverviewFromServer } from '@/app/api/api_calls';
-import Paginator, { PaginationDirection } from '@/app/components/paginator';
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters';
-import ExceptionsOverviewPlot from './exceptions_overview_plot';
-import LoadingBar from './loading_bar';
+import React, { useState, useEffect } from 'react'
+import Link from "next/link"
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ExceptionsOverviewApiStatus, ExceptionsType, FilterSource, emptyExceptionsOverviewResponse, fetchExceptionsOverviewFromServer } from '@/app/api/api_calls'
+import Paginator from '@/app/components/paginator'
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters'
+import ExceptionsOverviewPlot from './exceptions_overview_plot'
+import LoadingBar from './loading_bar'
+
+interface PageState {
+  exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus
+  filters: typeof defaultFilters
+  exceptionsOverview: typeof emptyExceptionsOverviewResponse
+  keyId: string | null,
+  limit: number
+}
 
 interface ExceptionsOverviewProps {
   exceptionsType: ExceptionsType,
@@ -15,58 +23,88 @@ interface ExceptionsOverviewProps {
 }
 
 export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptionsType, teamId }) => {
+  const defaultPaginationLimit = 5
+  const keyIdUrlKey = "kId"
+  const paginationLimitUrlKey = "pl"
+
   const router = useRouter()
-  const [exceptionsOverviewApiStatus, setExceptionsOverviewApiStatus] = useState(ExceptionsOverviewApiStatus.Loading);
+  const searchParams = useSearchParams()
 
-  const [filters, setFilters] = useState(defaultFilters);
+  const initialState: PageState = {
+    exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus.Loading,
+    filters: defaultFilters,
+    exceptionsOverview: emptyExceptionsOverviewResponse,
+    keyId: searchParams.get(keyIdUrlKey) ? searchParams.get(keyIdUrlKey) : null,
+    limit: searchParams.get(paginationLimitUrlKey) ? parseInt(searchParams.get(paginationLimitUrlKey)!) : defaultPaginationLimit
+  }
 
-  const [exceptionsOverview, setExceptionsOverview] = useState(emptyExceptionsOverviewResponse);
-  const paginationOffset = 10
-  const [paginationIndex, setPaginationIndex] = useState(0)
-  const [paginationDirection, setPaginationDirection] = useState(PaginationDirection.None)
+  const [pageState, setPageState] = useState<PageState>(initialState)
+
+  // Helper function to update page state
+  const updatePageState = (newState: Partial<PageState>) => {
+    setPageState(prevState => {
+      const updatedState = { ...prevState, ...newState }
+      return updatedState
+    })
+  }
 
 
   const getExceptionsOverview = async () => {
-    setExceptionsOverviewApiStatus(ExceptionsOverviewApiStatus.Loading)
+    updatePageState({ exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus.Loading })
 
-    // Set key id if user has paginated. Last index of current list if forward navigation, first index if backward
-    var keyId = null
-    if (exceptionsOverview.results !== null && exceptionsOverview.results.length > 0) {
-      if (paginationDirection === PaginationDirection.Forward) {
-        keyId = exceptionsOverview.results[exceptionsOverview.results.length - 1].id
-      } else if (paginationDirection === PaginationDirection.Backward) {
-        keyId = exceptionsOverview.results[0].id
-      }
-    }
-
-    // Invert limit if paginating backward
-    var limit = paginationOffset
-    if (paginationDirection === PaginationDirection.Backward) {
-      limit = - limit
-    }
-
-    const result = await fetchExceptionsOverviewFromServer(exceptionsType, filters, keyId, limit, router)
+    const result = await fetchExceptionsOverviewFromServer(exceptionsType, pageState.filters, pageState.keyId, pageState.limit, router)
 
     switch (result.status) {
       case ExceptionsOverviewApiStatus.Error:
-        setPaginationDirection(PaginationDirection.None) // Reset pagination direction to None after API call so that a change in any filters does not cause keyId to be added to the next API call
-        setExceptionsOverviewApiStatus(ExceptionsOverviewApiStatus.Error)
+        updatePageState({ exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus.Error })
         break
       case ExceptionsOverviewApiStatus.Success:
-        setPaginationDirection(PaginationDirection.None) // Reset pagination direction to None after API call so that a change in any filters does not cause keyId to be added to the next API call
-        setExceptionsOverviewApiStatus(ExceptionsOverviewApiStatus.Success)
-        setExceptionsOverview(result.data)
+        updatePageState({ exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus.Success, exceptionsOverview: result.data })
         break
     }
   }
 
+  const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
+    // update filters only if they have changed
+    if (updatedFilters.ready && pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
+      updatePageState({
+        filters: updatedFilters,
+        // Reset pagination on filters change if previous filters were not default filters
+        keyId: pageState.filters.serialisedFilters && searchParams.get(keyIdUrlKey) ? null : pageState.keyId,
+        limit: pageState.filters.serialisedFilters && searchParams.get(paginationLimitUrlKey) ? defaultPaginationLimit : pageState.limit
+      })
+    }
+  }
+
+  const handleNextPage = () => {
+    let keyId = null
+    if (pageState.exceptionsOverview.results !== null && pageState.exceptionsOverview.results.length > 0) {
+      keyId = pageState.exceptionsOverview.results[pageState.exceptionsOverview.results.length - 1].id
+    }
+
+    updatePageState({ keyId: keyId, limit: defaultPaginationLimit })
+  }
+
+  const handlePrevPage = () => {
+    let keyId = null
+    if (pageState.exceptionsOverview.results !== null && pageState.exceptionsOverview.results.length > 0) {
+      keyId = pageState.exceptionsOverview.results[0].id
+    }
+
+    updatePageState({ keyId: keyId, limit: -defaultPaginationLimit })
+  }
+
   useEffect(() => {
-    if (!filters.ready) {
+    if (!pageState.filters.ready) {
       return
     }
 
+    // update url
+    const queryParams = `${pageState.keyId !== null ? `${keyIdUrlKey}=${encodeURIComponent(pageState.keyId)}&` : ''}${paginationLimitUrlKey}=${encodeURIComponent(pageState.limit)}&${pageState.filters.serialisedFilters!}`
+    router.replace(`?${queryParams}`, { scroll: false })
+
     getExceptionsOverview()
-  }, [paginationIndex, filters]);
+  }, [pageState.keyId, pageState.filters])
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -96,35 +134,29 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         showBugReportStatus={false}
         showUdAttrs={true}
         showFreeText={false}
-        onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
+        onFiltersChanged={handleFiltersChanged} />
       <div className="py-4" />
 
       {/* Error state for crash groups fetch */}
-      {filters.ready
-        && exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Error
+      {pageState.filters.ready
+        && pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Error
         && <p className="text-lg font-display">Error fetching list of {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
 
       {/* Main crash groups list UI */}
-      {filters.ready
-        && (exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Success || exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading) &&
+      {pageState.filters.ready
+        && (pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Success || pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading) &&
         <div className="flex flex-col items-center w-full">
           <div className="py-4" />
           <ExceptionsOverviewPlot
             exceptionsType={exceptionsType}
-            filters={filters} />
+            filters={pageState.filters} />
           <div className="py-4" />
           <div className='self-end'>
-            <Paginator prevEnabled={exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : exceptionsOverview.meta.previous} nextEnabled={exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : exceptionsOverview.meta.next} displayText=''
-              onNext={() => {
-                setPaginationIndex(paginationIndex + 1)
-                setPaginationDirection(PaginationDirection.Forward)
-              }}
-              onPrev={() => {
-                setPaginationIndex(paginationIndex - 1)
-                setPaginationDirection(PaginationDirection.Backward)
-              }} />
+            <Paginator prevEnabled={pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : pageState.exceptionsOverview.meta.previous} nextEnabled={pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : pageState.exceptionsOverview.meta.next} displayText=''
+              onNext={handleNextPage}
+              onPrev={handlePrevPage} />
           </div>
-          <div className={`py-1 w-full ${exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? 'visible' : 'invisible'}`}>
+          <div className={`py-1 w-full ${pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? 'visible' : 'invisible'}`}>
             <LoadingBar />
           </div>
           <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
@@ -136,8 +168,8 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
               </div>
             </div>
             <div className="table-row-group font-body">
-              {exceptionsOverview.results?.map(({ id, type, message, method_name, file_name, line_number, count, percentage_contribution }) => (
-                <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${filters.app.id}/${id}/${type + (file_name !== "" ? "@" + file_name : "")}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
+              {pageState.exceptionsOverview.results?.map(({ id, type, message, method_name, file_name, line_number, count, percentage_contribution }) => (
+                <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${pageState.filters.app!.id}/${id}/${type + (file_name !== "" ? "@" + file_name : "")}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
                   <div className="table-cell p-4">
                     <p className='truncate'>{(file_name !== "" ? file_name : "unknown_file") + ": " + (method_name !== "" ? method_name : "unknown_method") + "()"}</p>
                     <div className='py-1' />

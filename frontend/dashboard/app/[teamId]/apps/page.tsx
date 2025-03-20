@@ -54,7 +54,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const getAppSettings = async () => {
     setFetchAppSettingsApiStatus(FetchAppSettingsApiStatus.Loading)
 
-    const result = await fetchAppSettingsFromServer(filters.app.id, router);
+    const result = await fetchAppSettingsFromServer(filters.app!.id, router);
 
     switch (result.status) {
       case FetchAppSettingsApiStatus.Error:
@@ -73,7 +73,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       return
     }
 
-    setAppName(filters.app.name)
+    setAppName(filters.app!.name)
     getAppSettings()
   }, [filters]);
 
@@ -81,7 +81,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
     setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Loading)
     setUpdateAppSettingsMsg("Saving...")
 
-    const result = await updateAppSettingsFromServer(filters.app.id, updatedAppSettings, router)
+    const result = await updateAppSettingsFromServer(filters.app!.id, updatedAppSettings, router)
 
     switch (result.status) {
 
@@ -123,7 +123,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const changeAppName = async () => {
     setAppNameChangeApiStatus(AppNameChangeApiStatus.Loading)
 
-    const result = await changeAppNameFromServer(filters.app.id, appName, router)
+    const result = await changeAppNameFromServer(filters.app!.id, appName, router)
 
     switch (result.status) {
       case AppNameChangeApiStatus.Error:
@@ -170,7 +170,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       {filters.ready &&
         <div>
           {/* Modal for confirming app name change */}
-          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to rename app <span className="font-display font-bold">{filters.app.name}</span> to <span className="font-display font-bold">{appName}</span>?</p>} open={appNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to rename app <span className="font-display font-bold">{filters.app!.name}</span> to <span className="font-display font-bold">{appName}</span>?</p>} open={appNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
               setAppNameConfirmationModalOpen(false)
               changeAppName()
@@ -185,7 +185,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                 <div className="px-1" />
                 <input id="change-app-name-input" type="text" value={appName}
                   onChange={(event) => {
-                    event.target.value === filters.app.name ? setSaveAppNameButtonDisabled(true) : setSaveAppNameButtonDisabled(false)
+                    event.target.value === filters.app!.name ? setSaveAppNameButtonDisabled(true) : setSaveAppNameButtonDisabled(false)
                     setAppName(event.target.value)
                     setAppNameChangeApiStatus(AppNameChangeApiStatus.Init)
                   }}
@@ -194,11 +194,11 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                 {appNameChangeApiStatus === AppNameChangeApiStatus.Loading && <p className="text-sm align-bottom font-display">Changing app name...</p>}
                 {appNameChangeApiStatus === AppNameChangeApiStatus.Error && <p className="text-sm align-bottom font-display">Error changing app name, please try again</p>}
               </div>
-              <p>Package name: {filters.app.unique_identifier}</p>
+              <p>Package name: {filters.app!.unique_identifier}</p>
               <div className="py-1" />
-              <p>Platform: {filters.app.platform}</p>
+              <p>Platform: {filters.app!.platform}</p>
               <div className="py-1" />
-              <p>Created at: {formatDateToHumanReadableDateTime(filters.app.created_at)}</p>
+              <p>Created at: {formatDateToHumanReadableDateTime(filters.app!.created_at)}</p>
             </div>
             <div className="flex flex-row items-center">
               <p>Data retention period</p>
@@ -219,8 +219,8 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             <div className="flex flex-row items-center">
               <p>API key</p>
               <div className="px-3" />
-              <input type="text" readOnly={true} value={filters.app.api_key.key} className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400" />
-              <button className="mx-4 my-1 outline-hidden flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(filters.app.api_key.key)}>Copy</button>
+              <input type="text" readOnly={true} value={filters.app!.api_key.key} className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400" />
+              <button className="mx-4 my-1 outline-hidden flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(filters.app!.api_key.key)}>Copy</button>
             </div>
           </div>
         </div>

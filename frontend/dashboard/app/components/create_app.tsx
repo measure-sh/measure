@@ -2,7 +2,7 @@
 
 import React, { useState, FormEventHandler } from 'react';
 import { useRouter } from 'next/navigation';
-import { CreateAppApiStatus, createAppFromServer, emptyApp } from '../api/api_calls';
+import { CreateAppApiStatus, createAppFromServer, App } from '../api/api_calls';
 import Link from 'next/link';
 
 interface CreateAppProps {
@@ -27,7 +27,7 @@ export enum CreateAppStatus {
 // app name passed in.
 const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, existingApiKey = null }) => {
 
-  const [data, setData] = useState(emptyApp);
+  const [data, setData] = useState<App>();
   const [createAppStatus, setCreateAppStatus] = useState(existingAppName === null && existingApiKey === null ? CreateAppStatus.PreCreation : CreateAppStatus.PostCreation)
   const [createAppApiStatus, setCreateAppApiStatus] = useState(CreateAppApiStatus.Init);
   const [appName, setAppName] = useState("");
@@ -82,8 +82,8 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
           <div className="py-4" />
           <p className="font-display text-xl max-w-6xl">API key</p>
           <div className="flex flex-row items-center">
-            <input id="api-key-input" readOnly={true} type="text" value={existingApiKey !== null ? existingApiKey : data.api_key.key} className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400" />
-            <button className="m-4 outline-hidden flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(existingApiKey !== null ? existingApiKey : data.api_key.key)}>Copy</button>
+            <input id="api-key-input" readOnly={true} type="text" value={existingApiKey !== null ? existingApiKey : data!.api_key.key} className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400" />
+            <button className="m-4 outline-hidden flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(existingApiKey !== null ? existingApiKey : data!.api_key.key)}>Copy</button>
           </div>
         </div>
       }

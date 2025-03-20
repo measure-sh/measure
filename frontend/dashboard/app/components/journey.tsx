@@ -319,7 +319,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
                           {/* Show clickable link if overview journey type */}
                           {journeyType === JourneyType.Overview &&
                             <span className="font-body text-xs">
-                              <Link href={`/${teamId}/crashes/${filters.app.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
+                              <Link href={`/${teamId}/crashes/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
                                 {title} - {formatter.format(count)}
                               </Link>
                             </span>
@@ -344,7 +344,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
                           {/* Show clickable link if overview journey type */}
                           {journeyType === JourneyType.Overview &&
                             <span className="font-body text-xs">
-                              <Link href={`/${teamId}/anrs/${filters.app.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
+                              <Link href={`/${teamId}/anrs/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
                                 {title} - {formatter.format(count)}
                               </Link>
                             </span>

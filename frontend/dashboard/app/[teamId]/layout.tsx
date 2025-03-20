@@ -121,7 +121,7 @@ export default function DashboardLayout({
               <ul>
                 {menuItems.map(({ hrefSuffix, title }) => (
                   <li key={title}>
-                    <Link href={`/${selectedTeam}/${hrefSuffix}`} className={`mx-4 mb-3 outline-hidden flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) ? 'bg-neutral-950 text-white hover:text-black focus-visible:text-black' : ''}`}>{title}</Link>
+                    <Link href={`/${selectedTeam}/${hrefSuffix}`} className={`mx-4 mb-3 outline-hidden flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) ? 'bg-neutral-950 text-white hover:text-black focus-visible:text-black pointer-events-none' : ''}`} tabIndex={pathName.includes(hrefSuffix) ? -1 : 0}>{title}</Link>
                   </li>
                 ))}
               </ul>}
