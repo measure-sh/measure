@@ -19,12 +19,21 @@ protocol SystemCrashReporter {
 
 final class BaseSystemCrashReporter: SystemCrashReporter {
     private let crashReporter: PLCrashReporter
+    private let logger: Logger
     var hasPendingCrashReport: Bool {
         return crashReporter.hasPendingCrashReport()
     }
 
-    init() {
-        crashReporter = PLCrashReporter()
+    init(logger: Logger) {
+        self.logger = logger
+        let config = PLCrashReporterConfig(signalHandlerType: .BSD, symbolicationStrategy: [], shouldRegisterUncaughtExceptionHandler: false)
+        guard let crashReporter = PLCrashReporter(configuration: config) else {
+            logger.log(level: .error, message: "Could not create an instance of PLCrashReporter with config.", error: nil, data: nil)
+            logger.log(level: .info, message: "Initialising PLCrashReporter with default config.", error: nil, data: nil)
+            self.crashReporter = PLCrashReporter()
+            return
+        }
+        self.crashReporter = crashReporter
     }
 
     func setCrashCallback(_ handleSignal: PLCrashReporterPostCrashSignalCallback) {
