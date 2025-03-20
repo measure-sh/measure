@@ -159,7 +159,9 @@ type Symbolicator struct {
 	// & restoring JVM stacktrace frames before &
 	// after symbolication.
 	stacktraceLUT []stacktraceEntry
-	ttidSpans     []int
+	// ttidSpans stores the index of the TTID span
+	// that needs symbolication.
+	ttidSpans []int
 	// requestJVM contains the payload for JVM
 	// symbolicator request.
 	requestJVM *requestJVM
