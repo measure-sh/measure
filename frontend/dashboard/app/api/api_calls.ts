@@ -301,23 +301,23 @@ export enum BugReportStatus {
 
 export const emptyTeam = { 'id': '', 'name': '' }
 
-export const emptyApp = {
-  "id": "",
-  "team_id": "",
-  "name": "",
-  "api_key": {
-    "created_at": "",
-    "key": "",
-    "last_seen": null,
-    "revoked": false
-  },
-  "onboarded": false,
-  "created_at": "",
-  "updated_at": "",
-  "platform": null,
-  "onboarded_at": null,
-  "unique_identifier": null
-}
+export type App = {
+  id: string;
+  team_id: string;
+  name: string;
+  api_key: {
+    created_at: string;
+    key: string;
+    last_seen: string | null;
+    revoked: boolean;
+  };
+  onboarded: boolean;
+  created_at: string;
+  updated_at: string;
+  platform: string | null;
+  onboarded_at: string | null;
+  unique_identifier: string | null;
+};
 
 export const emptyJourney = {
   "links": [
@@ -973,7 +973,7 @@ export const saveListFiltersToServer = async (filters: Filters) => {
   }
 
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
-  let url = `${origin}/apps/${filters.app.id}/shortFilters`
+  let url = `${origin}/apps/${filters.app!.id}/shortFilters`
 
   const udExpression = {
     and: filters.udAttrMatchers.map(matcher => ({
@@ -1153,7 +1153,7 @@ export const fetchAppsFromServer = async (teamId: string, router: AppRouterInsta
   }
 }
 
-export const fetchRootSpanNamesFromServer = async (selectedApp: typeof emptyApp, router: AppRouterInstance) => {
+export const fetchRootSpanNamesFromServer = async (selectedApp: App, router: AppRouterInstance) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
   try {
@@ -1179,7 +1179,7 @@ export const fetchRootSpanNamesFromServer = async (selectedApp: typeof emptyApp,
 export const fetchSpansFromServer = async (filters: Filters, limit: number, offset: number, router: AppRouterInstance) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-  var url = `${origin}/apps/${filters.app.id}/spans?`
+  var url = `${origin}/apps/${filters.app!.id}/spans?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null, limit, offset)
 
@@ -1202,7 +1202,7 @@ export const fetchSpansFromServer = async (filters: Filters, limit: number, offs
 export const fetchSpanMetricsPlotFromServer = async (filters: Filters, router: AppRouterInstance) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-  var url = `${origin}/apps/${filters.app.id}/spans/plots/metrics?`
+  var url = `${origin}/apps/${filters.app!.id}/spans/plots/metrics?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
@@ -1244,7 +1244,7 @@ export const fetchTraceFromServer = async (appId: string, traceId: string, route
   }
 }
 
-export const fetchFiltersFromServer = async (selectedApp: typeof emptyApp, filterSource: FilterSource, router: AppRouterInstance) => {
+export const fetchFiltersFromServer = async (selectedApp: App, filterSource: FilterSource, router: AppRouterInstance) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
   let url = `${origin}/apps/${selectedApp.id}/filters`
@@ -1295,11 +1295,11 @@ export const fetchJourneyFromServer = async (journeyType: JourneyType, exception
 
   let url = ''
   if (journeyType === JourneyType.CrashDetails) {
-    url = `${origin}/apps/${filters.app.id}/crashGroups/${exceptionsGroupdId}/plots/journey?`
+    url = `${origin}/apps/${filters.app!.id}/crashGroups/${exceptionsGroupdId}/plots/journey?`
   } else if (journeyType === JourneyType.AnrDetails) {
-    url = `${origin}/apps/${filters.app.id}/anrGroups/${exceptionsGroupdId}/plots/journey?`
+    url = `${origin}/apps/${filters.app!.id}/anrGroups/${exceptionsGroupdId}/plots/journey?`
   } else {
-    url = `${origin}/apps/${filters.app.id}/journey?`
+    url = `${origin}/apps/${filters.app!.id}/journey?`
   }
 
   // Append bidirectional value
@@ -1326,7 +1326,7 @@ export const fetchJourneyFromServer = async (journeyType: JourneyType, exception
 export const fetchMetricsFromServer = async (filters: Filters, router: AppRouterInstance) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-  let url = `${origin}/apps/${filters.app.id}/metrics?`
+  let url = `${origin}/apps/${filters.app!.id}/metrics?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
@@ -1349,7 +1349,7 @@ export const fetchMetricsFromServer = async (filters: Filters, router: AppRouter
 export const fetchSessionsOverviewFromServer = async (filters: Filters, keyId: string | null, keyTimestamp: string | null, limit: number, offset: number, router: AppRouterInstance) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-  var url = `${origin}/apps/${filters.app.id}/sessions?`
+  var url = `${origin}/apps/${filters.app!.id}/sessions?`
 
   url = await applyGenericFiltersToUrl(url, filters, keyId, keyTimestamp, limit, offset)
 
@@ -1372,7 +1372,7 @@ export const fetchSessionsOverviewFromServer = async (filters: Filters, keyId: s
 export const fetchSessionsOverviewPlotFromServer = async (filters: Filters, router: AppRouterInstance) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-  var url = `${origin}/apps/${filters.app.id}/sessions/plots/instances?`
+  var url = `${origin}/apps/${filters.app!.id}/sessions/plots/instances?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
@@ -1401,9 +1401,9 @@ export const fetchExceptionsOverviewFromServer = async (exceptionsType: Exceptio
 
   var url = ""
   if (exceptionsType === ExceptionsType.Crash) {
-    url = `${origin}/apps/${filters.app.id}/crashGroups?`
+    url = `${origin}/apps/${filters.app!.id}/crashGroups?`
   } else {
-    url = `${origin}/apps/${filters.app.id}/anrGroups?`
+    url = `${origin}/apps/${filters.app!.id}/anrGroups?`
   }
 
   url = await applyGenericFiltersToUrl(url, filters, keyId, null, limit, null)
@@ -1430,9 +1430,9 @@ export const fetchExceptionsDetailsFromServer = async (exceptionsType: Exception
 
   var url = ""
   if (exceptionsType === ExceptionsType.Crash) {
-    url = `${origin}/apps/${filters.app.id}/crashGroups/${exceptionsGroupdId}/crashes?`
+    url = `${origin}/apps/${filters.app!.id}/crashGroups/${exceptionsGroupdId}/crashes?`
   } else {
-    url = `${origin}/apps/${filters.app.id}/anrGroups/${exceptionsGroupdId}/anrs?`
+    url = `${origin}/apps/${filters.app!.id}/anrGroups/${exceptionsGroupdId}/anrs?`
   }
 
   url = await applyGenericFiltersToUrl(url, filters, keyId, keyTimestamp, limit, null)
@@ -1459,9 +1459,9 @@ export const fetchExceptionsOverviewPlotFromServer = async (exceptionsType: Exce
 
   var url = ""
   if (exceptionsType === ExceptionsType.Crash) {
-    url = `${origin}/apps/${filters.app.id}/crashGroups/plots/instances?`
+    url = `${origin}/apps/${filters.app!.id}/crashGroups/plots/instances?`
   } else {
-    url = `${origin}/apps/${filters.app.id}/anrGroups/plots/instances?`
+    url = `${origin}/apps/${filters.app!.id}/anrGroups/plots/instances?`
   }
 
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
@@ -1492,9 +1492,9 @@ export const fetchExceptionsDetailsPlotFromServer = async (exceptionsType: Excep
 
   var url = ""
   if (exceptionsType === ExceptionsType.Crash) {
-    url = `${origin}/apps/${filters.app.id}/crashGroups/${exceptionsGroupdId}/plots/instances?`
+    url = `${origin}/apps/${filters.app!.id}/crashGroups/${exceptionsGroupdId}/plots/instances?`
   } else {
-    url = `${origin}/apps/${filters.app.id}/anrGroups/${exceptionsGroupdId}/plots/instances?`
+    url = `${origin}/apps/${filters.app!.id}/anrGroups/${exceptionsGroupdId}/plots/instances?`
   }
 
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
@@ -1524,9 +1524,9 @@ export const fetchExceptionsDistributionPlotFromServer = async (exceptionsType: 
 
   var url = ""
   if (exceptionsType === ExceptionsType.Crash) {
-    url = `${origin}/apps/${filters.app.id}/crashGroups/${exceptionsGroupdId}/plots/distribution?`
+    url = `${origin}/apps/${filters.app!.id}/crashGroups/${exceptionsGroupdId}/plots/distribution?`
   } else {
-    url = `${origin}/apps/${filters.app.id}/anrGroups/${exceptionsGroupdId}/plots/distribution?`
+    url = `${origin}/apps/${filters.app!.id}/anrGroups/${exceptionsGroupdId}/plots/distribution?`
   }
 
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
@@ -1848,7 +1848,7 @@ export const fetchUsageFromServer = async (teamId: string, router: AppRouterInst
 export const fetchBugReportsOverviewFromServer = async (filters: Filters, limit: number, offset: number, router: AppRouterInstance) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-  var url = `${origin}/apps/${filters.app.id}/bugReports?`
+  var url = `${origin}/apps/${filters.app!.id}/bugReports?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null, limit, offset)
 
@@ -1871,7 +1871,7 @@ export const fetchBugReportsOverviewFromServer = async (filters: Filters, limit:
 export const fetchBugReportsOverviewPlotFromServer = async (filters: Filters, router: AppRouterInstance) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
-  var url = `${origin}/apps/${filters.app.id}/bugReports/plots/instances?`
+  var url = `${origin}/apps/${filters.app!.id}/bugReports/plots/instances?`
 
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 

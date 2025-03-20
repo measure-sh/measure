@@ -1,13 +1,49 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Journey, { JourneyType } from "@/app/components/journey";
 import MetricsOverview from '@/app/components/metrics_overview';
 import { FilterSource } from '@/app/api/api_calls';
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
+import { useRouter, useSearchParams } from 'next/navigation';
+
+interface PageState {
+  filters: typeof defaultFilters
+}
 
 export default function Overview({ params }: { params: { teamId: string } }) {
-  const [filters, setFilters] = useState(defaultFilters);
+  const router = useRouter()
+
+  const initialState: PageState = {
+    filters: defaultFilters
+  }
+
+  const [pageState, setPageState] = useState<PageState>(initialState)
+
+  const updatePageState = (newState: Partial<PageState>) => {
+    setPageState(prevState => {
+      const updatedState = { ...prevState, ...newState }
+      return updatedState
+    })
+  }
+
+  const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
+    // update filters only if they have changed
+    if (updatedFilters.ready && pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
+      updatePageState({
+        filters: updatedFilters
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (!pageState.filters.ready) {
+      return
+    }
+
+    // update url
+    router.replace(`?${pageState.filters.serialisedFilters!}`, { scroll: false })
+  }, [pageState.filters])
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -37,25 +73,25 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         showBugReportStatus={false}
         showFreeText={false}
         showUdAttrs={false}
-        onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
+        onFiltersChanged={handleFiltersChanged} />
 
       <div className="py-4" />
 
-      {filters.ready &&
+      {pageState.filters.ready &&
         <div className='w-5/6 h-[700px]'>
           <Journey
             teamId={params.teamId}
             bidirectional={false}
             journeyType={JourneyType.Overview}
             exceptionsGroupId={null}
-            filters={filters} />
+            filters={pageState.filters} />
         </div>
       }
       <div className="py-8" />
 
-      {filters.ready &&
+      {pageState.filters.ready &&
         <MetricsOverview
-          filters={filters} />}
+          filters={pageState.filters} />}
     </div>
   )
 }

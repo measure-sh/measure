@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import CreateApp from '@/app/components/create_app';
-import { AppsApiStatus, FetchAlertPrefsApiStatus, UpdateAlertPrefsApiStatus, emptyAlertPrefs, emptyApp, fetchAlertPrefsFromServer, fetchAppsFromServer, updateAlertPrefsFromServer } from '@/app/api/api_calls';
+import { App, AppsApiStatus, FetchAlertPrefsApiStatus, UpdateAlertPrefsApiStatus, emptyAlertPrefs, fetchAlertPrefsFromServer, fetchAppsFromServer, updateAlertPrefsFromServer } from '@/app/api/api_calls';
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select';
 
 export default function Overview({ params }: { params: { teamId: string } }) {
@@ -13,8 +13,8 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   const [fetchAlertPrefsApiStatus, setFetchAlertPrefsApiStatus] = useState(FetchAlertPrefsApiStatus.Loading);
   const [updateAlertPrefsApiStatus, setUpdateAlertPrefsApiStatus] = useState(UpdateAlertPrefsApiStatus.Init);
 
-  const [apps, setApps] = useState([] as typeof emptyApp[]);
-  const [selectedApp, setSelectedApp] = useState(emptyApp);
+  const [apps, setApps] = useState([] as App[]);
+  const [selectedApp, setSelectedApp] = useState<App | null>(null)
 
   const [alertPrefs, setAlertPrefs] = useState(emptyAlertPrefs);
   const [updatedAlertPrefs, setUpdatedAlertPrefs] = useState(emptyAlertPrefs);
@@ -111,7 +111,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   const getAlertPrefs = async () => {
     setFetchAlertPrefsApiStatus(FetchAlertPrefsApiStatus.Loading)
 
-    const result = await fetchAlertPrefsFromServer(selectedApp.id, router)
+    const result = await fetchAlertPrefsFromServer(selectedApp!.id, router)
 
     switch (result.status) {
       case FetchAlertPrefsApiStatus.Error:
@@ -134,7 +134,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     setUpdateAlertPrefsApiStatus(UpdateAlertPrefsApiStatus.Loading)
     setUpdatePrefsMsg("Saving...")
 
-    const result = await updateAlertPrefsFromServer(selectedApp.id, updatedAlertPrefs, router)
+    const result = await updateAlertPrefsFromServer(selectedApp!.id, updatedAlertPrefs, router)
 
     switch (result.status) {
       case UpdateAlertPrefsApiStatus.Error:

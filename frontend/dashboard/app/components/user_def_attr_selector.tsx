@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from 'react';
-import { UserDefAttr } from '../api/api_calls';
+import React, { useEffect, useRef, useState } from 'react'
+import { UserDefAttr } from '../api/api_calls'
 
 export type UdAttrMatcher = {
   key: string
@@ -13,12 +13,11 @@ export type UdAttrMatcher = {
 interface UserDefAttrSelectorProps {
   attrs: UserDefAttr[]
   ops: Map<string, string[]>
-  onChangeSelected?: (udattrMatchers: UdAttrMatcher[]) => void;
+  initialSelected: UdAttrMatcher[]
+  onChangeSelected?: (udattrMatchers: UdAttrMatcher[]) => void
 }
 
-const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, onChangeSelected }) => {
-  console.log(attrs)
-  console.log(ops)
+const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, initialSelected, onChangeSelected }) => {
   // Init default ops and values for each key
   const initKeyOpMap: Map<string, string> = new Map()
   const initKeyValMap: Map<string, string | number | boolean> = new Map()
@@ -28,23 +27,37 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, o
     switch (attr.type) {
       case "bool":
         initVal = false
-        break;
+        break
       case "string":
         initVal = ""
-        break;
+        break
       default:
         initVal = "0"
-        break;
+        break
     }
     initKeyValMap.set(attr.key, initVal)
   })
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedAttrs, setSelectedAttrs] = useState([] as UserDefAttr[]);
-  const [selectedKeyOpMap, setSelectedKeyOpMap] = useState<Map<string, string>>(initKeyOpMap);
-  const [selectedKeyValMap, setSelectedKeyValMap] = useState<Map<string, string | number | boolean>>(initKeyValMap);
-  const [searchText, setSearchText] = useState('');
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const [isOpen, setIsOpen] = useState(false)
+  const [selectedAttrs, setSelectedAttrs] = useState<UserDefAttr[]>(
+    initialSelected.map((attr) => ({ key: attr.key, type: attr.type }))
+  )
+  const [selectedKeyOpMap, setSelectedKeyOpMap] = useState<Map<string, string>>(() => {
+    const map = new Map(initKeyOpMap)
+    initialSelected.forEach((attr) => {
+      map.set(attr.key, attr.op)
+    })
+    return map
+  })
+  const [selectedKeyValMap, setSelectedKeyValMap] = useState<Map<string, string | number | boolean>>(() => {
+    const map = new Map(initKeyValMap)
+    initialSelected.forEach((attr) => {
+      map.set(attr.key, attr.value)
+    })
+    return map
+  })
+  const [searchText, setSearchText] = useState('')
+  const dropdownRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -52,37 +65,37 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, o
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
       ) {
-        setIsOpen(false);
+        setIsOpen(false)
       }
-    };
+    }
 
     const handleFocusIn = (event: FocusEvent) => {
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
       ) {
-        setIsOpen(false);
+        setIsOpen(false)
       }
-    };
+    }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('focusin', handleFocusIn)
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('focusin', handleFocusIn);
-    };
-  }, []);
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('focusin', handleFocusIn)
+    }
+  }, [])
 
   const toggleDropdown = () => {
-    setIsOpen(!isOpen);
+    setIsOpen(!isOpen)
     setSearchText('')
-  };
+  }
 
   const isAttrSelected = (item: UserDefAttr) => {
     return selectedAttrs.some((i) => {
-      return item.key === i.key;
-    });
+      return item.key === i.key
+    })
   }
 
   const toggleAttr = (attr: UserDefAttr) => {
@@ -91,41 +104,44 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, o
     } else {
       setSelectedAttrs([attr, ...selectedAttrs])
     }
-  };
+  }
 
   const clearAll = () => {
-    setSelectedAttrs([]);
-  };
+    setSelectedAttrs([])
+  }
 
   const updateSelectedOp = (key: string, op: string) => {
     setSelectedKeyOpMap((prevMap) => {
-      const newMap = new Map(prevMap);
-      newMap.set(key, op);
-      return newMap;
-    });
+      const newMap = new Map(prevMap)
+      newMap.set(key, op)
+      return newMap
+    })
   }
 
   const updateSelectedValue = (key: string, val: string | number | boolean) => {
     setSelectedKeyValMap((prevMap) => {
-      const newMap = new Map(prevMap);
-      newMap.set(key, val);
-      return newMap;
-    });
+      const newMap = new Map(prevMap)
+      newMap.set(key, val)
+      return newMap
+    })
   }
 
-  useEffect(() => {
-    const udAttrMatchers: UdAttrMatcher[] = [];
+  function getUdAttrMatchers(): UdAttrMatcher[] {
+    const udAttrMatchers: UdAttrMatcher[] = []
     selectedAttrs.forEach((attr) => {
       udAttrMatchers.push({
         key: attr.key,
         type: attr.type,
         op: selectedKeyOpMap.get(attr.key)!,
         value: selectedKeyValMap.get(attr.key)!
-      });
-    });
+      })
+    })
+    return udAttrMatchers
+  }
 
-    onChangeSelected?.(udAttrMatchers);
-  }, [selectedAttrs, ...selectedAttrs.map(attr => selectedKeyOpMap.get(attr.key)), ...selectedAttrs.map(attr => selectedKeyValMap.get(attr.key))]);
+  useEffect(() => {
+    onChangeSelected?.(getUdAttrMatchers())
+  }, [selectedAttrs, selectedKeyOpMap, selectedKeyValMap])
 
   const clearButtonStyle = "text-white text-xs font-display rounded-md border border-white p-1 bg-neutral-950 hover:text-black hover:bg-yellow-200 hover:border-black focus-visible:bg-yellow-200 focus-visible:text-black focus-visible:border-black active:bg-yellow-300 outline-hidden"
   const checkboxContainerStyle = "flex flex-row items-center px-2 py-2 bg-neutral-950 text-white font-display text-left outline-hidden hover:text-black hover:bg-yellow-200 focus:text-black focus:bg-yellow-200 active:bg-yellow-300"
@@ -145,9 +161,9 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, o
             value={String(selectedKeyValMap.get(attr.key))}
             onChange={(e) =>
               setSelectedKeyValMap((prevMap) => {
-                const newMap = new Map(prevMap);
-                newMap.set(attr.key, e.target.value === 'true');
-                return newMap;
+                const newMap = new Map(prevMap)
+                newMap.set(attr.key, e.target.value === 'true')
+                return newMap
               })
             }
             onClick={(e) => e.stopPropagation()} // Prevent toggleAttr from being called
@@ -155,7 +171,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, o
             <option value="true">True</option>
             <option value="false">False</option>
           </select>
-        );
+        )
       case 'int64':
         return (
           <input
@@ -166,7 +182,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, o
             onChange={e => updateSelectedValue(attr.key, parseInt(e.target.value, 10))}
             onClick={(e) => e.stopPropagation()} // Prevent toggleAttr from being called
           />
-        );
+        )
       case 'float64':
         return (
           <input
@@ -177,7 +193,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, o
             onChange={e => updateSelectedValue(attr.key, parseFloat(e.target.value))}
             onClick={(e) => e.stopPropagation()} // Prevent toggleAttr from being called
           />
-        );
+        )
       default:
         return (
           <input
@@ -187,9 +203,9 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, o
             onChange={(e) => updateSelectedValue(attr.key, e.target.value)}
             onClick={(e) => e.stopPropagation()} // Prevent toggleAttr from being called
           />
-        );
+        )
     }
-  };
+  }
 
   return (
     <div className="relative inline-block text-left select-none" ref={dropdownRef} >
@@ -232,7 +248,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, o
               </div>}
               {attrs.filter((attr) => attr.key.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((attr) => (
                 <div
-                  key={attr.key}
+                  key={attr.key + attr.type}
                   className={checkboxContainerStyle}
                   role="menuitem"
                   tabIndex={0}
@@ -243,7 +259,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, o
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
-                      toggleAttr(attr);
+                      toggleAttr(attr)
                     }
                   }}
                 >
@@ -279,7 +295,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, o
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default UserDefAttrSelector;
+export default UserDefAttrSelector

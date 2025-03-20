@@ -7,49 +7,86 @@ import Paginator from '@/app/components/paginator';
 import SpanMetricsPlot from '@/app/components/span_metrics_plot';
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
+
+interface PageState {
+    spansApiStatus: SpansApiStatus
+    filters: typeof defaultFilters
+    spans: typeof emptySpansResponse
+    paginationOffset: number
+}
+
+const paginationLimit = 5
+const paginationOffsetUrlKey = "po"
 
 export default function TracesOverview({ params }: { params: { teamId: string } }) {
     const router = useRouter()
+    const searchParams = useSearchParams()
 
-    const [filters, setFilters] = useState(defaultFilters);
+    const initialState: PageState = {
+        spansApiStatus: SpansApiStatus.Loading,
+        filters: defaultFilters,
+        spans: emptySpansResponse,
+        paginationOffset: searchParams.get(paginationOffsetUrlKey) ? parseInt(searchParams.get(paginationOffsetUrlKey)!) : 0
+    }
 
-    const [spans, setSpans] = useState(emptySpansResponse);
-    const [spansApiStatus, setSpansApiStatus] = useState(SpansApiStatus.Loading)
-    const paginationLimit = 5
-    const [paginationOffset, setPaginationOffset] = useState(0)
+    const [pageState, setPageState] = useState<PageState>(initialState)
+
+    const updatePageState = (newState: Partial<PageState>) => {
+        setPageState(prevState => {
+            const updatedState = { ...prevState, ...newState }
+            return updatedState
+        })
+    }
 
     const getSpanInstances = async () => {
-        setSpansApiStatus(SpansApiStatus.Loading)
+        updatePageState({ spansApiStatus: SpansApiStatus.Loading })
 
-        const result = await fetchSpansFromServer(filters, paginationLimit, paginationOffset, router)
+        const result = await fetchSpansFromServer(pageState.filters, paginationLimit, pageState.paginationOffset, router)
 
         switch (result.status) {
             case SpansApiStatus.Error:
-                setSpansApiStatus(SpansApiStatus.Error)
+                updatePageState({ spansApiStatus: SpansApiStatus.Error })
                 break
             case SpansApiStatus.Success:
-                setSpansApiStatus(SpansApiStatus.Success)
-                setSpans(result.data)
+                updatePageState({
+                    spansApiStatus: SpansApiStatus.Success,
+                    spans: result.data
+                })
                 break
         }
     }
 
+    const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
+        // update filters only if they have changed
+        if (updatedFilters.ready && pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
+            updatePageState({
+                filters: updatedFilters,
+                // Reset pagination on filters change if previous filters were not default filters
+                paginationOffset: pageState.filters.serialisedFilters && searchParams.get(paginationOffsetUrlKey) ? 0 : pageState.paginationOffset
+            })
+        }
+    }
+
+    const handleNextPage = () => {
+        updatePageState({ paginationOffset: pageState.paginationOffset + paginationLimit })
+    }
+
+    const handlePrevPage = () => {
+        updatePageState({ paginationOffset: Math.max(0, pageState.paginationOffset - paginationLimit) })
+    }
+
     useEffect(() => {
-        if (!filters.ready) {
+        if (!pageState.filters.ready) {
             return
         }
+
+        // update url
+        router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(pageState.paginationOffset)}&${pageState.filters.serialisedFilters!}`, { scroll: false })
 
         getSpanInstances()
-    }, [paginationOffset, filters]);
-
-    useEffect(() => {
-        if (!filters.ready) {
-            return
-        }
-        setPaginationOffset(0)
-    }, [filters])
+    }, [pageState.paginationOffset, pageState.filters])
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
@@ -79,32 +116,32 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                 showBugReportStatus={false}
                 showUdAttrs={true}
                 showFreeText={false}
-                onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
+                onFiltersChanged={handleFiltersChanged} />
             <div className="py-4" />
 
             {/* Error state for sessions fetch */}
-            {filters.ready
-                && spansApiStatus === SpansApiStatus.Error
+            {pageState.filters.ready
+                && pageState.spansApiStatus === SpansApiStatus.Error
                 && <p className="text-lg font-display">Error fetching list of traces, please change filters, refresh page or select a different app to try again</p>}
 
             {/* Main root spans list UI */}
-            {filters.ready
-                && (spansApiStatus === SpansApiStatus.Success || spansApiStatus === SpansApiStatus.Loading) &&
+            {pageState.filters.ready
+                && (pageState.spansApiStatus === SpansApiStatus.Success || pageState.spansApiStatus === SpansApiStatus.Loading) &&
                 <div className="flex flex-col items-center w-full">
                     <div className="py-4" />
                     <SpanMetricsPlot
-                        filters={filters} />
+                        filters={pageState.filters} />
                     <div className="py-4" />
                     <div className='self-end'>
-                        <Paginator prevEnabled={spansApiStatus === SpansApiStatus.Loading ? false : spans.meta.previous} nextEnabled={spansApiStatus === SpansApiStatus.Loading ? false : spans.meta.next} displayText=''
-                            onNext={() => {
-                                setPaginationOffset(paginationOffset + paginationLimit)
-                            }}
-                            onPrev={() => {
-                                setPaginationOffset(paginationOffset - paginationLimit)
-                            }} />
+                        <Paginator
+                            prevEnabled={pageState.spansApiStatus === SpansApiStatus.Loading ? false : pageState.spans.meta.previous}
+                            nextEnabled={pageState.spansApiStatus === SpansApiStatus.Loading ? false : pageState.spans.meta.next}
+                            displayText=''
+                            onNext={handleNextPage}
+                            onPrev={handlePrevPage}
+                        />
                     </div>
-                    <div className={`py-1 w-full ${spansApiStatus === SpansApiStatus.Loading ? 'visible' : 'invisible'}`}>
+                    <div className={`py-1 w-full ${pageState.spansApiStatus === SpansApiStatus.Loading ? 'visible' : 'invisible'}`}>
                         <LoadingBar />
                     </div>
                     <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
@@ -117,7 +154,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                             </div>
                         </div>
                         <div className="table-row-group font-body">
-                            {spans.results?.map(({ app_id, span_name, span_id, trace_id, status, start_time, duration, app_version, app_build, os_name, os_version, device_manufacturer, device_model }, idx) => (
+                            {pageState.spans.results?.map(({ app_id, span_name, span_id, trace_id, status, start_time, duration, app_version, app_build, os_name, os_version, device_manufacturer, device_model }, idx) => (
                                 <Link key={`${idx}-${span_id}`} href={`/${params.teamId}/traces/${app_id}/${trace_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
                                     <div className="table-cell p-4">
                                         <p className='truncate'>{span_name}</p>
@@ -141,4 +178,3 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
         </div>
     )
 }
-
