@@ -367,7 +367,7 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 			Select("distinct session_id").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)
-		stmt.Clause("AND session_id in").SubQuery("(", ")", subQuery)
+		stmt.SubQuery("session_id in (", ")", subQuery)
 	}
 
 	applyGroupBy := af.Crash ||
