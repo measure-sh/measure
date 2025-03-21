@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Broken session pagination with user defined attrs (#1948) by @detj in #1948
 - (**backend**): Anr exception type was not symbolicated (#1944) by @detj in #1944
 - (**backend**): Remove mapping file size validation (#1935) by @detj in #1935
 - (**backend**): Fix partial android symbolication (#1933) by @detj in #1933
