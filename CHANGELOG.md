@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Symbolicate ttid span classes (#1947) by @detj in #1947
 - (**backend**): Integrate new cross-platform symbolicator with ios support (#1800) by @detj in #1800
 - (**backend**): Implement bug reports by @anupcowkur in #1815
 - (**backend**): Add user defined attrs to spans by @anupcowkur in #1788
