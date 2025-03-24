@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import MeasureSDK
+@testable import Measure
 
 final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_body_length
     let eventSerializer = EventSerializer()

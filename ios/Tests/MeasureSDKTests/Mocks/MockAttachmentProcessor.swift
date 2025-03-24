@@ -6,12 +6,12 @@
 //
 
 import Foundation
-@testable import MeasureSDK
+@testable import Measure
 
 final class MockAttachmentProcessor: AttachmentProcessor {
     var attachmentObject: Attachment?
 
-    func getAttachmentObject(for image: Data, name: String, storageType: MeasureSDK.AttachmentStorageType, attachmentType: MeasureSDK.AttachmentType) -> MeasureSDK.Attachment? {
+    func getAttachmentObject(for image: Data, name: String, storageType: AttachmentStorageType, attachmentType: AttachmentType) -> Attachment? {
         return attachmentObject
     }
 }

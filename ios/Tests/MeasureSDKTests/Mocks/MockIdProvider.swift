@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import MeasureSDK
+@testable import Measure
 
 final class MockIdProvider: IdProvider {
     var idString: String

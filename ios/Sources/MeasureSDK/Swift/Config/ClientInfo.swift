@@ -33,10 +33,12 @@ protocol Client {
             debugPrint("Measure apiKey is missing, skipping initialization")
         }
         if let apiUrl = URL(string: apiUrl) {
+            self.apiUrl = apiUrl
+        } else {
+            self.apiUrl = URL(string: "http://localhost:8080")!
             debugPrint("Measure apiUrl is invalid, skipping initialization.")
         }
 
         self.apiKey = apiKey
-        self.apiUrl = URL(string: apiUrl) ?? URL(string: "http://localhost:8080")!
     }
 }

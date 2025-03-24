@@ -2,14 +2,14 @@
 import PackageDescription
 
 let package = Package(
-    name: "MeasureSDK",
+    name: "Measure",
     platforms: [
         .iOS(.v12)
     ],
     products: [
         .library(
-            name: "MeasureSDK",
-            targets: ["MeasureSDK"]
+            name: "Measure",
+            targets: ["Measure"]
         ),
     ],
     dependencies: [
@@ -17,7 +17,7 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "MeasureSDK",
+            name: "Measure",
             dependencies: [
                 .product(name: "CrashReporter", package: "plcrashreporter")
             ],
@@ -29,12 +29,12 @@ let package = Package(
         ),
         .testTarget(
             name: "MeasureSDKTests",
-            dependencies: ["MeasureSDK"],
+            dependencies: ["Measure"],
             path: "ios/Tests/MeasureSDKTests"
         ),
         .testTarget(
             name: "MeasureUITests",
-            dependencies: ["MeasureSDK"],
+            dependencies: ["Measure"],
             path: "ios/Tests/MeasureUITests"
         ),
     ]

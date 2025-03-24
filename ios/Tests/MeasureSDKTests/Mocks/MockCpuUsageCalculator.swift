@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import MeasureSDK
+@testable import Measure
 
 final class MockCpuUsageCalculator: CpuUsageCalculator {
     var mockCpuUsage: FloatNumber64 = 0.0

@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import MeasureSDK
+@testable import Measure
 
 final class BaseLayoutSnapshotGeneratorTests: XCTestCase {
     private var logger: MockLogger!

@@ -6,7 +6,7 @@
 //
 
 import UIKit
-import MeasureSDK
+import Measure
 
 final class ViewController: MeasureViewController, UITableViewDelegate, UITableViewDataSource {
     let crashTypes = [

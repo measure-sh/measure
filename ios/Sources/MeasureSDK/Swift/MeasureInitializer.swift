@@ -61,10 +61,10 @@ protocol MeasureInitializer {
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
 ///
 /// Properties:
-/// - `configProvider`: `ConfigProvider` object managing the `Config` for the MeasureSDK.
-/// - `client`: `Client` object managing the `Config` for the MeasureSDK.
-/// - `logger`: `Logger` object used for logging messages and errors within the MeasureSDK.
-/// - `sessionManager`: `SessionManager` for the MeasureSDK.
+/// - `configProvider`: `ConfigProvider` object managing the `Config` for the Measure.
+/// - `client`: `Client` object managing the `Config` for the Measure.
+/// - `logger`: `Logger` object used for logging messages and errors within the Measure.
+/// - `sessionManager`: `SessionManager` for the Measure.
 /// - `idProvider`: `IdProvider` object used to generate unique identifiers.
 /// - `timeProvider`: `TimeProvider` object providing time-related information.
 /// - `userDefaultStorage`: `UserDefaultStorage` object used to manage userDefaults data

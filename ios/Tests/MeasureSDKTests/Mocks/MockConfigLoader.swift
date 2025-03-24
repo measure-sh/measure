@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import MeasureSDK
+@testable import Measure
 
 final class MockConfigLoader: ConfigLoader {
     var cachedConfig: Config?

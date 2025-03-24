@@ -6,14 +6,14 @@
 //
 
 import Foundation
-@testable import MeasureSDK
+@testable import Measure
 
 final class MockCrashDataPersistence: CrashDataPersistence {
-    var attribute: MeasureSDK.Attributes?
+    var attribute: Attributes?
     var sessionId: String?
     var isForeground: Bool
 
-    init(attribute: MeasureSDK.Attributes? = nil, sessionId: String? = nil, isForeground: Bool) {
+    init(attribute: Attributes? = nil, sessionId: String? = nil, isForeground: Bool) {
         self.attribute = attribute
         self.sessionId = sessionId
         self.isForeground = isForeground
@@ -21,7 +21,7 @@ final class MockCrashDataPersistence: CrashDataPersistence {
 
     func prepareCrashFile() {}
     func writeCrashData() {}
-    func readCrashData() -> MeasureSDK.CrashDataAttributes {
+    func readCrashData() -> CrashDataAttributes {
         return (attribute: attribute, sessionId: sessionId, isForeground: isForeground)
     }
     func clearCrashData() {

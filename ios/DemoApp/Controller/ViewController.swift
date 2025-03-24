@@ -7,7 +7,7 @@
 
 import UIKit
 import SwiftUI
-import MeasureSDK
+import Measure
 
 @objc final class ViewController: MeasureViewController, UITableViewDelegate, UITableViewDataSource {
     let crashTypes = [

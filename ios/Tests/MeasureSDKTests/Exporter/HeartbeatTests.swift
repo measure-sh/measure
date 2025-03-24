@@ -5,7 +5,7 @@
 //  Created by Adwin Ross on 21/10/24.
 //
 
-@testable import MeasureSDK
+@testable import Measure
 import XCTest
 
 final class MockHeartbeatListener: HeartbeatListener {

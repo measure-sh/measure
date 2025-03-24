@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import MeasureSDK
+@testable import Measure
 
 extension Exception: Equatable {
     public static func == (lhs: Exception, rhs: Exception) -> Bool {

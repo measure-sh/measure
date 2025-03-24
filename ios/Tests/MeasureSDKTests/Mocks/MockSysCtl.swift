@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import MeasureSDK
+@testable import Measure
 
 final class MockSysCtl: SysCtl {
     var mockCpuCores: UInt8 = 0

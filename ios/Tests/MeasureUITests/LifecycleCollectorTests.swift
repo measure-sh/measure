@@ -7,7 +7,7 @@
 
 import XCTest
 import UIKit
-@testable import MeasureSDK
+@testable import Measure
 
 final class LifecycleCollectorTests: XCTestCase {
     override func setUpWithError() throws {

@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import MeasureSDK
+@testable import Measure
 
 final class MockMemoryUsageCalculator: MemoryUsageCalculator {
     var mockMemoryUsage: UnsignedNumber?

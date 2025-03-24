@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import MeasureSDK
+import Measure
 
 struct ContentView: View {
     @State private var isSheetPresented = false
