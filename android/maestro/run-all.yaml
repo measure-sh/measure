@@ -9,3 +9,4 @@ appId: sh.measure.sample
 - runFlow: flows/anr.yaml
 - runFlow: flows/walkthrough.yaml
 - runFlow: flows/bug-report-walkthrough.yaml
+- killApp
