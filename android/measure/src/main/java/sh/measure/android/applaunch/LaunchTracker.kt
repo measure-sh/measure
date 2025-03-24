@@ -292,7 +292,12 @@ internal class LaunchTracker(
         if (!isActivityTtidSpanEnabled()) {
             return null
         }
-        val span = tracer.spanBuilder(SpanName.activityTtidSpan(activity)).startSpan()
+        val span = tracer.spanBuilder(
+            SpanName.activityTtidSpan(
+                activity.javaClass.name,
+                configProvider.maxSpanNameLength,
+            ),
+        ).startSpan()
         span.setCheckpoint(CheckpointName.ACTIVITY_CREATED)
         return span
     }

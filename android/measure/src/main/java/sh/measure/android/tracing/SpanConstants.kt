@@ -1,18 +1,39 @@
 package sh.measure.android.tracing
 
-import android.app.Activity
-import androidx.fragment.app.Fragment
-
 /**
  * Centralized definitions of span names created by the Measure SDK.
  */
 internal object SpanName {
-    fun activityTtidSpan(activity: Activity): String {
-        return "Activity TTID ${activity.javaClass.name}"
+    private const val ACTIVITY_TTID_PREFIX = "Activity TTID"
+    private const val FRAGMENT_TTID_PREFIX = "Fragment TTID"
+
+    fun activityTtidSpan(className: String, maxLength: Int): String {
+        return truncateClassNameIfNeeded(ACTIVITY_TTID_PREFIX, className, maxLength)
     }
 
-    fun fragmentTtidSpan(fragment: Fragment): String {
-        return "Fragment TTID ${fragment.javaClass.name}"
+    fun fragmentTtidSpan(className: String, maxLength: Int): String {
+        return truncateClassNameIfNeeded(FRAGMENT_TTID_PREFIX, className, maxLength)
+    }
+
+    /**
+     * Truncates the class name to fit within the specified maximum length, including the prefix.
+     * @param prefix The prefix to be included in the truncated string.
+     * @param className The full class name to be truncated.
+     * @param maxLength The maximum length of the resulting string.
+     */
+    private fun truncateClassNameIfNeeded(
+        prefix: String,
+        className: String,
+        maxLength: Int,
+    ): String {
+        val fullString = "$prefix $className"
+        return if (fullString.length <= maxLength) {
+            fullString
+        } else {
+            val availableSpace = maxLength - prefix.length - 1
+            val truncatedClassName = className.takeLast(availableSpace)
+            "$prefix $truncatedClassName"
+        }
     }
 }
 
