@@ -110,7 +110,12 @@ internal class FragmentLifecycleCollector(
             return
         }
         val identityHash = getIdentityHash(f)
-        val fragmentTtidSpan = tracer.spanBuilder(SpanName.fragmentTtidSpan(f)).startSpan()
+        val fragmentTtidSpan = tracer.spanBuilder(
+            SpanName.fragmentTtidSpan(
+                f.javaClass.name,
+                configProvider.maxSpanNameLength,
+            ),
+        ).startSpan()
             .setCheckpoint(CheckpointName.FRAGMENT_ATTACHED)
         attachedFragmentSpans[identityHash] = fragmentTtidSpan
     }
