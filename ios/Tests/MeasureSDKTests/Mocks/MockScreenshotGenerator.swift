@@ -6,7 +6,7 @@
 //
 
 import UIKit
-@testable import MeasureSDK
+@testable import Measure
 
 final class MockScreenshotGenerator: ScreenshotGenerator {
     var attachment: Attachment?

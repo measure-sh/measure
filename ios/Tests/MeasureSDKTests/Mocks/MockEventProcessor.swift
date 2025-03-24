@@ -6,23 +6,23 @@
 //
 
 import Foundation
-@testable import MeasureSDK
+@testable import Measure
 
 final class MockEventProcessor: EventProcessor {
-    var attachments: [MeasureSDK.Attachment]?
+    var attachments: [Attachment]?
     var sessionId: String?
     var data: Codable?
-    var timestamp: MeasureSDK.Number?
-    var type: MeasureSDK.EventType?
-    var attributes: MeasureSDK.Attributes?
+    var timestamp: Number?
+    var type: EventType?
+    var attributes: Attributes?
     var userDefinedAttributes: String?
 
     func track<T>(data: T, // swiftlint:disable:this function_parameter_count
-                  timestamp: MeasureSDK.Number,
-                  type: MeasureSDK.EventType,
-                  attributes: MeasureSDK.Attributes?,
+                  timestamp: Number,
+                  type: EventType,
+                  attributes: Attributes?,
                   sessionId: String?,
-                  attachments: [MeasureSDK.Attachment]?,
+                  attachments: [Attachment]?,
                   userDefinedAttributes: String? = nil) where T: Codable {
         self.data = data
         self.timestamp = timestamp
@@ -34,11 +34,11 @@ final class MockEventProcessor: EventProcessor {
     }
 
     func trackUserTriggered<T>(data: T, // swiftlint:disable:this function_parameter_count
-                               timestamp: MeasureSDK.Number,
-                               type: MeasureSDK.EventType,
-                               attributes: MeasureSDK.Attributes?,
+                               timestamp: Number,
+                               type: EventType,
+                               attributes: Attributes?,
                                sessionId: String?,
-                               attachments: [MeasureSDK.Attachment]?,
+                               attachments: [Attachment]?,
                                userDefinedAttributes: String? = nil) where T: Codable {
         self.data = data
         self.timestamp = timestamp

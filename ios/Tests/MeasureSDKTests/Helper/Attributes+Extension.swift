@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import MeasureSDK
+@testable import Measure
 
 extension Attributes: Equatable {
     public static func == (lhs: Attributes, rhs: Attributes) -> Bool {

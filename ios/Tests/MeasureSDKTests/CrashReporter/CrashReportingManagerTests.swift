@@ -5,7 +5,7 @@
 //  Created by Adwin Ross on 21/09/24.
 //
 
-@testable import MeasureSDK
+@testable import Measure
 import XCTest
 import CrashReporter
 

@@ -5,7 +5,7 @@
 //  Created by Adwin Ross on 06/10/24.
 //
 
-@testable import MeasureSDK
+@testable import Measure
 import XCTest
 
 final class GestureTargetFinderTests: XCTestCase {

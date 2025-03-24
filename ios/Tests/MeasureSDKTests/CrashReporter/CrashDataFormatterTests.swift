@@ -6,7 +6,7 @@
 //
 
 import CrashReporter
-@testable import MeasureSDK
+@testable import Measure
 import XCTest
 
 final class CrashDataFormatterTests: XCTestCase {

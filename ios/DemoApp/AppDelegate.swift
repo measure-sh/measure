@@ -6,7 +6,7 @@
 //
 
 import UIKit
-import MeasureSDK
+import Measure
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {

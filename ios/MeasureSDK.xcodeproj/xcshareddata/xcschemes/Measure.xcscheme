@@ -16,8 +16,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "524CC5B92C6A4B11001AB506"
-               BuildableName = "MeasureSDK.framework"
-               BlueprintName = "MeasureSDK"
+               BuildableName = "Measure.framework"
+               BlueprintName = "Measure"
                ReferencedContainer = "container:MeasureSDK.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -73,8 +73,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "524CC5B92C6A4B11001AB506"
-            BuildableName = "MeasureSDK.framework"
-            BlueprintName = "MeasureSDK"
+            BuildableName = "Measure.framework"
+            BlueprintName = "Measure"
             ReferencedContainer = "container:MeasureSDK.xcodeproj">
          </BuildableReference>
       </MacroExpansion>

@@ -6,7 +6,7 @@
 //
 
 import UIKit
-@testable import MeasureSDK
+@testable import Measure
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {

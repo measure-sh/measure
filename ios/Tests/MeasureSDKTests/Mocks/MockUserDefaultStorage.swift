@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import MeasureSDK
+@testable import Measure
 
 final class MockUserDefaultStorage: UserDefaultStorage {
     var installationId: String?

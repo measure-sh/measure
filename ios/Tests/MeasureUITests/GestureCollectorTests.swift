@@ -7,7 +7,7 @@
 
 import XCTest
 import UIKit
-@testable import MeasureSDK
+@testable import Measure
 
 class GestureCollectorTests: XCTestCase {
     override func setUpWithError() throws {

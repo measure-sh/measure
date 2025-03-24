@@ -7,7 +7,7 @@
 
 import CoreData
 import Foundation
-@testable import MeasureSDK
+@testable import Measure
 
 final class MockCoreDataManager: CoreDataManager {
     var backgroundContext: NSManagedObjectContext?

@@ -6,14 +6,14 @@
 //
 
 import Foundation
-@testable import MeasureSDK
+@testable import Measure
 
 final class MockTimeProvider: TimeProvider {
     var millisTime: Number = 0
     var current: Number = 0
     var iso8601Timestamp: String = ""
 
-    func now() -> MeasureSDK.Number {
+    func now() -> Number {
         return current
     }
 

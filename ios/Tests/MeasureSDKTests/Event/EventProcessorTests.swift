@@ -5,7 +5,7 @@
 //  Created by Adwin Ross on 26/09/24.
 //
 
-@testable import MeasureSDK
+@testable import Measure
 import XCTest
 
 final class EventProcessorTests: XCTestCase {

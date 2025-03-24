@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import MeasureSDK
+@testable import Measure
 
 extension XCTestCase {
     func getLogMessage(_ app: XCUIApplication) -> String {

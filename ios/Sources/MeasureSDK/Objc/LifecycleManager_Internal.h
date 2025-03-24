@@ -6,7 +6,7 @@
 //
 
 #import <UIKit/UIKit.h>
-#import <MeasureSDK/MeasureSDK-Swift.h>
+#import <Measure/Measure-Swift.h>
 
 NS_ASSUME_NONNULL_BEGIN
 

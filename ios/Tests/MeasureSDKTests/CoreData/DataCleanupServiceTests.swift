@@ -6,7 +6,7 @@
 //
 
 import CoreData
-@testable import MeasureSDK
+@testable import Measure
 import XCTest
 
 class DataCleanupServiceTests: XCTestCase {

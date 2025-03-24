@@ -15,6 +15,6 @@ To release the iOS SDK, follow the below steps.
         - We use git-cliff to generate change logs. This step might require you to add github-token with `public_repo` permission if the changes are too long.
 4. Create a PR and merge.
 5. Go to the releases tab and create a new release.
-6. Run `pod trunk register adwin@measure.sh 'Adwin Ross' --description='macbook pro'` to authenticate to the cocoapod server.
-7. Run `pod spec lint MeasureSDK.podspec` which will check if the current configuration of podspec is correct.
-8. Run `pod trunk push MeasureSDK.podspec` to push the pod to cocoapods.
+6. Run `pod trunk register <email> 'measure.sh' --description='<description>'` to authenticate to the cocoapod server.
+7. Run `pod spec lint Measure.podspec` which will check if the current configuration of podspec is correct.
+8. Run `pod trunk push Measure.podspec` to push the pod to cocoapods.

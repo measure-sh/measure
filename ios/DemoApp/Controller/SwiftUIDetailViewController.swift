@@ -5,7 +5,7 @@
 //  Created by Adwin Ross on 27/09/24.
 //
 
-import MeasureSDK
+import Measure
 import SwiftUI
 import UIKit
 
