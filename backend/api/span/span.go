@@ -534,6 +534,7 @@ func GetSpansForSpanNameWithFilter(ctx context.Context, spanName string, af *fil
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.From("span_user_def_attrs").
 			Select("span_id id").
+			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)
 		stmt.Clause("AND span_id in").SubQuery("(", ")", subQuery)
@@ -654,6 +655,7 @@ func GetMetricsPlotForSpanNameWithFilter(ctx context.Context, spanName string, a
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.From("span_user_def_attrs").
 			Select("span_id id").
+			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)
 		stmt.Clause("AND span_id in").SubQuery("(", ")", subQuery)

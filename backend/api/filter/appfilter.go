@@ -1043,28 +1043,35 @@ func (af *AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, 
 // getUDAttrKeys finds distinct user defined attribute
 // key and its types.
 func (af *AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []event.UDKeyType, err error) {
-	var table_name string
+	var table string
 	if af.Span {
-		table_name = "span_user_def_attrs"
+		table = "span_user_def_attrs"
 	} else {
-		table_name = "user_def_attrs"
+		table = "user_def_attrs"
 	}
 
-	stmt := sqlf.From(table_name).
+	substmt := sqlf.From(table).
 		Select("distinct key").
-		Select("toString(type) type").
-		Clause("prewhere app_id = toUUID(?)", af.AppID).
-		OrderBy("key")
-
-	defer stmt.Close()
+		Select("argMax(type, ver) last_inserted_type").
+		Clause("final prewhere app_id = toUUID(?)", af.AppID).
+		GroupBy("key")
 
 	if af.Crash {
-		stmt.Where("exception = true")
+		substmt.Where("exception = true")
 	}
 
 	if af.ANR {
-		stmt.Where("anr = true")
+		substmt.Where("anr = true")
 	}
+
+	stmt := sqlf.With("last_type", substmt).
+		Select("distinct t.key, t.type").
+		From(table+" t").
+		Join("last_type lt", "t.key = lt.key").
+		Where("t.type = lt.last_inserted_type").
+		OrderBy("key")
+
+	defer stmt.Close()
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
