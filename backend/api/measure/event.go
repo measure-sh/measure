@@ -1366,6 +1366,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.From("user_def_attrs").
 			Select("event_id id").
+			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("exception = true")
 		af.UDExpression.Augment(subQuery)
@@ -1535,6 +1536,7 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.From("user_def_attrs").
 			Select("event_id id").
+			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("exception = true")
 		af.UDExpression.Augment(subQuery)
@@ -1635,6 +1637,7 @@ func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.Ap
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.From("user_def_attrs").
 			Select("event_id id").
+			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("anr = true")
 		af.UDExpression.Augment(subQuery)
@@ -1804,6 +1807,7 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.From("user_def_attrs").
 			Select("event_id id").
+			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where("anr = true")
 		af.UDExpression.Augment(subQuery)
@@ -1908,6 +1912,7 @@ func GetIssuesAttributeDistribution(ctx context.Context, g group.IssueGroup, af 
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.From("user_def_attrs").
 			Select("event_id id").
+			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where(fmt.Sprintf("%s = true", groupType))
 		af.UDExpression.Augment(subQuery)
@@ -1997,6 +2002,7 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.From("user_def_attrs").
 			Select("event_id id").
+			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID).
 			Where(fmt.Sprintf("%s = true", groupType))
 		af.UDExpression.Augment(subQuery)

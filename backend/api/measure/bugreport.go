@@ -135,6 +135,7 @@ func GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter) (bugRe
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.From("user_def_attrs").
 			Select("distinct event_id").
+			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)
 		base.Clause("AND event_id in").SubQuery("(", ")", subQuery)
@@ -256,6 +257,7 @@ func GetBugReportsWithFilter(ctx context.Context, af *filter.AppFilter) (bugRepo
 	if af.HasUDExpression() && !af.UDExpression.Empty() {
 		subQuery := sqlf.From("user_def_attrs").
 			Select("distinct event_id").
+			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)
 		stmt.Clause("AND event_id in").SubQuery("(", ")", subQuery)
@@ -486,30 +488,30 @@ func UpdateBugReportStatusById(ctx context.Context, bugReportId string, status u
 	}
 
 	query := fmt.Sprintf(`
-    INSERT INTO bug_reports 
-    SELECT 
-        event_id, 
-        app_id, 
-        session_id, 
-        timestamp, 
-        '%d' AS status, 
-        description, 
-        app_version, 
-        os_version, 
-        country_code, 
-        network_provider, 
-        network_type, 
-        network_generation, 
-        device_locale, 
-        device_manufacturer, 
-        device_name, 
-        device_model, 
-        user_id, 
-        device_low_power_mode, 
-        device_thermal_throttling_enabled, 
-        user_defined_attribute, 
+    INSERT INTO bug_reports
+    SELECT
+        event_id,
+        app_id,
+        session_id,
+        timestamp,
+        '%d' AS status,
+        description,
+        app_version,
+        os_version,
+        country_code,
+        network_provider,
+        network_type,
+        network_generation,
+        device_locale,
+        device_manufacturer,
+        device_name,
+        device_model,
+        user_id,
+        device_low_power_mode,
+        device_thermal_throttling_enabled,
+        user_defined_attribute,
         attachments
-    FROM bug_reports 
+    FROM bug_reports
     WHERE event_id = toUUID('%s')
     `, status, bugReportId)
 

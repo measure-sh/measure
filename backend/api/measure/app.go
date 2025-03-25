@@ -268,6 +268,7 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		if af.HasUDExpression() && !af.UDExpression.Empty() {
 			subQuery := sqlf.From("user_def_attrs").
 				Select("event_id id").
+				Clause("final").
 				Where("app_id = toUUID(?)", af.AppID).
 				Where("exception = true")
 			af.UDExpression.Augment(subQuery)
@@ -525,6 +526,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		if af.HasUDExpression() && !af.UDExpression.Empty() {
 			subQuery := sqlf.From("user_def_attrs").
 				Select("event_id id").
+				Clause("final").
 				Where("app_id = toUUID(?)", af.AppID)
 			af.UDExpression.Augment(subQuery)
 			eventDataStmt.Clause("AND id in").SubQuery("(", ")", subQuery)

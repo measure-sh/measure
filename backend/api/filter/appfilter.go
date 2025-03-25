@@ -1053,7 +1053,7 @@ func (af *AppFilter) getUDAttrKeys(ctx context.Context) (keytypes []event.UDKeyT
 	stmt := sqlf.From(table_name).
 		Select("distinct key").
 		Select("toString(type) type").
-		Clause("prewhere app_id = toUUID(?)", af.AppID).
+		Clause("final prewhere app_id = toUUID(?)", af.AppID).
 		OrderBy("key")
 
 	defer stmt.Close()
