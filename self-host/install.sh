@@ -174,16 +174,16 @@ detect_docker() {
     info "Docker: $DETECTED_DOCKER_VERSION"
   fi
 
-  # if 'docker compose` works, then use that for
-  # successive invocation
   # if `docker-compose` works, then use that for
   # successive invocation
-  if docker compose version >/dev/null 2>&1; then
-    DOCKER_COMPOSE="docker compose"
-    DOCKER_COMPOSE_BIN=0
-  elif has_command docker-compose; then
+  # if 'docker compose` works, then use that for
+  # successive invocation
+  if has_command docker-compose; then
     DOCKER_COMPOSE="docker-compose"
     DOCKER_COMPOSE_BIN=1
+  elif docker compose version >/dev/null 2>&1; then
+    DOCKER_COMPOSE="docker compose"
+    DOCKER_COMPOSE_BIN=0
   else
     warn "Neither 'docker compose' nor 'docker-compose' is available" >&2
     return 1
@@ -292,16 +292,17 @@ uninstall_docker() {
 detect_compose_command() {
   DOCKER_CMD="docker"
 
+  if [[ $DOCKER_COMPOSE_BIN -eq 1 ]]; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+    return 0
+  fi
+
   if [[ $DEBUG -eq 1 ]]; then
     DOCKER_CMD="$DOCKER_CMD -D"
     debug "Docker is in debug mode"
   fi
 
   DOCKER_COMPOSE_CMD="$DOCKER_CMD compose"
-
-  if [[ $DOCKER_COMPOSE_BIN -eq 1 ]]; then
-    DOCKER_COMPOSE_CMD="docker-compose"
-  fi
 }
 
 # ------------------------------------------------------------------------------
