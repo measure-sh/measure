@@ -6,6 +6,7 @@ import android.hardware.SensorManager
 import android.net.ConnectivityManager
 import android.os.PowerManager
 import android.telephony.TelephonyManager
+import android.view.accessibility.AccessibilityManager
 
 internal interface SystemServiceProvider {
     val powerManager: PowerManager?
@@ -13,6 +14,7 @@ internal interface SystemServiceProvider {
     val telephonyManager: TelephonyManager?
     val activityManager: ActivityManager?
     val sensorManager: SensorManager?
+    val accessibilityManager: AccessibilityManager?
 }
 
 internal class SystemServiceProviderImpl(private val context: Context) : SystemServiceProvider {
@@ -34,5 +36,9 @@ internal class SystemServiceProviderImpl(private val context: Context) : SystemS
 
     override val sensorManager: SensorManager? by lazy(mode = LazyThreadSafetyMode.NONE) {
         runCatching { context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager }.getOrNull()
+    }
+
+    override val accessibilityManager: AccessibilityManager? by lazy(mode = LazyThreadSafetyMode.NONE) {
+        runCatching { context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager }.getOrNull()
     }
 }
