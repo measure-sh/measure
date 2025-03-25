@@ -79,10 +79,12 @@ import Foundation
                 measureInternal = MeasureInternal(meaureInitializer)
                 meaureInitializer.logger.log(level: .info, message: "SDK enabled in testing mode.", error: nil, data: nil)
             } else {
-                if !client.apiKey.isEmpty {
+                if !client.apiKey.isEmpty && client.apiUrl.absoluteString != fallbackApiUrl {
                     let meaureInitializer = BaseMeasureInitializer(config: config ?? BaseMeasureConfig(),
                                                                    client: client)
                     measureInternal = MeasureInternal(meaureInitializer)
+                } else {
+                    debugPrint("Skipping SDK initialization: Missing or invalid API key or API URL")
                 }
             }
         }
