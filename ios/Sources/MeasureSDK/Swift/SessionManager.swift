@@ -36,6 +36,7 @@ final class BaseSessionManager: SessionManager {
     private let userDefaultStorage: UserDefaultStorage
     private var previousSessionCrashed = false
     private let versionCode: String
+    private let appVersionInfo: AppVersionInfo
     var shouldReportSession: Bool
 
     /// The current session ID.
@@ -56,7 +57,8 @@ final class BaseSessionManager: SessionManager {
          sessionStore: SessionStore,
          eventStore: EventStore,
          userDefaultStorage: UserDefaultStorage,
-         versionCode: String) {
+         versionCode: String,
+         appVersionInfo: AppVersionInfo) {
         self.appBackgroundTimeMs = 0
         self.idProvider = idProvider
         self.logger = logger
@@ -68,6 +70,7 @@ final class BaseSessionManager: SessionManager {
         self.userDefaultStorage = userDefaultStorage
         self.versionCode = versionCode
         self.shouldReportSession = false
+        self.appVersionInfo = appVersionInfo
     }
 
     private func createNewSession() {
@@ -121,8 +124,45 @@ final class BaseSessionManager: SessionManager {
         return true
     }
 
+    func isAppVersionUpdated() -> Bool {
+        let currentVersion = appVersionInfo.getAppVersion()
+        let storedVersion = userDefaultStorage.getRecentAppVersion()
+
+        if currentVersion != storedVersion {
+            // update app version and build number if app version has changed
+            updateAppVersionAndBuildNumber()
+            return true
+        }
+        return false
+    }
+
+    func isAppBuildNumberUpdated() -> Bool {
+        let currentBuild = appVersionInfo.getBuildNumber()
+        let storedBuild = userDefaultStorage.getRecentBuildNumber()
+
+        if currentBuild != storedBuild {
+            // update app version and build number if build number has changed
+            updateAppVersionAndBuildNumber()
+            return true
+        }
+        return false
+    }
+
+    func updateAppVersionAndBuildNumber() {
+        if let currentVersion = appVersionInfo.getAppVersion() {
+            userDefaultStorage.setRecentAppVersion(currentVersion)
+        }
+        
+        if let currentBuild = appVersionInfo.getBuildNumber() {
+            userDefaultStorage.setRecentBuildNumber(currentBuild)
+        }
+    }
+
     func start() {
-        if isFrameworkVersionUpdated() {
+        if isAppVersionUpdated() || isAppBuildNumberUpdated() {
+            logger.log(level: .info, message: "Ending previous session as app version or build number has been updated.", error: nil, data: nil)
+            createNewSession()
+        } else if isFrameworkVersionUpdated() {
             logger.log(level: .info, message: "Ending previous session as SDK version has been updated.", error: nil, data: nil)
             createNewSession()
         } else if isSessonDurationThreadholdReached() {

@@ -17,6 +17,7 @@ final class SessionManagerTests: XCTestCase {
     var timeProvider: MockTimeProvider!
     var sessionStore: SessionStore!
     var userDefaultStorage = MockUserDefaultStorage()
+    var appVersionInfo: MockAppVersionInfo!
 
     override func setUp() {
         super.setUp()
@@ -34,6 +35,7 @@ final class SessionManagerTests: XCTestCase {
         randomizer = MockRandomizer(0.5)
         sessionStore = BaseSessionStore(coreDataManager: MockCoreDataManager(),
                                         logger: logger)
+        appVersionInfo = MockAppVersionInfo()
         sessionManager = BaseSessionManager(idProvider: idProvider,
                                             logger: logger,
                                             timeProvider: timeProvider,
@@ -42,7 +44,12 @@ final class SessionManagerTests: XCTestCase {
                                             sessionStore: sessionStore,
                                             eventStore: MockEventStore(),
                                             userDefaultStorage: userDefaultStorage,
-                                            versionCode: "1.0.0")
+                                            versionCode: "1.0.0",
+                                            appVersionInfo: appVersionInfo)
+        appVersionInfo.appVersion = "1.0.0"
+        appVersionInfo.buildNumber = "1"
+        userDefaultStorage.setRecentAppVersion("1.0.0")
+        userDefaultStorage.setRecentBuildNumber("1")
     }
 
     override func tearDown() {
@@ -118,7 +125,8 @@ final class SessionManagerTests: XCTestCase {
                                             sessionStore: sessionStore,
                                             eventStore: MockEventStore(),
                                             userDefaultStorage: userDefaultStorage,
-                                            versionCode: "1.0.0")
+                                            versionCode: "1.0.0",
+                                            appVersionInfo: appVersionInfo)
         sessionManager.start()
 
         let expectation = self.expectation(description: "New session created after entering foreground after threshold")
@@ -204,6 +212,24 @@ final class SessionManagerTests: XCTestCase {
         let sessionId = sessionManager.sessionId
 
         XCTAssertEqual(sessionId, expectedSessionId, "Expected a new session to be created after the max session duration was reached.")
+    }
+
+    func testCreatesNewSession_WhenAppVersionIsUpdated() {
+        userDefaultStorage.setRecentAppVersion("1.0.1")
+        let newSessionId = "new-session-id"
+        idProvider.idString = newSessionId
+        sessionManager.start()
+
+        XCTAssertEqual(sessionManager.sessionId, newSessionId, "Expected a new session to be created after the previous session crashed, even within the threshold time.")
+    }
+
+    func testCreatesNewSession_WhenAppBuildNumberIsUpdated() {
+        userDefaultStorage.setRecentBuildNumber("2")
+        let newSessionId = "new-session-id"
+        idProvider.idString = newSessionId
+        sessionManager.start()
+
+        XCTAssertEqual(sessionManager.sessionId, newSessionId, "Expected a new session to be created after the previous session crashed, even within the threshold time.")
     }
 
     func testCreatesNewSession_IfLastSessionCrashedWithinThresholdTime() {
