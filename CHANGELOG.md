@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add data backfill for upcoming release (#1977) by @detj in #1977
 - (**backend**): Change compose command detection logic (#1962) by @detj in #1962
 - (**backend**): Update migration script for seamless migration (#1937) by @detj in #1937
 - (**backend**): Support .dylib mapping files in ios (#1914) by @detj in #1914
