@@ -154,6 +154,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let layoutSnapshotGenerator: LayoutSnapshotGenerator
     let userPermissionManager: UserPermissionManager
     let svgGenerator: SvgGenerator
+    let appVersionInfo: AppVersionInfo
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -163,6 +164,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
         self.timeProvider = BaseTimeProvider()
+        self.appVersionInfo = BaseAppVersionInfo()
         self.logger = MeasureLogger(enabled: configProvider.enableLogging)
         self.idProvider = UUIDProvider()
         self.coreDataManager = BaseCoreDataManager(logger: logger)
@@ -178,7 +180,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                  sessionStore: sessionStore,
                                                  eventStore: eventStore,
                                                  userDefaultStorage: userDefaultStorage,
-                                                 versionCode: FrameworkInfo.version)
+                                                 versionCode: FrameworkInfo.version,
+                                                 appVersionInfo: appVersionInfo)
         self.appAttributeProcessor = AppAttributeProcessor()
         self.deviceAttributeProcessor = DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = InstallationIdAttributeProcessor(userDefaultStorage: userDefaultStorage,

@@ -17,6 +17,10 @@ protocol UserDefaultStorage {
     func setRecentSession(_ recentSession: RecentSession)
     func setRecentLaunchData(_ launchData: LaunchData)
     func getRecentLaunchData() -> LaunchData?
+    func getRecentAppVersion() -> String?
+    func setRecentAppVersion(_ version: String)
+    func getRecentBuildNumber() -> String?
+    func setRecentBuildNumber(_ buildNumber: String)
 }
 
 final class BaseUserDefaultStorage: UserDefaultStorage {
@@ -85,5 +89,21 @@ final class BaseUserDefaultStorage: UserDefaultStorage {
         }
         let timeSinceLastBoot = userDefaults.integer(forKey: recentLaunchTimeSinceLastBoot)
         return LaunchData(appVersion: appVersion, timeSinceLastBoot: UnsignedNumber(timeSinceLastBoot))
+    }
+
+    func getRecentAppVersion() -> String? {
+        return userDefaults.string(forKey: recentAppVersion)
+    }
+
+    func setRecentAppVersion(_ version: String) {
+        userDefaults.set(version, forKey: recentAppVersion)
+    }
+
+    func getRecentBuildNumber() -> String? {
+        return userDefaults.string(forKey: recentAppBuildNumber)
+    }
+
+    func setRecentBuildNumber(_ buildNumber: String) {
+        userDefaults.set(buildNumber, forKey: recentAppBuildNumber)
     }
 }

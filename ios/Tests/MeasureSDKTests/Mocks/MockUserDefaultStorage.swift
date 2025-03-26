@@ -15,6 +15,8 @@ final class MockUserDefaultStorage: UserDefaultStorage {
     var recentSessionId: String?
     var recentSession: RecentSession?
     var launchData: LaunchData?
+    var recentAppVersion: String?
+    var recentBuildNumber: String?
 
     func getInstallationId() -> String? {
         return installationId
@@ -56,5 +58,21 @@ final class MockUserDefaultStorage: UserDefaultStorage {
 
     func getRecentLaunchData() -> LaunchData? {
         return launchData
+    }
+
+    func getRecentAppVersion() -> String? {
+        return recentAppVersion
+    }
+    
+    func setRecentAppVersion(_ version: String) {
+        self.recentAppVersion = version
+    }
+    
+    func getRecentBuildNumber() -> String? {
+        return recentBuildNumber
+    }
+    
+    func setRecentBuildNumber(_ buildNumber: String) {
+        self.recentBuildNumber = buildNumber
     }
 }
