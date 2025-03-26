@@ -93,18 +93,15 @@ import Foundation
     /// A session represents a continuous period of activity in the app. A new session begins when the app is launched for the first time, or when there's been no activity for a 20-minute period.
     /// A single session can continue across multiple app background and foreground events; brief interruptions will not cause a new session to be created.
     /// - Returns: The session ID if the SDK is initialized, or nil otherwise.
-    func getSessionId() -> String? {
+    @objc func getSessionId() -> String? {
         guard let sessionId = measureInternal?.sessionManager.sessionId else { return nil }
 
         return sessionId
     }
 
     /// Tracks an event with optional timestamp.
+    /// Event names should be clear and consistent to aid in dashboard searches
     ///
-    /// Usage Notes:
-    /// - Event names should be clear and consistent to aid in dashboard searches
-    ///
-    ///   /// - Example:
     ///   ```swift
     ///   Measure.shared.trackEvent(name: "event-name", attributes:["user_name": .string("Alice")], timestamp: nil)
     ///   ```
@@ -120,11 +117,11 @@ import Foundation
     }
 
     /// Tracks an event with optional timestamp.
+    /// Event names should be clear and consistent to aid in dashboard searches
     ///
-    /// Usage Notes:
-    /// - Event names should be clear and consistent to aid in dashboard searches
+    /// Note:
+    /// This method is primarily intended for Objective-C use..
     ///
-    ///   /// - Example:
     ///   ```objc
     ///   [[Measure shared] trackEvent:@"event-name" attributes:@{@"user_name": @"Alice"} timestamp:nil];
     ///   ```

@@ -9,13 +9,12 @@ import UIKit
 /// A view controller that monitors the `loadView` and `deinit` lifecycle events of the view controller.
 /// This class is intended to be subclassed by view controllers that need to monitor the view controller lifecycle.
 /// 
-/// - Example:
 ///   ```swift
-///   class ViewController: MeasureViewController {
+///   class ViewController: MsrViewController {
 ///     ...
 ///   }
 ///   ```
-open class MeasureViewController: UIViewController {
+open class MsrViewController: UIViewController {
     open override func loadView() {
         super.loadView()
         LifecycleManager.shared.sendLifecycleEvent(.loadView, for: self)

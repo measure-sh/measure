@@ -35,7 +35,7 @@ Measure automatically tracks the following View Controller lifecycle events:
 7. initWithNibName
 8. initWithCoder
 
-You can also track `loadView` and `deinit`/`dealloc` by inheriting from `MeasureViewController` for swift and `MSRViewController` for ObjC.
+You can also track `loadView` and `deinit`/`dealloc` by inheriting from `MsrViewController` for swift and `MSRViewController` for ObjC.
 
 ### How it works
 
@@ -46,7 +46,7 @@ Measure SDK uses method swizzling to intercept View Controller lifecycle methods
 #### Swift
 
 ```swift
-   class ViewController: MeasureViewController {
+   class ViewController: MsrViewController {
      ...
    }
 ```

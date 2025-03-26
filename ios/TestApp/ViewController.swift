@@ -8,7 +8,7 @@
 import UIKit
 import Measure
 
-final class ViewController: MeasureViewController, UITableViewDelegate, UITableViewDataSource {
+final class ViewController: MsrViewController, UITableViewDelegate, UITableViewDataSource {
     let crashTypes = [
         "Abort",
         "Bad Pointer",
