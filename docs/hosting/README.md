@@ -135,7 +135,7 @@ At this point, the install script will attempt to start all the Measure docker c
   <img src="https://github.com/user-attachments/assets/b33fbca4-4567-4077-9432-8be9f9c8b078" alt="Successful installation" />
 </p>
 
-At this point, all the services should be up, but they are not reachable from the internet. To make sure these services can serve traffic, let's setup: 
+At this point, all the services should be up, but they are not reachable from the internet. To make sure these services can serve traffic, let's setup:
 
 - A reverse proxy using [caddy](https://caddyserver.com/)
 - Setup DNS A recods on your domain
@@ -179,7 +179,7 @@ EOF
 ```
 
 > [!NOTE]
-> 
+>
 > In the above Caddyfile, we have used the example domains from above, but make sure you replace with your actual domain names.
 
 Next, reload caddy to make sure caddy picks up our newly generated config.
@@ -227,6 +227,7 @@ Find out the suitable version from the [list of release tags](https://github.com
 Run `git fetch` to fetch all tags.
 
 ```sh
+git reset --hard # reset local modifications, if any
 git fetch
 ```
 
@@ -263,7 +264,7 @@ You can run measure.sh locally on macOS for trying it out quickly, but keep in m
 
 ### System Requirements
 
-Make sure the following requirements present before proceeding.
+Make sure the following requirements are met before proceeding.
 
 | Name           | Version  |
 | -------------- | -------- |
