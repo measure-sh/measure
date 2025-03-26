@@ -39,6 +39,7 @@ let networkInterceptorHandledKey = "NetworkInterceptorHandled"
 let screenshotName = "screenshot.png"
 let layoutSnapshotName = "layoutSnapshot.svg"
 let layoutSnapshotDirectoryName = "layoutSnapshot"
+let fallbackApiUrl = "http://fallback"
 
 struct AttributeConstants {
     static let deviceManufacturer = "Apple"
