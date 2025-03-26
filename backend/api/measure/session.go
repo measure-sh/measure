@@ -229,6 +229,15 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 		base.Where(fmt.Sprintf("(%s)", strings.Join(matches, " or ")), args...)
 	}
 
+	if af.HasUDExpression() && !af.UDExpression.Empty() {
+		subQuery := sqlf.From("user_def_attrs").
+			Select("distinct session_id").
+			Clause("final").
+			Where("app_id = toUUID(?)", af.AppID)
+		af.UDExpression.Augment(subQuery)
+		base.SubQuery("session_id in (", ")", subQuery)
+	}
+
 	applyGroupBy := af.Crash ||
 		af.ANR ||
 		af.HasCountries() ||
@@ -281,14 +290,13 @@ func GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter) (sessio
 func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions []SessionDisplay, next, previous bool, err error) {
 	stmt := sqlf.
 		Select("distinct session_id").
-		Select("tupleElement(app_version, 1)").
-		Select("tupleElement(app_version, 2)").
-		Select("user_id").
-		Select("device_name").
-		Select("device_model").
-		Select("device_manufacturer").
-		Select("tupleElement(os_version, 1)").
-		Select("tupleElement(os_version, 2)").
+		Select("any(tupleElement(app_version, 1))").
+		Select("any(tupleElement(app_version, 2))").
+		Select("any(device_name)").
+		Select("any(device_model)").
+		Select("any(device_manufacturer)").
+		Select("any(tupleElement(os_version, 1))").
+		Select("any(tupleElement(os_version, 2))").
 		// avoid duplicates using window functions
 		//
 		// we choose the least first_event_timestamp
@@ -383,14 +391,8 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 
 	if applyGroupBy {
 		stmt.GroupBy("session_id")
-		stmt.GroupBy("app_version")
-		stmt.GroupBy("os_version")
-		stmt.GroupBy("device_name")
-		stmt.GroupBy("device_model")
-		stmt.GroupBy("device_manufacturer")
 		stmt.GroupBy("first_event_timestamp")
 		stmt.GroupBy("last_event_timestamp")
-		stmt.GroupBy("user_id")
 	}
 
 	defer stmt.Close()
@@ -427,32 +429,24 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		}
 
 		argsMatch := []any{}
-		for i := 0; i < len(matches); i++ {
+		for range len(matches) {
 			argsMatch = append(argsMatch, freeText)
 		}
 
-		stmt.Select("unique_types").
-			Select("unique_strings").
-			Select("unique_view_classnames").
-			Select("unique_subview_classnames").
-			Select("unique_exceptions").
-			Select("unique_anrs").
-			Select("unique_click_targets").
-			Select("unique_longclick_targets").
-			Select("unique_scroll_targets").
-			GroupBy("unique_types").
-			GroupBy("unique_strings").
-			GroupBy("user_id").
-			GroupBy("unique_view_classnames").
-			GroupBy("unique_subview_classnames").
-			GroupBy("unique_exceptions").
-			GroupBy("unique_anrs").
-			GroupBy("unique_click_targets").
-			GroupBy("unique_longclick_targets").
-			GroupBy("unique_scroll_targets")
+		stmt.Select("any(user_id)").
+			Select("any(unique_types)").
+			Select("any(unique_strings)").
+			Select("any(unique_view_classnames)").
+			Select("any(unique_subview_classnames)").
+			Select("any(unique_exceptions)").
+			Select("any(unique_anrs)").
+			Select("any(unique_click_targets)").
+			Select("any(unique_longclick_targets)").
+			Select("any(unique_scroll_targets)")
 
 		// run complex text matching with multiple 'OR's
 		stmt.Where(fmt.Sprintf("(%s)", strings.Join(matches, " or ")), argsMatch...)
+		stmt.GroupBy("user_id")
 	}
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -477,7 +471,6 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 			&sess.SessionID,
 			&sess.Attribute.AppVersion,
 			&sess.Attribute.AppBuild,
-			&sess.Attribute.UserID,
 			&sess.Attribute.DeviceName,
 			&sess.Attribute.DeviceModel,
 			&sess.Attribute.DeviceManufacturer,
@@ -488,7 +481,7 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		}
 
 		if af.FreeText != "" {
-			dest = append(dest, &uniqueTypes, &uniqueStrings, &uniqueViewClassnames, &uniqueSubviewClassnames, &uniqueExceptions, &uniqueANRs, &uniqueClickTargets, &uniqueLongclickTargets, &uniqueScrollTargets)
+			dest = append(dest, &sess.Attribute.UserID, &uniqueTypes, &uniqueStrings, &uniqueViewClassnames, &uniqueSubviewClassnames, &uniqueExceptions, &uniqueANRs, &uniqueClickTargets, &uniqueLongclickTargets, &uniqueScrollTargets)
 		}
 
 		if err = rows.Scan(dest...); err != nil {

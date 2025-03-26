@@ -658,7 +658,7 @@ func GetMetricsPlotForSpanNameWithFilter(ctx context.Context, spanName string, a
 			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)
-		stmt.Clause("AND span_id in").SubQuery("(", ")", subQuery)
+		stmt.SubQuery("span_id in (", ")", subQuery)
 	}
 
 	stmt.GroupBy("app_version, datetime")
