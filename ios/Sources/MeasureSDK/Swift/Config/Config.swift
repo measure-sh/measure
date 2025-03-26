@@ -38,9 +38,11 @@ struct Config: InternalConfig, MeasureConfig {
     let screenshotMaskHexColor: String
     let screenshotCompressionQuality: Int
     let layoutSnapshotDebounceInterval: Number
+    let autoStart: Bool
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
-                  samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate) {
+                  samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
+                  autoStart: Bool = DefaultConfig.autoStart) {
         self.enableLogging = enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
         self.eventsBatchingIntervalMs = 30000 // 30 seconds
@@ -74,5 +76,6 @@ struct Config: InternalConfig, MeasureConfig {
         self.screenshotMaskHexColor = "#222222"
         self.screenshotCompressionQuality = 25
         self.layoutSnapshotDebounceInterval = 750 // 750 ms
+        self.autoStart = autoStart
     }
 }

@@ -9,6 +9,7 @@ import UIKit
 
 protocol GestureCollector {
     func enable(for window: UIWindow)
+    func disable()
     func processEvent(_ event: UIEvent)
 }
 
@@ -21,6 +22,7 @@ final class BaseGestureCollector: GestureCollector {
     private var window: UIWindow?
     private let layoutSnapshotGenerator: LayoutSnapshotGenerator
     private let systemFileManager: SystemFileManager
+    private var isEnabled = false
 
     init(logger: Logger,
          eventProcessor: EventProcessor,
@@ -43,10 +45,17 @@ final class BaseGestureCollector: GestureCollector {
         logger.internalLog(level: .debug, message: "GestureCollector enabled", error: nil, data: nil)
         self.window?.setGestureCollector(self)
         self.window?.swizzleSendEvent()
+        isEnabled = true
+    }
+
+    func disable() {
+        isEnabled = false
     }
 
     func processEvent(_ event: UIEvent) {
-        if let window = window, let detectedGesture = GestureDetector.detect(event: event,
+        if isEnabled,
+           let window = window,
+           let detectedGesture = GestureDetector.detect(event: event,
                                                         in: window,
                                                         timeProvider: timeProvider,
                                                         scaledTouchSlop: configProvider.scaledTouchSlop,

@@ -11,6 +11,7 @@ protocol PeriodicEventExporter {
     func applicationDidEnterBackground()
     func applicationWillEnterForeground()
     func start()
+    func stop()
 }
 
 final class BasePeriodicEventExporter: PeriodicEventExporter, HeartbeatListener {
@@ -44,6 +45,12 @@ final class BasePeriodicEventExporter: PeriodicEventExporter, HeartbeatListener 
 
     func start() {
         heartbeat.start(intervalMs: configProvider.eventsBatchingIntervalMs, initialDelayMs: 0)
+        logger.log(level: .info, message: "PeriodicEventExporter enabled.", error: nil, data: nil)
+    }
+
+    func stop() {
+        heartbeat.stop()
+        logger.log(level: .info, message: "PeriodicEventExporter disabled.", error: nil, data: nil)
     }
 
     func applicationDidEnterBackground() {

@@ -9,6 +9,7 @@ import Foundation
 
 protocol NetworkChangeCollector {
     func enable()
+    func disable()
 }
 
 final class BaseNetworkChangeCollector: NetworkChangeCollector {
@@ -17,6 +18,7 @@ final class BaseNetworkChangeCollector: NetworkChangeCollector {
     private let timeProvider: TimeProvider
     private let networkChangeDetector: NetworkChangeDetector
     private let networkChangeCallback: NetworkChangeCallback
+    private var isEnabled = false
 
     init(logger: Logger, eventProcessor: EventProcessor, timeProvider: TimeProvider) {
         self.logger = logger
@@ -28,8 +30,15 @@ final class BaseNetworkChangeCollector: NetworkChangeCollector {
     }
 
     func enable() {
-        logger.internalLog(level: .debug, message: "GestureCollector enabled", error: nil, data: nil)
         networkChangeDetector.start()
+        isEnabled = true
+        logger.log(level: .info, message: "NetworkChangeCollector enabled.", error: nil, data: nil)
+    }
+
+    func disable() {
+        networkChangeDetector.stop()
+        isEnabled = false
+        logger.log(level: .info, message: "NetworkChangeCollector disabled.", error: nil, data: nil)
     }
 
     func onNetworkChangeCallback(_ data: NetworkChangeData) {

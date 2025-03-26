@@ -9,6 +9,7 @@ import Foundation
 
 protocol MemoryUsageCollector {
     func enable()
+    func disable()
     func resume()
     func pause()
 }
@@ -39,6 +40,14 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
         isEnabled = true
         initializeTimer()
         logger.log(level: .info, message: "MemoryUsageCollector enabled.", error: nil, data: nil)
+    }
+
+    func disable() {
+        guard let timer = self.timer else { return }
+        logger.log(level: .info, message: "MemoryUsageCollector disabled.", error: nil, data: nil)
+        timer.invalidate()
+        self.timer = nil
+        isEnabled = false
     }
 
     func resume() {

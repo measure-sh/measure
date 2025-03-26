@@ -9,6 +9,7 @@ import Foundation
 
 protocol CpuUsageCollector {
     func enable()
+    func disable()
     func resume()
     func pause()
 }
@@ -39,6 +40,14 @@ final class BaseCpuUsageCollector: CpuUsageCollector {
         isEnabled = true
         initializeTimer()
         logger.log(level: .info, message: "CpuUsageCollector enabled.", error: nil, data: nil)
+    }
+
+    func disable() {
+        guard let timer = self.timer else { return }
+        logger.log(level: .info, message: "CpuUsageCollector disabled.", error: nil, data: nil)
+        timer.invalidate()
+        isEnabled = false
+        self.timer = nil
     }
 
     func resume() {

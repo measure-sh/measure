@@ -159,7 +159,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
         let defaultConfig = Config(enableLogging: config.enableLogging,
-                                   samplingRateForErrorFreeSessions: config.samplingRateForErrorFreeSessions)
+                                   samplingRateForErrorFreeSessions: config.samplingRateForErrorFreeSessions,
+                                   autoStart: config.autoStart)
 
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
@@ -289,7 +290,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                              timeProvider: timeProvider,
                                                              configProvider: configProvider)
         self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(eventProcessor: eventProcessor,
-                                                                           timeProvider: timeProvider)
+                                                                           timeProvider: timeProvider,
+                                                                           logger: logger)
         self.dataCleanupService = BaseDataCleanupService(eventStore: eventStore,
                                                          sessionStore: sessionStore,
                                                          logger: logger,

@@ -9,6 +9,7 @@ import Foundation
 
 protocol HttpEventCollector {
     func enable()
+    func disable()
 }
 
 final class BaseHttpEventCollector: HttpEventCollector {
@@ -19,6 +20,7 @@ final class BaseHttpEventCollector: HttpEventCollector {
     private let httpInterceptorCallbacks: HttpInterceptorCallbacks
     private let client: Client
     private let configProvider: ConfigProvider
+    private var isEnabled = false
 
     init(logger: Logger,
          eventProcessor: EventProcessor,
@@ -47,15 +49,24 @@ final class BaseHttpEventCollector: HttpEventCollector {
         URLSessionTaskInterceptor.shared.setTimeProvider(timeProvider)
         URLSessionTaskInterceptor.shared.setHttpContentTypeAllowlist(configProvider.httpContentTypeAllowlist)
         URLSessionTaskInterceptor.shared.setDefaultHttpHeadersBlocklist(configProvider.defaultHttpHeadersBlocklist)
+        isEnabled = true
+        logger.log(level: .info, message: "HttpEventCollector enabled.", error: nil, data: nil)
+    }
+
+    func disable() {
+        isEnabled = false
+        logger.log(level: .info, message: "HttpEventCollector disabled.", error: nil, data: nil)
     }
 
     func onHttpCompletion(data: HttpData) {
-        eventProcessor.track(data: data,
-                             timestamp: timeProvider.now(),
-                             type: .http,
-                             attributes: nil,
-                             sessionId: nil,
-                             attachments: nil,
-                             userDefinedAttributes: nil)
+        if isEnabled {
+            eventProcessor.track(data: data,
+                                 timestamp: timeProvider.now(),
+                                 type: .http,
+                                 attributes: nil,
+                                 sessionId: nil,
+                                 attachments: nil,
+                                 userDefinedAttributes: nil)
+        }
     }
 }

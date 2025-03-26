@@ -17,18 +17,22 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
     private let eventProcessor: EventProcessor
     private let timeProvider: TimeProvider
     private var isEnabled = false
+    private let logger: Logger
 
-    init(eventProcessor: EventProcessor, timeProvider: TimeProvider) {
+    init(eventProcessor: EventProcessor, timeProvider: TimeProvider, logger: Logger) {
         self.eventProcessor = eventProcessor
         self.timeProvider = timeProvider
+        self.logger = logger
     }
 
     func enable() {
         isEnabled = true
+        logger.log(level: .info, message: "UserTriggeredEventCollector enabled.", error: nil, data: nil)
     }
 
     func disable() {
         isEnabled = false
+        logger.log(level: .info, message: "UserTriggeredEventCollector disabled.", error: nil, data: nil)
     }
 
     func trackScreenView(_ screenName: String) {

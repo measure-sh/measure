@@ -32,10 +32,12 @@ final class BaseCustomEventCollector: CustomEventCollector {
 
     func enable() {
         isEnabled = true
+        logger.log(level: .info, message: "CustomEventCollector enabled.", error: nil, data: nil)
     }
 
     func disable() {
         isEnabled = false
+        logger.log(level: .info, message: "CustomEventCollector disabled.", error: nil, data: nil)
     }
 
     func trackEvent(name: String, attributes: [String: AttributeValue], timestamp: Int64?) {

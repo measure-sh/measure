@@ -33,6 +33,10 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var autoStart: Bool {
+        return getMergedConfig(\.autoStart)
+    }
+
     var layoutSnapshotDebounceInterval: Number {
         return getMergedConfig(\.layoutSnapshotDebounceInterval)
     }
