@@ -6,11 +6,11 @@
 //
 
 #import <UIKit/UIKit.h>
-//#import <MeasureSDK/MeasureSDK-Swift.h>
+#import <Measure/MSRViewController.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface ObjcDetailViewController : UIViewController
+@interface ObjcDetailViewController : MSRViewController
 
 @end
 

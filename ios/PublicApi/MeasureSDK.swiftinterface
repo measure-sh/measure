@@ -76,7 +76,7 @@ extension SwiftUICore.View {
   @objc final public func clearUserId()
   @objc deinit
 }
-public struct MsrNetworkInterceptor {
+public struct MSRNetworkInterceptor {
   public static func enable(on sessionConfiguration: Foundation.URLSessionConfiguration)
 }
 @objc @_inheritsConvenienceInitializers @_Concurrency.MainActor @preconcurrency open class MeasureViewController : UIKit.UIViewController {

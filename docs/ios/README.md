@@ -1,16 +1,17 @@
 # Measure iOS SDK
 
 * [Minimum requirements](#minimum-requirements)
-* [Self host compatibility](#self-host-compatibility)
 * [Quick reference](#quick-reference)
 * [Getting started](#getting-started)
-* [Crash Reporting](#crash-reporting)
-* [Custom events](#custom-events)
+* [Features](#features)
+  * [Automatic collection](#automatic-collection)
+  * [Crash Reporting](#crash-reporting)
+  * [Identify users](#identify-users)
+  * [Custom events](#custom-events)
   * [ScreenView](#screen-view)
   * [SwiftUI Lifecycle](#swiftui-lifecycle)
   * [ViewController Lifecycle](#viewcontroller-lifecycle)
   * [Network Monitoring](#network-monitoring)
-* [Features](#features)
 * [Session](#session)
 
 # Minimum requirements
@@ -20,6 +21,15 @@
 | Xcode                         |     15.0+     |
 | Minimum iOS Deployments       |     12.0+     |
 | Swift Version                 |     5.10+     |
+
+## Self-host compatibility
+
+Before integrating iOS SDK, make sure the deployed self-host version is **atleast 0.6.0**. For more 
+details, checkout the [self-host guide](../hosting/README.md).
+
+| SDK version   | Minimum required self-host version |
+|---------------|------------------------------------|
+| 0.1.0         | 0.6.0                              |
  
 # Getting started
 
@@ -96,21 +106,39 @@ Reopen the app and check the Measure dashboard—you should see the crash report
 
 🎉 Congratulations! You have successfully integrated Measure into your app!
 
-# Crash Reporting  
+# Features
+
+Measure SDK operates on an event-based architecture, automatically collecting key debugging events while letting you track custom events, screen views and layout snapshots, etc. Read along for more details.
+
+## Automatic collection
+
+The following data is automatically collected by Measure. Read the individual docs for more details.
+
+* [App launch](../docs/ios/features/feature_app_launch.md)
+* [Crash tracking](../docs/ios/features/feature_crash_tracking.md)
+* [Network monitoring](../docs/ios/features/feature_network_monitoring.md)
+* [Network changes](../docs/ios/features/feature_network_changes.md)
+* [Gesture tracking](../docs/ios/features/feature_gesture_tracking.md)
+* [Layout Snapshots](../docs/ios/features/feature_layout_snapshots.md)
+* [Navigation & Lifecycle](../docs/ios/features/feature_navigation_and_lifecycle.md)
+* [CPU monitoring](../docs/ios/features/feature_cpu_monitoring.md)
+* [Memory monitoring](../docs/ios/features/feature_memory_monitoring.md)
+
+## Crash Reporting  
 
 MeasureSDK automatically detects and exports crashes. To symbolicate these crashes, DSYM files need to be uploaded to the server. You can upload DSYM files using a standalone shell script or via Xcode’s Build Phases.  
 
-## Using Shell Script  
+### Using Shell Script  
 
-Run the `upload_dsyms.sh` script to manually upload DSYM files after building your app.  
+Run the [`upload_dsyms.sh`](../../ios/Scripts/upload_dsyms.sh) script to manually upload DSYM files after building your app.  
 
 ```sh
 sh upload_dsyms.sh <path_to_ipa> <path_to_dsym_folder> <api_url> <api_key>
 ```
 
-## Using Build Phases  
+### Using Build Phases  
 
-Add the `upload_dsym_build_phases.sh` script as a **New Run Script Phase** in Xcode to upload DSYM files automatically.  
+Add the [`upload_dsym_build_phases.sh`](../../ios/Scripts/upload_dsym_build_phases.sh) script as a **New Run Script Phase** in Xcode to upload DSYM files automatically.  
 
 ```sh
 sh "${SRCROOT}/path/to/upload_dsym_build_phases.sh" <api_url> <api_key>
@@ -119,7 +147,30 @@ sh "${SRCROOT}/path/to/upload_dsym_build_phases.sh" <api_url> <api_key>
 > [!CAUTION]  
 > If you are using Build Phases to upload DSYMs make sure to **upload DSYMs only for release builds**.
 
-# Custom Events
+## Identify users
+
+Correlating sessions with users is critical for debugging certain issues. Measure allows setting a user ID which can
+then be used to query sessions and events on the dashboard. User ID is persisted across app launches.
+
+```swift
+Measure.shared.setUserId("user_id")
+```
+
+```objc
+[[Measure shared] setUserId:@"user_id"]
+```
+
+To clear a user ID. 
+
+```swift
+Measure.shared.clearUserId()
+```
+
+```objc
+[[Measure shared] clearUserId]
+```
+
+## Custom Events
 
 Custom events provide more context on top of automatically collected events. They provide the context specific to the app to debug issues and analyze impact.
 
@@ -144,7 +195,7 @@ Measure.shared.trackEvent(name: "event_name", attributes: ["is_premium_user": .b
 ```
 
 ```objc
-[[Measure shared] trackEvent:@"event_name" attributes:@{@"is_premium_user": @YES}];
+[[Measure shared] trackEvent:@"event_name" attributes:@{@"is_premium_user": YES}];
 ```
 
 If an event occurred before the SDK was initialized, you can track it with a custom timestamp. The timestamp must be in **milliseconds since epoch**.
@@ -153,7 +204,7 @@ If an event occurred before the SDK was initialized, you can track it with a cus
 Measure.shared.trackEvent(name: "event_name", timestamp: 1734443973879)
 ```
 ```objc
-[[Measure shared] trackEvent:@"event_name" timestamp:@(1734443973879)];
+[[Measure shared] trackEvent:@"event_name" timestamp:1734443973879];
 ```
 
 Apart from sending custom events, the following event can be tracked with a predefined schema:
@@ -164,7 +215,7 @@ Apart from sending custom events, the following event can be tracked with a pred
 - [Network Monitoring](#network-monitoring)
 
 
-### Screen View
+## Screen View
 
 Measure SDK automatically tracks view controller [lifecycle events](../docs/ios/features/feature_navigation_and_lifecycle.md). However, if your app uses a custom navigation system, you can manually trigger `screen_view` events to track user flow.
 
@@ -177,13 +228,13 @@ Measure.shared.trackScreenView("Home")
 [[Measure shared] trackScreenView:@"Home"];
 ```
 
-### SwiftUI Lifecycle
+## SwiftUI Lifecycle
 
 Measure can track SwiftUI component's `onAppear` and `onDisappear` if you wrap your view with the `MsrMoniterView`. Measure also provides an extension function on View that wraps the view in an `MsrMoniterView` to monitor its lifecycle events.
 
 To track SwiftUI lifecycle events, you can use the following methods:
 
-#### Using `MsrMoniterView`
+### Using `MsrMoniterView`
 
 ```swift
 struct ContentView: View {
@@ -195,7 +246,7 @@ struct ContentView: View {
 }
 ```
 
-#### Using `moniterWithMsr`
+### Using `moniterWithMsr`
 
 ```swift
 struct ContentView: View {
@@ -206,7 +257,7 @@ struct ContentView: View {
 }
 ```
 
-### ViewController Lifecycle
+## ViewController Lifecycle
 
 Measure automatically tracks the following View Controller lifecycle events:
 
@@ -219,10 +270,10 @@ Measure automatically tracks the following View Controller lifecycle events:
 7. initWithNibName
 8. initWithCoder
 
-You can also track `loadView` and `deinit`/`dealloc` by inheriting from `MeasureViewController` for swift and `MSRViewController` for Objective-C.
+You can also track `loadView` and `deinit`/`dealloc` by inheriting from **`MsrViewController` for swift and `MSRViewController` for Objective-C**.
 
 ```swift
-   class ViewController: MeasureViewController {
+   class ViewController: MsrViewController {
      ...
    }
 ```
@@ -233,43 +284,30 @@ You can also track `loadView` and `deinit`/`dealloc` by inheriting from `Measure
    @end
 ```
 
-### Network Monitoring
+## Network Monitoring
 
 Measure SDK automatically monitors all API calls happening in the app. You can view the collected HTTP data [here](../docs/api/sdk/README.md#http).  
 This is achieved by swizzling `NSURLSessionTask`'s `setState:` method. However, there is one limitation: **response bodies cannot be tracked** using this method.  
 
-If you also want to track response bodies, you can use `MsrNetworkInterceptor`.  
-The `MsrNetworkInterceptor` modifies the provided `URLSessionConfiguration` to inject the `NetworkInterceptorProtocol` into its `protocolClasses`.  
+If you also want to track response bodies, you can use `MSRNetworkInterceptor`.  
+The `MSRNetworkInterceptor` modifies the provided `URLSessionConfiguration` to inject the `NetworkInterceptorProtocol` into its `protocolClasses`.  
 
 If the interceptor is already enabled, subsequent calls to this method will have no effect.  
   
 ```swift
   let config = URLSessionConfiguration.default
-  MsrNetworkInterceptor.enable(on: config)
+  MSRNetworkInterceptor.enable(on: config)
   let session = URLSession(configuration: config)
 ```
 
 ```objc
   NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-  [MsrNetworkInterceptor enableOn:config];
+  [MSRNetworkInterceptor enableOn:config];
   NSURLSession *session = [NSURLSession sessionWithConfiguration:config];
 ```
 
 > [!Note]
 > Ensure you call this method before creating a `URLSession` instance with the given configuration.
-
-# Features
-
-* [App launch](../docs/ios/features/feature_app_launch.md)
-* [Crash tracking](../docs/ios/features/feature_crash_tracking.md)
-* [Network monitoring](../docs/ios/features/feature_network_monitoring.md)
-* [Network changes](../docs/ios/features/feature_network_changes.md)
-* [Gesture tracking](../docs/ios/features/feature_gesture_tracking.md)
-* [Layout Snapshots](../docs/ios/features/feature_layout_snapshots.md)
-* [Navigation & Lifecycle](../docs/ios/features/feature_navigation_and_lifecycle.md)
-* [CPU monitoring](../docs/ios/features/feature_cpu_monitoring.md)
-* [Memory monitoring](../docs/ios/features/feature_memory_monitoring.md)
-
 
 # Session
 

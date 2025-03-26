@@ -76,10 +76,10 @@ extension SwiftUICore.View {
   @objc final public func clearUserId()
   @objc deinit
 }
-public struct MsrNetworkInterceptor {
+public struct MSRNetworkInterceptor {
   public static func enable(on sessionConfiguration: Foundation.URLSessionConfiguration)
 }
-@objc @_inheritsConvenienceInitializers @_Concurrency.MainActor @preconcurrency open class MeasureViewController : UIKit.UIViewController {
+@objc @_inheritsConvenienceInitializers @_Concurrency.MainActor @preconcurrency open class MsrViewController : UIKit.UIViewController {
   @_Concurrency.MainActor @preconcurrency @objc override dynamic open func loadView()
   @objc deinit
   @_Concurrency.MainActor @preconcurrency @objc override dynamic public init(nibName nibNameOrNil: Swift.String?, bundle nibBundleOrNil: Foundation.Bundle?)

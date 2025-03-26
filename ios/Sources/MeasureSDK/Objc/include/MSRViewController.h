@@ -12,7 +12,6 @@ NS_ASSUME_NONNULL_BEGIN
 /// A view controller that monitors the `loadView` and `dealloc` lifecycle events of the view controller.
 /// This class is intended to be subclassed by view controllers that need to monitor the view controller lifecycle.
 ///
-/// - Example:
 ///   ```objc
 ///   @interface ObjcDetailViewController : MSRViewController
 ///
