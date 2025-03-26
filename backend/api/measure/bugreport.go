@@ -138,7 +138,7 @@ func GetBugReportInstancesPlot(ctx context.Context, af *filter.AppFilter) (bugRe
 			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)
-		base.Clause("AND event_id in").SubQuery("(", ")", subQuery)
+		base.SubQuery("event_id in (", ")", subQuery)
 	}
 
 	base.OrderBy("timestamp desc")
@@ -260,7 +260,7 @@ func GetBugReportsWithFilter(ctx context.Context, af *filter.AppFilter) (bugRepo
 			Clause("final").
 			Where("app_id = toUUID(?)", af.AppID)
 		af.UDExpression.Augment(subQuery)
-		stmt.Clause("AND event_id in").SubQuery("(", ")", subQuery)
+		stmt.SubQuery("event_id in (", ")", subQuery)
 	}
 
 	stmt.OrderBy("timestamp desc")

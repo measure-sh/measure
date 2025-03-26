@@ -1844,14 +1844,16 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 // GetIssuesAttributeDistribution queries distribution of attributes
 // based on datetime and filters.
 func GetIssuesAttributeDistribution(ctx context.Context, g group.IssueGroup, af *filter.AppFilter) (map[string]map[string]uint64, error) {
-	fingerprint := g.GetFingerprint()
+	var fingerprint string
 	groupType := event.TypeException
 
 	switch g.(type) {
 	case *group.ANRGroup:
 		groupType = event.TypeANR
+		fingerprint = g.(*group.ANRGroup).GetFingerprint()
 	case *group.ExceptionGroup:
 		groupType = event.TypeException
+		fingerprint = g.(*group.ExceptionGroup).GetFingerprint()
 	default:
 		err := errors.New("couldn't determine correct type of issue group")
 		return nil, err
