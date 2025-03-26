@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Mismatch and duplicate sessions (#1974) by @detj in #1974
 - (**backend**): Filter duplicate ud attribute keys (#1967) by @detj in #1967
 - (**backend**): Broken session pagination with user defined attrs (#1948) by @detj in #1948
 - (**backend**): Anr exception type was not symbolicated (#1944) by @detj in #1944
