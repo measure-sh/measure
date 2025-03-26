@@ -94,9 +94,25 @@ for DSYM_TGZ in "${DSYM_TGZ_FILES[@]}"; do
   CURL_COMMAND="$CURL_COMMAND --form mapping_file=@$DSYM_TGZ"
 done
 
-# Execute the curl command
+# Execute the curl command and capture the HTTP response code
 echo "Executing curl command..."
-eval "$CURL_COMMAND"
+HTTP_RESPONSE=$(eval "$CURL_COMMAND --write-out '%{http_code}' --silent --output /dev/null")
+
+# Handle HTTP response codes
+case "$HTTP_RESPONSE" in
+  401)
+    echo "[ERROR]: Failed to upload mapping file to Measure, please check that corrent api_key is provided. Stack traces will not be symbolicated."
+    ;;
+  413)
+    echo "[ERROR]: Failed to upload mapping file to Measure, mapping file size exceeded the maximum allowed limit. Stack traces will not be symbolicated."
+    ;;
+  500)
+    echo "[ERROR]: Failed to upload mapping file to Measure, the server encountered an error, try again later. Stack traces will not be symbolicated."
+    ;;
+  *)
+    echo "Upload completed!"
+    ;;
+esac
 
 # Clean up
 rm -rf "$TMP_DIR"
