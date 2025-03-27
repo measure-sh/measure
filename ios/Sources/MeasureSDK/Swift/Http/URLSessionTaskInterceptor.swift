@@ -16,6 +16,8 @@ final class URLSessionTaskInterceptor {
     private var ignoredDomains: [String]?
     private var httpContentTypeAllowlist: [String]?
     private var defaultHttpHeadersBlocklist: [String]?
+    private var configProvider: ConfigProvider?
+    private var httpEventValidator: HttpEventValidator?
 
     private init() {}
 
@@ -25,6 +27,10 @@ final class URLSessionTaskInterceptor {
 
     func setTimeProvider(_ timeProvider: TimeProvider) {
         self.timeProvider = timeProvider
+    }
+
+    func setConfigProvider(_ configProvider: ConfigProvider) {
+        self.configProvider = configProvider
     }
 
     func setAllowedDomains(_ allowedDomains: [String]) {
@@ -43,25 +49,29 @@ final class URLSessionTaskInterceptor {
         self.defaultHttpHeadersBlocklist = defaultHttpHeadersBlocklist
     }
 
+    func setHttpEventValidator(_ httpEventValidator: HttpEventValidator) {
+       self.httpEventValidator = httpEventValidator
+    }
+
     func urlSessionTask(_ task: URLSessionTask, setState state: URLSessionTask.State) { // swiftlint:disable:this cyclomatic_complexity
         guard !MSRNetworkInterceptor.isEnabled else { return }
 
         guard let httpInterceptorCallbacks = self.httpInterceptorCallbacks,
               let timeProvider = self.timeProvider,
-              let defaultHttpHeadersBlocklist = self.defaultHttpHeadersBlocklist else { return }
+              let defaultHttpHeadersBlocklist = self.defaultHttpHeadersBlocklist,
+              let configProvider = self.configProvider else { return }
 
-        guard let url = task.currentRequest?.url?.absoluteString else { return }
+        guard let url = task.currentRequest?.url?.absoluteString, let httpEventValidator = self.httpEventValidator else { return }
 
         guard let contentType = task.currentRequest?.allHTTPHeaderFields?["Content-Type"] else { return }
 
-        // Skip if content type is not in httpContentTypeAllowlist
-        if let httpContentTypeAllowlist = self.httpContentTypeAllowlist, !httpContentTypeAllowlist.contains(where: { contentType.contains($0) }) { return }
-
-        // Skip if the URL is in ignored domains
-        if let ignoreDomains = self.ignoredDomains.flatMap({ $0 }), ignoreDomains.contains(where: { url.contains($0) }) { return }
-
-        // Skip if allowedDomains is non-empty and the URL doesn't match any domain in allowedDomains
-        if let allowedDomains = self.allowedDomains.flatMap({ $0 }), !allowedDomains.isEmpty && !allowedDomains.contains(where: { url.contains($0) }) { return }
+        guard httpEventValidator.shouldTrackHttpEvent(self.httpContentTypeAllowlist,
+                                                      contentType: contentType,
+                                                      requestUrl: url,
+                                                      allowedDomains: self.allowedDomains,
+                                                      ignoredDomains: self.ignoredDomains) else {
+            return
+        }
 
         if state == .running, taskStartTimes[task] == nil {
             taskStartTimes[task] = UnsignedNumber(timeProvider.millisTime)
@@ -101,12 +111,11 @@ final class URLSessionTaskInterceptor {
                 endTime: UnsignedNumber(endTime),
                 failureReason: failureReason,
                 failureDescription: failureDescription,
-                requestHeaders: requestHeaders.filter { !defaultHttpHeadersBlocklist.contains($0.key) },
-                responseHeaders: responseHeaders.filter { !defaultHttpHeadersBlocklist.contains($0.key) },
-                requestBody: requestBody?.sanitizeRequestBody(),
-                responseBody: responseBody?.sanitizeRequestBody(),
-                client: client
-            )
+                requestHeaders: configProvider.trackHttpHeaders ? requestHeaders.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
+                responseHeaders: configProvider.trackHttpHeaders ? responseHeaders.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
+                requestBody: configProvider.trackHttpBody ? requestBody?.sanitizeRequestBody() : nil,
+                responseBody: configProvider.trackHttpBody ? responseBody?.sanitizeRequestBody() : nil,
+                client: client)
 
             taskStartTimes.removeValue(forKey: task)
             httpInterceptorCallbacks.onHttpCompletion(data: httpData)

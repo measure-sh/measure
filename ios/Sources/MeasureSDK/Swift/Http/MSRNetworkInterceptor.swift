@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// A network interceptor that enables monitoring network requests.
 public struct MSRNetworkInterceptor {
     static var isEnabled = false
     private static let lock = NSLock()

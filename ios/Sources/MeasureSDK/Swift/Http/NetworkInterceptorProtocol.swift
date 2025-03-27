@@ -28,9 +28,15 @@ class NetworkInterceptorProtocol: URLProtocol {
     static var ignoredDomains: [String]?
     static var httpContentTypeAllowlist: [String]?
     static var defaultHttpHeadersBlocklist: [String]?
+    static var configProvider: ConfigProvider?
+    static var httpEventValidator: HttpEventValidator?
 
     static func setTimeProvider(_ timeProvider: TimeProvider) {
         self.timeProvider = timeProvider
+    }
+
+    static func setConfigProvider(_ configProvider: ConfigProvider) {
+        self.configProvider = configProvider
     }
 
     static func setHttpInterceptorCallbacks(_ httpInterceptorCallbacks: HttpInterceptorCallbacks) {
@@ -51,6 +57,10 @@ class NetworkInterceptorProtocol: URLProtocol {
 
     static func setDefaultHttpHeadersBlocklist(_ defaultHttpHeadersBlocklist: [String]) {
         self.defaultHttpHeadersBlocklist = defaultHttpHeadersBlocklist
+    }
+
+    static func setHttpEventValidator(_ httpEventValidator: HttpEventValidator) {
+        self.httpEventValidator = httpEventValidator
     }
 
     override class func canInit(with request: URLRequest) -> Bool {
@@ -115,21 +125,19 @@ extension NetworkInterceptorProtocol: URLSessionDataDelegate {
         if let timeProvider = NetworkInterceptorProtocol.timeProvider,
            let httpInterceptorCallbacks = NetworkInterceptorProtocol.httpInterceptorCallbacks,
            let defaultHttpHeadersBlocklist = NetworkInterceptorProtocol.defaultHttpHeadersBlocklist,
-           let url = request.url?.absoluteString {
+           let url = request.url?.absoluteString,
+           let configProvider = NetworkInterceptorProtocol.configProvider,
+           let httpEventValidator = NetworkInterceptorProtocol.httpEventValidator {
             guard let contentType = task.currentRequest?.allHTTPHeaderFields?["Content-Type"] else { return }
 
-            // Skip if content type is not in httpContentTypeAllowlist
-            if let httpContentTypeAllowlist = NetworkInterceptorProtocol.httpContentTypeAllowlist, !httpContentTypeAllowlist.contains(where: { contentType.contains($0) }) { return }
-
-            // Skip if the URL is in ignored domains
-            if let ignoreDomains = NetworkInterceptorProtocol.ignoredDomains.flatMap({ $0 }), ignoreDomains.contains(where: { url.contains($0) }) {
+            guard httpEventValidator.shouldTrackHttpEvent(NetworkInterceptorProtocol.httpContentTypeAllowlist,
+                                                          contentType: contentType,
+                                                          requestUrl: url,
+                                                          allowedDomains: NetworkInterceptorProtocol.allowedDomains,
+                                                          ignoredDomains: NetworkInterceptorProtocol.ignoredDomains) else {
                 return
             }
 
-            // Skip if allowedDomains is non-empty and the URL doesn't match any domain in allowedDomains
-            if let allowedDomains = NetworkInterceptorProtocol.allowedDomains.flatMap({ $0 }), !allowedDomains.isEmpty && !allowedDomains.contains(where: { url.contains($0) }) {
-                return
-            }
             let endTime = UnsignedNumber(timeProvider.millisTime)
 
             var requestBody: String?
@@ -149,10 +157,10 @@ extension NetworkInterceptorProtocol: URLSessionDataDelegate {
                 endTime: endTime,
                 failureReason: error.map { String(describing: type(of: $0)) },
                 failureDescription: error?.localizedDescription,
-                requestHeaders: request.allHTTPHeaderFields?.filter { !defaultHttpHeadersBlocklist.contains($0.key) },
-                responseHeaders: extractHeaders(from: httpResponse)?.filter { !defaultHttpHeadersBlocklist.contains($0.key) },
-                requestBody: requestBody?.sanitizeRequestBody(),
-                responseBody: responseString?.sanitizeRequestBody(),
+                requestHeaders: configProvider.trackHttpHeaders ? request.allHTTPHeaderFields?.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
+                responseHeaders: configProvider.trackHttpHeaders ? extractHeaders(from: httpResponse)?.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
+                requestBody: configProvider.trackHttpBody ? requestBody?.sanitizeRequestBody() : nil,
+                responseBody: configProvider.trackHttpBody ? responseString?.sanitizeRequestBody() : nil,
                 client: "URLSession")
 
             httpInterceptorCallbacks.onHttpCompletion(data: httpData)

@@ -33,6 +33,11 @@ final class MockConfigProvider: ConfigProvider {
     var screenshotMaskHexColor: String
     var screenshotCompressionQuality: Int
     var layoutSnapshotDebounceInterval: Number
+    var trackHttpHeaders: Bool
+    var trackHttpBody: Bool
+    var httpHeadersBlocklist: [String]
+    var httpUrlBlocklist: [String]
+    var httpUrlAllowlist: [String]
 
     init(enableLogging: Bool = false,
          trackScreenshotOnCrash: Bool = true,
@@ -67,7 +72,12 @@ final class MockConfigProvider: ConfigProvider {
                                                   .screenView],
          screenshotMaskHexColor: String = "#222222",
          screenshotCompressionQuality: Int = 25,
-         layoutSnapshotDebounceInterval: Number = 750) {
+         layoutSnapshotDebounceInterval: Number = 750,
+         trackHttpHeaders: Bool = false,
+         trackHttpBody: Bool = false,
+         httpHeadersBlocklist: [String] = [],
+         httpUrlBlocklist: [String] = [],
+         httpUrlAllowlist: [String] = []) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
@@ -92,6 +102,11 @@ final class MockConfigProvider: ConfigProvider {
         self.screenshotMaskHexColor = screenshotMaskHexColor
         self.screenshotCompressionQuality = screenshotCompressionQuality
         self.layoutSnapshotDebounceInterval = layoutSnapshotDebounceInterval
+        self.trackHttpHeaders = trackHttpHeaders
+        self.trackHttpBody = trackHttpBody
+        self.httpHeadersBlocklist = httpHeadersBlocklist
+        self.httpUrlBlocklist = httpUrlBlocklist
+        self.httpUrlAllowlist = httpUrlAllowlist
     }
 
     func loadNetworkConfig() {}

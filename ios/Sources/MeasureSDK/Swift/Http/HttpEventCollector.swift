@@ -19,6 +19,7 @@ final class BaseHttpEventCollector: HttpEventCollector {
     private let httpInterceptorCallbacks: HttpInterceptorCallbacks
     private let client: Client
     private let configProvider: ConfigProvider
+    private let httpEventValidator: HttpEventValidator
 
     init(logger: Logger,
          eventProcessor: EventProcessor,
@@ -26,7 +27,8 @@ final class BaseHttpEventCollector: HttpEventCollector {
          urlSessionTaskSwizzler: URLSessionTaskSwizzler,
          httpInterceptorCallbacks: HttpInterceptorCallbacks,
          client: Client,
-         configProvider: ConfigProvider) {
+         configProvider: ConfigProvider,
+         httpEventValidator: HttpEventValidator) {
         self.logger = logger
         self.eventProcessor = eventProcessor
         self.timeProvider = timeProvider
@@ -34,6 +36,7 @@ final class BaseHttpEventCollector: HttpEventCollector {
         self.httpInterceptorCallbacks = httpInterceptorCallbacks
         self.client = client
         self.configProvider = configProvider
+        self.httpEventValidator = httpEventValidator
         self.httpInterceptorCallbacks.httpDataCallback = onHttpCompletion(data:)
     }
 
@@ -41,12 +44,20 @@ final class BaseHttpEventCollector: HttpEventCollector {
         NetworkInterceptorProtocol.setTimeProvider(timeProvider)
         NetworkInterceptorProtocol.setHttpInterceptorCallbacks(httpInterceptorCallbacks)
         NetworkInterceptorProtocol.setHttpContentTypeAllowlist(configProvider.httpContentTypeAllowlist)
-        NetworkInterceptorProtocol.setDefaultHttpHeadersBlocklist(configProvider.defaultHttpHeadersBlocklist)
+        NetworkInterceptorProtocol.setDefaultHttpHeadersBlocklist(configProvider.defaultHttpHeadersBlocklist + configProvider.httpHeadersBlocklist)
+        NetworkInterceptorProtocol.setAllowedDomains(configProvider.httpUrlAllowlist)
+        NetworkInterceptorProtocol.setIgnoredDomains(configProvider.httpUrlBlocklist)
+        NetworkInterceptorProtocol.setConfigProvider(configProvider)
+        NetworkInterceptorProtocol.setHttpEventValidator(httpEventValidator)
         urlSessionTaskSwizzler.swizzleURLSessionTask()
         URLSessionTaskInterceptor.shared.setHttpInterceptorCallbacks(httpInterceptorCallbacks)
         URLSessionTaskInterceptor.shared.setTimeProvider(timeProvider)
         URLSessionTaskInterceptor.shared.setHttpContentTypeAllowlist(configProvider.httpContentTypeAllowlist)
-        URLSessionTaskInterceptor.shared.setDefaultHttpHeadersBlocklist(configProvider.defaultHttpHeadersBlocklist)
+        URLSessionTaskInterceptor.shared.setDefaultHttpHeadersBlocklist(configProvider.defaultHttpHeadersBlocklist + configProvider.httpHeadersBlocklist)
+        URLSessionTaskInterceptor.shared.setAllowedDomains(configProvider.httpUrlAllowlist)
+        URLSessionTaskInterceptor.shared.setIgnoredDomains(configProvider.httpUrlBlocklist)
+        URLSessionTaskInterceptor.shared.setConfigProvider(configProvider)
+        URLSessionTaskInterceptor.shared.setHttpEventValidator(httpEventValidator)
     }
 
     func onHttpCompletion(data: HttpData) {

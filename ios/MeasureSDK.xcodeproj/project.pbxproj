@@ -237,6 +237,8 @@
 		CF4FE3952D913BAC0073D8AE /* Measure.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* Measure.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CF7CAE4A2D940E4700E15CDB /* AppVersionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE492D940E4700E15CDB /* AppVersionInfo.swift */; };
 		CF7CAE4C2D940F2700E15CDB /* MockAppVersionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE4B2D940F2700E15CDB /* MockAppVersionInfo.swift */; };
+		CF7CAE552D952FA600E15CDB /* HttpEventValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */; };
+		CF7CAE582D95344100E15CDB /* HttpEventValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE572D95344100E15CDB /* HttpEventValidatorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -578,6 +580,8 @@
 		52F3775A2CB41F0B006147E8 /* ObjcDetailViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjcDetailViewController.m; sourceTree = "<group>"; };
 		CF7CAE492D940E4700E15CDB /* AppVersionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersionInfo.swift; sourceTree = "<group>"; };
 		CF7CAE4B2D940F2700E15CDB /* MockAppVersionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAppVersionInfo.swift; sourceTree = "<group>"; };
+		CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidator.swift; sourceTree = "<group>"; };
+		CF7CAE572D95344100E15CDB /* HttpEventValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidatorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -814,6 +818,7 @@
 			children = (
 				526D17DC2D5A1913009A2E90 /* HttpData.swift */,
 				526D17DD2D5A1913009A2E90 /* HttpEventCollector.swift */,
+				CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */,
 				526D17DE2D5A1913009A2E90 /* HttpInterceptorCallbacks.swift */,
 				526D17DF2D5A1913009A2E90 /* MSRNetworkInterceptor.swift */,
 				526D17E02D5A1913009A2E90 /* NetworkInterceptorProtocol.swift */,
@@ -1152,12 +1157,13 @@
 				52B7F0FB2D757F81001498BC /* Exporter */,
 				52B7F0FD2D757F81001498BC /* Gestures */,
 				52B7F1042D757F81001498BC /* Helper */,
+				CF7CAE562D95342F00E15CDB /* Http */,
 				52B7F1062D757F81001498BC /* LayoutInspector */,
 				52B7F1222D757F81001498BC /* Mocks */,
 				52B7F1272D757F81001498BC /* Performance */,
 				52B7F1292D757F81001498BC /* ScreenshotGenerator */,
-				52B7F12C2D757F81001498BC /* Utils */,
 				52B7F12D2D757F81001498BC /* SessionManagerTests.swift */,
+				52B7F12C2D757F81001498BC /* Utils */,
 			);
 			path = MeasureSDKTests;
 			sourceTree = "<group>";
@@ -1249,6 +1255,14 @@
 				52F377512CB41EDE006147E8 /* ViewController.swift */,
 			);
 			path = Controller;
+			sourceTree = "<group>";
+		};
+		CF7CAE562D95342F00E15CDB /* Http */ = {
+			isa = PBXGroup;
+			children = (
+				CF7CAE572D95344100E15CDB /* HttpEventValidatorTests.swift */,
+			);
+			path = Http;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1554,6 +1568,7 @@
 				526D188B2D5A1913009A2E90 /* TimeProvider.swift in Sources */,
 				526D18732D5A1913009A2E90 /* CpuUsageData.swift in Sources */,
 				526D18662D5A1913009A2E90 /* BaseSvgGenerator.swift in Sources */,
+				CF7CAE552D952FA600E15CDB /* HttpEventValidator.swift in Sources */,
 				526D18912D5A1913009A2E90 /* MeasureInitializer.swift in Sources */,
 				526D18582D5A1913009A2E90 /* HttpModels.swift in Sources */,
 				526D18702D5A1913009A2E90 /* NetworkChangeDetector.swift in Sources */,
@@ -1742,6 +1757,7 @@
 				52B7F13A2D757F81001498BC /* DataCleanupServiceTests.swift in Sources */,
 				52B7F15B2D757F81001498BC /* MockCrashDataPersistence.swift in Sources */,
 				52B7F14D2D757F81001498BC /* Attributes+Extension.swift in Sources */,
+				CF7CAE582D95344100E15CDB /* HttpEventValidatorTests.swift in Sources */,
 				52B7F1342D757F81001498BC /* AttributeProcessorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

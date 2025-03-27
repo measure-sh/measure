@@ -56,6 +56,7 @@ final class MockMeasureInitializer: MeasureInitializer {
     let userPermissionManager: UserPermissionManager
     let svgGenerator: SvgGenerator
     let appVersionInfo: AppVersionInfo
+    let httpEventValidator: HttpEventValidator
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -196,12 +197,14 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                          logger: logger,
                                                          sessionManager: sessionManager)
         self.client = client
+        self.httpEventValidator = BaseHttpEventValidator()
         self.httpEventCollector = BaseHttpEventCollector(logger: logger,
                                                          eventProcessor: eventProcessor,
                                                          timeProvider: timeProvider,
                                                          urlSessionTaskSwizzler: URLSessionTaskSwizzler(),
                                                          httpInterceptorCallbacks: HttpInterceptorCallbacks(),
                                                          client: client,
-                                                         configProvider: configProvider)
+                                                         configProvider: configProvider,
+                                                         httpEventValidator: httpEventValidator)
     }
 }
