@@ -30,7 +30,7 @@ drop view if exists user_def_attrs_mv_null;
 
 # create a null table for 'events'
 echo "Creating null table for 'events'"
-$DOCKER_COMPOSE exec clickhouse clickhouse-client --progress -q "create table events_null as events engine = NULL;"
+$DOCKER_COMPOSE exec clickhouse clickhouse-client --progress -q "create table events_null as events engine = Null;"
 
 # create a null materialized view for 'user_def_attrs' table
 echo "Creating null materialized view for 'user_def_attrs'"
@@ -44,9 +44,9 @@ select distinct app_id,
                  toString(attribute.app_build))      as app_version,
                 (toString(attribute.os_name),
                  toString(attribute.os_version))     as os_version,
-                if(events.type = 'exception' and exception.handled = false,
+                if(events_null.type = 'exception' and exception.handled = false,
                    true, false)                      as exception,
-                if(events.type = 'anr', true, false) as anr,
+                if(events_null.type = 'anr', true, false) as anr,
                 arr_key                              as key,
                 tupleElement(arr_val, 1)             as type,
                 tupleElement(arr_val, 2)             as value,
@@ -56,7 +56,7 @@ from events_null
      mapKeys(user_defined_attribute) as arr_key,
      mapValues(user_defined_attribute) as arr_val
 where length(user_defined_attribute) > 0
-group by app_id, end_of_month, app_version, os_version, events.type,
+group by app_id, end_of_month, app_version, os_version, events_null.type,
          exception.handled, key, type, value, event_id, session_id,
          ver
 order by app_id;
@@ -79,5 +79,5 @@ echo "Completed. Populated 'user_def_attrs' table."
 echo "Cleaning up resources"
 $DOCKER_COMPOSE exec clickhouse clickhouse-client -q "
 drop view user_def_attrs_mv_null;
-drop view events_null;
+drop table events_null;
 "
