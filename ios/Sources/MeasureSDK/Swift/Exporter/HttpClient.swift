@@ -91,9 +91,11 @@ final class BaseHttpClient: HttpClient {
         for data in multipartData {
             switch data {
             case let .formField(name, value):
+                var value = value
                 body.append(Data("--\(boundary)\r\n".utf8))
                 body.append(Data("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".utf8))
-                body.append(Data("\(value)\r\n".utf8))
+                value.append(Data("\r\n".utf8))
+                body.append(value)
             case let .fileData(name, filename, data):
                 body.append(Data("--\(boundary)\r\n".utf8))
                 body.append(Data("Content-Disposition: form-data; name=\"\(name)\"; filename=\"\(filename)\"\r\n\r\n".utf8))

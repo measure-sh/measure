@@ -30,7 +30,7 @@ struct StackFrame: Codable {
         case binaryName = "binary_name"
         case binaryAddress = "binary_address"
         case offset
-        case frameIndex
+        case frameIndex = "frame_index"
         case symbolAddress = "symbol_address"
         case inApp = "in_app"
     }
