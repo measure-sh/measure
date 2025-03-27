@@ -11,4 +11,9 @@ import Foundation
 struct DefaultConfig {
     static let enableLogging = false
     static let sessionSamplingRate: Float = 0.0
+    static let trackHttpHeaders = false
+    static let trackHttpBody = false
+    static let httpHeadersBlocklist: [String] = []
+    static let httpUrlBlocklist: [String] = []
+    static let httpUrlAllowlist: [String] = []
 }

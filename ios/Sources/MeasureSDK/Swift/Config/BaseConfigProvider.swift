@@ -33,6 +33,26 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var trackHttpHeaders: Bool {
+        return getMergedConfig(\.trackHttpHeaders)
+    }
+
+    var trackHttpBody: Bool {
+        return getMergedConfig(\.trackHttpBody)
+    }
+
+    var httpHeadersBlocklist: [String] {
+        return getMergedConfig(\.httpHeadersBlocklist)
+    }
+
+    var httpUrlBlocklist: [String] {
+        return getMergedConfig(\.httpUrlBlocklist)
+    }
+
+    var httpUrlAllowlist: [String] {
+        return getMergedConfig(\.httpUrlAllowlist)
+    }
+    
     var layoutSnapshotDebounceInterval: Number {
         return getMergedConfig(\.layoutSnapshotDebounceInterval)
     }

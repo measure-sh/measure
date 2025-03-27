@@ -38,11 +38,26 @@ struct Config: InternalConfig, MeasureConfig {
     let screenshotMaskHexColor: String
     let screenshotCompressionQuality: Int
     let layoutSnapshotDebounceInterval: Number
+    let trackHttpHeaders: Bool
+    let trackHttpBody: Bool
+    let httpHeadersBlocklist: [String]
+    let httpUrlBlocklist: [String]
+    let httpUrlAllowlist: [String]
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
-                  samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate) {
+                  samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
+                  trackHttpHeaders: Bool = DefaultConfig.trackHttpHeaders,
+                  trackHttpBody: Bool = DefaultConfig.trackHttpBody,
+                  httpHeadersBlocklist: [String] = DefaultConfig.httpHeadersBlocklist,
+                  httpUrlBlocklist: [String] = DefaultConfig.httpUrlBlocklist,
+                  httpUrlAllowlist: [String] = DefaultConfig.httpUrlAllowlist) {
         self.enableLogging = enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
+        self.trackHttpHeaders = trackHttpHeaders
+        self.trackHttpBody = trackHttpBody
+        self.httpHeadersBlocklist = httpHeadersBlocklist
+        self.httpUrlBlocklist = httpUrlBlocklist
+        self.httpUrlAllowlist = httpUrlAllowlist
         self.eventsBatchingIntervalMs = 30000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndLastEventThresholdMs = 20 * 60 * 1000 // 20 minitues

@@ -56,6 +56,8 @@ protocol MeasureInitializer {
     var layoutSnapshotGenerator: LayoutSnapshotGenerator { get }
     var userPermissionManager: UserPermissionManager { get }
     var svgGenerator: SvgGenerator { get }
+    var appVersionInfo: AppVersionInfo { get }
+    var httpEventValidator: HttpEventValidator { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -106,6 +108,8 @@ protocol MeasureInitializer {
 /// - `svgGenerator`: `SvgGenerator` object responsible for generating layout snapshot svg.
 /// - `layoutSnapshotGenerator`: `LayoutSnapshotGenerator` object responsible for generating a layout snapshot.
 /// - `userPermissionManager`: `UserPermissionManager` object managing user permissions.
+/// - `appVersionInfo`: `AppVersionInfo` object that returns app information like app version and build number
+/// - `httpEventValidator`: `HttpEventValidator` object that lets you check if a http event should be tracked or not.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -155,11 +159,17 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let userPermissionManager: UserPermissionManager
     let svgGenerator: SvgGenerator
     let appVersionInfo: AppVersionInfo
+    let httpEventValidator: HttpEventValidator
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
         let defaultConfig = Config(enableLogging: config.enableLogging,
-                                   samplingRateForErrorFreeSessions: config.samplingRateForErrorFreeSessions)
+                                   samplingRateForErrorFreeSessions: config.samplingRateForErrorFreeSessions,
+                                   trackHttpHeaders: config.trackHttpHeaders,
+                                   trackHttpBody: config.trackHttpBody,
+                                   httpHeadersBlocklist: config.httpHeadersBlocklist,
+                                   httpUrlBlocklist: config.httpUrlBlocklist,
+                                   httpUrlAllowlist: config.httpUrlAllowlist)
 
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
@@ -295,12 +305,14 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          logger: logger,
                                                          sessionManager: sessionManager)
         self.client = client
+        self.httpEventValidator = BaseHttpEventValidator()
         self.httpEventCollector = BaseHttpEventCollector(logger: logger,
                                                          eventProcessor: eventProcessor,
                                                          timeProvider: timeProvider,
                                                          urlSessionTaskSwizzler: URLSessionTaskSwizzler(),
                                                          httpInterceptorCallbacks: HttpInterceptorCallbacks(),
                                                          client: client,
-                                                         configProvider: configProvider)
+                                                         configProvider: configProvider,
+                                                         httpEventValidator: httpEventValidator)
     }
 }

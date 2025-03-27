@@ -28,7 +28,7 @@ public enum AttributeValue {
   case double(Swift.Double)
 }
 @objc final public class BaseMeasureConfig : ObjectiveC.NSObject {
-  public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil)
+  public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil, trackHttpHeaders: Swift.Bool? = nil, trackHttpBody: Swift.Bool? = nil, httpHeadersBlocklist: [Swift.String]? = nil, httpUrlBlocklist: [Swift.String]? = nil, httpUrlAllowlist: [Swift.String]? = nil)
   @objc deinit
 }
 @objc final public class ClientInfo : ObjectiveC.NSObject {

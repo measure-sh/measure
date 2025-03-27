@@ -3,6 +3,7 @@
 * [Minimum requirements](#minimum-requirements)
 * [Quick reference](#quick-reference)
 * [Getting started](#getting-started)
+* [Configuration options](#configuration-options)
 * [Features](#features)
   * [Automatic collection](#automatic-collection)
   * [Crash Reporting](#crash-reporting)
@@ -105,6 +106,10 @@ Reopen the app and check the Measure dashboard—you should see the crash report
 > When triggering a crash, **make sure the Xcode debugger is not attached**, as crashes may not be properly reported when running the app in debug mode.
 
 🎉 Congratulations! You have successfully integrated Measure into your app!
+
+# Configuration options
+
+See all the [configuration options](configuration-options.md) available.
 
 # Features
 
