@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**frontend**): Update landing page with bug reports feature by @anupcowkur in #2003
 
+### :books: Documentation
+
+- Update README with bug reports feature by @anupcowkur in #2005
+
 ## [0.6.1] - 2025-03-28
 
 ### :bug: Bug fixes
