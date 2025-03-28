@@ -82,6 +82,8 @@ class BuildUploadTaskTest {
         assertTrue(requestBody.contains("aab"))
         assertTrue(requestBody.contains("name=\"mapping_type\""))
         assertTrue(requestBody.contains("proguard"))
+        assertTrue(requestBody.contains("name=\"platform\""))
+        assertTrue(requestBody.contains("android"))
     }
 
     private val appSize = """
