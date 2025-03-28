@@ -245,9 +245,8 @@ export default function Home() {
             <p className="text-center">Android</p>
           </div>
           <div className="py-2 md:px-4" />
-          <div className="flex flex-col items-center font-display text-neutral-400 border border-neutral-400 rounded-md py-2 px-8">
+          <div className="flex flex-col items-center font-display text-black border border-black rounded-md py-4 px-8">
             <p className="text-center">iOS</p>
-            <p className="text-xs text-center">In progress</p>
           </div>
           <div className="py-2 md:px-4" />
           <div className="flex flex-col items-center font-display text-neutral-400 border border-neutral-400 rounded-md py-2 px-8">
