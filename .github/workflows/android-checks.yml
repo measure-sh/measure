@@ -26,6 +26,8 @@ jobs:
       run:
         working-directory: android
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v3
@@ -45,6 +47,8 @@ jobs:
     defaults:
       run:
         working-directory: android
+    permissions:
+      contents: read
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -63,6 +67,8 @@ jobs:
     defaults:
       run:
         working-directory: android
+    permissions:
+      contents: read
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
