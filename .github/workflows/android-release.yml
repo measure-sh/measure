@@ -5,6 +5,12 @@ on:
     tags:
       - 'android-*'
 
+env:
+  JAVA_VERSION: 17
+  JAVA_DISTRIBUTION: 'temurin'
+  GITHUB_ACTOR: ${{ github.actor }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   publish-android:
     runs-on: ubuntu-latest
