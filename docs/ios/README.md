@@ -45,7 +45,7 @@ Measure SDK supports **CocoaPods** and **Swift Package Manager (SPM)** for insta
 [CocoaPods](https://cocoapods.org) is a dependency manager for Cocoa projects. For usage and installation instructions, visit their website. To integrate MeasureSDK into your Xcode project using CocoaPods, specify it in your `Podfile`:
 
 ```ruby
-pod 'MeasureSDK'
+pod 'measure-sh'
 ```
 #### Using Swift Package Manager
 
