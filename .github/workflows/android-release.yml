@@ -19,18 +19,53 @@ jobs:
       run:
         working-directory: android
     permissions:
-      contents: read
-      packages: write
+      contents: write
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: 'main'
+          fetch-depth: 0
+          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+
       - uses: actions/setup-java@v3
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'gradle'
+
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@v3
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v3
+        with:
+          config: android/cliff.toml
+          args: --verbose --bump
+        env:
+          OUTPUT: android/measure/CHANGELOG.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Commit changelog
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          set +e
+          git add CHANGELOG.md
+          git commit -m "ci: update changelog"
+          git push
+
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v3
+        id: git-cliff
+        with:
+          config: cliff.toml
+          args: --verbose --current --strip header footer
+        env:
+          OUTPUT: CHANGES.md
+          GITHUB_REPO: ${{ github.repository }}
+
       - name: Publish measure-android
         run: ./gradlew clean :measure:publish --no-daemon --no-parallel --no-configuration-cache --stacktrace
         env:
