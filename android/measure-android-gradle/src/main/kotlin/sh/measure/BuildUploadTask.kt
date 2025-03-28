@@ -25,6 +25,8 @@ private const val VERSION_NAME = "version_name"
 private const val BUILD_SIZE = "build_size"
 private const val BUILD_TYPE = "build_type"
 private const val MAPPING_TYPE = "mapping_type"
+private const val PLATFORM = "platform"
+private const val PLATFORM_ANDROID = "android"
 private const val TYPE_PROGUARD = "proguard"
 private const val MAPPING_FILE = "mapping_file"
 private const val BUILDS_PATH = "builds"
@@ -74,6 +76,7 @@ abstract class BuildUploadTask : DefaultTask() {
             addFormDataPart(APP_UNIQUE_ID, manifestData.appUniqueId)
             addFormDataPart(VERSION_CODE, manifestData.versionCode)
             addFormDataPart(VERSION_NAME, manifestData.versionName)
+            addFormDataPart(PLATFORM, PLATFORM_ANDROID)
             mappingFile?.let {
                 addFormDataPart(MAPPING_FILE, it.name, it.asRequestBody())
                 addFormDataPart(MAPPING_TYPE, TYPE_PROGUARD)
