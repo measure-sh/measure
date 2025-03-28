@@ -146,6 +146,9 @@ Initial release to maven.
 
 # measure-android-gradle
 
+## 0.8.0
+* chore(android): add platform to builds API request by @abhaysood in https://github.com/measure-sh/measure/pull/1986
+
 ## 0.7.0
 * fix(android): support java 11 by @abhaysood in https://github.com/measure-sh/measure/pull/1735
 
