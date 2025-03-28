@@ -7,8 +7,8 @@ RELEASE_TYPE=$1
 
 # File paths
 FRAMEWORK_INFO_FILE="ios/Sources/MeasureSDK/Swift/FrameworkInfo.swift"
-PODSPEC_FILE="MeasureSDK.podspec"
-README_FILE="ios/README.md"
+PODSPEC_FILE="measure-sh.podspec"
+README_FILE="docs/ios/README.md"
 
 # Function to get the current version from FrameworkInfo.swift
 get_current_version() {
