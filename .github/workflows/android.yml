@@ -33,7 +33,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           java-version: ${{ env.JAVA_VERSION }}
           cache: 'gradle'
-      - name: Check Gradle wrapper
+      - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@v3
       - name: Run all checks
         run: ./gradlew check
@@ -53,8 +53,6 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'gradle'
-      - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@v3
       - name: Assemble benchmarks
         run: ./gradlew clean :benchmarks:benchmark:assembleMeasureEnabled --no-daemon --no-parallel --no-configuration-cache --stacktrace -x uploadReleaseBuildToMeasure
 
@@ -73,7 +71,5 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'gradle'
-      - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@v3
-      - name: Assemble benchmarks
+      - name: Assemble sample
         run: ./gradlew clean :sample:assembleRelease --no-daemon --no-parallel --no-configuration-cache --stacktrace -x uploadReleaseBuildToMeasure
