@@ -1,10 +1,34 @@
 # measure-android
 
+# 0.10.0
+
+#### Important notes
+* This version of the SDK *must* be paired with v0.6.0 version of the server or higher. Older server versions will 
+drop events.
+
+#### Features
+
+* feat(android): add attributes to spans by @abhaysood in https://github.com/measure-sh/measure/pull/1848
+* feat(android): auto track activity TTID spans by @abhaysood in https://github.com/measure-sh/measure/pull/1868
+* feat(android): auto track fragment ttid by @abhaysood in https://github.com/measure-sh/measure/pull/1889
+
+#### Fixes
+
+* fix(android): support java 11 by @abhaysood in https://github.com/measure-sh/measure/pull/1735
+* chore(android): upgrade AGP and downgrade androidx.core by @abhaysood in https://github.com/measure-sh/measure/pull/1925
+
+#### Others
+
+* docs(android): improve android readme by @abhaysood in https://github.com/measure-sh/measure/pull/1793
+* chore(android): update robolectric by @abhaysood in https://github.com/measure-sh/measure/pull/1820
+* fix(android): truncate TTID span names to fit max span length by @abhaysood in https://github.com/measure-sh/measure/pull/1952
+
 # 0.9.0
 
 #### Important notes
 
-* This version of the SDK *must* be paired with v0.5.0 version of the server. Older server versions will drop events originating from v0.5.0.
+* This version of the SDK *must* be paired with v0.5.0 version of the server or higher. Older server versions will 
+drop events.
 * Breaking changes:
   * Deprecated `Measure.trackNavigation` method has been removed. Use `Measure.trackScreenView` instead.
   * Config `sessionSamplingRate` renamed to `samplingRateForErrorFreeSessions` to be more precise.
