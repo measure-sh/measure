@@ -5,19 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [ios-v0.1.0] - 2025-03-28
-
-### :books: Documentation
-
-
-- (**ios**): Update readme (#1956)
-- (**ios**): Add feature documentation (#1863)
+## [ios-v0.0.1-rc1] - 2025-03-11
 
 ### :bug: Bug fixes
 
 
-- (**ios**): Skip sdk initialisation if api key or api url is invalid (#1970)
-- (**ios**): Update in_app generation logic (#1885)
 - (**ios**): Update long press timeout (#1801)
 - (**ios**): Data type issue
 - (**ios**): Data ingestion failure
@@ -25,14 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**ios**): Add http event configurations to measure config (#1980)
-- (**ios**): Log error messages when upload dsym script fails (#1975)
-- (**ios**): Create new session if build number or app version is updated (#1972)
-- (**ios**): Rename MeasureSDK to Measure (#1957)
-- (**ios**): Update plcrashreporter config (#1938)
-- (**ios**): Remove fatal errors (#1932)
-- (**ios**): Update cpu frequency generation logic
-- (**ios**): Prepare sdk release 0.0.1-rc1 (#1877)
 - (**ios**): Update release scripts (#1876)
 - (**ios**): Add release scripts (#1869)
 - (**ios**): Update public apis (#1841)
@@ -67,11 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Update sdk initialisation (#1146)
 - (**ios**): Update ios sdk initialisation (#1119)
 - (**ios**): Add swiftLint to ios
-
-### :recycle: Refactor
-
-
-- (**ios**): Rename NetworkInterceptor to MsrNetworkInterceptor (#1922)
 
 ### :sparkles: New features
 
