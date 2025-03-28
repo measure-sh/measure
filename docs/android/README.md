@@ -117,7 +117,7 @@ Add the following plugin to your project.
 
 ```kotlin
 plugins {
-    id("sh.measure.android.gradle") version "0.7.0"
+    id("sh.measure.android.gradle") version "0.8.0"
 }
 ```
 
@@ -125,7 +125,7 @@ or, use the following if you're using `build.gradle`.
 
 ```groovy
 plugins {
-    id 'sh.measure.android.gradle' version '0.7.0'
+    id 'sh.measure.android.gradle' version '0.8.0'
 }
 ```
 
