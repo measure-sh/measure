@@ -11,10 +11,13 @@ import XCTest
 final class MockHeartbeatListener: HeartbeatListener {
     var pulseCalled = false
     var pulseCalledCount = 0
+    private let lock = NSLock()
 
     func pulse() {
+        lock.lock()
         pulseCalled = true
         pulseCalledCount += 1
+        lock.unlock()
     }
 }
 
@@ -36,17 +39,17 @@ final class BaseHeartbeatTests: XCTestCase {
         super.tearDown()
     }
 
-//    func testListenerReceivesPulseAfterStart() {
-//        heartbeat.start(intervalMs: 100, initialDelayMs: 0)
-//
-//        let expectation = XCTestExpectation(description: "Listener should receive pulse")
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-//            XCTAssertTrue(self.mockListener.pulseCalled, "Listener should have received pulse")
-//            expectation.fulfill()
-//        }
-//
-//        wait(for: [expectation], timeout: 1.0)
-//    }
+    func testListenerReceivesPulseAfterStart() {
+        heartbeat.start(intervalMs: 100, initialDelayMs: 0)
+
+        let expectation = XCTestExpectation(description: "Listener should receive pulse")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            XCTAssertTrue(self.mockListener.pulseCalled, "Listener should have received pulse")
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1.0)
+    }
 
     func testStopPreventsFurtherPulses() {
         heartbeat.start(intervalMs: 100, initialDelayMs: 0)
@@ -64,16 +67,16 @@ final class BaseHeartbeatTests: XCTestCase {
         wait(for: [expectation], timeout: 1.0)
     }
 
-//    func testStartDoesNotTriggerMultipleTimers() {
-//        heartbeat.start(intervalMs: 100, initialDelayMs: 0)
-//        heartbeat.start(intervalMs: 100, initialDelayMs: 0)
-//
-//        let expectation = XCTestExpectation(description: "Listener should receive only one pulse")
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-//            XCTAssertTrue(self.mockListener.pulseCalled, "Listener should have received pulse")
-//            expectation.fulfill()
-//        }
-//
-//        wait(for: [expectation], timeout: 1.0)
-//    }
+    func testStartDoesNotTriggerMultipleTimers() {
+        heartbeat.start(intervalMs: 100, initialDelayMs: 0)
+        heartbeat.start(intervalMs: 100, initialDelayMs: 0)
+
+        let expectation = XCTestExpectation(description: "Listener should receive only one pulse")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            XCTAssertTrue(self.mockListener.pulseCalled, "Listener should have received pulse")
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1.0)
+    }
 }
