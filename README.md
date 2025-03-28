@@ -22,6 +22,7 @@
 - [Quick start](#quick-start)
 - [Features](#features)
   - [Session Timelines](#session-timelines)
+  - [Bug Reports](#bug-reports)
   - [Performance Traces](#performance-traces)
   - [User Journeys](#user-journeys)
   - [App Health](#app-health)
@@ -46,6 +47,12 @@ Measure is available as a self hosted platform that comes with a simple one line
 Debug issues easily with full session timelines. Get the complete context with automatic tracking for clicks, navigations, http calls and more.
 
 [Session Timelines demo](https://github.com/user-attachments/assets/e8bac17c-c8c7-4f19-81e3-1979c7e70969)
+
+### Bug Reports
+
+Capture bug reports with a device shake or SDK call. Get full history of user actions leading to the bug.
+
+[Bug Reports demo](https://github.com/user-attachments/assets/c7565abc-aa2d-4ec5-a7c9-1b00f9940927)
 
 ### Performance Traces
 
