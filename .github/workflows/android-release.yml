@@ -60,7 +60,7 @@ jobs:
         uses: orhun/git-cliff-action@v3
         id: git-cliff
         with:
-          config: cliff.toml
+          config: android/cliff.toml
           args: --verbose --current --strip header footer
         env:
           OUTPUT: CHANGES.md
