@@ -93,8 +93,19 @@ func (bm BuildMapping) validate(app *App) (code int, err error) {
 	}
 
 	if pltfrm == "" {
-		err = errors.New("failed to determine app's platform")
-		return
+		// Since, older Android SDKs (<=android-gradle-plugn@0.7.0) were
+		// not sending `platform` parameter, we set the platform to Android
+		// when the payload lacks the `platform` parameter and the mapping
+		// type is `proguard`.
+		//
+		// This is critical for maintaining backwards
+		// compatibility.
+		if bm.MappingType == symbol.TypeProguard.String() {
+			pltfrm = platform.Android
+		} else {
+			err = errors.New("failed to determine app's platform")
+			return
+		}
 	}
 
 	platformMappingErr := fmt.Errorf("%q mapping type is not valid for %q platform", bm.MappingType, pltfrm)
