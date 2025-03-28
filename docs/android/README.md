@@ -38,8 +38,9 @@ details, checkout the [self-host guide](../hosting/README.md).
 
 | SDK version   | Minimum required self-host version |
 |---------------|------------------------------------|
-| 0.1.0 - 0.8.2 | 0.1.1                              |
+| 0.10.0        | 0.6.0                              |
 | 0.9.0         | 0.5.0                              |
+| 0.1.0 - 0.8.2 | 0.1.1                              |
 
 
 # Quick start
@@ -175,13 +176,13 @@ measure {
 Add the following to your app's `build.gradle.kts`file.
 
 ```kotlin
-implementation("sh.measure:measure-android:0.9.0")
+implementation("sh.measure:measure-android:0.10.0")
 ```
 
 or, add the following to your app's `build.gradle`file.
 
 ```groovy
-implementation 'sh.measure:measure-android:0.9.0'
+implementation 'sh.measure:measure-android:0.10.0'
 ```
 
 ### 4. Initialize the SDK
