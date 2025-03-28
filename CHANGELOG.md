@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**frontend**): Update iOS availability on landing page by @anupcowkur in #2006
 - (**frontend**): Update landing page with bug reports feature by @anupcowkur in #2003
 
 ### :books: Documentation
