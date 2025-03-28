@@ -42,10 +42,10 @@ jobs:
       - name: Generate changelog
         uses: orhun/git-cliff-action@v3
         with:
-          config: android/measure/cliff.toml
+          config: measure/cliff.toml
           args: --verbose --bump
         env:
-          OUTPUT: android/measure/CHANGELOG.md
+          OUTPUT: measure/CHANGELOG.md
           GITHUB_REPO: ${{ github.repository }}
 
       - name: Commit changelog
@@ -61,7 +61,7 @@ jobs:
         uses: orhun/git-cliff-action@v3
         id: git-cliff
         with:
-          config: android/measure/cliff.toml
+          config: measure/cliff.toml
           args: --verbose --current --strip header footer
         env:
           OUTPUT: CHANGES.md
