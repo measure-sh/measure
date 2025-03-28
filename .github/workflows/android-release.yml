@@ -1,4 +1,4 @@
-name: Android Release
+name: Release Android
 
 on:
   push:
@@ -13,6 +13,7 @@ env:
 
 jobs:
   publish-android:
+    name: Publish Android SDK
     runs-on: ubuntu-latest
     if: !startsWith(github.ref, 'refs/tags/android-gradle-plugin-')
     defaults:
