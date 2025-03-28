@@ -7,6 +7,7 @@ import sh.measure.android.appexit.AppExitProvider
 import sh.measure.android.appexit.AppExitProviderImpl
 import sh.measure.android.applaunch.AppLaunchCollector
 import sh.measure.android.applaunch.LaunchTracker
+import sh.measure.android.attributes.A11yAttributesProcessor
 import sh.measure.android.attributes.AppAttributeProcessor
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.DeviceAttributeProcessor
@@ -206,6 +207,9 @@ internal class MeasureInitializerImpl(
         localeProvider = localeProvider,
         osSysConfProvider = osSysConfProvider,
     ),
+    private val a11yAttributesProcessor: A11yAttributesProcessor = A11yAttributesProcessor(
+        systemServiceProvider = systemServiceProvider,
+    ),
     private val appAttributeProcessor: AppAttributeProcessor = AppAttributeProcessor(
         context = application,
         packageInfoProvider = packageInfoProvider,
@@ -227,6 +231,7 @@ internal class MeasureInitializerImpl(
         installationIdAttributeProcessor,
         networkStateAttributeProcessor,
         powerStateAttributeProcessor,
+        a11yAttributesProcessor,
     ),
     private val eventTransformer: EventTransformer = DefaultEventTransformer(
         configProvider = configProvider,
@@ -373,6 +378,7 @@ internal class MeasureInitializerImpl(
             installationIdAttributeProcessor,
             networkStateAttributeProcessor,
             powerStateAttributeProcessor,
+            a11yAttributesProcessor,
         ),
         configProvider,
     ),
