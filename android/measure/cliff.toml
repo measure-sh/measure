@@ -10,7 +10,7 @@ All notable changes Android will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n
 
-Changelog for older releases is at: https://github.com/measure-sh/measure/blob/main/android/CHANGELOG.md
+Changelog for older releases is at: https://github.com/measure-sh/measure/blob/main/android/CHANGELOG.md\n
 """
 # template for the changelog body
 # https://keats.github.io/tera/docs/#introduction
@@ -57,29 +57,24 @@ filter_unconventional = true
 # process each line of a commit as an individual commit
 split_commits = false
 # Only include commits for android scope
-filter_commits_regex = "^.*\\(android\\):.*$"
+filter_commits_regex = "^.*(android):.*$"
 # regex for parsing and grouping commits
 commit_parsers = [
   { message = "^ci:", skip = true },
-  { message = "^docs", group = "<!-- 7 -->:books: Documentation", default_scope = "other" },
-  { message = "^chore", group = "<!-- 2 -->:hammer: Misc", default_scope = "other" },
-  { message = "^feat", group = "<!-- 0 -->:sparkles: New features" },
-  { message = "^test", group = "<!-- 3 -->:test_tube: Testing", skip = true },
-  { message = "^fix", group = "<!-- 1 -->:bug: Bug fixes" },
-  { message = "^perf", group = "<!-- 4 -->:zap: Performance" },
-  { message = "^refactor", group = "<!-- 5 -->:recycle: Refactor" },
-  { message = "^.*: remove", group = "<!-- 6 -->:coffin: Removed" },
-  { message = "^.*: delete", group = "<!-- 6 -->:coffin: Removed" },
-  { message = "^.*", group = "<!-- 2 -->:hammer: Misc" },
+  { message = "^ci\\(android\\):", skip = true },
+  { message = "^docs\\(android\\):", group = ":books: Documentation", default_scope = "other" },
+  { message = "^chore\\(android\\):", group = ":hammer: Misc", default_scope = "other" },
+  { message = "^feat\\(android\\):", group = ":sparkles: New features" },
+  { message = "^fix\\(android\\):", group = ":bug: Bug fixes" },
+  { message = "^perf\\(android\\):", group = ":zap: Performance" },
+  { message = "^refactor\\(android\\):", group = ":recycle: Refactor" },
 ]
 # protect breaking changes from being skipped due to matching a skipping commit_parser
 protect_breaking_commits = false
 # filter out the commits that are not matched by commit parsers
 filter_commits = true
 # regex for matching git tags
-tag_pattern = "v[0-9].*"
-# regex for skipping tags
-skip_tags = "v0.1.0-beta.1"
+tag_pattern = "android-v[0-9].*"
 # regex for ignoring tags
 ignore_tags = "^(backend|frontend|ios|flutter|rn)"
 # sort the tags topologically
