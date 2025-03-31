@@ -308,6 +308,38 @@ internal class SignalProcessorTest {
     }
 
     @Test
+    fun `given an event of type app exit, applies attributes and updates version info`() {
+        // Given
+        val appExit = TestData.getAppExit()
+        val timestamp = 1710746412L
+        val type = EventType.APP_EXIT
+        val sessionId = "session-id-app-exit"
+        val appVersion = "app-version"
+        val appBuild = "1000"
+
+        // When
+        val attributes = mutableMapOf<String, Any?>()
+        signalProcessor.trackAppExit(
+            data = appExit,
+            timestamp = timestamp,
+            type = type,
+            sessionId = sessionId,
+            attributes = attributes,
+            appVersion = appVersion,
+            appBuild = appBuild,
+            threadName = "thread-name"
+        )
+
+        // Then
+        assertEquals(1, signalStore.trackedEvents.size)
+        val event = signalStore.trackedEvents.first()
+        assertEquals(type, event.type)
+        assertEquals(appBuild, event.attributes[Attribute.APP_BUILD_KEY])
+        assertEquals(appVersion, event.attributes[Attribute.APP_VERSION_KEY])
+        assertEquals(sessionId, event.sessionId)
+    }
+
+    @Test
     fun `given transformer drops event, then does not store event`() {
         // Given
         val exceptionData = TestData.getExceptionData()
