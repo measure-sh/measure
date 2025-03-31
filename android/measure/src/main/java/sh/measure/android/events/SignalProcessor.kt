@@ -1,6 +1,7 @@
 package sh.measure.android.events
 
 import sh.measure.android.SessionManager
+import sh.measure.android.appexit.AppExit
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
@@ -47,6 +48,21 @@ internal interface SignalProcessor {
         threadName: String? = null,
         sessionId: String? = null,
         userTriggered: Boolean = false,
+    )
+
+    /**
+     * App exit events can be triggered for an older session. This method is used to track app exit
+     * events for a specific session with the attributes provided.
+     */
+    fun trackAppExit(
+        data: AppExit,
+        timestamp: Long,
+        type: String,
+        threadName: String,
+        sessionId: String,
+        appVersion: String,
+        appBuild: String,
+        attributes: MutableMap<String, Any?>,
     )
 
     /**
@@ -167,6 +183,45 @@ internal class SignalProcessorImpl(
         }
     }
 
+    // This method does not apply event transformer or trigger onEventTracked callback as the
+    // app exit event is triggered for a previous session and doesn't need to update state
+    // or transform the event.
+    override fun trackAppExit(
+        data: AppExit,
+        timestamp: Long,
+        type: String,
+        threadName: String,
+        sessionId: String,
+        appVersion: String,
+        appBuild: String,
+        attributes: MutableMap<String, Any?>
+    ) {
+        InternalTrace.trace(
+            label = { "msr-trackEvent" },
+            block = {
+                val event = createEvent(
+                    data = data,
+                    timestamp = timestamp,
+                    type = type,
+                    attachments = mutableListOf(),
+                    attributes = attributes,
+                    userTriggered = false,
+                    userDefinedAttributes = mutableMapOf(),
+                    sessionId = sessionId,
+                )
+                applyAttributes(event, threadName)
+                event.updateVersionAttribute(appVersion, appBuild)
+                InternalTrace.trace(label = { "msr-store-event" }, block = {
+                    signalStore.store(event)
+                    logger.log(
+                        LogLevel.Debug,
+                        "Event processed: ${event.type}, ${event.id}",
+                    )
+                })
+            },
+        )
+    }
+
     override fun trackCrash(
         data: ExceptionData,
         timestamp: Long,
@@ -259,5 +314,14 @@ internal class SignalProcessorImpl(
                 )
             }
         })
+    }
+
+    // This is a quick way to update the version attributes for app exit events.
+    // AppExit events are tracked for older sessions, and the version attributes are not
+    // available at that time. Instead of changing the flow of tracking events, we apply the
+    // attributes as is and then mutate them here.
+    private fun Event<AppExit>.updateVersionAttribute(appVersion: String, appBuild: String) {
+        attributes[Attribute.APP_BUILD_KEY] = appBuild
+        attributes[Attribute.APP_VERSION_KEY] = appVersion
     }
 }
