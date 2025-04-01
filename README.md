@@ -52,7 +52,7 @@ Debug issues easily with full session timelines. Get the complete context with a
 
 Capture bug reports with a device shake or SDK call. Get full history of user actions leading to the bug.
 
-[Bug Reports demo](https://github.com/user-attachments/assets/c7565abc-aa2d-4ec5-a7c9-1b00f9940927)
+[Bug Reports demo](https://github.com/user-attachments/assets/a832f669-a794-40ee-af67-9d12e256b696)
 
 ### Performance Traces
 
