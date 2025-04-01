@@ -58,6 +58,7 @@ split_commits = false
 commit_parsers = [
   { message = "^ci:", skip = true },
   { message = "^.*\\(android\\):", skip = true },
+  { message = "^.*\\(gradle\\):", skip = true },
   { message = "^.*\\(ios\\):", skip = true },
   { message = "^.*\\(flutter\\):", skip = true },
   { message = "^.*\\(rn\\):", skip = true },

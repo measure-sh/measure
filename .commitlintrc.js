@@ -10,7 +10,7 @@ export default {
      * - feat(backend): attachments is now available
      *
      */
-    "scope-enum": [2, "always", ["android", "ios", "flutter", "rn", "backend", "frontend", "deps"]],
+    "scope-enum": [2, "always", ["android", "ios", "flutter", "rn", "backend", "frontend", "deps", "gradle"]],
     /**
      * reduce header max length violation to a warning
      */
