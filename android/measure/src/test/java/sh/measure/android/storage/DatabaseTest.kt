@@ -8,6 +8,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -599,6 +600,8 @@ class DatabaseTest {
                 500,
                 true,
                 supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
+                appVersion = "1.0.0",
+                appBuild = "100",
             ),
         )
         database.insertEvent(event1)
@@ -623,6 +626,7 @@ class DatabaseTest {
         assertEquals(2, batches.first().spanIds.size)
     }
 
+    @Test
     fun `getOldestSession returns oldest session`() {
         database.insertSession(TestData.getSessionEntity(id = "session-id-1", createdAt = 500))
         database.insertSession(TestData.getSessionEntity(id = "session-id-2", createdAt = 700))
@@ -1122,6 +1126,70 @@ class DatabaseTest {
         assertEquals(0, database.getSpansCount())
         val attachments = database.getAttachmentsForEvents(listOf(event1.id, event2.id)).size
         assertEquals(0, attachments)
+    }
+
+    @Test
+    fun `getSessionForAppExit returns session entity when session exists`() {
+        val sessionId = "session-id"
+        val pid = 100
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = sessionId,
+                pid = pid,
+                supportsAppExit = true,
+            )
+        )
+        val session = database.getSessionForAppExit(pid)
+        assertNotNull(session)
+    }
+
+    @Test
+    fun `getSessionForAppExit returns null when session does not exist`() {
+        val pid = 100
+        val session = database.getSessionForAppExit(pid)
+        assertNull(session)
+    }
+
+    @Test
+    fun `getSessionForAppExit returns session with app version and app build`() {
+        val sessionId = "session-id"
+        val pid = 100
+        val appVersion = "1.0"
+        val appBuild = "123"
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = sessionId,
+                pid = pid,
+                appVersion = appVersion,
+                appBuild = appBuild,
+                supportsAppExit = true,
+            )
+        )
+        val session = database.getSessionForAppExit(pid)
+        assertNotNull(session)
+        assertEquals(appVersion, session?.appVersion)
+        assertEquals(appBuild, session?.appBuild)
+    }
+
+    @Test
+    fun `getSessionForAppExit returns session without app version and app build`() {
+        // Database v4 added new columns for app version and app build,
+        // these fields can be null for older versions
+        val sessionId = "session-id"
+        val pid = 100
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = sessionId,
+                pid = pid,
+                appVersion = null,
+                appBuild = null,
+                supportsAppExit = true,
+            )
+        )
+        val session = database.getSessionForAppExit(pid)
+        assertNotNull(session)
+        assertNull(session?.appVersion)
+        assertNull(session?.appBuild)
     }
 
     private fun queryAllEvents(db: SQLiteDatabase): Cursor {

@@ -86,6 +86,8 @@ class SessionManagerTest {
                 needsReporting = false,
                 crashed = false,
                 supportsAppExit = false,
+                appVersion = packageInfoProvider.appVersion,
+                appBuild = packageInfoProvider.getVersionCode(),
             ),
         )
     }

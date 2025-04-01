@@ -175,6 +175,8 @@ internal class SessionManagerImpl(
                         session.createdAt,
                         needsReporting = needsReporting,
                         supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
+                        appVersion = packageInfoProvider.appVersion,
+                        appBuild = packageInfoProvider.getVersionCode(),
                     ),
                 )
                 if (success) {

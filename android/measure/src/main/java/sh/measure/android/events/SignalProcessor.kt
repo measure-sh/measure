@@ -60,9 +60,8 @@ internal interface SignalProcessor {
         type: String,
         threadName: String,
         sessionId: String,
-        appVersion: String,
-        appBuild: String,
-        attributes: MutableMap<String, Any?>,
+        appVersion: String?,
+        appBuild: String?,
     )
 
     /**
@@ -192,9 +191,8 @@ internal class SignalProcessorImpl(
         type: String,
         threadName: String,
         sessionId: String,
-        appVersion: String,
-        appBuild: String,
-        attributes: MutableMap<String, Any?>
+        appVersion: String?,
+        appBuild: String?,
     ) {
         InternalTrace.trace(
             label = { "msr-trackEvent" },
@@ -204,7 +202,7 @@ internal class SignalProcessorImpl(
                     timestamp = timestamp,
                     type = type,
                     attachments = mutableListOf(),
-                    attributes = attributes,
+                    attributes = mutableMapOf(),
                     userTriggered = false,
                     userDefinedAttributes = mutableMapOf(),
                     sessionId = sessionId,
@@ -320,8 +318,12 @@ internal class SignalProcessorImpl(
     // AppExit events are tracked for older sessions, and the version attributes are not
     // available at that time. Instead of changing the flow of tracking events, we apply the
     // attributes as is and then mutate them here.
-    private fun Event<AppExit>.updateVersionAttribute(appVersion: String, appBuild: String) {
-        attributes[Attribute.APP_BUILD_KEY] = appBuild
-        attributes[Attribute.APP_VERSION_KEY] = appVersion
+    private fun Event<AppExit>.updateVersionAttribute(appVersion: String?, appBuild: String?) {
+        if (appVersion != null) {
+            attributes[Attribute.APP_VERSION_KEY] = appVersion
+        }
+        if (appBuild != null) {
+            attributes[Attribute.APP_BUILD_KEY] = appBuild
+        }
     }
 }
