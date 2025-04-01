@@ -8,7 +8,7 @@
 import Foundation
 
 enum MultipartData {
-    case formField(name: String, value: String)
+    case formField(name: String, value: Data)
     case fileData(name: String, filename: String, data: Data)
 }
 
