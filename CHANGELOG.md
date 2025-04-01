@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- Update iOS availability in README by @anupcowkur in #2015
 - Update README with bug reports feature by @anupcowkur in #2005
 
 ## [0.6.1] - 2025-03-28
