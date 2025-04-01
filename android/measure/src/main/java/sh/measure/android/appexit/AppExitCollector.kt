@@ -44,13 +44,16 @@ internal class AppExitCollector(
                     val appExit = it.value
                     val session = getSessionForAppExit(pid)
                     if (session != null) {
-                        signalProcessor.track(
+                        signalProcessor.trackAppExit(
                             appExit,
                             // Current time is irrelevant for app exit, using
                             // the time at which the app exit actually occurred instead.
                             appExit.app_exit_time_ms,
                             EventType.APP_EXIT,
                             sessionId = session.id,
+                            appVersion = session.appVersion,
+                            appBuild = session.appBuild,
+                            threadName = Thread.currentThread().name
                         )
                         logger.log(LogLevel.Debug, "Tracked app_exit: $appExit")
                         if (isReasonCrashOrAnr(appExit)) {
@@ -82,5 +85,7 @@ internal class AppExitCollector(
         val id: String,
         val pid: Int,
         val createdAt: Long,
+        val appVersion: String?,
+        val appBuild: String?,
     )
 }

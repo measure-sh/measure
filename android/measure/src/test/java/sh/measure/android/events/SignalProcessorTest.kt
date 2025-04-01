@@ -318,13 +318,11 @@ internal class SignalProcessorTest {
         val appBuild = "1000"
 
         // When
-        val attributes = mutableMapOf<String, Any?>()
         signalProcessor.trackAppExit(
             data = appExit,
             timestamp = timestamp,
             type = type,
             sessionId = sessionId,
-            attributes = attributes,
             appVersion = appVersion,
             appBuild = appBuild,
             threadName = "thread-name"

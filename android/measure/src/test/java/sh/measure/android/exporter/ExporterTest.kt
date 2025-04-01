@@ -357,6 +357,8 @@ internal class ExporterTest {
                 12345,
                 needsReporting = false,
                 supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
+                appVersion = "1.0.0",
+                appBuild = "100",
             ),
         )
     }

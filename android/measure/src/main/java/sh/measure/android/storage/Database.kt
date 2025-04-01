@@ -627,6 +627,8 @@ internal class DatabaseImpl(
                     put(AppExitTable.COL_SESSION_ID, session.sessionId)
                     put(AppExitTable.COL_PID, session.pid)
                     put(AppExitTable.COL_CREATED_AT, session.createdAt)
+                    put(AppExitTable.COL_APP_VERSION, session.appVersion)
+                    put(AppExitTable.COL_APP_BUILD, session.appBuild)
                 }
                 writableDatabase.insertWithOnConflict(
                     AppExitTable.TABLE_NAME,
@@ -932,7 +934,10 @@ internal class DatabaseImpl(
                     put(SpansTable.COL_END_TIME, span.endTime)
                     put(SpansTable.COL_DURATION, span.duration)
                     put(SpansTable.COL_SERIALIZED_ATTRS, span.serializedAttributes)
-                    put(SpansTable.COL_SERIALIZED_USER_DEFINED_ATTRS, span.serializedUserDefinedAttrs)
+                    put(
+                        SpansTable.COL_SERIALIZED_USER_DEFINED_ATTRS,
+                        span.serializedUserDefinedAttrs
+                    )
                     put(SpansTable.COL_SERIALIZED_SPAN_EVENTS, span.serializedCheckpoints)
                     put(SpansTable.COL_SAMPLED, span.sampled)
                     put(SpansTable.COL_STATUS, span.status.value)
@@ -965,10 +970,21 @@ internal class DatabaseImpl(
             it.moveToFirst()
             val sessionIdIndex = it.getColumnIndex(AppExitTable.COL_SESSION_ID)
             val createdAtIndex = it.getColumnIndex(AppExitTable.COL_CREATED_AT)
+            val appVersionIndex = it.getColumnIndex(AppExitTable.COL_APP_VERSION)
+            val appBuildIndex = it.getColumnIndex(AppExitTable.COL_APP_BUILD)
 
             val sessionId = it.getString(sessionIdIndex)
             val createdAt = it.getLong(createdAtIndex)
-            return AppExitCollector.Session(id = sessionId, createdAt = createdAt, pid = pid)
+            val appVersion: String? = it.getString(appVersionIndex)
+            val appBuild: String? = it.getString(appBuildIndex)
+
+            return AppExitCollector.Session(
+                id = sessionId,
+                createdAt = createdAt,
+                pid = pid,
+                appVersion = appVersion,
+                appBuild = appBuild
+            )
         }
     }
 
