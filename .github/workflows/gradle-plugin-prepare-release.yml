@@ -1,0 +1,85 @@
+name: Prepare Android Gradle Plugin Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.10.0)'
+        required: true
+        type: string
+
+env:
+  JAVA_VERSION: 17
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  prepare-release:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    permissions:
+      contents: write
+      pull-requests: write
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: 'main'
+          fetch-depth: 0
+          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+
+      - name: Setup Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Validate input version format
+        run: |
+          if ! [[ ${{ inputs.version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+(-((alpha|beta)\.[0-9]+))?$ ]]; then
+            echo "Error: Version must match semantic versioning pattern:"
+            echo "  - x.y.z (e.g. 1.2.3)"
+            echo "Got: ${{ inputs.version }}"
+            exit 1
+          fi
+
+      - name: Create release branch
+        run: |
+          git checkout -b android-gradle-plugin-v${{ inputs.version }}
+
+      - name: Update version in gradle.properties
+        run: |
+          sed -i "s/MEASURE_PLUGIN_VERSION_NAME=.*/MEASURE_PLUGIN_VERSION_NAME=${{ inputs.version }}/" measure-android-gradle/gradle.properties
+
+      - name: Update version in README
+        run: |
+          cd ../docs/android
+          # Update Kotlin plugin declaration
+          KOTLIN_PATTERN='id("sh.measure.android.gradle") version ".*"'
+          KOTLIN_REPLACEMENT='id("sh.measure.android.gradle") version "${{ inputs.version }}"'
+          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" README.md
+          
+          # Update Groovy plugin declaration
+          GROOVY_PATTERN="id 'sh.measure.android.gradle' version '.*'"
+          GROOVY_REPLACEMENT="id 'sh.measure.android.gradle' version '${{ inputs.version }}'"
+          sed -i "s/$GROOVY_PATTERN/$GROOVY_REPLACEMENT/" README.md
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+          commit-message: "chore(gradle): prepare plugin release ${{ inputs.version }}"
+          branch: android-gradle-plugin-v${{ inputs.version }}
+          delete-branch: false
+          title: "chore(gradle): prepare plugin release ${{ inputs.version }}"
+          body: |
+            This PR prepares the Android Gradle Plugin for release version ${{ inputs.version }}.
+
+            Changes:
+            - Updated version to ${{ inputs.version }} in measure-android-gradle/gradle.properties
+            - Updated version in README.md
+          base: main
+          labels: android
+          assignees: abhaysood
