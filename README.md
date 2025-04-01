@@ -109,7 +109,7 @@ If you want to support the project and get updates on new features and releases,
 
 ## Platforms
 
-Currently, we support Android with iOS, Flutter and React Native SDKs planned for the future.
+Currently, we support Android and iOS. Flutter and React Native SDKs planned for the future.
 
 ## Roadmap
 
