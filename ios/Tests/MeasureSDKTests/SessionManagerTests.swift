@@ -16,7 +16,7 @@ final class SessionManagerTests: XCTestCase {
     var randomizer: MockRandomizer!
     var timeProvider: MockTimeProvider!
     var sessionStore: SessionStore!
-    var userDefaultStorage = MockUserDefaultStorage()
+    var userDefaultStorage: MockUserDefaultStorage!
     var appVersionInfo: MockAppVersionInfo!
 
     override func setUp() {
@@ -24,6 +24,7 @@ final class SessionManagerTests: XCTestCase {
         idProvider = MockIdProvider("test-session-id-1")
         logger = MockLogger()
         timeProvider = MockTimeProvider()
+        userDefaultStorage = MockUserDefaultStorage()
         configProvider = MockConfigProvider(enableLogging: false,
                                             trackScreenshotOnCrash: false,
                                             eventsBatchingIntervalMs: 1000,
@@ -59,6 +60,9 @@ final class SessionManagerTests: XCTestCase {
         configProvider = nil
         randomizer = nil
         timeProvider = nil
+        appVersionInfo = nil
+        userDefaultStorage = nil
+        sessionStore = nil
         super.tearDown()
     }
 
@@ -99,55 +103,35 @@ final class SessionManagerTests: XCTestCase {
     }
 
     func testSessionContinues_WhenEnteringForegroundBeforeThreshold() {
+        timeProvider.millisTime = 1000
         sessionManager.start()
-
-        let expectation = self.expectation(description: "Session continues when entering foreground before threshold")
-
         sessionManager.applicationDidEnterBackground()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            self.sessionManager.applicationWillEnterForeground()
-        }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            XCTAssertEqual(self.sessionManager.sessionId, "test-session-id-1", "Expected session ID to stay the same.")
-            expectation.fulfill()
-        }
+        // simulate time passage
+        timeProvider.millisTime += configProvider.sessionEndLastEventThresholdMs - 1
+        idProvider.idString = "test-session-id-2"
 
-        wait(for: [expectation], timeout: 2.0)
+        sessionManager.applicationWillEnterForeground()
+
+        XCTAssertEqual(sessionManager.sessionId, "test-session-id-1", "Expected session ID to stay the same if threshold is not crossed.")
     }
 
     func testNewSessionCreated_WhenEnteringForegroundAfterThreshold() {
-        sessionManager = BaseSessionManager(idProvider: idProvider,
-                                            logger: logger,
-                                            timeProvider: BaseTimeProvider(),
-                                            configProvider: configProvider,
-                                            randomizer: randomizer,
-                                            sessionStore: sessionStore,
-                                            eventStore: MockEventStore(),
-                                            userDefaultStorage: userDefaultStorage,
-                                            versionCode: "1.0.0",
-                                            appVersionInfo: appVersionInfo)
+        timeProvider.millisTime = 1000
         sessionManager.start()
-
-        let expectation = self.expectation(description: "New session created after entering foreground after threshold")
-
         sessionManager.applicationDidEnterBackground()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
-            self.sessionManager.applicationWillEnterForeground()
-        }
 
+        // simulate time passage
+        timeProvider.millisTime += configProvider.sessionEndLastEventThresholdMs + 1
         idProvider.idString = "test-session-id-2"
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
-            XCTAssertEqual(self.sessionManager.sessionId, "test-session-id-2", "Expected session ID to change to 'test-session-id-2' after app enters foreground.")
-            expectation.fulfill()
-        }
+        sessionManager.applicationWillEnterForeground()
 
-        wait(for: [expectation], timeout: 3.0)
+        XCTAssertEqual(sessionManager.sessionId, "test-session-id-2", "Expected new session ID as threshold was crossed.")
     }
 
     func testSessionStore() {
-        let expectation = self.expectation(description: "Session store contains expected number of sessions")
+        let expectation = XCTestExpectation(description: "Session store contains expected number of sessions")
         sessionManager.start()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {

@@ -169,7 +169,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                    trackHttpBody: config.trackHttpBody,
                                    httpHeadersBlocklist: config.httpHeadersBlocklist,
                                    httpUrlBlocklist: config.httpUrlBlocklist,
-                                   httpUrlAllowlist: config.httpUrlAllowlist)
+                                   httpUrlAllowlist: config.httpUrlAllowlist,
+                                   autoStart: config.autoStart)
 
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
@@ -299,7 +300,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                              timeProvider: timeProvider,
                                                              configProvider: configProvider)
         self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(eventProcessor: eventProcessor,
-                                                                           timeProvider: timeProvider)
+                                                                           timeProvider: timeProvider,
+                                                                           logger: logger)
         self.dataCleanupService = BaseDataCleanupService(eventStore: eventStore,
                                                          sessionStore: sessionStore,
                                                          logger: logger,

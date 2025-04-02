@@ -16,4 +16,5 @@ struct DefaultConfig {
     static let httpHeadersBlocklist: [String] = []
     static let httpUrlBlocklist: [String] = []
     static let httpUrlAllowlist: [String] = []
+    static let autoStart = true
 }

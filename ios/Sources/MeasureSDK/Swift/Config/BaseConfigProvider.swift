@@ -52,7 +52,11 @@ final class BaseConfigProvider: ConfigProvider {
     var httpUrlAllowlist: [String] {
         return getMergedConfig(\.httpUrlAllowlist)
     }
-    
+
+    var autoStart: Bool {
+        return getMergedConfig(\.autoStart)
+    }
+
     var layoutSnapshotDebounceInterval: Number {
         return getMergedConfig(\.layoutSnapshotDebounceInterval)
     }

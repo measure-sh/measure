@@ -10,7 +10,8 @@ import Foundation
 protocol PeriodicEventExporter {
     func applicationDidEnterBackground()
     func applicationWillEnterForeground()
-    func start()
+    func enable()
+    func disable()
 }
 
 final class BasePeriodicEventExporter: PeriodicEventExporter, HeartbeatListener {
@@ -20,6 +21,7 @@ final class BasePeriodicEventExporter: PeriodicEventExporter, HeartbeatListener 
     private let heartbeat: Heartbeat
     private let eventExporter: EventExporter
     private let dispatchQueue: DispatchQueue
+    private let isEnabled = AtomicBool(false)
 
     var isExportInProgress: Bool = false
     var lastBatchCreationUptimeMs: Int64 = 0
@@ -39,16 +41,27 @@ final class BasePeriodicEventExporter: PeriodicEventExporter, HeartbeatListener 
     }
 
     func applicationWillEnterForeground() {
-        start()
+        if isEnabled.get() {
+            enable()
+        }
     }
 
-    func start() {
-        heartbeat.start(intervalMs: configProvider.eventsBatchingIntervalMs, initialDelayMs: 0)
+    func enable() {
+        isEnabled.setTrueIfFalse {
+            heartbeat.start(intervalMs: configProvider.eventsBatchingIntervalMs, initialDelayMs: 0)
+            logger.log(level: .info, message: "PeriodicEventExporter enabled.", error: nil, data: nil)
+        }
+    }
+
+    func disable() {
+        isEnabled.setFalseIfTrue {
+            heartbeat.stop()
+            logger.log(level: .info, message: "PeriodicEventExporter disabled.", error: nil, data: nil)
+        }
     }
 
     func applicationDidEnterBackground() {
-        heartbeat.stop()
-        exportEvents()
+        disable()
     }
 
     private func exportEvents() {

@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Measure
 
 class ControlsViewController: UIViewController {
     @IBOutlet weak var segmentControl: UISegmentedControl!
@@ -15,6 +16,7 @@ class ControlsViewController: UIViewController {
 
         // Add target for UISegmentedControl when value changes
         segmentControl.addTarget(self, action: #selector(segmentControlValueChanged(_:)), for: .valueChanged)
+        Measure.shared.stop()
     }
 
     // Show alert when UISegmentedControl value changes

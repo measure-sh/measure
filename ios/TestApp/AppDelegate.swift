@@ -40,7 +40,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let clientInfo = ClientInfo(apiKey: "test", apiUrl: "test")
         let config = BaseMeasureConfig(enableLogging: true,
                                        samplingRateForErrorFreeSessions: 1.0)
-        mockMeasureInitializer = MockMeasureInitializer(config: config, client: clientInfo)
+        mockMeasureInitializer = MockMeasureInitializer()
         measureInstance.meaureInitializerInternal = mockMeasureInitializer
         measureInstance.initialize(with: clientInfo, config: config)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -62,6 +62,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func addLogLabels() {
         if let logger = mockMeasureInitializer?.logger as? MockLogger {
             logger.onLog = { _, message, _, data in
+                print("logger: ", logger.logs)
                 if message.contains("gestureClick") ||
                    message.contains("gestureLongClick") ||
                    message.contains("gestureScroll") ||
@@ -71,6 +72,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                    message.contains("hotLaunch") {
                     if let data = data {
                         if let jsonData = try? JSONEncoder().encode(data) {
+                            print("jsonData: ", jsonData)
+                            print("message: ", message)
                             self.labelData.text = String(data: jsonData, encoding: .utf8)
                         }
                     }

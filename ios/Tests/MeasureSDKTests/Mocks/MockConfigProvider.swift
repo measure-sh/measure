@@ -38,6 +38,7 @@ final class MockConfigProvider: ConfigProvider {
     var httpHeadersBlocklist: [String]
     var httpUrlBlocklist: [String]
     var httpUrlAllowlist: [String]
+    var autoStart: Bool
 
     init(enableLogging: Bool = false,
          trackScreenshotOnCrash: Bool = true,
@@ -77,7 +78,8 @@ final class MockConfigProvider: ConfigProvider {
          trackHttpBody: Bool = false,
          httpHeadersBlocklist: [String] = [],
          httpUrlBlocklist: [String] = [],
-         httpUrlAllowlist: [String] = []) {
+         httpUrlAllowlist: [String] = [],
+         autoStart: Bool = true) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
@@ -107,6 +109,7 @@ final class MockConfigProvider: ConfigProvider {
         self.httpHeadersBlocklist = httpHeadersBlocklist
         self.httpUrlBlocklist = httpUrlBlocklist
         self.httpUrlAllowlist = httpUrlAllowlist
+        self.autoStart = autoStart
     }
 
     func loadNetworkConfig() {}

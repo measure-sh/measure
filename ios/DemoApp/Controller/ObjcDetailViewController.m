@@ -49,6 +49,7 @@
         @"paid_user": @YES,
         @"credit_balance": @1000,
         @"latitude": @30.2661403415387};
+    [[Measure shared] start];
     [[Measure shared] trackEvent:@"event-name" attributes:userAttributes timestamp:nil];
     
     [self setTitle:@"Objc View Controller"];

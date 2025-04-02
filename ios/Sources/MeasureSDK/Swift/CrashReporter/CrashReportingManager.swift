@@ -15,7 +15,8 @@ func measureCrashCallback(info: UnsafeMutablePointer<siginfo_t>?, uap: UnsafeMut
 
 /// A protocol that defines the interface for managing crash reporting and exception tracking.
 protocol CrashReportManager {
-    func enableCrashReporting()
+    func enable()
+    func disable()
     func trackException()
     var hasPendingCrashReport: Bool { get }
 }
@@ -32,6 +33,7 @@ final class CrashReportingManager: CrashReportManager {
     private let systemFileManager: SystemFileManager
     private let idProvider: IdProvider
     private let configProvider: ConfigProvider
+    private var isEnabled = AtomicBool(false)
     let hasPendingCrashReport: Bool
 
     init(logger: Logger,
@@ -52,12 +54,20 @@ final class CrashReportingManager: CrashReportManager {
         self.configProvider = configProvider
     }
 
-    func enableCrashReporting() {
-        do {
-            try crashReporter.enable()
-            self.logger.internalLog(level: .info, message: "Crash reporter enabled", error: nil, data: nil)
-        } catch {
-            self.logger.internalLog(level: .error, message: "Failed to enable crash reporter", error: error, data: nil)
+    func enable() {
+        isEnabled.setTrueIfFalse {
+            do {
+                try crashReporter.enable()
+                self.logger.log(level: .info, message: "Crash reporter enabled.", error: nil, data: nil)
+            } catch {
+                self.logger.internalLog(level: .error, message: "Failed to enable crash reporter.", error: error, data: nil)
+            }
+        }
+    }
+
+    func disable() {
+        isEnabled.setFalseIfTrue {
+            self.logger.log(level: .info, message: "Crash reporter disabled.", error: nil, data: nil)
         }
     }
 

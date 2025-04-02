@@ -122,34 +122,39 @@ final class MeasureInternal {
         return measureInitializer.attachmentProcessor
     }
     private let lifecycleObserver: LifecycleObserver
+    private var isStarted: Bool = false
 
     init(_ measureInitializer: MeasureInitializer) {
         self.measureInitializer = measureInitializer
         self.lifecycleObserver = LifecycleObserver()
-        self.logger.log(level: .info, message: "Starting Measure SDK", error: nil, data: nil)
-        self.sessionManager.setPreviousSessionCrashed(crashReportManager.hasPendingCrashReport)
-        self.sessionManager.start()
-        self.customEventCollector.enable()
-        self.appLaunchCollector.enable()
-        self.userTriggeredEventCollector.enable()
         self.lifecycleObserver.applicationDidEnterBackground = applicationDidEnterBackground
         self.lifecycleObserver.applicationWillEnterForeground = applicationWillEnterForeground
         self.lifecycleObserver.applicationWillTerminate = applicationWillTerminate
+        self.logger.log(level: .info, message: "Initializing Measure SDK", error: nil, data: nil)
+        self.sessionManager.setPreviousSessionCrashed(crashReportManager.hasPendingCrashReport)
+        self.sessionManager.start()
         self.crashDataPersistence.prepareCrashFile()
         self.crashDataPersistence.sessionId = sessionManager.sessionId
-
-        self.crashReportManager.enableCrashReporting()
         self.crashReportManager.trackException()
-        self.lifecycleCollector.enable()
-        self.cpuUsageCollector.enable()
-        self.memoryUsageCollector.enable()
-        self.periodicEventExporter.start()
-        self.httpEventCollector.enable()
-        self.networkChangeCollector.enable()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            if let window = UIApplication.shared.windows.first {
-                self.gestureCollector.enable(for: window)
-            }
+        registerAlwaysOnCollectors()
+        if (configProvider.autoStart) {
+            start()
+        }
+    }
+
+    func start() {
+        if !isStarted && !configProvider.autoStart {
+            self.logger.log(level: .info, message: "Starting Measure SDK", error: nil, data: nil)
+            registedCollectors()
+            isStarted = true
+        }
+    }
+
+    func stop() {
+        if isStarted && !configProvider.autoStart { // TODO: add test for this
+            self.logger.log(level: .info, message: "Stopping Measure SDK", error: nil, data: nil)
+            unregisterCollectors()
+            isStarted = false
         }
     }
 
@@ -183,5 +188,39 @@ final class MeasureInternal {
     private func applicationWillTerminate() {
         self.sessionManager.applicationWillTerminate()
         self.lifecycleCollector.applicationWillTerminate()
+    }
+
+    private func registedCollectors() {
+        self.customEventCollector.enable()
+        self.userTriggeredEventCollector.enable()
+        self.cpuUsageCollector.enable()
+        self.memoryUsageCollector.enable()
+        self.periodicEventExporter.enable()
+        self.httpEventCollector.enable()
+        self.networkChangeCollector.enable()
+        self.lifecycleCollector.enable()
+        self.crashReportManager.enable()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            if let window = UIApplication.shared.windows.first {
+                self.gestureCollector.enable(for: window)
+            }
+        }
+    }
+
+    private func unregisterCollectors() {
+        self.customEventCollector.disable()
+        self.userTriggeredEventCollector.disable()
+        self.cpuUsageCollector.disable()
+        self.memoryUsageCollector.disable()
+        self.periodicEventExporter.disable()
+        self.httpEventCollector.disable()
+        self.networkChangeCollector.disable()
+        self.gestureCollector.disable()
+        self.lifecycleCollector.disable()
+        self.crashReportManager.disable()
+    }
+
+    private func registerAlwaysOnCollectors() {
+        self.appLaunchCollector.enable()
     }
 }
