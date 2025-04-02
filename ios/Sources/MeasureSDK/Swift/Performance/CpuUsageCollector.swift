@@ -9,6 +9,7 @@ import Foundation
 
 protocol CpuUsageCollector {
     func enable()
+    func disable()
     func resume()
     func pause()
 }
@@ -22,7 +23,7 @@ final class BaseCpuUsageCollector: CpuUsageCollector {
     private let cpuUsageCalculator: CpuUsageCalculator
     private let sysCtl: SysCtl
     private var isTrackingInProgress = false
-    private var isEnabled = false
+    private var isEnabled = AtomicBool(false)
 
     init(logger: Logger, configProvider: ConfigProvider, eventProcessor: EventProcessor, timeProvider: TimeProvider, cpuUsageCalculator: CpuUsageCalculator, sysCtl: SysCtl) {
         self.logger = logger
@@ -34,15 +35,26 @@ final class BaseCpuUsageCollector: CpuUsageCollector {
     }
 
     func enable() {
-        guard timer == nil else { return }
+        isEnabled.setTrueIfFalse {
+            guard timer == nil else { return }
 
-        isEnabled = true
-        initializeTimer()
-        logger.log(level: .info, message: "CpuUsageCollector enabled.", error: nil, data: nil)
+            initializeTimer()
+            logger.log(level: .info, message: "CpuUsageCollector enabled.", error: nil, data: nil)
+        }
+    }
+
+    func disable() {
+        isEnabled.setFalseIfTrue {
+            guard let timer = self.timer else { return }
+
+            timer.invalidate()
+            self.timer = nil
+            logger.log(level: .info, message: "CpuUsageCollector disabled.", error: nil, data: nil)
+        }
     }
 
     func resume() {
-        if isEnabled && timer == nil {
+        if isEnabled.get() && timer == nil {
             initializeTimer()
             logger.log(level: .info, message: "CpuUsageCollector resumed.", error: nil, data: nil)
         }

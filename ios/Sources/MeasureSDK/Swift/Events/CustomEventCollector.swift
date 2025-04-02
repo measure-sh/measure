@@ -18,7 +18,7 @@ final class BaseCustomEventCollector: CustomEventCollector {
     private let eventProcessor: EventProcessor
     private let timeProvider: TimeProvider
     private let configProvider: ConfigProvider
-    private var isEnabled: Bool = false
+    private var isEnabled = AtomicBool(false)
     private lazy var customEventNameRegex: NSRegularExpression? = {
         try? NSRegularExpression(pattern: configProvider.customEventNameRegex)
     }()
@@ -31,15 +31,19 @@ final class BaseCustomEventCollector: CustomEventCollector {
     }
 
     func enable() {
-        isEnabled = true
+        isEnabled.setTrueIfFalse {
+            logger.log(level: .info, message: "CustomEventCollector enabled.", error: nil, data: nil)
+        }
     }
 
     func disable() {
-        isEnabled = false
+        isEnabled.setFalseIfTrue {
+            logger.log(level: .info, message: "CustomEventCollector disabled.", error: nil, data: nil)
+        }
     }
 
     func trackEvent(name: String, attributes: [String: AttributeValue], timestamp: Int64?) {
-        guard isEnabled else { return }
+        guard isEnabled.get() else { return }
         guard validateName(name) else { return }
         guard validateAttributes(name: name, attributes: attributes) else { return }
 

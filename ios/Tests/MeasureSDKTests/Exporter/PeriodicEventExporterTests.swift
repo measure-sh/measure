@@ -30,6 +30,7 @@ final class PeriodicEventExporterTests: XCTestCase {
                                                            heartbeat: heartbeat,
                                                            eventExporter: eventExporter,
                                                            dispatchQueue: MeasureQueue.periodicEventExporter)
+        periodicEventExporter.enable()
     }
 
     override func tearDown() {
@@ -43,8 +44,6 @@ final class PeriodicEventExporterTests: XCTestCase {
     }
 
     func testApplicationWillEnterForeground_startsHeartbeat() {
-        configProvider.eventsBatchingIntervalMs = 1000
-
         periodicEventExporter.applicationWillEnterForeground()
 
         XCTAssertTrue(heartbeat.isStarted)

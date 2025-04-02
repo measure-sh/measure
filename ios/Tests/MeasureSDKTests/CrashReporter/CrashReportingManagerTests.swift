@@ -68,7 +68,7 @@ final class CrashReportingManagerTests: XCTestCase {
                                                       systemFileManager: systemFileManager,
                                                       idProvider: idProvider,
                                                       configProvider: configProvider)
-        crashReportingManager.enableCrashReporting()
+        crashReportingManager.enable()
     }
 
     override func tearDown() {

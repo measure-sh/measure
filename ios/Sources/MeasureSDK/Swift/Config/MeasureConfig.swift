@@ -16,6 +16,7 @@ protocol MeasureConfig {
     var httpHeadersBlocklist: [String] { get }
     var httpUrlBlocklist: [String] { get }
     var httpUrlAllowlist: [String] { get }
+    var autoStart: Bool { get }
 }
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -25,6 +26,9 @@ protocol MeasureConfig {
 
     /// The sampling rate for non-crashed sessions. Must be between 0.0 and 1.0. Defaults to 1.0.
     let samplingRateForErrorFreeSessions: Float
+
+    /// Set to false to delay starting the SDK, by default initializing the SDK also starts tracking. Defaults to true.
+    let autoStart: Bool
 
     /// Whether to capture http headers of a network request and response. Defaults to `false`.
     let trackHttpHeaders: Bool
@@ -85,13 +89,15 @@ protocol MeasureConfig {
     ///       - Disables a domain, eg. example.com
     ///       - Disable a subdomain, eg. api.example.com
     ///       - Disable a particular path, eg. example.com/order
+    ///   - autoStart: Set this to false to delay starting the SDK, by default initializing the SDK also starts tracking.
     public init(enableLogging: Bool? = nil,
                 samplingRateForErrorFreeSessions: Float? = nil,
                 trackHttpHeaders: Bool? = nil,
                 trackHttpBody: Bool? = nil,
                 httpHeadersBlocklist: [String]? = nil,
                 httpUrlBlocklist: [String]? = nil,
-                httpUrlAllowlist: [String]? = nil) {
+                httpUrlAllowlist: [String]? = nil,
+                autoStart: Bool? = nil) {
         self.enableLogging = enableLogging ?? DefaultConfig.enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions ?? DefaultConfig.sessionSamplingRate
         self.trackHttpHeaders = trackHttpHeaders ?? DefaultConfig.trackHttpHeaders
@@ -99,6 +105,7 @@ protocol MeasureConfig {
         self.httpHeadersBlocklist = httpHeadersBlocklist ?? DefaultConfig.httpHeadersBlocklist
         self.httpUrlBlocklist = httpUrlBlocklist ?? DefaultConfig.httpUrlBlocklist
         self.httpUrlAllowlist = httpUrlAllowlist ?? DefaultConfig.httpUrlAllowlist
+        self.autoStart = autoStart ?? DefaultConfig.autoStart
 
         if !(0.0...1.0).contains(self.samplingRateForErrorFreeSessions) {
             debugPrint("Session sampling rate must be between 0.0 and 1.0")

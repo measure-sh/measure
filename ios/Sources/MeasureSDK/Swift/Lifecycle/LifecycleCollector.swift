@@ -16,12 +16,14 @@ protocol LifecycleCollector {
     func processControllerLifecycleEvent(_ vcLifecycleType: VCLifecycleEventType, for viewController: UIViewController)
     func processSwiftUILifecycleEvent(_ swiftUILifecycleType: SwiftUILifecycleType, for viewName: String)
     func enable()
+    func disable()
 }
 
 class BaseLifecycleCollector: LifecycleCollector {
     private let eventProcessor: EventProcessor
     private let timeProvider: TimeProvider
     private let logger: Logger
+    private var isEnabled = AtomicBool(false)
 
     init(eventProcessor: EventProcessor, timeProvider: TimeProvider, logger: Logger) {
         self.eventProcessor = eventProcessor
@@ -30,38 +32,29 @@ class BaseLifecycleCollector: LifecycleCollector {
     }
 
     func enable() {
-        UIViewController.swizzleLifecycleMethods()
-        LifecycleManager.shared.setLifecycleCollector(self)
+        isEnabled.setTrueIfFalse {
+            UIViewController.swizzleLifecycleMethods()
+            LifecycleManager.shared.setLifecycleCollector(self)
+            logger.log(level: .info, message: "LifecycleCollector enabled.", error: nil, data: nil)
+        }
+    }
+
+    func disable() {
+        isEnabled.setFalseIfTrue {
+            logger.log(level: .info, message: "LifecycleCollector enabled.", error: nil, data: nil)
+        }
     }
 
     func applicationDidEnterBackground() {
-        eventProcessor.track(data: ApplicationLifecycleData(type: .background),
-                             timestamp: timeProvider.now(),
-                             type: .lifecycleApp,
-                             attributes: nil,
-                             sessionId: nil,
-                             attachments: nil,
-                             userDefinedAttributes: nil)
+        trackEvent(ApplicationLifecycleData(type: .background), type: .lifecycleApp)
     }
 
     func applicationWillEnterForeground() {
-        eventProcessor.track(data: ApplicationLifecycleData(type: .foreground),
-                             timestamp: timeProvider.now(),
-                             type: .lifecycleApp,
-                             attributes: nil,
-                             sessionId: nil,
-                             attachments: nil,
-                             userDefinedAttributes: nil)
+        trackEvent(ApplicationLifecycleData(type: .foreground), type: .lifecycleApp)
     }
 
     func applicationWillTerminate() {
-        eventProcessor.track(data: ApplicationLifecycleData(type: .terminated),
-                             timestamp: timeProvider.now(),
-                             type: .lifecycleApp,
-                             attributes: nil,
-                             sessionId: nil,
-                             attachments: nil,
-                             userDefinedAttributes: nil)
+        trackEvent(ApplicationLifecycleData(type: .terminated), type: .lifecycleApp)
     }
 
     func processControllerLifecycleEvent(_ vcLifecycleType: VCLifecycleEventType, for viewController: UIViewController) {
@@ -80,21 +73,19 @@ class BaseLifecycleCollector: LifecycleCollector {
         let shouldTrackEvent = !excludedClassNames.contains { className.contains($0) }
 
         if shouldTrackEvent {
-            eventProcessor.track(
-                data: VCLifecycleData(type: vcLifecycleType.stringValue, className: className),
-                timestamp: timeProvider.now(),
-                type: .lifecycleViewController,
-                attributes: nil,
-                sessionId: nil,
-                attachments: nil,
-                userDefinedAttributes: nil)
+            trackEvent(VCLifecycleData(type: vcLifecycleType.stringValue, className: className), type: .lifecycleViewController)
         }
     }
 
     func processSwiftUILifecycleEvent(_ swiftUILifecycleType: SwiftUILifecycleType, for className: String) {
-        eventProcessor.track(data: SwiftUILifecycleData(type: swiftUILifecycleType, className: className),
+        trackEvent(SwiftUILifecycleData(type: swiftUILifecycleType, className: className), type: .lifecycleSwiftUI)
+    }
+
+    private func trackEvent(_ data: Codable, type: EventType) {
+        guard isEnabled.get() else { return }
+        eventProcessor.track(data: data,
                              timestamp: timeProvider.now(),
-                             type: .lifecycleSwiftUI,
+                             type: type,
                              attributes: nil,
                              sessionId: nil,
                              attachments: nil,

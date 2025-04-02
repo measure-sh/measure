@@ -43,6 +43,7 @@ struct Config: InternalConfig, MeasureConfig {
     let httpHeadersBlocklist: [String]
     let httpUrlBlocklist: [String]
     let httpUrlAllowlist: [String]
+    let autoStart: Bool
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
@@ -50,7 +51,8 @@ struct Config: InternalConfig, MeasureConfig {
                   trackHttpBody: Bool = DefaultConfig.trackHttpBody,
                   httpHeadersBlocklist: [String] = DefaultConfig.httpHeadersBlocklist,
                   httpUrlBlocklist: [String] = DefaultConfig.httpUrlBlocklist,
-                  httpUrlAllowlist: [String] = DefaultConfig.httpUrlAllowlist) {
+                  httpUrlAllowlist: [String] = DefaultConfig.httpUrlAllowlist,
+                  autoStart: Bool = DefaultConfig.enableLogging) {
         self.enableLogging = enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
         self.trackHttpHeaders = trackHttpHeaders
@@ -89,5 +91,6 @@ struct Config: InternalConfig, MeasureConfig {
         self.screenshotMaskHexColor = "#222222"
         self.screenshotCompressionQuality = 25
         self.layoutSnapshotDebounceInterval = 750 // 750 ms
+        self.autoStart = autoStart
     }
 }

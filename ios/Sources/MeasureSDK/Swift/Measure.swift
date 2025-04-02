@@ -36,6 +36,7 @@ import Foundation
         return instance
     }()
     private var measureInitializerLock = NSLock()
+    private var measureLifecycleLock = NSLock()
     private var measureInternal: MeasureInternal?
     var meaureInitializerInternal: MeasureInitializer?
 
@@ -99,6 +100,50 @@ import Foundation
         guard let sessionId = measureInternal?.sessionManager.sessionId else { return nil }
 
         return sessionId
+    }
+
+    /// Starts tracking.
+    ///
+    /// - SeeAlso: `stop()` to stop tracking.
+    /// - SeeAlso: `MeasureConfig.autoStart` to control whether the SDK should start on initialization.
+    ///
+    /// - Example:
+    ///   - Swift:
+    ///   ```swift
+    ///   Measure.shared.start()
+    ///   ```
+    ///   - Objective-C:
+    ///   ```objc
+    ///   [[Measure shared] start];
+    ///   ```
+    @objc public func start() {
+        measureLifecycleLock.lock()
+        defer { measureLifecycleLock.unlock() }
+
+        guard let measureInternal = self.measureInternal else { return }
+        measureInternal.start()
+    }
+
+    /// Stops tracking.
+    ///
+    /// - SeeAlso: `start()` to resume tracking.
+    /// - SeeAlso: `MeasureConfig.autoStart` to control whether the SDK should start on initialization.
+    ///
+    /// - Example:
+    ///   - Swift:
+    ///   ```swift
+    ///   Measure.shared.stop()
+    ///   ```
+    ///   - Objective-C:
+    ///   ```objc
+    ///   [[Measure shared] stop];
+    ///   ```
+    @objc public func stop() {
+        measureLifecycleLock.lock()
+        defer { measureLifecycleLock.unlock() }
+
+        guard let measureInternal = self.measureInternal else { return }
+        measureInternal.stop()
     }
 
     /// Tracks an event with optional timestamp.

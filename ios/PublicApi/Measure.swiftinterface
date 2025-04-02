@@ -28,7 +28,7 @@ public enum AttributeValue {
   case double(Swift.Double)
 }
 @objc final public class BaseMeasureConfig : ObjectiveC.NSObject {
-  public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil, trackHttpHeaders: Swift.Bool? = nil, trackHttpBody: Swift.Bool? = nil, httpHeadersBlocklist: [Swift.String]? = nil, httpUrlBlocklist: [Swift.String]? = nil, httpUrlAllowlist: [Swift.String]? = nil)
+  public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil, trackHttpHeaders: Swift.Bool? = nil, trackHttpBody: Swift.Bool? = nil, httpHeadersBlocklist: [Swift.String]? = nil, httpUrlBlocklist: [Swift.String]? = nil, httpUrlAllowlist: [Swift.String]? = nil, autoStart: Swift.Bool? = nil)
   @objc deinit
 }
 @objc final public class ClientInfo : ObjectiveC.NSObject {
@@ -69,6 +69,8 @@ extension SwiftUICore.View {
 @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers @objc final public class Measure : ObjectiveC.NSObject {
   @objc public static let shared: Measure.Measure
   @objc final public func initialize(with client: Measure.ClientInfo, config: Measure.BaseMeasureConfig? = nil)
+  @objc final public func start()
+  @objc final public func stop()
   final public func trackEvent(name: Swift.String, attributes: [Swift.String : Measure.AttributeValue], timestamp: Swift.Int64?)
   @objc final public func trackEvent(_ name: Swift.String, attributes: [Swift.String : Any], timestamp: Foundation.NSNumber?)
   @objc final public func trackScreenView(_ screenName: Swift.String)

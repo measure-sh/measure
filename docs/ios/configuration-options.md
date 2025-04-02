@@ -10,7 +10,8 @@ let config = BaseMeasureConfig(enableLogging: true,
                                trackHttpBody: true,
                                httpHeadersBlocklist: ["Authorization"],
                                httpUrlBlocklist: ["http://localhost:8080"],
-                               httpUrlAllowlist: ["example.com"])
+                               httpUrlAllowlist: ["example.com"],
+                               autoStart: true)
 Measure.shared.initialize(with: clientInfo, config: config)
 ```
 
@@ -23,6 +24,7 @@ Measure.shared.initialize(with: clientInfo, config: config)
 * [**trackHttpBody**](#trackHttpBody)
 * [**httpUrlBlocklist**](#httpUrlBlocklist)
 * [**httpUrlAllowlist**](#httpUrlAllowlist)
+* [**autoStart**](#autoStart)
 
 
 ## `samplingRateForErrorFreeSessions`
@@ -83,3 +85,12 @@ considered. By default, this list is empty.
 
 The check is made using [String.contains] to see if the URL contains any of the strings in
 the list.
+
+## `autoStart`
+
+Controls whether to start tracking immediately or delay starting the SDK.
+
+Defaults to true.
+
+Use `Measure.start` to start the SDK at a different point and `Measure.stop` to stop the SDK from tracking
+data.

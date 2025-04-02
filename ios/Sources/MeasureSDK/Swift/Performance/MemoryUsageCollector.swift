@@ -9,6 +9,7 @@ import Foundation
 
 protocol MemoryUsageCollector {
     func enable()
+    func disable()
     func resume()
     func pause()
 }
@@ -22,7 +23,7 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
     private let timeProvider: TimeProvider
     private let memoryUsageCalculator: MemoryUsageCalculator
     private var isTrackingInProgress = false
-    private var isEnabled = false
+    private var isEnabled = AtomicBool(false)
 
     init(logger: Logger, configProvider: ConfigProvider, eventProcessor: EventProcessor, timeProvider: TimeProvider, memoryUsageCalculator: MemoryUsageCalculator, sysCtl: SysCtl) {
         self.logger = logger
@@ -34,15 +35,26 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
     }
 
     func enable() {
-        guard timer == nil else { return }
+        isEnabled.setTrueIfFalse {
+            guard timer == nil else { return }
 
-        isEnabled = true
-        initializeTimer()
-        logger.log(level: .info, message: "MemoryUsageCollector enabled.", error: nil, data: nil)
+            initializeTimer()
+            logger.log(level: .info, message: "MemoryUsageCollector enabled.", error: nil, data: nil)
+        }
+    }
+
+    func disable() {
+        isEnabled.setFalseIfTrue {
+            guard let timer = self.timer else { return }
+
+            timer.invalidate()
+            self.timer = nil
+            logger.log(level: .info, message: "MemoryUsageCollector disabled.", error: nil, data: nil)
+        }
     }
 
     func resume() {
-        if isEnabled && timer == nil {
+        if isEnabled.get() && timer == nil {
             initializeTimer()
             logger.log(level: .info, message: "MemoryUsageCollector resumed.", error: nil, data: nil)
         }

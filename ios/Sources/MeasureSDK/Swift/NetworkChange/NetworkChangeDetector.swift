@@ -12,6 +12,7 @@ import SystemConfiguration
 
 protocol NetworkChangeDetector {
     func start()
+    func stop()
 }
 
 final class BaseNetworkChangeDetector: NetworkChangeDetector {
@@ -64,6 +65,10 @@ final class BaseNetworkChangeDetector: NetworkChangeDetector {
         }
 
         monitor.start(queue: queue)
+    }
+
+    func stop() {
+        monitor.cancel()
     }
 
     private func processNetworkChange(newNetworkType: NetworkType) {

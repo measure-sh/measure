@@ -3,6 +3,7 @@
 * [Minimum requirements](#minimum-requirements)
 * [Quick reference](#quick-reference)
 * [Getting started](#getting-started)
+* [Manually start or stop the SDK](#manually-start-or-stop-the-sdk)
 * [Configuration options](#configuration-options)
 * [Features](#features)
   * [Automatic collection](#automatic-collection)
@@ -106,6 +107,26 @@ Reopen the app and check the Measure dashboard—you should see the crash report
 > When triggering a crash, **make sure the Xcode debugger is not attached**, as crashes may not be properly reported when running the app in debug mode.
 
 🎉 Congratulations! You have successfully integrated Measure into your app!
+
+# Manually start or stop the SDK
+
+By default, `Measure.shared.initialize` starts collection of events. To delay start to a different point in your app use [*autostart* configuration options](configuration-options.md#autostart). This can be used to control the scope of where Measure is active in your application.
+
+```swift
+let config = BaseMeasureConfig(autoStart: false) // delay starting of collection
+let clientInfo = ClientInfo(apiKey: "<apiKey>", apiUrl: "<apiUrl>")
+Measure.shared.initialize(with: clientInfo, config: config)
+
+// Start collecting
+Measure.shared.start()
+
+// Stop collecting
+Measure.shared.stop()
+```
+
+> [!IMPORTANT]
+> Some SDK instrumentation remains active even when stopped. This is to maintain state and ensure seamless data collection when it is started.
+> Additionally, cold, warm & hot launch events are also always captured. However, no data is sent to the server until the SDK is started.
 
 # Configuration options
 
