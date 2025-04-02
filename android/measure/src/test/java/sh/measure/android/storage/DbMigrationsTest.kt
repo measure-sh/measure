@@ -8,8 +8,9 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.storage.TestDatabaseHelper.getBatchesTable
+import sh.measure.android.storage.TestDatabaseHelper.getCursorToTable
 import sh.measure.android.storage.TestDatabaseHelper.insertEventBatch
-import sh.measure.android.storage.TestDatabaseHelper.queryTableExists
+import sh.measure.android.storage.TestDatabaseHelper.queryTableInfo
 
 @RunWith(AndroidJUnit4::class)
 @Config(manifest = Config.NONE)
@@ -24,7 +25,7 @@ class DbMigrationsTest {
         DbMigrations.apply(logger, db, DbVersion.V1, DbVersion.V2)
 
         // Verify migration
-        val cursor = db.queryTableExists("app_exit")
+        val cursor = db.getCursorToTable("app_exit")
         assertTrue(cursor.moveToFirst())
         cursor.close()
         db.close()
@@ -38,17 +39,17 @@ class DbMigrationsTest {
         DbMigrations.apply(logger, db, DbVersion.V2, DbVersion.V3)
 
         // Verify spans table exists
-        val spansCursor = db.queryTableExists("spans")
+        val spansCursor = db.getCursorToTable("spans")
         assertTrue(spansCursor.moveToFirst())
         spansCursor.close()
 
         // Check that batches table exists
-        val batchesCursor = db.queryTableExists("batches")
+        val batchesCursor = db.getCursorToTable("batches")
         assertTrue(batchesCursor.moveToFirst())
         batchesCursor.close()
 
         // Check that spans batch table exists
-        val spansBatchCursor = db.queryTableExists("spans_batch")
+        val spansBatchCursor = db.getCursorToTable("spans_batch")
         assertTrue(spansBatchCursor.moveToFirst())
         spansBatchCursor.close()
 
@@ -71,6 +72,29 @@ class DbMigrationsTest {
         assertTrue(batchesCursor.moveToFirst())
         assertEquals(2, batchesCursor.count)
         batchesCursor.close()
+
+        db.close()
+    }
+
+    @Test
+    fun `migration v3 to v4 adds columns to app exit table`() {
+        val db = TestDatabaseHelper.createDatabase(DbVersion.V3)
+
+        // Perform migration
+        DbMigrations.apply(logger, db, DbVersion.V3, DbVersion.V4)
+
+        // Verify app exit table exists with new columns
+        val cursor = db.queryTableInfo("app_exit")
+        val columnNames = mutableListOf<String>()
+        if (cursor.moveToFirst()) {
+            do {
+                columnNames.add(cursor.getString(cursor.getColumnIndexOrThrow("name")))
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+
+        assertTrue(columnNames.contains(AppExitTable.COL_APP_BUILD))
+        assertTrue(columnNames.contains(AppExitTable.COL_APP_VERSION))
 
         db.close()
     }

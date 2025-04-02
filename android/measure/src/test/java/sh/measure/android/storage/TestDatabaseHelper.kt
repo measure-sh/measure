@@ -73,7 +73,7 @@ object TestDatabaseHelper {
         return db
     }
 
-    fun SQLiteDatabase.queryTableExists(tableName: String): Cursor {
+    fun SQLiteDatabase.getCursorToTable(tableName: String): Cursor {
         val sql = "SELECT name FROM sqlite_master WHERE type='table' AND name=?"
         val selectionArgs = arrayOf(tableName)
         return this.rawQuery(sql, selectionArgs)
@@ -94,5 +94,9 @@ object TestDatabaseHelper {
 
     fun SQLiteDatabase.getBatchesTable(): Cursor {
         return rawQuery("SELECT * FROM batches", null)
+    }
+
+    fun SQLiteDatabase.queryTableInfo(tableName: String): Cursor {
+        return rawQuery("PRAGMA table_info($tableName)", null)
     }
 }
