@@ -388,7 +388,7 @@ internal object TestData {
         crashed: Boolean = false,
         supportsAppExit: Boolean = false,
         appVersion: String? = "1.0.0",
-        appBuild: String? = "100"
+        appBuild: String? = "100",
     ): SessionEntity {
         return SessionEntity(
             sessionId = id,

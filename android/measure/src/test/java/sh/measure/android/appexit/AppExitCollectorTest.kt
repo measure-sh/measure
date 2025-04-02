@@ -95,7 +95,7 @@ class AppExitCollectorTest {
             eq(EventType.APP_EXIT),
             threadName = any(),
             sessionId = eq(session2.id),
-            appVersion =  eq(session2.appVersion),
+            appVersion = eq(session2.appVersion),
             appBuild = eq(session2.appBuild),
         )
     }
@@ -206,7 +206,7 @@ class AppExitCollectorTest {
             threadName = any(),
             sessionId = eq(session.id),
             appVersion = eq(session.appVersion),
-            appBuild = eq(session.appBuild)
+            appBuild = eq(session.appBuild),
         )
     }
 
@@ -222,6 +222,6 @@ class AppExitCollectorTest {
             pid = pid,
             createdAt = createdAt,
             appVersion = appVersion,
-            appBuild = appBuild
+            appBuild = appBuild,
         )
 }

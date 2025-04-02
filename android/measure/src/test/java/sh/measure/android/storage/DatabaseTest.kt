@@ -1147,7 +1147,7 @@ class DatabaseTest {
                 id = sessionId,
                 pid = pid,
                 supportsAppExit = true,
-            )
+            ),
         )
         val session = database.getSessionForAppExit(pid)
         assertNotNull(session)
@@ -1173,7 +1173,7 @@ class DatabaseTest {
                 appVersion = appVersion,
                 appBuild = appBuild,
                 supportsAppExit = true,
-            )
+            ),
         )
         val session = database.getSessionForAppExit(pid)
         assertNotNull(session)
@@ -1194,7 +1194,7 @@ class DatabaseTest {
                 appVersion = null,
                 appBuild = null,
                 supportsAppExit = true,
-            )
+            ),
         )
         val session = database.getSessionForAppExit(pid)
         assertNotNull(session)
