@@ -677,13 +677,18 @@ class DatabaseTest {
     @Test
     fun `insertSession inserts a new app exit entry successfully`() {
         // when
-        database.insertSession(TestData.getSessionEntity("session-id-1", supportsAppExit = true))
+        val session = TestData.getSessionEntity("session-id-1", supportsAppExit = true)
+        database.insertSession(session)
 
         // then
         val db = database.writableDatabase
         db.query(
             AppExitTable.TABLE_NAME,
-            null,
+            arrayOf(
+                AppExitTable.COL_SESSION_ID,
+                AppExitTable.COL_APP_VERSION,
+                AppExitTable.COL_APP_BUILD,
+            ),
             "${AppExitTable.COL_SESSION_ID} = ?",
             arrayOf("session-id-1"),
             null,
@@ -691,6 +696,11 @@ class DatabaseTest {
             null,
         ).use {
             assertEquals(1, it.count)
+            it.moveToFirst()
+            val appVersion = it.getString(it.getColumnIndex(AppExitTable.COL_APP_VERSION))
+            assertEquals(session.appVersion, appVersion)
+            val appBuild = it.getString(it.getColumnIndex(AppExitTable.COL_APP_BUILD))
+            assertEquals(session.appBuild, appBuild)
         }
     }
 
