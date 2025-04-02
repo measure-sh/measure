@@ -64,8 +64,8 @@ internal class SignalStoreImpl(
         val eventEntity = event.toEventEntity()
         if (eventEntity == null) {
             logger.log(
-                LogLevel.Error,
-                "Failed to store event(${event.type}), event will be dropped.",
+                LogLevel.Debug,
+                "Failed to store event(${event.type}): unable to convert event to EventEntity",
             )
             return
         }
@@ -108,25 +108,11 @@ internal class SignalStoreImpl(
 
                 val success = database.insertSignals(eventEntities, spanEntities)
                 if (!success) {
-                    logger.log(
-                        LogLevel.Error,
-                        "SignalStore: failed to insert ${eventEntities.size} events and ${spanEntities.size} spans",
-                    )
                     handleEventsInsertionFailure(eventEntities)
-                } else {
-                    logger.log(
-                        LogLevel.Info,
-                        "SignalStore: successfully inserted ${eventEntities.size} events and ${spanEntities.size} spans",
-                    )
                 }
             } finally {
                 isFlushing.set(false)
             }
-        } else {
-            logger.log(
-                LogLevel.Info,
-                "SignalStore: a flush is already in progress, skipping this request",
-            )
         }
     }
 
@@ -222,14 +208,14 @@ internal class SignalStoreImpl(
     }
 
     private fun handleEventsInsertionFailure(events: List<EventEntity>) {
-        // TODO(android): handle event insertion failure for exception/ANR events
+        // TODO: handle event insertion failure for exception/ANR events
         // Event insertions typically fail due to cases we can't do much about.
         // However, given the way the SDK is setup, if the application crashes even before
         // the session can be inserted into the database, we'll miss out on capturing
         // the exception. This case needs to be handled.
         logger.log(
-            LogLevel.Error,
-            "SignalStore: failed to insert event into database, deleting related files",
+            LogLevel.Debug,
+            "Failed to store events: event insertion failed, deleting related files",
         )
         events.forEach { event ->
             handleEventInsertionFailure(event)
@@ -285,7 +271,10 @@ internal class SignalStoreImpl(
                 }
 
                 else -> {
-                    logger.log(LogLevel.Error, "SignalStore: attachment has no path or bytes")
+                    logger.log(
+                        LogLevel.Debug,
+                        "Failed to store attachment: neither path nor bytes are available",
+                    )
                     null
                 }
             }
@@ -301,7 +290,7 @@ internal class SignalStoreImpl(
             return try {
                 if (file.exists()) file.length() else 0
             } catch (e: SecurityException) {
-                logger.log(LogLevel.Error, "SignalStore: failed to calculate attachment size", e)
+                logger.log(LogLevel.Debug, "Failed to calculate attachment size", e)
                 0
             }
         }

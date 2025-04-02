@@ -16,8 +16,8 @@ internal object DbMigrations {
                         DbVersion.V3 -> migrateToV3(db)
                         DbVersion.V4 -> migrateToV4(db)
                         else -> logger.log(
-                            LogLevel.Warning,
-                            "No migration found for version $version",
+                            LogLevel.Debug,
+                            "Db migration failed: $version not found ",
                         )
                     }
                 }
@@ -26,7 +26,7 @@ internal object DbMigrations {
                 db.endTransaction()
             }
         } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Unable to migrate db from $oldVersion->$newVersion", e)
+            logger.log(LogLevel.Debug, "Db migration failed from $oldVersion->$newVersion", e)
         }
     }
 

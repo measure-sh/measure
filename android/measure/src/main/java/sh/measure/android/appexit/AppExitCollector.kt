@@ -55,7 +55,6 @@ internal class AppExitCollector(
                             appBuild = session.appBuild,
                             threadName = Thread.currentThread().name,
                         )
-                        logger.log(LogLevel.Debug, "Tracked app_exit: $appExit")
                         if (isReasonCrashOrAnr(appExit)) {
                             sessionManager.markCrashedSession(session.id)
                         }
@@ -67,7 +66,7 @@ internal class AppExitCollector(
                 sessionManager.clearAppExitSessionsBefore(clearSessionsBefore)
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Unable to track app exit events", e)
+            logger.log(LogLevel.Debug, "Unable to track app exit events", e)
         }
     }
 

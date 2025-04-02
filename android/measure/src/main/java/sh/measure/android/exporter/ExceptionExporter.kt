@@ -31,7 +31,7 @@ internal class ExceptionExporterImpl(
                 }
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Failed to submit exception export task to executor", e)
+            logger.log(LogLevel.Debug, "Failed to track exception", e)
         }
     }
 }

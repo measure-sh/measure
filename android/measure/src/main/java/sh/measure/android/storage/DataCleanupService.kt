@@ -43,7 +43,7 @@ internal class DataCleanupServiceImpl(
                 deleteBugReports(currentSessionId)
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Failed to submit data cleanup task to executor", e)
+            logger.log(LogLevel.Debug, "Failed to submit data cleanup task to executor", e)
         }
     }
 
@@ -60,7 +60,7 @@ internal class DataCleanupServiceImpl(
                 }
             }
         } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Failed to clean up stale bug reports", e)
+            logger.log(LogLevel.Debug, "Failed to clean up stale bug reports", e)
         }
     }
 
@@ -71,10 +71,6 @@ internal class DataCleanupServiceImpl(
         if (totalSignals <= configProvider.maxSignalsInDatabase) {
             return
         }
-        logger.log(
-            LogLevel.Warning,
-            "Total signals ($totalSignals) exceeds the limit, deleting the oldest session.",
-        )
         deleteOldestSession()
     }
 
@@ -102,11 +98,6 @@ internal class DataCleanupServiceImpl(
         fileStorage.deleteEventsIfExist(eventIds, attachmentIds)
         // deleting sessions from db will also delete events for the session as they ar
         // e cascaded deletes.
-        val result = database.deleteSessions(sessionIds)
-        if (result) {
-            logger.log(LogLevel.Debug, "Deleted ${eventIds.size} events")
-        } else {
-            logger.log(LogLevel.Warning, "Failed to delete ${eventIds.size} events")
-        }
+        database.deleteSessions(sessionIds)
     }
 }

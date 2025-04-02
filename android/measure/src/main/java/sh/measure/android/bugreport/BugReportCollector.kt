@@ -146,7 +146,7 @@ internal class BugReportCollectorImpl internal constructor(
                         )
                         selectedUris.add(uri)
                     } catch (e: SecurityException) {
-                        logger.log(LogLevel.Error, "Failed to take permission for URI: $uri", e)
+                        logger.log(LogLevel.Error, "Failed to read image: permission missing for URI $uri", e)
                     }
                 }
             } else {
@@ -159,7 +159,7 @@ internal class BugReportCollectorImpl internal constructor(
                         )
                         selectedUris.add(uri)
                     } catch (e: SecurityException) {
-                        logger.log(LogLevel.Error, "Failed to take permission for URI: $uri", e)
+                        logger.log(LogLevel.Error, "Failed to read image: permission missing for URI $uri", e)
                     }
                 }
             }

@@ -43,21 +43,22 @@ internal class CustomEventCollector(
             userTriggered = true,
             userDefinedAttributes = attributes,
         )
+        logger.log(LogLevel.Debug, "Custom event($name) received")
     }
 
     private fun validateName(name: String): Boolean {
         if (name.isEmpty()) {
             logger.log(
-                LogLevel.Warning,
-                "Event name is empty. This event will be dropped.",
+                LogLevel.Error,
+                "Invalid event: name is empty",
             )
             return false
         }
 
         if (name.length > configProvider.maxEventNameLength) {
             logger.log(
-                LogLevel.Warning,
-                "Event($name) exceeded max allowed length. This event will be dropped.",
+                LogLevel.Error,
+                "Invalid event($name): name exceeds maximum length of ${configProvider.maxEventNameLength} characters",
             )
             return false
         }
@@ -72,8 +73,8 @@ internal class CustomEventCollector(
     private fun validateAttributes(name: String, attributes: Map<String, AttributeValue>): Boolean {
         if (attributes.size > configProvider.maxUserDefinedAttributesPerEvent) {
             logger.log(
-                LogLevel.Warning,
-                "Event($name) contains more than max allowed attributes. This event will be dropped.",
+                LogLevel.Error,
+                "Invalid event($name): exceeds maximum of ${configProvider.maxUserDefinedAttributesPerEvent} attributes",
             )
             return false
         }
@@ -83,14 +84,14 @@ internal class CustomEventCollector(
             val isValueValid = isValueValid(value)
             if (!isKeyValid) {
                 logger.log(
-                    LogLevel.Warning,
-                    "Event($name) contains invalid attribute key: $key. This event will be dropped.",
+                    LogLevel.Error,
+                    "Invalid event($name): invalid attribute key: $key",
                 )
             }
             if (!isValueValid) {
                 logger.log(
-                    LogLevel.Warning,
-                    "Event($name) contains invalid attribute value: $value. This event will be dropped.",
+                    LogLevel.Error,
+                    "Invalid event($name): invalid attribute value: $value",
                 )
             }
             isKeyValid && isValueValid

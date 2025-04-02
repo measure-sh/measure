@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.SharedPreferences
 import sh.measure.android.RecentSession
 import sh.measure.android.attributes.Attribute
-import sh.measure.android.logger.Logger
 
 internal interface PrefsStorage {
     fun getInstallationId(): String?
@@ -18,7 +17,7 @@ internal interface PrefsStorage {
     fun getRecentSession(): RecentSession?
 }
 
-internal class PrefsStorageImpl(private val logger: Logger, private val context: Context) :
+internal class PrefsStorageImpl(private val context: Context) :
     PrefsStorage {
     private val sharedPreferenceName = "sh.measure.android"
 

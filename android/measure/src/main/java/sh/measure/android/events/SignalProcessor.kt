@@ -162,23 +162,13 @@ internal class SignalProcessorImpl(
                             InternalTrace.trace(label = { "msr-store-event" }, block = {
                                 signalStore.store(event)
                                 onEventTracked(event)
-                                logger.log(
-                                    LogLevel.Debug,
-                                    "Event processed: ${event.type}, ${event.id}",
-                                )
                             })
-                        } else {
-                            logger.log(LogLevel.Debug, "Event dropped: $type")
                         }
                     },
                 )
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(
-                LogLevel.Error,
-                "Failed to submit event processing task to executor",
-                e,
-            )
+            logger.log(LogLevel.Error, "Failed to process event", e)
         }
     }
 
@@ -211,10 +201,6 @@ internal class SignalProcessorImpl(
                 event.updateVersionAttribute(appVersion, appBuild)
                 InternalTrace.trace(label = { "msr-store-event" }, block = {
                     signalStore.store(event)
-                    logger.log(
-                        LogLevel.Debug,
-                        "Event processed: ${event.type}, ${event.id}",
-                    )
                 })
             },
         )
@@ -247,8 +233,7 @@ internal class SignalProcessorImpl(
             onEventTracked(event)
             sessionManager.markCrashedSession(event.sessionId)
             exceptionExporter.export(event.sessionId)
-            logger.log(LogLevel.Debug, "Event processed: $type, ${event.id}")
-        } ?: logger.log(LogLevel.Debug, "Event dropped: $type")
+        }
     }
 
     override fun trackSpan(spanData: SpanData) {
@@ -257,7 +242,6 @@ internal class SignalProcessorImpl(
                 { "msr-store-span" },
                 {
                     signalStore.store(spanData)
-                    logger.log(LogLevel.Info, "Span processed: ${spanData.name}")
                 },
             )
         }

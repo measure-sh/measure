@@ -54,7 +54,6 @@ internal class BatchCreatorImpl(
                     eventTypeExportAllowList = configProvider.eventTypeExportAllowList,
                 )
             if (eventToAttachmentSizeMap.isEmpty()) {
-                logger.log(LogLevel.Debug, "No events to batch")
                 return null
             }
 
@@ -75,7 +74,7 @@ internal class BatchCreatorImpl(
                 ),
             )
             if (!batchInsertionResult) {
-                logger.log(LogLevel.Error, "Failed to insert batch")
+                logger.log(LogLevel.Debug, "Failed to insert batch")
                 return null
             }
             return Batch(

@@ -65,7 +65,6 @@ internal class ScreenshotCollectorImpl(
                 quality = config.screenshotCompressionQuality,
                 logger = logger,
             ) ?: return null
-            logger.log(LogLevel.Debug, "Screenshot taken successfully")
             Screenshot(data = compressed, extension = extension)
         }
     }

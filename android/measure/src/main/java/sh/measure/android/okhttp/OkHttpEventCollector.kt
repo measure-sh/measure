@@ -149,7 +149,7 @@ internal class OkHttpEventCollectorImpl(
                 return readByteArray
             }
         } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Error reading request body", e)
+            logger.log(LogLevel.Debug, "Failed to read request body", e)
         }
         return null
     }

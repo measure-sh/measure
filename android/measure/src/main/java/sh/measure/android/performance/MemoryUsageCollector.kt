@@ -45,7 +45,7 @@ internal class MemoryUsageCollector(
                 TimeUnit.MILLISECONDS,
             )
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Failed to start MemoryUsageCollector", e)
+            logger.log(LogLevel.Debug, "Failed to start MemoryUsageCollector", e)
             null
         }
     }

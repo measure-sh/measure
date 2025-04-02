@@ -50,7 +50,7 @@ internal class HeartbeatImpl(
                 TimeUnit.MILLISECONDS,
             )
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Failed to start ExportHeartbeat", e)
+            logger.log(LogLevel.Debug, "Failed to start exporter heartbeat", e)
             return
         }
     }

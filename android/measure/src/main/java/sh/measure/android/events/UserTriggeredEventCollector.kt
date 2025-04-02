@@ -5,6 +5,8 @@ import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.exceptions.ExceptionFactory
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.toEventAttachment
 import sh.measure.android.utils.ProcessInfoProvider
@@ -24,6 +26,7 @@ internal interface UserTriggeredEventCollector {
 }
 
 internal class UserTriggeredEventCollectorImpl(
+    private val logger: Logger,
     private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
     private val processInfoProvider: ProcessInfoProvider,
@@ -59,6 +62,7 @@ internal class UserTriggeredEventCollectorImpl(
             attachments = attachments,
             userDefinedAttributes = attributes,
         )
+        logger.log(LogLevel.Debug, "Bug report event received")
     }
 
     override fun trackHandledException(throwable: Throwable) {
@@ -77,6 +81,7 @@ internal class UserTriggeredEventCollectorImpl(
             timestamp = timeProvider.now(),
             type = EventType.EXCEPTION,
         )
+        logger.log(LogLevel.Debug, "Unhandled exception event received")
     }
 
     override fun trackScreenView(screenName: String) {
@@ -88,5 +93,6 @@ internal class UserTriggeredEventCollectorImpl(
             timestamp = timeProvider.now(),
             type = EventType.SCREEN_VIEW,
         )
+        logger.log(LogLevel.Debug, "Screen view event received")
     }
 }

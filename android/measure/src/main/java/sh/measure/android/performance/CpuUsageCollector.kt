@@ -40,14 +40,18 @@ internal class CpuUsageCollector(
         future = try {
             defaultExecutor.scheduleAtFixedRate(
                 {
-                    trackCpuUsage()
+                    try {
+                        trackCpuUsage()
+                    } catch (e: Exception) {
+                        logger.log(LogLevel.Error, "Failed to track CPU usage", e)
+                    }
                 },
                 0,
                 CPU_TRACKING_INTERVAL_MS,
                 TimeUnit.MILLISECONDS,
             )
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Failed to start CpuUsageCollector", e)
+            logger.log(LogLevel.Debug, "Failed to track CPU usage", e)
             null
         }
     }
@@ -133,7 +137,7 @@ internal class CpuUsageCollector(
             val statArray = try {
                 stat.split(" ")
             } catch (e: Exception) {
-                logger.log(LogLevel.Error, "Unable to parse stat file to get CPU usage")
+                logger.log(LogLevel.Debug, "Failed to track CPU usage: unable to parse stat file")
                 return null
             }
             return arrayOf(
@@ -149,7 +153,7 @@ internal class CpuUsageCollector(
                 statArray[21].toLong(),
             )
         } else {
-            logger.log(LogLevel.Error, "Unable to read stat file to get CPU usage")
+            logger.log(LogLevel.Debug, "Failed to track CPU usage: stat file does not exist")
             null
         }
     }

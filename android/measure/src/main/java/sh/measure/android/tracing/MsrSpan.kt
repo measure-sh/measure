@@ -78,7 +78,10 @@ internal class MsrSpan(
     override fun setStatus(status: SpanStatus): Span {
         synchronized(lock) {
             if (hasEnded != EndState.NotEnded) {
-                logger.log(LogLevel.Warning, "Attempt to set parent after span ended")
+                logger.log(
+                    LogLevel.Error,
+                    "Failed to update span: attempt to set status after span ended",
+                )
                 return this
             }
             this.status = status
@@ -89,7 +92,10 @@ internal class MsrSpan(
     override fun setParent(parentSpan: Span): Span {
         synchronized(lock) {
             if (hasEnded != EndState.NotEnded) {
-                logger.log(LogLevel.Warning, "Attempt to set parent after span ended")
+                logger.log(
+                    LogLevel.Error,
+                    "Failed to update span: attempt to set parent after span ended",
+                )
                 return this
             }
             this.parentId = parentSpan.spanId
@@ -101,7 +107,10 @@ internal class MsrSpan(
     override fun setCheckpoint(name: String): Span {
         synchronized(lock) {
             if (hasEnded != EndState.NotEnded) {
-                logger.log(LogLevel.Warning, "Attempt to set parent after span ended")
+                logger.log(
+                    LogLevel.Error,
+                    "Failed to update span: attempt to set checkpoint after span ended",
+                )
                 return this
             }
             val checkpoint = Checkpoint(name, timeProvider.now())
@@ -113,7 +122,10 @@ internal class MsrSpan(
     override fun setName(name: String): Span {
         synchronized(lock) {
             if (hasEnded != EndState.NotEnded) {
-                logger.log(LogLevel.Warning, "Attempt to set name after span ended")
+                logger.log(
+                    LogLevel.Error,
+                    "Failed to update span: attempt to set name after span ended",
+                )
                 return this
             }
             this.name = name
@@ -124,7 +136,10 @@ internal class MsrSpan(
     override fun setAttribute(key: String, value: String): Span {
         synchronized(lock) {
             if (hasEnded != EndState.NotEnded) {
-                logger.log(LogLevel.Warning, "Attempt to set attribute after span ended")
+                logger.log(
+                    LogLevel.Error,
+                    "Failed to update span: attempt to set attribute after span ended",
+                )
                 return this
             }
             this.userDefinedAttrs[key] = value
@@ -135,7 +150,10 @@ internal class MsrSpan(
     override fun setAttribute(key: String, value: Long): Span {
         synchronized(lock) {
             if (hasEnded != EndState.NotEnded) {
-                logger.log(LogLevel.Warning, "Attempt to set attribute after span ended")
+                logger.log(
+                    LogLevel.Error,
+                    "Failed to update span: attempt to set attribute after span ended",
+                )
                 return this
             }
             this.userDefinedAttrs[key] = value
@@ -146,7 +164,10 @@ internal class MsrSpan(
     override fun setAttribute(key: String, value: Int): Span {
         synchronized(lock) {
             if (hasEnded != EndState.NotEnded) {
-                logger.log(LogLevel.Warning, "Attempt to set attribute after span ended")
+                logger.log(
+                    LogLevel.Error,
+                    "Failed to update span: attempt to set attribute after span ended",
+                )
                 return this
             }
             this.userDefinedAttrs[key] = value
@@ -157,7 +178,10 @@ internal class MsrSpan(
     override fun setAttribute(key: String, value: Double): Span {
         synchronized(lock) {
             if (hasEnded != EndState.NotEnded) {
-                logger.log(LogLevel.Warning, "Attempt to set attribute after span ended")
+                logger.log(
+                    LogLevel.Error,
+                    "Failed to update span: attempt to set attribute after span ended",
+                )
                 return this
             }
             this.userDefinedAttrs[key] = value
@@ -168,7 +192,10 @@ internal class MsrSpan(
     override fun setAttribute(key: String, value: Boolean): Span {
         synchronized(lock) {
             if (hasEnded != EndState.NotEnded) {
-                logger.log(LogLevel.Warning, "Attempt to set attribute after span ended")
+                logger.log(
+                    LogLevel.Error,
+                    "Failed to update span: attempt to set attribute after span ended",
+                )
                 return this
             }
             this.userDefinedAttrs[key] = value
@@ -179,7 +206,10 @@ internal class MsrSpan(
     override fun setAttributes(attributes: Map<String, AttributeValue>): Span {
         synchronized(lock) {
             if (hasEnded != EndState.NotEnded) {
-                logger.log(LogLevel.Warning, "Attempt to set attribute after span ended")
+                logger.log(
+                    LogLevel.Error,
+                    "Failed to update span: attempt to set attribute after span ended",
+                )
                 return this
             }
             attributes.forEach { (key, value) ->
@@ -192,7 +222,10 @@ internal class MsrSpan(
     override fun removeAttribute(key: String): Span {
         synchronized(lock) {
             if (hasEnded != EndState.NotEnded) {
-                logger.log(LogLevel.Warning, "Attempt to remove attribute after span ended")
+                logger.log(
+                    LogLevel.Error,
+                    "Failed to update span: attempt to set attribute after span ended",
+                )
                 return this
             }
             this.userDefinedAttrs.remove(key)
@@ -219,7 +252,10 @@ internal class MsrSpan(
     private fun endSpanInternal(timestamp: Long) {
         synchronized(lock) {
             if (hasEnded != EndState.NotEnded) {
-                logger.log(LogLevel.Warning, "Attempt to end a span($name) that has already ended")
+                logger.log(
+                    LogLevel.Error,
+                    "Failed to update span: attempt to end and already ended span",
+                )
                 return
             }
             endTime = timestamp
@@ -236,8 +272,8 @@ internal class MsrSpan(
         synchronized(lock) {
             if (hasEnded != EndState.Ended) {
                 logger.log(
-                    LogLevel.Warning,
-                    "Attempt to get duration of a span($name) that has not ended",
+                    LogLevel.Error,
+                    "Failed to get duration of a span($name): span has not ended",
                 )
                 return 0
             } else {
@@ -252,8 +288,8 @@ internal class MsrSpan(
                 attributes[attribute.first] = attribute.second
             } else {
                 logger.log(
-                    LogLevel.Warning,
-                    "Attempt to set attribute to a span($name) has ended",
+                    LogLevel.Error,
+                    "Failed to update span: attempt to set attribute after span ended",
                 )
             }
         }

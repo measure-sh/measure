@@ -71,7 +71,7 @@ internal class MultipartDataFactoryImpl(
 
             else -> {
                 logger.log(
-                    LogLevel.Error,
+                    LogLevel.Debug,
                     "Event packet (id=${eventPacket.eventId}) does not contain serialized data or file path",
                 )
                 null
@@ -105,7 +105,7 @@ internal class MultipartDataFactoryImpl(
     private fun getFileInputStream(filePath: String): InputStream? {
         return fileStorage.getFile(filePath)?.inputStream().also { fileInputStream ->
             if (fileInputStream == null) {
-                logger.log(LogLevel.Error, "No file found at path: $filePath")
+                logger.log(LogLevel.Debug, "No file found at path: $filePath")
             }
         }
     }

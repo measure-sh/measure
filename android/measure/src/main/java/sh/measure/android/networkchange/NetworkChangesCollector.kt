@@ -19,7 +19,6 @@ import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
-import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.TimeProvider
@@ -68,11 +67,6 @@ internal class NetworkChangesCollector(
                     val networkCallback = networkCallback()
                     this.networkCallback = networkCallback
                     connectivityManager.registerDefaultNetworkCallback(networkCallback)
-                } else {
-                    logger.log(
-                        LogLevel.Info,
-                        "ACCESS_NETWORK_STATE permission required to monitor network changes",
-                    )
                 }
             }
 
@@ -87,19 +81,7 @@ internal class NetworkChangesCollector(
                             .addCapability(NET_CAPABILITY_INTERNET).build(),
                         networkCallback,
                     )
-                } else {
-                    logger.log(
-                        LogLevel.Info,
-                        "ACCESS_NETWORK_STATE permission required to monitor network changes",
-                    )
                 }
-            }
-
-            else -> {
-                logger.log(
-                    LogLevel.Info,
-                    "Network change monitoring is not supported on Android versions below M",
-                )
             }
         }
     }

@@ -152,7 +152,6 @@ internal class MeasureInitializerImpl(
     private val idProvider: IdProvider = IdProviderImpl(randomizer),
     override val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
     private val prefsStorage: PrefsStorage = PrefsStorageImpl(
-        logger = logger,
         context = application,
     ),
     private val packageInfoProvider: PackageInfoProviderImpl = PackageInfoProviderImpl(application),
@@ -201,7 +200,6 @@ internal class MeasureInitializerImpl(
         executorServiceRegistry.ioExecutor(),
     ),
     private val deviceAttributeProcessor: DeviceAttributeProcessor = DeviceAttributeProcessor(
-        logger,
         context = application,
         localeProvider = localeProvider,
         osSysConfProvider = osSysConfProvider,
@@ -289,6 +287,7 @@ internal class MeasureInitializerImpl(
         configProvider = configProvider,
     ),
     override val userTriggeredEventCollector: UserTriggeredEventCollector = UserTriggeredEventCollectorImpl(
+        logger = logger,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         processInfoProvider = processInfoProvider,
@@ -413,10 +412,9 @@ internal class MeasureInitializerImpl(
         tracer,
     ),
     override val appLaunchCollector: AppLaunchCollector = AppLaunchCollector(
-        logger = logger,
         application = application,
-        signalProcessor = signalProcessor,
         timeProvider = timeProvider,
+        signalProcessor = signalProcessor,
         launchTracker = launchTracker,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(

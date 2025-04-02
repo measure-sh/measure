@@ -145,7 +145,6 @@ internal class TestMeasureInitializer(
     override val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
     private val prefsStorage: PrefsStorage = PrefsStorageImpl(
         context = application,
-        logger = logger,
     ),
     private val packageInfoProvider: PackageInfoProvider = PackageInfoProviderImpl(application),
     override val sessionManager: SessionManager = SessionManagerImpl(
@@ -188,7 +187,6 @@ internal class TestMeasureInitializer(
         executorServiceRegistry.ioExecutor(),
     ),
     private val deviceAttributeProcessor: DeviceAttributeProcessor = DeviceAttributeProcessor(
-        logger,
         context = application,
         localeProvider = localeProvider,
         osSysConfProvider = osSysConfProvider,
@@ -281,6 +279,7 @@ internal class TestMeasureInitializer(
         configProvider = configProvider,
     ),
     override val userTriggeredEventCollector: UserTriggeredEventCollector = UserTriggeredEventCollectorImpl(
+        logger = logger,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         processInfoProvider = processInfoProvider,
@@ -381,7 +380,6 @@ internal class TestMeasureInitializer(
         tracer,
     ),
     override val appLaunchCollector: AppLaunchCollector = AppLaunchCollector(
-        logger = logger,
         application = application,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
