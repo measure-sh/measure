@@ -575,7 +575,7 @@ object Measure {
             LaunchState.processImportanceOnInit = measure.processInfoProvider.getProcessImportance()
         } catch (e: Throwable) {
             measure.logger.log(
-                LogLevel.Error,
+                LogLevel.Debug,
                 "Failed to get process importance during initialization.",
                 e,
             )

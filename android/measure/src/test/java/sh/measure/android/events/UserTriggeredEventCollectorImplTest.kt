@@ -11,6 +11,7 @@ import org.mockito.kotlin.verify
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeProcessInfoProvider
+import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.utils.AndroidTimeProvider
@@ -18,12 +19,14 @@ import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TestClock
 
 class UserTriggeredEventCollectorImplTest {
+    private val logger = NoopLogger()
     private val signalProcessor: SignalProcessor = mock()
     private val timeProvider = AndroidTimeProvider(TestClock.create())
     private val processInfoProvider: ProcessInfoProvider = FakeProcessInfoProvider()
     private val configProvider = FakeConfigProvider()
 
     private val userTriggeredEventCollector = UserTriggeredEventCollectorImpl(
+        logger,
         signalProcessor,
         timeProvider,
         processInfoProvider,

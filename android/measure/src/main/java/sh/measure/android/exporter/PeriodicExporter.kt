@@ -61,10 +61,6 @@ internal class PeriodicExporterImpl(
 
     private fun exportEvents() {
         if (!isExportInProgress.compareAndSet(false, true)) {
-            logger.log(
-                LogLevel.Debug,
-                "Skipping export operation as another operation is in progress",
-            )
             return
         }
 
@@ -77,7 +73,7 @@ internal class PeriodicExporterImpl(
                 }
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Failed to submit export task to executor", e)
+            logger.log(LogLevel.Debug, "Failed to export events", e)
             isExportInProgress.set(false)
         }
     }
@@ -109,8 +105,6 @@ internal class PeriodicExporterImpl(
                 lastBatchCreationTimeMs = timeProvider.elapsedRealtime
                 exporter.export(batch)
             }
-        } else {
-            logger.log(LogLevel.Debug, "Skipping batch creation as interval hasn't elapsed")
         }
     }
 }

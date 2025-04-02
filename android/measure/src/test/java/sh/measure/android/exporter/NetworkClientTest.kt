@@ -46,7 +46,7 @@ class NetworkClientTest {
 
         clientWithErrorLogger.init(baseUrl = "invalid-url", apiKey = "secret")
 
-        verify(errorLogger).log(eq(LogLevel.Error), eq("Invalid API_URL"), any())
+        verify(errorLogger).log(eq(LogLevel.Error), eq("Failed to send request: invalid API_URL"), any())
     }
 
     @Test

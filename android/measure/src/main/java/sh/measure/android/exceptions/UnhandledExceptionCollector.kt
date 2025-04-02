@@ -27,17 +27,14 @@ internal class UnhandledExceptionCollector(
      * Registers [UnhandledExceptionCollector] as the [UncaughtExceptionHandler].
      */
     fun register() {
-        logger.log(LogLevel.Debug, "Registering exception handler")
         Thread.setDefaultUncaughtExceptionHandler(this)
     }
 
     fun unregister() {
-        logger.log(LogLevel.Debug, "Unregistering exception handler")
         Thread.setDefaultUncaughtExceptionHandler(originalHandler)
     }
 
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
-        logger.log(LogLevel.Debug, "Unhandled exception received")
         try {
             signalProcessor.trackCrash(
                 timestamp = timeProvider.now(),
@@ -51,7 +48,7 @@ internal class UnhandledExceptionCollector(
             )
         } catch (e: Throwable) {
             // Prevent an infinite loop of exceptions if the above code fails.
-            logger.log(LogLevel.Error, "Failed to track exception", e)
+            logger.log(LogLevel.Debug, "Failed to track unhandled exception", e)
         } finally {
             // Call the original handler so that we do not swallow any exceptions.
             originalHandler?.uncaughtException(thread, throwable)

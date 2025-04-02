@@ -16,8 +16,5 @@ internal interface Logger {
  */
 internal enum class LogLevel {
     Debug,
-    Info,
-    Warning,
     Error,
-    Fatal,
 }

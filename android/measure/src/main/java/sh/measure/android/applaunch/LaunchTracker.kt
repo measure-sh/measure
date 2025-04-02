@@ -204,10 +204,7 @@ internal class LaunchTracker(
                             intent_data = onCreateRecord.intentData,
                         ),
                     )
-                } ?: logger.log(
-                    LogLevel.Error,
-                    "lastAppVisibleTime is null, cannot calculate hot launch time",
-                )
+                }
             }
 
             "Warm" -> {
@@ -243,17 +240,13 @@ internal class LaunchTracker(
             }
 
             else -> {
-                logger.log(LogLevel.Error, "Unknown launch type: $launchType")
+                logger.log(LogLevel.Debug, "Unknown launch type: $launchType")
             }
         }
     }
 
     private fun appMightBecomeVisible() {
         LaunchState.lastAppVisibleElapsedRealtime = timeProvider.elapsedRealtime
-        logger.log(
-            LogLevel.Debug,
-            "Updated last app visible time: ${LaunchState.lastAppVisibleElapsedRealtime}",
-        )
     }
 
     private fun computeLaunchType(onCreateRecord: OnCreateRecord): String {

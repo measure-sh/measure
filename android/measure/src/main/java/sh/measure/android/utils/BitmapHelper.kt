@@ -51,22 +51,22 @@ internal object BitmapHelper {
         screenshotMaskConfig: ScreenshotMaskConfig? = null,
     ): Bitmap? {
         val window = activity.window ?: run {
-            logger.log(LogLevel.Debug, "Unable to take screenshot, window is null.")
+            logger.log(LogLevel.Debug, "Failed to take screenshot, window is null")
             return null
         }
 
         val decorView = window.peekDecorView() ?: run {
-            logger.log(LogLevel.Debug, "Unable to take screenshot, decor view is null.")
+            logger.log(LogLevel.Debug, "Failed to take screenshot, decor view is null")
             return null
         }
 
         val view = decorView.rootView ?: run {
-            logger.log(LogLevel.Debug, "Unable to take screenshot, root view is null.")
+            logger.log(LogLevel.Debug, "Failed to take screenshot, root view is null")
             return null
         }
 
         if (view.width <= 0 || view.height <= 0) {
-            logger.log(LogLevel.Debug, "Unable to take screenshot, invalid view bounds.")
+            logger.log(LogLevel.Debug, "Failed to take screenshot, invalid view bounds")
             return null
         }
 
@@ -117,14 +117,14 @@ internal object BitmapHelper {
                 }
 
                 if (byteArrayOutputStream.size() <= 0) {
-                    logger.log(LogLevel.Debug, "Screenshot is 0 bytes, discarding")
+                    logger.log(LogLevel.Debug, "Failed to take screenshot: resulting byte array is empty")
                     return null
                 }
 
                 Pair(extension, byteArrayOutputStream.toByteArray())
             }
         } catch (e: Throwable) {
-            logger.log(LogLevel.Error, "Failed to take screenshot, compression failed", e)
+            logger.log(LogLevel.Debug, "Failed to take screenshot: compression failed", e)
             null
         }
     }
@@ -151,7 +151,7 @@ internal object BitmapHelper {
                         }
                     }
                 } else {
-                    logger.log(LogLevel.Error, "PixelCopy request failed with result: $copyResult")
+                    logger.log(LogLevel.Debug, "Failed to take screenshot using PixelCopy, result: $copyResult")
                 }
                 latch.countDown()
             }, handler)
@@ -159,7 +159,7 @@ internal object BitmapHelper {
             latch.await(PIXEL_COPY_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             pixelCopyResult
         } catch (e: Throwable) {
-            logger.log(LogLevel.Error, "Failed to take screenshot using PixelCopy", e)
+            logger.log(LogLevel.Debug, "Failed to take screenshot using PixelCopy", e)
             null
         } finally {
             thread.quitSafely()
@@ -192,7 +192,7 @@ internal object BitmapHelper {
                 }
             }
         } catch (e: Throwable) {
-            logger.log(LogLevel.Error, "Failed to take screenshot using canvas", e)
+            logger.log(LogLevel.Debug, "Failed to take screenshot using canvas", e)
         }
         return bitmap
     }

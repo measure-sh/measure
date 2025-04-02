@@ -39,10 +39,6 @@ internal class ExporterImpl(
 
     override fun export(batch: Batch): HttpResponse? {
         if (batchIdsInTransit.contains(batch.batchId)) {
-            logger.log(
-                LogLevel.Warning,
-                "Batch ${batch.batchId} is already in transit, skipping export",
-            )
             return null
         }
         batchIdsInTransit.add(batch.batchId)
@@ -52,12 +48,16 @@ internal class ExporterImpl(
             if (events.isEmpty() && spans.isEmpty()) {
                 // shouldn't happen, but just in case it does we'd like to know.
                 logger.log(
-                    LogLevel.Error,
-                    "No events or spans found for batch ${batch.batchId}, invalid export request",
+                    LogLevel.Debug,
+                    "Invalid export request: no events or spans found for batch",
                 )
                 return null
             }
             val attachments = database.getAttachmentPackets(batch.eventIds)
+            logger.log(
+                LogLevel.Debug,
+                "Exporting batch ${batch.batchId} with ${events.size} events and ${spans.size} spans"
+            )
             val response = networkClient.execute(batch.batchId, events, attachments, spans)
             handleBatchProcessingResult(response, batch.batchId, events, spans, attachments)
             return response
@@ -84,23 +84,35 @@ internal class ExporterImpl(
     ) {
         when (response) {
             is HttpResponse.Success -> {
+                logger.log(LogLevel.Debug, "Successfully exported batch $batchId")
                 deleteBatch(events, spans, attachments, batchId)
-                logger.log(
-                    LogLevel.Debug,
-                    "Successfully sent batch $batchId",
-                )
             }
 
             is HttpResponse.Error.ClientError -> {
                 deleteBatch(events, spans, attachments, batchId)
                 logger.log(
-                    LogLevel.Error,
-                    "Client error while sending batch $batchId, dropping the batch",
+                    LogLevel.Debug,
+                    "Failed to export batch $batchId, response code: ${response.code}"
+                )
+            }
+
+            is HttpResponse.Error.ServerError -> {
+                logger.log(
+                    LogLevel.Debug,
+                    "Failed to export batch $batchId, response code: ${response.code}"
+                )
+            }
+
+            is HttpResponse.Error.UnknownError -> {
+                logger.log(
+                    LogLevel.Debug,
+                    "Failed to export batch $batchId",
+                    response.exception
                 )
             }
 
             else -> {
-                logger.log(LogLevel.Error, "Failed to send batch $batchId")
+                // No-op
             }
         }
     }

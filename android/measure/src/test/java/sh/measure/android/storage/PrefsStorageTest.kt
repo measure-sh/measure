@@ -8,7 +8,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import sh.measure.android.RecentSession
-import sh.measure.android.fakes.NoopLogger
 import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
@@ -19,7 +18,7 @@ class PrefsStorageTest {
     @Before
     fun setUp() {
         prefsStorage =
-            PrefsStorageImpl(NoopLogger(), InstrumentationRegistry.getInstrumentation().context)
+            PrefsStorageImpl(InstrumentationRegistry.getInstrumentation().context)
     }
 
     @Test

@@ -95,7 +95,6 @@ internal class SessionManagerImpl(
         currentSession = when {
             recentSession != null && shouldContinue(recentSession) -> {
                 updateSessionPid(recentSession.id, processInfo.getPid(), recentSession.createdAt)
-                logger.log(LogLevel.Debug, "Continuing previous session ${recentSession.id}")
                 recentSession
             }
 
@@ -181,16 +180,15 @@ internal class SessionManagerImpl(
                 )
                 if (success) {
                     prefs.setRecentSession(session)
-                    logger.log(LogLevel.Debug, "New session created: $session.sessionId")
                 } else {
                     logger.log(
-                        LogLevel.Error,
-                        "Unable to store session, all events will be discarded",
+                        LogLevel.Debug,
+                        "Failed to store session",
                     )
                 }
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Unable to store session, all events will be discarded", e)
+            logger.log(LogLevel.Debug, "Failed to store session", e)
         }
     }
 
@@ -205,7 +203,7 @@ internal class SessionManagerImpl(
                 )
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Unable to update session", e)
+            logger.log(LogLevel.Debug, "Failed to update session", e)
         }
     }
 

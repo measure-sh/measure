@@ -58,7 +58,6 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private var startLock = Any()
 
     fun init() {
-        logger.log(LogLevel.Debug, "Starting Measure SDK")
         manifestReader.load()?.let {
             if (it.url == null) {
                 logger.log(
@@ -80,12 +79,24 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
             configProvider.setMeasureUrl(it.url)
             networkClient.init(baseUrl = it.url, apiKey = it.apiKey)
         }
+
+        // initialize a session
         sessionManager.init()
-        registerCallbacks()
-        registerAlwaysOnCollectors()
+
+        // setup lifecycle state
+        appLifecycleManager.addListener(this)
+        resumedActivityProvider.register()
+        appLifecycleManager.register()
+
+        // always collect app launch events
+        appLaunchCollector.register()
+
+        // start SDK
         if (configProvider.autoStart) {
             start()
         }
+
+        logger.log(LogLevel.Debug, "Initialization complete")
     }
 
     fun start() {
@@ -93,6 +104,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
             if (!isStarted) {
                 registerCollectors()
                 isStarted = true
+                logger.log(LogLevel.Debug, "Started")
             }
         }
     }
@@ -102,18 +114,9 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
             if (isStarted) {
                 unregisterCollectors()
                 isStarted = false
+                logger.log(LogLevel.Debug, "Stopped")
             }
         }
-    }
-
-    private fun registerAlwaysOnCollectors() {
-        resumedActivityProvider.register()
-        appLaunchCollector.register()
-        appLifecycleManager.register()
-    }
-
-    private fun registerCallbacks() {
-        appLifecycleManager.addListener(this)
     }
 
     private fun registerCollectors() {
@@ -277,6 +280,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
 
     fun disableShakeToLaunchBugReport() {
         shakeBugReportCollector.disableAutoLaunch()
+
     }
 
     fun setShakeListener(shakeListener: MsrShakeListener?) {

@@ -227,7 +227,7 @@ internal class DatabaseImpl(
             db.execSQL(Sql.CREATE_SESSIONS_CREATED_AT_INDEX)
             db.execSQL(Sql.CREATE_SESSIONS_NEEDS_REPORTING_INDEX)
         } catch (e: SQLiteException) {
-            logger.log(LogLevel.Error, "Failed to create database", e)
+            logger.log(LogLevel.Debug, "Failed to create database", e)
         }
     }
 
@@ -263,7 +263,7 @@ internal class DatabaseImpl(
 
             val result = writableDatabase.insert(EventTable.TABLE_NAME, null, values)
             if (result == -1L) {
-                logger.log(LogLevel.Error, "Failed to insert event = ${event.type}")
+                logger.log(LogLevel.Debug, "Failed to insert event ${event.type}")
                 return false // Rollback the transaction if event insertion fails
             }
 
@@ -281,8 +281,8 @@ internal class DatabaseImpl(
                     writableDatabase.insert(AttachmentTable.TABLE_NAME, null, attachmentValues)
                 if (attachmentResult == -1L) {
                     logger.log(
-                        LogLevel.Error,
-                        "Failed to insert attachment ${attachment.type} for event = ${event.type}",
+                        LogLevel.Debug,
+                        "Failed to insert attachment(${attachment.type}) for event(${event.type})",
                     )
                     return false // Rollback the transaction if attachment insertion fails
                 }
@@ -295,8 +295,8 @@ internal class DatabaseImpl(
             // This can happen for exceptions/ANRs as they are written to the db on main thread,
             // while session insertion happens in background.
             logger.log(
-                LogLevel.Error,
-                "Failed to insert event ${event.type} for session ${event.sessionId}",
+                LogLevel.Debug,
+                "Failed to insert event(${event.type}) for session(${event.sessionId})",
                 e,
             )
             return false
@@ -362,7 +362,7 @@ internal class DatabaseImpl(
                 batches,
             )
             if (batchesInsertResult == -1L) {
-                logger.log(LogLevel.Error, "Failed to insert batch = ${batchEntity.batchId}")
+                logger.log(LogLevel.Debug, "Failed to insert batch(${batchEntity.batchId})")
                 return false
             }
             batchEntity.spanIds.forEach { spanId ->
@@ -373,7 +373,7 @@ internal class DatabaseImpl(
                 }
                 val result = writableDatabase.insert(SpansBatchTable.TABLE_NAME, null, spanBatches)
                 if (result == -1L) {
-                    logger.log(LogLevel.Error, "Failed to insert batched span = $spanId")
+                    logger.log(LogLevel.Debug, "Failed to insert span($spanId)")
                     return false
                 }
             }
@@ -386,7 +386,7 @@ internal class DatabaseImpl(
                 val result =
                     writableDatabase.insert(EventsBatchTable.TABLE_NAME, null, eventBatches)
                 if (result == -1L) {
-                    logger.log(LogLevel.Error, "Failed to insert batched event = $eventId")
+                    logger.log(LogLevel.Debug, "Failed to insert event($eventId)")
                     return false
                 }
             }
@@ -547,7 +547,7 @@ internal class DatabaseImpl(
             }
 
             if (batchesDeleteResult == 0 || eventsDeleteResult == 0 || spansDeleteResult == 0) {
-                logger.log(LogLevel.Error, "Failed to delete batch, $batchId")
+                logger.log(LogLevel.Debug, "Failed to delete batch($batchId)")
                 return
             }
             writableDatabase.setTransactionSuccessful()
@@ -643,13 +643,13 @@ internal class DatabaseImpl(
             val sessionsResult =
                 writableDatabase.insert(SessionsTable.TABLE_NAME, null, sessionValues)
             if (sessionsResult == -1L || appExitResult == -1L) {
-                logger.log(LogLevel.Error, "Failed to insert session ${session.sessionId}")
+                logger.log(LogLevel.Debug, "Failed to insert session(${session.sessionId})")
                 return false
             }
             writableDatabase.setTransactionSuccessful()
             return true
         } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Failed to insert session ${session.sessionId}", e)
+            logger.log(LogLevel.Debug, "Failed to insert session(${session.sessionId})", e)
             return false
         } finally {
             writableDatabase.endTransaction()
@@ -691,14 +691,14 @@ internal class DatabaseImpl(
                 0
             }
 
-            if (appExitResult < 0 || sessionResult <= 0) {
-                logger.log(LogLevel.Error, "Unable to update session $sessionId")
+            if (sessionResult <= 0) {
+                logger.log(LogLevel.Debug, "Failed to update session($sessionId)")
                 return false
             }
             writableDatabase.setTransactionSuccessful()
             return true
         } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Unable to update session $sessionId", e)
+            logger.log(LogLevel.Debug, "Failed to update session($sessionId)", e)
             return false
         } finally {
             writableDatabase.endTransaction()
@@ -718,7 +718,7 @@ internal class DatabaseImpl(
             sessionIds.toTypedArray(),
         )
         if (result == 0) {
-            logger.log(LogLevel.Error, "Failed to delete sessions")
+            logger.log(LogLevel.Debug, "Failed to delete sessions")
         }
         return result != 0
     }
@@ -951,7 +951,7 @@ internal class DatabaseImpl(
             writableDatabase.setTransactionSuccessful()
             return true
         } catch (e: SQLiteException) {
-            logger.log(LogLevel.Error, "Failed to insert signals", e)
+            logger.log(LogLevel.Debug, "Failed to insert signals", e)
             return false
         } finally {
             writableDatabase.endTransaction()
@@ -989,12 +989,11 @@ internal class DatabaseImpl(
     }
 
     override fun clearAppExitSessionsBefore(timestamp: Long) {
-        val result = writableDatabase.delete(
+        writableDatabase.delete(
             AppExitTable.TABLE_NAME,
             "${AppExitTable.COL_CREATED_AT} <= ?",
             arrayOf(timestamp.toString()),
         )
-        logger.log(LogLevel.Debug, "Cleared $result app_exit rows")
     }
 
     override fun insertSpan(spanEntity: SpanEntity): Boolean {

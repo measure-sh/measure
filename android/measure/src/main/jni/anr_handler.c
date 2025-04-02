@@ -294,7 +294,6 @@ bool msr_enable_anr_handler(JNIEnv *env, jobject bridge) {
 
     is_anr_handler_enabled = true;
     pthread_mutex_unlock(&anr_handler_lock);
-    MSR_LOGD("ANR handler enabled");
     return true;
 }
 
@@ -302,5 +301,4 @@ void msr_disable_anr_handler(void) {
     pthread_mutex_lock(&anr_handler_lock);
     is_anr_handler_enabled = false;
     pthread_mutex_unlock(&anr_handler_lock);
-    MSR_LOGD("ANR handler disabled");
 }

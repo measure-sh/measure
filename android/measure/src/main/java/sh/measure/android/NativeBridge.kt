@@ -49,10 +49,6 @@ internal class NativeBridgeImpl(private val logger: Logger) : NativeBridge {
      */
     override fun enableAnrReporting(anrListener: AnrListener): Boolean {
         if (this.anrListener != null) {
-            logger.log(
-                LogLevel.Warning,
-                "Attempt to enable ANR reporting when it's already enabled",
-            )
             return true
         }
         val success = try {
@@ -60,11 +56,7 @@ internal class NativeBridgeImpl(private val logger: Logger) : NativeBridge {
         } catch (e: Throwable) {
             // Catch all exceptions to prevent the app from crashing if the native code fails
             // or the native library fails to load.
-            logger.log(
-                LogLevel.Error,
-                "Failed to enable ANR reporting, ANR detection will not work.",
-                e,
-            )
+            logger.log(LogLevel.Debug, "Failed to enable ANR reporting", e)
             false
         }
 
@@ -80,7 +72,7 @@ internal class NativeBridgeImpl(private val logger: Logger) : NativeBridge {
     override fun disableAnrReporting() {
         if (anrListener == null) {
             logger.log(
-                LogLevel.Warning,
+                LogLevel.Debug,
                 "Attempt to disable ANR reporting when it's already disabled",
             )
             return

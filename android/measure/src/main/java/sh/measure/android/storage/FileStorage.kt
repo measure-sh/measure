@@ -90,7 +90,7 @@ internal class FileStorageImpl(
         try {
             file.writeText(serializedData)
         } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Error writing serialized event data to file", e)
+            logger.log(LogLevel.Debug, "Failed to write event data to file", e)
             deleteFileIfExists(file)
             return null
         }
@@ -103,7 +103,7 @@ internal class FileStorageImpl(
             file.writeBytes(bytes)
             file.path
         } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Error writing attachment to file", e)
+            logger.log(LogLevel.Debug, "Failed to write attachment to file", e)
             deleteFileIfExists(file)
             null
         }
@@ -170,7 +170,7 @@ internal class FileStorageImpl(
                 rootDir.mkdirs()
             }
         } catch (e: SecurityException) {
-            logger.log(LogLevel.Error, "Unable to create file with id=$id", e)
+            logger.log(LogLevel.Debug, "Failed to create file", e)
             return null
         }
 
@@ -182,7 +182,7 @@ internal class FileStorageImpl(
                 file.createNewFile()
             }
         } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Error creating file with id=$id", e)
+            logger.log(LogLevel.Debug, "Failed to create file", e)
             return null
         }
 

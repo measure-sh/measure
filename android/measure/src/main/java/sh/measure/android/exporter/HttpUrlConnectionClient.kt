@@ -60,7 +60,7 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
         try {
             connection = createConnection(url, method, headers)
             val outputStream = getOutputStream(connection)
-            logger.log(LogLevel.Debug, "Request: $method $url")
+            logger.log(LogLevel.Debug, "Sending request to measure: $url")
             streamMultipartData(outputStream, multipartData)
             if (isRedirect(connection.responseCode)) {
                 val location = connection.getHeaderField("Location")
@@ -77,7 +77,6 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
             }
             return processResponse(connection)
         } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Failed to send request", e)
             return HttpResponse.Error.UnknownError(e)
         } finally {
             connection?.disconnect()
@@ -209,15 +208,12 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
                 }
             }
         } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Error reading response: ${e.message}")
             null
         }
     }
 
     private fun processResponse(connection: HttpURLConnection): HttpResponse {
-        val body = getResponseBody(connection)?.also {
-            logger.log(LogLevel.Info, "Response: $it")
-        }
+        val body = getResponseBody(connection)
         return when (val responseCode = connection.responseCode) {
             in 200..299 -> HttpResponse.Success(body = body)
             429 -> HttpResponse.Error.RateLimitError(body = body)
