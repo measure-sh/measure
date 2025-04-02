@@ -265,7 +265,8 @@ Measure.stop()
 ```
 
 > [!IMPORTANT]
-> Some SDK instrumentation remains active even when stopped. This is to maintain state and ensure seamless data collection when it is started. However, no actual data is collected or sent to the server when the SDK is stopped.
+> Some SDK instrumentation remains active even when stopped. This is to maintain state and ensure seamless data collection when it is started. 
+> Additonally, cold, warm & hot launch events are also always captured. However, no data is sent to the server until the SDK is started.
 
 # Features
 
