@@ -325,7 +325,7 @@ internal class SignalProcessorTest {
             sessionId = sessionId,
             appVersion = appVersion,
             appBuild = appBuild,
-            threadName = "thread-name"
+            threadName = "thread-name",
         )
 
         // Then

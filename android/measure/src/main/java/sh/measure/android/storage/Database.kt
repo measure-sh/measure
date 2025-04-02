@@ -936,7 +936,7 @@ internal class DatabaseImpl(
                     put(SpansTable.COL_SERIALIZED_ATTRS, span.serializedAttributes)
                     put(
                         SpansTable.COL_SERIALIZED_USER_DEFINED_ATTRS,
-                        span.serializedUserDefinedAttrs
+                        span.serializedUserDefinedAttrs,
                     )
                     put(SpansTable.COL_SERIALIZED_SPAN_EVENTS, span.serializedCheckpoints)
                     put(SpansTable.COL_SAMPLED, span.sampled)
@@ -983,7 +983,7 @@ internal class DatabaseImpl(
                 createdAt = createdAt,
                 pid = pid,
                 appVersion = appVersion,
-                appBuild = appBuild
+                appBuild = appBuild,
             )
         }
     }

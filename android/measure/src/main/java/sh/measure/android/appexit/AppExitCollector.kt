@@ -53,7 +53,7 @@ internal class AppExitCollector(
                             sessionId = session.id,
                             appVersion = session.appVersion,
                             appBuild = session.appBuild,
-                            threadName = Thread.currentThread().name
+                            threadName = Thread.currentThread().name,
                         )
                         logger.log(LogLevel.Debug, "Tracked app_exit: $appExit")
                         if (isReasonCrashOrAnr(appExit)) {
