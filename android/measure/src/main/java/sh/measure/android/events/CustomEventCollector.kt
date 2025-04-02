@@ -74,7 +74,7 @@ internal class CustomEventCollector(
         if (attributes.size > configProvider.maxUserDefinedAttributesPerEvent) {
             logger.log(
                 LogLevel.Error,
-                "Invalid event($name): exceeds maximum of ${configProvider.maxUserDefinedAttributesPerEvent} attributes"
+                "Invalid event($name): exceeds maximum of ${configProvider.maxUserDefinedAttributesPerEvent} attributes",
             )
             return false
         }

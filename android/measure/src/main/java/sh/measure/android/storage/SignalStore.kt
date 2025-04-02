@@ -273,7 +273,7 @@ internal class SignalStoreImpl(
                 else -> {
                     logger.log(
                         LogLevel.Debug,
-                        "Failed to store attachment: neither path nor bytes are available"
+                        "Failed to store attachment: neither path nor bytes are available",
                     )
                     null
                 }

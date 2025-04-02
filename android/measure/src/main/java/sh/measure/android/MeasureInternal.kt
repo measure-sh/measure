@@ -280,7 +280,6 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
 
     fun disableShakeToLaunchBugReport() {
         shakeBugReportCollector.disableAutoLaunch()
-
     }
 
     fun setShakeListener(shakeListener: MsrShakeListener?) {

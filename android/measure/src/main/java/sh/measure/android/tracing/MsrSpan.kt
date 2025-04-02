@@ -80,7 +80,7 @@ internal class MsrSpan(
             if (hasEnded != EndState.NotEnded) {
                 logger.log(
                     LogLevel.Error,
-                    "Failed to update span: attempt to set status after span ended"
+                    "Failed to update span: attempt to set status after span ended",
                 )
                 return this
             }
@@ -94,7 +94,7 @@ internal class MsrSpan(
             if (hasEnded != EndState.NotEnded) {
                 logger.log(
                     LogLevel.Error,
-                    "Failed to update span: attempt to set parent after span ended"
+                    "Failed to update span: attempt to set parent after span ended",
                 )
                 return this
             }
@@ -109,7 +109,7 @@ internal class MsrSpan(
             if (hasEnded != EndState.NotEnded) {
                 logger.log(
                     LogLevel.Error,
-                    "Failed to update span: attempt to set checkpoint after span ended"
+                    "Failed to update span: attempt to set checkpoint after span ended",
                 )
                 return this
             }
@@ -124,7 +124,7 @@ internal class MsrSpan(
             if (hasEnded != EndState.NotEnded) {
                 logger.log(
                     LogLevel.Error,
-                    "Failed to update span: attempt to set name after span ended"
+                    "Failed to update span: attempt to set name after span ended",
                 )
                 return this
             }
@@ -138,7 +138,7 @@ internal class MsrSpan(
             if (hasEnded != EndState.NotEnded) {
                 logger.log(
                     LogLevel.Error,
-                    "Failed to update span: attempt to set attribute after span ended"
+                    "Failed to update span: attempt to set attribute after span ended",
                 )
                 return this
             }
@@ -152,7 +152,7 @@ internal class MsrSpan(
             if (hasEnded != EndState.NotEnded) {
                 logger.log(
                     LogLevel.Error,
-                    "Failed to update span: attempt to set attribute after span ended"
+                    "Failed to update span: attempt to set attribute after span ended",
                 )
                 return this
             }
@@ -166,7 +166,7 @@ internal class MsrSpan(
             if (hasEnded != EndState.NotEnded) {
                 logger.log(
                     LogLevel.Error,
-                    "Failed to update span: attempt to set attribute after span ended"
+                    "Failed to update span: attempt to set attribute after span ended",
                 )
                 return this
             }
@@ -180,7 +180,7 @@ internal class MsrSpan(
             if (hasEnded != EndState.NotEnded) {
                 logger.log(
                     LogLevel.Error,
-                    "Failed to update span: attempt to set attribute after span ended"
+                    "Failed to update span: attempt to set attribute after span ended",
                 )
                 return this
             }
@@ -194,7 +194,7 @@ internal class MsrSpan(
             if (hasEnded != EndState.NotEnded) {
                 logger.log(
                     LogLevel.Error,
-                    "Failed to update span: attempt to set attribute after span ended"
+                    "Failed to update span: attempt to set attribute after span ended",
                 )
                 return this
             }
@@ -208,7 +208,7 @@ internal class MsrSpan(
             if (hasEnded != EndState.NotEnded) {
                 logger.log(
                     LogLevel.Error,
-                    "Failed to update span: attempt to set attribute after span ended"
+                    "Failed to update span: attempt to set attribute after span ended",
                 )
                 return this
             }
@@ -224,7 +224,7 @@ internal class MsrSpan(
             if (hasEnded != EndState.NotEnded) {
                 logger.log(
                     LogLevel.Error,
-                    "Failed to update span: attempt to set attribute after span ended"
+                    "Failed to update span: attempt to set attribute after span ended",
                 )
                 return this
             }
@@ -254,7 +254,7 @@ internal class MsrSpan(
             if (hasEnded != EndState.NotEnded) {
                 logger.log(
                     LogLevel.Error,
-                    "Failed to update span: attempt to end and already ended span"
+                    "Failed to update span: attempt to end and already ended span",
                 )
                 return
             }
@@ -289,7 +289,7 @@ internal class MsrSpan(
             } else {
                 logger.log(
                     LogLevel.Error,
-                    "Failed to update span: attempt to set attribute after span ended"
+                    "Failed to update span: attempt to set attribute after span ended",
                 )
             }
         }

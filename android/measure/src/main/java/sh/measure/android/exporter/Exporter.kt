@@ -56,7 +56,7 @@ internal class ExporterImpl(
             val attachments = database.getAttachmentPackets(batch.eventIds)
             logger.log(
                 LogLevel.Debug,
-                "Exporting batch ${batch.batchId} with ${events.size} events and ${spans.size} spans"
+                "Exporting batch ${batch.batchId} with ${events.size} events and ${spans.size} spans",
             )
             val response = networkClient.execute(batch.batchId, events, attachments, spans)
             handleBatchProcessingResult(response, batch.batchId, events, spans, attachments)
@@ -92,14 +92,14 @@ internal class ExporterImpl(
                 deleteBatch(events, spans, attachments, batchId)
                 logger.log(
                     LogLevel.Debug,
-                    "Failed to export batch $batchId, response code: ${response.code}"
+                    "Failed to export batch $batchId, response code: ${response.code}",
                 )
             }
 
             is HttpResponse.Error.ServerError -> {
                 logger.log(
                     LogLevel.Debug,
-                    "Failed to export batch $batchId, response code: ${response.code}"
+                    "Failed to export batch $batchId, response code: ${response.code}",
                 )
             }
 
@@ -107,7 +107,7 @@ internal class ExporterImpl(
                 logger.log(
                     LogLevel.Debug,
                     "Failed to export batch $batchId",
-                    response.exception
+                    response.exception,
                 )
             }
 
