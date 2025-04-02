@@ -44,7 +44,7 @@ CREATE TABLE events_batch (
 CREATE TABLE app_exit (
             session_id TEXT NOT NULL,
             pid INTEGER NOT NULL,
-            created_at INTEGER NOT NULL,
+            created_at INTEGER NOT NULL, app_build TEXT DEFAULT NULL, app_version TEXT DEFAULT NULL,
             PRIMARY KEY (session_id, pid)
         );
 CREATE TABLE spans (
