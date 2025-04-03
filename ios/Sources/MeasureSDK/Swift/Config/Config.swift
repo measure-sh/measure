@@ -17,6 +17,7 @@ import Foundation
 struct Config: InternalConfig, MeasureConfig {
     let enableLogging: Bool
     let samplingRateForErrorFreeSessions: Float
+    let traceSamplingRate: Float
     let eventsBatchingIntervalMs: Number
     let sessionEndLastEventThresholdMs: Number
     let longPressTimeout: TimeInterval
@@ -47,6 +48,7 @@ struct Config: InternalConfig, MeasureConfig {
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
+                  traceSamplingRate: Float = DefaultConfig.traceSamplingRate,
                   trackHttpHeaders: Bool = DefaultConfig.trackHttpHeaders,
                   trackHttpBody: Bool = DefaultConfig.trackHttpBody,
                   httpHeadersBlocklist: [String] = DefaultConfig.httpHeadersBlocklist,
@@ -55,6 +57,7 @@ struct Config: InternalConfig, MeasureConfig {
                   autoStart: Bool = DefaultConfig.enableLogging) {
         self.enableLogging = enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
+        self.traceSamplingRate = traceSamplingRate
         self.trackHttpHeaders = trackHttpHeaders
         self.trackHttpBody = trackHttpBody
         self.httpHeadersBlocklist = httpHeadersBlocklist
