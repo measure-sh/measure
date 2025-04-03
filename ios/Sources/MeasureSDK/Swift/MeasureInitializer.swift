@@ -165,6 +165,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
          client: Client) {
         let defaultConfig = Config(enableLogging: config.enableLogging,
                                    samplingRateForErrorFreeSessions: config.samplingRateForErrorFreeSessions,
+                                   traceSamplingRate: config.traceSamplingRate,
                                    trackHttpHeaders: config.trackHttpHeaders,
                                    trackHttpBody: config.trackHttpBody,
                                    httpHeadersBlocklist: config.httpHeadersBlocklist,

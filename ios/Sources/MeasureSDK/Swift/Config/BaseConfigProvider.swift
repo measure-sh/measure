@@ -33,6 +33,10 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var traceSamplingRate: Float {
+        return getMergedConfig(\.traceSamplingRate)
+    }
+
     var trackHttpHeaders: Bool {
         return getMergedConfig(\.trackHttpHeaders)
     }
