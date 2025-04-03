@@ -40,12 +40,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Prepare android gradle plugin release 0.8.0 (#1989)
 - (**android**): Add platform to builds API request (#1986)
 
-## [v0.6.1] - 2025-03-28
+## [0.6.1] - 2025-03-28
 
 ### :bug: Bug fixes
 - (**backend**): Broken builds api for older android sdks (#1984)
 
-## [v0.6.0] - 2025-03-27
+## [0.6.0] - 2025-03-27
 ### :sparkles: New features
 - (**frontend**): Update bug report details desc text size
 - (**frontend**): Adjust bug report table text sizes
@@ -121,7 +121,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 - (**android**): Prepare sdk release 0.9.0
 
-## [v0.5.0] - 2025-01-06
+## [0.5.0] - 2025-01-06
 ### :sparkles: New features
 - (**frontend**): Add memory usage absolute plot in session timeline (#1625)
 - (**frontend**): Make whole checkbox container clickable in dropdown select component
@@ -195,14 +195,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Document short filters api (#1552)
 - (**backend**): Document rename app api (#1547)
 
-## [v0.4.1] - 2024-11-11
+## [0.4.1] - 2024-11-11
 
 ### :bug: Bug fixes
 - (**backend**): Use specific clickhouse image version (#1517)
 ### :books: Documentation
 - (**backend**): Fix typos and missing info (#1513)
 
-## [v0.4.0] - 2024-11-07
+## [0.4.0] - 2024-11-07
 ### :bug: Bug fixes
 - (**frontend**): Handle no data case for sessions list
 - (**frontend**): Truncate matched free text
@@ -228,7 +228,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Always collect events required for journey
 - (**android**): Change default sampling rate to 0
 
-## [v0.3.0] - 2024-11-01
+## [0.3.0] - 2024-11-01
 ### :sparkles: New features
 - (**frontend**): Replace exception detail journey with attr distribution plot
 ### :bug: Bug fixes
@@ -268,7 +268,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :recycle: Refactor
 - (**android**): Use monotonic clock to get time
 
-## [v0.2.1] - 2024-09-25
+## [0.2.1] - 2024-09-25
 ### :bug: Bug fixes
 - (**frontend**): Add option to handle no data & not onboarded in filters
 
@@ -283,7 +283,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 - (**android**): Prepare sdk release 0.7.0
 
-## [v0.2.0] - 2024-09-24
+## [0.2.0] - 2024-09-24
 ### :sparkles: New features
 - (**frontend**): Add custom error page
 - (**frontend**): Add custom 404 page
@@ -340,12 +340,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Replace throw with a error log
 - (**android**): Fix potential exception in launch tracker
 
-## [v0.1.1] - 2024-08-31
+## [0.1.1] - 2024-08-31
 
 ### :bug: Bug fixes
 - (**backend**): Handle no selected versions for app journey & metrics
 
-## [v0.1.0] - 2024-08-30
+## [0.1.0] - 2024-08-30
 ### :sparkles: New features
 - (**frontend**): Add "Copy AI context" button
 ### :hammer: Misc
@@ -374,7 +374,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 - (**android**): Prepare sdk release 0.5.0
 
-## [v0.0.1] - 2024-08-19
+## [0.0.1] - 2024-08-19
 ### :bug: Bug fixes
 - (**frontend**): Use node env for auth.ts jest test
 ### :hammer: Misc

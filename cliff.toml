@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # https://keats.github.io/tera/docs/#introduction
 body = """
 {% if version -%}
-    ## [{{ version }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+    ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
 {% else -%}
     ## [Unreleased]
 {% endif -%}\n
@@ -45,7 +45,7 @@ body = """
     {% endfor %}
 {% endif -%}
 
-{% if version and version is starting_with("v") -%}
+{% if version and version is starting_with("v")  -%}
      {% for group, commits in commits | filter(attribute="merge_commit", value=false) | filter(attribute="scope", value="backend") | group_by(attribute="group") -%}
         {% if commits|length > 0 %}### {{ group | striptags | trim | upper_first }}\n{% endif -%}
         {% for commit in commits -%}
