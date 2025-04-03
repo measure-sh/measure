@@ -46,34 +46,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Broken builds api for older android sdks (#1984)
 
 ## [v0.6.0] - 2025-03-27
-### :bug: Bug fixes
-- (**ios**): Skip sdk initialisation if api key or api url is invalid (#1970)
-- (**ios**): Update in_app generation logic (#1885)
-- (**ios**): Update long press timeout (#1801)
-### :hammer: Misc
-- (**ios**): Add http event configurations to measure config (#1980)
-- (**ios**): Log error messages when upload dsym script fails (#1975)
-- (**ios**): Create new session if build number or app version is updated (#1972)
-- (**ios**): Rename MeasureSDK to Measure (#1957)
-- (**ios**): Update plcrashreporter config (#1938)
-- (**ios**): Remove fatal errors (#1932)
-- (**ios**): Update cpu frequency generation logic
-- (**ios**): Prepare sdk release 0.0.1-rc1 (#1877)
-- (**ios**): Update release scripts (#1876)
-- (**ios**): Add release scripts (#1869)
-- (**ios**): Update public apis (#1841)
-- (**ios**): Run lint checks (#1811)
-- (**ios**): Add scripts to upload dsyms (#1823)
-- (**ios**): Add binary images to exception (#1802)
-- (**ios**): Add spm and cocoapod support (#1796)
-- (**ios**): Add layout snapshots to gestures (#1779)
-- (**ios**): Add privacy manifest (#1782)
-### :recycle: Refactor
-- (**ios**): Rename NetworkInterceptor to MsrNetworkInterceptor (#1922)
-### :books: Documentation
-- (**ios**): Update readme (#1956)
-- (**ios**): Add feature documentation (#1863)
-
 ### :sparkles: New features
 - (**frontend**): Update bug report details desc text size
 - (**frontend**): Adjust bug report table text sizes
@@ -83,15 +55,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Add build number to session replay attr display
 - (**frontend**): Match bug report attr display style with others
 - (**frontend**): Rename button to "Close/Re-Open Bug Report"
-- (**backend**): Symbolicate ttid span classes (#1947)
-- (**backend**): Integrate new cross-platform symbolicator with ios support (#1800)
-- (**backend**): Implement bug reports
-- (**backend**): Add user defined attrs to spans
 ### :bug: Bug fixes
 - (**frontend**): Improve crash display for ios (#1916)
 - (**frontend**): Handle session timeline with no events
 - (**frontend**): Handle no events selected case in session timeline
 - (**frontend**): Make user def attr dropdown stay in viewport
+### :hammer: Misc
+- (**frontend**): Update next js to 14.2.26
+- (**frontend**): Render attachments for more gesture events
+- (**frontend**): Refactor FiltersApiType to FilterSource
+- (**frontend**): Upgrade to nivo 0.88
+- (**frontend**): Update to tailwind 4.0 with dashboard container file sync
+- (**frontend**): Change font-sans to font-body
+- (**frontend**): Refactor details link fetch in session timeline event details
+- (**frontend**): Rename session 'replay' to 'timeline'
+- (**frontend**): Remove 'font-regular'
+- (**frontend**): Rename font variables
+- (**frontend**): Add .node-version
+
+### :sparkles: New features
+- (**backend**): Symbolicate ttid span classes (#1947)
+- (**backend**): Integrate new cross-platform symbolicator with ios support (#1800)
+- (**backend**): Implement bug reports
+- (**backend**): Add user defined attrs to spans
+### :bug: Bug fixes
 - (**backend**): Incorrect data backfill script (#1978)
 - (**backend**): Mismatch and duplicate sessions (#1974)
 - (**backend**): Filter duplicate ud attribute keys (#1967)
@@ -107,17 +94,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Sessionator would fail deleting objects (#1891)
 - (**backend**): Svg layout attachments are not visible sometimes (#1777)
 ### :hammer: Misc
-- (**frontend**): Update next js to 14.2.26
-- (**frontend**): Render attachments for more gesture events
-- (**frontend**): Refactor FiltersApiType to FilterSource
-- (**frontend**): Upgrade to nivo 0.88
-- (**frontend**): Update to tailwind 4.0 with dashboard container file sync
-- (**frontend**): Change font-sans to font-body
-- (**frontend**): Refactor details link fetch in session timeline event details
-- (**frontend**): Rename session 'replay' to 'timeline'
-- (**frontend**): Remove 'font-regular'
-- (**frontend**): Rename font variables
-- (**frontend**): Add .node-version
 - (**backend**): Add data backfill for upcoming release (#1977)
 - (**backend**): Change compose command detection logic (#1962)
 - (**backend**): Update migration script for seamless migration (#1937)
@@ -131,7 +107,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Refactor event, attachment & span cleanup
 - (**backend**): Cleanup stale bug reports
 - (**backend**): Tidy sessionator `go.mod` (#1776)
-### :recycle: Refactor
 ### :books: Documentation
 - (**backend**): Update sdk api docs (#1918)
 
@@ -148,24 +123,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.5.0] - 2025-01-06
 ### :sparkles: New features
-- (**ios**): Expose API to get current session ID (#1677)
-### :bug: Bug fixes
-- (**ios**): Data ingestion failure
-### :hammer: Misc
-- (**ios**): Track app termination event (#1678)
-- (**ios**): Add launch event tracking (#1535)
-- (**ios**): Add cpu and memory tracking (#1519)
-
-### :sparkles: New features
 - (**frontend**): Add memory usage absolute plot in session timeline (#1625)
 - (**frontend**): Make whole checkbox container clickable in dropdown select component
 - (**frontend**): Show user defined attrs in session timeline
-- (**backend**): Show traces in session timeline
-- (**backend**): Ios session timeline (#1624)
-- (**backend**): Support ios event ingestion (#1587)
-- (**backend**): Add span support
-- (**backend**): Support custom events (#1554)
-- (**backend**): Support user defined attributes (#1529)
 ### :bug: Bug fixes
 - (**frontend**): Handle incorrect http event display in session timeline
 - (**frontend**): Show memory usage in mbs in session timeline (#1679)
@@ -178,6 +138,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Fix root span names api call
 - (**frontend**): Handle empty user_defined_attrs in session timeline
 - (**frontend**): Don't update filters on selectedApp change
+### :hammer: Misc
+- (**frontend**): Remove "|| null" from empty metrics sample
+- (**frontend**): Remove old journey code
+- (**frontend**): Remove clarity
+- (**frontend**): Clear span statuses in filters
+- (**frontend**): Improve custom event ui in session timeline
+- (**frontend**): Improve user def attrs spacing
+- (**frontend**): Adjust dropdown select popup position & width
+- (**frontend**): Remove cursor pointer style
+- (**frontend**): Support attachments for gesture click
+- (**frontend**): Truncate class names in session timeline event titles
+- (**frontend**): Delete unused url filters code
+
+### :sparkles: New features
+- (**backend**): Show traces in session timeline
+- (**backend**): Ios session timeline (#1624)
+- (**backend**): Support ios event ingestion (#1587)
+- (**backend**): Add span support
+- (**backend**): Support custom events (#1554)
+- (**backend**): Support user defined attributes (#1529)
+### :bug: Bug fixes
 - (**backend**): Log extra info during ingestion failure (#1686)
 - (**backend**): Duplicate sessions shown in sessions overview (#1668)
 - (**backend**): Nil pointer dereference in remove apps (#1654)
@@ -194,17 +175,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Discard batch if it contains duplicate event or span ids (#1588)
 - (**backend**): Filter versions and os versions securely (#1563)
 ### :hammer: Misc
-- (**frontend**): Remove "|| null" from empty metrics sample
-- (**frontend**): Remove old journey code
-- (**frontend**): Remove clarity
-- (**frontend**): Clear span statuses in filters
-- (**frontend**): Improve custom event ui in session timeline
-- (**frontend**): Improve user def attrs spacing
-- (**frontend**): Adjust dropdown select popup position & width
-- (**frontend**): Remove cursor pointer style
-- (**frontend**): Support attachments for gesture click
-- (**frontend**): Truncate class names in session timeline event titles
-- (**frontend**): Delete unused url filters code
 - (**backend**): Remove unneeded log lines (#1687)
 - (**backend**): Update user defined attributes sample session
 - (**backend**): Cleanup expired resources (#1655)
@@ -233,15 +203,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Fix typos and missing info (#1513)
 
 ## [v0.4.0] - 2024-11-07
-### :hammer: Misc
-- (**ios**): Update time provider (#1478)
-- (**ios**): Add lifecycle tracking (#1444)
-
 ### :bug: Bug fixes
 - (**frontend**): Handle no data case for sessions list
 - (**frontend**): Truncate matched free text
 - (**frontend**): Better pagination in session detail (#1491)
 - (**frontend**): Handle empty attr distributions
+
+### :bug: Bug fixes
 - (**backend**): Validate limit to not be zero (#1500)
 - (**backend**): Incorrect pagination when no data (#1499)
 - (**backend**): Optimize session detail apis and overall loading experience (#1490)
@@ -261,7 +229,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Change default sampling rate to 0
 
 ## [v0.3.0] - 2024-11-01
-
 ### :sparkles: New features
 - (**frontend**): Replace exception detail journey with attr distribution plot
 ### :bug: Bug fixes
@@ -269,15 +236,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Hot launch metric was incorrectly showing warm launch metric (#1448)
 - (**frontend**): Some dashboard apis were failing due to lack of url encoding (#1449)
 - (**frontend**): Handle empty mem/cpu graph in session replay
-- (**backend**): Improve crash/anr detail experience (#1451)
-- (**backend**): Improve dashboard api response times (#1404)
 ### :hammer: Misc
 - (**frontend**): Improve exception details loading state
 - (**frontend**): Update default time filter to last 6 hours
+
+### :bug: Bug fixes
+- (**backend**): Improve crash/anr detail experience (#1451)
+- (**backend**): Improve dashboard api response times (#1404)
+### :hammer: Misc
 - (**backend**): Remove deprecated cliff feature (#1462)
 - (**backend**): Apply suitable restart policy (#1458)
 - (**backend**): Add data skipping indexes for fingerprints (#1455)
-### :books: Documentation
 
 ## [android-v0.8.0] - 2024-10-29
 ### :sparkles: New features
@@ -300,11 +269,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Use monotonic clock to get time
 
 ## [v0.2.1] - 2024-09-25
-
 ### :bug: Bug fixes
 - (**frontend**): Add option to handle no data & not onboarded in filters
+
+### :bug: Bug fixes
 - (**backend**): Crash/anr details instances plot won't load sometimes (#1298)
-### :books: Documentation
 
 ## [android-gradle-plugin-v0.6.1] - 2024-09-25
 ### :hammer: Misc
@@ -315,13 +284,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Prepare sdk release 0.7.0
 
 ## [v0.2.0] - 2024-09-24
-### :hammer: Misc
-- (**ios**): Add crash reporting (#1267)
-- (**ios**): Add signpost for performance testing (#1208)
-- (**ios**): Add event processor (#1206)
-- (**ios**): Add attribute processor (#1192)
-- (**ios**): Add session manager (#1162)
-
 ### :sparkles: New features
 - (**frontend**): Add custom error page
 - (**frontend**): Add custom 404 page
@@ -332,15 +294,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Add filter for OS versions
 - (**frontend**): Add 'All', 'Latest' options + 'at least 1' enforcement
 - (**frontend**): Redesign apps page
-- (**backend**): Update warm launch schema and duration calculation
-- (**backend**): Track email on new user sign in
-- (**backend**): Improve session explorer
-- (**backend**): Add session explorer with text search filter
 ### :bug: Bug fixes
 - (**frontend**): Hide attachment data in session replay event body
 - (**frontend**): Only attempt to show attachments for crashes/anrs in sesion replay
 - (**frontend**): Add missing useEffect deps for journey
 - (**frontend**): Use whole int left axes for crash + anr instances plots
+### :hammer: Misc
+- (**frontend**): Use selected filters instead of expanded params
+- (**frontend**): Fix table column widths and move paginator to top right
+- (**frontend**): Refactor filter application to api calls
+- (**frontend**): Refactor time utils to have separate functions for human readable datetime, date only and time only
+
+### :sparkles: New features
+- (**backend**): Update warm launch schema and duration calculation
+- (**backend**): Track email on new user sign in
+- (**backend**): Improve session explorer
+- (**backend**): Add session explorer with text search filter
+### :bug: Bug fixes
 - (**backend**): Overview instance plot would not load for some cases (#1288)
 - (**backend**): Round crash rate metrics to 2 decimal places
 - (**backend**): Update warm_launch ingest
@@ -350,10 +320,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Addressed ingestion failures related to ip inspection (#1197)
 - (**backend**): Nil pointer dereference when ingesting `low_memory` events (#1190)
 ### :hammer: Misc
-- (**frontend**): Use selected filters instead of expanded params
-- (**frontend**): Fix table column widths and move paginator to top right
-- (**frontend**): Refactor filter application to api calls
-- (**frontend**): Refactor time utils to have separate functions for human readable datetime, date only and time only
 - (**backend**): Capture more details in otel traces (#1289)
 - (**backend**): Add new sessions
 - (**backend**): Remove compose profile
@@ -380,17 +346,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle no selected versions for app journey & metrics
 
 ## [v0.1.0] - 2024-08-30
-### :hammer: Misc
-- (**ios**): Update sdk initialisation (#1146)
-- (**ios**): Update ios sdk initialisation (#1119)
-- (**ios**): Add swiftLint to ios
-
 ### :sparkles: New features
 - (**frontend**): Add "Copy AI context" button
-### :bug: Bug fixes
-- (**backend**): Fix incorrect filter query for crash & anr groups
-- (**backend**): Proceed with event ingestion on symbolication failure
-- (**backend**): Handle exception/anr groups with no events
 ### :hammer: Misc
 - (**frontend**): Remove commented code
 - (**frontend**): Update landing hero animation
@@ -398,6 +355,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Remove commented code
 - (**frontend**): Lazy load landing page videos
 - (**frontend**): Adjust landing hero anim dimensions
+
+### :bug: Bug fixes
+- (**backend**): Fix incorrect filter query for crash & anr groups
+- (**backend**): Proceed with event ingestion on symbolication failure
+- (**backend**): Handle exception/anr groups with no events
+### :hammer: Misc
 - (**backend**): Reorder & cleanup postgres migrations (#1155)
 - (**backend**): Remove eventIds array from crash + anr groups
 - (**backend**): Fix session data (#1141)
@@ -412,17 +375,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Prepare sdk release 0.5.0
 
 ## [v0.0.1] - 2024-08-19
-### :sparkles: New features
-- (**ios**): Initial project setup  (#1034)
+### :bug: Bug fixes
+- (**frontend**): Use node env for auth.ts jest test
+### :hammer: Misc
+- (**frontend**): Change android availability on landing page
+- (**frontend**): Remove unity section from landing page
 
 ### :sparkles: New features
 - (**backend**): Add stale data cleanup service
 ### :bug: Bug fixes
-- (**frontend**): Use node env for auth.ts jest test
 - (**backend**): Google auth (#1022)
 ### :hammer: Misc
-- (**frontend**): Change android availability on landing page
-- (**frontend**): Remove unity section from landing page
 - (**backend**): Update dashboard github workflow
 - (**backend**): Fix dockerfile
 - (**backend**): Fix dashboard docker compose

@@ -37,12 +37,18 @@ body = """
 {% endif -%}
 
 {% if version and version is starting_with("v") -%}
-    {% for group, commits in commits | filter(attribute="merge_commit", value=false) | group_by(attribute="group") -%}
+     {% for group, commits in commits | filter(attribute="merge_commit", value=false) | filter(attribute="scope", value="frontend") | group_by(attribute="group") -%}
         {% if commits|length > 0 %}### {{ group | striptags | trim | upper_first }}\n{% endif -%}
-        {% for commit in commits | filter(attribute="scope", value="frontend") -%}
+        {% for commit in commits -%}
             - (**{{ commit.scope}}**): {{ commit.message | trim | upper_first }}
         {% endfor -%}
-        {% for commit in commits | filter(attribute="scope", value="backend") -%}
+    {% endfor %}
+{% endif -%}
+
+{% if version and version is starting_with("v") -%}
+     {% for group, commits in commits | filter(attribute="merge_commit", value=false) | filter(attribute="scope", value="backend") | group_by(attribute="group") -%}
+        {% if commits|length > 0 %}### {{ group | striptags | trim | upper_first }}\n{% endif -%}
+        {% for commit in commits -%}
             - (**{{ commit.scope}}**): {{ commit.message | trim | upper_first }}
         {% endfor -%}
     {% endfor %}
