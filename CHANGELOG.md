@@ -585,3 +585,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Add java doc
 
 ## [measure-android-0.2.0] - 2024-06-08
+[unreleased]: https://github.com/measure-sh/measure/compare/ios-v0.1.0..HEAD
+[ios-v0.1.0]: https://github.com/measure-sh/measure/compare/android-v0.10.0..ios-v0.1.0
+[android-v0.10.0]: https://github.com/measure-sh/measure/compare/v0.6.1..android-v0.10.0
+[0.6.1]: https://github.com/measure-sh/measure/compare/v0.6.0..v0.6.1
+[0.6.0]: https://github.com/measure-sh/measure/compare/android-gradle-plugin-v0.7.0..v0.6.0
+[android-gradle-plugin-v0.7.0]: https://github.com/measure-sh/measure/compare/android-v0.9.0..android-gradle-plugin-v0.7.0
+[android-v0.9.0]: https://github.com/measure-sh/measure/compare/v0.5.0..android-v0.9.0
+[0.5.0]: https://github.com/measure-sh/measure/compare/v0.4.1..v0.5.0
+[0.4.1]: https://github.com/measure-sh/measure/compare/v0.4.0..v0.4.1
+[0.4.0]: https://github.com/measure-sh/measure/compare/android-v0.8.2..v0.4.0
+[android-v0.8.2]: https://github.com/measure-sh/measure/compare/v0.3.0..android-v0.8.2
+[0.3.0]: https://github.com/measure-sh/measure/compare/android-v0.8.0..v0.3.0
+[android-v0.8.0]: https://github.com/measure-sh/measure/compare/v0.2.1..android-v0.8.0
+[0.2.1]: https://github.com/measure-sh/measure/compare/android-gradle-plugin-v0.6.1..v0.2.1
+[android-gradle-plugin-v0.6.1]: https://github.com/measure-sh/measure/compare/android-v0.7.0..android-gradle-plugin-v0.6.1
+[android-v0.7.0]: https://github.com/measure-sh/measure/compare/v0.2.0..android-v0.7.0
+[0.2.0]: https://github.com/measure-sh/measure/compare/android-v0.6.1..v0.2.0
+[android-v0.6.1]: https://github.com/measure-sh/measure/compare/v0.1.1..android-v0.6.1
+[0.1.1]: https://github.com/measure-sh/measure/compare/v0.1.0..v0.1.1
+[0.1.0]: https://github.com/measure-sh/measure/compare/android-v0.5.0..v0.1.0
+[android-v0.5.0]: https://github.com/measure-sh/measure/compare/v0.0.1..android-v0.5.0
+[0.0.1]: https://github.com/measure-sh/measure/compare/android-gradle-plugin-v0.4.0..v0.0.1
+[android-gradle-plugin-v0.4.0]: https://github.com/measure-sh/measure/compare/android-v0.4.0..android-gradle-plugin-v0.4.0
+[android-v0.4.0]: https://github.com/measure-sh/measure/compare/android-v0.3.0..android-v0.4.0
+[android-v0.3.0]: https://github.com/measure-sh/measure/compare/measure-android-gradle-0.2.0..android-v0.3.0
+[measure-android-0.2.0]: https://github.com/measure-sh/measure/compare/measure-android-gradle-0.1.0..measure-android-0.2.0
+
