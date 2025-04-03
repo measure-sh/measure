@@ -188,7 +188,7 @@ final class CrashDataFormatter {
         return stackFrame
     }
 
-    private func getBinaryImageInfo(_ threads: [ThreadDetail]) -> [BinaryImage]? {
+    private func getBinaryImageInfo(_ threads: [ThreadDetail]) -> [BinaryImage]? { // swiftlint:disable:this cyclomatic_complexity function_body_length
         var binaryImages: [BinaryImage] = []
         var lastImageBaseAddress: UInt64 = 0
 

@@ -16,7 +16,7 @@ final class BaseAppVersionInfo: AppVersionInfo {
     func getAppVersion() -> String? {
         return Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
     }
-    
+
     func getBuildNumber() -> String? {
         return Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
     }

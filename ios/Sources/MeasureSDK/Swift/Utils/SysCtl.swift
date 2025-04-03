@@ -37,35 +37,35 @@ final class BaseSysCtl: SysCtl {
         }
         let cpuFrequencies: [String: UInt64] = [
             // --- A-Series Chips (iPhones & iPads) ---
-            "A17 Pro" : 3780000000,   // 3.78 GHz
-            "A16 Bionic" : 3460000000,   // 3.46 GHz
-            "A15 Bionic" : 3230000000,   // 3.23 GHz
-            "A14 Bionic" : 3100000000,   // 3.10 GHz
-            "A13 Bionic" : 2650000000,   // 2.65 GHz
-            "A12Z Bionic" : 2490000000,  // 2.49 GHz (iPad Pro)
-            "A12X Bionic" : 2490000000,  // 2.49 GHz (iPad Pro)
-            "A12 Bionic" : 2490000000,   // 2.49 GHz
-            "A11 Bionic" : 2390000000,   // 2.39 GHz
-            "A10X Fusion" : 2380000000,  // 2.38 GHz (iPad Pro)
-            "A10 Fusion" : 2340000000,   // 2.34 GHz
-            "A9X" : 2260000000,  // 2.26 GHz (iPad Pro)
-            "A9" : 1850000000,   // 1.85 GHz
+            "A17 Pro": 3780000000,   // 3.78 GHz
+            "A16 Bionic": 3460000000,   // 3.46 GHz
+            "A15 Bionic": 3230000000,   // 3.23 GHz
+            "A14 Bionic": 3100000000,   // 3.10 GHz
+            "A13 Bionic": 2650000000,   // 2.65 GHz
+            "A12Z Bionic": 2490000000,  // 2.49 GHz (iPad Pro)
+            "A12X Bionic": 2490000000,  // 2.49 GHz (iPad Pro)
+            "A12 Bionic": 2490000000,   // 2.49 GHz
+            "A11 Bionic": 2390000000,   // 2.39 GHz
+            "A10X Fusion": 2380000000,  // 2.38 GHz (iPad Pro)
+            "A10 Fusion": 2340000000,   // 2.34 GHz
+            "A9X": 2260000000,  // 2.26 GHz (iPad Pro)
+            "A9": 1850000000,   // 1.85 GHz
 
             // --- Apple Silicon (Mac & iPad Pro) ---
-            "M4 Max" : 4500000000,  // 4.50 GHz
-            "M4 Pro" : 4500000000,  // 4.50 GHz
-            "M4" : 4400000000,  // 4.40 GHz
-            "M3 Max" : 4250000000,  // 4.25 GHz
-            "M3 Pro" : 4100000000,  // 4.10 GHz
-            "M3" : 4000000000,  // 4.00 GHz
-            "M2 Ultra" : 3490000000,  // 3.49 GHz
-            "M2 Max" : 3490000000,  // 3.49 GHz
-            "M2 Pro" : 3490000000,  // 3.49 GHz
-            "M2" : 3490000000,  // 3.49 GHz
-            "M1 Ultra" : 3200000000,  // 3.20 GHz
-            "M1 Max" : 3200000000,  // 3.20 GHz
-            "M1 Pro" : 3200000000,  // 3.20 GHz
-            "M1" : 3200000000   // 3.20 GHz
+            "M4 Max": 4500000000,  // 4.50 GHz
+            "M4 Pro": 4500000000,  // 4.50 GHz
+            "M4": 4400000000,  // 4.40 GHz
+            "M3 Max": 4250000000,  // 4.25 GHz
+            "M3 Pro": 4100000000,  // 4.10 GHz
+            "M3": 4000000000,  // 4.00 GHz
+            "M2 Ultra": 3490000000,  // 3.49 GHz
+            "M2 Max": 3490000000,  // 3.49 GHz
+            "M2 Pro": 3490000000,  // 3.49 GHz
+            "M2": 3490000000,  // 3.49 GHz
+            "M1 Ultra": 3200000000,  // 3.20 GHz
+            "M1 Max": 3200000000,  // 3.20 GHz
+            "M1 Pro": 3200000000,  // 3.20 GHz
+            "M1": 3200000000   // 3.20 GHz
         ]
 
         var size = 0

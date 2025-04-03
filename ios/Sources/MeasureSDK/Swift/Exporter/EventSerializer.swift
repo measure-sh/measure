@@ -8,7 +8,7 @@
 import Foundation
 
 struct EventSerializer {
-    func getSerialisedEvent(for eventEntity: EventEntity) -> Data? {
+    func getSerialisedEvent(for eventEntity: EventEntity) -> Data? { // swiftlint:disable:this cyclomatic_complexity
         guard let type = EventType(rawValue: eventEntity.type) else {
             print("Failed to encode event. Unknown event type: \(eventEntity.type)")
             return nil

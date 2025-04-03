@@ -58,7 +58,7 @@ final class MockMeasureInitializer: MeasureInitializer {
     let appVersionInfo: AppVersionInfo
     let httpEventValidator: HttpEventValidator
 
-    init(client: Client? = nil,
+    init(client: Client? = nil, // swiftlint:disable:this function_body_length
          configProvider: ConfigProvider? = nil,
          logger: Logger? = nil,
          idProvider: IdProvider? = nil,
@@ -104,7 +104,7 @@ final class MockMeasureInitializer: MeasureInitializer {
          deviceAttributeProcessor: DeviceAttributeProcessor? = nil,
          installationIdAttributeProcessor: InstallationIdAttributeProcessor? = nil,
          networkStateAttributeProcessor: NetworkStateAttributeProcessor? = nil,
-         userAttributeProcessor: UserAttributeProcessor? = nil) { // swiftlint:disable:this function_body_length
+         userAttributeProcessor: UserAttributeProcessor? = nil) {
         self.client = client ?? ClientInfo(apiKey: "test", apiUrl: "https://test.com")
         self.configProvider = configProvider ?? BaseConfigProvider(defaultConfig: Config(),
                                                                    configLoader: BaseConfigLoader())

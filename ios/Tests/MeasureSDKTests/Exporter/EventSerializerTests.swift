@@ -282,7 +282,8 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
                     XCTAssertEqual(firstBinaryImage["name"] as? String, "DemoApp")
                     XCTAssertEqual(firstBinaryImage["arch"] as? String, "x86_64")
                     XCTAssertEqual(firstBinaryImage["uuid"] as? String, "a02da00e792a395aa1d40cc1f071946f")
-                    XCTAssertEqual(firstBinaryImage["path"] as? String, "/Users/edpu/Library/Developer/CoreSimulator/Devices/B2E2BC7F-41AA-45C4-B5BC-68BC02E0AD8B/data/Containers/Bundle/Application/4E7208D5-F723-4FBF-95F1-8A51C5E37A64/DemoApp.app/DemoApp")
+                    XCTAssertEqual(firstBinaryImage["path"] as? String,
+                                   "/Users/edpu/Library/Developer/CoreSimulator/Devices/B2E2BC7F-41AA-45C4-B5BC-68BC02E0AD8B/data/Containers/Bundle/Application/4E7208D5-F723-4FBF-95F1-8A51C5E37A64/DemoApp.app/DemoApp") // swiftlint:disable:this line_length
                 } else {
                     XCTFail("Binary images are not present.")
                 }

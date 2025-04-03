@@ -46,7 +46,7 @@ protocol MeasureConfig {
     /// - * X-Api-Key
     ///
     let httpHeadersBlocklist: [String]
-    
+
     /// Allows disabling collection of `http` events for certain URLs. This is useful to setup if you do not want to collect data for certain endpoints.
     ///
     /// Note that this config is ignored if [httpUrlAllowlist] is set.
@@ -57,7 +57,7 @@ protocol MeasureConfig {
     /// - Disable a particular path, eg. example.com/order
     ///
     let httpUrlBlocklist: [String]
-    
+
     /// Allows enabling collection of `http` events for only certain URLs. This is useful to setup if you do not want to collect data for all endpoints except for a few.
     ///
     /// You can:
@@ -81,7 +81,8 @@ protocol MeasureConfig {
     ///       - Proxy-Authorization
     ///       - WWW-Authenticate
     ///       - X-Api-Key
-    ///   - httpUrlBlocklist: Allows disabling collection of `http` events for certain URLs. This is useful to setup if you do not want to collect data for certain endpoints.Note that this config is ignored if [httpUrlAllowlist] is set. You can:
+    ///   - httpUrlBlocklist: Allows disabling collection of `http` events for certain URLs.
+    ///   This is useful to setup if you do not want to collect data for certain endpoints.Note that this config is ignored if [httpUrlAllowlist] is set. You can:
     ///       - Disables a domain, eg. example.com
     ///       - Disable a subdomain, eg. api.example.com
     ///       - Disable a particular path, eg. example.com/order

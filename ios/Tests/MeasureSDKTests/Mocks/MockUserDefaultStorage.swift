@@ -63,15 +63,15 @@ final class MockUserDefaultStorage: UserDefaultStorage {
     func getRecentAppVersion() -> String? {
         return recentAppVersion
     }
-    
+
     func setRecentAppVersion(_ version: String) {
         self.recentAppVersion = version
     }
-    
+
     func getRecentBuildNumber() -> String? {
         return recentBuildNumber
     }
-    
+
     func setRecentBuildNumber(_ buildNumber: String) {
         self.recentBuildNumber = buildNumber
     }
