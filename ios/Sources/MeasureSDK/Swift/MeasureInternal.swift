@@ -137,7 +137,7 @@ final class MeasureInternal {
         self.crashDataPersistence.sessionId = sessionManager.sessionId
         self.crashReportManager.trackException()
         registerAlwaysOnCollectors()
-        if (configProvider.autoStart) {
+        if configProvider.autoStart {
             start()
         }
     }
@@ -151,7 +151,7 @@ final class MeasureInternal {
     }
 
     func stop() {
-        if isStarted && !configProvider.autoStart { // TODO: add test for this
+        if isStarted && !configProvider.autoStart {
             self.logger.log(level: .info, message: "Stopping Measure SDK", error: nil, data: nil)
             unregisterCollectors()
             isStarted = false

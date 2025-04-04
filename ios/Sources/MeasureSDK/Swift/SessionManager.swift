@@ -152,7 +152,7 @@ final class BaseSessionManager: SessionManager {
         if let currentVersion = appVersionInfo.getAppVersion() {
             userDefaultStorage.setRecentAppVersion(currentVersion)
         }
-        
+
         if let currentBuild = appVersionInfo.getBuildNumber() {
             userDefaultStorage.setRecentBuildNumber(currentBuild)
         }

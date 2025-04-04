@@ -15,7 +15,7 @@ final class MockAppVersionInfo: AppVersionInfo {
     func getAppVersion() -> String? {
         return appVersion
     }
-    
+
     func getBuildNumber() -> String? {
         return buildNumber
     }

@@ -13,7 +13,7 @@ final class CrashDataFormatterTests: XCTestCase {
     private var crashDataFormatter: CrashDataFormatter!
     var fileManagerHelper = FileManagerHelper()
 
-    func testBackgroundThreadException() {
+    func testBackgroundThreadException() { // swiftlint:disable:this function_body_length
         guard let crashReport = fileManagerHelper.getCrashReport(fileName: "backgroundThreadException", fileExtension: "plcrash") else {
             XCTFail("Failed to load PLCrash report from test bundle.")
             return
@@ -82,7 +82,7 @@ final class CrashDataFormatterTests: XCTestCase {
         }
     }
 
-    func testAbort() {
+    func testAbort() { // swiftlint:disable:this function_body_length
         guard let crashReport = fileManagerHelper.getCrashReport(fileName: "abort", fileExtension: "plcrash") else {
             XCTFail("Failed to load PLCrash report from test bundle.")
             return

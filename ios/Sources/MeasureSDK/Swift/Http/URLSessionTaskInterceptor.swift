@@ -53,7 +53,7 @@ final class URLSessionTaskInterceptor {
        self.httpEventValidator = httpEventValidator
     }
 
-    func urlSessionTask(_ task: URLSessionTask, setState state: URLSessionTask.State) { // swiftlint:disable:this cyclomatic_complexity
+    func urlSessionTask(_ task: URLSessionTask, setState state: URLSessionTask.State) { // swiftlint:disable:this function_body_length
         guard !MSRNetworkInterceptor.isEnabled else { return }
 
         guard let httpInterceptorCallbacks = self.httpInterceptorCallbacks,

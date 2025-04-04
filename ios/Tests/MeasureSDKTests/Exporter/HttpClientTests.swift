@@ -49,7 +49,7 @@ class HttpClientTests: XCTestCase {
 
         let body = client.createMultipartBody(multipartData)
 
-        let bodyString = String(data: body, encoding: .utf8) // swiftlint:disable:this non_optional_string_data_conversion
+        let bodyString = String(data: body, encoding: .utf8)
 
         // swiftlint:disable line_length
         let expectedBodyString = """

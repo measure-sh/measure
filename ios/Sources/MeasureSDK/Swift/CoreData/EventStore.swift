@@ -20,7 +20,7 @@ protocol EventStore {
     func updateNeedsReportingForAllEvents(sessionId: String, needsReporting: Bool)
 }
 
-final class BaseEventStore: EventStore {
+final class BaseEventStore: EventStore { // swiftlint:disable:this type_body_length
     private let coreDataManager: CoreDataManager
     private let logger: Logger
 
