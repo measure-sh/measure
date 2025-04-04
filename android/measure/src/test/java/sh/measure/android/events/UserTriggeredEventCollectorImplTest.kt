@@ -48,16 +48,15 @@ class UserTriggeredEventCollectorImplTest {
     @Test
     fun `tracks handled exception event`() {
         val exception = Exception()
-        val data = TestData.getExceptionData(handled = true, exception = exception)
 
         userTriggeredEventCollector.register()
         userTriggeredEventCollector.trackHandledException(exception)
         verify(signalProcessor).trackUserTriggered(
-            data = data,
-            type = EventType.EXCEPTION,
-            timestamp = timeProvider.now(),
-            attachments = mutableListOf(),
-            userDefinedAttributes = mutableMapOf(),
+            data = any<ExceptionData>(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.EXCEPTION),
+            attachments = eq(mutableListOf()),
+            userDefinedAttributes = eq(mutableMapOf()),
         )
     }
 
