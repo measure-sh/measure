@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Update iOS availability on landing page by @anupcowkur in #2006
 - (**frontend**): Update landing page with bug reports feature by @anupcowkur in #2003
 
+### :hammer: Misc
+
+- (**frontend**): Save page state using urls by @anupcowkur in #2031
+
 ### :books: Documentation
 
 - Update bug reports feature video from mov to webm by @anupcowkur in #2016
