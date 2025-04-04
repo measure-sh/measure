@@ -285,7 +285,7 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   clickhouse:
-    image: clickhouse/clickhouse-server:24.10-alpine
+    image: clickhouse/clickhouse-server:25.3-alpine
     environment:
       - CLICKHOUSE_USER=${CLICKHOUSE_USER}
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
