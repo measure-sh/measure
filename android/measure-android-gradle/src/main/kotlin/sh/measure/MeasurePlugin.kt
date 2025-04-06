@@ -24,6 +24,7 @@ class MeasurePlugin : Plugin<Project> {
         const val DEFAULT_RETRIES = 3
     }
 
+    @Suppress("UnstableApiUsage")
     override fun apply(project: Project) {
         if (!project.plugins.hasPlugin("com.android.application")) {
             project.logger.warn(

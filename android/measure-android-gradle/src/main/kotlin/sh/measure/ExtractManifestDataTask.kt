@@ -24,6 +24,7 @@ private const val TAG_MANIFEST = "manifest"
 private const val TAG_META_DATA = "meta-data"
 private const val ATTR_ANDROID_NAME = "android:name"
 private const val ATTR_ANDROID_VALUE = "android:value"
+private const val API_KEY_PREFIX = "msrsh"
 
 abstract class ExtractManifestDataTask : DefaultTask() {
     init {
@@ -59,6 +60,13 @@ abstract class ExtractManifestDataTask : DefaultTask() {
         if (apiKey == null) {
             logger.error(
                 "[ERROR]: $KEY_API_KEY missing in manifest, Measure SDK will not be initialized.",
+            )
+            return
+        }
+
+        if (!apiKey.startsWith(API_KEY_PREFIX)) {
+            logger.error(
+                "[ERROR]: $KEY_API_KEY is invalid, Measure SDK will not be initialized.",
             )
             return
         }
