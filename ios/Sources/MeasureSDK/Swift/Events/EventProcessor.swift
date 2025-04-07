@@ -129,6 +129,7 @@ final class BaseEventProcessor: EventProcessor {
         }
         let needsReporting = sessionManager.shouldReportSession ? true : configProvider.eventTypeExportAllowList.contains(event.type)
         let eventEntity = EventEntity(event, needsReporting: needsReporting)
+        MeasureDashboardLogger.shared.logEvent(event)
         eventStore.insertEvent(event: eventEntity)
         sessionManager.onEventTracked(eventEntity)
         logger.log(level: .debug, message: "Event processed: \(type), \(event.id)", error: nil, data: data)
@@ -158,5 +159,46 @@ final class BaseEventProcessor: EventProcessor {
             userTriggered: userTriggered,
             userDefinedAttributes: userDefinedAttributes
         )
+    }
+}
+
+class MeasureDashboardLogger {
+    static let shared = MeasureDashboardLogger()
+
+    private let logFileURL: URL = {
+        let path = "/tmp/measure_sdk_events.txt"
+        return URL(fileURLWithPath: path)
+    }()
+
+    private let encoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        // ❗️DO NOT pretty-print so each event is one line
+        encoder.outputFormatting = []
+        return encoder
+    }()
+
+    func logEvent<T: Codable>(_ event: Event<T>) {
+        do {
+            let jsonData = try encoder.encode(event)
+            guard let jsonString = String(data: jsonData, encoding: .utf8) else { return }
+            let logEntry = jsonString + "\n"
+
+            // Create file if it doesn't exist
+            if !FileManager.default.fileExists(atPath: logFileURL.path) {
+                let directory = logFileURL.deletingLastPathComponent()
+                try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                try logEntry.write(to: logFileURL, atomically: true, encoding: .utf8)
+                return
+            }
+
+            // Append to file
+            if let handle = try? FileHandle(forWritingTo: logFileURL) {
+                handle.seekToEndOfFile()
+                handle.write(Data(logEntry.utf8))
+                try handle.close()
+            }
+        } catch {
+            print("❌ Failed to log event: \(error)")
+        }
     }
 }
