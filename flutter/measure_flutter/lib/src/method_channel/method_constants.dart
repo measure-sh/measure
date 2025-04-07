@@ -16,18 +16,18 @@ class MethodConstants {
   static const String argExceptionDataUnitType = 'type';
   static const String argExceptionDataUnitMessage = 'message';
   static const String argExceptionDataUnitFrames = 'frames';
-  static const String argExceptionDataFrameClassName = 'className';
-  static const String argExceptionDataFrameMethodName = 'methodName';
-  static const String argExceptionDataFrameFileName = 'fileName';
-  static const String argExceptionDataFrameLineNum = 'lineNum';
-  static const String argExceptionDataFrameModuleName = 'moduleName';
-  static const String argExceptionDataFrameColNum = 'colNum';
+  static const String argExceptionDataFrameClassName = 'class_name';
+  static const String argExceptionDataFrameMethodName = 'method_name';
+  static const String argExceptionDataFrameFileName = 'file_name';
+  static const String argExceptionDataFrameLineNum = 'line_num';
+  static const String argExceptionDataFrameModuleName = 'module_name';
+  static const String argExceptionDataFrameColNum = 'col_num';
   static const String argExceptionDataFrameIndex = 'index';
-  static const String argExceptionDataFrameBinaryAddr = 'binaryAddr';
-  static const String argExceptionDataFrameInstructionAddress = 'instructionAddr';
+  static const String argExceptionDataFrameBinaryAddr = 'binary_addr';
+  static const String argExceptionDataFrameInstructionAddress = 'instruction_addr';
+  static const String argExceptionDataFrame = 'frame_index';
 
   // Error codes
-  static const String argExceptionDataFrame = 'frameIndex';
   static const String errorInvalidArgument = 'invalid_argument';
   static const String errorArgumentMissing = 'argument_missing';
   static const String errorInvalidAttribute = 'invalid_attribute';

@@ -62,14 +62,14 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
             val frames = (exception["frames"] as List<*>).map { frameMap ->
                 val frame = frameMap as Map<String, Any>
                 Frame(
-                    class_name = frame["className"] as? String,
-                    method_name = frame["methodName"] as? String,
-                    file_name = frame["fileName"] as? String,
-                    line_num = (frame["lineNum"] as? Number)?.toInt(),
-                    col_num = (frame["colNum"] as? Number)?.toInt(),
-                    module_name = frame["moduleName"] as? String,
-                    binary_addr = frame["binaryAddr"] as? String,
-                    instruction_addr = frame["instructionAddr"] as? String
+                    class_name = frame["class_name"] as? String,
+                    method_name = frame["method_name"] as? String,
+                    file_name = frame["file_name"] as? String,
+                    line_num = (frame["line_num"] as? Number)?.toInt(),
+                    col_num = (frame["col_num"] as? Number)?.toInt(),
+                    module_name = frame["module_name"] as? String,
+                    binary_addr = frame["binary_addr"] as? String,
+                    instruction_addr = frame["instruction_addr"] as? String
                 )
             }
 
