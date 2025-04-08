@@ -11,7 +11,7 @@ import Foundation
 final class MockIdProvider: IdProvider {
     var idString: String
 
-    func createId() -> String {
+    func uuid() -> String {
         return idString
     }
 

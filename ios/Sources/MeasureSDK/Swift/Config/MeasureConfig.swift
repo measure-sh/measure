@@ -120,7 +120,7 @@ protocol MeasureConfig {
         if !(0.0...1.0).contains(self.samplingRateForErrorFreeSessions) {
             debugPrint("Session sampling rate must be between 0.0 and 1.0")
         }
-        
+
         if !(0.0...1.0).contains(self.traceSamplingRate) {
             debugPrint("Trace sampling rate must be between 0.0 and 1.0")
         }

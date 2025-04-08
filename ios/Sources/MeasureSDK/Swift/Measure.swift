@@ -259,4 +259,38 @@ import Foundation
         guard let measureInternal = measureInternal else { return }
         measureInternal.clearUserId()
     }
+
+    /// Returns the current time in milliseconds since epoch.
+    /// - Returns: The current time in milliseconds since epoch.
+    @objc public func getCurrentTime() -> Int64 {
+        guard let measureInternal = self.measureInternal else { return 0 }
+        return measureInternal.timeProvider.now()
+    }
+
+    /// Starts a new span with the given name and timestamp.
+    /// - Parameters:
+    ///   - name: The name of the span.
+    ///   - timestamp: The timestamp in milliseconds since epoch. If nil, the current time will be used.
+    /// - Returns: A new span instance.
+    public func startSpan(name: String, timestamp: Int64? = nil) -> Span {
+        guard let measureInternal = self.measureInternal else { return InvalidSpan() }
+        return MsrSpan.startSpan(
+            name: name,
+            logger: measureInternal.logger,
+            timeProvider: measureInternal.timeProvider,
+//            spanProcessor: measureInternal.spanProcessor,
+            sessionManager: measureInternal.sessionManager,
+            idProvider: measureInternal.idProvider,
+            traceSampler: measureInternal.traceSampler,
+            parentSpan: nil,
+            timestamp: timestamp
+        )
+    }
+
+    /// Starts a new span with the given name.
+    /// - Parameter name: The name of the span.
+    /// - Returns: A new span instance.
+    public func startSpan(name: String) -> Span {
+        return startSpan(name: name, timestamp: nil)
+    }
 }
