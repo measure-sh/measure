@@ -64,7 +64,7 @@ void main() {
       final timestamp = DateTime(2024, 2, 12, 10, 30);
 
       // When
-      signalProcessor.trackFlutterError(exceptionData, timestamp);
+      signalProcessor.trackException(exceptionData, timestamp);
 
       // Then
       expect(channel.trackedExceptions.length, 1);

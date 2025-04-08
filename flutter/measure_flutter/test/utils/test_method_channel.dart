@@ -19,7 +19,7 @@ class TestMethodChannel implements MsrMethodChannel {
   }
 
   @override
-  Future<void> trackFlutterException(
+  Future<void> trackException(
       Map<String, dynamic> serializedData, int timestamp) async {
     trackedExceptions.add((serializedData, timestamp));
   }

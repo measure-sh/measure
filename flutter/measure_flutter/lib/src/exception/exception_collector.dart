@@ -27,6 +27,6 @@ final class ExceptionCollector {
     final ExceptionData exceptionData =
         ExceptionFactory.from(error, stack);
     var serializedExceptionData = exceptionData.toJson();
-    return signalProcessor.trackFlutterError(serializedExceptionData, timestamp);
+    return signalProcessor.trackException(serializedExceptionData, timestamp);
   }
 }

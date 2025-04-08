@@ -22,7 +22,7 @@ abstract class MeasureFlutterPlatform extends PlatformInterface {
     throw UnimplementedError('trackCustomEvent() has not been implemented.');
   }
 
-  Future<void> trackFlutterException(Map<String, dynamic> exceptionData, int timestamp) {
+  Future<void> trackException(Map<String, dynamic> exceptionData, int timestamp) {
     throw UnimplementedError('trackException() has not been implemented.');
   }
 

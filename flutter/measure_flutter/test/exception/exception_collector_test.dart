@@ -85,7 +85,7 @@ void main() {
       collector.register();
       collector.trackFlutterError(error, stackTrace);
 
-      verify(() => signalProcessor.trackFlutterError(
+      verify(() => signalProcessor.trackException(
           serializedExceptionData, any(that: isA<DateTime>()))).called(1);
     });
 
@@ -127,7 +127,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
       collector.register();
       collector.trackFlutterError(error, stackTrace);
 
-      verify(() => signalProcessor.trackFlutterError(
+      verify(() => signalProcessor.trackException(
           serializedExceptionData, any(that: isA<DateTime>()))).called(1);
     });
   });

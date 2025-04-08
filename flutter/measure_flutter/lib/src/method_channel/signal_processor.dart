@@ -10,7 +10,7 @@ abstract interface class SignalProcessor {
     Map<String, AttributeValue> attributes,
   );
 
-  Future<void> trackFlutterError(
+  Future<void> trackException(
       Map<String, dynamic> exceptionData, DateTime timestamp);
 }
 
@@ -32,10 +32,10 @@ final class DefaultSignalProcessor extends SignalProcessor {
   }
 
   @override
-  Future<void> trackFlutterError(
+  Future<void> trackException(
       Map<String, dynamic> exceptionData, DateTime timestamp) {
     try {
-      return channel.trackFlutterException(
+      return channel.trackException(
           exceptionData, timestamp.millisecondsSinceEpoch);
     } catch (e) {
       logger.log(LogLevel.error, "Unable to track exception", e);
