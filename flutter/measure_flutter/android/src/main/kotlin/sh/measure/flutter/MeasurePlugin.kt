@@ -55,41 +55,36 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         val reader = MethodCallReader(call)
         val serializedData = reader.requireArg<Map<String, Any>>(MethodConstants.ARG_EXCEPTION_DATA)
         val timestamp = reader.requireArg<Long>(MethodConstants.ARG_TIMESTAMP)
-
-        // Extract exception data from serializedData
-        val exceptions = (serializedData["exceptions"] as List<*>).map { exceptionMap ->
-            val exception = exceptionMap as Map<String, Any>
-            val frames = (exception["frames"] as List<*>).map { frameMap ->
-                val frame = frameMap as Map<String, Any>
-                Frame(
-                    class_name = frame["class_name"] as? String,
-                    method_name = frame["method_name"] as? String,
-                    file_name = frame["file_name"] as? String,
-                    line_num = (frame["line_num"] as? Number)?.toInt(),
-                    col_num = (frame["col_num"] as? Number)?.toInt(),
-                    module_name = frame["module_name"] as? String,
-                    binary_addr = frame["binary_addr"] as? String,
-                    instruction_addr = frame["instruction_addr"] as? String
+        val exceptions =
+            (serializedData[MethodConstants.ARG_EXCEPTION_DATA_EXCEPTIONS] as List<*>).map { exceptionMap ->
+                val exception = exceptionMap as Map<String, Any>
+                val frames =
+                    (exception[MethodConstants.ARG_EXCEPTION_DATA_UNIT_FRAMES] as List<*>).map { frameMap ->
+                        val frame = frameMap as Map<String, Any>
+                        Frame(
+                            class_name = frame[MethodConstants.ARG_EXCEPTION_DATA_FRAME_CLASS_NAME] as? String,
+                            method_name = frame[MethodConstants.ARG_EXCEPTION_DATA_FRAME_METHOD_NAME] as? String,
+                            file_name = frame[MethodConstants.ARG_EXCEPTION_DATA_FRAME_FILE_NAME] as? String,
+                            line_num = (frame[MethodConstants.ARG_EXCEPTION_DATA_FRAME_LINE_NUM] as? Number)?.toInt(),
+                            col_num = (frame[MethodConstants.ARG_EXCEPTION_DATA_FRAME_COL_NUM] as? Number)?.toInt(),
+                            module_name = frame[MethodConstants.ARG_EXCEPTION_DATA_FRAME_MODULE_NAME] as? String,
+                            binary_addr = frame[MethodConstants.ARG_EXCEPTION_DATA_FRAME_BINARY_ADDR] as? String,
+                            instruction_addr = frame[MethodConstants.ARG_EXCEPTION_DATA_FRAME_INSTRUCTION_ADDR] as? String,
+                        )
+                    }
+                ExceptionUnit(
+                    type = exception[MethodConstants.ARG_EXCEPTION_DATA_UNIT_TYPE] as? String,
+                    message = exception[MethodConstants.ARG_EXCEPTION_DATA_UNIT_MESSAGE] as? String,
+                    frames = frames
                 )
             }
-
-            ExceptionUnit(
-                type = exception["type"] as? String,
-                message = exception["message"] as? String,
-                frames = frames
-            )
-        }
-
-        val handled = serializedData["handled"] as Boolean
-
+        val handled = serializedData[MethodConstants.ARG_EXCEPTION_DATA_HANDLED] as Boolean
         val exceptionData = ExceptionData(
             exceptions = exceptions,
             handled = handled,
             threads = listOf(),
             foreground = true,
         )
-
-        // Process the exception data
         Measure.internalTrackException(exceptionData, timestamp)
         result.success(null)
     }

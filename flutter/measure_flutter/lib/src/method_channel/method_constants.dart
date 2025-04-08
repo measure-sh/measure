@@ -25,7 +25,6 @@ class MethodConstants {
   static const String argExceptionDataFrameIndex = 'index';
   static const String argExceptionDataFrameBinaryAddr = 'binary_addr';
   static const String argExceptionDataFrameInstructionAddress = 'instruction_addr';
-  static const String argExceptionDataFrame = 'frame_index';
 
   // Error codes
   static const String errorInvalidArgument = 'invalid_argument';
