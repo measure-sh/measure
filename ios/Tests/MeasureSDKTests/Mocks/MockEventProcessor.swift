@@ -8,7 +8,7 @@
 import Foundation
 @testable import Measure
 
-final class MockEventProcessor: EventProcessor {
+final class MockSignalProcessor: SignalProcessor {
     var attachments: [Attachment]?
     var sessionId: String?
     var data: Codable?
@@ -16,6 +16,7 @@ final class MockEventProcessor: EventProcessor {
     var type: EventType?
     var attributes: Attributes?
     var userDefinedAttributes: String?
+    var spanData: SpanData?
 
     func track<T>(data: T, // swiftlint:disable:this function_parameter_count
                   timestamp: Number,
@@ -47,5 +48,9 @@ final class MockEventProcessor: EventProcessor {
         self.sessionId = sessionId
         self.attachments = attachments
         self.userDefinedAttributes = userDefinedAttributes
+    }
+
+    func trackSpan(_ spanData: SpanData) {
+        self.spanData = spanData
     }
 }

@@ -20,13 +20,13 @@ protocol LifecycleCollector {
 }
 
 class BaseLifecycleCollector: LifecycleCollector {
-    private let eventProcessor: EventProcessor
+    private let signalProcessor: SignalProcessor
     private let timeProvider: TimeProvider
     private let logger: Logger
     private var isEnabled = AtomicBool(false)
 
-    init(eventProcessor: EventProcessor, timeProvider: TimeProvider, logger: Logger) {
-        self.eventProcessor = eventProcessor
+    init(signalProcessor: SignalProcessor, timeProvider: TimeProvider, logger: Logger) {
+        self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.logger = logger
     }
@@ -83,12 +83,12 @@ class BaseLifecycleCollector: LifecycleCollector {
 
     private func trackEvent(_ data: Codable, type: EventType) {
         guard isEnabled.get() else { return }
-        eventProcessor.track(data: data,
-                             timestamp: timeProvider.now(),
-                             type: type,
-                             attributes: nil,
-                             sessionId: nil,
-                             attachments: nil,
-                             userDefinedAttributes: nil)
+        signalProcessor.track(data: data,
+                              timestamp: timeProvider.now(),
+                              type: type,
+                              attributes: nil,
+                              sessionId: nil,
+                              attachments: nil,
+                              userDefinedAttributes: nil)
     }
 }

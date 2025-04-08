@@ -9,12 +9,14 @@ import Foundation
 @testable import Measure
 
 final class MockRandomizer: Randomizer {
-    var randomNumder: Float
-    func random() -> Float {
-        return randomNumder
-    }
+    var randomFloat: Float = 0.0
+    var randomInt: Int64 = 0
 
-    init(_ randomNumder: Float) {
-        self.randomNumder = randomNumder
+    func random() -> Float {
+        return randomFloat
+    }
+    
+    func nextLong() -> Int64 {
+        return randomInt
     }
 }
