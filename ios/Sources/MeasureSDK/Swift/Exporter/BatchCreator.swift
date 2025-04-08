@@ -44,7 +44,7 @@ final class BaseBatchCreator: BatchCreator {
             return nil
         }
 
-        let batchId = idProvider.createId()
+        let batchId = idProvider.uuid()
         let isBatchInsertionSuccessful = batchStore.insertBatch(BatchEntity(batchId: batchId, eventIds: eventIds, createdAt: timeProvider.now()))
 
         if !isBatchInsertionSuccessful {

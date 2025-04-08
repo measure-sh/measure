@@ -144,7 +144,7 @@ final class BaseEventProcessor: EventProcessor {
         sessionId: String?,
         userDefinedAttributes: String?
     ) -> Event<T> {
-        let id = idProvider.createId()
+        let id = idProvider.uuid()
         let resolvedSessionId = sessionId ?? sessionManager.sessionId
         return Event(
             id: id,

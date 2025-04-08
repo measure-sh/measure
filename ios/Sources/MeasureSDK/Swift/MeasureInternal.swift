@@ -23,8 +23,11 @@ final class MeasureInternal {
     var sessionManager: SessionManager {
         return measureInitializer.sessionManager
     }
-    private var timeProvider: TimeProvider {
+    var timeProvider: TimeProvider {
         return measureInitializer.timeProvider
+    }
+    var idProvider: IdProvider {
+        return measureInitializer.idProvider
     }
     private var configProvider: ConfigProvider {
         return measureInitializer.configProvider
@@ -120,6 +123,9 @@ final class MeasureInternal {
     }
     var attachmentProcessor: AttachmentProcessor {
         return measureInitializer.attachmentProcessor
+    }
+    var traceSampler: TraceSampler {
+        return measureInitializer.traceSampler
     }
     private let lifecycleObserver: LifecycleObserver
     private var isStarted: Bool = false

@@ -240,6 +240,16 @@
 		CF7CAE4C2D940F2700E15CDB /* MockAppVersionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE4B2D940F2700E15CDB /* MockAppVersionInfo.swift */; };
 		CF7CAE552D952FA600E15CDB /* HttpEventValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */; };
 		CF7CAE582D95344100E15CDB /* HttpEventValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE572D95344100E15CDB /* HttpEventValidatorTests.swift */; };
+		CFD88C6E2D9E94B40095115E /* SpanProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88C6B2D9E94B40095115E /* SpanProcessor.swift */; };
+		CFD88C6F2D9E94B40095115E /* MsrSpan.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88C692D9E94B40095115E /* MsrSpan.swift */; };
+		CFD88C702D9E94B40095115E /* Span.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88C6A2D9E94B40095115E /* Span.swift */; };
+		CFD88C712D9E94B40095115E /* TraceSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88C6C2D9E94B40095115E /* TraceSampler.swift */; };
+		CFD88CFF2DA4D4760095115E /* InternalSpan.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88CFE2DA4D4760095115E /* InternalSpan.swift */; };
+		CFD88D012DA4D4910095115E /* SpanData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D002DA4D4910095115E /* SpanData.swift */; };
+		CFD88D032DA4D4AB0095115E /* Checkpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D022DA4D4AB0095115E /* Checkpoint.swift */; };
+		CFD88D052DA4D4B80095115E /* SpanStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D042DA4D4B80095115E /* SpanStatus.swift */; };
+		CFD88D072DA4D4C50095115E /* InvalidSpan.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D062DA4D4C50095115E /* InvalidSpan.swift */; };
+		CFD88D092DA4DFAE0095115E /* OtelEncodingUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D082DA4DFAE0095115E /* OtelEncodingUtils.swift */; };
 		CFEC97ED2D9A7642000CFB68 /* MeasureInternalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */; };
 		CFEC97EE2D9A76A5000CFB68 /* MockMeasureInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF2362CB651C8003102DF /* MockMeasureInitializer.swift */; };
 /* End PBXBuildFile section */
@@ -586,6 +596,16 @@
 		CF7CAE4B2D940F2700E15CDB /* MockAppVersionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAppVersionInfo.swift; sourceTree = "<group>"; };
 		CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidator.swift; sourceTree = "<group>"; };
 		CF7CAE572D95344100E15CDB /* HttpEventValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidatorTests.swift; sourceTree = "<group>"; };
+		CFD88C692D9E94B40095115E /* MsrSpan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrSpan.swift; sourceTree = "<group>"; };
+		CFD88C6A2D9E94B40095115E /* Span.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Span.swift; sourceTree = "<group>"; };
+		CFD88C6B2D9E94B40095115E /* SpanProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanProcessor.swift; sourceTree = "<group>"; };
+		CFD88C6C2D9E94B40095115E /* TraceSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceSampler.swift; sourceTree = "<group>"; };
+		CFD88CFE2DA4D4760095115E /* InternalSpan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InternalSpan.swift; sourceTree = "<group>"; };
+		CFD88D002DA4D4910095115E /* SpanData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanData.swift; sourceTree = "<group>"; };
+		CFD88D022DA4D4AB0095115E /* Checkpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Checkpoint.swift; sourceTree = "<group>"; };
+		CFD88D042DA4D4B80095115E /* SpanStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanStatus.swift; sourceTree = "<group>"; };
+		CFD88D062DA4D4C50095115E /* InvalidSpan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvalidSpan.swift; sourceTree = "<group>"; };
+		CFD88D082DA4DFAE0095115E /* OtelEncodingUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OtelEncodingUtils.swift; sourceTree = "<group>"; };
 		CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInternalTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -920,6 +940,7 @@
 				526D18092D5A1913009A2E90 /* LifecycleObserver.swift */,
 				526D180A2D5A1913009A2E90 /* Logger.swift */,
 				526D180B2D5A1913009A2E90 /* MeasureQueue.swift */,
+				CFD88D082DA4DFAE0095115E /* OtelEncodingUtils.swift */,
 				526D180C2D5A1913009A2E90 /* Randomizer.swift */,
 				526D180D2D5A1913009A2E90 /* SignPost.swift */,
 				526D180E2D5A1913009A2E90 /* SysCtl.swift */,
@@ -958,6 +979,7 @@
 				526D17F82D5A1913009A2E90 /* Performance */,
 				526D17FA2D5A1913009A2E90 /* Resources */,
 				526D17FC2D5A1913009A2E90 /* Screenshots */,
+				CFD88C6D2D9E94B40095115E /* Tracing */,
 				526D18132D5A1913009A2E90 /* Utils */,
 				526D18152D5A1913009A2E90 /* XCDataModel */,
 				526D18162D5A1913009A2E90 /* FrameworkInfo.swift */,
@@ -1272,6 +1294,22 @@
 			path = Http;
 			sourceTree = "<group>";
 		};
+		CFD88C6D2D9E94B40095115E /* Tracing */ = {
+			isa = PBXGroup;
+			children = (
+				CFD88C692D9E94B40095115E /* MsrSpan.swift */,
+				CFD88C6A2D9E94B40095115E /* Span.swift */,
+				CFD88D062DA4D4C50095115E /* InvalidSpan.swift */,
+				CFD88D042DA4D4B80095115E /* SpanStatus.swift */,
+				CFD88D022DA4D4AB0095115E /* Checkpoint.swift */,
+				CFD88D002DA4D4910095115E /* SpanData.swift */,
+				CFD88CFE2DA4D4760095115E /* InternalSpan.swift */,
+				CFD88C6B2D9E94B40095115E /* SpanProcessor.swift */,
+				CFD88C6C2D9E94B40095115E /* TraceSampler.swift */,
+			);
+			path = Tracing;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -1568,6 +1606,7 @@
 			files = (
 				526D182A2D5A1913009A2E90 /* AttributeValue.swift in Sources */,
 				526D186E2D5A1913009A2E90 /* NetworkChangeCollector.swift in Sources */,
+				CFD88D092DA4DFAE0095115E /* OtelEncodingUtils.swift in Sources */,
 				526D185F2D5A1913009A2E90 /* HttpData.swift in Sources */,
 				526D18262D5A1913009A2E90 /* LaunchTracker.swift in Sources */,
 				526D18432D5A1913009A2E90 /* CrashReportingManager.swift in Sources */,
@@ -1588,10 +1627,15 @@
 				526D18362D5A1913009A2E90 /* MeasureConfig.swift in Sources */,
 				526D18542D5A1913009A2E90 /* EventExporter.swift in Sources */,
 				526D18222D5A1913009A2E90 /* MSRViewController.m in Sources */,
+				CFD88C6E2D9E94B40095115E /* SpanProcessor.swift in Sources */,
+				CFD88C6F2D9E94B40095115E /* MsrSpan.swift in Sources */,
+				CFD88C702D9E94B40095115E /* Span.swift in Sources */,
+				CFD88C712D9E94B40095115E /* TraceSampler.swift in Sources */,
 				526D184F2D5A1913009A2E90 /* Exception.swift in Sources */,
 				526D18812D5A1913009A2E90 /* Constants.swift in Sources */,
 				526D18332D5A1913009A2E90 /* ConfigLoader.swift in Sources */,
 				526D18932D5A1913009A2E90 /* RecentSession.swift in Sources */,
+				CFD88D052DA4D4B80095115E /* SpanStatus.swift in Sources */,
 				526D184D2D5A1913009A2E90 /* ScreenViewData.swift in Sources */,
 				526D18322D5A1913009A2E90 /* Config.swift in Sources */,
 				526D18682D5A1913009A2E90 /* LifecycleCollector.swift in Sources */,
@@ -1622,6 +1666,8 @@
 				526D187F2D5A1913009A2E90 /* UIViewController+Extension.swift in Sources */,
 				526D185D2D5A1913009A2E90 /* GestureEvents.swift in Sources */,
 				526D185B2D5A1913009A2E90 /* GestureCollector.swift in Sources */,
+				CFD88D072DA4D4C50095115E /* InvalidSpan.swift in Sources */,
+				CFD88CFF2DA4D4760095115E /* InternalSpan.swift in Sources */,
 				526D188F2D5A1913009A2E90 /* FrameworkInfo.swift in Sources */,
 				526D182B2D5A1913009A2E90 /* ComputeOnceAttributeProcessor.swift in Sources */,
 				526D18882D5A1913009A2E90 /* SignPost.swift in Sources */,
@@ -1646,6 +1692,7 @@
 				526D188D2D5A1913009A2E90 /* UserPermissionManager.swift in Sources */,
 				526D18612D5A1913009A2E90 /* HttpInterceptorCallbacks.swift in Sources */,
 				526D183A2D5A1913009A2E90 /* BatchStore.swift in Sources */,
+				CFD88D032DA4D4AB0095115E /* Checkpoint.swift in Sources */,
 				526D18282D5A1913009A2E90 /* Attribute.swift in Sources */,
 				526D18792D5A1913009A2E90 /* InputStream+Extension.swift in Sources */,
 				526D18242D5A1913009A2E90 /* AppLaunchEvents.swift in Sources */,
@@ -1672,6 +1719,7 @@
 				526D18302D5A1913009A2E90 /* BaseConfigProvider.swift in Sources */,
 				526D18902D5A1913009A2E90 /* Measure.swift in Sources */,
 				526D18782D5A1913009A2E90 /* ScreenshotGenerator.swift in Sources */,
+				CFD88D012DA4D4910095115E /* SpanData.swift in Sources */,
 				526D18752D5A1913009A2E90 /* MemoryUsageCollector.swift in Sources */,
 				526D18942D5A1913009A2E90 /* SessionManager.swift in Sources */,
 				526D183C2D5A1913009A2E90 /* DataCleanupService.swift in Sources */,

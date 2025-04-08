@@ -28,12 +28,59 @@ public enum AttributeValue {
   case double(Swift.Double)
 }
 @objc final public class BaseMeasureConfig : ObjectiveC.NSObject {
-  public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil, trackHttpHeaders: Swift.Bool? = nil, trackHttpBody: Swift.Bool? = nil, httpHeadersBlocklist: [Swift.String]? = nil, httpUrlBlocklist: [Swift.String]? = nil, httpUrlAllowlist: [Swift.String]? = nil, autoStart: Swift.Bool? = nil)
+  public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil, traceSamplingRate: Swift.Float? = nil, trackHttpHeaders: Swift.Bool? = nil, trackHttpBody: Swift.Bool? = nil, httpHeadersBlocklist: [Swift.String]? = nil, httpUrlBlocklist: [Swift.String]? = nil, httpUrlAllowlist: [Swift.String]? = nil, autoStart: Swift.Bool? = nil)
   @objc deinit
+}
+public protocol Span {
+  var traceId: Swift.String { get }
+  var spanId: Swift.String { get }
+  var parentId: Swift.String? { get }
+  var isSampled: Swift.Bool { get }
+  @discardableResult
+  func setStatus(_ status: Measure.SpanStatus) -> any Measure.Span
+  @discardableResult
+  func setParent(_ parentSpan: any Measure.Span) -> any Measure.Span
+  @discardableResult
+  func setCheckpoint(_ name: Swift.String) -> any Measure.Span
+  @discardableResult
+  func setName(_ name: Swift.String) -> any Measure.Span
+  @discardableResult
+  func setAttribute(_ key: Swift.String, value: Swift.String) -> any Measure.Span
+  @discardableResult
+  func setAttribute(_ key: Swift.String, value: Swift.Int) -> any Measure.Span
+  @discardableResult
+  func setAttribute(_ key: Swift.String, value: Swift.Double) -> any Measure.Span
+  @discardableResult
+  func setAttribute(_ key: Swift.String, value: Swift.Bool) -> any Measure.Span
+  @discardableResult
+  func setAttributes(_ attributes: [Swift.String : Any]) -> any Measure.Span
+  @discardableResult
+  func removeAttribute(_ key: Swift.String) -> any Measure.Span
+  @discardableResult
+  func end() -> any Measure.Span
+  @discardableResult
+  func end(timestamp: Swift.Int64) -> any Measure.Span
+  func hasEnded() -> Swift.Bool
+  func getDuration() -> Swift.Int64
+}
+public enum SpanStatus : Swift.Int {
+  case unset
+  case ok
+  case error
+  public init?(rawValue: Swift.Int)
+  public typealias RawValue = Swift.Int
+  public var rawValue: Swift.Int {
+    get
+  }
 }
 @objc final public class ClientInfo : ObjectiveC.NSObject {
   @objc public init(apiKey: Swift.String, apiUrl: Swift.String)
   @objc deinit
+}
+public struct Checkpoint {
+  public let name: Swift.String
+  public let timestamp: Swift.Int64
+  public init(name: Swift.String, timestamp: Swift.Int64)
 }
 @objc public enum VCLifecycleEventType : Swift.Int, Swift.Codable {
   case viewDidLoad = 0
@@ -76,6 +123,9 @@ extension SwiftUICore.View {
   @objc final public func trackScreenView(_ screenName: Swift.String)
   @objc final public func setUserId(_ userId: Swift.String)
   @objc final public func clearUserId()
+  @objc final public func getCurrentTime() -> Swift.Int64
+  final public func startSpan(name: Swift.String, timestamp: Swift.Int64? = nil) -> any Measure.Span
+  final public func startSpan(name: Swift.String) -> any Measure.Span
   @objc deinit
 }
 public struct MSRNetworkInterceptor {
@@ -87,6 +137,9 @@ public struct MSRNetworkInterceptor {
   @_Concurrency.MainActor @preconcurrency @objc override dynamic public init(nibName nibNameOrNil: Swift.String?, bundle nibBundleOrNil: Foundation.Bundle?)
   @_Concurrency.MainActor @preconcurrency @objc required dynamic public init?(coder: Foundation.NSCoder)
 }
+extension Measure.SpanStatus : Swift.Equatable {}
+extension Measure.SpanStatus : Swift.Hashable {}
+extension Measure.SpanStatus : Swift.RawRepresentable {}
 extension Measure.VCLifecycleEventType : Swift.Equatable {}
 extension Measure.VCLifecycleEventType : Swift.Hashable {}
 extension Measure.VCLifecycleEventType : Swift.RawRepresentable {}

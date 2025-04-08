@@ -58,6 +58,8 @@ protocol MeasureInitializer {
     var svgGenerator: SvgGenerator { get }
     var appVersionInfo: AppVersionInfo { get }
     var httpEventValidator: HttpEventValidator { get }
+    var traceSampler: TraceSampler { get }
+    var randomizer: Randomizer { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -110,6 +112,8 @@ protocol MeasureInitializer {
 /// - `userPermissionManager`: `UserPermissionManager` object managing user permissions.
 /// - `appVersionInfo`: `AppVersionInfo` object that returns app information like app version and build number
 /// - `httpEventValidator`: `HttpEventValidator` object that lets you check if a http event should be tracked or not.
+/// - `traceSampler`: `TraceSampler`
+/// - `randomizer`: `Randomizer`
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -160,6 +164,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let svgGenerator: SvgGenerator
     let appVersionInfo: AppVersionInfo
     let httpEventValidator: HttpEventValidator
+    let traceSampler: TraceSampler
+    let randomizer: Randomizer
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -317,5 +323,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          client: client,
                                                          configProvider: configProvider,
                                                          httpEventValidator: httpEventValidator)
+        self.randomizer = BaseRandomizer()
+        self.traceSampler = BaseTraceSampler(configProvider: configProvider, randomizer: randomizer)
     }
 }
