@@ -191,7 +191,7 @@ final class CrashDataFormatter {
                                     lineNumber: nil,
                                     columnNumber: nil,
                                     moduleName: nil,
-                                    instructionAddress: nil)
+                                    instructionAddr: nil)
         return stackFrame
     }
 

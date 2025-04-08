@@ -67,7 +67,7 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
                        lineNumber: (frameMap["line_num"] as? NSNumber)?.intValue,
                        columnNumber: (frameMap["col_num"] as? NSNumber)?.intValue,
                        moduleName: frameMap["module_name"] as? String,
-                       instructionAddress: frameMap["instruction_addr"] as? String
+                       instructionAddr: frameMap["instruction_addr"] as? String
                    )
                    frames.append(frame)
                }
