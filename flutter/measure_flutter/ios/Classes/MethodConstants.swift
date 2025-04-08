@@ -9,10 +9,13 @@ import Foundation
 
 enum MethodConstants {
     static let functionTrackCustomEvent = "trackCustomEvent"
+    static let functionTrackException = "trackException"
+    static let functionNativeCrash = "triggerNativeCrash"
     
     static let argName = "name"
     static let argTimestamp = "timestamp"
     static let argAttributes = "attributes"
+    static let argExceptionData = "exception_data"
     
     static let errorInvalidArgument = "invalid_argument"
     static let errorArgumentMissing = "argument_missing"

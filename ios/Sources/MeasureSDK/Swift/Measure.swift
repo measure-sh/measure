@@ -259,4 +259,9 @@ import Foundation
         guard let measureInternal = measureInternal else { return }
         measureInternal.clearUserId()
     }
+    
+    public func internalTrackException(_ exception: Exception, timestamp: Int64) {
+        guard let measureInternal = measureInternal else { return }
+        measureInternal.internalTrackException(exception, timestamp: timestamp)
+    }
 }

@@ -165,6 +165,18 @@ final class MeasureInternal {
     func clearUserId() {
         userAttributeProcessor.clearUserId()
     }
+    
+    func internalTrackException(_ exception: Exception, timestamp: Number) {
+        eventProcessor.track(
+            data: exception,
+            timestamp: timestamp,
+            type: EventType.exception,
+            attributes: nil,
+            sessionId: nil,
+            attachments: nil,
+            userDefinedAttributes: nil
+        )
+    }
 
     private func applicationDidEnterBackground() {
         self.crashDataPersistence.isForeground = false
