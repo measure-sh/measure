@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct ThreadDetail: Codable {
+public struct ThreadDetail: Codable {
     /// The name of the thread.
     let name: String
 

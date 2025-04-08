@@ -7,12 +7,12 @@
 
 import Foundation
 
-struct ExceptionDetail: Codable {
+public struct ExceptionDetail: Codable {
     /// The type of the exception.
-    let type: String
+    let type: String?
 
     /// The error message text associated with the exception.
-    let message: String
+    let message: String?
 
     /// An optional array of `StackFrame` objects representing the stack frames at the time of the exception.
     let frames: [StackFrame]?
@@ -28,6 +28,32 @@ struct ExceptionDetail: Codable {
 
     /// The OS System Build unique for the device
     let osBuildNumber: String
+    
+    // Custom initializer to provide default values for missing fields
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        type = try container.decode(String.self, forKey: .type) 
+        message = try container.decode(String.self, forKey: .message)
+        frames = try container.decodeIfPresent([StackFrame].self, forKey: .frames)
+        signal = try container.decodeIfPresent(String.self, forKey: .signal)
+        
+        // Provide default values for fields not present in Flutter data
+        threadName = try container.decodeIfPresent(String.self, forKey: .threadName) ?? "main"
+        threadSequence = try container.decodeIfPresent(Number.self, forKey: .threadSequence) ?? 0
+        osBuildNumber = try container.decodeIfPresent(String.self, forKey: .osBuildNumber) ?? UIDevice.current.systemVersion
+    }
+    
+    // Standard initializer
+    public init(type: String?, message: String?, frames: [StackFrame]?, signal: String?, threadName: String, threadSequence: Number, osBuildNumber: String) {
+        self.type = type
+        self.message = message
+        self.frames = frames
+        self.signal = signal
+        self.threadName = threadName
+        self.threadSequence = threadSequence
+        self.osBuildNumber = osBuildNumber
+    }
 
     enum CodingKeys: String, CodingKey {
         case type

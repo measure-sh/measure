@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Exception: Codable {
+public struct Exception: Codable {
     /// A boolean indicating whether the exception was handled.
     let handled: Bool
 
@@ -22,6 +22,28 @@ struct Exception: Codable {
 
     /// An optional array of all the `BinaryImage` needed for symbolication.
     let binaryImages: [BinaryImage]?
+    
+    // Custom initializer to handle Flutter exception data format
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        handled = try container.decode(Bool.self, forKey: .handled)
+        exceptions = try container.decode([ExceptionDetail].self, forKey: .exceptions)
+        
+        // Optional fields that might be missing in Flutter data
+        foreground = try container.decodeIfPresent(Bool.self, forKey: .foreground) ?? true
+        threads = try container.decodeIfPresent([ThreadDetail].self, forKey: .threads)
+        binaryImages = try container.decodeIfPresent([BinaryImage].self, forKey: .binaryImages)
+    }
+    
+    // Standard initializer
+    public init(handled: Bool, exceptions: [ExceptionDetail], foreground: Bool? = nil, threads: [ThreadDetail]? = nil, binaryImages: [BinaryImage]? = nil) {
+        self.handled = handled
+        self.exceptions = exceptions
+        self.foreground = foreground
+        self.threads = threads
+        self.binaryImages = binaryImages
+    }
 
     enum CodingKeys: String, CodingKey {
         case handled

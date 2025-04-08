@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct BinaryImage: Codable {
+public struct BinaryImage: Codable {
     /// Start address - where the binary is loaded into virtual memory
     let startAddress: String
 
