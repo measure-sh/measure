@@ -15,7 +15,7 @@ protocol GestureCollector {
 
 final class BaseGestureCollector: GestureCollector {
     private let logger: Logger
-    private let eventProcessor: EventProcessor
+    private let signalProcessor: SignalProcessor
     private let timeProvider: TimeProvider
     private let configProvider: ConfigProvider
     private let gestureTargetFinder: GestureTargetFinder
@@ -25,14 +25,14 @@ final class BaseGestureCollector: GestureCollector {
     private var isEnabled = false
 
     init(logger: Logger,
-         eventProcessor: EventProcessor,
+         signalProcessor: SignalProcessor,
          timeProvider: TimeProvider,
          configProvider: ConfigProvider,
          gestureTargetFinder: GestureTargetFinder,
          layoutSnapshotGenerator: LayoutSnapshotGenerator,
          systemFileManager: SystemFileManager) {
         self.logger = logger
-        self.eventProcessor = eventProcessor
+        self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.configProvider = configProvider
         self.gestureTargetFinder = gestureTargetFinder
@@ -89,7 +89,13 @@ final class BaseGestureCollector: GestureCollector {
             if let attachment = collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) {
                 attachments = [attachment]
             }
-            eventProcessor.track(data: data, timestamp: timeProvider.now(), type: .gestureClick, attributes: nil, sessionId: nil, attachments: attachments, userDefinedAttributes: nil)
+            signalProcessor.track(data: data,
+                                  timestamp: timeProvider.now(),
+                                  type: .gestureClick,
+                                  attributes: nil,
+                                  sessionId: nil,
+                                  attachments: attachments,
+                                  userDefinedAttributes: nil)
         case .longClick(let x, let y, let touchDownTime, let touchUpTime, let target, let targetId, let targetFrame):
             let gestureTargetFinderData = gestureTargetFinder.findClickable(x: x, y: y, window: window)
             let width = UInt16((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0)
@@ -107,7 +113,13 @@ final class BaseGestureCollector: GestureCollector {
             if let attachment = collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) {
                 attachments = [attachment]
             }
-            eventProcessor.track(data: data, timestamp: timeProvider.now(), type: .gestureLongClick, attributes: nil, sessionId: nil, attachments: attachments, userDefinedAttributes: nil)
+            signalProcessor.track(data: data,
+                                  timestamp: timeProvider.now(),
+                                  type: .gestureLongClick,
+                                  attributes: nil,
+                                  sessionId: nil,
+                                  attachments: attachments,
+                                  userDefinedAttributes: nil)
         case .scroll(let startX, let startY, let endX, let endY, let direction, let touchDownTime, let touchUpTime, let target, let targetId):
             let startScrollPoint = CGPoint(x: startX, y: startY)
             let endScrollPoint = CGPoint(x: endX, y: endY)
@@ -125,7 +137,13 @@ final class BaseGestureCollector: GestureCollector {
                 if let attachment = collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: startX, y: startY)) {
                     attachments = [attachment]
                 }
-                eventProcessor.track(data: data, timestamp: timeProvider.now(), type: .gestureScroll, attributes: nil, sessionId: nil, attachments: attachments, userDefinedAttributes: nil)
+                signalProcessor.track(data: data,
+                                      timestamp: timeProvider.now(),
+                                      type: .gestureScroll,
+                                      attributes: nil,
+                                      sessionId: nil,
+                                      attachments: attachments,
+                                      userDefinedAttributes: nil)
             }
         }
         // swiftlint:enable identifier_name

@@ -23,7 +23,7 @@ protocol MeasureInitializer {
     var networkStateAttributeProcessor: NetworkStateAttributeProcessor { get }
     var userAttributeProcessor: UserAttributeProcessor { get }
     var attributeProcessors: [AttributeProcessor] { get }
-    var eventProcessor: EventProcessor { get }
+    var signalProcessor: SignalProcessor { get }
     var crashReportManager: CrashReportManager { get }
     var crashDataPersistence: CrashDataPersistence { get set }
     var systemFileManager: SystemFileManager { get }
@@ -78,7 +78,7 @@ protocol MeasureInitializer {
 /// - `networkStateAttributeProcessor`: `NetworkStateAttributeProcessor` object used to process network info.
 /// - `userAttributeProcessor`: `UserAttributeProcessor` object used to process user_id.
 /// - `attributeProcessors`: An array containing all the `AttributeProcessor`.
-/// - `eventProcessor`: `EventProcessor` object used to track events
+/// - `signalProcessor`: `SignalProcessor` object used to track events, traces and spans.
 /// - `crashReportManager`: `CrashReportManager` object used to manage crash reports.
 /// - `crashDataPersistence`: `CrashDataPersistence` object used to manage crash `Attributes` and metadata.
 /// - `systemFileManager`: `SystemFileManager` object used to manage files in local file system.
@@ -129,7 +129,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let networkStateAttributeProcessor: NetworkStateAttributeProcessor
     let userAttributeProcessor: UserAttributeProcessor
     let attributeProcessors: [AttributeProcessor]
-    let eventProcessor: EventProcessor
+    let signalProcessor: SignalProcessor
     let crashReportManager: CrashReportManager
     var crashDataPersistence: CrashDataPersistence
     let systemFileManager: SystemFileManager
@@ -225,17 +225,17 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                                    timeProvider: timeProvider,
                                                                    attachmentProcessor: attachmentProcessor,
                                                                    svgGenerator: svgGenerator)
-        self.eventProcessor = BaseEventProcessor(logger: logger,
-                                                 idProvider: idProvider,
-                                                 sessionManager: sessionManager,
-                                                 attributeProcessors: attributeProcessors,
-                                                 configProvider: configProvider,
-                                                 timeProvider: timeProvider,
-                                                 crashDataPersistence: crashDataPersistence,
-                                                 eventStore: eventStore)
+        self.signalProcessor = BaseSignalProcessor(logger: logger,
+                                                  idProvider: idProvider,
+                                                  sessionManager: sessionManager,
+                                                  attributeProcessors: attributeProcessors,
+                                                  configProvider: configProvider,
+                                                  timeProvider: timeProvider,
+                                                  crashDataPersistence: crashDataPersistence,
+                                                  eventStore: eventStore)
         self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
         self.crashReportManager = CrashReportingManager(logger: logger,
-                                                        eventProcessor: eventProcessor,
+                                                        signalProcessor: signalProcessor,
                                                         crashDataPersistence: crashDataPersistence,
                                                         crashReporter: systemCrashReporter,
                                                         systemFileManager: systemFileManager,
@@ -243,7 +243,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                         configProvider: configProvider)
         self.gestureTargetFinder = BaseGestureTargetFinder()
         self.gestureCollector = BaseGestureCollector(logger: logger,
-                                                     eventProcessor: eventProcessor,
+                                                     signalProcessor: signalProcessor,
                                                      timeProvider: timeProvider,
                                                      configProvider: configProvider,
                                                      gestureTargetFinder: gestureTargetFinder,
@@ -274,7 +274,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                                heartbeat: heartbeat,
                                                                eventExporter: eventExporter,
                                                                dispatchQueue: MeasureQueue.periodicEventExporter)
-        self.lifecycleCollector = BaseLifecycleCollector(eventProcessor: eventProcessor,
+        self.lifecycleCollector = BaseLifecycleCollector(signalProcessor: signalProcessor,
                                                          timeProvider: timeProvider,
                                                          logger: logger)
         self.cpuUsageCalculator = BaseCpuUsageCalculator()
@@ -282,31 +282,31 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.sysCtl = BaseSysCtl()
         self.cpuUsageCollector = BaseCpuUsageCollector(logger: logger,
                                                        configProvider: configProvider,
-                                                       eventProcessor: eventProcessor,
+                                                       signalProcessor: signalProcessor,
                                                        timeProvider: timeProvider,
                                                        cpuUsageCalculator: cpuUsageCalculator,
                                                        sysCtl: sysCtl)
         self.memoryUsageCollector = BaseMemoryUsageCollector(logger: logger,
                                                              configProvider: configProvider,
-                                                             eventProcessor: eventProcessor,
+                                                             signalProcessor: signalProcessor,
                                                              timeProvider: timeProvider,
                                                              memoryUsageCalculator: memoryUsageCalculator,
                                                              sysCtl: sysCtl)
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? AttributeConstants.unknown
         self.appLaunchCollector = BaseAppLaunchCollector(logger: logger,
                                                          timeProvider: timeProvider,
-                                                         eventProcessor: eventProcessor,
+                                                         signalProcessor: signalProcessor,
                                                          sysCtl: sysCtl,
                                                          userDefaultStorage: userDefaultStorage,
                                                          currentAppVersion: appVersion)
         self.networkChangeCollector = BaseNetworkChangeCollector(logger: logger,
-                                                                 eventProcessor: eventProcessor,
+                                                                 signalProcessor: signalProcessor,
                                                                  timeProvider: timeProvider)
         self.customEventCollector = BaseCustomEventCollector(logger: logger,
-                                                             eventProcessor: eventProcessor,
+                                                             signalProcessor: signalProcessor,
                                                              timeProvider: timeProvider,
                                                              configProvider: configProvider)
-        self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(eventProcessor: eventProcessor,
+        self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(signalProcessor: signalProcessor,
                                                                            timeProvider: timeProvider,
                                                                            logger: logger)
         self.dataCleanupService = BaseDataCleanupService(eventStore: eventStore,
@@ -316,7 +316,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.client = client
         self.httpEventValidator = BaseHttpEventValidator()
         self.httpEventCollector = BaseHttpEventCollector(logger: logger,
-                                                         eventProcessor: eventProcessor,
+                                                         signalProcessor: signalProcessor,
                                                          timeProvider: timeProvider,
                                                          urlSessionTaskSwizzler: URLSessionTaskSwizzler(),
                                                          httpInterceptorCallbacks: HttpInterceptorCallbacks(),

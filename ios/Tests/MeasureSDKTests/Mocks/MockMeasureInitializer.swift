@@ -22,7 +22,7 @@ final class MockMeasureInitializer: MeasureInitializer {
     let networkStateAttributeProcessor: NetworkStateAttributeProcessor
     let userAttributeProcessor: UserAttributeProcessor
     let attributeProcessors: [AttributeProcessor]
-    let eventProcessor: EventProcessor
+    let signalProcessor: SignalProcessor
     let crashReportManager: CrashReportManager
     var crashDataPersistence: CrashDataPersistence
     let systemFileManager: SystemFileManager
@@ -57,6 +57,9 @@ final class MockMeasureInitializer: MeasureInitializer {
     let svgGenerator: SvgGenerator
     let appVersionInfo: AppVersionInfo
     let httpEventValidator: HttpEventValidator
+    let traceSampler: TraceSampler
+    let randomizer: Randomizer
+    
 
     init(client: Client? = nil, // swiftlint:disable:this function_body_length
          configProvider: ConfigProvider? = nil,
@@ -69,7 +72,7 @@ final class MockMeasureInitializer: MeasureInitializer {
          sessionStore: SessionStore? = nil,
          eventStore: EventStore? = nil,
          sessionManager: SessionManager? = nil,
-         eventProcessor: EventProcessor? = nil,
+         signalProcessor: SignalProcessor? = nil,
          systemFileManager: SystemFileManager? = nil,
          crashDataPersistence: CrashDataPersistence? = nil,
          systemCrashReporter: SystemCrashReporter? = nil,
@@ -104,7 +107,9 @@ final class MockMeasureInitializer: MeasureInitializer {
          deviceAttributeProcessor: DeviceAttributeProcessor? = nil,
          installationIdAttributeProcessor: InstallationIdAttributeProcessor? = nil,
          networkStateAttributeProcessor: NetworkStateAttributeProcessor? = nil,
-         userAttributeProcessor: UserAttributeProcessor? = nil) {
+         userAttributeProcessor: UserAttributeProcessor? = nil,
+         traceSampler: TraceSampler? = nil,
+         randomizer: Randomizer? = nil) {
         self.client = client ?? ClientInfo(apiKey: "test", apiUrl: "https://test.com")
         self.configProvider = configProvider ?? BaseConfigProvider(defaultConfig: Config(),
                                                                    configLoader: BaseConfigLoader())
@@ -152,17 +157,17 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                               timeProvider: self.timeProvider,
                                                                                               attachmentProcessor: self.attachmentProcessor,
                                                                                               svgGenerator: self.svgGenerator)
-        self.eventProcessor = eventProcessor ?? BaseEventProcessor(logger: self.logger,
-                                                                   idProvider: self.idProvider,
-                                                                   sessionManager: self.sessionManager,
-                                                                   attributeProcessors: self.attributeProcessors,
-                                                                   configProvider: self.configProvider,
-                                                                   timeProvider: self.timeProvider,
-                                                                   crashDataPersistence: self.crashDataPersistence,
-                                                                   eventStore: self.eventStore)
+        self.signalProcessor = signalProcessor ?? BaseSignalProcessor(logger: self.logger,
+                                                                     idProvider: self.idProvider,
+                                                                     sessionManager: self.sessionManager,
+                                                                     attributeProcessors: self.attributeProcessors,
+                                                                     configProvider: self.configProvider,
+                                                                     timeProvider: self.timeProvider,
+                                                                     crashDataPersistence: self.crashDataPersistence,
+                                                                     eventStore: self.eventStore)
         self.systemCrashReporter = systemCrashReporter ?? BaseSystemCrashReporter(logger: self.logger)
         self.crashReportManager = crashReportManager ?? CrashReportingManager(logger: self.logger,
-                                                                              eventProcessor: self.eventProcessor,
+                                                                              signalProcessor: self.signalProcessor,
                                                                               crashDataPersistence: self.crashDataPersistence,
                                                                               crashReporter: self.systemCrashReporter,
                                                                               systemFileManager: self.systemFileManager,
@@ -170,7 +175,7 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                               configProvider: self.configProvider)
         self.gestureTargetFinder = gestureTargetFinder ?? BaseGestureTargetFinder()
         self.gestureCollector = gestureCollector ?? BaseGestureCollector(logger: self.logger,
-                                                                         eventProcessor: self.eventProcessor,
+                                                                         signalProcessor: self.signalProcessor,
                                                                          timeProvider: self.timeProvider,
                                                                          configProvider: self.configProvider,
                                                                          gestureTargetFinder: self.gestureTargetFinder,
@@ -201,7 +206,7 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                         heartbeat: self.heartbeat,
                                                                                         eventExporter: self.eventExporter,
                                                                                         dispatchQueue: MeasureQueue.periodicEventExporter)
-        self.lifecycleCollector = lifecycleCollector ?? BaseLifecycleCollector(eventProcessor: self.eventProcessor,
+        self.lifecycleCollector = lifecycleCollector ?? BaseLifecycleCollector(signalProcessor: self.signalProcessor,
                                                                                timeProvider: self.timeProvider,
                                                                                logger: self.logger)
         self.cpuUsageCalculator = cpuUsageCalculator ?? BaseCpuUsageCalculator()
@@ -209,31 +214,31 @@ final class MockMeasureInitializer: MeasureInitializer {
         self.sysCtl = sysCtl ?? BaseSysCtl()
         self.cpuUsageCollector = cpuUsageCollector ?? BaseCpuUsageCollector(logger: self.logger,
                                                                             configProvider: self.configProvider,
-                                                                            eventProcessor: self.eventProcessor,
+                                                                            signalProcessor: self.signalProcessor,
                                                                             timeProvider: self.timeProvider,
                                                                             cpuUsageCalculator: self.cpuUsageCalculator,
                                                                             sysCtl: self.sysCtl)
         self.memoryUsageCollector = memoryUsageCollector ?? BaseMemoryUsageCollector(logger: self.logger,
                                                                                      configProvider: self.configProvider,
-                                                                                     eventProcessor: self.eventProcessor,
+                                                                                     signalProcessor: self.signalProcessor,
                                                                                      timeProvider: self.timeProvider,
                                                                                      memoryUsageCalculator: self.memoryUsageCalculator,
                                                                                      sysCtl: self.sysCtl)
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? AttributeConstants.unknown
         self.appLaunchCollector = appLaunchCollector ?? BaseAppLaunchCollector(logger: self.logger,
                                                                                timeProvider: self.timeProvider,
-                                                                               eventProcessor: self.eventProcessor,
+                                                                               signalProcessor: self.signalProcessor,
                                                                                sysCtl: self.sysCtl,
                                                                                userDefaultStorage: self.userDefaultStorage,
                                                                                currentAppVersion: appVersion)
         self.networkChangeCollector = networkChangeCollector ?? BaseNetworkChangeCollector(logger: self.logger,
-                                                                                           eventProcessor: self.eventProcessor,
+                                                                                           signalProcessor: self.signalProcessor,
                                                                                            timeProvider: self.timeProvider)
         self.customEventCollector = customEventCollector ?? BaseCustomEventCollector(logger: self.logger,
-                                                                                     eventProcessor: self.eventProcessor,
+                                                                                     signalProcessor: self.signalProcessor,
                                                                                      timeProvider: self.timeProvider,
                                                                                      configProvider: self.configProvider)
-        self.userTriggeredEventCollector = userTriggeredEventCollector ?? BaseUserTriggeredEventCollector(eventProcessor: self.eventProcessor,
+        self.userTriggeredEventCollector = userTriggeredEventCollector ?? BaseUserTriggeredEventCollector(signalProcessor: self.signalProcessor,
                                                                                                           timeProvider: self.timeProvider,
                                                                                                           logger: self.logger)
         self.dataCleanupService = dataCleanupService ?? BaseDataCleanupService(eventStore: self.eventStore,
@@ -242,12 +247,14 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                sessionManager: self.sessionManager)
         self.httpEventValidator = httpEventValidator ?? BaseHttpEventValidator()
         self.httpEventCollector = httpEventCollector ?? BaseHttpEventCollector(logger: self.logger,
-                                                                               eventProcessor: self.eventProcessor,
+                                                                               signalProcessor: self.signalProcessor,
                                                                                timeProvider: self.timeProvider,
                                                                                urlSessionTaskSwizzler: URLSessionTaskSwizzler(),
                                                                                httpInterceptorCallbacks: HttpInterceptorCallbacks(),
                                                                                client: self.client,
                                                                                configProvider: self.configProvider,
                                                                                httpEventValidator: self.httpEventValidator)
+        self.randomizer = randomizer ?? BaseRandomizer()
+        self.traceSampler = traceSampler ?? BaseTraceSampler(configProvider: self.configProvider, randomizer: self.randomizer)
     }
 }

@@ -53,7 +53,7 @@
 		526D18482D5A1913009A2E90 /* CustomEventCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17C12D5A1913009A2E90 /* CustomEventCollector.swift */; };
 		526D18492D5A1913009A2E90 /* CustomEventData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17C22D5A1913009A2E90 /* CustomEventData.swift */; };
 		526D184A2D5A1913009A2E90 /* Event.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17C32D5A1913009A2E90 /* Event.swift */; };
-		526D184B2D5A1913009A2E90 /* EventProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17C42D5A1913009A2E90 /* EventProcessor.swift */; };
+		526D184B2D5A1913009A2E90 /* SignalProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17C42D5A1913009A2E90 /* SignalProcessor.swift */; };
 		526D184C2D5A1913009A2E90 /* EventType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17C52D5A1913009A2E90 /* EventType.swift */; };
 		526D184D2D5A1913009A2E90 /* ScreenViewData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17C62D5A1913009A2E90 /* ScreenViewData.swift */; };
 		526D184E2D5A1913009A2E90 /* UserTriggeredEventCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17C72D5A1913009A2E90 /* UserTriggeredEventCollector.swift */; };
@@ -418,7 +418,7 @@
 		526D17C12D5A1913009A2E90 /* CustomEventCollector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomEventCollector.swift; sourceTree = "<group>"; };
 		526D17C22D5A1913009A2E90 /* CustomEventData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomEventData.swift; sourceTree = "<group>"; };
 		526D17C32D5A1913009A2E90 /* Event.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Event.swift; sourceTree = "<group>"; };
-		526D17C42D5A1913009A2E90 /* EventProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EventProcessor.swift; sourceTree = "<group>"; };
+		526D17C42D5A1913009A2E90 /* SignalProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SignalProcessor.swift; sourceTree = "<group>"; };
 		526D17C52D5A1913009A2E90 /* EventType.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EventType.swift; sourceTree = "<group>"; };
 		526D17C62D5A1913009A2E90 /* ScreenViewData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ScreenViewData.swift; sourceTree = "<group>"; };
 		526D17C72D5A1913009A2E90 /* UserTriggeredEventCollector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UserTriggeredEventCollector.swift; sourceTree = "<group>"; };
@@ -792,7 +792,7 @@
 				526D17C12D5A1913009A2E90 /* CustomEventCollector.swift */,
 				526D17C22D5A1913009A2E90 /* CustomEventData.swift */,
 				526D17C32D5A1913009A2E90 /* Event.swift */,
-				526D17C42D5A1913009A2E90 /* EventProcessor.swift */,
+				526D17C42D5A1913009A2E90 /* SignalProcessor.swift */,
 				526D17C52D5A1913009A2E90 /* EventType.swift */,
 				526D17C62D5A1913009A2E90 /* ScreenViewData.swift */,
 				526D17C72D5A1913009A2E90 /* UserTriggeredEventCollector.swift */,
@@ -1679,7 +1679,7 @@
 				526D186F2D5A1913009A2E90 /* NetworkChangeData.swift in Sources */,
 				526D185A2D5A1913009A2E90 /* PeriodicEventExporter.swift in Sources */,
 				526D187D2D5A1913009A2E90 /* UIColor+Extension.swift in Sources */,
-				526D184B2D5A1913009A2E90 /* EventProcessor.swift in Sources */,
+				526D184B2D5A1913009A2E90 /* SignalProcessor.swift in Sources */,
 				526D18552D5A1913009A2E90 /* EventSerializer.swift in Sources */,
 				52B7F18F2D76AFBB001498BC /* EventOb+CoreDataClass.swift in Sources */,
 				CF7CAE4A2D940E4700E15CDB /* AppVersionInfo.swift in Sources */,

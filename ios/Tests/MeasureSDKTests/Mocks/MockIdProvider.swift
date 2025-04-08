@@ -9,13 +9,19 @@ import Foundation
 @testable import Measure
 
 final class MockIdProvider: IdProvider {
-    var idString: String
+    var uuId: String = ""
+    var spanid: String = ""
+    var traceid: String = ""
 
     func uuid() -> String {
-        return idString
+        return uuId
     }
 
-    init(_ id: String = "") {
-        idString = id
+    func spanId() -> String {
+        return spanid
+    }
+
+    func traceId() -> String {
+        return traceid
     }
 }

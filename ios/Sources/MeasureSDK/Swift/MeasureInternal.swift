@@ -53,8 +53,8 @@ final class MeasureInternal {
     private var attributeProcessors: [AttributeProcessor] {
         return measureInitializer.attributeProcessors
     }
-    private var eventProcessor: EventProcessor {
-        return measureInitializer.eventProcessor
+    private var signalProcessor: SignalProcessor {
+        return measureInitializer.signalProcessor
     }
     private var crashReportManager: CrashReportManager {
         return measureInitializer.crashReportManager
