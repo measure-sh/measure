@@ -32,9 +32,9 @@ public struct StackFrame: Codable {
     
     let fileName: String?
     
-    let lineNumber: Int?
+    let lineNumber: Number?
     
-    let columnNumber: Int?
+    let columnNumber: Number?
     
     let moduleName: String?
     
@@ -54,14 +54,14 @@ public struct StackFrame: Codable {
         className = try container.decodeIfPresent(String.self, forKey: .className)
         methodName = try container.decodeIfPresent(String.self, forKey: .methodName)
         fileName = try container.decodeIfPresent(String.self, forKey: .fileName)
-        lineNumber = try container.decodeIfPresent(Int.self, forKey: .lineNumber)
-        columnNumber = try container.decodeIfPresent(Int.self, forKey: .columnNumber)
+        lineNumber = try container.decodeIfPresent(Number.self, forKey: .lineNumber)
+        columnNumber = try container.decodeIfPresent(Number.self, forKey: .columnNumber)
         moduleName = try container.decodeIfPresent(String.self, forKey: .moduleName)
         instructionAddr = try container.decodeIfPresent(String.self, forKey: .instructionAddr)
     }
     
     // Standard initializer for creating frames programmatically
-    public init(binaryName: String?, binaryAddress: String?, offset: Int?, frameIndex: Number?, symbolAddress: String?, inApp: Bool?, className: String?, methodName: String?, fileName: String?, lineNumber: Int?, columnNumber: Int?, moduleName: String?, instructionAddr: String?) {
+    public init(binaryName: String?, binaryAddress: String?, offset: Int?, frameIndex: Number?, symbolAddress: String?, inApp: Bool?, className: String?, methodName: String?, fileName: String?, lineNumber: Number?, columnNumber: Number?, moduleName: String?, instructionAddr: String?) {
         self.binaryName = binaryName
         self.binaryAddress = binaryAddress
         self.offset = offset

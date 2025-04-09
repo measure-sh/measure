@@ -8,23 +8,23 @@ class MethodConstants {
   static const String argName = 'name';
   static const String argTimestamp = 'timestamp';
   static const String argAttributes = 'attributes';
+  static const String argSerializedException = 'serialized_exception';
 
-  // Error codes
-  static const String argSerializedExceptionData = 'exception_data';
-  static const String argExceptionDataExceptions = 'exceptions';
-  static const String argExceptionDataHandled = 'handled';
-  static const String argExceptionDataUnitType = 'type';
-  static const String argExceptionDataUnitMessage = 'message';
-  static const String argExceptionDataUnitFrames = 'frames';
-  static const String argExceptionDataFrameClassName = 'class_name';
-  static const String argExceptionDataFrameMethodName = 'method_name';
-  static const String argExceptionDataFrameFileName = 'file_name';
-  static const String argExceptionDataFrameLineNum = 'line_num';
-  static const String argExceptionDataFrameModuleName = 'module_name';
-  static const String argExceptionDataFrameColNum = 'col_num';
-  static const String argExceptionDataFrameIndex = 'index';
-  static const String argExceptionDataFrameBinaryAddr = 'binary_addr';
-  static const String argExceptionDataFrameInstructionAddress = 'instruction_addr';
+  // Exception object
+  static const String exceptionExceptions = 'exceptions';
+  static const String exceptionHandled = 'handled';
+  static const String exceptionType = 'type';
+  static const String exceptionMessage = 'message';
+  static const String exceptionFrames = 'frames';
+  static const String exceptionFrameClassName = 'class_name';
+  static const String exceptionFrameMethodName = 'method_name';
+  static const String exceptionFrameFileName = 'file_name';
+  static const String exceptionFrameLineNum = 'line_num';
+  static const String exceptionFrameModuleName = 'module_name';
+  static const String exceptionFrameColNum = 'col_num';
+  static const String exceptionFrameIndex = 'index';
+  static const String exceptionFrameBinaryAddr = 'binary_addr';
+  static const String exceptionFrameInstructionAddr = 'instruction_addr';
 
   // Error codes
   static const String errorInvalidArgument = 'invalid_argument';

@@ -8,7 +8,7 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         let instance = MeasurePlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
-    
+
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         do {
             switch call.method {
@@ -27,89 +27,77 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
             result(FlutterError(
                 code: MethodConstants.errorUnknown,
                 message: "Unexpected method channel error when calling \(call.method)",
-                details: error.localizedDescription
+                details: error.localizedDescription // TODO
             ))
         }
     }
-    
-    
+
+
     private func handleTrackException(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         let reader = MethodCallReader(call)
-        let serializedData: [String: Any] = try reader.requireArg(MethodConstants.argExceptionData)
+        let serializedData: [String: Any] = try reader.requireArg(MethodConstants.argSerializedException)
         let timestamp: Int64 = try reader.requireArg(MethodConstants.argTimestamp)
-        // Extract exception data from serializedData
-        guard let exceptionsArray = serializedData["exceptions"] as? [[String: Any]] else {
-               throw MethodArgumentError(code: "invalid_argument", message: "Missing or invalid 'exceptions' field", details: "nil")
+        guard let exceptionsArray = serializedData[MethodConstants.exceptionExceptions] as? [[String: Any]] else {
+               throw MethodArgumentError(code: "invalid_argument", message: "Missing or invalid 'exceptions' field", details: "") // TODO
            }
-
-           // Process exceptions array more explicitly to help type inference
            var exceptions: [ExceptionDetail] = []
-           // Process each exception entry manually
            for exceptionMap in exceptionsArray {
-               guard let framesArray = exceptionMap["frames"] as? [[String: Any]] else {
-                   print("Warning: Missing or invalid 'frames' in exception")
-                   continue
+               guard let framesArray = exceptionMap[MethodConstants.exceptionFrames] as? [[String: Any]] else {
+                    throw MethodArgumentError(code: "invalid_argument", message: "Missing or invalid 'frames' in exception", details: "nil")  // TODO
                }
-               
-               // Process frames array manually
                var frames: [StackFrame] = []
                for frameMap in framesArray {
                    let frame = StackFrame(
                        binaryName: nil,
-                       binaryAddress: nil,
+                       binaryAddress: frameMap[MethodConstants.exceptionFrameBinaryAddr] as? String,
                        offset: nil,
-                       frameIndex: nil,
+                       frameIndex: frameMap[MethodConstants.exceptionFrameIndex] as? Number,
                        symbolAddress: nil,
-                       inApp: true, // Assuming frames from Flutter are in-app code
-                       className: frameMap["class_name"] as? String,
-                       methodName: frameMap["method_name"] as? String,
-                       fileName: frameMap["file_name"] as? String,
-                       lineNumber: (frameMap["line_num"] as? NSNumber)?.intValue,
-                       columnNumber: (frameMap["col_num"] as? NSNumber)?.intValue,
-                       moduleName: frameMap["module_name"] as? String,
-                       instructionAddr: frameMap["instruction_addr"] as? String
+                       inApp: true, // TODO
+                       className: frameMap[MethodConstants.exceptionFrameClassName] as? String,
+                       methodName: frameMap[MethodConstants.exceptionFrameMethodName] as? String,
+                       fileName: frameMap[MethodConstants.exceptionFrameFileName] as? String,
+                       lineNumber: frameMap[MethodConstants.exceptionFrameLineNum] as? Number,
+                       columnNumber: frameMap[MethodConstants.exceptionFrameColNum] as? Number,
+                       moduleName: frameMap[MethodConstants.exceptionFrameModuleName] as? String,
+                       instructionAddr: frameMap[MethodConstants.exceptionFrameInstructionAddr] as? String
                    )
                    frames.append(frame)
                }
-               
-               // Create exception detail with processed frames
                let exceptionDetail = ExceptionDetail(
-                   type: exceptionMap["type"] as? String,
-                   message: exceptionMap["message"] as? String,
+                   type: exceptionMap[MethodConstants.exceptionType] as? String,
+                   message: exceptionMap[MethodConstants.exceptionMessage] as? String,
                    frames: frames,
                    signal: nil,
-                   threadName: "",
-                   threadSequence: 0 as Int64, // Explicitly cast to Number (Int64)
-                   osBuildNumber: ""
+                   threadName: "", // TODO
+                   threadSequence: 0 as Int64, // TODO
+                   osBuildNumber: "" // TODO
                )
-               
                exceptions.append(exceptionDetail)
            }
 
-        guard let handled = serializedData["handled"] as? Bool else {
+        guard let handled = serializedData[MethodConstants.exceptionHandled] as? Bool else {
             throw MethodArgumentError(code: "invalid_argument", message: "Missing or invalid 'handled' field", details: "")
         }
 
         let exceptionData = Exception(
             handled: handled,
             exceptions: exceptions,
-            foreground: serializedData["foreground"] as? Bool ?? true,
-            threads: nil, // Assuming threads are handled differently or not directly mapped here
-            binaryImages: nil // Assuming binaryImages are handled differently or not directly mapped here
+            foreground: true,
+            threads: nil,
+            binaryImages: nil
         )
-
-        // Process the exception data
         Measure.shared.internalTrackException(exceptionData, timestamp: timestamp)
         result(nil)
     }
 
-    
+
     private func triggerNativeCrash() throws {
         let pointer = UnsafeMutablePointer<Int>.allocate(capacity: 1)
         pointer.deallocate()
         pointer.pointee = 42
     }
-    
+
     private func handleTrackCustomEvent(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         let reader = MethodCallReader(call)
         let name: String = try reader.requireArg(MethodConstants.argName)
@@ -119,7 +107,7 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         processCustomEvent(name: name, timestamp: timestamp, attributes: convertedAttributes)
         result(nil)
     }
-    
+
     private func processCustomEvent(name: String, timestamp: Int64, attributes: [String: AttributeValue]) {
         Measure.shared.trackEvent(name: name, attributes: attributes, timestamp: timestamp)
     }

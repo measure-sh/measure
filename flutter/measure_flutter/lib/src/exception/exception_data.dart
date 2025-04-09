@@ -19,32 +19,32 @@ class ExceptionData {
 
   Map<String, dynamic> _serializeExceptionData(ExceptionData data) {
     return {
-      MethodConstants.argExceptionDataExceptions:
+      MethodConstants.exceptionExceptions:
       data.exceptions.map((e) => _serializeExceptionUnit(e)).toList(),
-      MethodConstants.argExceptionDataHandled: data.handled,
+      MethodConstants.exceptionHandled: data.handled,
     };
   }
 
   Map<String, dynamic> _serializeExceptionUnit(ExceptionUnit unit) {
     return {
-      MethodConstants.argExceptionDataUnitType: unit.type,
-      MethodConstants.argExceptionDataUnitMessage: unit.message,
-      MethodConstants.argExceptionDataUnitFrames:
+      MethodConstants.exceptionType: unit.type,
+      MethodConstants.exceptionMessage: unit.message,
+      MethodConstants.exceptionFrames:
       unit.frames.map((f) => _serializeFrame(f)).toList(),
     };
   }
 
   Map<String, dynamic> _serializeFrame(MsrFrame frame) {
     return {
-      MethodConstants.argExceptionDataFrameClassName: frame.className,
-      MethodConstants.argExceptionDataFrameMethodName: frame.methodName,
-      MethodConstants.argExceptionDataFrameFileName: frame.fileName,
-      MethodConstants.argExceptionDataFrameLineNum: frame.lineNum,
-      MethodConstants.argExceptionDataFrameModuleName: frame.moduleName,
-      MethodConstants.argExceptionDataFrameColNum: frame.colNum,
-      MethodConstants.argExceptionDataFrameIndex: frame.frameIndex,
-      MethodConstants.argExceptionDataFrameBinaryAddr: frame.binaryAddr,
-      MethodConstants.argExceptionDataFrameInstructionAddress: frame.instructionAddr,
+      MethodConstants.exceptionFrameClassName: frame.className,
+      MethodConstants.exceptionFrameMethodName: frame.methodName,
+      MethodConstants.exceptionFrameFileName: frame.fileName,
+      MethodConstants.exceptionFrameLineNum: frame.lineNum,
+      MethodConstants.exceptionFrameModuleName: frame.moduleName,
+      MethodConstants.exceptionFrameColNum: frame.colNum,
+      MethodConstants.exceptionFrameIndex: frame.frameIndex,
+      MethodConstants.exceptionFrameBinaryAddr: frame.binaryAddr,
+      MethodConstants.exceptionFrameInstructionAddr: frame.instructionAddr,
     };
   }
 }

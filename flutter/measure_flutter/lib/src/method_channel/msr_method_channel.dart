@@ -29,7 +29,7 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
   Future<void> trackException(
       Map<String, dynamic> exceptionData, int timestamp) {
     return _methodChannel.invokeMethod(MethodConstants.functionTrackException, {
-      MethodConstants.argSerializedExceptionData: exceptionData,
+      MethodConstants.argSerializedException: exceptionData,
       MethodConstants.argTimestamp: timestamp,
     });
   }
