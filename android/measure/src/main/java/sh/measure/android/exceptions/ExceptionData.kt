@@ -80,11 +80,14 @@ data class Frame(
      */
     val line_num: Int? = null,
 
+    /**
+     * The library
+     */
     val module_name: String? = null,
 
     val col_num: Int? = null,
 
-    val instruction_addr: String? = null,
+    val instruction_address: String? = null,
 
-    val binary_addr: String? = null,
+    val binary_address: String? = null,
 )

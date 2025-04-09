@@ -32,8 +32,8 @@ enum MethodConstants {
     static let exceptionFrameModuleName = "module_name"
     static let exceptionFrameColNum = "col_num"
     static let exceptionFrameIndex = "index"
-    static let exceptionFrameBinaryAddr = "binary_addr"
-    static let exceptionFrameInstructionAddr = "instruction_addr"
+    static let exceptionFrameBinaryAddress = "binary_address"
+    static let exceptionFrameInstructionAddress = "instruction_address"
 
     // Error codes
     static let errorInvalidArgument = "invalid_argument"

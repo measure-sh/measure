@@ -38,7 +38,7 @@ public struct StackFrame: Codable {
     
     let moduleName: String?
     
-    let instructionAddr: String?
+    let instructionAddress: String?
     
     // Custom initializer to provide default values for fields
     public init(from decoder: Decoder) throws {
@@ -57,11 +57,11 @@ public struct StackFrame: Codable {
         lineNumber = try container.decodeIfPresent(Number.self, forKey: .lineNumber)
         columnNumber = try container.decodeIfPresent(Number.self, forKey: .columnNumber)
         moduleName = try container.decodeIfPresent(String.self, forKey: .moduleName)
-        instructionAddr = try container.decodeIfPresent(String.self, forKey: .instructionAddr)
+        instructionAddress = try container.decodeIfPresent(String.self, forKey: .instructionAddress)
     }
     
     // Standard initializer for creating frames programmatically
-    public init(binaryName: String?, binaryAddress: String?, offset: Int?, frameIndex: Number?, symbolAddress: String?, inApp: Bool?, className: String?, methodName: String?, fileName: String?, lineNumber: Number?, columnNumber: Number?, moduleName: String?, instructionAddr: String?) {
+    public init(binaryName: String?, binaryAddress: String?, offset: Int?, frameIndex: Number?, symbolAddress: String?, inApp: Bool?, className: String?, methodName: String?, fileName: String?, lineNumber: Number?, columnNumber: Number?, moduleName: String?, instructionAddress: String?) {
         self.binaryName = binaryName
         self.binaryAddress = binaryAddress
         self.offset = offset
@@ -74,7 +74,7 @@ public struct StackFrame: Codable {
         self.lineNumber = lineNumber
         self.columnNumber = columnNumber
         self.moduleName = moduleName
-        self.instructionAddr = instructionAddr
+        self.instructionAddress = instructionAddress
     }
 
     enum CodingKeys: String, CodingKey {
@@ -90,6 +90,6 @@ public struct StackFrame: Codable {
         case lineNumber = "line_number"
         case columnNumber = "column_number"
         case moduleName = "module_name"
-        case instructionAddr = "instruction_addr"
+        case instructionAddress = "instruction_address"
     }
 }

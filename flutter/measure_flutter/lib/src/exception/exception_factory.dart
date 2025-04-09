@@ -77,8 +77,8 @@ final class ExceptionFactory {
       var symbolAddr = match.group(1)!;
       return MsrFrame(
           frameIndex: index,
-          binaryAddr: '0x$binaryAddr',
-          instructionAddr: '0x${symbolAddr.replaceAll(RegExp(r'^0+'), '')}');
+          binaryAddress: '0x$binaryAddr',
+          instructionAddress: '0x${symbolAddr.replaceAll(RegExp(r'^0+'), '')}');
     }
     return null;
   }

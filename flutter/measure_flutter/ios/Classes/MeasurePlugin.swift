@@ -49,7 +49,7 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
                for frameMap in framesArray {
                    let frame = StackFrame(
                        binaryName: nil,
-                       binaryAddress: frameMap[MethodConstants.exceptionFrameBinaryAddr] as? String,
+                       binaryAddress: frameMap[MethodConstants.exceptionFrameBinaryAddress] as? String,
                        offset: nil,
                        frameIndex: frameMap[MethodConstants.exceptionFrameIndex] as? Number,
                        symbolAddress: nil,
@@ -60,7 +60,7 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
                        lineNumber: frameMap[MethodConstants.exceptionFrameLineNum] as? Number,
                        columnNumber: frameMap[MethodConstants.exceptionFrameColNum] as? Number,
                        moduleName: frameMap[MethodConstants.exceptionFrameModuleName] as? String,
-                       instructionAddr: frameMap[MethodConstants.exceptionFrameInstructionAddr] as? String
+                       instructionAddress: frameMap[MethodConstants.exceptionFrameInstructionAddress] as? String
                    )
                    frames.append(frame)
                }

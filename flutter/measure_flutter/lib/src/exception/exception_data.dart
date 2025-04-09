@@ -43,8 +43,8 @@ class ExceptionData {
       MethodConstants.exceptionFrameModuleName: frame.moduleName,
       MethodConstants.exceptionFrameColNum: frame.colNum,
       MethodConstants.exceptionFrameIndex: frame.frameIndex,
-      MethodConstants.exceptionFrameBinaryAddr: frame.binaryAddr,
-      MethodConstants.exceptionFrameInstructionAddr: frame.instructionAddr,
+      MethodConstants.exceptionFrameBinaryAddress: frame.binaryAddress,
+      MethodConstants.exceptionFrameInstructionAddress: frame.instructionAddress,
     };
   }
 }
@@ -72,26 +72,32 @@ class MsrFrame {
   /// The fully qualified class name.
   final String? className;
 
-  /// The name of the method in the stacktrace.
+  /// The name of the method.
   final String? methodName;
 
-  /// The name of the source file in the stacktrace.
+  /// The name of the source file.
   final String? fileName;
 
-  /// The line number of the method called.
+  /// The line number.
   final int? lineNum;
 
+  /// The name of the module or library.
   final String? moduleName;
 
+  /// The column number.
   final int? colNum;
 
+  /// The index of the frame in the stack trace.
   final int? frameIndex;
 
-  final String? binaryAddr;
+  /// The binary address of the frame.
+  final String? binaryAddress;
 
+  /// The symbol address of the frame.
   final String? symbolAddress;
 
-  final String? instructionAddr;
+  /// The instruction address of the frame.
+  final String? instructionAddress;
 
   MsrFrame({
     this.className,
@@ -101,8 +107,8 @@ class MsrFrame {
     this.moduleName,
     this.colNum,
     this.frameIndex,
-    this.binaryAddr,
+    this.binaryAddress,
     this.symbolAddress,
-    this.instructionAddr,
+    this.instructionAddress,
   });
 }

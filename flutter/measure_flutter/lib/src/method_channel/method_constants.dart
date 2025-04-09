@@ -23,8 +23,8 @@ class MethodConstants {
   static const String exceptionFrameModuleName = 'module_name';
   static const String exceptionFrameColNum = 'col_num';
   static const String exceptionFrameIndex = 'index';
-  static const String exceptionFrameBinaryAddr = 'binary_addr';
-  static const String exceptionFrameInstructionAddr = 'instruction_addr';
+  static const String exceptionFrameBinaryAddress = 'binary_address';
+  static const String exceptionFrameInstructionAddress = 'instruction_address';
 
   // Error codes
   static const String errorInvalidArgument = 'invalid_argument';

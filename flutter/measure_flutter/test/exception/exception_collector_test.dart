@@ -109,12 +109,12 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
             frames: [
               MsrFrame(
                 frameIndex: 0,
-                binaryAddr: '0x7af7026000',
+                binaryAddress: '0x7af7026000',
                 symbolAddress: "0x7af71c4903",
               ),
               MsrFrame(
                 frameIndex: 1,
-                binaryAddr: '0x7af7026000',
+                binaryAddress: '0x7af7026000',
                 symbolAddress: "0x7af71c48cf",
               ),
             ],
