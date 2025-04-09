@@ -28,6 +28,8 @@ protocol SignalProcessor {
         sessionId: String?,
         attachments: [Attachment]?,
         userDefinedAttributes: String?)
+
+    func trackSpan(_ spanData: SpanData)
 }
 
 /// A concrete implementation of the `SignalProcessor` protocol, responsible for tracking and
@@ -98,6 +100,16 @@ final class BaseSignalProcessor: SignalProcessor {
                   sessionId: sessionId,
                   userDefinedAttributes: userDefinedAttributes)
         }
+    }
+
+    func trackSpan(_ spanData: SpanData) {
+        SignPost.trace(label: "track-span-triggered") {
+            trackSpanData(spanData)
+        }
+    }
+
+    private func trackSpanData(_ spanData: SpanData) {
+        dump(spanData)
     }
 
     private func track<T: Codable>( // swiftlint:disable:this function_parameter_count

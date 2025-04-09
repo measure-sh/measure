@@ -60,6 +60,7 @@ protocol MeasureInitializer {
     var httpEventValidator: HttpEventValidator { get }
     var traceSampler: TraceSampler { get }
     var randomizer: Randomizer { get }
+    var spanProcessor: SpanProcessor { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -114,6 +115,7 @@ protocol MeasureInitializer {
 /// - `httpEventValidator`: `HttpEventValidator` object that lets you check if a http event should be tracked or not.
 /// - `traceSampler`: `TraceSampler`
 /// - `randomizer`: `Randomizer`
+/// - `spanProcessor`: `SpanProcessor`
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -166,6 +168,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let httpEventValidator: HttpEventValidator
     let traceSampler: TraceSampler
     let randomizer: Randomizer
+    let spanProcessor: SpanProcessor
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -325,5 +328,9 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          httpEventValidator: httpEventValidator)
         self.randomizer = BaseRandomizer()
         self.traceSampler = BaseTraceSampler(configProvider: configProvider, randomizer: randomizer)
+        self.spanProcessor = BaseSpanProcessor(logger: logger,
+                                               signalProcessor: signalProcessor,
+                                               attributeProcessors: attributeProcessors,
+                                               configProvider: configProvider)
     }
 }

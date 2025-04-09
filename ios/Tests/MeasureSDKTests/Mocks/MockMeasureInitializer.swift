@@ -59,7 +59,6 @@ final class MockMeasureInitializer: MeasureInitializer {
     let httpEventValidator: HttpEventValidator
     let traceSampler: TraceSampler
     let randomizer: Randomizer
-    
 
     init(client: Client? = nil, // swiftlint:disable:this function_body_length
          configProvider: ConfigProvider? = nil,

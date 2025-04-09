@@ -131,7 +131,7 @@ public protocol Span {
     ///
     /// - Parameter attributes: A dictionary of attribute names to values
     @discardableResult
-    func setAttributes(_ attributes: [String: Any]) -> Span
+    func setAttributes(_ attributes: [String: AttributeValue]) -> Span
 
     /// Removes an attribute from this span. No-op if the attribute does not exist.
     ///
