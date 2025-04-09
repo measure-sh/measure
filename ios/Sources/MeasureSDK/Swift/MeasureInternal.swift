@@ -143,7 +143,7 @@ final class MeasureInternal {
     }
 
     func start() {
-        if !isStarted && !configProvider.autoStart {
+        if !isStarted {
             self.logger.log(level: .info, message: "Starting Measure SDK", error: nil, data: nil)
             registedCollectors()
             isStarted = true

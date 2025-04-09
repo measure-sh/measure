@@ -131,15 +131,10 @@ final class SessionManagerTests: XCTestCase {
     }
 
     func testSessionStore() {
-        let expectation = XCTestExpectation(description: "Session store contains expected number of sessions")
         sessionManager.start()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            let sessions = self.sessionStore.getAllSessions()
-            XCTAssertEqual(sessions?.count, 1, "Expected 1 session in session store.")
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 2.0)
+        let sessions = self.sessionStore.getAllSessions()
+        XCTAssertEqual(sessions?.count, 1, "Expected 1 session in session store.")
     }
 
     func testCreatesNewSession_WhenRecentSessionIsUnavailable() {
