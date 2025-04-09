@@ -45,6 +45,9 @@ struct Config: InternalConfig, MeasureConfig {
     let httpUrlBlocklist: [String]
     let httpUrlAllowlist: [String]
     let autoStart: Bool
+    let maxSpanNameLength: Int
+    let maxCheckpointNameLength: Int
+    let maxCheckpointsPerSpan: Int
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
@@ -95,5 +98,8 @@ struct Config: InternalConfig, MeasureConfig {
         self.screenshotCompressionQuality = 25
         self.layoutSnapshotDebounceInterval = 750 // 750 ms
         self.autoStart = autoStart
+        self.maxSpanNameLength = 64
+        self.maxCheckpointNameLength = 64
+        self.maxCheckpointsPerSpan = 100
     }
 }

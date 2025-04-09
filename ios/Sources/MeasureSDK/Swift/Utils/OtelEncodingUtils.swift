@@ -159,7 +159,7 @@ final class OtelEncodingUtils {
     ///   - dest: The destination character array
     ///   - destOffset: The starting offset in the destination array
     static func byteToBase16(_ value: UInt8, dest: inout [Character], destOffset: Int) {
-        let b = Int(value)
+        let b = Int(value) // swiftlint:disable:this identifier_name
         dest[destOffset] = encoding[b]
         dest[destOffset + 1] = encoding[b | 0x100]
     }

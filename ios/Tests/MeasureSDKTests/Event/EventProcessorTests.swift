@@ -8,7 +8,7 @@
 @testable import Measure
 import XCTest
 
-final class signalProcessorTests: XCTestCase {
+final class SignalProcessorTests: XCTestCase {
     var signalProcessor: SignalProcessor!
     var idProvider: MockIdProvider!
     var logger: MockLogger!

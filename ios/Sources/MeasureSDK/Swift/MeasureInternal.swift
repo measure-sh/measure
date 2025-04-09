@@ -127,6 +127,9 @@ final class MeasureInternal {
     var traceSampler: TraceSampler {
         return measureInitializer.traceSampler
     }
+    var spanProcessor: SpanProcessor {
+        return measureInitializer.spanProcessor
+    }
     private let lifecycleObserver: LifecycleObserver
     private var isStarted: Bool = false
 

@@ -274,17 +274,15 @@ import Foundation
     /// - Returns: A new span instance.
     public func startSpan(name: String, timestamp: Int64? = nil) -> Span {
         guard let measureInternal = self.measureInternal else { return InvalidSpan() }
-        return MsrSpan.startSpan(
-            name: name,
-            logger: measureInternal.logger,
-            timeProvider: measureInternal.timeProvider,
-//            spanProcessor: measureInternal.spanProcessor,
-            sessionManager: measureInternal.sessionManager,
-            idProvider: measureInternal.idProvider,
-            traceSampler: measureInternal.traceSampler,
-            parentSpan: nil,
-            timestamp: timestamp
-        )
+        return MsrSpan.startSpan(name: name,
+                                 logger: measureInternal.logger,
+                                 timeProvider: measureInternal.timeProvider,
+                                 sessionManager: measureInternal.sessionManager,
+                                 idProvider: measureInternal.idProvider,
+                                 traceSampler: measureInternal.traceSampler,
+                                 parentSpan: nil,
+                                 spanProcessor: measureInternal.spanProcessor,
+                                 timestamp: timestamp)
     }
 
     /// Starts a new span with the given name.

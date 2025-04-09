@@ -22,19 +22,16 @@ protocol InternalSpan: Span {
     var checkpoints: [Checkpoint] { get }
 
     /// Gets the map of attributes attached to this span.
-    var attributes: [String: Any] { get }
+    var attributes: Attributes? { get }
 
     /// Gets the current status of this span, indicating its outcome or error state.
     func getStatus() -> SpanStatus
-
-    /// Returns a modifiable map of attributes.
-    func getAttributesMap() -> [String: Any]
 
     /// Returns a modifiable map of user-defined attributes.
     func getUserDefinedAttrs() -> [String: Any]
 
     /// Adds an attribute to this span.
-    func setInternalAttribute(_ attribute: (String, Any))
+    func setInternalAttribute(_ attribute: Attributes)
 
     /// Converts the span to a data class for further processing and export.
     func toSpanData() -> SpanData

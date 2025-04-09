@@ -22,7 +22,7 @@ final class InvalidSpan: Span {
     func setAttribute(_ key: String, value: Int) -> Span { return self }
     func setAttribute(_ key: String, value: Double) -> Span { return self }
     func setAttribute(_ key: String, value: Bool) -> Span { return self }
-    func setAttributes(_ attributes: [String: Any]) -> Span { return self }
+    func setAttributes(_ attributes: [String: AttributeValue]) -> Span { return self }
     func removeAttribute(_ key: String) -> Span { return self }
     func end() -> Span { return self }
     func end(timestamp: Number) -> Span { return self }

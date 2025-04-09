@@ -4,7 +4,7 @@ import Foundation
 class MsrSpan: InternalSpan {
     private let logger: Logger
     private let timeProvider: TimeProvider
-//    private let spanProcessor: SpanProcessor
+    private let spanProcessor: SpanProcessor
     private let lock = NSLock()
 
     let isSampled: Bool
@@ -19,7 +19,7 @@ class MsrSpan: InternalSpan {
     private var endTime: Number = 0
     private var hasEndedState: EndState = .notEnded
     private(set) var checkpoints: [Checkpoint] = []
-    private(set) var attributes: [String: Any] = [:]
+    private(set) var attributes: Attributes?
     private var userDefinedAttrs: [String: Any] = [:]
 
     private enum EndState {
@@ -36,7 +36,8 @@ class MsrSpan: InternalSpan {
          traceId: String,
          parentId: String?,
          sessionId: String,
-         startTime: Number) {
+         startTime: Number,
+         spanProcessor: SpanProcessor) {
         self.logger = logger
         self.timeProvider = timeProvider
         self.isSampled = isSampled
@@ -46,6 +47,7 @@ class MsrSpan: InternalSpan {
         self.parentId = parentId
         self.sessionId = sessionId
         self.startTime = startTime
+        self.spanProcessor = spanProcessor
     }
 
     static func startSpan(name: String, // swiftlint:disable:this function_parameter_count
@@ -55,6 +57,7 @@ class MsrSpan: InternalSpan {
                           idProvider: IdProvider,
                           traceSampler: TraceSampler,
                           parentSpan: Span?,
+                          spanProcessor: SpanProcessor,
                           timestamp: Number? = nil) -> Span {
         let startTime = timestamp ?? timeProvider.now()
         let spanId = idProvider.spanId()
@@ -63,16 +66,17 @@ class MsrSpan: InternalSpan {
         let isSampled = parentSpan?.isSampled ?? traceSampler.shouldSample()
 
         let span = MsrSpan(logger: logger,
-                          timeProvider: timeProvider,
-                          isSampled: isSampled,
-                          name: name,
-                          spanId: spanId,
-                          traceId: traceId,
-                          parentId: parentSpan?.spanId,
-                          sessionId: sessionId,
-                          startTime: startTime)
+                           timeProvider: timeProvider,
+                           isSampled: isSampled,
+                           name: name,
+                           spanId: spanId,
+                           traceId: traceId,
+                           parentId: parentSpan?.spanId,
+                           sessionId: sessionId,
+                           startTime: startTime,
+                           spanProcessor: spanProcessor)
 
-//        spanProcessor.onStart(span)
+        spanProcessor.onStart(span)
         return span
     }
 
@@ -82,22 +86,16 @@ class MsrSpan: InternalSpan {
         return status
     }
 
-    func getAttributesMap() -> [String: Any] {
-        lock.lock()
-        defer { lock.unlock() }
-        return attributes
-    }
-
     func getUserDefinedAttrs() -> [String: Any] {
         lock.lock()
         defer { lock.unlock() }
         return userDefinedAttrs
     }
 
-    func setInternalAttribute(_ attribute: (String, Any)) {
+    func setInternalAttribute(_ attribute: Attributes) {
         lock.lock()
         defer { lock.unlock() }
-        attributes[attribute.0] = attribute.1
+        self.attributes = attribute
     }
 
     @discardableResult
@@ -183,7 +181,7 @@ class MsrSpan: InternalSpan {
     }
 
     @discardableResult
-    func setAttributes(_ attributes: [String: Any]) -> Span {
+    func setAttributes(_ attributes: [String: AttributeValue]) -> Span {
         lock.lock()
         defer { lock.unlock() }
         if hasEndedState == .notEnded {
@@ -220,35 +218,11 @@ class MsrSpan: InternalSpan {
 
         hasEndedState = .ending
         endTime = timestamp
-//        spanProcessor.onEnding(self)
+        spanProcessor.onEnding(self)
 
         hasEndedState = .ended
-//        spanProcessor.onEnded(self)
-        printCheckpointBreakdown()
+        spanProcessor.onEnded(self)
         return self
-    }
-
-    // TODO: this is only for debugging. remove this once SpanProcessor is implemented
-    func printCheckpointBreakdown() {
-        print("\n⏱  Span Checkpoint Breakdown for '\(name)':")
-
-        var lastTimestamp = startTime
-
-        // Include the start
-        print("   • Start: \(startTime) ms")
-
-        for checkpoint in checkpoints {
-            let sinceStart = checkpoint.timestamp - startTime
-            let sinceLast = checkpoint.timestamp - lastTimestamp
-            print("   • \(checkpoint.name): \(checkpoint.timestamp) ms (+\(sinceStart) ms from start, +\(sinceLast) ms from previous checkpoint)")
-            lastTimestamp = checkpoint.timestamp
-        }
-
-        // Include the end
-        let sinceStart = endTime - startTime
-        let sinceLast = endTime - lastTimestamp
-        print("   • End: \(endTime) ms (+\(sinceStart) ms from start, +\(sinceLast) ms from last)")
-        print("   → Total Duration: \(sinceStart) ms\n")
     }
 
     func hasEnded() -> Bool {
@@ -264,8 +238,6 @@ class MsrSpan: InternalSpan {
     }
 
     func toSpanData() -> SpanData {
-        lock.lock()
-        defer { lock.unlock() }
         return SpanData(name: name,
                        traceId: traceId,
                        spanId: spanId,

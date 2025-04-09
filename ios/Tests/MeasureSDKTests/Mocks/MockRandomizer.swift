@@ -15,7 +15,7 @@ final class MockRandomizer: Randomizer {
     func random() -> Float {
         return randomFloat
     }
-    
+
     func nextLong() -> Int64 {
         return randomInt
     }
