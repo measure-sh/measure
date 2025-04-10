@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- Update sdk api readme (#2045) by @adwinross in #2045
 - Update bug reports feature video from mov to webm by @anupcowkur in #2016
 - Update iOS availability in README by @anupcowkur in #2015
 - Update README with bug reports feature by @anupcowkur in #2005
