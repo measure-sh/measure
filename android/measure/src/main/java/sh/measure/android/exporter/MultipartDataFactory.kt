@@ -117,7 +117,7 @@ internal class MultipartDataFactoryImpl(
         if (serializedData.isNullOrEmpty()) {
             return null
         }
-        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"${type.value}\",\"$type\":$serializedData,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
+        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"${type.value}\",\"${type.value}\":$serializedData,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
     }
 
     private fun EventPacket.getFromFileData(): String? {
@@ -128,7 +128,7 @@ internal class MultipartDataFactoryImpl(
         if (data.isNullOrEmpty()) {
             return null
         }
-        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"${type.value}\",\"$type\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
+        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"${type.value}\",\"${type.value}\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
     }
 
     private fun SpanPacket.getSerializedData(): String {
