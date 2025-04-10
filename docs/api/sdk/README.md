@@ -485,19 +485,6 @@ Each thread object contains further fields.
 | `name`   | string | Yes      | Name of thread              |
 | `frames` | array  | Yes      | Array of stackframe objects |
 
-`frame` objects
-
-Each frame object contains further fields.
-
-| Field         | Type   | Optional | Comment                        |
-| ------------- | ------ | -------- | ------------------------------ |
-| `line_num`    | int    | Yes      | Line number of the method      |
-| `col_num`     | int    | Yes      | Column number of the method    |
-| `module_name` | string | Yes      | Name of the originating module |
-| `file_name`   | string | Yes      | Name of the originating file   |
-| `class_name`  | string | Yes      | Name of the originating class  |
-| `method_name` | string | Yes      | Name of the originating method |
-
 #### **`exception`**
 
 Use the `exception` type for errors and crashes.
@@ -553,21 +540,6 @@ Each frame object contains further fields.
 | `binary_address` | string  | Yes      | The binary load address, used along with `symbol_address` and `offset` for symbolication.                                                              |
 | `in_app`         | boolean | No       | `true` if the frame originates from the app module                                                                                                     |
 | `frame_index`    | number  | Yes      | The index of the frame in the stack trace                                                                                                              |
-
-`binary_image` objects
-
-Each thread object contains further fields.
-
-| Field        | Type    | Optional | Comment                                                |
-| ------------ | ------- | -------- | ------------------------------------------------------ |
-| `start_addr` | string  | No       | Address where the binary is loaded into virtual memory |
-| `end_addr`   | string  | No       | Upper memory boundary of the binary                    |
-| `system`     | boolean | No       | Indicates if the binary is a system binary             |
-| `name`       | string  | No       | Name of the app, framework, or library binary          |
-| `arch`       | string  | No       | CPU architecture the binary is compiled for            |
-| `uuid`       | string  | No       | Unique fingerprint for the binary's build              |
-| `path`       | string  | No       | Full path to where the binary was located at runtime   |
-
 
 `binary_image` objects
 
