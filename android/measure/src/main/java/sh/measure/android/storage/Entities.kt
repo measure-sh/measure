@@ -17,7 +17,7 @@ internal data class EventEntity(
     /**
      * Type of the event. See [EventType] for possible values.
      */
-    val type: String,
+    val type: EventType,
     /**
      * Timestamp when the event was created.
      */

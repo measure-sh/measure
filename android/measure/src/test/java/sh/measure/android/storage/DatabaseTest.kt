@@ -1298,7 +1298,7 @@ class DatabaseTest {
     private fun assertEventInCursor(expectedEvent: EventEntity, cursor: Cursor) {
         assertEquals(expectedEvent.id, cursor.getString(cursor.getColumnIndex(EventTable.COL_ID)))
         assertEquals(
-            expectedEvent.type,
+            expectedEvent.type.value,
             cursor.getString(cursor.getColumnIndex(EventTable.COL_TYPE)),
         )
         assertEquals(

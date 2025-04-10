@@ -10,6 +10,7 @@ import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.Event
+import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.exporter.AttachmentPacket
@@ -78,7 +79,7 @@ internal object TestData {
     fun <T> T.toEvent(
         id: String = "event-id",
         timestamp: String = "2024-03-18T12:50:12.62600000Z",
-        type: String,
+        type: EventType,
         sessionId: String = "session-id",
         attachments: MutableList<Attachment> = mutableListOf(),
         attributes: MutableMap<String, Any?> = mutableMapOf(),
@@ -352,7 +353,7 @@ internal object TestData {
 
     fun getEventEntity(
         eventId: String = "event-id",
-        type: String = "string",
+        type: EventType = EventType.STRING,
         sessionId: String = "session-id",
         userTriggered: Boolean = false,
         timestamp: String = "2024-03-18T12:50:12.62600000Z",
