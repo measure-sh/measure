@@ -50,6 +50,7 @@ final class MockMeasureInitializer: MeasureInitializer {
     let networkChangeCollector: NetworkChangeCollector
     let customEventCollector: CustomEventCollector
     let userTriggeredEventCollector: UserTriggeredEventCollector
+    let internalEventCollector: InternalEventCollector
     let dataCleanupService: DataCleanupService
     let attachmentProcessor: AttachmentProcessor
     let layoutSnapshotGenerator: LayoutSnapshotGenerator
@@ -100,6 +101,7 @@ final class MockMeasureInitializer: MeasureInitializer {
          layoutSnapshotGenerator: LayoutSnapshotGenerator? = nil,
          httpEventValidator: HttpEventValidator? = nil,
          httpEventCollector: HttpEventCollector? = nil,
+         internalEventCollector: InternalEventCollector? = nil,
          appAttributeProcessor: AppAttributeProcessor? = nil,
          deviceAttributeProcessor: DeviceAttributeProcessor? = nil,
          installationIdAttributeProcessor: InstallationIdAttributeProcessor? = nil,
@@ -249,5 +251,7 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                client: self.client,
                                                                                configProvider: self.configProvider,
                                                                                httpEventValidator: self.httpEventValidator)
+        self.internalEventCollector = internalEventCollector ?? BaseInternalEventCollector(logger: self.logger,
+                                                                                           eventProcessor: self.eventProcessor)
     }
 }

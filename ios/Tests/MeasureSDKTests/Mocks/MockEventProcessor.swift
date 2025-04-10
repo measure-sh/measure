@@ -16,6 +16,7 @@ final class MockEventProcessor: EventProcessor {
     var type: EventType?
     var attributes: Attributes?
     var userDefinedAttributes: String?
+    var userTriggered: Bool = false
 
     func track<T>(data: T, // swiftlint:disable:this function_parameter_count
                   timestamp: Number,
@@ -40,6 +41,7 @@ final class MockEventProcessor: EventProcessor {
                                sessionId: String?,
                                attachments: [Attachment]?,
                                userDefinedAttributes: String? = nil) where T: Codable {
+        self.userTriggered = true
         self.data = data
         self.timestamp = timestamp
         self.type = type

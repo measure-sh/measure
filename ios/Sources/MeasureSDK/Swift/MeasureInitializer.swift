@@ -51,6 +51,7 @@ protocol MeasureInitializer {
     var networkChangeCollector: NetworkChangeCollector { get }
     var customEventCollector: CustomEventCollector { get }
     var userTriggeredEventCollector: UserTriggeredEventCollector { get }
+    var internalEventCollector: InternalEventCollector { get }
     var dataCleanupService: DataCleanupService { get }
     var attachmentProcessor: AttachmentProcessor { get }
     var layoutSnapshotGenerator: LayoutSnapshotGenerator { get }
@@ -153,6 +154,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let networkChangeCollector: NetworkChangeCollector
     let customEventCollector: CustomEventCollector
     let userTriggeredEventCollector: UserTriggeredEventCollector
+    let internalEventCollector: InternalEventCollector
     let dataCleanupService: DataCleanupService
     let attachmentProcessor: AttachmentProcessor
     let layoutSnapshotGenerator: LayoutSnapshotGenerator
@@ -316,5 +318,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          client: client,
                                                          configProvider: configProvider,
                                                          httpEventValidator: httpEventValidator)
+        self.internalEventCollector = BaseInternalEventCollector(logger: logger,
+                                                                 eventProcessor: eventProcessor)
     }
 }

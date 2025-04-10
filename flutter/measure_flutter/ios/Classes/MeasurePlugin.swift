@@ -34,11 +34,38 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         let timestamp: Int64 = try reader.requireArg(MethodConstants.argTimestamp)
         let rawAttributes: [String: Any] = try reader.requireArg(MethodConstants.argAttributes)
         let convertedAttributes = try AttributeConverter.convertAttributes(rawAttributes)
-        processCustomEvent(name: name, timestamp: timestamp, attributes: convertedAttributes)
+        trackEvent(
+            data: CustomEventData(name),
+            type: EventType.CUSTOM,
+            timestamp: timestamp,
+            userDefinedAttrs: convertedAttributes,
+            userTriggered: true
+        )
         result(nil)
     }
     
-    private func processCustomEvent(name: String, timestamp: Int64, attributes: [String: AttributeValue]) {
-        Measure.shared.trackEvent(name: name, attributes: attributes, timestamp: timestamp)
+    private func trackEvent<T>(
+        data: T,
+        type: String,
+        timestamp: Int64,
+        userDefinedAttrs: [String: AttributeValue] = [:],
+        attachments: [Attachment] = [],
+        userTriggered: Bool,
+        sessionId: String? = nil
+    ) {
+        var attributes: [String: Any?] = [
+            Attribute.PLATFORM_KEY: "flutter"
+        ]
+        
+        Measure.internalTrackEvent(
+            data: data,
+            type: type,
+            timestamp: timestamp,
+            attributes: attributes,
+            userDefinedAttrs: userDefinedAttrs,
+            attachments: attachments,
+            userTriggered: userTriggered,
+            sessionId: sessionId
+        )
     }
 }

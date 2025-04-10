@@ -115,6 +115,9 @@ final class MeasureInternal {
     var userTriggeredEventCollector: UserTriggeredEventCollector {
         return measureInitializer.userTriggeredEventCollector
     }
+    var internalEventCollector: InternalEventCollector {
+        return measureInitializer.internalEventCollector
+    }
     var dataCleanupService: DataCleanupService {
         return measureInitializer.dataCleanupService
     }
@@ -165,6 +168,28 @@ final class MeasureInternal {
     func clearUserId() {
         userAttributeProcessor.clearUserId()
     }
+    
+    func internalTrackEvent<T: Codable>(
+        data: T,
+        type: EventType,
+        timestamp: Number,
+        attributes: Attributes,
+        userDefinedAttrs: String,
+        attachments: [Attachment],
+        userTriggered: Bool,
+        sessionId: String?
+    ) {
+        internalEventCollector.trackEvent(
+            data: data,
+            type: type,
+            timestamp: timestamp,
+            attributes: attributes,
+            userDefinedAttrs: userDefinedAttrs,
+            attachments: attachments,
+            userTriggered: userTriggered,
+            sessionId: sessionId
+        )
+    }
 
     private func applicationDidEnterBackground() {
         self.crashDataPersistence.isForeground = false
@@ -200,6 +225,7 @@ final class MeasureInternal {
         self.networkChangeCollector.enable()
         self.lifecycleCollector.enable()
         self.crashReportManager.enable()
+        self.internalEventCollector.enable()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let window = UIApplication.shared.windows.first {
                 self.gestureCollector.enable(for: window)
@@ -218,6 +244,7 @@ final class MeasureInternal {
         self.gestureCollector.disable()
         self.lifecycleCollector.disable()
         self.crashReportManager.disable()
+        self.internalEventCollector.disable()
     }
 
     private func registerAlwaysOnCollectors() {

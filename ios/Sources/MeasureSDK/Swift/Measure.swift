@@ -259,4 +259,33 @@ import Foundation
         guard let measureInternal = measureInternal else { return }
         measureInternal.clearUserId()
     }
+    
+
+    /// An internal method to track events from cross-platform frameworks
+    /// like Flutter and React Native.
+    ///
+    /// This method is not intended for public usage and can change in future versions. To
+    /// track events use `trackEvent`.
+    func internalTrackEvent<T: Codable>(
+        data: T,
+        type: EventType,
+        timestamp: Number,
+        attributes: Attributes,
+        userDefinedAttrs: String,
+        attachments: [Attachment],
+        userTriggered: Bool,
+        sessionId: String?
+    ) {
+        guard let measureInternal = measureInternal else { return }
+        measureInternal.internalTrackEvent(
+            data: data,
+            type: type,
+            timestamp: timestamp,
+            attributes: attributes,
+            userDefinedAttrs: userDefinedAttrs,
+            attachments: attachments,
+            userTriggered: userTriggered,
+            sessionId: sessionId
+        )
+    }
 }
