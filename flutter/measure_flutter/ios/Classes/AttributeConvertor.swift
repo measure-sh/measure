@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import MeasureSDK
+import Measure
 
 class AttributeConverter {
     static func convertAttributes(_ attributes: [String: Any]) throws -> [String: AttributeValue] {

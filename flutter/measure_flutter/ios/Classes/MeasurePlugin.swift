@@ -1,6 +1,6 @@
 import Flutter
 import UIKit
-import MeasureSDK
+import Measure
 
 public class MeasurePlugin: NSObject, FlutterPlugin {
     public static func register(with registrar: FlutterPluginRegistrar) {
