@@ -32,7 +32,7 @@ target 'Runner' do
   use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-  pod 'MeasureSDK', :path => '../../../../ios/'
+    pod 'measure-sh', :path => '../../../../'
   target 'RunnerTests' do
     inherit! :search_paths
   end

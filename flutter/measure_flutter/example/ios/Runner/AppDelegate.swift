@@ -1,6 +1,6 @@
 import Flutter
 import UIKit
-import MeasureSDK
+import Measure
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {

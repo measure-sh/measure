@@ -2,18 +2,18 @@ PODS:
   - Flutter (1.0.0)
   - integration_test (0.0.1):
     - Flutter
+  - measure-sh (0.1.0):
+    - PLCrashReporter
   - measure_flutter (0.0.1):
     - Flutter
-    - MeasureSDK
-  - MeasureSDK (1.0.0):
-    - PLCrashReporter
-  - PLCrashReporter (1.11.2)
+    - measure-sh
+  - PLCrashReporter (1.12.0)
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
+  - measure-sh (from `../../../../`)
   - measure_flutter (from `.symlinks/plugins/measure_flutter/ios`)
-  - MeasureSDK (from `../../../../ios/`)
 
 SPEC REPOS:
   trunk:
@@ -24,18 +24,18 @@ EXTERNAL SOURCES:
     :path: Flutter
   integration_test:
     :path: ".symlinks/plugins/integration_test/ios"
+  measure-sh:
+    :path: "../../../../"
   measure_flutter:
     :path: ".symlinks/plugins/measure_flutter/ios"
-  MeasureSDK:
-    :path: "../../../../ios/"
 
 SPEC CHECKSUMS:
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
-  measure_flutter: efa7a924798ed291612c6c1abc75bd21caf4f660
-  MeasureSDK: b867c6a09d9d5cf58667b2f7bac8e852a80da2fb
-  PLCrashReporter: 499c53b0104f95c302d94fd723ebb03c56d9bac8
+  measure-sh: 30f32305fb5c24f72499073d5f53d894f00ca919
+  measure_flutter: 0c0e3800e6aaa4bd153d13b4cf0b2d15e7a3e3f1
+  PLCrashReporter: db59ef96fa3d25f3650040d02ec2798cffee75f2
 
-PODFILE CHECKSUM: 39bd948833f9d3a815527c6dc5694c471943a013
+PODFILE CHECKSUM: ba4d06f4347d121937aadc0314400da33dea7357
 
-COCOAPODS: 1.15.2
+COCOAPODS: 1.16.2
