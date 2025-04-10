@@ -2,8 +2,9 @@ package sh.measure.android
 
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ScreenshotMaskLevel
+import sh.measure.android.events.EventType
 
-class FakeConfigProvider : ConfigProvider {
+internal class FakeConfigProvider : ConfigProvider {
     override fun loadNetworkConfig() {
         // no-op
     }
@@ -49,7 +50,7 @@ class FakeConfigProvider : ConfigProvider {
     override var maxUserDefinedAttributeValueLength: Int = 256
     override var screenshotMaskHexColor: String = "#222222"
     override var screenshotCompressionQuality: Int = 100
-    override var eventTypeExportAllowList: List<String> = emptyList()
+    override var eventTypeExportAllowList: List<EventType> = emptyList()
     override val autoStart: Boolean = true
     override var maxSignalsInDatabase: Int = 50000
     override val maxSpanNameLength: Int = 64

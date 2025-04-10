@@ -1,7 +1,5 @@
 package sh.measure.android.events
 
-import sh.measure.android.events.EventType.entries
-
 internal enum class EventType(val value: String) {
     STRING("string"),
     EXCEPTION("exception"),
