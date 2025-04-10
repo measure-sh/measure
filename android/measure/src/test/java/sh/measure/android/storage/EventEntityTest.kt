@@ -2,6 +2,7 @@ package sh.measure.android.storage
 
 import org.junit.Assert.assertThrows
 import org.junit.Test
+import sh.measure.android.events.EventType
 
 class EventEntityTest {
 
@@ -10,7 +11,7 @@ class EventEntityTest {
         assertThrows(IllegalArgumentException::class.java) {
             EventEntity(
                 id = "event-id",
-                type = "test",
+                type = EventType.STRING,
                 timestamp = "2024-03-18T12:50:12.62600000Z",
                 sessionId = "987",
                 userTriggered = false,
@@ -27,7 +28,7 @@ class EventEntityTest {
         assertThrows(IllegalArgumentException::class.java) {
             EventEntity(
                 id = "event-id",
-                type = "test",
+                type = EventType.STRING,
                 timestamp = "2024-03-18T12:50:12.62600000Z",
                 sessionId = "987",
                 userTriggered = false,

@@ -9,12 +9,13 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import sh.measure.android.events.EventType
 
 internal data class EventPacket(
     val eventId: String,
     val sessionId: String,
     val timestamp: String,
-    val type: String,
+    val type: EventType,
     val userTriggered: Boolean,
     val serializedData: String?,
     val serializedDataFilePath: String?,

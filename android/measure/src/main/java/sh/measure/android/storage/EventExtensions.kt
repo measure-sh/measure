@@ -161,8 +161,8 @@ internal fun <T> Event<T>.serializeDataToString(): String {
             json.encodeToString(BugReportData.serializer(), data as BugReportData)
         }
 
-        else -> {
-            throw IllegalArgumentException("Unknown event type: $type")
+        EventType.STRING -> {
+            json.encodeToString(String.serializer(), data as String)
         }
     }
 }

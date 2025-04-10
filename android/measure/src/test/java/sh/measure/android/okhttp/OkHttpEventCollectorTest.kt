@@ -15,6 +15,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
+import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.AndroidTimeProvider
@@ -71,7 +72,7 @@ class OkHttpEventCollectorTest {
         val statusCode = 200
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         okHttpEventCollector.register()
 
         // When
@@ -97,7 +98,7 @@ class OkHttpEventCollectorTest {
     fun `tracks HTTP method in lowercase for a successful request`() {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         okHttpEventCollector.register()
 
         // When
@@ -124,7 +125,7 @@ class OkHttpEventCollectorTest {
         val url = "http://localhost:8080/"
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         okHttpEventCollector.register()
 
         // When
@@ -151,7 +152,7 @@ class OkHttpEventCollectorTest {
         val requestBody = "{ \"key\": \"value\" }"
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         okHttpEventCollector.register()
 
         // When
@@ -178,7 +179,7 @@ class OkHttpEventCollectorTest {
         val requestBody = "{ \"key\": \"value\" }"
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         okHttpEventCollector.register()
 
         // When
@@ -205,7 +206,7 @@ class OkHttpEventCollectorTest {
         val responseBody = "{ \"key\": \"value\" }"
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         okHttpEventCollector.register()
 
         // When
@@ -232,7 +233,7 @@ class OkHttpEventCollectorTest {
         val responseBody = "{ \"key\": \"value\" }"
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         okHttpEventCollector.register()
 
         // When
@@ -262,7 +263,7 @@ class OkHttpEventCollectorTest {
     fun `tracks request headers for a successful request`() {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         okHttpEventCollector.register()
 
         // When
@@ -289,7 +290,7 @@ class OkHttpEventCollectorTest {
     fun `tracks response headers for a successful request`() {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         okHttpEventCollector.register()
 
         // When
@@ -315,7 +316,7 @@ class OkHttpEventCollectorTest {
     fun `tracks a non null start and end time for a successful request`() {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         okHttpEventCollector.register()
 
         // When
@@ -342,7 +343,7 @@ class OkHttpEventCollectorTest {
     fun `tracks timestamp for a successful request`() {
         val dataCaptor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         okHttpEventCollector.register()
 
         // When
@@ -369,7 +370,7 @@ class OkHttpEventCollectorTest {
     fun `tracks empty request headers map for a failed request`() {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         okHttpEventCollector.register()
 
         // When
@@ -403,7 +404,7 @@ class OkHttpEventCollectorTest {
     fun `tracks client for a successful request`() {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         okHttpEventCollector.register()
 
         // When
@@ -429,7 +430,7 @@ class OkHttpEventCollectorTest {
     fun `tracks failure reason and failure description for a connection failure`() {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         okHttpEventCollector.register()
 
         // When
@@ -463,7 +464,7 @@ class OkHttpEventCollectorTest {
     fun `tracks non null call start and call end for connection failure`() {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         okHttpEventCollector.register()
 
         // When

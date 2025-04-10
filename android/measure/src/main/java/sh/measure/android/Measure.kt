@@ -7,6 +7,20 @@ import android.net.Uri
 import androidx.annotation.MainThread
 import androidx.annotation.VisibleForTesting
 import org.jetbrains.annotations.TestOnly
+import sh.measure.android.Measure.captureLayoutSnapshot
+import sh.measure.android.Measure.captureScreenshot
+import sh.measure.android.Measure.clearUserId
+import sh.measure.android.Measure.disableShakeToLaunchBugReport
+import sh.measure.android.Measure.enableShakeToLaunchBugReport
+import sh.measure.android.Measure.getCurrentTime
+import sh.measure.android.Measure.getTraceParentHeaderKey
+import sh.measure.android.Measure.getTraceParentHeaderValue
+import sh.measure.android.Measure.imageUriToAttachment
+import sh.measure.android.Measure.launchBugReportActivity
+import sh.measure.android.Measure.setUserId
+import sh.measure.android.Measure.start
+import sh.measure.android.Measure.stop
+import sh.measure.android.Measure.trackBugReport
 import sh.measure.android.applaunch.LaunchState
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.attributes.AttributesBuilder
@@ -541,7 +555,7 @@ object Measure {
     internal fun simulateAppCrash(
         data: ExceptionData,
         timestamp: Long,
-        type: String,
+        type: EventType,
         attributes: MutableMap<String, Any?>,
         attachments: MutableList<Attachment>,
     ) {

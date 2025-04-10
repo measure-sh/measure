@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
 import sh.measure.android.appexit.AppExitCollector
+import sh.measure.android.events.EventType
 import sh.measure.android.exporter.AttachmentPacket
 import sh.measure.android.exporter.Batch
 import sh.measure.android.exporter.EventPacket
@@ -42,7 +43,7 @@ internal interface Database : Closeable {
         eventCount: Int,
         ascending: Boolean = true,
         sessionId: String? = null,
-        eventTypeExportAllowList: List<String> = emptyList(),
+        eventTypeExportAllowList: List<EventType> = emptyList(),
     ): LinkedHashMap<String, Long>
 
     fun getUnBatchedSpans(
@@ -246,7 +247,7 @@ internal class DatabaseImpl(
         try {
             val values = ContentValues().apply {
                 put(EventTable.COL_ID, event.id)
-                put(EventTable.COL_TYPE, event.type)
+                put(EventTable.COL_TYPE, event.type.value)
                 put(EventTable.COL_TIMESTAMP, event.timestamp)
                 put(EventTable.COL_SESSION_ID, event.sessionId)
                 put(EventTable.COL_USER_TRIGGERED, event.userTriggered)
@@ -309,7 +310,7 @@ internal class DatabaseImpl(
         eventCount: Int,
         ascending: Boolean,
         sessionId: String?,
-        eventTypeExportAllowList: List<String>,
+        eventTypeExportAllowList: List<EventType>,
     ): LinkedHashMap<String, Long> {
         val query =
             Sql.getEventsBatchQuery(eventCount, ascending, sessionId, eventTypeExportAllowList)
@@ -427,13 +428,16 @@ internal class DatabaseImpl(
                 val serializedAttributes = it.getString(serializedAttributesIndex)
                 val serializedUserDefinedAttributes =
                     it.getString(serializedUserDefinedAttributesIndex)
-
+                val eventType = EventType.fromValue(type)
+                if (eventType == null) {
+                    throw IllegalArgumentException("Unknown event type: $type")
+                }
                 eventPackets.add(
                     EventPacket(
                         eventId,
                         sessionId,
                         timestamp,
-                        type,
+                        eventType,
                         userTriggered,
                         serializedData,
                         serializedDataFilePath,
@@ -775,6 +779,10 @@ internal class DatabaseImpl(
                 val serializedUserDefinedAttributes =
                     it.getString(serializedUserDefinedAttributesIndex)
                 val attachmentsSize = it.getLong(attachmentsSizeIndex)
+                val eventType = EventType.fromValue(type)
+                if (eventType == null) {
+                    throw IllegalStateException("Unknown event type: $type")
+                }
 
                 eventEntities.add(
                     EventEntity(
@@ -782,7 +790,7 @@ internal class DatabaseImpl(
                         sessionId = sessionId,
                         timestamp = timestamp,
                         userTriggered = userTriggered,
-                        type = type,
+                        type = eventType,
                         serializedData = serializedData,
                         filePath = serializedDataFilePath,
                         serializedAttributes = serializedAttributes,
@@ -880,7 +888,7 @@ internal class DatabaseImpl(
             eventEntities.forEach { event ->
                 val values = ContentValues(11).apply {
                     put(EventTable.COL_ID, event.id)
-                    put(EventTable.COL_TYPE, event.type)
+                    put(EventTable.COL_TYPE, event.type.value)
                     put(EventTable.COL_TIMESTAMP, event.timestamp)
                     put(EventTable.COL_SESSION_ID, event.sessionId)
                     put(EventTable.COL_USER_TRIGGERED, event.userTriggered)

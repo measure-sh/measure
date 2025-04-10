@@ -98,15 +98,6 @@ class EventExtensionsKtTest {
     }
 
     @Test
-    fun `serialization fails with exception for unknown event type`() {
-        val event = TestData.getExceptionData().toEvent(type = "invalid-type")
-
-        assertThrows(IllegalArgumentException::class.java) {
-            event.serializeDataToString()
-        }
-    }
-
-    @Test
     fun `serialization fails with exception for event type mismatch`() {
         val event = TestData.getExceptionData().toEvent(type = EventType.CLICK)
 

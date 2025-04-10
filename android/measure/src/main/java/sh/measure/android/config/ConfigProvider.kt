@@ -1,6 +1,7 @@
 package sh.measure.android.config
 
 import androidx.annotation.VisibleForTesting
+import sh.measure.android.events.EventType
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -56,7 +57,7 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { screenshotMaskHexColor }
     override val screenshotCompressionQuality: Int
         get() = getMergedConfig { screenshotCompressionQuality }
-    override val eventTypeExportAllowList: List<String>
+    override val eventTypeExportAllowList: List<EventType>
         get() = getMergedConfig { eventTypeExportAllowList }
     override val maxSignalsInDatabase: Int
         get() = getMergedConfig { maxSignalsInDatabase }
