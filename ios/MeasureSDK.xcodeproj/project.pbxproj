@@ -250,6 +250,11 @@
 		CFD88D052DA4D4B80095115E /* SpanStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D042DA4D4B80095115E /* SpanStatus.swift */; };
 		CFD88D072DA4D4C50095115E /* InvalidSpan.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D062DA4D4C50095115E /* InvalidSpan.swift */; };
 		CFD88D092DA4DFAE0095115E /* OtelEncodingUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D082DA4DFAE0095115E /* OtelEncodingUtils.swift */; };
+		CFD88D0D2DA7968E0095115E /* SpanBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D0C2DA7968E0095115E /* SpanBuilder.swift */; };
+		CFD88D0F2DA796A60095115E /* MsrSpanBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D0E2DA796A60095115E /* MsrSpanBuilder.swift */; };
+		CFD88D112DA797A00095115E /* Tracer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D102DA797A00095115E /* Tracer.swift */; };
+		CFD88D132DA798330095115E /* MsrTracer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D122DA798330095115E /* MsrTracer.swift */; };
+		CFD88D152DA799CA0095115E /* SpanCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D142DA799CA0095115E /* SpanCollector.swift */; };
 		CFEC97ED2D9A7642000CFB68 /* MeasureInternalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */; };
 		CFEC97EE2D9A76A5000CFB68 /* MockMeasureInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF2362CB651C8003102DF /* MockMeasureInitializer.swift */; };
 /* End PBXBuildFile section */
@@ -606,6 +611,11 @@
 		CFD88D042DA4D4B80095115E /* SpanStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanStatus.swift; sourceTree = "<group>"; };
 		CFD88D062DA4D4C50095115E /* InvalidSpan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvalidSpan.swift; sourceTree = "<group>"; };
 		CFD88D082DA4DFAE0095115E /* OtelEncodingUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OtelEncodingUtils.swift; sourceTree = "<group>"; };
+		CFD88D0C2DA7968E0095115E /* SpanBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanBuilder.swift; sourceTree = "<group>"; };
+		CFD88D0E2DA796A60095115E /* MsrSpanBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrSpanBuilder.swift; sourceTree = "<group>"; };
+		CFD88D102DA797A00095115E /* Tracer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tracer.swift; sourceTree = "<group>"; };
+		CFD88D122DA798330095115E /* MsrTracer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrTracer.swift; sourceTree = "<group>"; };
+		CFD88D142DA799CA0095115E /* SpanCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanCollector.swift; sourceTree = "<group>"; };
 		CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInternalTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -942,7 +952,6 @@
 				526D180B2D5A1913009A2E90 /* MeasureQueue.swift */,
 				CFD88D082DA4DFAE0095115E /* OtelEncodingUtils.swift */,
 				526D180C2D5A1913009A2E90 /* Randomizer.swift */,
-				526D180D2D5A1913009A2E90 /* SignPost.swift */,
 				526D180E2D5A1913009A2E90 /* SysCtl.swift */,
 				526D180F2D5A1913009A2E90 /* SystemFileManager.swift */,
 				526D18102D5A1913009A2E90 /* TimeProvider.swift */,
@@ -1297,14 +1306,20 @@
 		CFD88C6D2D9E94B40095115E /* Tracing */ = {
 			isa = PBXGroup;
 			children = (
-				CFD88C692D9E94B40095115E /* MsrSpan.swift */,
-				CFD88C6A2D9E94B40095115E /* Span.swift */,
-				CFD88D062DA4D4C50095115E /* InvalidSpan.swift */,
-				CFD88D042DA4D4B80095115E /* SpanStatus.swift */,
 				CFD88D022DA4D4AB0095115E /* Checkpoint.swift */,
-				CFD88D002DA4D4910095115E /* SpanData.swift */,
 				CFD88CFE2DA4D4760095115E /* InternalSpan.swift */,
+				CFD88D062DA4D4C50095115E /* InvalidSpan.swift */,
+				CFD88C692D9E94B40095115E /* MsrSpan.swift */,
+				CFD88D0E2DA796A60095115E /* MsrSpanBuilder.swift */,
+				CFD88D122DA798330095115E /* MsrTracer.swift */,
+				526D180D2D5A1913009A2E90 /* SignPost.swift */,
+				CFD88C6A2D9E94B40095115E /* Span.swift */,
+				CFD88D0C2DA7968E0095115E /* SpanBuilder.swift */,
+				CFD88D142DA799CA0095115E /* SpanCollector.swift */,
+				CFD88D002DA4D4910095115E /* SpanData.swift */,
 				CFD88C6B2D9E94B40095115E /* SpanProcessor.swift */,
+				CFD88D042DA4D4B80095115E /* SpanStatus.swift */,
+				CFD88D102DA797A00095115E /* Tracer.swift */,
 				CFD88C6C2D9E94B40095115E /* TraceSampler.swift */,
 			);
 			path = Tracing;
@@ -1646,6 +1661,7 @@
 				526D184C2D5A1913009A2E90 /* EventType.swift in Sources */,
 				526D187C2D5A1913009A2E90 /* String+Extension.swift in Sources */,
 				526D187E2D5A1913009A2E90 /* UIDevice+Extension.swift in Sources */,
+				CFD88D0D2DA7968E0095115E /* SpanBuilder.swift in Sources */,
 				526D18342D5A1913009A2E90 /* DefaultConfig.swift in Sources */,
 				69E4B4D32DA7581A00361E25 /* MeasureInitializer.swift in Sources */,
 				526D183F2D5A1913009A2E90 /* CrashDataFormatter.swift in Sources */,
@@ -1654,6 +1670,7 @@
 				526D18462D5A1913009A2E90 /* AttachmentProcessor.swift in Sources */,
 				526D183D2D5A1913009A2E90 /* EventStore.swift in Sources */,
 				526D188C2D5A1913009A2E90 /* UserDefaultStorage.swift in Sources */,
+				CFD88D152DA799CA0095115E /* SpanCollector.swift in Sources */,
 				526D182C2D5A1913009A2E90 /* DeviceAttributeProcessor.swift in Sources */,
 				526D18872D5A1913009A2E90 /* Randomizer.swift in Sources */,
 				526D18312D5A1913009A2E90 /* ClientInfo.swift in Sources */,
@@ -1669,6 +1686,7 @@
 				CFD88D072DA4D4C50095115E /* InvalidSpan.swift in Sources */,
 				CFD88CFF2DA4D4760095115E /* InternalSpan.swift in Sources */,
 				526D188F2D5A1913009A2E90 /* FrameworkInfo.swift in Sources */,
+				CFD88D132DA798330095115E /* MsrTracer.swift in Sources */,
 				526D182B2D5A1913009A2E90 /* ComputeOnceAttributeProcessor.swift in Sources */,
 				526D18882D5A1913009A2E90 /* SignPost.swift in Sources */,
 				529B319B2D5B85FC007A8E45 /* BinaryImage.swift in Sources */,
@@ -1696,6 +1714,7 @@
 				526D18282D5A1913009A2E90 /* Attribute.swift in Sources */,
 				526D18792D5A1913009A2E90 /* InputStream+Extension.swift in Sources */,
 				526D18242D5A1913009A2E90 /* AppLaunchEvents.swift in Sources */,
+				CFD88D0F2DA796A60095115E /* MsrSpanBuilder.swift in Sources */,
 				526D18252D5A1913009A2E90 /* LaunchCallbacks.swift in Sources */,
 				526D18592D5A1913009A2E90 /* NetworkClient.swift in Sources */,
 				526D184E2D5A1913009A2E90 /* UserTriggeredEventCollector.swift in Sources */,
@@ -1722,6 +1741,7 @@
 				CFD88D012DA4D4910095115E /* SpanData.swift in Sources */,
 				526D18752D5A1913009A2E90 /* MemoryUsageCollector.swift in Sources */,
 				526D18942D5A1913009A2E90 /* SessionManager.swift in Sources */,
+				CFD88D112DA797A00095115E /* Tracer.swift in Sources */,
 				526D183C2D5A1913009A2E90 /* DataCleanupService.swift in Sources */,
 				526D182F2D5A1913009A2E90 /* UserAttributeProcessor.swift in Sources */,
 				526D18482D5A1913009A2E90 /* CustomEventCollector.swift in Sources */,

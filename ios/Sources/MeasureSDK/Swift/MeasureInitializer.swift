@@ -61,6 +61,8 @@ protocol MeasureInitializer {
     var traceSampler: TraceSampler { get }
     var randomizer: Randomizer { get }
     var spanProcessor: SpanProcessor { get }
+    var tracer: Tracer { get }
+    var spanCollector: SpanCollector { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -116,6 +118,8 @@ protocol MeasureInitializer {
 /// - `traceSampler`: `TraceSampler`
 /// - `randomizer`: `Randomizer`
 /// - `spanProcessor`: `SpanProcessor`
+/// - `spanCollector`: `SpanCollector`
+/// - `tracer`: `Tracer`
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -169,6 +173,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let traceSampler: TraceSampler
     let randomizer: Randomizer
     let spanProcessor: SpanProcessor
+    let spanCollector: SpanCollector
+    let tracer: Tracer
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -332,5 +338,12 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                signalProcessor: signalProcessor,
                                                attributeProcessors: attributeProcessors,
                                                configProvider: configProvider)
+        self.tracer = MsrTracer(logger: logger,
+                                idProvider: idProvider,
+                                timeProvider: timeProvider,
+                                spanProcessor: spanProcessor,
+                                sessionManager: sessionManager,
+                                traceSampler: traceSampler)
+        self.spanCollector = BaseSpanCollector(tracer: tracer)
     }
 }
