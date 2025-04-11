@@ -73,6 +73,11 @@ public enum SpanStatus : Swift.Int {
     get
   }
 }
+public protocol SpanBuilder {
+  func setParent(_ span: any Measure.Span) -> any Measure.SpanBuilder
+  func startSpan() -> any Measure.Span
+  func startSpan(_ timestamp: Swift.Int64) -> any Measure.Span
+}
 @objc final public class ClientInfo : ObjectiveC.NSObject {
   @objc public init(apiKey: Swift.String, apiUrl: Swift.String)
   @objc deinit
@@ -124,8 +129,11 @@ extension SwiftUICore.View {
   @objc final public func setUserId(_ userId: Swift.String)
   @objc final public func clearUserId()
   @objc final public func getCurrentTime() -> Swift.Int64
-  final public func startSpan(name: Swift.String, timestamp: Swift.Int64? = nil) -> any Measure.Span
   final public func startSpan(name: Swift.String) -> any Measure.Span
+  final public func startSpan(name: Swift.String, timestamp: Swift.Int64) -> any Measure.Span
+  final public func createSpanBuilder(name: Swift.String) -> (any Measure.SpanBuilder)?
+  final public func getTraceParentHeaderValue(span: any Measure.Span) -> Swift.String
+  final public func getTraceParentHeaderKey() -> Swift.String
   @objc deinit
 }
 public struct MSRNetworkInterceptor {

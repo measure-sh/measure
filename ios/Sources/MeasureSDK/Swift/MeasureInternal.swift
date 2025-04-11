@@ -127,8 +127,8 @@ final class MeasureInternal {
     var traceSampler: TraceSampler {
         return measureInitializer.traceSampler
     }
-    var spanProcessor: SpanProcessor {
-        return measureInitializer.spanProcessor
+    var spanCollector: SpanCollector {
+        return measureInitializer.spanCollector
     }
     private let lifecycleObserver: LifecycleObserver
     private var isStarted: Bool = false
@@ -175,6 +175,22 @@ final class MeasureInternal {
         userAttributeProcessor.clearUserId()
     }
 
+    func createSpan(name: String) -> SpanBuilder? {
+        return spanCollector.createSpan(name: name)
+    }
+
+    func startSpan(name: String, timestamp: Int64? = nil) -> Span {
+        return spanCollector.startSpan(name: name, timestamp: timestamp)
+    }
+
+    func getTraceParentHeaderValue(for span: Span) -> String {
+        return spanCollector.getTraceParentHeaderValue(for: span)
+    }
+
+    func getTraceParentHeaderKey() -> String {
+        return spanCollector.getTraceParentHeaderKey()
+    }
+
     private func applicationDidEnterBackground() {
         self.crashDataPersistence.isForeground = false
         self.sessionManager.applicationDidEnterBackground()
@@ -209,6 +225,7 @@ final class MeasureInternal {
         self.networkChangeCollector.enable()
         self.lifecycleCollector.enable()
         self.crashReportManager.enable()
+        self.spanCollector.enable()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let window = UIApplication.shared.windows.first {
                 self.gestureCollector.enable(for: window)
@@ -227,6 +244,7 @@ final class MeasureInternal {
         self.gestureCollector.disable()
         self.lifecycleCollector.disable()
         self.crashReportManager.disable()
+        self.spanCollector.disabled()
     }
 
     private func registerAlwaysOnCollectors() {

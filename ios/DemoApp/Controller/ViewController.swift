@@ -31,6 +31,11 @@ import Measure
     override func viewDidLoad() {
         super.viewDidLoad()
         span = Measure.shared.startSpan(name: "ViewController.viewDidLoad")
+        let attributes: [String: AttributeValue] = ["user_name": .string("Alice"),
+                                                    "paid_user": .boolean(true),
+                                                    "credit_balance": .int(1000),
+                                                    "latitude": .double(30.2661403415387)]
+        span?.setAttributes(attributes)
 
         self.title = "Swift View Controller"
         let tableView = UITableView(frame: view.bounds, style: .plain)
