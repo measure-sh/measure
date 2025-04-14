@@ -19,6 +19,9 @@
   * [Sampling](#sampling)
   * [Session](#session)
 * [Performance impact](#performance-impact)
+  * [Benchmarks](#benchmarks)
+  * [Profiling](#profiling)
+  * [Comparison to Firebase initialization](#comparison-to-firebase-initialization)
 
 # Requirements
 
@@ -560,6 +563,31 @@ or by using [Perfetto](https://perfetto.dev/docs/quickstart/android-tracing) dir
 * `msr-captureScreenshot` — time spent on main thread to capture and compress a screenshot.
 * `msr-loadImageFromFile` — time spent on main thread to load an image from a file.
 * `msr-loadImageFromUri` — time spent on main thread to load an image from a Uri.
+
+## Comparison to Firebase initialization
+
+The following are the results from running a macro-benachmark test to compare initialization 
+time of Measure SDK vs Firebase. Tested with firebase BOM version `33.7.0` and 
+Measure Android SDK version `0.10.0` running on a Pixel 4a.
+
+Firebase initializes in multiple phases. The total median time to initialize when running the 
+benchmark for an app with Firebase crashlytics, performance and analytics SDK 
+was observed as `77.6ms`.
+
+Measure has a single initialization for all it's features, and it took `35.0ms` in the same
+macro-benchmark test.
+
+| Slice                | min   | median | max   |
+|----------------------|-------|--------|-------|
+| FirebaseMaxMs        | 9.0   | 10.2   | 12.4  |
+| fire-clsMaxMs        | 36.2  | 44.6   | 52.6  |
+| fire-perf-earlyMaxMs | 6.6   | 8.8    | 22.2  |
+| fire-sessionsMaxMs   | 12.7  | 14.0   | 18.5  |
+| msr-initMaxMs        | 29.5  | 35.0   | 43.6  |
+
+Perfetto screenshot from one of the runs: 
+
+![Screenshot](images/firebaseComparison.png)
 
 ## Implementation
 
