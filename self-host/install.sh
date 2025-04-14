@@ -278,6 +278,10 @@ install_docker() {
 # considering the appropriate environment.
 # ------------------------------------------------------------------------------
 install_podman() {
+  if ! is_debian || ! is_ubuntu; then
+    error "We don't support installing podman on non Debian based distributions."
+  fi
+
   if is_debian; then
     echo "deb http://deb.debian.org/debian/ trixie main" | tee /etc/apt/sources.list.d/trixie.list >/dev/null
     tee /etc/apt/preferences.d/99pinning >/dev/null <<EOF
@@ -293,16 +297,12 @@ Pin-Priority: 100
 EOF
     $PKGMAN update
     $PKGMAN install -y -t trixie podman podman-docker jq git
-  else
-    error "We don't support installing podman on non Debian based distributions."
   fi
 
   if is_ubuntu; then
     debug "Installing podman for ubuntu"
     $PKGMAN update
     $PKGMAN -y install podman podman-docker jq git
-  else
-    error "We don't support installing podman on non Ubuntu based distributions."
   fi
 
   local arch_name=""
