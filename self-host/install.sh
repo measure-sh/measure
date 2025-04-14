@@ -356,6 +356,9 @@ start_docker() {
   if [[ $USE_PODMAN == true ]]; then
     service="podman.socket"
     # suppress podman message
+    if [[ ! -d /etc/containers ]]; then
+      mkdir -p /etc/containers
+    fi
     touch /etc/containers/nodocker
   fi
 
