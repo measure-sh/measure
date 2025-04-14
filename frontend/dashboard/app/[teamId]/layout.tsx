@@ -7,7 +7,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher";
 import { TeamsApiStatus, emptyTeam, fetchTeamsFromServer } from "../api/api_calls";
-import { auth, logout } from "@/app/utils/auth/auth";
+import { measureAuth } from "../auth/measure_auth";
 
 export default function DashboardLayout({
   children,
@@ -58,7 +58,7 @@ export default function DashboardLayout({
   ];
 
   useEffect(() => {
-    auth.init();
+    measureAuth.init(router)
   }, []);
 
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
@@ -73,7 +73,7 @@ export default function DashboardLayout({
   const getTeams = async () => {
     setTeamsApiStatus(TeamsApiStatus.Loading)
 
-    const result = await fetchTeamsFromServer(router)
+    const result = await fetchTeamsFromServer()
 
     switch (result.status) {
       case TeamsApiStatus.Error:
@@ -93,7 +93,7 @@ export default function DashboardLayout({
   }, []);
 
   const logoutUser = async () => {
-    await logout(auth, router)
+    await measureAuth.logout()
   }
 
   const onTeamChanged = (item: string) => {

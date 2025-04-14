@@ -1,12 +1,11 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react'
 import { ResponsiveLine } from '@nivo/line'
-import { ExceptionsDetailsPlotApiStatus, ExceptionsType, fetchExceptionsDetailsPlotFromServer } from '../api/api_calls';
-import { useRouter } from 'next/navigation';
-import { formatDateToHumanReadableDate } from '../utils/time_utils';
-import { Filters } from './filters';
-import LoadingSpinner from './loading_spinner';
+import { ExceptionsDetailsPlotApiStatus, ExceptionsType, fetchExceptionsDetailsPlotFromServer } from '../api/api_calls'
+import { formatDateToHumanReadableDate } from '../utils/time_utils'
+import { Filters } from './filters'
+import LoadingSpinner from './loading_spinner'
 
 interface ExceptionsDetailsPlotProps {
   exceptionsType: ExceptionsType,
@@ -23,10 +22,8 @@ type ExceptionsDetailsPlot = {
 }[]
 
 const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exceptionsType, exceptionsGroupId, filters }) => {
-  const router = useRouter()
-
-  const [exceptionsDetailsPlotApiStatus, setExceptionsDetailsPlotApiStatus] = useState(ExceptionsDetailsPlotApiStatus.Loading);
-  const [plot, setPlot] = useState<ExceptionsDetailsPlot>();
+  const [exceptionsDetailsPlotApiStatus, setExceptionsDetailsPlotApiStatus] = useState(ExceptionsDetailsPlotApiStatus.Loading)
+  const [plot, setPlot] = useState<ExceptionsDetailsPlot>()
 
   const getExceptionsDetailsPlot = async () => {
     // Don't try to fetch plot if filters aren't ready
@@ -36,7 +33,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
 
     setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Loading)
 
-    const result = await fetchExceptionsDetailsPlotFromServer(exceptionsType, exceptionsGroupId, filters, router)
+    const result = await fetchExceptionsDetailsPlotFromServer(exceptionsType, exceptionsGroupId, filters)
 
     switch (result.status) {
       case ExceptionsDetailsPlotApiStatus.Error:
@@ -62,7 +59,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
 
   useEffect(() => {
     getExceptionsDetailsPlot()
-  }, [exceptionsType, exceptionsGroupId, filters]);
+  }, [exceptionsType, exceptionsGroupId, filters])
 
   return (
     <div className="flex border border-black font-body items-center justify-center w-full h-[32rem]">
@@ -140,6 +137,6 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
     </div>
   )
 
-};
+}
 
-export default ExceptionsDetailsPlot;
+export default ExceptionsDetailsPlot

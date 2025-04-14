@@ -1,12 +1,11 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react'
 import { ResponsiveLine } from '@nivo/line'
-import { SessionsOverviewPlotApiStatus, fetchSessionsOverviewPlotFromServer } from '../api/api_calls';
-import { useRouter } from 'next/navigation';
-import { formatDateToHumanReadableDate } from '../utils/time_utils';
-import { Filters } from './filters';
-import LoadingSpinner from './loading_spinner';
+import { SessionsOverviewPlotApiStatus, fetchSessionsOverviewPlotFromServer } from '../api/api_calls'
+import { formatDateToHumanReadableDate } from '../utils/time_utils'
+import { Filters } from './filters'
+import LoadingSpinner from './loading_spinner'
 
 interface SessionsOverviewPlotProps {
   filters: Filters
@@ -22,10 +21,8 @@ type SessionsOverviewPlot = {
 }[]
 
 const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) => {
-  const router = useRouter()
-
-  const [sessionsOverviewPlotApiStatus, setSessionsOverviewPlotApiStatus] = useState(SessionsOverviewPlotApiStatus.Loading);
-  const [plot, setPlot] = useState<SessionsOverviewPlot>();
+  const [sessionsOverviewPlotApiStatus, setSessionsOverviewPlotApiStatus] = useState(SessionsOverviewPlotApiStatus.Loading)
+  const [plot, setPlot] = useState<SessionsOverviewPlot>()
 
   const getSessionsOverviewPlot = async () => {
     // Don't try to fetch plot if filters aren't ready
@@ -35,7 +32,7 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) 
 
     setSessionsOverviewPlotApiStatus(SessionsOverviewPlotApiStatus.Loading)
 
-    const result = await fetchSessionsOverviewPlotFromServer(filters, router)
+    const result = await fetchSessionsOverviewPlotFromServer(filters)
 
     switch (result.status) {
       case SessionsOverviewPlotApiStatus.Error:
@@ -64,7 +61,7 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) 
 
   useEffect(() => {
     getSessionsOverviewPlot()
-  }, [filters]);
+  }, [filters])
 
   return (
     <div className="flex border border-black font-body items-center justify-center w-full h-[36rem]">
@@ -142,6 +139,6 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) 
     </div>
   )
 
-};
+}
 
-export default SessionsOverviewPlot;
+export default SessionsOverviewPlot

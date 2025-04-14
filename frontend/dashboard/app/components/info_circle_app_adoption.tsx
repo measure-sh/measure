@@ -1,17 +1,17 @@
-import React from 'react';
-import { MetricsApiStatus } from '../api/api_calls';
-import LoadingSpinner from './loading_spinner';
+import React from 'react'
+import { MetricsApiStatus } from '../api/api_calls'
+import LoadingSpinner from './loading_spinner'
 
 interface InfoCircleAppAdoptionProps {
-  status: MetricsApiStatus,
-  noData: boolean,
-  value: number,
-  sessions: number,
-  totalSessions: number,
+  status: MetricsApiStatus
+  noData: boolean
+  value: number
+  sessions: number
+  totalSessions: number
   title: string
 }
 
-const formatter = Intl.NumberFormat('en', { notation: 'compact' });
+const formatter = Intl.NumberFormat('en', { notation: 'compact' })
 
 const InfoCircleAppAdoption = ({ status, noData, value, sessions, totalSessions, title }: InfoCircleAppAdoptionProps) => {
   return (
@@ -33,7 +33,7 @@ const InfoCircleAppAdoption = ({ status, noData, value, sessions, totalSessions,
       <div className="py-2" />
       <p className="font-display text-lg">{title}</p>
     </div>
-  );
-};
+  )
+}
 
-export default InfoCircleAppAdoption;
+export default InfoCircleAppAdoption

@@ -1,12 +1,12 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'
 
 interface DebounceTextInputProps {
-  id: string;
-  placeholder: string;
-  initialValue: string;
-  onChange: (input: string) => void;
+  id: string
+  placeholder: string
+  initialValue: string
+  onChange: (input: string) => void
 }
 
 const DebounceTextInput: React.FC<DebounceTextInputProps> = ({
@@ -15,27 +15,27 @@ const DebounceTextInput: React.FC<DebounceTextInputProps> = ({
   initialValue,
   onChange
 }) => {
-  const [inputValue, setInputValue] = useState(initialValue);
+  const [inputValue, setInputValue] = useState(initialValue)
 
   useEffect(() => {
     if (inputValue !== initialValue) {
       setInputValue(initialValue)
     }
-  }, [initialValue]);
+  }, [initialValue])
 
   const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(event.target.value);
-  }, []);
+    setInputValue(event.target.value)
+  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      onChange(inputValue);
-    }, 500);
+      onChange(inputValue)
+    }, 500)
 
     return () => {
-      clearTimeout(timer);
-    };
-  }, [inputValue, onChange]);
+      clearTimeout(timer)
+    }
+  }, [inputValue, onChange])
 
   return (
     <input
@@ -46,7 +46,7 @@ const DebounceTextInput: React.FC<DebounceTextInputProps> = ({
       value={inputValue}
       onChange={handleInputChange}
     />
-  );
-};
+  )
+}
 
-export default DebounceTextInput;
+export default DebounceTextInput

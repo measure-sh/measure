@@ -1,11 +1,11 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
-import Journey, { JourneyType } from "@/app/components/journey";
-import MetricsOverview from '@/app/components/metrics_overview';
-import { FilterSource } from '@/app/api/api_calls';
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useEffect, useState } from 'react'
+import Journey, { JourneyType } from "@/app/components/journey"
+import MetricsOverview from '@/app/components/metrics_overview'
+import { FilterSource } from '@/app/api/api_calls'
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
+import { useRouter } from 'next/navigation'
 
 interface PageState {
   filters: typeof defaultFilters

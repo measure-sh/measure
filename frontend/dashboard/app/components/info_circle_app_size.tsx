@@ -1,13 +1,13 @@
-import React from 'react';
-import { MetricsApiStatus } from '../api/api_calls';
-import LoadingSpinner from './loading_spinner';
+import React from 'react'
+import { MetricsApiStatus } from '../api/api_calls'
+import LoadingSpinner from './loading_spinner'
 
 interface InfoCircleAppSizeProps {
-  status: MetricsApiStatus,
-  noData: boolean,
-  valueInBytes: number;
-  deltaInBytes: number;
-  title: string;
+  status: MetricsApiStatus
+  noData: boolean
+  valueInBytes: number
+  deltaInBytes: number
+  title: string
 }
 
 const InfoCircleAppSize = ({ status, noData, valueInBytes, deltaInBytes, title }: InfoCircleAppSizeProps) => {
@@ -27,7 +27,7 @@ const InfoCircleAppSize = ({ status, noData, valueInBytes, deltaInBytes, title }
       <div className="py-2" />
       <p className="font-display text-lg">{title}</p>
     </div>
-  );
-};
+  )
+}
 
-export default InfoCircleAppSize;
+export default InfoCircleAppSize

@@ -1,5 +1,5 @@
-import { decodeJWT } from '@/app/utils/auth/auth';
-import { NextResponse } from 'next/server';
+import { measureAuth } from '@/app/auth/measure_auth'
+import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,18 +53,18 @@ export async function POST(request: Request) {
       state,
       nonce
     })
-  });
+  })
 
   if (!res.ok) {
     console.log(`google login failure: post /auth/google returned ${res.status}`)
-    return NextResponse.redirect(errRedirectUrl, { status: 302 });
+    return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
-  const session = await res.json();
-  const { payload } = decodeJWT(session.access_token);
+  const session = await res.json()
+  const { payload } = measureAuth.decodeJWT(session.access_token)
 
-  const redirectURL = new URL(`${origin}/${payload["team"]}/overview`);
-  redirectURL.hash = `access_token=${session.access_token}&refresh_token=${session.refresh_token}&state=${session.state}`;
+  const redirectURL = new URL(`${origin}/${payload["team"]}/overview`)
+  redirectURL.hash = `access_token=${session.access_token}&refresh_token=${session.refresh_token}&state=${session.state}`
 
-  return NextResponse.redirect(redirectURL, { status: 302 });
+  return NextResponse.redirect(redirectURL, { status: 302 })
 }

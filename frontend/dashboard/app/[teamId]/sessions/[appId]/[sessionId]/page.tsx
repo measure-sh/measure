@@ -1,21 +1,18 @@
 "use client"
 
-import { SessionTimelineApiStatus, emptySessionTimeline, fetchSessionTimelineFromServer } from "@/app/api/api_calls";
-import SessionTimeline from "@/app/components/session_timeline";
-import { formatMillisToHumanReadable } from "@/app/utils/time_utils";
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from "react";
+import { SessionTimelineApiStatus, emptySessionTimeline, fetchSessionTimelineFromServer } from "@/app/api/api_calls"
+import SessionTimeline from "@/app/components/session_timeline"
+import { formatMillisToHumanReadable } from "@/app/utils/time_utils"
+import { useEffect, useState } from "react"
 
 export default function Session({ params }: { params: { teamId: string, appId: string, sessionId: string } }) {
-  const router = useRouter()
-
-  const [sessionTimeline, setSessionTimeline] = useState(emptySessionTimeline);
-  const [sessionTimelineApiStatus, setSessionTimelineApiStatus] = useState(SessionTimelineApiStatus.Loading);
+  const [sessionTimeline, setSessionTimeline] = useState(emptySessionTimeline)
+  const [sessionTimelineApiStatus, setSessionTimelineApiStatus] = useState(SessionTimelineApiStatus.Loading)
 
   const getSessionTimeline = async () => {
     setSessionTimelineApiStatus(SessionTimelineApiStatus.Loading)
 
-    const result = await fetchSessionTimelineFromServer(params.appId, params.sessionId, router)
+    const result = await fetchSessionTimelineFromServer(params.appId, params.sessionId)
 
     switch (result.status) {
       case SessionTimelineApiStatus.Error:
@@ -30,7 +27,7 @@ export default function Session({ params }: { params: { teamId: string, appId: s
 
   useEffect(() => {
     getSessionTimeline()
-  }, []);
+  }, [])
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">

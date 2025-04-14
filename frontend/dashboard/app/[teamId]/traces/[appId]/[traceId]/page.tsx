@@ -1,22 +1,19 @@
 "use client"
 
-import { TraceApiStatus, emptyTrace, fetchTraceFromServer } from "@/app/api/api_calls";
-import TraceViz from "@/app/components/trace_viz";
-import { formatDateToHumanReadableDateTime, formatMillisToHumanReadable } from "@/app/utils/time_utils";
-import Link from "next/link";
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from "react";
+import { TraceApiStatus, emptyTrace, fetchTraceFromServer } from "@/app/api/api_calls"
+import TraceViz from "@/app/components/trace_viz"
+import { formatDateToHumanReadableDateTime, formatMillisToHumanReadable } from "@/app/utils/time_utils"
+import Link from "next/link"
+import { useEffect, useState } from "react"
 
 export default function TraceDetails({ params }: { params: { teamId: string, appId: string, traceId: string } }) {
-  const router = useRouter()
-
-  const [trace, setTrace] = useState(emptyTrace);
-  const [traceApiStatus, setTraceApiStatus] = useState(TraceApiStatus.Loading);
+  const [trace, setTrace] = useState(emptyTrace)
+  const [traceApiStatus, setTraceApiStatus] = useState(TraceApiStatus.Loading)
 
   const getTrace = async () => {
     setTraceApiStatus(TraceApiStatus.Loading)
 
-    const result = await fetchTraceFromServer(params.appId, params.traceId, router)
+    const result = await fetchTraceFromServer(params.appId, params.traceId)
 
     switch (result.status) {
       case TraceApiStatus.Error:
@@ -31,7 +28,7 @@ export default function TraceDetails({ params }: { params: { teamId: string, app
 
   useEffect(() => {
     getTrace()
-  }, []);
+  }, [])
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">

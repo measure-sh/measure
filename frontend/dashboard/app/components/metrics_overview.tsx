@@ -1,13 +1,12 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
-import InfoCircleAppAdoption from './info_circle_app_adoption';
-import InfoCircleAppSize from './info_circle_app_size';
-import InfoCircleExceptionRate from './info_circle_exception_rate';
-import InfoCircleAppStartTime from './info_circle_app_start_time';
-import { useRouter } from 'next/navigation';
-import { MetricsApiStatus, emptyMetrics, fetchMetricsFromServer } from '../api/api_calls';
-import { Filters } from './filters';
+import React, { useState, useEffect } from 'react'
+import InfoCircleAppAdoption from './info_circle_app_adoption'
+import InfoCircleAppSize from './info_circle_app_size'
+import InfoCircleExceptionRate from './info_circle_exception_rate'
+import InfoCircleAppStartTime from './info_circle_app_start_time'
+import { MetricsApiStatus, emptyMetrics, fetchMetricsFromServer } from '../api/api_calls'
+import { Filters } from './filters'
 
 interface MetricsOverviewProps {
   filters: Filters
@@ -15,15 +14,13 @@ interface MetricsOverviewProps {
 
 const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters }) => {
 
-  const [metrics, setMetrics] = useState(emptyMetrics);
-  const [metricsApiStatus, setMetricsApiStatus] = useState(MetricsApiStatus.Loading);
-
-  const router = useRouter()
+  const [metrics, setMetrics] = useState(emptyMetrics)
+  const [metricsApiStatus, setMetricsApiStatus] = useState(MetricsApiStatus.Loading)
 
   const getMetrics = async () => {
     setMetricsApiStatus(MetricsApiStatus.Loading)
 
-    const result = await fetchMetricsFromServer(filters, router)
+    const result = await fetchMetricsFromServer(filters)
 
     switch (result.status) {
       case MetricsApiStatus.Error:
@@ -38,7 +35,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters }) => {
 
   useEffect(() => {
     getMetrics()
-  }, [filters]);
+  }, [filters])
 
   return (
     <div className="flex flex-wrap gap-16 w-5/6">
@@ -54,7 +51,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters }) => {
       {/* show app size metrics only on single app version selection && only when app size is available */}
       {filters.versions.length === 1 && metrics.sizes !== null && <InfoCircleAppSize status={metricsApiStatus} title="App size" noData={metrics.sizes.nan} valueInBytes={metrics.sizes.selected_app_size} deltaInBytes={metrics.sizes.delta} />}
     </div>
-  );
-};
+  )
+}
 
-export default MetricsOverview;
+export default MetricsOverview

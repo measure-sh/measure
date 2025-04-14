@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { JourneyApiStatus, emptyJourney, fetchJourneyFromServer } from '../api/api_calls'
 import { ResponsiveSankey } from '@nivo/sankey'
 import Link from 'next/link'
@@ -105,30 +104,30 @@ function hasCycle(node: string, graph: Map<string, string[]>, visited: Set<strin
   return false
 }
 
-const NODE_LIMIT = 100; // Use constant for the node limit
+const NODE_LIMIT = 100 // Use constant for the node limit
 
 function transformData(input: InputJourneyData): JourneyData {
-  const nodes = input.nodes || [];
-  const links = input.links || [];
+  const nodes = input.nodes || []
+  const links = input.links || []
 
-  const graph = new Map<string, string[]>();
-  const linkedNodes = new Set<string>(); // Set to keep track of nodes with links
-  const outputLinks: JourneyLink[] = [];
+  const graph = new Map<string, string[]>()
+  const linkedNodes = new Set<string>() // Set to keep track of nodes with links
+  const outputLinks: JourneyLink[] = []
 
   if (links.length > 0) {
     links.forEach(link => {
-      const { source, target, value } = link;
+      const { source, target, value } = link
 
-      if (!graph.has(source)) graph.set(source, []);
-      graph.get(source)!.push(target);
+      if (!graph.has(source)) graph.set(source, [])
+      graph.get(source)!.push(target)
 
       // Track nodes that have links
-      linkedNodes.add(source);
-      linkedNodes.add(target);
+      linkedNodes.add(source)
+      linkedNodes.add(target)
 
       // Check for cycles before adding the link
-      const visited = new Set<string>();
-      const recStack = new Set<string>();
+      const visited = new Set<string>()
+      const recStack = new Set<string>()
 
       if (!hasCycle(source, graph, visited, recStack)) {
         outputLinks.push({
@@ -137,12 +136,12 @@ function transformData(input: InputJourneyData): JourneyData {
           value,
           startColor: neutralLinkColour,
           endColor: neutralLinkColour,
-        });
+        })
       } else {
         // Remove the edge that would cause a cycle from the graph
-        graph.get(source)!.pop();
+        graph.get(source)!.pop()
       }
-    });
+    })
   }
 
   // Rank nodes: prioritize nodes with issues first, then by number of connections
@@ -154,24 +153,24 @@ function transformData(input: InputJourneyData): JourneyData {
     }))
     .sort((a, b) => {
       // Sort by issues first, then by number of connections
-      if (a.hasIssues && !b.hasIssues) return -1;
-      if (!a.hasIssues && b.hasIssues) return 1;
-      return b.connections - a.connections; // Descending order of connections
+      if (a.hasIssues && !b.hasIssues) return -1
+      if (!a.hasIssues && b.hasIssues) return 1
+      return b.connections - a.connections // Descending order of connections
     })
-    .slice(0, NODE_LIMIT); // Limit nodes to NODE_LIMIT
+    .slice(0, NODE_LIMIT) // Limit nodes to NODE_LIMIT
 
   // Extract the IDs of the ranked nodes
-  const rankedNodeIds = new Set(rankedNodes.map(node => node.id));
+  const rankedNodeIds = new Set(rankedNodes.map(node => node.id))
 
   // Filter out links whose source or target nodes are not in the allowedNodeIds
-  const finalLinks = outputLinks.filter(link => rankedNodeIds.has(link.source) && rankedNodeIds.has(link.target));
+  const finalLinks = outputLinks.filter(link => rankedNodeIds.has(link.source) && rankedNodeIds.has(link.target))
 
   // Compute finalLinkedNodeIds based on the final links
-  const finalLinkedNodeIds = new Set<string>();
+  const finalLinkedNodeIds = new Set<string>()
   finalLinks.forEach(link => {
-    finalLinkedNodeIds.add(link.source);
-    finalLinkedNodeIds.add(link.target);
-  });
+    finalLinkedNodeIds.add(link.source)
+    finalLinkedNodeIds.add(link.target)
+  })
 
   // Only include nodes that are part of the final linked nodes
   const outputNodes: JourneyNode[] = rankedNodes
@@ -180,12 +179,12 @@ function transformData(input: InputJourneyData): JourneyData {
       id: node.id,
       nodeColor: getNodeColor(node),
       issues: node.issues,
-    }));
+    }))
 
   return {
     nodes: outputNodes,
     links: finalLinks,
-  };
+  }
 }
 
 const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, exceptionsGroupId, filters }) => {
@@ -194,15 +193,14 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
   const [journey, setJourney] = useState<JourneyData>(transformData(emptyJourney))
 
   const [selectedNode, setSelectedNode] = useState<JourneyNode>()
-  const [showPanel, setShowPanel] = useState(false);
+  const [showPanel, setShowPanel] = useState(false)
 
-  const router = useRouter()
   const formatter = Intl.NumberFormat('en', { notation: 'compact' })
 
   const getJourney = async () => {
     setJourneyApiStatus(JourneyApiStatus.Loading)
 
-    const result = await fetchJourneyFromServer(journeyType, exceptionsGroupId, bidirectional, filters, router)
+    const result = await fetchJourneyFromServer(journeyType, exceptionsGroupId, bidirectional, filters)
 
     switch (result.status) {
       case JourneyApiStatus.Error:
@@ -229,11 +227,11 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
 
   useEffect(() => {
     if (journeyType === JourneyType.Overview && selectedNode !== undefined && (selectedNode.issues?.crashes?.length! > 0 || selectedNode.issues?.anrs?.length! > 0)) {
-      setShowPanel(true);
+      setShowPanel(true)
     } else {
-      setShowPanel(false);
+      setShowPanel(false)
     }
-  }, [selectedNode]);
+  }, [selectedNode])
 
   return (
     <div className="flex items-center justify-center border border-black text-black font-body text-sm w-full h-full overflow-hidden">

@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode } from "react";
+import { ReactNode } from "react"
 
 interface DangerConfirmationModalProps {
     body: ReactNode,
@@ -8,7 +8,7 @@ interface DangerConfirmationModalProps {
     affirmativeText: string,
     cancelText: string,
     onAffirmativeAction: () => void,
-    onCancelAction: () => void;
+    onCancelAction: () => void
 }
 
 const DangerConfirmationModal: React.FC<DangerConfirmationModalProps> = ({ body, open, affirmativeText, cancelText, onAffirmativeAction, onCancelAction }) => {
@@ -26,7 +26,7 @@ const DangerConfirmationModal: React.FC<DangerConfirmationModalProps> = ({ body,
                 </div>
             </div>
         </div>
-    );
-};
+    )
+}
 
-export default DangerConfirmationModal;
+export default DangerConfirmationModal

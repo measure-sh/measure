@@ -44,7 +44,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
     const getSessionsOverview = async () => {
         updatePageState({ sessionsOverviewApiStatus: SessionsOverviewApiStatus.Loading })
 
-        const result = await fetchSessionsOverviewFromServer(pageState.filters, null, null, paginationLimit, pageState.paginationOffset, router)
+        const result = await fetchSessionsOverviewFromServer(pageState.filters, null, null, paginationLimit, pageState.paginationOffset)
 
         switch (result.status) {
             case SessionsOverviewApiStatus.Error:

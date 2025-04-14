@@ -52,7 +52,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
   const getExceptionsOverview = async () => {
     updatePageState({ exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus.Loading })
 
-    const result = await fetchExceptionsOverviewFromServer(exceptionsType, pageState.filters, pageState.keyId, pageState.limit, router)
+    const result = await fetchExceptionsOverviewFromServer(exceptionsType, pageState.filters, pageState.keyId, pageState.limit)
 
     switch (result.status) {
       case ExceptionsOverviewApiStatus.Error:

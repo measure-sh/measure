@@ -1,9 +1,8 @@
 "use client"
 
-import React, { useState, FormEventHandler } from 'react';
-import { useRouter } from 'next/navigation';
-import { CreateAppApiStatus, createAppFromServer, App } from '../api/api_calls';
-import Link from 'next/link';
+import React, { useState, FormEventHandler } from 'react'
+import { CreateAppApiStatus, createAppFromServer, App } from '../api/api_calls'
+import Link from 'next/link'
 
 interface CreateAppProps {
   teamId: string,
@@ -27,15 +26,13 @@ export enum CreateAppStatus {
 // app name passed in.
 const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, existingApiKey = null }) => {
 
-  const [data, setData] = useState<App>();
+  const [data, setData] = useState<App>()
   const [createAppStatus, setCreateAppStatus] = useState(existingAppName === null && existingApiKey === null ? CreateAppStatus.PreCreation : CreateAppStatus.PostCreation)
-  const [createAppApiStatus, setCreateAppApiStatus] = useState(CreateAppApiStatus.Init);
-  const [appName, setAppName] = useState("");
-
-  const router = useRouter()
+  const [createAppApiStatus, setCreateAppApiStatus] = useState(CreateAppApiStatus.Init)
+  const [appName, setAppName] = useState("")
 
   const createApp: FormEventHandler = async (event) => {
-    event.preventDefault();
+    event.preventDefault()
 
     if (appName === "") {
       return
@@ -43,7 +40,7 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
 
     setCreateAppApiStatus(CreateAppApiStatus.Loading)
 
-    const result = await createAppFromServer(teamId, appName, router)
+    const result = await createAppFromServer(teamId, appName)
 
     switch (result.status) {
       case CreateAppApiStatus.Error:
@@ -88,7 +85,7 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
         </div>
       }
     </div>
-  );
-};
+  )
+}
 
-export default CreateApp;
+export default CreateApp

@@ -1,11 +1,10 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
-import { ExceptionsDistributionPlotApiStatus, ExceptionsType, fetchExceptionsDistributionPlotFromServer } from '../api/api_calls';
-import { useRouter } from 'next/navigation';
-import { Filters } from './filters';
-import LoadingSpinner from './loading_spinner';
-import { ResponsiveBar } from '@nivo/bar';
+import React, { useEffect, useState } from 'react'
+import { ExceptionsDistributionPlotApiStatus, ExceptionsType, fetchExceptionsDistributionPlotFromServer } from '../api/api_calls'
+import { Filters } from './filters'
+import LoadingSpinner from './loading_spinner'
+import { ResponsiveBar } from '@nivo/bar'
 
 interface ExceptionsDistributionPlotProps {
   exceptionsType: ExceptionsType,
@@ -14,23 +13,21 @@ interface ExceptionsDistributionPlotProps {
 }
 
 type ExceptionsDistributionPlot = {
-  attribute: string;
-  [key: string]: number | string;
-}[];
+  attribute: string
+  [key: string]: number | string
+}[]
 
 const formatAttribute = (str: string): string => {
   return str
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
+    .join(' ')
+}
 
 const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({ exceptionsType, exceptionsGroupId, filters }) => {
-  const router = useRouter()
-
-  const [exceptionsDistributionPlotApiStatus, setExceptionsDistributionPlotApiStatus] = useState(ExceptionsDistributionPlotApiStatus.Loading);
-  const [plotKeys, setPlotKeys] = useState<string[]>([]);
-  const [plot, setPlot] = useState<ExceptionsDistributionPlot>();
+  const [exceptionsDistributionPlotApiStatus, setExceptionsDistributionPlotApiStatus] = useState(ExceptionsDistributionPlotApiStatus.Loading)
+  const [plotKeys, setPlotKeys] = useState<string[]>([])
+  const [plot, setPlot] = useState<ExceptionsDistributionPlot>()
 
   const getExceptionsDistributionPlot = async () => {
     // Don't try to fetch plot if filters aren't ready
@@ -40,7 +37,7 @@ const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({
 
     setExceptionsDistributionPlotApiStatus(ExceptionsDistributionPlotApiStatus.Loading)
 
-    const result = await fetchExceptionsDistributionPlotFromServer(exceptionsType, exceptionsGroupId, filters, router)
+    const result = await fetchExceptionsDistributionPlotFromServer(exceptionsType, exceptionsGroupId, filters)
 
     switch (result.status) {
       case ExceptionsDistributionPlotApiStatus.Error:
@@ -57,14 +54,14 @@ const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({
         const parsedPlot = Object.entries(result.data).map(([attribute, values]) => {
           Object.keys(values as { [key: string]: number }).forEach(key => {
             if (!parsedPlotKeys.includes(key)) {
-              parsedPlotKeys.push(key);
+              parsedPlotKeys.push(key)
             }
-          });
+          })
 
           return {
             attribute: formatAttribute(attribute),
             ...(values as { [key: string]: number }),
-          };
+          }
         })
 
         setPlot(parsedPlot)
@@ -75,7 +72,7 @@ const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({
 
   useEffect(() => {
     getExceptionsDistributionPlot()
-  }, [exceptionsType, exceptionsGroupId, filters]);
+  }, [exceptionsType, exceptionsGroupId, filters])
 
   return (
     <div className="flex border border-black font-body items-center justify-center w-full h-[32rem]">
@@ -126,6 +123,6 @@ const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({
     </div>
   )
 
-};
+}
 
-export default ExceptionsDistributionPlot;
+export default ExceptionsDistributionPlot

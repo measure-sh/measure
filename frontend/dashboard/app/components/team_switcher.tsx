@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react'
 
 export enum TeamsSwitcherStatus {
   Loading,
@@ -9,16 +9,16 @@ export enum TeamsSwitcherStatus {
 }
 
 interface TeamSwitcherProps {
-  items: string[];
-  initialItemIndex?: number;
-  teamsSwitcherStatus: TeamsSwitcherStatus;
-  onChangeSelectedItem?: (item: string) => void;
+  items: string[]
+  initialItemIndex?: number
+  teamsSwitcherStatus: TeamsSwitcherStatus
+  onChangeSelectedItem?: (item: string) => void
 }
 
 const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0, teamsSwitcherStatus, onChangeSelectedItem }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<string | null>(null);
-  const teamSwitcherRef = useRef<HTMLDivElement | null>(null);
+  const [isOpen, setIsOpen] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<string | null>(null)
+  const teamSwitcherRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -26,39 +26,39 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
         teamSwitcherRef.current &&
         !teamSwitcherRef.current.contains(event.target as Node)
       ) {
-        setIsOpen(false);
+        setIsOpen(false)
       }
-    };
+    }
 
     const handleFocusIn = (event: FocusEvent) => {
       if (
         teamSwitcherRef.current &&
         !teamSwitcherRef.current.contains(event.target as Node)
       ) {
-        setIsOpen(false);
+        setIsOpen(false)
       }
-    };
+    }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('focusin', handleFocusIn)
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('focusin', handleFocusIn);
-    };
-  }, []);
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('focusin', handleFocusIn)
+    }
+  }, [])
 
   const toggleTeamSwitcher = () => {
-    setIsOpen(!isOpen);
-  };
+    setIsOpen(!isOpen)
+  }
 
   const selectItem = (item: string) => {
-    setSelectedItem(item);
-    setIsOpen(false);
+    setSelectedItem(item)
+    setIsOpen(false)
     if (onChangeSelectedItem) {
-      onChangeSelectedItem(item);
+      onChangeSelectedItem(item)
     }
-  };
+  }
 
   return (
     <div className="z-50 relative w-40 self-center inline-block text-left" ref={teamSwitcherRef} >
@@ -97,7 +97,7 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default TeamSwitcher;
+export default TeamSwitcher

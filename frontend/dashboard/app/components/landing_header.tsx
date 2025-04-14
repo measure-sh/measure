@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useScrollDirection } from '../utils/scroll_utils'
 import Link from 'next/link'
 import Image from 'next/image'
 
 export default function LandingHeader() {
-  const scrollDir = useScrollDirection();
+  const scrollDir = useScrollDirection()
   const [isFocused, setIsFocused] = useState(false)
   const router = useRouter()
   const [selfHosted, setSelfHosted] = useState(false)

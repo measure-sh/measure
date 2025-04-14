@@ -1,40 +1,37 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import CreateApp from '@/app/components/create_app';
-import { App, AppsApiStatus, FetchAlertPrefsApiStatus, UpdateAlertPrefsApiStatus, emptyAlertPrefs, fetchAlertPrefsFromServer, fetchAppsFromServer, updateAlertPrefsFromServer } from '@/app/api/api_calls';
-import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select';
+import React, { useState, useEffect } from 'react'
+import CreateApp from '@/app/components/create_app'
+import { App, AppsApiStatus, FetchAlertPrefsApiStatus, UpdateAlertPrefsApiStatus, emptyAlertPrefs, fetchAlertPrefsFromServer, fetchAppsFromServer, updateAlertPrefsFromServer } from '@/app/api/api_calls'
+import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 
 export default function Overview({ params }: { params: { teamId: string } }) {
-  const router = useRouter()
+  const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading)
+  const [fetchAlertPrefsApiStatus, setFetchAlertPrefsApiStatus] = useState(FetchAlertPrefsApiStatus.Loading)
+  const [updateAlertPrefsApiStatus, setUpdateAlertPrefsApiStatus] = useState(UpdateAlertPrefsApiStatus.Init)
 
-  const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
-  const [fetchAlertPrefsApiStatus, setFetchAlertPrefsApiStatus] = useState(FetchAlertPrefsApiStatus.Loading);
-  const [updateAlertPrefsApiStatus, setUpdateAlertPrefsApiStatus] = useState(UpdateAlertPrefsApiStatus.Init);
-
-  const [apps, setApps] = useState([] as App[]);
+  const [apps, setApps] = useState([] as App[])
   const [selectedApp, setSelectedApp] = useState<App | null>(null)
 
-  const [alertPrefs, setAlertPrefs] = useState(emptyAlertPrefs);
-  const [updatedAlertPrefs, setUpdatedAlertPrefs] = useState(emptyAlertPrefs);
+  const [alertPrefs, setAlertPrefs] = useState(emptyAlertPrefs)
+  const [updatedAlertPrefs, setUpdatedAlertPrefs] = useState(emptyAlertPrefs)
 
-  const [updatePrefsMsg, setUpdatePrefsMsg] = useState("");
+  const [updatePrefsMsg, setUpdatePrefsMsg] = useState("")
 
   interface AlertState {
-    email: boolean;
+    email: boolean
   }
 
   interface UpdatedAlertsState {
-    crash_rate_spike: AlertState;
-    anr_rate_spike: AlertState;
-    launch_time_spike: AlertState;
+    crash_rate_spike: AlertState
+    anr_rate_spike: AlertState
+    launch_time_spike: AlertState
   }
 
   interface AlertRowProps {
-    rowTitle: string;
-    emailChecked: boolean;
-    handleEmailChange: () => void;
+    rowTitle: string
+    emailChecked: boolean
+    handleEmailChange: () => void
   }
 
   const handleEmailChange = (alertKey: keyof UpdatedAlertsState) => {
@@ -44,8 +41,8 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         ...prevAlertPrefs[alertKey],
         email: !prevAlertPrefs[alertKey].email,
       },
-    }));
-  };
+    }))
+  }
 
   const AlertRow: React.FC<AlertRowProps> = ({
     rowTitle,
@@ -87,7 +84,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   const getApps = async () => {
     setAppsApiStatus(AppsApiStatus.Loading)
 
-    const result = await fetchAppsFromServer(params.teamId, router)
+    const result = await fetchAppsFromServer(params.teamId)
 
     switch (result.status) {
       case AppsApiStatus.NoApps:
@@ -106,12 +103,12 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
   useEffect(() => {
     getApps()
-  }, []);
+  }, [])
 
   const getAlertPrefs = async () => {
     setFetchAlertPrefsApiStatus(FetchAlertPrefsApiStatus.Loading)
 
-    const result = await fetchAlertPrefsFromServer(selectedApp!.id, router)
+    const result = await fetchAlertPrefsFromServer(selectedApp!.id)
 
     switch (result.status) {
       case FetchAlertPrefsApiStatus.Error:
@@ -128,13 +125,13 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   useEffect(() => {
     getAlertPrefs()
     setUpdatePrefsMsg("")
-  }, [selectedApp]);
+  }, [selectedApp])
 
   const saveAlertPrefs = async () => {
     setUpdateAlertPrefsApiStatus(UpdateAlertPrefsApiStatus.Loading)
     setUpdatePrefsMsg("Saving...")
 
-    const result = await updateAlertPrefsFromServer(selectedApp!.id, updatedAlertPrefs, router)
+    const result = await updateAlertPrefsFromServer(selectedApp!.id, updatedAlertPrefs)
 
     switch (result.status) {
       case UpdateAlertPrefsApiStatus.Error:
@@ -159,7 +156,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       {appsApiStatus === AppsApiStatus.Error && <p className="text-lg font-display">Error fetching apps, please check if Team ID is valid or refresh page to try again</p>}
       {appsApiStatus === AppsApiStatus.NoApps &&
         <div>
-          <p className="text-lg font-display">Looks like you don&apos;t have any apps yet. Get started by creating your first app!</p>
+          <p className="text-lg font-display">Looks like you don&apost have any apps yet. Get started by creating your first app!</p>
           <div className="py-4" />
           <CreateApp teamId={params.teamId} />
         </div>}
