@@ -18,7 +18,8 @@ protocol EventProcessor {
         attributes: Attributes?,
         sessionId: String?,
         attachments: [Attachment]?,
-        userDefinedAttributes: String?)
+        userDefinedAttributes: String?,
+        threadName: String?)
 
     func trackUserTriggered<T: Codable>( // swiftlint:disable:this function_parameter_count
         data: T,
@@ -27,7 +28,8 @@ protocol EventProcessor {
         attributes: Attributes?,
         sessionId: String?,
         attachments: [Attachment]?,
-        userDefinedAttributes: String?)
+        userDefinedAttributes: String?,
+        threadName: String?)
 }
 
 /// A concrete implementation of the `EventProcessor` protocol, responsible for tracking and
@@ -67,7 +69,8 @@ final class BaseEventProcessor: EventProcessor {
         attributes: Attributes?,
         sessionId: String?,
         attachments: [Attachment]?,
-        userDefinedAttributes: String?) {
+        userDefinedAttributes: String?,
+        threadName: String?) {
         SignPost.trace(label: "track-event") {
             track(data: data,
                   timestamp: timestamp,
@@ -76,7 +79,8 @@ final class BaseEventProcessor: EventProcessor {
                   userTriggered: false,
                   attachments: attachments,
                   sessionId: sessionId,
-                  userDefinedAttributes: userDefinedAttributes)
+                  userDefinedAttributes: userDefinedAttributes,
+                  threadName: threadName)
         }
     }
 
@@ -87,7 +91,8 @@ final class BaseEventProcessor: EventProcessor {
                                         attributes: Attributes?,
                                         sessionId: String?,
                                         attachments: [Attachment]?,
-                                        userDefinedAttributes: String?) {
+                                        userDefinedAttributes: String?,
+                                        threadName: String?) {
         SignPost.trace(label: "track-event-user-triggered") {
             track(data: data,
                   timestamp: timestamp,
@@ -96,7 +101,8 @@ final class BaseEventProcessor: EventProcessor {
                   userTriggered: true,
                   attachments: attachments,
                   sessionId: sessionId,
-                  userDefinedAttributes: userDefinedAttributes)
+                  userDefinedAttributes: userDefinedAttributes,
+                  threadName: threadName)
         }
     }
 
@@ -108,9 +114,10 @@ final class BaseEventProcessor: EventProcessor {
         userTriggered: Bool,
         attachments: [Attachment]?,
         sessionId: String?,
-        userDefinedAttributes: String?
+        userDefinedAttributes: String?,
+        threadName: String?
     ) {
-        let threadName = OperationQueue.current?.underlyingQueue?.label ?? "unknown"
+        let threadName = threadName ?? OperationQueue.current?.underlyingQueue?.label ?? "unknown"
         let event = createEvent(
             data: data,
             timestamp: timestamp,
