@@ -100,6 +100,7 @@ protocol MeasureInitializer {
 /// - `cpuUsageCalculator`: `CpuUsageCalculator` object that generates CPU usage data.
 /// - `memoryUsageCalculator`: `MemoryUsageCalculator` object that generates memory usage data.
 /// - `customEventCollector`: `CustomEventCollector` object that triggers custom events.
+/// - `spanCollector`: `SpanCollector`object that generates span data.
 /// - `sysCtl`: `SysCtl` object which provides sysctl functionalities.
 /// - `httpClient`: `HttpClient` object that handles HTTP requests.
 /// - `networkClient`: `NetworkClient` object is responsible for initializing the network configuration and executing API requests.
@@ -115,11 +116,10 @@ protocol MeasureInitializer {
 /// - `userPermissionManager`: `UserPermissionManager` object managing user permissions.
 /// - `appVersionInfo`: `AppVersionInfo` object that returns app information like app version and build number
 /// - `httpEventValidator`: `HttpEventValidator` object that lets you check if a http event should be tracked or not.
-/// - `traceSampler`: `TraceSampler`
-/// - `randomizer`: `Randomizer`
-/// - `spanProcessor`: `SpanProcessor`
-/// - `spanCollector`: `SpanCollector`
-/// - `tracer`: `Tracer`
+/// - `traceSampler`: `TraceSampler` object that manages trace sampling.
+/// - `randomizer`: `Randomizer` object that generates random numbers.
+/// - `spanProcessor`: `SpanProcessor` object that processes spans at different stages of their lifecycle.
+/// - `tracer`: `Tracer` object to create and manage tracing spans.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
