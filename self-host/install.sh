@@ -278,7 +278,26 @@ install_docker() {
 # considering the appropriate environment.
 # ------------------------------------------------------------------------------
 install_podman() {
-  if is_debian || is_ubuntu; then
+  if is_debian; then
+    echo "deb http://deb.debian.org/debian/ trixie main" | tee /etc/apt/sources.list.d/trixie.list >/dev/null
+    tee /etc/apt/preferences.d/99pinning >/dev/null <<EOF
+# Prefer packages from the stable release (Bookworm)
+Package: *
+Pin: release n=bookworm
+Pin-Priority: 990
+
+# Allow packages from the testing release (Trixie), but give them lower priority
+Package: *
+Pin: release n=trixie
+Pin-Priority: 100
+EOF
+    $PKGMAN update
+    $PKGMAN install -y trixie podman podman-docker jq git
+  else
+    error "We don't support installing podman on non Debain based distributions."
+  fi
+
+  if is_ubuntu; then
     debug "Installing podman for ubuntu"
     $PKGMAN update
     $PKGMAN -y install podman podman-docker jq git
@@ -423,17 +442,6 @@ update_symbolicator_origin() {
 # stop_docker_compose stops services using docker compose.
 # ------------------------------------------------------------------------------
 stop_docker_compose() {
-  if is_debian && [[ "$USE_PODMAN" == "true" ]]; then
-    $DOCKER_COMPOSE_CMD \
-      --profile init \
-      --profile migrate \
-      --file compose.yml \
-      --file compose.prod.yml \
-      down
-
-    return 0
-  fi
-
   $DOCKER_COMPOSE_CMD \
     --progress plain \
     --profile init \
@@ -448,22 +456,6 @@ stop_docker_compose() {
 # ------------------------------------------------------------------------------
 start_docker_compose() {
   info "Starting measure.sh docker containers"
-
-  if is_debian && [[ "$USE_PODMAN" == "true" ]]; then
-    $DOCKER_COMPOSE_CMD \
-      --profile init \
-      --profile migrate \
-      --file compose.yml \
-      --file compose.prod.yml \
-      up \
-      --build \
-      --pull always \
-      --detach \
-      --remove-orphans \
-      --wait
-
-    return 0
-  fi
 
   $DOCKER_COMPOSE_CMD \
     --progress plain \
