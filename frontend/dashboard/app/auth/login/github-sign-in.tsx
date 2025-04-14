@@ -1,11 +1,10 @@
 "use client";
 
-import { createMeasureClient } from "@/app/utils/auth/measure-client";
+import { measureAuth } from "@/app/auth/measure_auth";
 
 async function doGitHubLogin() {
   const { origin } = new URL(window.location.href);
-  const client = createMeasureClient(process.env.NEXT_PUBLIC_API_BASE_URL)
-  const { url, error } = await client.oAuthSignin({
+  const { url, error } = await measureAuth.oAuthSignin({
     provider: 'github',
     clientId: process?.env?.NEXT_PUBLIC_OAUTH_GITHUB_KEY,
     options: {

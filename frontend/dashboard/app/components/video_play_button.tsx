@@ -1,8 +1,8 @@
 // components/CustomPlayButton.tsx
-import React from 'react';
+import React from 'react'
 
 interface VideoPlayButtonProps {
-    onClick: () => void;
+    onClick: () => void
 }
 
 const VideoPlayButton: React.FC<VideoPlayButtonProps> = ({ onClick }) => (
@@ -14,6 +14,6 @@ const VideoPlayButton: React.FC<VideoPlayButtonProps> = ({ onClick }) => (
             <polygon points="8 5 18 12 8 19 8 5"></polygon>
         </svg>
     </button>
-);
+)
 
-export default VideoPlayButton;
+export default VideoPlayButton

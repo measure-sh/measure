@@ -1,8 +1,8 @@
 "use client"
 
-import React from 'react';
-import { ExceptionsType } from '@/app/api/api_calls';
-import { ExceptionsDetails } from '@/app/components/exceptions_details';
+import React from 'react'
+import { ExceptionsType } from '@/app/api/api_calls'
+import { ExceptionsDetails } from '@/app/components/exceptions_details'
 
 export default function AnrGroupDetails({ params }: { params: { teamId: string, appId: string, anrGroupId: string, anrGroupName: string } }) {
   return (

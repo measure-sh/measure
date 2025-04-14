@@ -1,14 +1,14 @@
-import React from 'react';
-import { MetricsApiStatus } from '../api/api_calls';
-import LoadingSpinner from './loading_spinner';
+import React from 'react'
+import { MetricsApiStatus } from '../api/api_calls'
+import LoadingSpinner from './loading_spinner'
 
 interface InfoCircleAppStartTimeProps {
-  status: MetricsApiStatus,
-  noData: boolean,
-  value: number;
-  delta: number;
-  title: string;
-  launchType: string;
+  status: MetricsApiStatus
+  noData: boolean
+  value: number
+  delta: number
+  title: string
+  launchType: string
 }
 
 const InfoCircleAppStartTime = ({ status, noData, value, delta, title, launchType }: InfoCircleAppStartTimeProps) => {
@@ -28,7 +28,7 @@ const InfoCircleAppStartTime = ({ status, noData, value, delta, title, launchTyp
       <div className="py-2" />
       <p className="font-display text-lg">{title}</p>
     </div>
-  );
-};
+  )
+}
 
-export default InfoCircleAppStartTime;
+export default InfoCircleAppStartTime

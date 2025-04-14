@@ -1,40 +1,37 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import CreateApp from '@/app/components/create_app';
-import { FetchUsageApiStatus, emptyUsage, fetchUsageFromServer } from '@/app/api/api_calls';
-import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select';
-import { ResponsivePie } from '@nivo/pie';
+import React, { useState, useEffect } from 'react'
+import CreateApp from '@/app/components/create_app'
+import { FetchUsageApiStatus, emptyUsage, fetchUsageFromServer } from '@/app/api/api_calls'
+import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
+import { ResponsivePie } from '@nivo/pie'
 
 export default function Overview({ params }: { params: { teamId: string } }) {
-  const router = useRouter()
-
   type AppMonthlyUsage = {
-    id: string;
-    label: string;
-    value: number;
-    events: number;
-    traces: number;
-    spans: number;
+    id: string
+    label: string
+    value: number
+    events: number
+    traces: number
+    spans: number
   }
 
-  const [fetchUsageApiStatus, setFetchUsageApiStatus] = useState(FetchUsageApiStatus.Loading);
-  const [usage, setUsage] = useState(emptyUsage);
-  const [months, setMonths] = useState<string[]>();
-  const [selectedMonth, setSelectedMonth] = useState<string>();
-  const [selectedMonthUsage, setSelectedMonthUsage] = useState<AppMonthlyUsage[]>();
+  const [fetchUsageApiStatus, setFetchUsageApiStatus] = useState(FetchUsageApiStatus.Loading)
+  const [usage, setUsage] = useState(emptyUsage)
+  const [months, setMonths] = useState<string[]>()
+  const [selectedMonth, setSelectedMonth] = useState<string>()
+  const [selectedMonthUsage, setSelectedMonthUsage] = useState<AppMonthlyUsage[]>()
 
   function parseMonths(data: typeof emptyUsage): string[] {
-    const monthYearSet: Set<string> = new Set();
+    const monthYearSet: Set<string> = new Set()
 
     data.forEach(app => {
       app.monthly_app_usage.forEach(u => {
-        monthYearSet.add(u.month_year);
-      });
-    });
+        monthYearSet.add(u.month_year)
+      })
+    })
 
-    return Array.from(monthYearSet);
+    return Array.from(monthYearSet)
   }
 
   function parseUsageForMonth(usage: typeof emptyUsage, month: string): AppMonthlyUsage[] {
@@ -43,17 +40,17 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     usage.forEach(app => {
       app.monthly_app_usage.forEach(u => {
         if (u.month_year === month) {
-          selectedMonthUsages.push({ id: app.app_id, label: app.app_name, value: u.session_count, events: u.event_count, traces: u.trace_count, spans: u.span_count });
+          selectedMonthUsages.push({ id: app.app_id, label: app.app_name, value: u.session_count, events: u.event_count, traces: u.trace_count, spans: u.span_count })
         }
-      });
-    });
+      })
+    })
     return selectedMonthUsages
   }
 
   const getUsage = async () => {
     setFetchUsageApiStatus(FetchUsageApiStatus.Loading)
 
-    const result = await fetchUsageFromServer(params.teamId, router)
+    const result = await fetchUsageFromServer(params.teamId)
 
     switch (result.status) {
       case FetchUsageApiStatus.NoApps:
@@ -76,11 +73,11 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
   useEffect(() => {
     getUsage()
-  }, []);
+  }, [])
 
   useEffect(() => {
     setSelectedMonthUsage(parseUsageForMonth(usage, selectedMonth!))
-  }, [selectedMonth]);
+  }, [selectedMonth])
 
   // @ts-ignore
   const CenteredMetric = ({ centerX, centerY }) => {
@@ -122,7 +119,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       {fetchUsageApiStatus === FetchUsageApiStatus.Error && <p className="text-lg font-display">Error fetching usage data, please check if Team ID is valid or refresh page to try again</p>}
       {fetchUsageApiStatus === FetchUsageApiStatus.NoApps &&
         <div>
-          <p className="text-lg font-display">Looks like you don&apos;t have any apps yet. Get started by creating your first app!</p>
+          <p className="text-lg font-display">Looks like you don&apost have any apps yet. Get started by creating your first app!</p>
           <div className="py-4" />
           <CreateApp teamId={params.teamId} />
         </div>}

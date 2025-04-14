@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from 'react';
-import { AppVersion, OsVersion } from '../api/api_calls';
+import React, { useEffect, useRef, useState } from 'react'
+import { AppVersion, OsVersion } from '../api/api_calls'
 
 export enum DropdownSelectType {
   SingleString,
@@ -13,24 +13,24 @@ export enum DropdownSelectType {
 }
 
 interface DropdownSelectProps {
-  type: DropdownSelectType;
-  title: string;
-  items: string[] | AppVersion[] | OsVersion[];
-  initialSelected: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[];
-  onChangeSelected?: (item: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]) => void;
+  type: DropdownSelectType
+  title: string
+  items: string[] | AppVersion[] | OsVersion[]
+  initialSelected: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]
+  onChangeSelected?: (item: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]) => void
 }
 
 const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, initialSelected, onChangeSelected }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selected, setSelected] = useState(initialSelected);
-  const [searchText, setSearchText] = useState('');
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const [isOpen, setIsOpen] = useState(false)
+  const [selected, setSelected] = useState(initialSelected)
+  const [searchText, setSearchText] = useState('')
+  const dropdownRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (selected !== initialSelected) {
       setSelected(initialSelected)
     }
-  }, [initialSelected]);
+  }, [initialSelected])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -38,45 +38,45 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
       ) {
-        setIsOpen(false);
+        setIsOpen(false)
       }
-    };
+    }
 
     const handleFocusIn = (event: FocusEvent) => {
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
       ) {
-        setIsOpen(false);
+        setIsOpen(false)
       }
-    };
+    }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('focusin', handleFocusIn)
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('focusin', handleFocusIn);
-    };
-  }, []);
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('focusin', handleFocusIn)
+    }
+  }, [])
 
   const toggleDropdown = () => {
-    setIsOpen(!isOpen);
+    setIsOpen(!isOpen)
     setSearchText('')
-  };
+  }
 
   const selectSingleItem = (item: string | AppVersion | OsVersion) => {
-    setSelected(item);
-    setIsOpen(false);
-  };
+    setSelected(item)
+    setIsOpen(false)
+  }
 
   const selectAll = () => {
     setSelected(items)
-  };
+  }
 
   const clearAll = () => {
     setSelected([])
-  };
+  }
 
   const selectLatestAppVersion = () => {
     // find version with highest build number
@@ -86,7 +86,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
     )
 
     setSelected([latestVersion])
-  };
+  }
 
   const toggleCheckboxStringItem = (item: string) => {
     let curSelected = selected as string[]
@@ -95,12 +95,12 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
     } else {
       setSelected([item, ...curSelected])
     }
-  };
+  }
 
   const isOsVersionSelected = (item: OsVersion) => {
     return (selected as OsVersion[]).some((i) => {
-      return item.displayName === i.displayName;
-    });
+      return item.displayName === i.displayName
+    })
   }
 
   const toggleCheckboxOsVersionItem = (item: OsVersion) => {
@@ -110,12 +110,12 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
     } else {
       setSelected([item, ...curSelected])
     }
-  };
+  }
 
   const isAppVersionSelected = (item: AppVersion) => {
     return (selected as AppVersion[]).some((i) => {
-      return item.displayName === i.displayName;
-    });
+      return item.displayName === i.displayName
+    })
   }
 
   const toggleCheckboxAppVersionItem = (item: AppVersion) => {
@@ -129,11 +129,11 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
     } else {
       setSelected([item, ...curSelected])
     }
-  };
+  }
 
   useEffect(() => {
-    onChangeSelected?.(selected);
-  }, [selected]);
+    onChangeSelected?.(selected)
+  }, [selected])
 
   const buttonStyle = "block px-2 py-2 w-full truncate text-white bg-neutral-950 hover:text-black font-display text-left hover:bg-yellow-200 active:bg-yellow-300 outline-hidden focus:bg-yellow-200"
   const groupSelectButtonStyle = "text-white text-xs font-display rounded-md border border-white p-1 bg-neutral-950 hover:text-black hover:bg-yellow-200 hover:border-black focus-visible:bg-yellow-200 focus-visible:text-black focus-visible:border-black active:bg-yellow-300 outline-hidden"
@@ -415,7 +415,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default DropdownSelect;
+export default DropdownSelect

@@ -1,60 +1,57 @@
 "use client"
 
-import { auth, getUserIdOrRedirectToAuth } from "@/app/utils/auth/auth";
-import { FormEventHandler, useEffect, useState } from "react";
-import { useRouter } from 'next/navigation';
-import DangerConfirmationModal from "@/app/components/danger_confirmation_modal";
-import { TeamsApiStatus, fetchTeamsFromServer, emptyTeam, AuthzAndMembersApiStatus, InviteMemberApiStatus, RemoveMemberApiStatus, RoleChangeApiStatus, TeamNameChangeApiStatus, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, changeTeamNameFromServer, changeRoleFromServer, inviteMemberFromServer, removeMemberFromServer, CreateTeamApiStatus, createTeamFromServer } from "@/app/api/api_calls";
-import AlertDialogModal from "@/app/components/alert_dialog_modal";
-import { formatToCamelCase } from "@/app/utils/string_utils";
-import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select";
+import { FormEventHandler, useEffect, useState } from "react"
+import DangerConfirmationModal from "@/app/components/danger_confirmation_modal"
+import { TeamsApiStatus, fetchTeamsFromServer, emptyTeam, AuthzAndMembersApiStatus, InviteMemberApiStatus, RemoveMemberApiStatus, RoleChangeApiStatus, TeamNameChangeApiStatus, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, changeTeamNameFromServer, changeRoleFromServer, inviteMemberFromServer, removeMemberFromServer, CreateTeamApiStatus, createTeamFromServer } from "@/app/api/api_calls"
+import AlertDialogModal from "@/app/components/alert_dialog_modal"
+import { formatToCamelCase } from "@/app/utils/string_utils"
+import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
+import { measureAuth } from "@/app/auth/measure_auth"
 
 export default function Team({ params }: { params: { teamId: string } }) {
-  const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
+  const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading)
   const [team, setTeam] = useState(emptyTeam)
 
   const [currentUserId, setCurrentUserId] = useState<String>()
 
-  const [saveTeamNameButtonDisabled, setSaveTeamNameButtonDisabled] = useState(true);
+  const [saveTeamNameButtonDisabled, setSaveTeamNameButtonDisabled] = useState(true)
 
   const [teamNameConfirmationModalOpen, setTeamNameConfirmationModalOpen] = useState(false)
-  const [teamNameChangeApiStatus, setTeamNameChangeApiStatus] = useState(TeamNameChangeApiStatus.Init);
+  const [teamNameChangeApiStatus, setTeamNameChangeApiStatus] = useState(TeamNameChangeApiStatus.Init)
   const [newTeamName, setNewTeamName] = useState('')
 
-  const [inviteMemberApiStatus, setInviteMemberApiStatus] = useState(InviteMemberApiStatus.Init);
+  const [inviteMemberApiStatus, setInviteMemberApiStatus] = useState(InviteMemberApiStatus.Init)
   const [inviteMemberRole, setInviteMemberRole] = useState("Owner")
   const [inviteMemberEmail, setInviteMemberEmail] = useState("")
   const [inviteMemberErrorMsg, setInviteMemberErrorMsg] = useState("")
 
-  const [removeMemberApiStatus, setRemoveMemberApiStatus] = useState(RemoveMemberApiStatus.Init);
+  const [removeMemberApiStatus, setRemoveMemberApiStatus] = useState(RemoveMemberApiStatus.Init)
   const [removeMemberConfirmationModalOpen, setRemoveMemberConfirmationModalOpen] = useState(false)
   const [removeMemberId, setRemoveMemberId] = useState("")
   const [removeMemberEmail, setRemoveMemberEmail] = useState("")
   const [removeMemberErrorMsg, setRemoveMemberErrorMsg] = useState("")
 
-  const [createTeamApiStatus, setCreateTeamApiStatus] = useState(CreateTeamApiStatus.Init);
-  const [createTeamName, setCreateTeamName] = useState("");
+  const [createTeamApiStatus, setCreateTeamApiStatus] = useState(CreateTeamApiStatus.Init)
+  const [createTeamName, setCreateTeamName] = useState("")
   const [createTeamErrorMsg, setCreateTeamErrorMsg] = useState("")
   const [createTeamAlertModalOpen, setCreateTeamAlertModalOpen] = useState(false)
 
-  const [getAuthzAndMembersApiStatus, setAuthzAndMembersApiStatus] = useState(AuthzAndMembersApiStatus.Loading);
+  const [getAuthzAndMembersApiStatus, setAuthzAndMembersApiStatus] = useState(AuthzAndMembersApiStatus.Loading)
   const [authzAndMembers, setAuthzAndMembers] = useState(defaultAuthzAndMembers)
 
   const [selectedDropdownRolesMap, setSelectedDropdownRolesMap] = useState<Map<String, String>>(new Map())
   const [changeRoleConfirmationModalOpen, setChangeRoleConfirmationModalOpen] = useState(false)
-  const [roleChangeApiStatus, setRoleChangeApiStatus] = useState(RoleChangeApiStatus.Init);
+  const [roleChangeApiStatus, setRoleChangeApiStatus] = useState(RoleChangeApiStatus.Init)
   const [roleChangeMemberId, setRoleChangeMemberId] = useState("")
   const [roleChangeMemberEmail, setRoleChangeMemberEmail] = useState("")
   const [roleChangeOldRole, setRoleChangeOldRole] = useState("")
   const [roleChangeNewRole, setRoleChangeNewRole] = useState("")
   const [changeRoleErrorMsg, setChangeRoleErrorMsg] = useState("")
 
-  const router = useRouter();
-
   const getTeams = async () => {
     setTeamsApiStatus(TeamsApiStatus.Loading)
 
-    const result = await fetchTeamsFromServer(router)
+    const result = await fetchTeamsFromServer()
 
     switch (result.status) {
       case TeamsApiStatus.Error:
@@ -69,10 +66,10 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
   useEffect(() => {
     getTeams()
-  }, []);
+  }, [])
 
   const getCurrentUserId = async () => {
-    const id = await getUserIdOrRedirectToAuth(auth, router)
+    const id = await measureAuth.getUserIdOrRedirectToAuth()
     if (id !== null) {
       setCurrentUserId(id)
     }
@@ -80,12 +77,12 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
   useEffect(() => {
     getCurrentUserId()
-  }, []);
+  }, [])
 
   const getAuthzAndMembers = async () => {
     setAuthzAndMembersApiStatus(AuthzAndMembersApiStatus.Loading)
 
-    const result = await fetchAuthzAndMembersFromServer(params.teamId, router)
+    const result = await fetchAuthzAndMembersFromServer(params.teamId)
 
     switch (result.status) {
       case AuthzAndMembersApiStatus.Error:
@@ -100,12 +97,12 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
   useEffect(() => {
     getAuthzAndMembers()
-  }, []);
+  }, [])
 
   const changeTeamName = async () => {
     setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Loading)
 
-    const result = await changeTeamNameFromServer(params.teamId, newTeamName, router)
+    const result = await changeTeamNameFromServer(params.teamId, newTeamName)
 
     switch (result.status) {
       case TeamNameChangeApiStatus.Error:
@@ -121,7 +118,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const changeRole = async () => {
     setRoleChangeApiStatus(RoleChangeApiStatus.Loading)
 
-    const result = await changeRoleFromServer(params.teamId, roleChangeNewRole, roleChangeMemberId, router)
+    const result = await changeRoleFromServer(params.teamId, roleChangeNewRole, roleChangeMemberId)
 
     switch (result.status) {
       case RoleChangeApiStatus.Error:
@@ -137,7 +134,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const inviteMember = async () => {
     setInviteMemberApiStatus(InviteMemberApiStatus.Loading)
 
-    const result = await inviteMemberFromServer(params.teamId, inviteMemberEmail, inviteMemberRole, router)
+    const result = await inviteMemberFromServer(params.teamId, inviteMemberEmail, inviteMemberRole)
 
     switch (result.status) {
       case InviteMemberApiStatus.Error:
@@ -154,7 +151,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
   const removeMember = async () => {
     setRemoveMemberApiStatus(RemoveMemberApiStatus.Loading)
 
-    const result = await removeMemberFromServer(params.teamId, removeMemberId, router)
+    const result = await removeMemberFromServer(params.teamId, removeMemberId)
 
     switch (result.status) {
       case RemoveMemberApiStatus.Error:
@@ -169,7 +166,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
   }
 
   const createTeam: FormEventHandler = async (event) => {
-    event.preventDefault();
+    event.preventDefault()
 
     if (createTeamName === "") {
       return
@@ -177,7 +174,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
     setCreateTeamApiStatus(CreateTeamApiStatus.Loading)
 
-    const result = await createTeamFromServer(createTeamName, router)
+    const result = await createTeamFromServer(createTeamName)
 
     switch (result.status) {
       case CreateTeamApiStatus.Error:

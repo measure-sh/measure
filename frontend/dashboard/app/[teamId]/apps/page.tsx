@@ -1,42 +1,39 @@
 "use client"
 
-import { AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppNameFromServer, emptyAppSettings, FetchAppSettingsApiStatus, fetchAppSettingsFromServer, fetchAuthzAndMembersFromServer, FilterSource, UpdateAppSettingsApiStatus, updateAppSettingsFromServer } from "@/app/api/api_calls";
-import CreateApp from "@/app/components/create_app";
-import DangerConfirmationModal from "@/app/components/danger_confirmation_modal";
-import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select";
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters";
-import { auth, getUserIdOrRedirectToAuth } from "@/app/utils/auth/auth";
-import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
-import { useRouter } from 'next/navigation';
-import React, { useState, useEffect } from 'react';
+import { AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppNameFromServer, emptyAppSettings, FetchAppSettingsApiStatus, fetchAppSettingsFromServer, fetchAuthzAndMembersFromServer, FilterSource, UpdateAppSettingsApiStatus, updateAppSettingsFromServer } from "@/app/api/api_calls"
+import CreateApp from "@/app/components/create_app"
+import DangerConfirmationModal from "@/app/components/danger_confirmation_modal"
+import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters"
+import { measureAuth } from "@/app/auth/measure_auth"
+import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
+import React, { useState, useEffect } from 'react'
 
 export default function Apps({ params }: { params: { teamId: string } }) {
-  const router = useRouter()
-
-  const [filters, setFilters] = useState(defaultFilters);
+  const [filters, setFilters] = useState(defaultFilters)
 
   const [currentUserCanChangeAppSettings, setCurrentUserCanChangeAppSettings] = useState(false)
 
-  const [fetchAppSettingsApiStatus, setFetchAppSettingsApiStatus] = useState(FetchAppSettingsApiStatus.Loading);
-  const [updateAppSettingsApiStatus, setUpdateAppSettingsApiStatus] = useState(UpdateAppSettingsApiStatus.Init);
-  const [appSettings, setAppSettings] = useState(emptyAppSettings);
-  const [updatedAppSettings, setUpdatedAppSettings] = useState(emptyAppSettings);
-  const [updateAppSettingsMsg, setUpdateAppSettingsMsg] = useState('');
+  const [fetchAppSettingsApiStatus, setFetchAppSettingsApiStatus] = useState(FetchAppSettingsApiStatus.Loading)
+  const [updateAppSettingsApiStatus, setUpdateAppSettingsApiStatus] = useState(UpdateAppSettingsApiStatus.Init)
+  const [appSettings, setAppSettings] = useState(emptyAppSettings)
+  const [updatedAppSettings, setUpdatedAppSettings] = useState(emptyAppSettings)
+  const [updateAppSettingsMsg, setUpdateAppSettingsMsg] = useState('')
 
-  const [saveAppNameButtonDisabled, setSaveAppNameButtonDisabled] = useState(true);
+  const [saveAppNameButtonDisabled, setSaveAppNameButtonDisabled] = useState(true)
 
   const [appNameConfirmationModalOpen, setAppNameConfirmationModalOpen] = useState(false)
-  const [appNameChangeApiStatus, setAppNameChangeApiStatus] = useState(AppNameChangeApiStatus.Init);
+  const [appNameChangeApiStatus, setAppNameChangeApiStatus] = useState(AppNameChangeApiStatus.Init)
   const [appName, setAppName] = useState('')
 
   const getCurrentUserCanChangeAppSettings = async () => {
-    const result = await fetchAuthzAndMembersFromServer(params.teamId, router)
+    const result = await fetchAuthzAndMembersFromServer(params.teamId)
 
     switch (result.status) {
       case AuthzAndMembersApiStatus.Error:
         break
       case AuthzAndMembersApiStatus.Success:
-        const currentUserId = await getUserIdOrRedirectToAuth(auth, router)!
+        const currentUserId = await measureAuth.getUserIdOrRedirectToAuth()!
         const currentUserRole = result.data.members.find((member: any) => member.id === currentUserId)!.role
         if (currentUserRole === 'owner' || currentUserRole === 'admin') {
           setCurrentUserCanChangeAppSettings(true)
@@ -49,21 +46,21 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
   useEffect(() => {
     getCurrentUserCanChangeAppSettings()
-  }, [params.teamId]);
+  }, [params.teamId])
 
   const getAppSettings = async () => {
     setFetchAppSettingsApiStatus(FetchAppSettingsApiStatus.Loading)
 
-    const result = await fetchAppSettingsFromServer(filters.app!.id, router);
+    const result = await fetchAppSettingsFromServer(filters.app!.id)
 
     switch (result.status) {
       case FetchAppSettingsApiStatus.Error:
         setFetchAppSettingsApiStatus(FetchAppSettingsApiStatus.Error)
-        break;
+        break
       case FetchAppSettingsApiStatus.Success:
         setFetchAppSettingsApiStatus(FetchAppSettingsApiStatus.Success)
         setAppSettings(result.data)
-        break;
+        break
     }
   }
 
@@ -75,13 +72,13 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
     setAppName(filters.app!.name)
     getAppSettings()
-  }, [filters]);
+  }, [filters])
 
   const saveAppSettings = async () => {
     setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Loading)
     setUpdateAppSettingsMsg("Saving...")
 
-    const result = await updateAppSettingsFromServer(filters.app!.id, updatedAppSettings, router)
+    const result = await updateAppSettingsFromServer(filters.app!.id, updatedAppSettings)
 
     switch (result.status) {
 
@@ -123,7 +120,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const changeAppName = async () => {
     setAppNameChangeApiStatus(AppNameChangeApiStatus.Loading)
 
-    const result = await changeAppNameFromServer(filters.app!.id, appName, router)
+    const result = await changeAppNameFromServer(filters.app!.id, appName)
 
     switch (result.status) {
       case AppNameChangeApiStatus.Error:

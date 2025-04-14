@@ -1,15 +1,15 @@
 "use client"
 
-import { emptyBugReportsOverviewResponse, BugReportsOverviewApiStatus, fetchBugReportsOverviewFromServer, FilterSource } from '@/app/api/api_calls';
-import BugReportsOverviewPlot from '@/app/components/bug_reports_overview_plot';
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
-import LoadingBar from '@/app/components/loading_bar';
-import Paginator from '@/app/components/paginator';
+import { emptyBugReportsOverviewResponse, BugReportsOverviewApiStatus, fetchBugReportsOverviewFromServer, FilterSource } from '@/app/api/api_calls'
+import BugReportsOverviewPlot from '@/app/components/bug_reports_overview_plot'
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
+import LoadingBar from '@/app/components/loading_bar'
+import Paginator from '@/app/components/paginator'
 
-import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import React, { useEffect, useState } from 'react'
 
 interface PageState {
     bugReportsOverviewApiStatus: BugReportsOverviewApiStatus
@@ -44,7 +44,7 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
     const getBugReportsOverview = async () => {
         updatePageState({ bugReportsOverviewApiStatus: BugReportsOverviewApiStatus.Loading })
 
-        const result = await fetchBugReportsOverviewFromServer(pageState.filters, paginationLimit, pageState.paginationOffset, router)
+        const result = await fetchBugReportsOverviewFromServer(pageState.filters, paginationLimit, pageState.paginationOffset)
 
         switch (result.status) {
             case BugReportsOverviewApiStatus.Error:

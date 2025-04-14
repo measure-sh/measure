@@ -1,14 +1,14 @@
 "use client"
 
-import { FilterSource, emptySpansResponse, SpansApiStatus, fetchSpansFromServer } from '@/app/api/api_calls';
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
-import LoadingBar from '@/app/components/loading_bar';
-import Paginator from '@/app/components/paginator';
-import SpanMetricsPlot from '@/app/components/span_metrics_plot';
-import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import { FilterSource, emptySpansResponse, SpansApiStatus, fetchSpansFromServer } from '@/app/api/api_calls'
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
+import LoadingBar from '@/app/components/loading_bar'
+import Paginator from '@/app/components/paginator'
+import SpanMetricsPlot from '@/app/components/span_metrics_plot'
+import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import React, { useEffect, useState } from 'react'
 
 interface PageState {
     spansApiStatus: SpansApiStatus
@@ -43,7 +43,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
     const getSpanInstances = async () => {
         updatePageState({ spansApiStatus: SpansApiStatus.Loading })
 
-        const result = await fetchSpansFromServer(pageState.filters, paginationLimit, pageState.paginationOffset, router)
+        const result = await fetchSpansFromServer(pageState.filters, paginationLimit, pageState.paginationOffset)
 
         switch (result.status) {
             case SpansApiStatus.Error:

@@ -1,12 +1,11 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react'
 import { ResponsiveLine } from '@nivo/line'
-import { BugReportsOverviewPlotApiStatus, fetchBugReportsOverviewPlotFromServer } from '../api/api_calls';
-import { useRouter } from 'next/navigation';
-import { formatDateToHumanReadableDate } from '../utils/time_utils';
-import { Filters } from './filters';
-import LoadingSpinner from './loading_spinner';
+import { BugReportsOverviewPlotApiStatus, fetchBugReportsOverviewPlotFromServer } from '../api/api_calls'
+import { formatDateToHumanReadableDate } from '../utils/time_utils'
+import { Filters } from './filters'
+import LoadingSpinner from './loading_spinner'
 
 interface BugReportsOverviewPlotProps {
   filters: Filters
@@ -22,10 +21,8 @@ type BugReportsOverviewPlot = {
 }[]
 
 const BugReportsOverviewPlot: React.FC<BugReportsOverviewPlotProps> = ({ filters }) => {
-  const router = useRouter()
-
-  const [bugReportsOverviewPlotApiStatus, setBugReportsOverviewPlotApiStatus] = useState(BugReportsOverviewPlotApiStatus.Loading);
-  const [plot, setPlot] = useState<BugReportsOverviewPlot>();
+  const [bugReportsOverviewPlotApiStatus, setBugReportsOverviewPlotApiStatus] = useState(BugReportsOverviewPlotApiStatus.Loading)
+  const [plot, setPlot] = useState<BugReportsOverviewPlot>()
 
   const getBugReportsOverviewPlot = async () => {
     // Don't try to fetch plot if filters aren't ready
@@ -35,7 +32,7 @@ const BugReportsOverviewPlot: React.FC<BugReportsOverviewPlotProps> = ({ filters
 
     setBugReportsOverviewPlotApiStatus(BugReportsOverviewPlotApiStatus.Loading)
 
-    const result = await fetchBugReportsOverviewPlotFromServer(filters, router)
+    const result = await fetchBugReportsOverviewPlotFromServer(filters)
 
     switch (result.status) {
       case BugReportsOverviewPlotApiStatus.Error:
@@ -64,7 +61,7 @@ const BugReportsOverviewPlot: React.FC<BugReportsOverviewPlotProps> = ({ filters
 
   useEffect(() => {
     getBugReportsOverviewPlot()
-  }, [filters]);
+  }, [filters])
 
   return (
     <div className="flex border border-black font-body items-center justify-center w-full h-[36rem]">
@@ -142,6 +139,6 @@ const BugReportsOverviewPlot: React.FC<BugReportsOverviewPlotProps> = ({ filters
     </div>
   )
 
-};
+}
 
-export default BugReportsOverviewPlot;
+export default BugReportsOverviewPlot

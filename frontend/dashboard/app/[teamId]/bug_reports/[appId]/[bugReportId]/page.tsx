@@ -1,23 +1,20 @@
 "use client"
 
-import { BugReportApiStatus, emptyBugReport, fetchBugReportFromServer, UpdateBugReportStatusApiStatus, updateBugReportStatusFromServer } from "@/app/api/api_calls";
-import Image from 'next/image';
-import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
-import Link from "next/link";
-import { useRouter } from 'next/navigation';
-import { FormEventHandler, useEffect, useState } from "react";
+import { BugReportApiStatus, emptyBugReport, fetchBugReportFromServer, UpdateBugReportStatusApiStatus, updateBugReportStatusFromServer } from "@/app/api/api_calls"
+import Image from 'next/image'
+import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
+import Link from "next/link"
+import { FormEventHandler, useEffect, useState } from "react"
 
 export default function BugReport({ params }: { params: { teamId: string, appId: string, bugReportId: string } }) {
-  const router = useRouter()
-
-  const [bugReport, setBugReport] = useState(emptyBugReport);
-  const [bugReportApiStatus, setBugReportApiStatus] = useState(BugReportApiStatus.Loading);
-  const [updateBugReportStatusApiStatus, setUpdateBugReportStatusApiStatus] = useState(UpdateBugReportStatusApiStatus.Init);
+  const [bugReport, setBugReport] = useState(emptyBugReport)
+  const [bugReportApiStatus, setBugReportApiStatus] = useState(BugReportApiStatus.Loading)
+  const [updateBugReportStatusApiStatus, setUpdateBugReportStatusApiStatus] = useState(UpdateBugReportStatusApiStatus.Init)
 
   const getBugReport = async () => {
     setBugReportApiStatus(BugReportApiStatus.Loading)
 
-    const result = await fetchBugReportFromServer(params.appId, params.bugReportId, router)
+    const result = await fetchBugReportFromServer(params.appId, params.bugReportId)
 
     switch (result.status) {
       case BugReportApiStatus.Error:
@@ -32,15 +29,15 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
 
   useEffect(() => {
     getBugReport()
-  }, []);
+  }, [])
 
 
   const updateBugReportStatus: FormEventHandler = async (event) => {
-    event.preventDefault();
+    event.preventDefault()
 
     setUpdateBugReportStatusApiStatus(UpdateBugReportStatusApiStatus.Loading)
 
-    const result = await updateBugReportStatusFromServer(params.appId, params.bugReportId, bugReport.status === 0 ? 1 : 0, router)
+    const result = await updateBugReportStatusFromServer(params.appId, params.bugReportId, bugReport.status === 0 ? 1 : 0)
 
     switch (result.status) {
       case UpdateBugReportStatusApiStatus.Error:

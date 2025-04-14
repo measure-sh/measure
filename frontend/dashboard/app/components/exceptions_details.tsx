@@ -1,26 +1,26 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
-import Accordion from "@/app/components/accordion";
-import Link from "next/link";
-import { ExceptionsDetailsApiStatus, ExceptionsType, emptyCrashExceptionsDetailsResponse, emptyAnrExceptionsDetailsResponse, fetchExceptionsDetailsFromServer, FilterSource } from '@/app/api/api_calls';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Paginator from '@/app/components/paginator';
-import { formatDateToHumanReadableDateTime } from '../utils/time_utils';
-import ExceptionspDetailsPlot from './exceptions_details_plot';
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters';
-import Image from 'next/image';
-import CopyAiContext from './copy_ai_context';
-import LoadingSpinner from './loading_spinner';
-import ExceptionsDistributionPlot from './exceptions_distribution_plot';
+import React, { useState, useEffect } from 'react'
+import Accordion from "@/app/components/accordion"
+import Link from "next/link"
+import { ExceptionsDetailsApiStatus, ExceptionsType, emptyCrashExceptionsDetailsResponse, emptyAnrExceptionsDetailsResponse, fetchExceptionsDetailsFromServer, FilterSource } from '@/app/api/api_calls'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Paginator from '@/app/components/paginator'
+import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
+import ExceptionspDetailsPlot from './exceptions_details_plot'
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters'
+import Image from 'next/image'
+import CopyAiContext from './copy_ai_context'
+import LoadingSpinner from './loading_spinner'
+import ExceptionsDistributionPlot from './exceptions_distribution_plot'
 
 interface PageState {
-  exceptionsDetailsApiStatus: ExceptionsDetailsApiStatus;
-  filters: typeof defaultFilters;
-  exceptionsDetails: typeof emptyCrashExceptionsDetailsResponse | typeof emptyAnrExceptionsDetailsResponse;
-  keyId: string | null;
-  keyTimestamp: string | null;
-  limit: number;
+  exceptionsDetailsApiStatus: ExceptionsDetailsApiStatus
+  filters: typeof defaultFilters
+  exceptionsDetails: typeof emptyCrashExceptionsDetailsResponse | typeof emptyAnrExceptionsDetailsResponse
+  keyId: string | null
+  keyTimestamp: string | null
+  limit: number
 }
 
 interface ExceptionsDetailsProps {
@@ -58,7 +58,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   const getExceptionsDetails = async () => {
     updatePageState({ exceptionsDetailsApiStatus: ExceptionsDetailsApiStatus.Loading })
 
-    const result = await fetchExceptionsDetailsFromServer(exceptionsType, exceptionsGroupId, pageState.filters, pageState.keyId, pageState.keyTimestamp, pageState.limit, router)
+    const result = await fetchExceptionsDetailsFromServer(exceptionsType, exceptionsGroupId, pageState.filters, pageState.keyId, pageState.keyTimestamp, pageState.limit)
 
     switch (result.status) {
       case ExceptionsDetailsApiStatus.Error:

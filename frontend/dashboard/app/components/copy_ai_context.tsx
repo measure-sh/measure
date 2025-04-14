@@ -1,6 +1,6 @@
-import React from 'react';
-import { emptyAnrExceptionsDetailsResponse, emptyCrashExceptionsDetailsResponse, ExceptionsType } from '../api/api_calls';
-import { formatDateToHumanReadableDateTime } from '../utils/time_utils';
+import React from 'react'
+import { emptyAnrExceptionsDetailsResponse, emptyCrashExceptionsDetailsResponse, ExceptionsType } from '../api/api_calls'
+import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
 
 interface CopyAiContextProps {
   appName: string,
@@ -46,7 +46,7 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({ appName, exceptionsType, 
         Copy full exception context for easy pasting in your favorite LLM
       </span>
     </button>
-  );
+  )
 }
 
-export default CopyAiContext;
+export default CopyAiContext

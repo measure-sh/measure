@@ -285,7 +285,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
 
   useScrollStop(eventListContainerRef, () => {
     setIsSeeking(false)
-  });
+  })
 
   return (
     <div className="flex flex-col w-[1100px] font-body text-black">

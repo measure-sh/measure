@@ -19,4 +19,4 @@ const FilterPill: React.FC<FilterPillProps> = ({ title }) => {
   );
 };
 
-export default FilterPill;
+export default FilterPill

@@ -5,8 +5,8 @@ import { useState, useEffect } from "react";
 import Messages from "./messages"
 import GoogleSignIn from "./google-sign-in"
 import GitHubSignIn from "./github-sign-in"
-import { getSession, decodeJWT } from "@/app/utils/auth/auth"
 import Script from "next/script"
+import { measureAuth } from "@/app/auth/measure_auth";
 
 export default function Login({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   const error = searchParams["error"]
@@ -19,12 +19,12 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
 
   useEffect(() => {
     setLoading(false)
-    const { session } = getSession()
+    const { session } = measureAuth.getSession()
     if (!session) {
       return
     }
 
-    const { payload } = decodeJWT(session.access_token)
+    const { payload } = measureAuth.decodeJWT(session.access_token)
     const url = `/${payload["team"]}/overview`
     setHome(url)
     router.replace(url)

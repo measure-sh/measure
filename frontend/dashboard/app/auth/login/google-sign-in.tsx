@@ -1,7 +1,7 @@
 "use client"
 
+import { measureAuth } from "@/app/auth/measure_auth"
 import { useEffect, useState } from "react"
-import { encodeOAuthState } from "@/app/utils/auth/auth"
 
 const origin = process?.env?.NEXT_PUBLIC_SITE_URL
 const googleClientID = process?.env?.NEXT_PUBLIC_OAUTH_GOOGLE_KEY
@@ -29,7 +29,7 @@ export default function GoogleSignIn() {
       setHashedNonce(hashedNonce)
     })
 
-    const state = encodeOAuthState("")
+    const state = measureAuth.encodeOAuthState("")
     setState(state)
   }, [])
 

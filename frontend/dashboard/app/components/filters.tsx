@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { formatDateToHumanReadableDateTime, formatIsoDateForDateTimeInputField, isValidTimestamp } from "../utils/time_utils"
 import { useEffect, useState } from "react"
 import { AppVersion, AppsApiStatus, FiltersApiStatus, FilterSource, OsVersion, SessionType, RootSpanNamesApiStatus, App, fetchAppsFromServer, fetchFiltersFromServer, fetchRootSpanNamesFromServer, SpanStatus, UserDefAttr, BugReportStatus } from "../api/api_calls"
@@ -11,7 +11,6 @@ import CreateApp from "./create_app"
 import DebounceTextInput from "./debounce_text_input"
 import LoadingSpinner from "./loading_spinner"
 import UserDefAttrSelector, { UdAttrMatcher } from "./user_def_attr_selector"
-import { parse } from "path"
 
 export enum AppVersionsInitialSelectionType {
   Latest,
@@ -475,7 +474,6 @@ const Filters: React.FC<FiltersProps> = ({
     }
   }
 
-  const router = useRouter()
   const searchParams = useSearchParams()
 
   const urlFilters = deserializeUrlFilters(searchParams.toString())
@@ -552,7 +550,7 @@ const Filters: React.FC<FiltersProps> = ({
 
     setAppsApiStatus(AppsApiStatus.Loading)
 
-    const result = await fetchAppsFromServer(teamId, router)
+    const result = await fetchAppsFromServer(teamId)
 
     switch (result.status) {
       case AppsApiStatus.NoApps:
@@ -596,7 +594,7 @@ const Filters: React.FC<FiltersProps> = ({
   const getRootSpanNames = async () => {
     setRootSpanNamesApiStatus(RootSpanNamesApiStatus.Loading)
 
-    const result = await fetchRootSpanNamesFromServer(selectedApp!, router)
+    const result = await fetchRootSpanNamesFromServer(selectedApp!)
 
     switch (result.status) {
       case RootSpanNamesApiStatus.NoData:
@@ -635,7 +633,7 @@ const Filters: React.FC<FiltersProps> = ({
   const getFilters = async () => {
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
-    const result = await fetchFiltersFromServer(selectedApp!, filterSource, router)
+    const result = await fetchFiltersFromServer(selectedApp!, filterSource)
 
     switch (result.status) {
       case FiltersApiStatus.NotOnboarded:

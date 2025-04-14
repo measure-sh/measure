@@ -1,4 +1,4 @@
-import { decodeJWT } from '@/app/utils/auth/auth'
+import { measureAuth } from '@/app/auth/measure_auth'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
   }
 
   const session = await res.json();
-  const { payload } = decodeJWT(session.access_token);
+  const { payload } = measureAuth.decodeJWT(session.access_token)
 
   const redirectURL = new URL(`${origin}/${payload["team"]}/overview`);
   redirectURL.hash = `access_token=${session.access_token}&refresh_token=${session.refresh_token}&state=${session.state}`;

@@ -1,15 +1,15 @@
-import React from 'react';
-import { MetricsApiStatus } from '../api/api_calls';
-import LoadingSpinner from './loading_spinner';
+import React from 'react'
+import { MetricsApiStatus } from '../api/api_calls'
+import LoadingSpinner from './loading_spinner'
 
 interface InfoCircleExceptionRateExceptionRateProps {
-  status: MetricsApiStatus,
-  noData: boolean,
-  value: number;
-  delta: number;
-  title: string;
-  tooltipMsgLine1: string;
-  tooltipMsgLine2: string;
+  status: MetricsApiStatus
+  noData: boolean
+  value: number
+  delta: number
+  title: string
+  tooltipMsgLine1: string
+  tooltipMsgLine2: string
 }
 
 const InfoCircleExceptionRate = ({ status, noData, value, delta, title, tooltipMsgLine1, tooltipMsgLine2 }: InfoCircleExceptionRateExceptionRateProps) => {
@@ -27,7 +27,7 @@ const InfoCircleExceptionRate = ({ status, noData, value, delta, title, tooltipM
       <div className="py-2" />
       <p className="font-display text-lg">{title}</p>
     </div>
-  );
-};
+  )
+}
 
-export default InfoCircleExceptionRate;
+export default InfoCircleExceptionRate

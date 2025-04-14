@@ -1,13 +1,12 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react'
 import { ResponsiveLine } from '@nivo/line'
-import { SpanMetricsPlotApiStatus, fetchSpanMetricsPlotFromServer } from '../api/api_calls';
-import { useRouter } from 'next/navigation';
-import { formatDateToHumanReadableDate, formatMillisToHumanReadable } from '../utils/time_utils';
-import { Filters } from './filters';
-import LoadingSpinner from './loading_spinner';
-import TabSelect from './tab_select';
+import { SpanMetricsPlotApiStatus, fetchSpanMetricsPlotFromServer } from '../api/api_calls'
+import { formatDateToHumanReadableDate, formatMillisToHumanReadable } from '../utils/time_utils'
+import { Filters } from './filters'
+import LoadingSpinner from './loading_spinner'
+import TabSelect from './tab_select'
 
 interface SpanMetricsPlotProps {
   filters: Filters
@@ -30,36 +29,34 @@ enum RootSpanMetricsQuantile {
 }
 
 const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
-  const router = useRouter()
-
-  const [spanMetricsPlotApiStatus, setSpanMetricsPlotApiStatus] = useState(SpanMetricsPlotApiStatus.Loading);
+  const [spanMetricsPlotApiStatus, setSpanMetricsPlotApiStatus] = useState(SpanMetricsPlotApiStatus.Loading)
   const [quantile, setQuantile] = useState(RootSpanMetricsQuantile.p95)
-  const [spanMetricsPlotApiData, setSpanMetricsPlotApiData] = useState<any>();
-  const [plot, setPlot] = useState<SpanMetricsPlot>();
+  const [spanMetricsPlotApiData, setSpanMetricsPlotApiData] = useState<any>()
+  const [plot, setPlot] = useState<SpanMetricsPlot>()
 
   function getYBasedOnQuantile(data: any) {
     switch (quantile) {
       case RootSpanMetricsQuantile.p50:
-        return data.p50;
+        return data.p50
       case RootSpanMetricsQuantile.p90:
-        return data.p90;
+        return data.p90
       case RootSpanMetricsQuantile.p95:
-        return data.p95;
+        return data.p95
       case RootSpanMetricsQuantile.p99:
-        return data.p99;
+        return data.p99
     }
   }
 
   function mapQuantileStringToQuantile(quantile: string) {
     switch (quantile) {
       case RootSpanMetricsQuantile.p50:
-        return RootSpanMetricsQuantile.p50;
+        return RootSpanMetricsQuantile.p50
       case RootSpanMetricsQuantile.p90:
-        return RootSpanMetricsQuantile.p90;
+        return RootSpanMetricsQuantile.p90
       case RootSpanMetricsQuantile.p95:
-        return RootSpanMetricsQuantile.p95;
+        return RootSpanMetricsQuantile.p95
       case RootSpanMetricsQuantile.p99:
-        return RootSpanMetricsQuantile.p99;
+        return RootSpanMetricsQuantile.p99
     }
 
     throw "Invalid quantile selected"
@@ -73,7 +70,7 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
 
     setSpanMetricsPlotApiStatus(SpanMetricsPlotApiStatus.Loading)
 
-    const result = await fetchSpanMetricsPlotFromServer(filters, router)
+    const result = await fetchSpanMetricsPlotFromServer(filters)
 
     switch (result.status) {
       case SpanMetricsPlotApiStatus.Error:
@@ -91,7 +88,7 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
 
   useEffect(() => {
     getSpanMetricsPlot()
-  }, [filters]);
+  }, [filters])
 
   useEffect(() => {
     if (spanMetricsPlotApiStatus !== SpanMetricsPlotApiStatus.Success) {
@@ -108,7 +105,7 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
     }))
 
     setPlot(newPlot)
-  }, [spanMetricsPlotApiData, quantile]);
+  }, [spanMetricsPlotApiData, quantile])
 
   return (
     <div className="flex border border-black font-body items-center justify-center w-full h-[36rem]">
@@ -190,6 +187,6 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
     </div>
   )
 
-};
+}
 
-export default SpanMetricsPlot;
+export default SpanMetricsPlot
