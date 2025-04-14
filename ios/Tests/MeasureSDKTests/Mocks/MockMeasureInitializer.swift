@@ -57,6 +57,7 @@ final class MockMeasureInitializer: MeasureInitializer {
     let svgGenerator: SvgGenerator
     let appVersionInfo: AppVersionInfo
     let httpEventValidator: HttpEventValidator
+    let internalEventCollector: InternalEventCollector
 
     init(client: Client? = nil, // swiftlint:disable:this function_body_length
          configProvider: ConfigProvider? = nil,
@@ -104,7 +105,8 @@ final class MockMeasureInitializer: MeasureInitializer {
          deviceAttributeProcessor: DeviceAttributeProcessor? = nil,
          installationIdAttributeProcessor: InstallationIdAttributeProcessor? = nil,
          networkStateAttributeProcessor: NetworkStateAttributeProcessor? = nil,
-         userAttributeProcessor: UserAttributeProcessor? = nil) {
+         userAttributeProcessor: UserAttributeProcessor? = nil,
+         internalEventCollector: InternalEventCollector? = nil) {
         self.client = client ?? ClientInfo(apiKey: "test", apiUrl: "https://test.com")
         self.configProvider = configProvider ?? BaseConfigProvider(defaultConfig: Config(),
                                                                    configLoader: BaseConfigLoader())
@@ -249,5 +251,7 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                client: self.client,
                                                                                configProvider: self.configProvider,
                                                                                httpEventValidator: self.httpEventValidator)
+        self.internalEventCollector = internalEventCollector ?? BaseInternalEventCollector(logger: self.logger,
+                                                                                           eventProcessor: self.eventProcessor)
     }
 }

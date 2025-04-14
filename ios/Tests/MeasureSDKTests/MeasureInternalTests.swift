@@ -69,6 +69,7 @@ final class MeasureInternalTests: XCTestCase {
         XCTAssertTrue(logger.logs.contains("NetworkChangeCollector enabled."))
         XCTAssertTrue(logger.logs.contains("AppLaunchCollector enabled."))
         XCTAssertTrue(logger.logs.contains("LifecycleCollector enabled."))
+        XCTAssertTrue(logger.logs.contains("InternalEventCollector enabled."))
         // PLCrashReportor fails to get initalized in testing environment and throws an error. Hence this condition.
         //
         XCTAssertTrue(logger.logs.contains("Failed to enable crash reporter."))
@@ -93,6 +94,7 @@ final class MeasureInternalTests: XCTestCase {
         XCTAssertTrue(logger.logs.contains("NetworkChangeCollector disabled."))
         XCTAssertTrue(logger.logs.contains("CustomEventCollector disabled."))
         XCTAssertTrue(logger.logs.contains("Crash reporter disabled."))
+        XCTAssertTrue(logger.logs.contains("InternalEventCollector disabled."))
     }
 
     func testStop_alwaysOnCollectors() {

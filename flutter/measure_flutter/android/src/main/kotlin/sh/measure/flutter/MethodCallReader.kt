@@ -6,7 +6,7 @@ class MethodCallReader(private val call: MethodCall) {
     fun <T> requireArg(name: String): T {
         return call.argument<T>(name) 
             ?: throw MethodArgumentException(
-                code = MethodConstants.ERROR_ARGUMENT_MISSING,
+                code = ErrorCode.ERROR_ARGUMENT_MISSING,
                 message = "Required argument '$name' was not provided",
                 details = "Method: ${call.method}"
             )

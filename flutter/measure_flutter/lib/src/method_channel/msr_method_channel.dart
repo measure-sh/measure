@@ -8,14 +8,21 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
   final _methodChannel = const MethodChannel('measure_flutter');
 
   @override
-  Future<void> trackCustomEvent(String name, int timestamp,
-      Map<String, AttributeValue> attributes) async {
-    final encodedAttributes = attributes.encode();
-    await _methodChannel
-        .invokeMethod(MethodConstants.functionTrackCustomEvent, {
-      MethodConstants.argName: name,
+  Future<void> trackEvent(
+      Map<String, dynamic> data,
+      String type,
+      int timestamp,
+      Map<String, AttributeValue> userDefinedAttrs,
+      bool userTriggered,
+      String? threadName) async {
+    final encodedAttributes = userDefinedAttrs.encode();
+    await _methodChannel.invokeMethod(MethodConstants.functionTrackEvent, {
+      MethodConstants.argEventData: data,
+      MethodConstants.argEventType: type,
       MethodConstants.argTimestamp: timestamp,
-      MethodConstants.argAttributes: encodedAttributes,
+      MethodConstants.argUserDefinedAttrs: encodedAttributes,
+      MethodConstants.argUserTriggered: userTriggered,
+      MethodConstants.argThreadName: threadName,
     });
   }
 }
