@@ -423,6 +423,17 @@ update_symbolicator_origin() {
 # stop_docker_compose stops services using docker compose.
 # ------------------------------------------------------------------------------
 stop_docker_compose() {
+  if is_debian && [[ "$USE_PODMAN" == "true" ]]; then
+    $DOCKER_COMPOSE_CMD \
+      --profile init \
+      --profile migrate \
+      --file compose.yml \
+      --file compose.prod.yml \
+      down
+
+    return 0
+  fi
+
   $DOCKER_COMPOSE_CMD \
     --progress plain \
     --profile init \
@@ -437,6 +448,22 @@ stop_docker_compose() {
 # ------------------------------------------------------------------------------
 start_docker_compose() {
   info "Starting measure.sh docker containers"
+
+  if is_debian && [[ "$USE_PODMAN" == "true" ]]; then
+    $DOCKER_COMPOSE_CMD \
+      --profile init \
+      --profile migrate \
+      --file compose.yml \
+      --file compose.prod.yml \
+      up \
+      --build \
+      --pull always \
+      --detach \
+      --remove-orphans \
+      --wait
+
+    return 0
+  fi
 
   $DOCKER_COMPOSE_CMD \
     --progress plain \
