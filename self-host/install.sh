@@ -292,7 +292,8 @@ Pin: release n=trixie
 Pin-Priority: 100
 EOF
     $PKGMAN update
-    $PKGMAN install -y trixie podman podman-docker jq git
+    $PKGMAN install -y -t trixie podman
+    $PKGMAN install -y podman-docker jq git
   else
     error "We don't support installing podman on non Debain based distributions."
   fi
