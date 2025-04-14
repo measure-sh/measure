@@ -64,6 +64,7 @@ protocol MeasureInitializer {
     var tracer: Tracer { get }
     var spanCollector: SpanCollector { get }
     var spanStore: SpanStore { get }
+    var internalEventCollector: InternalEventCollector { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -122,6 +123,7 @@ protocol MeasureInitializer {
 /// - `randomizer`: `Randomizer` object that generates random numbers.
 /// - `spanProcessor`: `SpanProcessor` object that processes spans at different stages of their lifecycle.
 /// - `tracer`: `Tracer` object to create and manage tracing spans.
+/// - `internalEventCollector`: `InternalEventCollector` object that collects events from cross plafrom frameworks.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -178,6 +180,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let spanCollector: SpanCollector
     let tracer: Tracer
     let spanStore: SpanStore
+    let internalEventCollector: InternalEventCollector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -354,5 +357,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                 sessionManager: sessionManager,
                                 traceSampler: traceSampler)
         self.spanCollector = BaseSpanCollector(tracer: tracer)
+        self.internalEventCollector = BaseInternalEventCollector(logger: logger, signalProcessor: signalProcessor)
     }
 }

@@ -1,10 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:measure_flutter/attribute_value.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
+import 'package:measure_flutter/src/events/custom_event_data.dart';
+import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:mocktail/mocktail.dart';
 
-import '../utils/noop_logger.dart';
 import '../utils/mock_signal_processor.dart';
+import '../utils/noop_logger.dart';
 
 void main() {
   group('CustomEventCollector', () {
@@ -50,49 +52,57 @@ void main() {
 
     test('should not track events when disabled', () {
       // Given
-      final event = 'test_event';
+      final name = 'test_event';
       final attributes = <String, AttributeValue>{};
       final timestamp = DateTime.now();
 
       // When
-      collector.trackCustomEvent(event, timestamp, attributes);
+      collector.trackCustomEvent(name, timestamp, attributes);
 
       // Then
-      verifyNever(() => signalProcessor.trackCustomEvent(any(), any(), any()));
+      verifyZeroInteractions(signalProcessor);
     });
 
     test('should track events when enabled', () {
       // Given
       collector.register();
-      final event = 'test_event';
+      final name = 'test_event';
       final attributes = <String, AttributeValue>{};
       final timestamp = DateTime.now();
 
       // When
-      collector.trackCustomEvent(event, timestamp, attributes);
+      collector.trackCustomEvent(name, timestamp, attributes);
 
       // Then
-      verify(() =>
-              signalProcessor.trackCustomEvent(event, timestamp, attributes))
-          .called(1);
+      verify(
+        () => signalProcessor.trackEvent(
+            data: CustomEventData(name: name),
+            type: EventType.custom,
+            timestamp: timestamp,
+            userDefinedAttrs: attributes,
+            userTriggered: true,
+            threadName: any(named: "threadName")),
+      ).called(1);
     });
 
     test('should use current time when timestamp is null', () {
       // Given
       collector.register();
-      final event = 'test_event';
+      final name = 'test_event';
       final attributes = <String, AttributeValue>{};
 
       // When
-      collector.trackCustomEvent(event, null, attributes);
+      collector.trackCustomEvent(name, null, attributes);
 
       // Then
       verify(
-        () => signalProcessor.trackCustomEvent(
-          event,
-          any(that: isNotNull),
-          attributes,
-        ),
+        () => signalProcessor.trackEvent(
+            data: CustomEventData(name: name),
+            type: EventType.custom,
+            timestamp: any(that: isNotNull, named: "timestamp"),
+            userDefinedAttrs: attributes,
+            userTriggered: true,
+            threadName: any(named: "threadName")),
       ).called(1);
     });
   });

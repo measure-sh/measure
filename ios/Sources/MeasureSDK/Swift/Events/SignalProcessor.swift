@@ -111,6 +111,24 @@ final class BaseSignalProcessor: SignalProcessor {
         }
     }
 
+    func trackSpan(_ spanData: SpanData) {
+        SignPost.trace(label: "track-span-triggered") {
+            trackSpanData(spanData)
+        }
+    }
+
+    private func trackSpanData(_ spanData: SpanData) {
+        if !spanData.isSampled {
+        // Do not store spans that are not sampled
+        return
+       }
+       let spanEntity = SpanEntity(spanData,
+        startTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.startTime),
+        endTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.endTime))
+        spanStore.insertSpan(span: spanEntity)
+        logger.log(level: .debug, message: "Span processed: \(spanData.name), spanId: \(spanData.spanId), duration: \(spanData.duration)", error: nil, data: nil)
+    }
+
     private func track<T: Codable>( // swiftlint:disable:this function_parameter_count
         data: T,
         timestamp: Number,

@@ -43,7 +43,7 @@ struct Attributes: Codable {
     var deviceLocale: String?
     var osName: String?
     var osVersion: String?
-    var platform: String = ""
+    var platform: String = AttributeConstants.platform
     var networkType: NetworkType?
     var networkGeneration: NetworkGeneration?
     var networkProvider: String?

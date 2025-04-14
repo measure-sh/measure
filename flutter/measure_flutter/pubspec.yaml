@@ -11,12 +11,15 @@ dependencies:
   flutter:
     sdk: flutter
   plugin_platform_interface: ^2.1.8
+  json_annotation: ^4.9.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
   mocktail: ^1.0.4
+  build_runner: ^2.4.15
+  json_serializable: ^6.9.4
 
 flutter:
   plugin:

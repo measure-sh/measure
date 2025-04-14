@@ -38,7 +38,7 @@ class _MyAppState extends State<MyApp> {
                 ..add("integer", 1)
                 ..add("string", "string");
               Measure.instance.trackEvent(
-                name: "event",
+                name: "custom-event",
                 attributes: attrs.build(),
               );
             },

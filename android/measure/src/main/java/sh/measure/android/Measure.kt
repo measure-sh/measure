@@ -21,6 +21,7 @@ import sh.measure.android.Measure.setUserId
 import sh.measure.android.Measure.start
 import sh.measure.android.Measure.stop
 import sh.measure.android.Measure.trackBugReport
+import sh.measure.android.Measure.trackEvent
 import sh.measure.android.applaunch.LaunchState
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.attributes.AttributesBuilder
@@ -517,6 +518,39 @@ object Measure {
     ) {
         if (isInitialized.get()) {
             return measure.imageUriToAttachment(context, uri, onComplete, onError)
+        }
+    }
+
+    /**
+     * An internal method to track events from cross-platform frameworks
+     * like Flutter and React Native.
+     *
+     * This method is not intended for public usage and can change in future versions. To
+     * track events use [trackEvent].
+     */
+    fun internalTrackEvent(
+        data: Map<String, Any?>,
+        type: String,
+        timestamp: Long,
+        attributes: MutableMap<String, Any?> = mutableMapOf<String, Any?>(),
+        userDefinedAttrs: MutableMap<String, AttributeValue> = mutableMapOf<String, AttributeValue>(),
+        attachments: MutableList<MsrAttachment> = mutableListOf<MsrAttachment>(),
+        userTriggered: Boolean,
+        sessionId: String?,
+        threadName: String?,
+    ) {
+        if (isInitialized.get()) {
+            measure.internalTrackEvent(
+                data = data,
+                type = type,
+                timestamp = timestamp,
+                attributes = attributes,
+                userDefinedAttrs = userDefinedAttrs,
+                attachments = attachments,
+                userTriggerEvent = userTriggered,
+                sessionId = sessionId,
+                threadName = threadName,
+            )
         }
     }
 

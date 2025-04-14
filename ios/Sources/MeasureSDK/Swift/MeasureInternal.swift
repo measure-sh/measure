@@ -130,6 +130,9 @@ final class MeasureInternal {
     var spanCollector: SpanCollector {
         return measureInitializer.spanCollector
     }
+    var internalEventCollector: InternalEventCollector {
+        return measureInitializer.internalEventCollector
+    }
     private let lifecycleObserver: LifecycleObserver
     private var isStarted: Bool = false
 
@@ -226,6 +229,7 @@ final class MeasureInternal {
         self.lifecycleCollector.enable()
         self.crashReportManager.enable()
         self.spanCollector.enable()
+        self.internalEventCollector.enable()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let window = UIApplication.shared.windows.first {
                 self.gestureCollector.enable(for: window)
@@ -245,6 +249,7 @@ final class MeasureInternal {
         self.lifecycleCollector.disable()
         self.crashReportManager.disable()
         self.spanCollector.disabled()
+        self.internalEventCollector.disable()
     }
 
     private func registerAlwaysOnCollectors() {
