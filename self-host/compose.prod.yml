@@ -20,6 +20,9 @@ services:
     develop: !reset null
     restart: unless-stopped
 
+  migrator:
+    develop: !reset null
+
   symbolicator:
     volumes:
       # no need to !reset or !override as compose merges entries
@@ -28,9 +31,6 @@ services:
       # see: https://docs.docker.com/reference/compose-file/merge/#unique-resources
       - ./symbolicator/config.prod.yml:/etc/symbolicator/config.yml:ro
     restart: unless-stopped
-
-  migrator:
-    develop: !reset null
 
   clickhouse:
     ports:
