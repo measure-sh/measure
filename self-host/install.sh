@@ -277,6 +277,14 @@ install_docker() {
 # considering the appropriate environment.
 # ------------------------------------------------------------------------------
 install_podman() {
+  if is_debian || is_ubuntu; then
+    debug "Installing podman for ubuntu"
+    $PKGMAN update
+    $PKGMAN -y install podman podman-docker jq git
+  else
+    error "We don't support installing podman on non Debain based distributions."
+  fi
+
   local arch_name=""
   arch_name=$(uname -m)
   local target_arch=""
@@ -329,14 +337,6 @@ install_podman() {
 
   local podman_compose_version="v1.3.0"
   local podman_compose_location="/usr/local/bin/podman-compose"
-
-  if is_debian || is_ubuntu; then
-    debug "Installing podman for ubuntu"
-    $PKGMAN update
-    $PKGMAN -y install podman podman-docker jq git
-  else
-    error "We don't support installing podman on non Debain based distributions."
-  fi
 
   info "Downloading latest release of docker compose from $compose_download_url"
   curl -sSL "$compose_download_url" -o "$compose_location"
