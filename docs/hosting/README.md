@@ -69,30 +69,26 @@ Let's start by moving to your home directory.
 cd ~
 ```
 
-Clone the repository with git and change to the `measure` directory.
-
-```sh
-git clone https://github.com/measure-sh/measure.git && cd measure
-```
-
-Checkout to git a tag. Replace `GIT-TAG` with an existing git tag. You can find out the latest stable release tag from the [releases](https://github.com/measure-sh/measure/releases) page.
+Choose a git tag. You can find out the latest stable release tag from the [releases](https://github.com/measure-sh/measure/releases) page.
 
 > [!IMPORTANT]
 >
 > Always choose a tag matching the format `v[MAJOR].[MINOR].[PATCH]`, for example: `v1.2.3`.
 > These tags are tailored for self host deployments.
 
+Clone the repository with git and change to the `measure` directory. Replace `GIT-TAG` with your chosen git tag.
+
 ```sh
-git checkout GIT-TAG
+git clone https://github.com/measure-sh/measure.git -b GIT-TAG && cd measure
 ```
 
-Next, change into the `self-host` directory. All commands will be run mostly from this directory.
+### 3. Run the `install.sh` script
+
+Next, change into the `self-host` directory. All successive commands will be run from this directory.
 
 ```sh
 cd self-host
 ```
-
-### 3. Run the `install.sh` script
 
 Run the install script with `sudo`.
 
