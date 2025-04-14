@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**frontend**): Refactor auth utils to MeasureAuth by @anupcowkur in #2054
 - (**frontend**): Save page state using urls by @anupcowkur in #2031
 
 ### :books: Documentation
