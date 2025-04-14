@@ -14,19 +14,19 @@ protocol AppLaunchCollector {
 final class BaseAppLaunchCollector: AppLaunchCollector {
     private let logger: Logger
     private let timeProvider: TimeProvider
-    private let eventProcessor: EventProcessor
+    private let signalProcessor: SignalProcessor
     private let launchTracker: LaunchTracker
     private let launchCallback: LaunchCallbacks
 
     init(logger: Logger,
          timeProvider: TimeProvider,
-         eventProcessor: EventProcessor,
+         signalProcessor: SignalProcessor,
          sysCtl: SysCtl,
          userDefaultStorage: UserDefaultStorage,
          currentAppVersion: String) {
         self.logger = logger
         self.timeProvider = timeProvider
-        self.eventProcessor = eventProcessor
+        self.signalProcessor = signalProcessor
         self.launchCallback = LaunchCallbacks()
         self.launchTracker = BaseLaunchTracker(launchCallbacks: launchCallback,
                                                timeProvider: timeProvider,
@@ -45,32 +45,32 @@ final class BaseAppLaunchCollector: AppLaunchCollector {
     }
 
     func onColdLaunchCallback(_ data: ColdLaunchData) {
-        eventProcessor.track(data: data,
-                             timestamp: timeProvider.now(),
-                             type: .coldLaunch,
-                             attributes: nil,
-                             sessionId: nil,
-                             attachments: nil,
-                             userDefinedAttributes: nil)
+        signalProcessor.track(data: data,
+                              timestamp: timeProvider.now(),
+                              type: .coldLaunch,
+                              attributes: nil,
+                              sessionId: nil,
+                              attachments: nil,
+                              userDefinedAttributes: nil)
     }
 
     func onWarmLaunchCallback(_ data: WarmLaunchData) {
-        eventProcessor.track(data: data,
-                             timestamp: timeProvider.now(),
-                             type: .warmLaunch,
-                             attributes: nil,
-                             sessionId: nil,
-                             attachments: nil,
-                             userDefinedAttributes: nil)
+        signalProcessor.track(data: data,
+                              timestamp: timeProvider.now(),
+                              type: .warmLaunch,
+                              attributes: nil,
+                              sessionId: nil,
+                              attachments: nil,
+                              userDefinedAttributes: nil)
     }
 
     func onHotLaunchCallback(_ data: HotLaunchData) {
-        eventProcessor.track(data: data,
-                             timestamp: timeProvider.now(),
-                             type: .hotLaunch,
-                             attributes: nil,
-                             sessionId: nil,
-                             attachments: nil,
-                             userDefinedAttributes: nil)
+        signalProcessor.track(data: data,
+                              timestamp: timeProvider.now(),
+                              type: .hotLaunch,
+                              attributes: nil,
+                              sessionId: nil,
+                              attachments: nil,
+                              userDefinedAttributes: nil)
     }
 }

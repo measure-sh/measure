@@ -72,4 +72,12 @@ protocol InternalConfig {
     /// The time interval (in milliseconds) that must pass before a new layout snapshot can be generated. Defaults to 750 ms.
     var layoutSnapshotDebounceInterval: Number { get }
 
+    /// Max length of a span name. Defaults to 64.
+    var maxSpanNameLength: Int { get }
+
+    /// Max length of a checkpoint name. Defaults to 64.
+    var maxCheckpointNameLength: Int { get }
+
+    /// Max checkpoints per span. Defaults to 100.
+    var maxCheckpointsPerSpan: Int { get }
 }

@@ -15,7 +15,7 @@ protocol CustomEventCollector {
 
 final class BaseCustomEventCollector: CustomEventCollector {
     private let logger: Logger
-    private let eventProcessor: EventProcessor
+    private let signalProcessor: SignalProcessor
     private let timeProvider: TimeProvider
     private let configProvider: ConfigProvider
     private var isEnabled = AtomicBool(false)
@@ -23,9 +23,9 @@ final class BaseCustomEventCollector: CustomEventCollector {
         try? NSRegularExpression(pattern: configProvider.customEventNameRegex)
     }()
 
-    init(logger: Logger, eventProcessor: EventProcessor, timeProvider: TimeProvider, configProvider: ConfigProvider) {
+    init(logger: Logger, signalProcessor: SignalProcessor, timeProvider: TimeProvider, configProvider: ConfigProvider) {
         self.logger = logger
-        self.eventProcessor = eventProcessor
+        self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.configProvider = configProvider
     }
@@ -50,13 +50,13 @@ final class BaseCustomEventCollector: CustomEventCollector {
         let data = CustomEventData(name: name)
         let userDefinedAttributes = EventSerializer.serializeUserDefinedAttribute(attributes)
 
-        eventProcessor.trackUserTriggered(data: data,
-                                          timestamp: timestamp ?? timeProvider.now(),
-                                          type: .custom,
-                                          attributes: nil,
-                                          sessionId: nil,
-                                          attachments: nil,
-                                          userDefinedAttributes: userDefinedAttributes)
+        signalProcessor.trackUserTriggered(data: data,
+                                           timestamp: timestamp ?? timeProvider.now(),
+                                           type: .custom,
+                                           attributes: nil,
+                                           sessionId: nil,
+                                           attachments: nil,
+                                           userDefinedAttributes: userDefinedAttributes)
     }
 
     private func validateName(_ name: String) -> Bool {

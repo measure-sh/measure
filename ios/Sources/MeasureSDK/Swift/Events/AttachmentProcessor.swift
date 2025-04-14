@@ -31,7 +31,7 @@ final class BaseAttachmentProcessor: AttachmentProcessor {
                              name: String,
                              storageType: AttachmentStorageType,
                              attachmentType: AttachmentType) -> Attachment? {
-        let uuid = idProvider.createId()
+        let uuid = idProvider.uuid()
         switch storageType {
         case .data:
             return Attachment(name: name, type: attachmentType, size: Int64(image.count), id: uuid, bytes: image, path: nil)

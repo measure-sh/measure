@@ -14,7 +14,7 @@ final class MeasureInternalTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        mockMeasureInitializer = MockMeasureInitializer()
+        mockMeasureInitializer = MockMeasureInitializer(configProvider: MockConfigProvider(autoStart: false))
         measureInternal = MeasureInternal(mockMeasureInitializer)
     }
 

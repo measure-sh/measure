@@ -21,7 +21,8 @@ final class SessionManagerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        idProvider = MockIdProvider("test-session-id-1")
+        idProvider = MockIdProvider()
+        idProvider.uuId = "test-session-id-1"
         logger = MockLogger()
         timeProvider = MockTimeProvider()
         userDefaultStorage = MockUserDefaultStorage()
@@ -33,7 +34,8 @@ final class SessionManagerTests: XCTestCase {
                                             scaledTouchSlop: 20,
                                             maxAttachmentSizeInEventsBatchInBytes: 30000,
                                             maxEventsInBatch: 500)
-        randomizer = MockRandomizer(0.5)
+        randomizer = MockRandomizer()
+        randomizer.randomFloat = 0.5
         sessionStore = BaseSessionStore(coreDataManager: MockCoreDataManager(),
                                         logger: logger)
         appVersionInfo = MockAppVersionInfo()
@@ -78,7 +80,7 @@ final class SessionManagerTests: XCTestCase {
 
     func testSessionContinues_WhenFrameworkVersionNotUpdated() {
         let expectedSessionId = "previous-session-id"
-        idProvider.idString = "new-session-id"
+        idProvider.uuId = "new-session-id"
         let lastEventTime: Int64 = 1000
         let recentSession = RecentSession(id: expectedSessionId, createdAt: 9876544331, lastEventTime: lastEventTime, versionCode: "1.0.0")
         userDefaultStorage.recentSession = recentSession
@@ -91,7 +93,7 @@ final class SessionManagerTests: XCTestCase {
 
     func testCreatesNewSession_WhenFrameworkVersionUpdated() {
         let expectedSessionId = "previous-session-id"
-        idProvider.idString = "new-session-id"
+        idProvider.uuId = "new-session-id"
         let lastEventTime: Int64 = 1000
         let recentSession = RecentSession(id: expectedSessionId, createdAt: 9876544331, lastEventTime: lastEventTime, versionCode: "2.0.0")
         userDefaultStorage.recentSession = recentSession
@@ -109,7 +111,7 @@ final class SessionManagerTests: XCTestCase {
 
         // simulate time passage
         timeProvider.millisTime += configProvider.sessionEndLastEventThresholdMs - 1
-        idProvider.idString = "test-session-id-2"
+        idProvider.uuId = "test-session-id-2"
 
         sessionManager.applicationWillEnterForeground()
 
@@ -123,7 +125,7 @@ final class SessionManagerTests: XCTestCase {
 
         // simulate time passage
         timeProvider.millisTime += configProvider.sessionEndLastEventThresholdMs + 1
-        idProvider.idString = "test-session-id-2"
+        idProvider.uuId = "test-session-id-2"
 
         sessionManager.applicationWillEnterForeground()
 
@@ -139,7 +141,7 @@ final class SessionManagerTests: XCTestCase {
 
     func testCreatesNewSession_WhenRecentSessionIsUnavailable() {
         let expectedSessionId = "new-session-id"
-        idProvider.idString = expectedSessionId
+        idProvider.uuId = expectedSessionId
         userDefaultStorage.recentSession = nil
 
         sessionManager.start()
@@ -150,7 +152,7 @@ final class SessionManagerTests: XCTestCase {
 
     func testCreatesNewSession_WhenLastEventHappenedAfterThresholdTime() {
         let expectedSessionId = "new-session-id"
-        idProvider.idString = expectedSessionId
+        idProvider.uuId = expectedSessionId
         let lastEventTime: Int64 = 1000
         let recentSession = RecentSession(id: "previous-session-id", createdAt: 9876544331, lastEventTime: lastEventTime, versionCode: "1.0.0")
         userDefaultStorage.recentSession = recentSession
@@ -165,7 +167,7 @@ final class SessionManagerTests: XCTestCase {
 
     func testContinuesRecentSession_WhenLastEventHappenedWithinThresholdTime() {
         let expectedSessionId = "previous-session-id"
-        idProvider.idString = "new-session-id"
+        idProvider.uuId = "new-session-id"
         let lastEventTime: Int64 = 1000
         let recentSession = RecentSession(id: expectedSessionId, createdAt: 9876544331, lastEventTime: lastEventTime, versionCode: "1.0.0")
         userDefaultStorage.recentSession = recentSession
@@ -180,7 +182,7 @@ final class SessionManagerTests: XCTestCase {
 
     func testStartsNewSession_IfMaxSessionDurationReached() {
         let expectedSessionId = "new-session-id"
-        idProvider.idString = expectedSessionId
+        idProvider.uuId = expectedSessionId
         configProvider.maxSessionDurationMs = 500
         let recentSessionCreatedAtTime: Int64 = 1000
         let recentSession = RecentSession(id: "previous-session-id", createdAt: recentSessionCreatedAtTime, versionCode: "1.0.0")
@@ -196,7 +198,7 @@ final class SessionManagerTests: XCTestCase {
     func testCreatesNewSession_WhenAppVersionIsUpdated() {
         userDefaultStorage.setRecentAppVersion("1.0.1")
         let newSessionId = "new-session-id"
-        idProvider.idString = newSessionId
+        idProvider.uuId = newSessionId
         sessionManager.start()
 
         XCTAssertEqual(sessionManager.sessionId, newSessionId, "Expected a new session to be created after the previous session crashed, even within the threshold time.")
@@ -205,7 +207,7 @@ final class SessionManagerTests: XCTestCase {
     func testCreatesNewSession_WhenAppBuildNumberIsUpdated() {
         userDefaultStorage.setRecentBuildNumber("2")
         let newSessionId = "new-session-id"
-        idProvider.idString = newSessionId
+        idProvider.uuId = newSessionId
         sessionManager.start()
 
         XCTAssertEqual(sessionManager.sessionId, newSessionId, "Expected a new session to be created after the previous session crashed, even within the threshold time.")
@@ -217,7 +219,7 @@ final class SessionManagerTests: XCTestCase {
         timeProvider.current = sessionCreatedAt
         sessionManager.start()
         let newSessionId = "new-session-id"
-        idProvider.idString = newSessionId
+        idProvider.uuId = newSessionId
         let lastEventTime: Int64 = sessionCreatedAt + 1000
         timeProvider.current = lastEventTime + 1000
 

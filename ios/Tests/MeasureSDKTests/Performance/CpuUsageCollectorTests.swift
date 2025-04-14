@@ -12,7 +12,7 @@ final class CpuUsageCollectorTests: XCTestCase {
     private var cpuUsageCollector: BaseCpuUsageCollector!
     private var mockLogger: MockLogger!
     private var mockConfigProvider: MockConfigProvider!
-    private var mockEventProcessor: MockEventProcessor!
+    private var mockSignalProcessor: MockSignalProcessor!
     private var mockTimeProvider: MockTimeProvider!
     private var mockCpuUsageCalculator: MockCpuUsageCalculator!
     private var mockSysCtl: MockSysCtl!
@@ -21,14 +21,14 @@ final class CpuUsageCollectorTests: XCTestCase {
         super.setUp()
         mockLogger = MockLogger()
         mockConfigProvider = MockConfigProvider()
-        mockEventProcessor = MockEventProcessor()
+        mockSignalProcessor = MockSignalProcessor()
         mockTimeProvider = MockTimeProvider()
         mockCpuUsageCalculator = MockCpuUsageCalculator()
         mockSysCtl = MockSysCtl()
         cpuUsageCollector = BaseCpuUsageCollector(
             logger: mockLogger,
             configProvider: mockConfigProvider,
-            eventProcessor: mockEventProcessor,
+            signalProcessor: mockSignalProcessor,
             timeProvider: mockTimeProvider,
             cpuUsageCalculator: mockCpuUsageCalculator,
             sysCtl: mockSysCtl
@@ -80,8 +80,8 @@ final class CpuUsageCollectorTests: XCTestCase {
 
         cpuUsageCollector.trackCpuUsage()
 
-        XCTAssertNotNil(mockEventProcessor.data)
-        if let cpuUsageData = mockEventProcessor.data as? CpuUsageData {
+        XCTAssertNotNil(mockSignalProcessor.data)
+        if let cpuUsageData = mockSignalProcessor.data as? CpuUsageData {
             XCTAssertEqual(cpuUsageData.numCores, 4)
             XCTAssertEqual(cpuUsageData.clockSpeed, 2500)
             XCTAssertEqual(cpuUsageData.percentageUsage, 25.5)
@@ -89,8 +89,8 @@ final class CpuUsageCollectorTests: XCTestCase {
         } else {
             XCTFail("Data should be of type CpuUsageData.")
         }
-        XCTAssertEqual(mockEventProcessor.timestamp, expectedTimestamp)
-        XCTAssertEqual(mockEventProcessor.type, .cpuUsage)
+        XCTAssertEqual(mockSignalProcessor.timestamp, expectedTimestamp)
+        XCTAssertEqual(mockSignalProcessor.type, .cpuUsage)
     }
 
     func testTrackCpuUsageErrorData() {
@@ -98,7 +98,7 @@ final class CpuUsageCollectorTests: XCTestCase {
 
         cpuUsageCollector.trackCpuUsage()
 
-        XCTAssertNil(mockEventProcessor.data, "No event should be tracked if CPU usage is -1.")
+        XCTAssertNil(mockSignalProcessor.data, "No event should be tracked if CPU usage is -1.")
         XCTAssertEqual(mockLogger.logs.last, "Could not get CPU usage data.")
     }
 }

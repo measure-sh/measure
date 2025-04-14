@@ -46,6 +46,15 @@ final class AtomicBool {
         }
     }
 
+    /// Atomically sets the internal value.
+    ///
+    /// - Parameter newValue: The new value to set.
+    func set(_ newValue: Bool) {
+        lock.lock()
+        defer { lock.unlock() }
+        value = newValue
+    }
+
     /// Returns the current value in a thread-safe manner.
     ///
     /// - Returns: The current value of the atomic boolean.
