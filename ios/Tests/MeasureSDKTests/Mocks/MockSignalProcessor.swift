@@ -1,5 +1,5 @@
 //
-//  MockEventProcessor.swift
+//  MockSignalProcessor.swift
 //  MeasureSDKTests
 //
 //  Created by Adwin Ross on 26/09/24.

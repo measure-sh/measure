@@ -57,7 +57,7 @@ struct Config: InternalConfig, MeasureConfig {
                   httpHeadersBlocklist: [String] = DefaultConfig.httpHeadersBlocklist,
                   httpUrlBlocklist: [String] = DefaultConfig.httpUrlBlocklist,
                   httpUrlAllowlist: [String] = DefaultConfig.httpUrlAllowlist,
-                  autoStart: Bool = DefaultConfig.enableLogging) {
+                  autoStart: Bool = DefaultConfig.autoStart) {
         self.enableLogging = enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
         self.traceSamplingRate = traceSamplingRate

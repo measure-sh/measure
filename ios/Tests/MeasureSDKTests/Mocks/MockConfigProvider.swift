@@ -40,6 +40,9 @@ final class MockConfigProvider: ConfigProvider {
     var httpUrlAllowlist: [String]
     var autoStart: Bool
     var traceSamplingRate: Float
+    var maxSpanNameLength: Int
+    var maxCheckpointNameLength: Int
+    var maxCheckpointsPerSpan: Int
 
     init(enableLogging: Bool = false,
          trackScreenshotOnCrash: Bool = true,
@@ -81,7 +84,10 @@ final class MockConfigProvider: ConfigProvider {
          httpUrlBlocklist: [String] = [],
          httpUrlAllowlist: [String] = [],
          autoStart: Bool = true,
-         traceSamplingRate: Float = 0.1) {
+         traceSamplingRate: Float = 0.1,
+         maxSpanNameLength: Int = 64,
+         maxCheckpointNameLength: Int = 64,
+         maxCheckpointsPerSpan: Int = 100) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
@@ -113,6 +119,9 @@ final class MockConfigProvider: ConfigProvider {
         self.httpUrlAllowlist = httpUrlAllowlist
         self.autoStart = autoStart
         self.traceSamplingRate = traceSamplingRate
+        self.maxSpanNameLength = maxSpanNameLength
+        self.maxCheckpointNameLength = maxCheckpointNameLength
+        self.maxCheckpointsPerSpan = maxCheckpointsPerSpan
     }
 
     func loadNetworkConfig() {}

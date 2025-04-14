@@ -59,6 +59,9 @@ final class MockMeasureInitializer: MeasureInitializer {
     let httpEventValidator: HttpEventValidator
     let traceSampler: TraceSampler
     let randomizer: Randomizer
+    let spanProcessor: SpanProcessor
+    let spanCollector: SpanCollector
+    let tracer: Tracer
 
     init(client: Client? = nil, // swiftlint:disable:this function_body_length
          configProvider: ConfigProvider? = nil,
@@ -108,7 +111,10 @@ final class MockMeasureInitializer: MeasureInitializer {
          networkStateAttributeProcessor: NetworkStateAttributeProcessor? = nil,
          userAttributeProcessor: UserAttributeProcessor? = nil,
          traceSampler: TraceSampler? = nil,
-         randomizer: Randomizer? = nil) {
+         randomizer: Randomizer? = nil,
+         spanProcessor: SpanProcessor? = nil,
+         spanCollector: SpanCollector? = nil,
+         tracer: Tracer? = nil) {
         self.client = client ?? ClientInfo(apiKey: "test", apiUrl: "https://test.com")
         self.configProvider = configProvider ?? BaseConfigProvider(defaultConfig: Config(),
                                                                    configLoader: BaseConfigLoader())
@@ -254,6 +260,18 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                configProvider: self.configProvider,
                                                                                httpEventValidator: self.httpEventValidator)
         self.randomizer = randomizer ?? BaseRandomizer()
-        self.traceSampler = traceSampler ?? BaseTraceSampler(configProvider: self.configProvider, randomizer: self.randomizer)
+        self.traceSampler = traceSampler ?? BaseTraceSampler(configProvider: self.configProvider,
+                                                             randomizer: self.randomizer)
+        self.spanProcessor = spanProcessor ?? BaseSpanProcessor(logger: self.logger,
+                                                                signalProcessor: self.signalProcessor,
+                                                                attributeProcessors: attributeProcessors,
+                                                                configProvider: self.configProvider)
+        self.tracer = tracer ?? MsrTracer(logger: self.logger,
+                                          idProvider: self.idProvider,
+                                          timeProvider: self.timeProvider,
+                                          spanProcessor: self.spanProcessor,
+                                          sessionManager: self.sessionManager,
+                                          traceSampler: self.traceSampler)
+        self.spanCollector = spanCollector ?? BaseSpanCollector(tracer: self.tracer)
     }
 }
