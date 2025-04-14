@@ -100,6 +100,21 @@ Run the install script with `sudo`.
 sudo ./install.sh
 ```
 
+> [!NOTE]
+>
+> To use **podman** instead of **docker**, use the *--podman* flag.
+>
+> ```sh
+> sudo ./install.sh --podman
+> ```
+>
+> This would install the following packages.
+> - [podman](https://podman.io/)
+> - [podman-docker](https://packages.debian.org/bookworm/podman-docker)
+> - [podman-compose](https://github.com/containers/podman-compose)
+>
+> You can continue to use regular docker commands like, `docker ps -a` or `docker compose ps -a`. It should work seamlessly.
+
 The measure.sh install script will check your system's requirements and start the installation. It can take a few minutes to complete.
 
 ### 4. Configure and start your self hosted measure instance
