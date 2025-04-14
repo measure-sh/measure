@@ -382,7 +382,7 @@ start_docker() {
     touch /etc/containers/nodocker
   fi
 
-  if is_ubuntu; then
+  if is_ubuntu || is_debian; then
     if [ -d /run/systemd/system ]; then
       systemctl start "$service"
     elif [ -f /etc/init.d/docker ]; then
