@@ -24,7 +24,8 @@ final class MockSignalProcessor: SignalProcessor {
                   attributes: Attributes?,
                   sessionId: String?,
                   attachments: [Attachment]?,
-                  userDefinedAttributes: String? = nil) where T: Codable {
+                  userDefinedAttributes: String? = nil,
+                  threadName: String? = nil) where T: Codable {
         self.data = data
         self.timestamp = timestamp
         self.type = type
@@ -40,7 +41,8 @@ final class MockSignalProcessor: SignalProcessor {
                                attributes: Attributes?,
                                sessionId: String?,
                                attachments: [Attachment]?,
-                               userDefinedAttributes: String? = nil) where T: Codable {
+                               userDefinedAttributes: String? = nil,
+                               threadName: String? = nil) where T: Codable {
         self.data = data
         self.timestamp = timestamp
         self.type = type

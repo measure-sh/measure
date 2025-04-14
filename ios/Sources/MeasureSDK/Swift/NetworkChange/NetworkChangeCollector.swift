@@ -50,6 +50,7 @@ final class BaseNetworkChangeCollector: NetworkChangeCollector {
                               attributes: nil,
                               sessionId: nil,
                               attachments: nil,
-                              userDefinedAttributes: nil)
+                              userDefinedAttributes: nil,
+                              threadName: nil)
     }
 }

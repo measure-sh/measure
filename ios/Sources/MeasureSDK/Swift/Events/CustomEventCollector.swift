@@ -56,7 +56,8 @@ final class BaseCustomEventCollector: CustomEventCollector {
                                            attributes: nil,
                                            sessionId: nil,
                                            attachments: nil,
-                                           userDefinedAttributes: userDefinedAttributes)
+                                           userDefinedAttributes: userDefinedAttributes,
+                                           threadName: nil)
     }
 
     private func validateName(_ name: String) -> Bool {
