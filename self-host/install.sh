@@ -278,7 +278,7 @@ install_docker() {
 # considering the appropriate environment.
 # ------------------------------------------------------------------------------
 install_podman() {
-  if ! is_debian || ! is_ubuntu; then
+  if ! is_debian && ! is_ubuntu; then
     error "We don't support installing podman on non Debian based distributions."
   fi
 
