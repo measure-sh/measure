@@ -292,10 +292,9 @@ Pin: release n=trixie
 Pin-Priority: 100
 EOF
     $PKGMAN update
-    $PKGMAN install -y -t trixie podman
-    $PKGMAN install -y podman-docker jq git
+    $PKGMAN install -y -t trixie podman podman-docker jq git
   else
-    error "We don't support installing podman on non Debain based distributions."
+    error "We don't support installing podman on non Debian based distributions."
   fi
 
   if is_ubuntu; then
@@ -303,7 +302,7 @@ EOF
     $PKGMAN update
     $PKGMAN -y install podman podman-docker jq git
   else
-    error "We don't support installing podman on non Debain based distributions."
+    error "We don't support installing podman on non Ubuntu based distributions."
   fi
 
   local arch_name=""
