@@ -35,10 +35,6 @@ MINIMUM_DOCKER_COMPOSE_VERSION="2.27.3"
 # ------------------------------------------------------------------------------
 DEBUG=${DEBUG:-0}
 UNINSTALL_DOCKER=${UNINSTALL_DOCKER:-0}
-
-# ------------------------------------------------------------------------------
-# Flags and variables.
-# ------------------------------------------------------------------------------
 USE_PODMAN=false
 CONTAINER_RUNTIME=docker
 DOCKER_COMPOSE_BIN=0
@@ -255,6 +251,11 @@ install_docker() {
   fi
 
   if is_debian; then
+    if [[ $USE_PODMAN == true ]]; then
+      install_podman
+      return 0
+    fi
+
     debug "Installing docker for debian"
     debug "$DISTRO_CODENAME"
 
