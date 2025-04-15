@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Update iOS availability on landing page by @anupcowkur in #2006
 - (**frontend**): Update landing page with bug reports feature by @anupcowkur in #2003
 
+### :bug: Bug fixes
+
+- (**backend**): Add podman support (#2055) by @detj in #2055
+
 ### :hammer: Misc
 
 - (**frontend**): Refactor auth utils to MeasureAuth by @anupcowkur in #2054
