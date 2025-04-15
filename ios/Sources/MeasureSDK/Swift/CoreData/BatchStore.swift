@@ -34,7 +34,8 @@ final class BaseBatchStore: BatchStore {
             let batchOb = BatchOb(context: context)
             batchOb.batchId = batch.batchId
             batchOb.createdAt = batch.createdAt
-            batchOb.eventId = batch.eventIds.joined(separator: ",") // Convert array to comma-separated string
+            batchOb.eventId = batch.eventIds.joined(separator: ",")
+            batchOb.spanIds = batch.spanIds.joined(separator: ",")
 
             do {
                 try context.saveIfNeeded()
@@ -61,10 +62,13 @@ final class BaseBatchStore: BatchStore {
             do {
                 let results = try context.fetch(fetchRequest)
                 for batchOb in results {
-                    if let batchId = batchOb.batchId, let eventIdsString = batchOb.eventId {
-                        let eventIds = eventIdsString.components(separatedBy: ",") // Convert back to array
+                    if let batchId = batchOb.batchId {
+                        let eventIds = batchOb.eventId?.components(separatedBy: ",") ?? []
+                        let spanIds = batchOb.spanIds?.components(separatedBy: ",") ?? []
+
                         let batch = BatchEntity(batchId: batchId,
                                                 eventIds: eventIds,
+                                                spanIds: spanIds,
                                                 createdAt: batchOb.createdAt)
                         batches.append(batch)
                     }
@@ -102,5 +106,4 @@ final class BaseBatchStore: BatchStore {
             }
         }
     }
-
 }

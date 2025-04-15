@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22757" systemVersion="23F79" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23605" systemVersion="24D81" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="BatchOb" representedClassName="BatchOb" syncable="YES">
         <attribute name="batchId" attributeType="String"/>
         <attribute name="createdAt" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="eventId" attributeType="String"/>
+        <attribute name="spanIds" optional="YES" attributeType="String"/>
     </entity>
     <entity name="EventOb" representedClassName="EventOb" syncable="YES">
         <attribute name="attachments" optional="YES" attributeType="Binary" valueTransformerName="NSSecureUnarchiveFromDataTransformerName"/>
@@ -41,5 +42,22 @@
         <attribute name="needsReporting" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="pid" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="sessionId" attributeType="String" defaultValueString=""/>
+    </entity>
+    <entity name="SpanOb" representedClassName="SpanOb" syncable="YES">
+        <attribute name="attributes" optional="YES" attributeType="Binary"/>
+        <attribute name="batchId" optional="YES" attributeType="String"/>
+        <attribute name="checkpoints" optional="YES" attributeType="Binary"/>
+        <attribute name="duration" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="endTime" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="hasEnded" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isSampled" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="parentId" optional="YES" attributeType="String"/>
+        <attribute name="sessionId" attributeType="String"/>
+        <attribute name="spanId" attributeType="String"/>
+        <attribute name="startTime" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="status" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="traceId" attributeType="String"/>
+        <attribute name="userDefinedAttrs" optional="YES" attributeType="String"/>
     </entity>
 </model>

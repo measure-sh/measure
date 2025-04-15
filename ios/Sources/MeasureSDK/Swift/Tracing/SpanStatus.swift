@@ -8,7 +8,7 @@
 import Foundation
 
 /// Specifies the status of the operation for which the span has been created.
-public enum SpanStatus: Int {
+public enum SpanStatus: Int64 {
     /// Default value for all spans.
     case unset = 0
 

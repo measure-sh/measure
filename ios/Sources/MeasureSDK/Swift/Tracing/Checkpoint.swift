@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents a checkpoint in a span's lifecycle.
-public struct Checkpoint {
+public struct Checkpoint: Codable {
     /// The name of the checkpoint.
     public let name: String
 

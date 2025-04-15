@@ -51,10 +51,6 @@ import Measure
         view.addSubview(tableView)
     }
 
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        span?.setCheckpoint("ViewController.viewWillDisappear")
-    }
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         let attributes: [String: AttributeValue] = ["user_name": .string("Alice"),
@@ -62,11 +58,10 @@ import Measure
                                                     "credit_balance": .int(1000),
                                                     "latitude": .double(30.2661403415387)]
         Measure.shared.trackEvent(name: "custom_event", attributes: attributes, timestamp: nil)
-        span?.end()
     }
 
     override func viewDidAppear(_ animated: Bool) {
-        span?.setCheckpoint("ViewController.viewDidAppear")
+        span?.end()
         super.viewDidAppear(animated)
         Measure.shared.trackScreenView("Home")
     }

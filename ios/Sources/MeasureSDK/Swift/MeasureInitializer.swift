@@ -63,6 +63,7 @@ protocol MeasureInitializer {
     var spanProcessor: SpanProcessor { get }
     var tracer: Tracer { get }
     var spanCollector: SpanCollector { get }
+    var spanStore: SpanStore { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -89,6 +90,7 @@ protocol MeasureInitializer {
 /// - `coreDataManager`: `CoreDataManager` object that generates and manages core data persistance and contexts
 /// - `sessionStore`: `SessionStore` object that manages `Session` related operations
 /// - `eventStore`: `EventStore` object that manages `Event` related operations
+/// - `spanStore`: `SpanStore` object that manages `Span` related operations
 /// - `gestureCollector`: `GestureCollector` object which is responsible for detecting and saving gesture related data.
 /// - `lifecycleCollector`: `LifecycleCollector` object which is responsible for detecting and saving ViewController lifecycle events.
 /// - `cpuUsageCollector`: `CpuUsageCollector` object which is responsible for detecting and saving CPU usage data.
@@ -175,6 +177,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let spanProcessor: SpanProcessor
     let spanCollector: SpanCollector
     let tracer: Tracer
+    let spanStore: SpanStore
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -234,14 +237,17 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                                    timeProvider: timeProvider,
                                                                    attachmentProcessor: attachmentProcessor,
                                                                    svgGenerator: svgGenerator)
+        self.spanStore = BaseSpanStore(coreDataManager: coreDataManager,
+                                       logger: logger)
         self.signalProcessor = BaseSignalProcessor(logger: logger,
-                                                  idProvider: idProvider,
-                                                  sessionManager: sessionManager,
-                                                  attributeProcessors: attributeProcessors,
-                                                  configProvider: configProvider,
-                                                  timeProvider: timeProvider,
-                                                  crashDataPersistence: crashDataPersistence,
-                                                  eventStore: eventStore)
+                                                   idProvider: idProvider,
+                                                   sessionManager: sessionManager,
+                                                   attributeProcessors: attributeProcessors,
+                                                   configProvider: configProvider,
+                                                   timeProvider: timeProvider,
+                                                   crashDataPersistence: crashDataPersistence,
+                                                   eventStore: eventStore,
+                                                   spanStore: spanStore)
         self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
         self.crashReportManager = CrashReportingManager(logger: logger,
                                                         signalProcessor: signalProcessor,
@@ -271,7 +277,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                              configProvider: configProvider,
                                              timeProvider: timeProvider,
                                              eventStore: eventStore,
-                                             batchStore: batchStore)
+                                             batchStore: batchStore,
+                                             spanStore: spanStore)
         self.eventExporter = BaseEventExporter(logger: logger,
                                                networkClient: networkClient,
                                                batchCreator: batchCreator,
