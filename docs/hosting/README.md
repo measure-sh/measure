@@ -23,6 +23,7 @@ measure.sh is designed from the ground up for easy self-hosting. Follow along to
   - [3. Start the containers](#3-start-the-containers)
   - [4. Access your Measure dashboard](#4-access-your-measure-dashboard)
 - [Frequently Asked Questions](#frequently-asked-questions)
+  - [Q. Can I use podman instead of docker?](#q-can-i-use-podman-instead-of-docker)
   - [Q. Why does ClickHouse consume high amount of CPU or memory?](#q-why-does-clickhouse-consume-high-amount-of-cpu-or-memory)
 
 ## Objectives
@@ -69,36 +70,48 @@ Let's start by moving to your home directory.
 cd ~
 ```
 
-Clone the repository with git and change to the `measure` directory.
-
-```sh
-git clone https://github.com/measure-sh/measure.git && cd measure
-```
-
-Checkout to git a tag. Replace `GIT-TAG` with an existing git tag. You can find out the latest stable release tag from the [releases](https://github.com/measure-sh/measure/releases) page.
+Choose a git tag. You can find out the latest stable release tag from the [releases](https://github.com/measure-sh/measure/releases) page.
 
 > [!IMPORTANT]
 >
 > Always choose a tag matching the format `v[MAJOR].[MINOR].[PATCH]`, for example: `v1.2.3`.
 > These tags are tailored for self host deployments.
 
+Clone the repository with git and change to the `measure` directory. Replace `GIT-TAG` with your chosen git tag.
+
 ```sh
-git checkout GIT-TAG
+git clone https://github.com/measure-sh/measure.git -b GIT-TAG && cd measure
 ```
 
-Next, change into the `self-host` directory. All commands will be run mostly from this directory.
+### 3. Run the `install.sh` script
+
+Next, change into the `self-host` directory. All successive commands will be run from this directory.
 
 ```sh
 cd self-host
 ```
-
-### 3. Run the `install.sh` script
 
 Run the install script with `sudo`.
 
 ```sh
 sudo ./install.sh
 ```
+
+> [!NOTE]
+>
+> To use **podman** instead of **docker**, use the *--podman* flag.
+>
+> ```sh
+> sudo ./install.sh --podman
+> ```
+>
+> This would install the following packages.
+> - [podman](https://podman.io/)
+> - [podman-docker](https://packages.debian.org/bookworm/podman-docker)
+> - [podman-compose](https://github.com/containers/podman-compose)
+> - [docker-compose](https://github.com/docker/compose)
+>
+> You can continue to use regular docker commands like, `docker ps -a` or `docker compose ps -a`. It should work seamlessly.
 
 The measure.sh install script will check your system's requirements and start the installation. It can take a few minutes to complete.
 
@@ -256,7 +269,7 @@ It'll take a few minutes for the upgrade to complete.
 
 ## Run on macOS locally
 
-You can run measure.sh locally on macOS for trying it out quickly, but keep in mind that not all features may not work as expected on macOS.
+You can run measure.sh locally on macOS for trying it out quickly, but keep in mind that not all features may work as expected on macOS.
 
 > [!WARNING]
 >
@@ -269,32 +282,23 @@ Make sure the following requirements are met before proceeding.
 | Name           | Version  |
 | -------------- | -------- |
 | Docker         | v26.1+   |
+| Podman         | v5.0.3+  |
 | Docker Compose | v2.27.3+ |
 | node           | v20+     |
 
 ### 1. Clone the measure repo
 
-Clone the repository with git and change to the `measure` directory.
-
-```sh
-git clone https://github.com/measure-sh/measure.git && cd measure
-```
-
-Checkout to git a tag. Replace `GIT-TAG` with an existing git tag. You can find out the latest stable release tag from the [releases](https://github.com/measure-sh/measure/releases) page.
+Choose a git a tag to use. You can find out the latest stable release tag from the [releases](https://github.com/measure-sh/measure/releases) page.
 
 > [!IMPORTANT]
 >
 > Always choose a tag matching the format `v[MAJOR].[MINOR].[PATCH]`, for example: `v1.2.3`.
 > These tags are tailored for self host deployments.
 
-```sh
-git checkout GIT-TAG
-```
-
-Next, change to the `self-host` directory. All commands will be run from the `self-host` directory after this point.
+Clone the repository with git and change to the `measure` directory. Replace `GIT-TAG` with your chosen git tag.
 
 ```sh
-cd self-host
+git clone https://github.com/measure-sh/measure.git -b GIT-TAG && cd measure/self-host
 ```
 
 ### 2. Run `config.sh` script to configure
@@ -304,6 +308,14 @@ Run the `config.sh` script to auto configure most settings.
 ```sh
 ./config.sh
 ```
+
+> [!NOTE]
+>
+> For production usage, use the *--production* flag.
+>
+> ```sh
+> ./config.sh --production
+> ```
 
 To continue, you'll need to obtain a Google & GitHub OAuth Application's credentials. This is required to setup authentication in Measure dashboard. Follow the below links to obtain Google & GitHub OAuth credentials.
 
@@ -332,6 +344,16 @@ Visit [Dashboard](http://localhost:3000/auth/login) to access your dashboard and
 ## Frequently Asked Questions
 
 Typical questions asked by other self host-ers.
+
+### Q. Can I use podman instead of docker?
+
+Yes, you can. Use the `--podman` flag when running the installation script.
+
+```sh
+sudo ./install.sh --podman
+```
+
+You can administer the instance using docker and docker compose commands as if you were using docker.
 
 ### Q. Why does ClickHouse consume high amount of CPU or memory?
 

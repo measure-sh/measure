@@ -35,6 +35,9 @@ MINIMUM_DOCKER_COMPOSE_VERSION="2.27.3"
 # ------------------------------------------------------------------------------
 DEBUG=${DEBUG:-0}
 UNINSTALL_DOCKER=${UNINSTALL_DOCKER:-0}
+USE_PODMAN=false
+CONTAINER_RUNTIME=docker
+DOCKER_COMPOSE_BIN=0
 
 # ------------------------------------------------------------------------------
 # Sister file paths.
@@ -50,6 +53,16 @@ isTTY() {
   fi
 
   return 0
+}
+
+# parse command line flags
+parse_args() {
+  for arg in "$@"; do
+    if [[ "$arg" == "--podman" ]]; then
+      USE_PODMAN=true
+      CONTAINER_RUNTIME=podman
+    fi
+  done
 }
 
 debug() {
@@ -176,8 +189,6 @@ detect_docker() {
 
   # if `docker-compose` works, then use that for
   # successive invocation
-  # if 'docker compose` works, then use that for
-  # successive invocation
   if has_command docker-compose; then
     DOCKER_COMPOSE="docker-compose"
     DOCKER_COMPOSE_BIN=1
@@ -215,14 +226,19 @@ detect_docker() {
 # ------------------------------------------------------------------------------
 install_docker() {
   if is_macOS; then
-    error "We don't support installing Docker on macOS. Install \"Docker Desktop for mac\" and run ./install.sh again."
+    error "We don't support installing Docker on macOS. Install \"Docker Desktop for mac\" or \"podman\" and run ./install.sh again. \nhttps://docs.docker.com/desktop/setup/install/mac-install/\nhttps://podman.io/docs/installation"
   fi
 
   if is_ubuntu; then
+    if [[ $USE_PODMAN == true ]]; then
+      install_podman
+      return 0
+    fi
+
     debug "Installing docker for ubuntu"
     # Add Docker's official GPG key
     $PKGMAN update
-    $PKGMAN -y install ca-certificates curl
+    $PKGMAN -y install ca-certificates curl git
     install -m 0755 -d /etc/apt/keyrings
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
     chmod a+r /etc/apt/keyrings/docker.asc
@@ -235,6 +251,11 @@ install_docker() {
   fi
 
   if is_debian; then
+    if [[ $USE_PODMAN == true ]]; then
+      install_podman
+      return 0
+    fi
+
     debug "Installing docker for debian"
     debug "$DISTRO_CODENAME"
 
@@ -253,14 +274,119 @@ install_docker() {
 }
 
 # ------------------------------------------------------------------------------
+# install_podman attempts to install podman and compose
+# considering the appropriate environment.
+# ------------------------------------------------------------------------------
+install_podman() {
+  if ! is_debian && ! is_ubuntu; then
+    error "We don't support installing podman on non Debian based distributions."
+  fi
+
+  if is_debian; then
+    echo "deb http://deb.debian.org/debian/ trixie main" | tee /etc/apt/sources.list.d/trixie.list >/dev/null
+    tee /etc/apt/preferences.d/99pinning >/dev/null <<EOF
+# Prefer packages from the stable release (Bookworm)
+Package: *
+Pin: release n=bookworm
+Pin-Priority: 990
+
+# Allow packages from the testing release (Trixie), but give them lower priority
+Package: *
+Pin: release n=trixie
+Pin-Priority: 100
+EOF
+    $PKGMAN update
+    $PKGMAN install -y -t trixie podman podman-docker jq git
+  fi
+
+  if is_ubuntu; then
+    debug "Installing podman for ubuntu"
+    $PKGMAN update
+    $PKGMAN -y install podman podman-docker jq git
+  fi
+
+  local arch_name=""
+  arch_name=$(uname -m)
+  local target_arch=""
+  local os_name=""
+  os_name=$(uname -s | tr '[:upper:]' '[:lower:]')
+  local target_os=""
+
+  # validate architecture
+  case "$arch_name" in
+  x86_64 | amd64)
+    target_arch="x86_64"
+    ;;
+  aarch64 | arm64)
+    target_arch="aarch64"
+    ;;
+  *)
+    error "Unsupported architecture: $arch_name"
+    ;;
+  esac
+
+  # validate operating system
+  case "$os_name" in
+  linux)
+    target_os="linux"
+    ;;
+  darwin)
+    target_os="darwin"
+    ;;
+  *)
+    error "Unsupported operating system: $os_name"
+    ;;
+  esac
+
+  local asset_name="docker-compose-${target_os}-${target_arch}"
+  local compose_release_json=""
+  local compose_download_url=""
+  local compose_location="/usr/local/bin/docker-compose"
+  compose_release_json=$(curl -sL https://api.github.com/repos/docker/compose/releases/latest)
+
+  if [ -z "$compose_release_json" ]; then
+    error "Failed to fetch latest release of docker compose. Check network connectivity."
+  fi
+
+  # parse json with jq
+  compose_download_url=$(echo "$compose_release_json" | jq -r --arg asset_name "$asset_name" '.assets[] | select(.name == $asset_name) | .browser_download_url')
+
+  if [ -z "$compose_download_url" ] || [ "$compose_download_url" == "null" ]; then
+    error "Failed to download latest release of docker compose. Check network connectivity."
+  fi
+
+  local podman_compose_version="v1.3.0"
+  local podman_compose_location="/usr/local/bin/podman-compose"
+
+  info "Downloading latest release of docker compose from $compose_download_url"
+  curl -sSL "$compose_download_url" -o "$compose_location"
+  chmod +x "$compose_location"
+
+  info "Downloading podman-compose@$podman_compose_version"
+  curl -sSLo "$podman_compose_location" https://raw.githubusercontent.com/containers/podman-compose/refs/tags/"$podman_compose_version"/podman_compose.py
+  chmod +x "$podman_compose_location"
+}
+
+# ------------------------------------------------------------------------------
 # start_docker starts docker engine.
 # ------------------------------------------------------------------------------
 start_docker() {
-  if is_ubuntu; then
+  local service="docker"
+
+  if [[ $USE_PODMAN == true ]]; then
+    service="podman.socket"
+    # suppress podman message
+    if [[ ! -d /etc/containers ]]; then
+      mkdir -p /etc/containers
+    fi
+    touch /etc/containers/nodocker
+  fi
+
+  if is_ubuntu || is_debian; then
     if [ -d /run/systemd/system ]; then
-      systemctl start docker
+      systemctl start "$service"
     elif [ -f /etc/init.d/docker ]; then
-      service docker start
+      service "$service" start
     fi
   fi
 }
@@ -436,6 +562,10 @@ ensure_docker() {
 # ------------------------------------------------------------------------------
 init() {
   isTTY
+  parse_args "$@"
+
+  info "Container Runtime: $CONTAINER_RUNTIME"
+
   detect_os
   info "OS: $DETECTED_OS"
   detect_arch
@@ -475,7 +605,7 @@ init() {
 }
 
 # kickstart
-init
+init "$@"
 ensure_docker
 start_docker
 ensure_config

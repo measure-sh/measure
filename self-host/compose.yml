@@ -29,6 +29,7 @@ name: measure
 services:
   dashboard:
     build:
+      dockerfile: dockerfile
       context: ../frontend/dashboard
     ports:
       - "3000:3000"
@@ -49,6 +50,7 @@ services:
 
   api:
     build:
+      dockerfile: dockerfile
       context: ../backend/api
     ports:
       - "8080:8080"
@@ -110,6 +112,7 @@ services:
 
   cleanup:
     build:
+      dockerfile: dockerfile
       context: ../backend/cleanup
     ports:
       - "8081:8081"
@@ -153,6 +156,38 @@ services:
       mc:
         condition: service_completed_successfully
         required: false
+
+  migrator:
+    profiles:
+      - migrate
+    build:
+      dockerfile: dockerfile
+      context: ../backend/migrator
+    environment:
+      - POSTGRES_DSN=${POSTGRES_DSN}
+      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
+      - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
+      - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
+      - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
+      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
+    develop:
+      watch:
+        - path: ../backend/migrator
+          action: rebuild
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      mc:
+        condition: service_completed_successfully
+        required: false
+    volumes:
+      - migrator-volume:/data
+    command: ["migrate"]
 
   symbolicator:
     image: ghcr.io/measure-sh/symbolicator
@@ -234,37 +269,6 @@ services:
         restart: true
     volumes:
       - ./clickhouse:/opt/clickhouse
-    command: ["migrate"]
-
-  migrator:
-    profiles:
-      - migrate
-    build:
-      context: ../backend/migrator
-    environment:
-      - POSTGRES_DSN=${POSTGRES_DSN}
-      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
-      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
-      - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
-      - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
-      - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
-      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
-    develop:
-      watch:
-        - path: ../backend/migrator
-          action: rebuild
-    depends_on:
-      postgres:
-        condition: service_healthy
-      clickhouse:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      mc:
-        condition: service_completed_successfully
-        required: false
-    volumes:
-      - migrator-volume:/data
     command: ["migrate"]
 
   postgres:
