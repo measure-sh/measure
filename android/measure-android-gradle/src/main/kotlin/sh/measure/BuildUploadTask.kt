@@ -10,6 +10,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Optional
@@ -28,6 +29,7 @@ private const val MAPPING_TYPE = "mapping_type"
 private const val PLATFORM = "platform"
 private const val PLATFORM_ANDROID = "android"
 private const val TYPE_PROGUARD = "proguard"
+private const val TYPE_FLUTTER_SYMBOLS = "elf_debug_info"
 private const val MAPPING_FILE = "mapping_file"
 private const val BUILDS_PATH = "builds"
 
@@ -51,6 +53,10 @@ abstract class BuildUploadTask : DefaultTask() {
     @get:InputFile
     abstract val mappingFileProperty: RegularFileProperty
 
+    @get:Optional
+    @get:InputDirectory
+    abstract val flutterSymbolsDirProperty: RegularFileProperty
+
     @get:InputFile
     abstract val manifestDataProperty: RegularFileProperty
 
@@ -65,6 +71,7 @@ abstract class BuildUploadTask : DefaultTask() {
         val manifestDataFile = manifestDataProperty.get().asFile
         val mappingFile = mappingFileProperty.getOrNull()?.asFile
         val appSizeFile = appSizeFileProperty.get().asFile
+        val flutterSymbolsDir = flutterSymbolsDirProperty.getOrNull()?.asFile
 
         val manifestData = readManifestData(manifestDataFile)
         val appSize = readAppSize(appSizeFile)
@@ -77,10 +84,25 @@ abstract class BuildUploadTask : DefaultTask() {
             addFormDataPart(VERSION_CODE, manifestData.versionCode)
             addFormDataPart(VERSION_NAME, manifestData.versionName)
             addFormDataPart(PLATFORM, PLATFORM_ANDROID)
-            mappingFile?.let {
-                addFormDataPart(MAPPING_FILE, it.name, it.asRequestBody())
-                addFormDataPart(MAPPING_TYPE, TYPE_PROGUARD)
-            } ?: logger.warn("[WARNING]: mapping file not found, symbolication will not work")
+
+            if (mappingFile != null) {
+                logger.info("[INFO]: proguard mapping file found at ${mappingFile.absolutePath}")
+                mappingFile.let {
+                    addFormDataPart(MAPPING_FILE, it.name, it.asRequestBody())
+                    addFormDataPart(MAPPING_TYPE, TYPE_PROGUARD)
+                }
+            } else {
+                logger.warn("[WARNING]: mapping file not found, symbolication will not work")
+            }
+
+            flutterSymbolsDir?.let { symbolsDir ->
+                val symbolsFiles = symbolsDir.listFiles { file -> file.extension == "symbols" }
+                logger.info("[INFO]: ${symbolsFiles.size} flutter symbol files found at ${symbolsDir.absolutePath}")
+                symbolsFiles?.forEach { symbolsFile ->
+                    addFormDataPart(MAPPING_FILE, symbolsFile.name, symbolsFile.asRequestBody())
+                    addFormDataPart(MAPPING_TYPE, TYPE_FLUTTER_SYMBOLS)
+                }
+            }
             addFormDataPart(BUILD_SIZE, appSize)
             addFormDataPart(BUILD_TYPE, buildType)
         }.build()
