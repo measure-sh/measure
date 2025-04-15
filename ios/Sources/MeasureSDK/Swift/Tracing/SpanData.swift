@@ -19,7 +19,7 @@ struct SpanData {
     let duration: Number
     let status: SpanStatus
     let attributes: Attributes?
-    let userDefinedAttrs: [String: Any]
+    let userDefinedAttrs: String?
     let checkpoints: [Checkpoint]
     let hasEnded: Bool
     let isSampled: Bool

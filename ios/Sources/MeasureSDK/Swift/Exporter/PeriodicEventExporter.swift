@@ -119,6 +119,7 @@ final class BasePeriodicEventExporter: PeriodicEventExporter, HeartbeatListener 
                 lastBatchCreationUptimeMs = timeProvider.millisTime
                 processExistingBatches([BatchEntity(batchId: result.batchId,
                                                     eventIds: result.eventIds,
+                                                    spanIds: result.spanIds,
                                                     createdAt: lastBatchCreationUptimeMs)])
             }
         } else {

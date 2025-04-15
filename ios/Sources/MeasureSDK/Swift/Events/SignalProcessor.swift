@@ -43,6 +43,7 @@ final class BaseSignalProcessor: SignalProcessor {
     private let timeProvider: TimeProvider
     private var crashDataPersistence: CrashDataPersistence
     private let eventStore: EventStore
+    private let spanStore: SpanStore
 
     init(logger: Logger,
          idProvider: IdProvider,
@@ -51,7 +52,8 @@ final class BaseSignalProcessor: SignalProcessor {
          configProvider: ConfigProvider,
          timeProvider: TimeProvider,
          crashDataPersistence: CrashDataPersistence,
-         eventStore: EventStore) {
+         eventStore: EventStore,
+         spanStore: SpanStore) {
         self.logger = logger
         self.idProvider = idProvider
         self.sessionManager = sessionManager
@@ -60,6 +62,7 @@ final class BaseSignalProcessor: SignalProcessor {
         self.timeProvider = timeProvider
         self.crashDataPersistence = crashDataPersistence
         self.eventStore = eventStore
+        self.spanStore = spanStore
     }
 
     func track<T: Codable>( // swiftlint:disable:this function_parameter_count
@@ -109,7 +112,11 @@ final class BaseSignalProcessor: SignalProcessor {
     }
 
     private func trackSpanData(_ spanData: SpanData) {
-        dump(spanData)
+        spanStore.insertSpan(span: SpanEntity(spanData))
+        if let spans = spanStore.getAllSpans() {
+            print("span: \(spans)")
+            print("span.count: \(spans.count)")
+        }
     }
 
     private func track<T: Codable>( // swiftlint:disable:this function_parameter_count

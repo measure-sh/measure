@@ -20,7 +20,7 @@ class MsrSpan: InternalSpan {
     private var hasEndedState: EndState = .notEnded
     private(set) var checkpoints: [Checkpoint] = []
     private(set) var attributes: Attributes?
-    private var userDefinedAttrs: [String: Any] = [:]
+    private var userDefinedAttrs: [String: AttributeValue] = [:]
 
     private enum EndState {
         case notEnded
@@ -145,7 +145,7 @@ class MsrSpan: InternalSpan {
         lock.lock()
         defer { lock.unlock() }
         if hasEndedState == .notEnded {
-            userDefinedAttrs[key] = value
+            userDefinedAttrs[key] = .string(value)
         }
         return self
     }
@@ -155,7 +155,7 @@ class MsrSpan: InternalSpan {
         lock.lock()
         defer { lock.unlock() }
         if hasEndedState == .notEnded {
-            userDefinedAttrs[key] = value
+            userDefinedAttrs[key] = .int(value)
         }
         return self
     }
@@ -165,7 +165,7 @@ class MsrSpan: InternalSpan {
         lock.lock()
         defer { lock.unlock() }
         if hasEndedState == .notEnded {
-            userDefinedAttrs[key] = value
+            userDefinedAttrs[key] = .double(value)
         }
         return self
     }
@@ -175,7 +175,7 @@ class MsrSpan: InternalSpan {
         lock.lock()
         defer { lock.unlock() }
         if hasEndedState == .notEnded {
-            userDefinedAttrs[key] = value
+            userDefinedAttrs[key] = .boolean(value)
         }
         return self
     }
@@ -239,19 +239,19 @@ class MsrSpan: InternalSpan {
 
     func toSpanData() -> SpanData {
         return SpanData(name: name,
-                       traceId: traceId,
-                       spanId: spanId,
-                       parentId: parentId,
-                       sessionId: sessionId,
-                       startTime: startTime,
-                       endTime: endTime,
-                       duration: calculateDuration(),
-                       status: status,
-                       attributes: attributes,
-                       userDefinedAttrs: userDefinedAttrs,
-                       checkpoints: checkpoints,
-                       hasEnded: hasEndedState == .ended,
-                       isSampled: isSampled)
+                        traceId: traceId,
+                        spanId: spanId,
+                        parentId: parentId,
+                        sessionId: sessionId,
+                        startTime: startTime,
+                        endTime: endTime,
+                        duration: calculateDuration(),
+                        status: status,
+                        attributes: attributes,
+                        userDefinedAttrs: EventSerializer.serializeUserDefinedAttribute(userDefinedAttrs),
+                        checkpoints: checkpoints,
+                        hasEnded: hasEndedState == .ended,
+                        isSampled: isSampled)
     }
 
     private func calculateDuration() -> Number {
