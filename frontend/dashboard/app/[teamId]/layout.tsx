@@ -1,13 +1,13 @@
 "use client"
 
-import Link from "next/link";
+import Link from "next/link"
 import Image from 'next/image'
-import React, { useState, useEffect } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
-import { useRouter } from 'next/navigation';
-import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher";
-import { TeamsApiStatus, emptyTeam, fetchTeamsFromServer } from "../api/api_calls";
-import { measureAuth } from "../auth/measure_auth";
+import React, { useState, useEffect } from 'react'
+import { usePathname, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher"
+import { TeamsApiStatus, emptyTeam, fetchTeamsFromServer } from "../api/api_calls"
+import { measureAuth } from "../auth/measure_auth"
 
 export default function DashboardLayout({
   children,
@@ -55,20 +55,20 @@ export default function DashboardLayout({
     //   hrefSuffix: 'alerts',
     //   title: 'Alerts',
     // },
-  ];
+  ]
 
   useEffect(() => {
     measureAuth.init(router)
-  }, []);
+  }, [])
 
-  const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading);
-  const [teams, setTeams] = useState([emptyTeam]);
+  const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading)
+  const [teams, setTeams] = useState([emptyTeam])
   const [selectedTeam, setSelectedTeam] = useState(teams[0].id)
 
-  const pathName = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const currentQuery = searchParams.toString();
+  const pathName = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const currentQuery = searchParams.toString()
 
   const getTeams = async () => {
     setTeamsApiStatus(TeamsApiStatus.Loading)
@@ -90,15 +90,15 @@ export default function DashboardLayout({
 
   useEffect(() => {
     getTeams()
-  }, []);
+  }, [])
 
   const logoutUser = async () => {
-    await measureAuth.logout()
+    await measureAuth.signout()
   }
 
   const onTeamChanged = (item: string) => {
     const selectedTeamId = teams.find((e) => e.name === item)!.id
-    const newPath = pathName.replace(/^\/[^\/]*/, '/' + selectedTeamId);
+    const newPath = pathName.replace(/^\/[^\/]*/, '/' + selectedTeamId)
     router.push(newPath)
   }
 
@@ -107,7 +107,7 @@ export default function DashboardLayout({
     [TeamsApiStatus.Success]: TeamsSwitcherStatus.Success,
     [TeamsApiStatus.Error]: TeamsSwitcherStatus.Error,
     [TeamsApiStatus.Cancelled]: TeamsSwitcherStatus.Loading
-  };
+  }
 
   return (
     <div>
@@ -143,5 +143,5 @@ export default function DashboardLayout({
         {teamsApiStatus === TeamsApiStatus.Success && <main className="md:overflow-auto">{children}</main>}
       </div>
     </div>
-  );
+  )
 }

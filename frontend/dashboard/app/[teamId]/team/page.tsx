@@ -69,10 +69,13 @@ export default function Team({ params }: { params: { teamId: string } }) {
   }, [])
 
   const getCurrentUserId = async () => {
-    const id = await measureAuth.getUserIdOrRedirectToAuth()
-    if (id !== null) {
-      setCurrentUserId(id)
+    const { session, error } = await measureAuth.getSession()
+    if (error) {
+      console.error("Error getting session: ", error)
+      return
     }
+
+    setCurrentUserId(session.user.id)
   }
 
   useEffect(() => {

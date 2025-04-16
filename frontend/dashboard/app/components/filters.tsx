@@ -910,7 +910,7 @@ const Filters: React.FC<FiltersProps> = ({
       {appsApiStatus === AppsApiStatus.Error && <p className="text-lg font-display">Error fetching apps, please check if Team ID is valid or refresh page to try again</p>}
       {appsApiStatus === AppsApiStatus.NoApps &&
         <div>
-          <p className="text-lg font-display">Looks like you don&apost have any apps yet. Get started by creating your first app!</p>
+          <p className="text-lg font-display">Looks like you don&apos;t have any apps yet. Get started by creating your first app!</p>
           {showCreateApp && <div className="py-4" />}
           {showCreateApp && <CreateApp teamId={teamId} />}
         </div>}
