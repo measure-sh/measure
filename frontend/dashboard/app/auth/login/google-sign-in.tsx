@@ -19,9 +19,9 @@ async function genNonce() {
 }
 
 export default function GoogleSignIn() {
-  const [nonce, setNonce] = useState("");
-  const [hashedNonce, setHashedNonce] = useState("");
-  const [state, setState] = useState("");
+  const [nonce, setNonce] = useState("")
+  const [hashedNonce, setHashedNonce] = useState("")
+  const [state, setState] = useState("")
 
   useEffect(() => {
     genNonce().then(({ nonce, hashedNonce }) => {

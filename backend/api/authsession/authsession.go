@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,6 +22,7 @@ const refreshTokenExpiryDuration = 7 * 24 * time.Hour
 type AuthSession struct {
 	ID                   uuid.UUID
 	UserID               uuid.UUID
+	OwnTeamId            uuid.UUID
 	OAuthProvider        string
 	UserMeta             json.RawMessage
 	AccessToken          string
@@ -31,13 +33,13 @@ type AuthSession struct {
 }
 
 // createAccessToken creates a new access token.
-func createAccessToken(userId, teamId uuid.UUID, secret []byte, expiry time.Time) (token string, err error) {
+func createAccessToken(userId, ownTeamId uuid.UUID, secret []byte, expiry time.Time) (token string, err error) {
 	claims := jwt.MapClaims{
-		"iat":  time.Now().Unix(),
-		"sub":  userId.String(),
-		"exp":  expiry.Unix(),
-		"iss":  "measure",
-		"team": teamId.String(),
+		"iat": time.Now().Unix(),
+		"sub": userId.String(),
+		"exp": expiry.Unix(),
+		"iss": "measure",
+		"oti": ownTeamId.String(),
 	}
 
 	tokenCursor := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -66,7 +68,7 @@ func createRefreshToken(secret []byte, jti uuid.UUID, expiry time.Time) (token s
 }
 
 // NewAuthSession creates a new authentication session object.
-func NewAuthSession(userId, teamId uuid.UUID, provider string, meta json.RawMessage) (authSession AuthSession, err error) {
+func NewAuthSession(userId, ownTeamId uuid.UUID, provider string, meta json.RawMessage) (authSession AuthSession, err error) {
 	authSession.ID = uuid.New()
 	authSession.UserID = userId
 	authSession.OAuthProvider = provider
@@ -82,12 +84,7 @@ func NewAuthSession(userId, teamId uuid.UUID, provider string, meta json.RawMess
 	atSecret := server.Server.Config.AccessTokenSecret
 	atExpiryAt := now.Add(accessTokenExpiryDuration)
 
-	// use extended expiry when in debug mode
-	if gin.IsDebugging() {
-		atExpiryAt = now.Add(24 * time.Hour)
-	}
-
-	accessToken, err := createAccessToken(userId, teamId, atSecret, atExpiryAt)
+	accessToken, err := createAccessToken(userId, ownTeamId, atSecret, atExpiryAt)
 	if err != nil {
 		return
 	}
@@ -107,7 +104,63 @@ func NewAuthSession(userId, teamId uuid.UUID, provider string, meta json.RawMess
 	return
 }
 
-// RemoveSession removes outdated sessions from database.
+// SetCookies sets the authentication cookies
+func SetCookies(c *gin.Context, accessToken, refreshToken string, accessExp, refreshExp time.Time) {
+	accessCookie := &http.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Path:     "/",
+		Domain:   "",
+		MaxAge:   int(time.Until(accessExp).Seconds()),
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+	}
+	http.SetCookie(c.Writer, accessCookie)
+
+	refreshCookie := &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Path:     "/",
+		Domain:   "",
+		MaxAge:   int(time.Until(refreshExp).Seconds()),
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+	}
+	http.SetCookie(c.Writer, refreshCookie)
+}
+
+// ClearCookies removes authentication cookies
+func ClearCookies(c *gin.Context) {
+	accessCookie := &http.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		Path:     "/",
+		Domain:   "",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+	}
+	http.SetCookie(c.Writer, accessCookie)
+
+	refreshCookie := &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		Domain:   "",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(c.Writer, refreshCookie)
+}
+
+// RemoveSession removes session from database.
 func RemoveSession(ctx context.Context, jti uuid.UUID, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.
 		DeleteFrom("public.auth_sessions").
@@ -131,6 +184,7 @@ func GetAuthSession(ctx context.Context, id uuid.UUID) (authSession AuthSession,
 		From("public.auth_sessions").
 		Select("id").
 		Select("user_id").
+		Select("own_team_id").
 		Select("oauth_provider").
 		Select("user_metadata").
 		Select("at_expiry_at").
@@ -139,13 +193,13 @@ func GetAuthSession(ctx context.Context, id uuid.UUID) (authSession AuthSession,
 
 	defer stmt.Close()
 
-	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&authSession.ID, &authSession.UserID, &authSession.OAuthProvider, &authSession.UserMeta, &authSession.AccessTokenExpiryAt, &authSession.RefreshTokenExpiryAt)
+	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&authSession.ID, &authSession.UserID, &authSession.OwnTeamId, &authSession.OAuthProvider, &authSession.UserMeta, &authSession.AccessTokenExpiryAt, &authSession.RefreshTokenExpiryAt)
 
 	return
 }
 
-// Cleanup removes expired auth sessions.
-func Cleanup(ctx context.Context) (err error) {
+// RemoveExpiredSessions removes expired auth sessions.
+func RemoveExpiredSessions(ctx context.Context) (err error) {
 	stmt := sqlf.PostgreSQL.
 		DeleteFrom("public.auth_sessions").
 		Where("rt_expiry_at < ?", time.Now())
@@ -166,6 +220,7 @@ func (au *AuthSession) Save(ctx context.Context, tx *pgx.Tx) (err error) {
 		InsertInto("public.auth_sessions").
 		Set("id", au.ID).
 		Set("user_id", au.UserID).
+		Set("own_team_id", au.OwnTeamId).
 		Set("oauth_provider", au.OAuthProvider).
 		Set("user_metadata", au.UserMeta).
 		Set("at_expiry_at", au.AccessTokenExpiryAt).

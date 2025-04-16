@@ -1,8 +1,7 @@
-import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
-import { Filters } from "../components/filters";
-import { JourneyType } from "../components/journey";
-import { formatUserInputDateToServerFormat, getTimeZoneForServer } from "../utils/time_utils";
-import { measureAuth } from "../auth/measure_auth";
+import { Filters } from "../components/filters"
+import { JourneyType } from "../components/journey"
+import { formatUserInputDateToServerFormat, getTimeZoneForServer } from "../utils/time_utils"
+import { measureAuth } from "../auth/measure_auth"
 
 export enum TeamsApiStatus {
   Loading,
@@ -302,22 +301,22 @@ export enum BugReportStatus {
 export const emptyTeam = { 'id': '', 'name': '' }
 
 export type App = {
-  id: string;
-  team_id: string;
-  name: string;
+  id: string
+  team_id: string
+  name: string
   api_key: {
-    created_at: string;
-    key: string;
-    last_seen: string | null;
-    revoked: boolean;
-  };
-  onboarded: boolean;
-  created_at: string;
-  updated_at: string;
-  platform: string | null;
-  onboarded_at: string | null;
-  unique_identifier: string | null;
-};
+    created_at: string
+    key: string
+    last_seen: string | null
+    revoked: boolean
+  }
+  onboarded: boolean
+  created_at: string
+  updated_at: string
+  platform: string | null
+  onboarded_at: string | null
+  unique_identifier: string | null
+}
 
 export const emptyJourney = {
   "links": [
@@ -929,25 +928,25 @@ export const emptyBugReport = {
 }
 
 export class AppVersion {
-  name: string;
-  code: string;
-  displayName: string;
+  name: string
+  code: string
+  displayName: string
 
   constructor(name: string, code: string) {
-    this.name = name;
-    this.code = code;
+    this.name = name
+    this.code = code
     this.displayName = this.name + ' (' + this.code + ')'
   }
 }
 
 export class OsVersion {
-  name: string;
-  version: string;
-  displayName: string;
+  name: string
+  version: string
+  displayName: string
 
   constructor(name: string, version: string) {
-    this.name = name;
-    this.version = version;
+    this.name = name
+    this.version = version
     this.displayName = this.name + ' ' + this.version
   }
 }
@@ -984,7 +983,7 @@ export const saveListFiltersToServer = async (filters: Filters) => {
         value: String(matcher.value)
       }
     }))
-  };
+  }
 
   const bodyFilters: any = {
     versions: filters.versions.map((v) => v.name),
@@ -998,10 +997,10 @@ export const saveListFiltersToServer = async (filters: Filters) => {
     locales: filters.locales,
     device_manufacturers: filters.deviceManufacturers,
     device_names: filters.deviceNames,
-  };
+  }
 
   if (filters.udAttrMatchers.length > 0) {
-    bodyFilters.ud_expression = JSON.stringify(udExpression);
+    bodyFilters.ud_expression = JSON.stringify(udExpression)
   }
 
   const opts = {
@@ -1012,7 +1011,7 @@ export const saveListFiltersToServer = async (filters: Filters) => {
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(url, opts);
+    const res = await measureAuth.fetchMeasure(url, opts)
 
     if (!res.ok) {
       return null
@@ -1116,10 +1115,9 @@ export const fetchTeamsFromServer = async () => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/teams`);
+    const res = await measureAuth.fetchMeasure(`${origin}/teams`)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: TeamsApiStatus.Error, data: null }
     }
 
@@ -1135,14 +1133,13 @@ export const fetchAppsFromServer = async (teamId: string) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/apps`);
+    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/apps`)
 
     if (!res.ok && res.status == 404) {
       return { status: AppsApiStatus.NoApps, data: null }
     }
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: AppsApiStatus.Error, data: null }
     }
 
@@ -1157,10 +1154,9 @@ export const fetchRootSpanNamesFromServer = async (selectedApp: App) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/apps/${selectedApp.id}/spans/roots/names`);
+    const res = await measureAuth.fetchMeasure(`${origin}/apps/${selectedApp.id}/spans/roots/names`)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: RootSpanNamesApiStatus.Error, data: null }
     }
 
@@ -1184,10 +1180,9 @@ export const fetchSpansFromServer = async (filters: Filters, limit: number, offs
   url = await applyGenericFiltersToUrl(url, filters, null, null, limit, offset)
 
   try {
-    const res = await measureAuth.fetchMeasure(url);
+    const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: SpansApiStatus.Error, data: null }
     }
 
@@ -1207,10 +1202,9 @@ export const fetchSpanMetricsPlotFromServer = async (filters: Filters) => {
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
   try {
-    const res = await measureAuth.fetchMeasure(url);
+    const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: SpanMetricsPlotApiStatus.Error, data: null }
     }
 
@@ -1230,9 +1224,8 @@ export const fetchTraceFromServer = async (appId: string, traceId: string) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appId}/traces/${traceId}`);
+    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appId}/traces/${traceId}`)
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: TraceApiStatus.Error, data: null }
     }
 
@@ -1262,10 +1255,9 @@ export const fetchFiltersFromServer = async (selectedApp: App, filterSource: Fil
   }
 
   try {
-    const res = await measureAuth.fetchMeasure(url);
+    const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: FiltersApiStatus.Error, data: null }
     }
 
@@ -1308,10 +1300,9 @@ export const fetchJourneyFromServer = async (journeyType: JourneyType, exception
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
   try {
-    const res = await measureAuth.fetchMeasure(url);
+    const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: JourneyApiStatus.Error, data: null }
     }
 
@@ -1331,10 +1322,9 @@ export const fetchMetricsFromServer = async (filters: Filters) => {
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
   try {
-    const res = await measureAuth.fetchMeasure(url);
+    const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: MetricsApiStatus.Error, data: null }
     }
 
@@ -1354,10 +1344,9 @@ export const fetchSessionsOverviewFromServer = async (filters: Filters, keyId: s
   url = await applyGenericFiltersToUrl(url, filters, keyId, keyTimestamp, limit, offset)
 
   try {
-    const res = await measureAuth.fetchMeasure(url);
+    const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: SessionsOverviewApiStatus.Error, data: null }
     }
 
@@ -1377,10 +1366,9 @@ export const fetchSessionsOverviewPlotFromServer = async (filters: Filters) => {
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
   try {
-    const res = await measureAuth.fetchMeasure(url);
+    const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: SessionsOverviewPlotApiStatus.Error, data: null }
     }
 
@@ -1409,10 +1397,9 @@ export const fetchExceptionsOverviewFromServer = async (exceptionsType: Exceptio
   url = await applyGenericFiltersToUrl(url, filters, keyId, null, limit, null)
 
   try {
-    const res = await measureAuth.fetchMeasure(url);
+    const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: ExceptionsOverviewApiStatus.Error, data: null }
     }
 
@@ -1438,10 +1425,9 @@ export const fetchExceptionsDetailsFromServer = async (exceptionsType: Exception
   url = await applyGenericFiltersToUrl(url, filters, keyId, keyTimestamp, limit, null)
 
   try {
-    const res = await measureAuth.fetchMeasure(url);
+    const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: ExceptionsDetailsApiStatus.Error, data: null }
     }
 
@@ -1467,10 +1453,9 @@ export const fetchExceptionsOverviewPlotFromServer = async (exceptionsType: Exce
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
   try {
-    const res = await measureAuth.fetchMeasure(url);
+    const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: ExceptionsOverviewPlotApiStatus.Error, data: null }
     }
 
@@ -1500,10 +1485,9 @@ export const fetchExceptionsDetailsPlotFromServer = async (exceptionsType: Excep
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
   try {
-    const res = await measureAuth.fetchMeasure(url);
+    const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: ExceptionsDetailsPlotApiStatus.Error, data: null }
     }
 
@@ -1532,10 +1516,9 @@ export const fetchExceptionsDistributionPlotFromServer = async (exceptionsType: 
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
   try {
-    const res = await measureAuth.fetchMeasure(url);
+    const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: ExceptionsDistributionPlotApiStatus.Error, data: null }
     }
 
@@ -1555,9 +1538,8 @@ export const fetchAuthzAndMembersFromServer = async (teamId: string) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/authz`);
+    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/authz`)
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: AuthzAndMembersApiStatus.Error, data: null }
     }
 
@@ -1573,9 +1555,8 @@ export const fetchSessionTimelineFromServer = async (appId: string, sessionId: s
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appId}/sessions/${sessionId}`);
+    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appId}/sessions/${sessionId}`)
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: SessionTimelineApiStatus.Error, data: null }
     }
 
@@ -1592,12 +1573,11 @@ export const changeTeamNameFromServer = async (teamId: string, newTeamName: stri
   const opts = {
     method: 'PATCH',
     body: JSON.stringify({ name: newTeamName })
-  };
+  }
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/rename`, opts);
+    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/rename`, opts)
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: TeamNameChangeApiStatus.Error }
     }
 
@@ -1612,14 +1592,13 @@ export const createTeamFromServer = async (teamName: string) => {
   const opts = {
     method: 'POST',
     body: JSON.stringify({ name: teamName })
-  };
+  }
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/teams`, opts);
+    const res = await measureAuth.fetchMeasure(`${origin}/teams`, opts)
     const data = await res.json()
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: CreateTeamApiStatus.Error, error: data.error }
     }
 
@@ -1634,14 +1613,13 @@ export const createAppFromServer = async (teamId: string, appName: string) => {
   const opts = {
     method: 'POST',
     body: JSON.stringify({ name: appName })
-  };
+  }
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/apps`, opts);
+    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/apps`, opts)
     const data = await res.json()
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: CreateAppApiStatus.Error, error: data.error }
     }
 
@@ -1656,14 +1634,13 @@ export const changeRoleFromServer = async (teamId: string, newRole: string, memb
   const opts = {
     method: 'PATCH',
     body: JSON.stringify({ role: newRole.toLocaleLowerCase() })
-  };
+  }
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/members/${memberId}/role`, opts);
+    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/members/${memberId}/role`, opts)
     const data = await res.json()
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: RoleChangeApiStatus.Error, error: data.error }
     }
 
@@ -1682,14 +1659,13 @@ export const inviteMemberFromServer = async (teamId: string, email: string, role
       "Content-Type": `application/json`,
     },
     body: JSON.stringify([{ email: email, role: lowerCaseRole }])
-  };
+  }
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/invite`, opts);
-    const data = await res.json();
+    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/invite`, opts)
+    const data = await res.json()
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: InviteMemberApiStatus.Error, error: data.error }
     }
 
@@ -1703,14 +1679,13 @@ export const removeMemberFromServer = async (teamId: string, memberId: string) =
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
   const opts = {
     method: 'DELETE',
-  };
+  }
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/members/${memberId}`, opts);
+    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/members/${memberId}`, opts)
     const data = await res.json()
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: RemoveMemberApiStatus.Error, error: data.error }
     }
 
@@ -1724,10 +1699,9 @@ export const fetchAlertPrefsFromServer = async (appId: string) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appId}/alertPrefs`);
+    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appId}/alertPrefs`)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: FetchAlertPrefsApiStatus.Error, data: null }
     }
 
@@ -1744,14 +1718,13 @@ export const updateAlertPrefsFromServer = async (appdId: string, alertPrefs: typ
   const opts = {
     method: 'PATCH',
     body: JSON.stringify(alertPrefs)
-  };
+  }
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appdId}/alertPrefs`, opts);
+    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appdId}/alertPrefs`, opts)
     const data = await res.json()
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: UpdateAlertPrefsApiStatus.Error, error: data.error }
     }
 
@@ -1765,10 +1738,9 @@ export const fetchAppSettingsFromServer = async (appId: string) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appId}/settings`);
+    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appId}/settings`)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: FetchAppSettingsApiStatus.Error, data: null }
     }
 
@@ -1785,14 +1757,13 @@ export const updateAppSettingsFromServer = async (appdId: string, appSettings: t
   const opts = {
     method: 'PATCH',
     body: JSON.stringify(appSettings)
-  };
+  }
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appdId}/settings`, opts);
+    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appdId}/settings`, opts)
     const data = await res.json()
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: UpdateAppSettingsApiStatus.Error, error: data.error }
     }
 
@@ -1807,12 +1778,11 @@ export const changeAppNameFromServer = async (appId: string, newAppName: string)
   const opts = {
     method: 'PATCH',
     body: JSON.stringify({ name: newAppName })
-  };
+  }
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appId}/rename`, opts);
+    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appId}/rename`, opts)
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: AppNameChangeApiStatus.Error }
     }
 
@@ -1826,14 +1796,13 @@ export const fetchUsageFromServer = async (teamId: string) => {
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/usage`);
+    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/usage`)
 
     if (!res.ok && res.status == 404) {
       return { status: FetchUsageApiStatus.NoApps, data: null }
     }
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: FetchUsageApiStatus.Error, data: null }
     }
 
@@ -1853,10 +1822,9 @@ export const fetchBugReportsOverviewFromServer = async (filters: Filters, limit:
   url = await applyGenericFiltersToUrl(url, filters, null, null, limit, offset)
 
   try {
-    const res = await measureAuth.fetchMeasure(url);
+    const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: BugReportsOverviewApiStatus.Error, data: null }
     }
 
@@ -1876,10 +1844,9 @@ export const fetchBugReportsOverviewPlotFromServer = async (filters: Filters) =>
   url = await applyGenericFiltersToUrl(url, filters, null, null, null, null)
 
   try {
-    const res = await measureAuth.fetchMeasure(url);
+    const res = await measureAuth.fetchMeasure(url)
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: BugReportsOverviewPlotApiStatus.Error, data: null }
     }
 
@@ -1899,9 +1866,8 @@ export const fetchBugReportFromServer = async (appId: string, bugReportId: strin
   const origin = process.env.NEXT_PUBLIC_API_BASE_URL
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appId}/bugReports/${bugReportId}`);
+    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appId}/bugReports/${bugReportId}`)
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: BugReportApiStatus.Error, data: null }
     }
 
@@ -1919,14 +1885,13 @@ export const updateBugReportStatusFromServer = async (appId: string, bugReportId
   const opts = {
     method: 'PATCH',
     body: JSON.stringify({ status: Number(status) })
-  };
+  }
 
   try {
-    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appId}/bugReports/${bugReportId}`, opts);
+    const res = await measureAuth.fetchMeasure(`${origin}/apps/${appId}/bugReports/${bugReportId}`, opts)
     const data = await res.json()
 
     if (!res.ok) {
-      measureAuth.logoutIfAuthError(res)
       return { status: UpdateBugReportStatusApiStatus.Error, error: data.error }
     }
 
