@@ -1,5 +1,5 @@
-import { measureAuth } from '@/app/auth/measure_auth'
 import { NextResponse } from 'next/server'
+import { setCookiesFromJWT } from '../../cookie'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,11 +60,16 @@ export async function POST(request: Request) {
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
-  const session = await res.json()
-  const { payload } = measureAuth.decodeJWT(session.access_token)
+  const data = await res.json()
 
-  const redirectURL = new URL(`${origin}/${payload["team"]}/overview`)
-  redirectURL.hash = `access_token=${session.access_token}&refresh_token=${session.refresh_token}&state=${session.state}`
+  // Create a response with redirect
+  let response = NextResponse.redirect(
+    // Redirect to overview page with own team Id
+    new URL(`${origin}/${data.own_team_id}/overview`),
+    { status: 303 }
+  )
 
-  return NextResponse.redirect(redirectURL, { status: 302 })
+  response = setCookiesFromJWT(data.access_token, data.refresh_token, response)
+
+  return response
 }

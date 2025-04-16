@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { measureAuth } from "@/app/auth/measure_auth";
+import { measureAuth } from "@/app/auth/measure_auth"
 
 async function doGitHubLogin() {
-  const { origin } = new URL(window.location.href);
+  const { origin } = new URL(window.location.href)
   const { url, error } = await measureAuth.oAuthSignin({
     provider: 'github',
     clientId: process?.env?.NEXT_PUBLIC_OAUTH_GITHUB_KEY,
@@ -11,7 +11,7 @@ async function doGitHubLogin() {
       redirectTo: `${origin}/auth/callback/github`,
       next: ''
     }
-  });
+  })
 
   if (error) {
     console.error(`failed to login using GitHub`, error)
@@ -19,7 +19,7 @@ async function doGitHubLogin() {
   }
 
   if (url) {
-    window.location.assign(url);
+    window.location.assign(url)
   }
 }
 

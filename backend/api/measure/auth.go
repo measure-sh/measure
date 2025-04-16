@@ -17,15 +17,21 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
-// extractToken extracts the bearer token
-// from authorization header.
+// extractToken extracts the access token
+// from the cookie or Authorization header.
 func extractToken(c *gin.Context) (token string) {
-	authHeader := c.GetHeader(("Authorization"))
+	// Try cookie first
+	token, err := c.Cookie("access_token")
+	if err == nil && token != "" {
+		return token
+	}
+
+	// Fallback to Authorization header for API clients
+	authHeader := c.GetHeader("Authorization")
 	splitToken := strings.Split(authHeader, "Bearer ")
 
 	if len(splitToken) != 2 {
-		// Authorization header is not in the correct format
-		c.AbortWithStatus((http.StatusUnauthorized))
+		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
@@ -39,9 +45,17 @@ func extractToken(c *gin.Context) (token string) {
 	return
 }
 
-// logNewUserFirstLogin logs new user's first login to stdout
-func logNewUserFirstLogin() {
-	fmt.Println("New user logged in")
+// extractRefreshToken extracts the refresh token
+// from the cookie or Authorization header
+func extractRefreshToken(c *gin.Context) (token string) {
+	// Try cookie first
+	token, err := c.Cookie("refresh_token")
+	if err == nil && token != "" {
+		return token
+	}
+
+	// Fallback to Authorization header
+	return extractToken(c)
 }
 
 // ValidateAPIKey validates the Measure API key.
@@ -93,7 +107,8 @@ func ValidateAccessToken() gin.HandlerFunc {
 				return
 			}
 
-			fmt.Println("unknown token error", err)
+			fmt.Println("unknown access token error: ", err)
+
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "invalid or malformed access token",
 			})
@@ -103,6 +118,9 @@ func ValidateAccessToken() gin.HandlerFunc {
 		if claims, ok := accessToken.Claims.(jwt.MapClaims); ok {
 			userId := claims["sub"]
 			c.Set("userId", userId)
+
+			ownTeamId := claims["oti"]
+			c.Set("ownTeamId", ownTeamId)
 		} else {
 			msg := "failed to read claims from access token"
 			fmt.Println(msg, err)
@@ -119,7 +137,7 @@ func ValidateAccessToken() gin.HandlerFunc {
 // ValidateRefreshToken validates the Measure refresh token.
 func ValidateRefreshToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := extractToken(c)
+		token := extractRefreshToken(c)
 
 		refreshToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -140,7 +158,8 @@ func ValidateRefreshToken() gin.HandlerFunc {
 				return
 			}
 
-			fmt.Println("unknown token error:", err)
+			fmt.Println("unknown refresh token error: ", err)
+
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "invalid or malformed refresh token",
 			})
@@ -323,9 +342,6 @@ func SigninGitHub(c *gin.Context) {
 				})
 				return
 			}
-
-			// Once new user creation is done, track email
-			logNewUserFirstLogin()
 		} else {
 			// update user's last sign in at value
 			if err := msrUser.touchLastSignInAt(ctx); err != nil {
@@ -363,12 +379,13 @@ func SigninGitHub(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"access_token":  authSess.AccessToken,
 			"refresh_token": authSess.RefreshToken,
-			"state":         authCode.State,
+			"user_id":       userId,
+			"own_team_id":   team.ID,
 		})
 
-		// deliberately ignore the error, because
+		// deliberately ignore any error, because
 		// expired sessions may get cleared eventually
-		authsession.Cleanup(ctx)
+		authsession.RemoveExpiredSessions(ctx)
 
 		return
 	default:
@@ -528,9 +545,6 @@ func SigninGoogle(c *gin.Context) {
 			})
 			return
 		}
-
-		// Once new user creation is done, track email
-		logNewUserFirstLogin()
 	} else {
 		// update user's last sign in at value
 		if err := msrUser.touchLastSignInAt(ctx); err != nil {
@@ -568,12 +582,13 @@ func SigninGoogle(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"access_token":  authSess.AccessToken,
 		"refresh_token": authSess.RefreshToken,
-		"state":         authState.State,
+		"user_id":       userId,
+		"own_team_id":   team.ID,
 	})
 
-	// deliberately ignore the error, because
+	// deliberately ignore any error, because
 	// expired sessions may get cleared eventually
-	authsession.Cleanup(ctx)
+	authsession.RemoveExpiredSessions(ctx)
 }
 
 // RefreshToken refreshes a previous session from
@@ -615,20 +630,22 @@ func RefreshToken(c *gin.Context) {
 
 	defer tx.Rollback(ctx)
 
-	userId := oldSession.UserID.String()
+	userIdStr := oldSession.UserID.String()
+	user := &User{
+		ID: &userIdStr,
+	}
 
-	user := User{ID: &userId}
-	team, err := user.getOwnTeam(ctx)
+	ownTeam, err := user.getOwnTeam(ctx)
 	if err != nil {
-		msg := "failed to lookup user's team"
+		msg := "failed to refresh session. Could not lookup user's team"
 		fmt.Println(msg, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
 		})
 		return
 	}
 
-	newSession, err := authsession.NewAuthSession(oldSession.UserID, *team.ID, oldSession.OAuthProvider, oldSession.UserMeta)
+	newSession, err := authsession.NewAuthSession(oldSession.UserID, *ownTeam.ID, oldSession.OAuthProvider, oldSession.UserMeta)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -667,6 +684,33 @@ func RefreshToken(c *gin.Context) {
 	})
 }
 
+// GetSession returns the current session information
+func GetAuthSession(c *gin.Context) {
+	userId := c.GetString("userId")
+	ownTeamId := c.GetString("ownTeamId")
+
+	if userId == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Not authenticated",
+		})
+		return
+	}
+
+	if ownTeamId == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Own team not found for userId: " + userId,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user": gin.H{
+			"id":          userId,
+			"own_team_id": ownTeamId,
+		},
+	})
+}
+
 // Signout removes the active session associated to
 // the refresh token.
 func Signout(c *gin.Context) {
@@ -693,5 +737,7 @@ func Signout(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, gin.H{
+		"ok": true,
+	})
 }

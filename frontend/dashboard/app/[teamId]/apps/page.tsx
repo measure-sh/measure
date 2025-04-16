@@ -33,8 +33,13 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       case AuthzAndMembersApiStatus.Error:
         break
       case AuthzAndMembersApiStatus.Success:
-        const currentUserId = await measureAuth.getUserIdOrRedirectToAuth()!
-        const currentUserRole = result.data.members.find((member: any) => member.id === currentUserId)!.role
+        const { session, error } = await measureAuth.getSession()
+        if (error) {
+          console.error("Error getting session: ", error)
+          return
+        }
+
+        const currentUserRole = result.data.members.find((member: any) => member.id === session.user.id)!.role
         if (currentUserRole === 'owner' || currentUserRole === 'admin') {
           setCurrentUserCanChangeAppSettings(true)
         } else {
