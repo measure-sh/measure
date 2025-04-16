@@ -9,7 +9,6 @@
 import Foundation
 import CoreData
 
-
 extension BatchOb {
 
     @nonobjc public class func fetchRequest() -> NSFetchRequest<BatchOb> {

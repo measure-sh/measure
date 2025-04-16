@@ -42,6 +42,7 @@ final class BaseSpanStore: SpanStore {
             spanOb.sessionId = span.sessionId
             spanOb.startTime = span.startTime
             spanOb.endTime = span.endTime
+            spanOb.startTimeInMillis = span.startTimeInMillis ?? 0
             spanOb.duration = span.duration
             spanOb.status = span.status ?? 0
             spanOb.attributes = span.attributes
@@ -49,6 +50,7 @@ final class BaseSpanStore: SpanStore {
             spanOb.checkpoints = span.checkpoints
             spanOb.hasEnded = span.hasEnded
             spanOb.isSampled = span.isSampled
+            spanOb.batchId = span.batchId
 
             do {
                 try context.saveIfNeeded()
@@ -198,6 +200,7 @@ extension SpanOb {
             parentId: self.parentId,
             sessionId: self.sessionId,
             startTime: self.startTime,
+            startTimeInMillis: self.startTimeInMillis,
             endTime: self.endTime,
             duration: self.duration,
             status: self.status,

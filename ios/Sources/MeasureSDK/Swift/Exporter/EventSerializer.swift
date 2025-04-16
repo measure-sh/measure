@@ -63,14 +63,18 @@ struct EventSerializer {
     }
 
     static func serializeUserDefinedAttribute(_ userDefinedAttribute: [String: AttributeValue]?) -> String? {
-        guard let userDefinedAttribute = userDefinedAttribute else { return nil }
+            guard let userDefinedAttribute = userDefinedAttribute else { return nil }
 
-        var result = "{"
-        for (key, value) in userDefinedAttribute {
-            result += "\"\(key)\":\(value.serialize()),"
+            // Convert [String: AttributeValue] → [String: Any]
+        let converted: [String: Any] = userDefinedAttribute.mapValues { $0.value }
+
+            // Serialize using JSONSerialization for raw JSON string
+            if let data = try? JSONSerialization.data(withJSONObject: converted, options: [.sortedKeys]),
+               let jsonString = String(data: data, encoding: .utf8) {
+                print("serializeUserDefinedAttribute: ", jsonString)
+                return nil
+            }
+
+            return nil
         }
-        result = String(result.dropLast())
-        result += "}"
-        return result
-    }
 }

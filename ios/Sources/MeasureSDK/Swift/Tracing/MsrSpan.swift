@@ -124,7 +124,7 @@ class MsrSpan: InternalSpan {
         lock.lock()
         defer { lock.unlock() }
         if hasEndedState == .notEnded {
-            let checkpoint = Checkpoint(name: name, timestamp: timeProvider.now())
+            let checkpoint = Checkpoint(name: name, timestamp: timeProvider.iso8601Timestamp(timeInMillis: timeProvider.now()))
             checkpoints.append(checkpoint)
         }
         return self
@@ -243,12 +243,13 @@ class MsrSpan: InternalSpan {
                         spanId: spanId,
                         parentId: parentId,
                         sessionId: sessionId,
-                        startTime: startTime,
-                        endTime: endTime,
+                        startTime: timeProvider.iso8601Timestamp(timeInMillis: startTime),
+                        startTimeInMillis: startTime,
+                        endTime: timeProvider.iso8601Timestamp(timeInMillis: endTime),
                         duration: calculateDuration(),
                         status: status,
                         attributes: attributes,
-                        userDefinedAttrs: EventSerializer.serializeUserDefinedAttribute(userDefinedAttrs),
+                        userDefinedAttrs: userDefinedAttrs,
                         checkpoints: checkpoints,
                         hasEnded: hasEndedState == .ended,
                         isSampled: isSampled)

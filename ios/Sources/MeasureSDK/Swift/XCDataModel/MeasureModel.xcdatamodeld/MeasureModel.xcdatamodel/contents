@@ -48,16 +48,17 @@
         <attribute name="batchId" optional="YES" attributeType="String"/>
         <attribute name="checkpoints" optional="YES" attributeType="Binary"/>
         <attribute name="duration" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="endTime" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="endTime" attributeType="String"/>
         <attribute name="hasEnded" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="isSampled" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="name" attributeType="String"/>
         <attribute name="parentId" optional="YES" attributeType="String"/>
         <attribute name="sessionId" attributeType="String"/>
         <attribute name="spanId" attributeType="String"/>
-        <attribute name="startTime" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="startTime" attributeType="String"/>
+        <attribute name="startTimeInMillis" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="status" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="traceId" attributeType="String"/>
-        <attribute name="userDefinedAttrs" optional="YES" attributeType="String"/>
+        <attribute name="userDefinedAttrs" optional="YES" attributeType="Binary"/>
     </entity>
 </model>

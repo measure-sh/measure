@@ -35,9 +35,9 @@ protocol MeasureInitializer {
     var gestureTargetFinder: GestureTargetFinder { get }
     var networkClient: NetworkClient { get }
     var httpClient: HttpClient { get }
-    var periodicEventExporter: PeriodicEventExporter { get }
+    var periodicExporter: PeriodicExporter { get }
     var heartbeat: Heartbeat { get }
-    var eventExporter: EventExporter { get }
+    var exporter: Exporter { get }
     var batchStore: BatchStore { get }
     var batchCreator: BatchCreator { get }
     var lifecycleCollector: LifecycleCollector { get }
@@ -107,8 +107,8 @@ protocol MeasureInitializer {
 /// - `httpClient`: `HttpClient` object that handles HTTP requests.
 /// - `networkClient`: `NetworkClient` object is responsible for initializing the network configuration and executing API requests.
 /// - `heartbeat`: `Heartbeat` object that emits a pulse every 30 seconds.
-/// - `periodicEventExporter`: `PeriodicEventExporter` object that exports events periodically to server.
-/// - `eventExporter`: `EventExporter` object that exports a single batch.
+/// - `periodicExporter`: `PeriodicExporter` object that exports events periodically to server.
+/// - `exporter`: `Exporter` object that exports a single batch.
 /// - `batchStore`: `BatchStore` object that manages `Batch` related operations
 /// - `batchCreator`: `BatchCreator` object used to create a batch.
 /// - `dataCleanupService`: `DataCleanupService` object responsible for clearing stale data
@@ -150,8 +150,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let networkClient: NetworkClient
     let httpClient: HttpClient
     let heartbeat: Heartbeat
-    let periodicEventExporter: PeriodicEventExporter
-    let eventExporter: EventExporter
+    let periodicExporter: PeriodicExporter
+    let exporter: Exporter
     let batchStore: BatchStore
     let batchCreator: BatchCreator
     let lifecycleCollector: LifecycleCollector
@@ -279,17 +279,18 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                              eventStore: eventStore,
                                              batchStore: batchStore,
                                              spanStore: spanStore)
-        self.eventExporter = BaseEventExporter(logger: logger,
-                                               networkClient: networkClient,
-                                               batchCreator: batchCreator,
-                                               batchStore: batchStore,
-                                               eventStore: eventStore)
-        self.periodicEventExporter = BasePeriodicEventExporter(logger: logger,
-                                                               configProvider: configProvider,
-                                                               timeProvider: timeProvider,
-                                                               heartbeat: heartbeat,
-                                                               eventExporter: eventExporter,
-                                                               dispatchQueue: MeasureQueue.periodicEventExporter)
+        self.exporter = BaseExporter(logger: logger,
+                                     networkClient: networkClient,
+                                     batchCreator: batchCreator,
+                                     batchStore: batchStore,
+                                     eventStore: eventStore,
+                                     spanStore: spanStore)
+        self.periodicExporter = BasePeriodicExporter(logger: logger,
+                                                     configProvider: configProvider,
+                                                     timeProvider: timeProvider,
+                                                     heartbeat: heartbeat,
+                                                     exporter: exporter,
+                                                     dispatchQueue: MeasureQueue.periodicEventExporter)
         self.lifecycleCollector = BaseLifecycleCollector(signalProcessor: signalProcessor,
                                                          timeProvider: timeProvider,
                                                          logger: logger)

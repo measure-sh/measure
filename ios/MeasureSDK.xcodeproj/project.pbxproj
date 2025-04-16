@@ -62,13 +62,13 @@
 		526D18512D5A1913009A2E90 /* StackFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17CB2D5A1913009A2E90 /* StackFrame.swift */; };
 		526D18522D5A1913009A2E90 /* ThreadDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17CC2D5A1913009A2E90 /* ThreadDetail.swift */; };
 		526D18532D5A1913009A2E90 /* BatchCreator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17CE2D5A1913009A2E90 /* BatchCreator.swift */; };
-		526D18542D5A1913009A2E90 /* EventExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17CF2D5A1913009A2E90 /* EventExporter.swift */; };
+		526D18542D5A1913009A2E90 /* Exporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17CF2D5A1913009A2E90 /* Exporter.swift */; };
 		526D18552D5A1913009A2E90 /* EventSerializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17D02D5A1913009A2E90 /* EventSerializer.swift */; };
 		526D18562D5A1913009A2E90 /* Heartbeat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17D12D5A1913009A2E90 /* Heartbeat.swift */; };
 		526D18572D5A1913009A2E90 /* HttpClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17D22D5A1913009A2E90 /* HttpClient.swift */; };
 		526D18582D5A1913009A2E90 /* HttpModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17D32D5A1913009A2E90 /* HttpModels.swift */; };
 		526D18592D5A1913009A2E90 /* NetworkClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17D42D5A1913009A2E90 /* NetworkClient.swift */; };
-		526D185A2D5A1913009A2E90 /* PeriodicEventExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17D52D5A1913009A2E90 /* PeriodicEventExporter.swift */; };
+		526D185A2D5A1913009A2E90 /* PeriodicExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17D52D5A1913009A2E90 /* PeriodicExporter.swift */; };
 		526D185B2D5A1913009A2E90 /* GestureCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17D72D5A1913009A2E90 /* GestureCollector.swift */; };
 		526D185C2D5A1913009A2E90 /* GestureDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17D82D5A1913009A2E90 /* GestureDetector.swift */; };
 		526D185D2D5A1913009A2E90 /* GestureEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17D92D5A1913009A2E90 /* GestureEvents.swift */; };
@@ -256,14 +256,14 @@
 		CFD88D352DAB8D810095115E /* MockTraceSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D342DAB8D810095115E /* MockTraceSampler.swift */; };
 		CFD88D402DACCFDA0095115E /* SpanEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D3F2DACCFDA0095115E /* SpanEntity.swift */; };
 		CFD88D482DACD3710095115E /* SpanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D472DACD3710095115E /* SpanStore.swift */; };
-		CFD88D5E2DAE21780095115E /* SpanOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D5C2DAE21780095115E /* SpanOb+CoreDataClass.swift */; };
-		CFD88D5F2DAE21780095115E /* SpanOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D5D2DAE21780095115E /* SpanOb+CoreDataProperties.swift */; };
-		CFD88D602DAE21780095115E /* SpanOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D5C2DAE21780095115E /* SpanOb+CoreDataClass.swift */; };
-		CFD88D612DAE21780095115E /* SpanOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D5D2DAE21780095115E /* SpanOb+CoreDataProperties.swift */; };
 		CFD88D642DAE36D30095115E /* BatchOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D622DAE36D30095115E /* BatchOb+CoreDataClass.swift */; };
 		CFD88D652DAE36D30095115E /* BatchOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D632DAE36D30095115E /* BatchOb+CoreDataProperties.swift */; };
 		CFD88D662DAE36D30095115E /* BatchOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D622DAE36D30095115E /* BatchOb+CoreDataClass.swift */; };
 		CFD88D672DAE36D30095115E /* BatchOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D632DAE36D30095115E /* BatchOb+CoreDataProperties.swift */; };
+		CFD88D722DAFA6FA0095115E /* SpanOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D702DAFA6FA0095115E /* SpanOb+CoreDataClass.swift */; };
+		CFD88D732DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D712DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift */; };
+		CFD88D742DAFA6FA0095115E /* SpanOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D702DAFA6FA0095115E /* SpanOb+CoreDataClass.swift */; };
+		CFD88D752DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D712DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift */; };
 		CFEC97ED2D9A7642000CFB68 /* MeasureInternalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */; };
 		CFEC97EE2D9A76A5000CFB68 /* MockMeasureInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF2362CB651C8003102DF /* MockMeasureInitializer.swift */; };
 /* End PBXBuildFile section */
@@ -441,13 +441,13 @@
 		526D17CB2D5A1913009A2E90 /* StackFrame.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StackFrame.swift; sourceTree = "<group>"; };
 		526D17CC2D5A1913009A2E90 /* ThreadDetail.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ThreadDetail.swift; sourceTree = "<group>"; };
 		526D17CE2D5A1913009A2E90 /* BatchCreator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BatchCreator.swift; sourceTree = "<group>"; };
-		526D17CF2D5A1913009A2E90 /* EventExporter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EventExporter.swift; sourceTree = "<group>"; };
+		526D17CF2D5A1913009A2E90 /* Exporter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Exporter.swift; sourceTree = "<group>"; };
 		526D17D02D5A1913009A2E90 /* EventSerializer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EventSerializer.swift; sourceTree = "<group>"; };
 		526D17D12D5A1913009A2E90 /* Heartbeat.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Heartbeat.swift; sourceTree = "<group>"; };
 		526D17D22D5A1913009A2E90 /* HttpClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HttpClient.swift; sourceTree = "<group>"; };
 		526D17D32D5A1913009A2E90 /* HttpModels.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HttpModels.swift; sourceTree = "<group>"; };
 		526D17D42D5A1913009A2E90 /* NetworkClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NetworkClient.swift; sourceTree = "<group>"; };
-		526D17D52D5A1913009A2E90 /* PeriodicEventExporter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PeriodicEventExporter.swift; sourceTree = "<group>"; };
+		526D17D52D5A1913009A2E90 /* PeriodicExporter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PeriodicExporter.swift; sourceTree = "<group>"; };
 		526D17D72D5A1913009A2E90 /* GestureCollector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GestureCollector.swift; sourceTree = "<group>"; };
 		526D17D82D5A1913009A2E90 /* GestureDetector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GestureDetector.swift; sourceTree = "<group>"; };
 		526D17D92D5A1913009A2E90 /* GestureEvents.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GestureEvents.swift; sourceTree = "<group>"; };
@@ -628,10 +628,10 @@
 		CFD88D342DAB8D810095115E /* MockTraceSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockTraceSampler.swift; sourceTree = "<group>"; };
 		CFD88D3F2DACCFDA0095115E /* SpanEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanEntity.swift; sourceTree = "<group>"; };
 		CFD88D472DACD3710095115E /* SpanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanStore.swift; sourceTree = "<group>"; };
-		CFD88D5C2DAE21780095115E /* SpanOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataClass.swift"; sourceTree = "<group>"; };
-		CFD88D5D2DAE21780095115E /* SpanOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		CFD88D622DAE36D30095115E /* BatchOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BatchOb+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CFD88D632DAE36D30095115E /* BatchOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BatchOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		CFD88D702DAFA6FA0095115E /* SpanOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataClass.swift"; sourceTree = "<group>"; };
+		CFD88D712DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInternalTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -844,13 +844,13 @@
 			isa = PBXGroup;
 			children = (
 				526D17CE2D5A1913009A2E90 /* BatchCreator.swift */,
-				526D17CF2D5A1913009A2E90 /* EventExporter.swift */,
+				526D17CF2D5A1913009A2E90 /* Exporter.swift */,
 				526D17D02D5A1913009A2E90 /* EventSerializer.swift */,
 				526D17D12D5A1913009A2E90 /* Heartbeat.swift */,
 				526D17D22D5A1913009A2E90 /* HttpClient.swift */,
 				526D17D32D5A1913009A2E90 /* HttpModels.swift */,
 				526D17D42D5A1913009A2E90 /* NetworkClient.swift */,
-				526D17D52D5A1913009A2E90 /* PeriodicEventExporter.swift */,
+				526D17D52D5A1913009A2E90 /* PeriodicExporter.swift */,
 			);
 			path = Exporter;
 			sourceTree = "<group>";
@@ -1250,14 +1250,14 @@
 		52B7F17F2D76A32C001498BC /* CoreDataEntities */ = {
 			isa = PBXGroup;
 			children = (
+				CFD88D702DAFA6FA0095115E /* SpanOb+CoreDataClass.swift */,
+				CFD88D712DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift */,
 				CFD88D622DAE36D30095115E /* BatchOb+CoreDataClass.swift */,
 				CFD88D632DAE36D30095115E /* BatchOb+CoreDataProperties.swift */,
 				52B7F1892D76AFBB001498BC /* EventOb+CoreDataClass.swift */,
 				52B7F18A2D76AFBB001498BC /* EventOb+CoreDataProperties.swift */,
 				52B7F18B2D76AFBB001498BC /* SessionOb+CoreDataClass.swift */,
 				52B7F18C2D76AFBB001498BC /* SessionOb+CoreDataProperties.swift */,
-				CFD88D5C2DAE21780095115E /* SpanOb+CoreDataClass.swift */,
-				CFD88D5D2DAE21780095115E /* SpanOb+CoreDataProperties.swift */,
 			);
 			path = CoreDataEntities;
 			sourceTree = "<group>";
@@ -1672,7 +1672,7 @@
 				526D18892D5A1913009A2E90 /* SysCtl.swift in Sources */,
 				526D18522D5A1913009A2E90 /* ThreadDetail.swift in Sources */,
 				526D18362D5A1913009A2E90 /* MeasureConfig.swift in Sources */,
-				526D18542D5A1913009A2E90 /* EventExporter.swift in Sources */,
+				526D18542D5A1913009A2E90 /* Exporter.swift in Sources */,
 				526D18222D5A1913009A2E90 /* MSRViewController.m in Sources */,
 				CFD88C6E2D9E94B40095115E /* SpanProcessor.swift in Sources */,
 				CFD88C6F2D9E94B40095115E /* MsrSpan.swift in Sources */,
@@ -1730,7 +1730,7 @@
 				526D18272D5A1913009A2E90 /* AppAttributeProcessor.swift in Sources */,
 				526D186F2D5A1913009A2E90 /* NetworkChangeData.swift in Sources */,
 				CFD88D482DACD3710095115E /* SpanStore.swift in Sources */,
-				526D185A2D5A1913009A2E90 /* PeriodicEventExporter.swift in Sources */,
+				526D185A2D5A1913009A2E90 /* PeriodicExporter.swift in Sources */,
 				526D187D2D5A1913009A2E90 /* UIColor+Extension.swift in Sources */,
 				526D184B2D5A1913009A2E90 /* SignalProcessor.swift in Sources */,
 				526D18552D5A1913009A2E90 /* EventSerializer.swift in Sources */,
@@ -1749,8 +1749,6 @@
 				526D18242D5A1913009A2E90 /* AppLaunchEvents.swift in Sources */,
 				CFD88D0F2DA796A60095115E /* MsrSpanBuilder.swift in Sources */,
 				526D18252D5A1913009A2E90 /* LaunchCallbacks.swift in Sources */,
-				CFD88D5E2DAE21780095115E /* SpanOb+CoreDataClass.swift in Sources */,
-				CFD88D5F2DAE21780095115E /* SpanOb+CoreDataProperties.swift in Sources */,
 				526D18592D5A1913009A2E90 /* NetworkClient.swift in Sources */,
 				526D184E2D5A1913009A2E90 /* UserTriggeredEventCollector.swift in Sources */,
 				526D18852D5A1913009A2E90 /* Logger.swift in Sources */,
@@ -1780,6 +1778,8 @@
 				526D183C2D5A1913009A2E90 /* DataCleanupService.swift in Sources */,
 				526D182F2D5A1913009A2E90 /* UserAttributeProcessor.swift in Sources */,
 				526D18482D5A1913009A2E90 /* CustomEventCollector.swift in Sources */,
+				CFD88D722DAFA6FA0095115E /* SpanOb+CoreDataClass.swift in Sources */,
+				CFD88D732DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift in Sources */,
 				526D18622D5A1913009A2E90 /* MSRNetworkInterceptor.swift in Sources */,
 				526D18472D5A1913009A2E90 /* AttachmentType.swift in Sources */,
 				526D186B2D5A1913009A2E90 /* MsrViewController.swift in Sources */,
@@ -1803,8 +1803,6 @@
 				52B7F1612D757F81001498BC /* MockLogger.swift in Sources */,
 				52B7F1692D757F81001498BC /* MockSystemCrashReporter.swift in Sources */,
 				52B7F1572D757F81001498BC /* MockConfigLoader.swift in Sources */,
-				CFD88D602DAE21780095115E /* SpanOb+CoreDataClass.swift in Sources */,
-				CFD88D612DAE21780095115E /* SpanOb+CoreDataProperties.swift in Sources */,
 				52B7F1362D757F81001498BC /* InstallationIdAttributeProcessorTests.swift in Sources */,
 				52B7F14B2D757F81001498BC /* GestureTargetFinderTests.swift in Sources */,
 				CFD88D352DAB8D810095115E /* MockTraceSampler.swift in Sources */,
@@ -1864,6 +1862,8 @@
 				52B7F1392D757F81001498BC /* BatchStoreTests.swift in Sources */,
 				52B7F16F2D757F81001498BC /* CpuUsageCollectorTests.swift in Sources */,
 				52B7F13B2D757F81001498BC /* EventStoreTests.swift in Sources */,
+				CFD88D742DAFA6FA0095115E /* SpanOb+CoreDataClass.swift in Sources */,
+				CFD88D752DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift in Sources */,
 				52B7F14A2D757F81001498BC /* PeriodicEventExporterTests.swift in Sources */,
 				52B7F1512D757F81001498BC /* XCTextCase+Extension.swift in Sources */,
 				52B7F1412D757F81001498BC /* CrashDataFormatterTests.swift in Sources */,
