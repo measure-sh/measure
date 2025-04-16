@@ -91,8 +91,8 @@ final class MeasureInternal {
     private var heartbeat: Heartbeat {
         return measureInitializer.heartbeat
     }
-    private var periodicEventExporter: PeriodicEventExporter {
-        return measureInitializer.periodicEventExporter
+    private var periodicExporter: PeriodicExporter {
+        return measureInitializer.periodicExporter
     }
     private var lifecycleCollector: LifecycleCollector {
         return measureInitializer.lifecycleCollector
@@ -194,7 +194,7 @@ final class MeasureInternal {
     private func applicationDidEnterBackground() {
         self.crashDataPersistence.isForeground = false
         self.sessionManager.applicationDidEnterBackground()
-        self.periodicEventExporter.applicationDidEnterBackground()
+        self.periodicExporter.applicationDidEnterBackground()
         self.lifecycleCollector.applicationDidEnterBackground()
         self.cpuUsageCollector.pause()
         self.memoryUsageCollector.pause()
@@ -204,7 +204,7 @@ final class MeasureInternal {
     private func applicationWillEnterForeground() {
         self.crashDataPersistence.isForeground = true
         self.sessionManager.applicationWillEnterForeground()
-        self.periodicEventExporter.applicationWillEnterForeground()
+        self.periodicExporter.applicationWillEnterForeground()
         self.lifecycleCollector.applicationWillEnterForeground()
         self.cpuUsageCollector.resume()
         self.memoryUsageCollector.resume()
@@ -220,7 +220,7 @@ final class MeasureInternal {
         self.userTriggeredEventCollector.enable()
         self.cpuUsageCollector.enable()
         self.memoryUsageCollector.enable()
-        self.periodicEventExporter.enable()
+        self.periodicExporter.enable()
         self.httpEventCollector.enable()
         self.networkChangeCollector.enable()
         self.lifecycleCollector.enable()
@@ -238,7 +238,7 @@ final class MeasureInternal {
         self.userTriggeredEventCollector.disable()
         self.cpuUsageCollector.disable()
         self.memoryUsageCollector.disable()
-        self.periodicEventExporter.disable()
+        self.periodicExporter.disable()
         self.httpEventCollector.disable()
         self.networkChangeCollector.disable()
         self.gestureCollector.disable()

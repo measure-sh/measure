@@ -10,15 +10,16 @@ import Foundation
 struct SpanEntity {
     let name: String?
     let traceId: String?
-    let spanId: String?
+    let spanId: String
     let parentId: String?
     let sessionId: String?
-    let startTime: Int64
-    let endTime: Int64
+    let startTime: String
+    let startTimeInMillis: Int64
+    let endTime: String
     let duration: Int64
     let status: Int64?
     let attributes: Data?
-    let userDefinedAttrs: String?
+    let userDefinedAttrs: Data?
     let checkpoints: Data?
     let hasEnded: Bool
     let isSampled: Bool
@@ -26,15 +27,16 @@ struct SpanEntity {
 
     init(name: String?,
          traceId: String?,
-         spanId: String?,
+         spanId: String,
          parentId: String?,
          sessionId: String?,
-         startTime: Int64,
-         endTime: Int64,
+         startTime: String,
+         startTimeInMillis: Int64,
+         endTime: String,
          duration: Int64,
          status: Int64?,
          attributes: Data?,
-         userDefinedAttrs: String?,
+         userDefinedAttrs: Data?,
          checkpoints: Data?,
          hasEnded: Bool,
          isSampled: Bool,
@@ -54,6 +56,7 @@ struct SpanEntity {
         self.hasEnded = hasEnded
         self.isSampled = isSampled
         self.batchId = batchId
+        self.startTimeInMillis = startTimeInMillis
     }
 
     init(_ spanData: SpanData) {
@@ -68,35 +71,72 @@ struct SpanEntity {
         self.status = spanData.status.rawValue
         self.hasEnded = spanData.hasEnded
         self.isSampled = spanData.isSampled
-        self.userDefinedAttrs = spanData.userDefinedAttrs
+        if let userDefinedAttrs = spanData.userDefinedAttrs {
+            let converted: [String: Any] = userDefinedAttrs.mapValues { $0.value }
+            do {
+                self.userDefinedAttrs = try JSONSerialization.data(withJSONObject: converted, options: [])
+            } catch {
+                self.userDefinedAttrs = nil
+            }
+        } else {
+            self.userDefinedAttrs = nil
+        }
         self.batchId = nil
+        self.startTimeInMillis = spanData.startTimeInMillis
 
         let encoder = JSONEncoder()
         self.attributes = try? encoder.encode(spanData.attributes)
         self.checkpoints = try? encoder.encode(spanData.checkpoints)
     }
 
-    func toSpanData() -> SpanData {
+    func toSpanData() -> SpanDataCodable {
         let decoder = JSONDecoder()
 
-        let decodedAttributes = try? attributes.flatMap { try decoder.decode(Attributes?.self, from: $0) }
-        let decodedCheckpoints = try? checkpoints.flatMap { try decoder.decode([Checkpoint].self, from: $0) }
+        let decodedAttributes: Attributes?
+        if let attributesData = attributes {
+            do {
+                decodedAttributes = try decoder.decode(Attributes?.self, from: attributesData)
+            } catch {
+                decodedAttributes = nil
+            }
+        } else {
+            decodedAttributes = nil
+        }
 
-        return SpanData(
-            name: name ?? "",
-            traceId: traceId ?? "",
-            spanId: spanId ?? "",
-            parentId: parentId,
-            sessionId: sessionId ?? "",
-            startTime: startTime,
-            endTime: endTime,
-            duration: duration,
-            status: SpanStatus(rawValue: status ?? 0) ?? .unset,
-            attributes: decodedAttributes ?? nil,
-            userDefinedAttrs: userDefinedAttrs,
-            checkpoints: decodedCheckpoints ?? [],
-            hasEnded: hasEnded,
-            isSampled: isSampled
-        )
+        let decodedCheckpoints: [Checkpoint]
+        if let checkpointsData = checkpoints {
+            do {
+                decodedCheckpoints = try decoder.decode([Checkpoint].self, from: checkpointsData)
+            } catch {
+                decodedCheckpoints = []
+            }
+        } else {
+            decodedCheckpoints = []
+        }
+
+        let userDefinedAttributes: [String: AttributeValue]?
+        if let userDefinedAttrs = self.userDefinedAttrs {
+            do {
+                let decoded = try JSONDecoder().decode([String: AttributeValue].self, from: userDefinedAttrs)
+                userDefinedAttributes = decoded
+            } catch {
+                userDefinedAttributes = nil
+            }
+        } else {
+            userDefinedAttributes = nil
+        }
+
+        return SpanDataCodable(name: name ?? "",
+                               traceId: traceId ?? "",
+                               spanId: spanId,
+                               parentId: parentId,
+                               sessionId: sessionId ?? "",
+                               startTime: startTime,
+                               endTime: endTime,
+                               duration: duration,
+                               status: SpanStatus(rawValue: status ?? 0) ?? .unset,
+                               attributes: decodedAttributes ?? nil,
+                               userDefinedAttrs: userDefinedAttributes,
+                               checkpoints: decodedCheckpoints)
     }
 }

@@ -27,6 +27,10 @@ public enum AttributeValue {
   case float(Swift.Float)
   case double(Swift.Double)
 }
+extension Measure.AttributeValue : Swift.Codable {
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
 @objc final public class BaseMeasureConfig : ObjectiveC.NSObject {
   public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil, traceSamplingRate: Swift.Float? = nil, trackHttpHeaders: Swift.Bool? = nil, trackHttpBody: Swift.Bool? = nil, httpHeadersBlocklist: [Swift.String]? = nil, httpUrlBlocklist: [Swift.String]? = nil, httpUrlAllowlist: [Swift.String]? = nil, autoStart: Swift.Bool? = nil)
   @objc deinit
@@ -63,7 +67,7 @@ public protocol Span {
   func hasEnded() -> Swift.Bool
   func getDuration() -> Swift.Int64
 }
-public enum SpanStatus : Swift.Int64 {
+public enum SpanStatus : Swift.Int64, Swift.Codable {
   case unset
   case ok
   case error
@@ -107,77 +111,10 @@ extension Measure.BatchOb {
 }
 public struct Checkpoint : Swift.Codable {
   public let name: Swift.String
-  public let timestamp: Swift.Int64
-  public init(name: Swift.String, timestamp: Swift.Int64)
+  public let timestamp: Swift.String
+  public init(name: Swift.String, timestamp: Swift.String)
   public func encode(to encoder: any Swift.Encoder) throws
   public init(from decoder: any Swift.Decoder) throws
-}
-@_inheritsConvenienceInitializers @objc(SpanOb) public class SpanOb : CoreData.NSManagedObject {
-  @objc override dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
-  @objc deinit
-}
-extension Measure.SpanOb {
-  @nonobjc public class func fetchRequest() -> CoreData.NSFetchRequest<Measure.SpanOb>
-  @objc @NSManaged dynamic public var attributes: Foundation.Data? {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged dynamic public var checkpoints: Foundation.Data? {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged dynamic public var duration: Swift.Int64 {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged dynamic public var endTime: Swift.Int64 {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged dynamic public var hasEnded: Swift.Bool {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged dynamic public var isSampled: Swift.Bool {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged dynamic public var name: Swift.String? {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged dynamic public var parentId: Swift.String? {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged dynamic public var sessionId: Swift.String? {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged dynamic public var spanId: Swift.String? {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged dynamic public var startTime: Swift.Int64 {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged dynamic public var status: Swift.Int64 {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged dynamic public var traceId: Swift.String? {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged dynamic public var userDefinedAttrs: Swift.String? {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged dynamic public var batchId: Swift.String? {
-    @objc get
-    @objc set
-  }
 }
 @objc public enum VCLifecycleEventType : Swift.Int, Swift.Codable {
   case viewDidLoad = 0
@@ -227,6 +164,77 @@ extension SwiftUICore.View {
   final public func getTraceParentHeaderValue(span: any Measure.Span) -> Swift.String
   final public func getTraceParentHeaderKey() -> Swift.String
   @objc deinit
+}
+@_inheritsConvenienceInitializers @objc(SpanOb) public class SpanOb : CoreData.NSManagedObject {
+  @objc override dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
+  @objc deinit
+}
+extension Measure.SpanOb {
+  @nonobjc public class func fetchRequest() -> CoreData.NSFetchRequest<Measure.SpanOb>
+  @objc @NSManaged dynamic public var attributes: Foundation.Data? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var checkpoints: Foundation.Data? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var duration: Swift.Int64 {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var endTime: Swift.String {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var hasEnded: Swift.Bool {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var isSampled: Swift.Bool {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var name: Swift.String? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var parentId: Swift.String? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var sessionId: Swift.String? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var spanId: Swift.String {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var startTime: Swift.String {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var status: Swift.Int64 {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var traceId: Swift.String? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var userDefinedAttrs: Foundation.Data? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var batchId: Swift.String? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var startTimeInMillis: Swift.Int64 {
+    @objc get
+    @objc set
+  }
 }
 public struct MSRNetworkInterceptor {
   public static func enable(on sessionConfiguration: Foundation.URLSessionConfiguration)

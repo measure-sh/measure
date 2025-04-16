@@ -13,9 +13,9 @@ public struct Checkpoint: Codable {
     public let name: String
 
     /// The timestamp when the checkpoint was created.
-    public let timestamp: Int64
+    public let timestamp: String
 
-    public init(name: String, timestamp: Int64) {
+    public init(name: String, timestamp: String) {
         self.name = name
         self.timestamp = timestamp
     }

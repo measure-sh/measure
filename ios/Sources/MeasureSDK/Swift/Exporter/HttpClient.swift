@@ -104,6 +104,8 @@ final class BaseHttpClient: HttpClient {
             }
         }
         body.append(Data("--\(boundary)--\r\n".utf8))
+        let bodystring = String(data: body, encoding: .utf8)
+        print("bodystring: \(bodystring ?? "")")
         return body
     }
 

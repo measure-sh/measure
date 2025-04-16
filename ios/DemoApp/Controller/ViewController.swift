@@ -30,7 +30,7 @@ import Measure
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        span = Measure.shared.startSpan(name: "ViewController.viewDidLoad")
+        span = Measure.shared.startSpan(name: "ViewControllerviewDidLoad")
         let attributes: [String: AttributeValue] = ["user_name": .string("Alice"),
                                                     "paid_user": .boolean(true),
                                                     "credit_balance": .int(1000),
@@ -67,7 +67,7 @@ import Measure
     }
 
     override func viewWillAppear(_ animated: Bool) {
-        span?.setCheckpoint("ViewController.viewWillAppear")
+        span?.setCheckpoint("ViewControllerviewWillAppear")
         super.viewWillAppear(animated)
     }
     // MARK: - Table Header View with Buttons
