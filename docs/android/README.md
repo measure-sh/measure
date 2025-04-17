@@ -572,18 +572,9 @@ Measure Android SDK version `0.10.0` running on a Pixel 4a.
 
 Firebase initializes in multiple phases. The total median time to initialize when running the 
 benchmark for an app with Firebase crashlytics, performance and analytics SDK 
-was observed as `77.6ms`.
+was observed as `77.6ms`.  While Measure took `35.0ms` in the same macro-benchmark test.
 
-Measure has a single initialization for all it's features, and it took `35.0ms` in the same
-macro-benchmark test.
-
-| Slice                | min   | median | max   |
-|----------------------|-------|--------|-------|
-| FirebaseMaxMs        | 9.0   | 10.2   | 12.4  |
-| fire-clsMaxMs        | 36.2  | 44.6   | 52.6  |
-| fire-perf-earlyMaxMs | 6.6   | 8.8    | 22.2  |
-| fire-sessionsMaxMs   | 12.7  | 14.0   | 18.5  |
-| msr-initMaxMs        | 29.5  | 35.0   | 43.6  |
+![Firebase Comparison](images/firebaseComparisonBarChart.png)
 
 Perfetto screenshot from one of the runs: 
 
