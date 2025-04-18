@@ -58,6 +58,7 @@ protocol MeasureInitializer {
     var svgGenerator: SvgGenerator { get }
     var appVersionInfo: AppVersionInfo { get }
     var httpEventValidator: HttpEventValidator { get }
+    var internalEventCollector: InternalEventCollector { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -110,6 +111,7 @@ protocol MeasureInitializer {
 /// - `userPermissionManager`: `UserPermissionManager` object managing user permissions.
 /// - `appVersionInfo`: `AppVersionInfo` object that returns app information like app version and build number
 /// - `httpEventValidator`: `HttpEventValidator` object that lets you check if a http event should be tracked or not.
+/// - `internalEventCollector`: `InternalEventCollector` object that collects events from cross plafrom frameworks.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -160,6 +162,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let svgGenerator: SvgGenerator
     let appVersionInfo: AppVersionInfo
     let httpEventValidator: HttpEventValidator
+    let internalEventCollector: InternalEventCollector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -316,5 +319,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          client: client,
                                                          configProvider: configProvider,
                                                          httpEventValidator: httpEventValidator)
+        self.internalEventCollector = BaseInternalEventCollector(logger: logger, eventProcessor: eventProcessor)
     }
 }

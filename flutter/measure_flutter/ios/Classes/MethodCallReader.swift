@@ -19,7 +19,7 @@ class MethodCallReader {
         guard let arguments = call.arguments as? [String: Any],
               let value = arguments[name] as? T else {
             throw MethodArgumentError(
-                code: MethodConstants.errorArgumentMissing,
+                code: ErrorCode.errorArgumentMissing,
                 message: "Required argument '\(name)' was not provided",
                 details: "Method: \(call.method)"
             )

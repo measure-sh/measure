@@ -121,6 +121,9 @@ final class MeasureInternal {
     var attachmentProcessor: AttachmentProcessor {
         return measureInitializer.attachmentProcessor
     }
+    var internalEventCollector: InternalEventCollector {
+        return measureInitializer.internalEventCollector
+    }
     private let lifecycleObserver: LifecycleObserver
     private var isStarted: Bool = false
 
@@ -200,6 +203,7 @@ final class MeasureInternal {
         self.networkChangeCollector.enable()
         self.lifecycleCollector.enable()
         self.crashReportManager.enable()
+        self.internalEventCollector.enable()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let window = UIApplication.shared.windows.first {
                 self.gestureCollector.enable(for: window)
@@ -218,6 +222,7 @@ final class MeasureInternal {
         self.gestureCollector.disable()
         self.lifecycleCollector.disable()
         self.crashReportManager.disable()
+        self.internalEventCollector.disable()
     }
 
     private func registerAlwaysOnCollectors() {

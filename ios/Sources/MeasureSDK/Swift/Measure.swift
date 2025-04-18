@@ -163,6 +163,11 @@ import Foundation
         customEventCollector.trackEvent(name: name, attributes: attributes, timestamp: timestamp)
     }
 
+    public func internalTrackEvent(data: [String: Any?], type: String, timestamp: Int64, attributes: [String: Any?], userDefinedAttrs: [String: AttributeValue], userTriggered: Bool, sessionId: String?, threadName: String?) {
+        guard let internalEventCollector = measureInternal?.internalEventCollector else { return }
+        internalEventCollector.trackEvent(data: data, type: type, timestamp: timestamp, attributes: attributes, userDefinedAttrs: userDefinedAttrs, userTriggered: userTriggered, sessionId: sessionId, threadName: threadName)
+    }
+
     /// Tracks an event with optional timestamp.
     /// Event names should be clear and consistent to aid in dashboard searches
     ///

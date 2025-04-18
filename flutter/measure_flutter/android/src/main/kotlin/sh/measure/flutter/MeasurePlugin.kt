@@ -5,6 +5,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import sh.measure.android.Measure
+import sh.measure.android.MsrAttachment
 import sh.measure.android.attributes.AttributeValue
 
 class MeasurePlugin : FlutterPlugin, MethodCallHandler {
@@ -18,35 +19,66 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         try {
             when (call.method) {
-                MethodConstants.FUNCTION_TRACK_CUSTOM_EVENT -> handleTrackCustomEvent(call, result)
+                MethodConstants.FUNCTION_TRACK_EVENT -> handleTrackEvent(call, result)
                 else -> result.notImplemented()
             }
         } catch (e: MethodArgumentException) {
             result.error(e.code, e.message, e.details)
         } catch (e: Exception) {
             result.error(
-                MethodConstants.ERROR_UNKNOWN,
+                ErrorCode.ERROR_UNKNOWN,
                 "Unexpected method channel error when calling ${call.method}",
                 "${e.message}"
             )
         }
     }
 
-    private fun handleTrackCustomEvent(call: MethodCall, result: MethodChannel.Result) {
+    private fun handleTrackEvent(call: MethodCall, result: MethodChannel.Result) {
         val reader = MethodCallReader(call)
-        val name = reader.requireArg<String>(MethodConstants.ARG_NAME)
+        val eventType = reader.requireArg<String>(MethodConstants.ARG_EVENT_TYPE)
+        val eventData = reader.requireArg<Map<String, Any>>(MethodConstants.ARG_EVENT_DATA)
         val timestamp = reader.requireArg<Long>(MethodConstants.ARG_TIMESTAMP)
-        val rawAttributes = reader.requireArg<Map<String, Any>>(MethodConstants.ARG_ATTRIBUTES)
+        val rawAttributes = reader.requireArg<Map<String, Any>>(MethodConstants.ARG_USER_DEFINED_ATTRS)
         val convertedAttributes = AttributeConverter.convertAttributes(rawAttributes)
-        processCustomEvent(name, timestamp, convertedAttributes)
+        val userTriggered = reader.requireArg<Boolean>(MethodConstants.ARG_USER_TRIGGERED)
+        val threadName = reader.optionalArg<String>(MethodConstants.ARG_THREAD_NAME)
+        trackEvent(
+            data = eventData,
+            type = eventType,
+            timestamp = timestamp,
+            userDefinedAttrs = convertedAttributes,
+            userTriggered = userTriggered,
+            threadName = threadName,
+        )
         result.success(null)
     }
 
-    private fun processCustomEvent(
-        name: String, timestamp: Long, attributes: Map<String, AttributeValue>
+    private fun trackEvent(
+        data: Map<String, Any>,
+        type: String,
+        timestamp: Long,
+        userDefinedAttrs: MutableMap<String, AttributeValue> = mutableMapOf<String, AttributeValue>(),
+        attachments: MutableList<MsrAttachment> = mutableListOf<MsrAttachment>(),
+        userTriggered: Boolean,
+        sessionId: String? = null,
+        threadName: String? = null,
     ) {
-        Measure.trackEvent(name = name, timestamp = timestamp, attributes = attributes)
+        val attributes = mutableMapOf<String, Any?>(
+            Attribute.PLATFORM to Attribute.PLATFORM_FLUTTER
+        )
+        Measure.internalTrackEvent(
+            data = data,
+            type = type,
+            timestamp = timestamp,
+            attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
+            attachments = attachments,
+            userTriggered = userTriggered,
+            sessionId = sessionId,
+            threadName = threadName,
+        )
     }
+
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
