@@ -110,17 +110,20 @@ func NewConfig() *ServerConfig {
 
 	siteOrigin := os.Getenv("SITE_ORIGIN")
 	if siteOrigin == "" {
-		log.Fatal("SITE_ORIGIN env var not set. Need for Cross Origin Resource Sharing (CORS) to work.")
+		// log.Fatal("SITE_ORIGIN env var not set. Need for Cross Origin Resource Sharing (CORS) to work.")
+		log.Println("SITE_ORIGIN env var not set. Need for Cross Origin Resource Sharing (CORS) to work.")
 	}
 
 	apiOrigin := os.Getenv("API_ORIGIN")
 	if apiOrigin == "" {
-		log.Fatal("API_ORIGIN env var not set. Need for proxying session attachments.")
+		// log.Fatal("API_ORIGIN env var not set. Need for proxying session attachments.")
+		log.Println("API_ORIGIN env var not set. Need for proxying session attachments.")
 	}
 
 	symbolicatorOrigin := os.Getenv("SYMBOLICATOR_ORIGIN")
 	if symbolicatorOrigin == "" {
-		log.Fatal("SYMBOLICATOR_ORIGIN env var not set. Need for de-obfuscating events.")
+		// log.Fatal("SYMBOLICATOR_ORIGIN env var not set. Need for de-obfuscating events.")
+		log.Println("SYMBOLICATOR_ORIGIN env var not set. Need for de-obfuscating events.")
 	}
 
 	oauthGitHubKey := os.Getenv("OAUTH_GITHUB_KEY")
@@ -150,12 +153,14 @@ func NewConfig() *ServerConfig {
 
 	postgresDSN := os.Getenv("POSTGRES_DSN")
 	if postgresDSN == "" {
-		log.Fatal("POSTGRES_DSN env var is not set, cannot start server")
+		// log.Fatal("POSTGRES_DSN env var is not set, cannot start server")
+		log.Println("POSTGRES_DSN env var is not set, cannot start server")
 	}
 
 	clickhouseDSN := os.Getenv("CLICKHOUSE_DSN")
 	if clickhouseDSN == "" {
-		log.Fatal("CLICKHOUSE_DSN env var is not set, cannot start server")
+		// log.Fatal("CLICKHOUSE_DSN env var is not set, cannot start server")
+		log.Println("CLICKHOUSE_DSN env var is not set, cannot start server")
 	}
 
 	otelServiceName := os.Getenv("OTEL_SERVICE_NAME")
@@ -197,12 +202,14 @@ func NewConfig() *ServerConfig {
 func Init(config *ServerConfig) {
 	pgPool, err := pgxpool.New(context.Background(), config.PG.DSN)
 	if err != nil {
-		log.Fatalf("Unable to create PG connection pool: %v\n", err)
+		// log.Fatalf("Unable to create PG connection pool: %v\n", err)
+		log.Printf("Unable to create PG connection pool: %v\n", err)
 	}
 
 	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
 	if err != nil {
-		log.Fatalf("Unable to parse CH connection string: %v\n", err)
+		// log.Fatalf("Unable to parse CH connection string: %v\n", err)
+		log.Printf("Unable to parse CH connection string: %v\n", err)
 	}
 
 	if gin.Mode() == gin.ReleaseMode {
@@ -215,11 +222,13 @@ func Init(config *ServerConfig) {
 
 	chPool, err := clickhouse.Open(chOpts)
 	if err != nil {
-		log.Fatalf("Unable to create CH connection pool: %v", err)
+		// log.Fatalf("Unable to create CH connection pool: %v", err)
+		log.Printf("Unable to create CH connection pool: %v", err)
 	}
 
 	if err := inet.Init(); err != nil {
-		log.Fatalf("Unable to initialize geo ip lookup system: %v", err)
+		// log.Fatalf("Unable to initialize geo ip lookup system: %v", err)
+		log.Printf("Unable to initialize geo ip lookup system: %v", err)
 	}
 
 	Server = &server{
