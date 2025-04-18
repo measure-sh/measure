@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ["1.22.x", "1.23.x"]
+        go-version: ["1.23.x", "1.24.x"]
     defaults:
       run:
         working-directory: backend/api
@@ -90,7 +90,7 @@ jobs:
             type=ref,event=branch
 
       - name: Log image details
-        run: echo Tags are ${{ steps.meta.output.tags }}
+        run: echo Tags are ${{ steps.meta.outputs.tags }}
 
       # - name: Build and push OCI image
       #   id: push
