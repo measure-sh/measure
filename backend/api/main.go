@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"backend/api/inet"
@@ -136,5 +138,12 @@ func main() {
 		teams.DELETE(":id/members/:memberId", measure.RemoveTeamMember)
 	}
 
-	r.Run(":8080") // listen and serve on 0.0.0.0:8080
+	// listen and serve on 0.0.0.0:${PORT}
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	if err := r.Run(":" + port); err != nil {
+		fmt.Printf("Failed to listen and serve on 0.0.0.0:%s\n", port)
+	}
 }
