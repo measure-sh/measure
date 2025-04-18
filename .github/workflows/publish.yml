@@ -64,7 +64,7 @@ jobs:
     name: Build and push image
     runs-on: ubuntu-latest
     # if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
-    needs: [build, test]
+    needs: [build-api, test-api]
     permissions:
       contents: read
       packages: write
