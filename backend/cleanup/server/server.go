@@ -70,12 +70,12 @@ func NewConfig() *ServerConfig {
 
 	postgresDSN := os.Getenv("POSTGRES_DSN")
 	if postgresDSN == "" {
-		log.Fatal("POSTGRES_DSN env var is not set, cannot start server")
+		log.Println("POSTGRES_DSN env var is not set, cannot start server")
 	}
 
 	clickhouseDSN := os.Getenv("CLICKHOUSE_DSN")
 	if clickhouseDSN == "" {
-		log.Fatal("CLICKHOUSE_DSN env var is not set, cannot start server")
+		log.Println("CLICKHOUSE_DSN env var is not set, cannot start server")
 	}
 
 	otelServiceName := os.Getenv("OTEL_SERVICE_NAME")
@@ -105,17 +105,17 @@ func NewConfig() *ServerConfig {
 func Init(config *ServerConfig) {
 	pgPool, err := pgxpool.New(context.Background(), config.PG.DSN)
 	if err != nil {
-		log.Fatalf("Unable to create PG connection pool: %v\n", err)
+		log.Printf("Unable to create PG connection pool: %v\n", err)
 	}
 
 	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
 	if err != nil {
-		log.Fatalf("Unable to parse CH connection string: %v\n", err)
+		log.Printf("Unable to parse CH connection string: %v\n", err)
 	}
 
 	chPool, err := clickhouse.Open(chOpts)
 	if err != nil {
-		log.Fatalf("Unable to create CH connection pool: %v", err)
+		log.Printf("Unable to create CH connection pool: %v", err)
 	}
 
 	sqlf.SetDialect(sqlf.PostgreSQL)
