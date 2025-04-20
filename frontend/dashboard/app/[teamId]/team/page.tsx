@@ -317,7 +317,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
                       {/* Loading message for role change */}
                       {roleChangeApiStatus === RoleChangeApiStatus.Loading && roleChangeMemberId === id && <p className="font-display">Changing role...</p>}
                       {/* Error message for role change */}
-                      {roleChangeApiStatus === RoleChangeApiStatus.Error && roleChangeMemberId === id && <p className="font-display text-center">Error: {changeRoleErrorMsg}</p>}
+                      {roleChangeApiStatus === RoleChangeApiStatus.Error && roleChangeMemberId === id && <p className="font-display pl-4 w-24 text-xs">Error: {changeRoleErrorMsg}</p>}
                       {/* Success message for role change */}
                       {roleChangeApiStatus === RoleChangeApiStatus.Success && roleChangeMemberId === id && <p className="font-display text-center">Role changed!</p>}
                     </div>
@@ -334,7 +334,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
                       {/* Loading message for member removal */}
                       {removeMemberApiStatus === RemoveMemberApiStatus.Loading && removeMemberId === id && <p className="font-display text-center">Removing member...</p>}
                       {/* Error message for member removal */}
-                      {removeMemberApiStatus === RemoveMemberApiStatus.Error && removeMemberId === id && <p className="font-display text-center">Error: {removeMemberErrorMsg}</p>}
+                      {removeMemberApiStatus === RemoveMemberApiStatus.Error && removeMemberId === id && <p className="font-display pl-4 w-24 text-xs">Error: {removeMemberErrorMsg}</p>}
                     </div>
                   }
 
