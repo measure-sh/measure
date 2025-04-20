@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**frontend**): Improve teams error UI on change role & remove member errors by @anupcowkur in #2072
 - (**frontend**): Filters not updating on no data/not onboarded states by @anupcowkur in #2066
 
 ## [0.7.0] - 2025-04-15
