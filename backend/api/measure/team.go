@@ -892,6 +892,7 @@ func RemoveTeamMember(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
+	memberIdStr := memberId.String()
 
 	user := &User{
 		ID: &userId,
@@ -929,6 +930,26 @@ func RemoveTeamMember(c *gin.Context) {
 		ID: &teamId,
 	}
 
+	// check if member is being removed from their default team
+	memberUser := &User{
+		ID: &memberIdStr,
+	}
+
+	memberOwnTeam, err := memberUser.getOwnTeam(c)
+	if err != nil {
+		msg := "failed to lookup member's default team"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if memberOwnTeam.ID != nil && *memberOwnTeam.ID == teamId {
+		msg := fmt.Sprintf("member [%s] cannot be removed from their default team [%s]", memberId, teamId)
+		fmt.Println(msg)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
 	if err = team.removeMember(&memberId); err != nil {
 		msg := fmt.Sprintf("couldn't remove member [%s]", memberId)
 		fmt.Println(msg, err)
@@ -956,6 +977,7 @@ func ChangeMemberRole(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
+	memberIdStr := memberId.String()
 
 	user := &User{
 		ID: &userId,
@@ -1008,6 +1030,26 @@ func ChangeMemberRole(c *gin.Context) {
 
 	team := &Team{
 		ID: &teamId,
+	}
+
+	// check if member role is being changed in default team
+	memberUser := &User{
+		ID: &memberIdStr,
+	}
+
+	memberOwnTeam, err := memberUser.getOwnTeam(c)
+	if err != nil {
+		msg := "failed to lookup member's default team"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if memberOwnTeam.ID != nil && *memberOwnTeam.ID == teamId {
+		msg := fmt.Sprintf("cannot change role of member [%s] in their default team [%s]", memberId, teamId)
+		fmt.Println(msg)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
 	}
 
 	if err := team.changeRole(&memberId, roleMap[*member.Role]); err != nil {
