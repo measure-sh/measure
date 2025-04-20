@@ -99,7 +99,9 @@ func (u *User) getOwnTeam(ctx context.Context) (team *Team, err error) {
 		Select("teams.id, teams.name").
 		From("public.teams").
 		LeftJoin("public.team_membership", "public.teams.id = public.team_membership.team_id and public.team_membership.role = 'owner'").
-		Where("public.team_membership.user_id = ?", u.ID)
+		Where("public.team_membership.user_id = ?", u.ID).
+		OrderBy("public.team_membership.created_at").
+		Limit(1)
 
 	defer stmt.Close()
 
