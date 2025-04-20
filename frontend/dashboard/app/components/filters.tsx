@@ -630,6 +630,25 @@ const Filters: React.FC<FiltersProps> = ({
     }
   }
 
+  const clearFiltersOnFilterApiFail = () => {
+    console.log("Filters API failed, clearing filters")
+    setSelectedVersions(defaultFilters.versions)
+    setSelectedSessionType(defaultFilters.sessionType)
+    setSelectedOsVersions(defaultFilters.osVersions)
+    setSelectedCountries(defaultFilters.countries)
+    setSelectedNetworkProviders(defaultFilters.networkProviders)
+    setSelectedNetworkTypes(defaultFilters.networkTypes)
+    setSelectedNetworkGenerations(defaultFilters.networkGenerations)
+    setSelectedLocales(defaultFilters.locales)
+    setSelectedDeviceManufacturers(defaultFilters.deviceManufacturers)
+    setSelectedDeviceNames(defaultFilters.deviceNames)
+    setSelectedFreeText(defaultFilters.freeText)
+    setSelectedSpanStatuses(defaultFilters.spanStatuses)
+    setSelectedRootSpanName(defaultFilters.rootSpanName)
+    setSelectedBugReportStatuses(defaultFilters.bugReportStatuses)
+    setSelectedUdAttrMatchers(defaultFilters.udAttrMatchers)
+  }
+
   const getFilters = async () => {
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
@@ -638,12 +657,15 @@ const Filters: React.FC<FiltersProps> = ({
     switch (result.status) {
       case FiltersApiStatus.NotOnboarded:
         setFiltersApiStatus(FiltersApiStatus.NotOnboarded)
+        clearFiltersOnFilterApiFail()
         break
       case FiltersApiStatus.NoData:
         setFiltersApiStatus(FiltersApiStatus.NoData)
+        clearFiltersOnFilterApiFail()
         break
       case FiltersApiStatus.Error:
         setFiltersApiStatus(FiltersApiStatus.Error)
+        clearFiltersOnFilterApiFail()
         break
       case FiltersApiStatus.Success:
         setFiltersApiStatus(FiltersApiStatus.Success)
