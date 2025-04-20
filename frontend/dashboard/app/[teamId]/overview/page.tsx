@@ -29,7 +29,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
   const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
     // update filters only if they have changed
-    if (updatedFilters.ready && pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
+    if (pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
       updatePageState({
         filters: updatedFilters
       })

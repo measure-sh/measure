@@ -66,7 +66,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
 
   const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
     // update filters only if they have changed
-    if (updatedFilters.ready && pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
+    if (pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
       updatePageState({
         filters: updatedFilters,
         // Reset pagination on filters change if previous filters were not default filters
