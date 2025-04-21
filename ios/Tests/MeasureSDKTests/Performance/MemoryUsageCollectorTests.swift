@@ -12,7 +12,7 @@ final class MemoryUsageCollectorTests: XCTestCase {
     private var memoryUsageCollector: BaseMemoryUsageCollector!
     private var mockLogger: MockLogger!
     private var mockConfigProvider: MockConfigProvider!
-    private var mockEventProcessor: MockEventProcessor!
+    private var mockSignalProcessor: MockSignalProcessor!
     private var mockTimeProvider: MockTimeProvider!
     private var mockMemoryUsageCalculator: MockMemoryUsageCalculator!
     private var mockSysCtl: MockSysCtl!
@@ -21,18 +21,16 @@ final class MemoryUsageCollectorTests: XCTestCase {
         super.setUp()
         mockLogger = MockLogger()
         mockConfigProvider = MockConfigProvider()
-        mockEventProcessor = MockEventProcessor()
+        mockSignalProcessor = MockSignalProcessor()
         mockTimeProvider = MockTimeProvider()
         mockMemoryUsageCalculator = MockMemoryUsageCalculator()
         mockSysCtl = MockSysCtl()
-        memoryUsageCollector = BaseMemoryUsageCollector(
-            logger: mockLogger,
-            configProvider: mockConfigProvider,
-            eventProcessor: mockEventProcessor,
-            timeProvider: mockTimeProvider,
-            memoryUsageCalculator: mockMemoryUsageCalculator,
-            sysCtl: mockSysCtl
-        )
+        memoryUsageCollector = BaseMemoryUsageCollector(logger: mockLogger,
+                                                        configProvider: mockConfigProvider,
+                                                        signalProcessor: mockSignalProcessor,
+                                                        timeProvider: mockTimeProvider,
+                                                        memoryUsageCalculator: mockMemoryUsageCalculator,
+                                                        sysCtl: mockSysCtl)
     }
 
     func testEnableStartsTimerOnce() {
@@ -79,16 +77,16 @@ final class MemoryUsageCollectorTests: XCTestCase {
 
         memoryUsageCollector.trackMemoryUsage()
 
-        XCTAssertNotNil(mockEventProcessor.data)
-        if let memoryUsageData = mockEventProcessor.data as? MemoryUsageData {
+        XCTAssertNotNil(mockSignalProcessor.data)
+        if let memoryUsageData = mockSignalProcessor.data as? MemoryUsageData {
             XCTAssertEqual(memoryUsageData.maxMemory, 4096)
             XCTAssertEqual(memoryUsageData.usedMemory, 1024)
             XCTAssertEqual(memoryUsageData.interval, mockConfigProvider.memoryTrackingIntervalMs)
         } else {
             XCTFail("Data should be of type MemoryUsageData.")
         }
-        XCTAssertEqual(mockEventProcessor.timestamp, expectedTimestamp)
-        XCTAssertEqual(mockEventProcessor.type, .memoryUsageAbsolute)
+        XCTAssertEqual(mockSignalProcessor.timestamp, expectedTimestamp)
+        XCTAssertEqual(mockSignalProcessor.type, .memoryUsageAbsolute)
     }
 
     func testTrackMemoryUsageErrorData() {
@@ -96,7 +94,7 @@ final class MemoryUsageCollectorTests: XCTestCase {
 
         memoryUsageCollector.trackMemoryUsage()
 
-        XCTAssertNil(mockEventProcessor.data, "No event should be tracked if memory usage is -1.")
+        XCTAssertNil(mockSignalProcessor.data, "No event should be tracked if memory usage is -1.")
         XCTAssertEqual(mockLogger.logs.last, "Could not get memory usage data.")
     }
 }

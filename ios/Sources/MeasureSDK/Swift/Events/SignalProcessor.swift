@@ -1,5 +1,5 @@
 //
-//  EventProcessor.swift
+//  SignalProcessor.swift
 //  MeasureSDK
 //
 //  Created by Adwin Ross on 05/09/24.
@@ -9,7 +9,7 @@ import Foundation
 
 /// A protocol for processing events. Responsible for tracking events, processing them by applying
 /// various attributes and transformations, and then eventually storing them or sending them to the server.
-protocol EventProcessor {
+protocol SignalProcessor {
     /// Tracks an event with the given data, timestamp, type, attributes, sessionId and attachments.
     func track<T: Codable>( // swiftlint:disable:this function_parameter_count
         data: T,
@@ -28,11 +28,13 @@ protocol EventProcessor {
         sessionId: String?,
         attachments: [Attachment]?,
         userDefinedAttributes: String?)
+
+    func trackSpan(_ spanData: SpanData)
 }
 
-/// A concrete implementation of the `EventProcessor` protocol, responsible for tracking and
+/// A concrete implementation of the `SignalProcessor` protocol, responsible for tracking and
 /// processing events.
-final class BaseEventProcessor: EventProcessor {
+final class BaseSignalProcessor: SignalProcessor {
     private let logger: Logger
     private let idProvider: IdProvider
     private let sessionManager: SessionManager
@@ -100,6 +102,16 @@ final class BaseEventProcessor: EventProcessor {
         }
     }
 
+    func trackSpan(_ spanData: SpanData) {
+        SignPost.trace(label: "track-span-triggered") {
+            trackSpanData(spanData)
+        }
+    }
+
+    private func trackSpanData(_ spanData: SpanData) {
+        dump(spanData)
+    }
+
     private func track<T: Codable>( // swiftlint:disable:this function_parameter_count
         data: T,
         timestamp: Number,
@@ -144,7 +156,7 @@ final class BaseEventProcessor: EventProcessor {
         sessionId: String?,
         userDefinedAttributes: String?
     ) -> Event<T> {
-        let id = idProvider.createId()
+        let id = idProvider.uuid()
         let resolvedSessionId = sessionId ?? sessionManager.sessionId
         return Event(
             id: id,
