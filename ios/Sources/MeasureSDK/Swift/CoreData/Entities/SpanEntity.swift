@@ -93,7 +93,7 @@ struct SpanEntity {
         self.endTimeString = endTimeString
     }
 
-    func toSpanData() -> SpanDataCodable {
+    func toSpanDataCodable() -> SpanDataCodable {
         let decoder = JSONDecoder()
 
         let decodedAttributes: Attributes?

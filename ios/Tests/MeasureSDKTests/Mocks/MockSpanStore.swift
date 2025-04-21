@@ -32,6 +32,14 @@ final class MockSpanStore: SpanStore {
         }
     }
 
+    func deleteSpans(sessionIds: [String]) {
+        for (key, span) in spans {
+            if let sessionId = span.sessionId, sessionIds.contains(sessionId) {
+                spans.removeValue(forKey: key)
+            }
+        }
+    }
+
     func getAllSpans() -> [SpanEntity]? {
         return Array(spans.values)
     }

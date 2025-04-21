@@ -42,7 +42,7 @@ final class BaseNetworkClient: NetworkClient {
         }
 
         for spanEntity in spans {
-            let span = spanEntity.toSpanData()
+            let span = spanEntity.toSpanDataCodable()
 
             let encoder = JSONEncoder()
             if let data = try? encoder.encode(span) {

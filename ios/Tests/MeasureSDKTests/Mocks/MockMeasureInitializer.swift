@@ -254,6 +254,7 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                                           timeProvider: self.timeProvider,
                                                                                                           logger: self.logger)
         self.dataCleanupService = dataCleanupService ?? BaseDataCleanupService(eventStore: self.eventStore,
+                                                                               spanStore: self.spanStore,
                                                                                sessionStore: self.sessionStore,
                                                                                logger: self.logger,
                                                                                sessionManager: self.sessionManager)
