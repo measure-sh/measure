@@ -112,6 +112,10 @@ final class BaseSignalProcessor: SignalProcessor {
     }
 
     private func trackSpanData(_ spanData: SpanData) {
+        if (!spanData.isSampled) {
+            // Do not store spans that are not sampled
+            return
+        }
         let spanEntity = SpanEntity(spanData,
                                     startTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.startTime),
                                     endTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.endTime))

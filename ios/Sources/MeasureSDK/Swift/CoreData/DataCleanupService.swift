@@ -13,12 +13,14 @@ protocol DataCleanupService {
 
 final class BaseDataCleanupService: DataCleanupService {
     private let eventStore: EventStore
+    private let spanStore: SpanStore
     private let sessionStore: SessionStore
     private let logger: Logger
     private let sessionManager: SessionManager
 
-    init(eventStore: EventStore, sessionStore: SessionStore, logger: Logger, sessionManager: SessionManager) {
+    init(eventStore: EventStore, spanStore: SpanStore, sessionStore: SessionStore, logger: Logger, sessionManager: SessionManager) {
         self.eventStore = eventStore
+        self.spanStore = spanStore
         self.sessionStore = sessionStore
         self.logger = logger
         self.sessionManager = sessionManager
@@ -32,6 +34,7 @@ final class BaseDataCleanupService: DataCleanupService {
 
         sessionStore.deleteSessions(sessionsToDelete)
         eventStore.deleteEvents(sessionIds: sessionsToDelete)
+        spanStore.deleteSpans(sessionIds: sessionsToDelete)
     }
 
     private func getSessionsToDelete() -> [String]? {
