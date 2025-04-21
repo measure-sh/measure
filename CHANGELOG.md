@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Prevent removal or role change of member in their default team by @anupcowkur in #2071
+- (**backend**): Get own team correctly when user is owner of multiple teams by @anupcowkur in #2069
 - (**frontend**): Improve teams error UI on change role & remove member errors by @anupcowkur in #2072
 - (**frontend**): Filters not updating on no data/not onboarded states by @anupcowkur in #2066
 
@@ -56,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Adjust bug report table text sizes by @anupcowkur in #1855
 - (**frontend**): Update website description by @anupcowkur in #1846
 - (**frontend**): Show bug reports in session timeline by @anupcowkur in #1833
-- (**frontend**): Show user def attrs in bug report details by @anupcowkur in #1832
+- (**frontend**): Show user def attrs in bug report details
 - (**frontend**): Add build number to session replay attr display by @anupcowkur in #1831
 - (**frontend**): Match bug report attr display style with others by @anupcowkur in #1830
 - (**frontend**): Rename button to "Close/Re-Open Bug Report" by @anupcowkur in #1828
