@@ -219,8 +219,7 @@ func (bm *BuildMapping) mark(ctx context.Context, tx *pgx.Tx) (err error) {
 		From("build_mappings").
 		Where("app_id = ?", bm.AppID).
 		Where("version_name = ?", bm.VersionName).
-		Where("version_code = ?", bm.VersionCode).
-		Where("mapping_type = ?", bm.MappingType)
+		Where("version_code = ?", bm.VersionCode)
 
 	defer stmt.Close()
 
