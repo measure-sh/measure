@@ -324,7 +324,7 @@ func (bm BuildMapping) insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.InsertInto(`build_mappings`)
 	defer stmt.Close()
 
-	for _, mf := range bm.MappingFiles {
+	for index, mf := range bm.MappingFiles {
 		// ignore old mapping files
 		if mf.ID != uuid.Nil {
 			continue
@@ -338,7 +338,7 @@ func (bm BuildMapping) insert(ctx context.Context, tx *pgx.Tx) (err error) {
 			Set(`app_id`, bm.AppID).
 			Set(`version_name`, bm.VersionName).
 			Set(`version_code`, bm.VersionCode).
-			Set(`mapping_type`, bm.MappingType).
+			Set(`mapping_type`, bm.MappingTypes[index]).
 			Set(`key`, mf.Key).
 			Set(`location`, mf.Location).
 			Set(`fnv1_hash`, mf.Checksum).
