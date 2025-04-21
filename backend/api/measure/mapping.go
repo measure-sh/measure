@@ -153,7 +153,7 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 		//
 		// This is critical for maintaining backwards
 		// compatibility.
-		diffLength := len(bm.MappingTypes) - len(bm.MappingFiles)
+		diffLength := len(bm.MappingFiles) - len(bm.MappingTypes)
 		if diffLength > 0 {
 			for i := 0; i < diffLength; i++ {
 				bm.MappingTypes = append(bm.MappingTypes, symbol.TypeDsym.String())
