@@ -398,8 +398,8 @@ func (bm BuildMapping) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
 // file(s) from build mapping respecting the
 // mapping type.
 func (bm *BuildMapping) extractDif() (err error) {
-	switch bm.MappingType {
-	case symbol.TypeProguard.String():
+	switch bm.Platform {
+	case platform.Android:
 		mf := bm.MappingFiles[0]
 		f, errHeader := mf.Header.Open()
 		if errHeader != nil {
@@ -433,7 +433,7 @@ func (bm *BuildMapping) extractDif() (err error) {
 			Data: bytes,
 			Key:  symbol.BuildUnifiedLayout(debugId.String()) + "/proguard",
 		})
-	case symbol.TypeDsym.String():
+	case platform.IOS:
 		for i := range bm.MappingFiles {
 			f, errHeader := bm.MappingFiles[i].Header.Open()
 			if errHeader != nil {
@@ -472,7 +472,7 @@ func (bm *BuildMapping) extractDif() (err error) {
 			}
 		}
 	default:
-		err = fmt.Errorf("failed to recognize mapping type %q", bm.MappingType)
+		err = fmt.Errorf("failed to recognize platform %q", bm.Platform)
 	}
 
 	return
