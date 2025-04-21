@@ -86,7 +86,7 @@ class MsrSpan: InternalSpan {
         return status
     }
 
-    func getUserDefinedAttrs() -> [String: Any] {
+    func getUserDefinedAttrs() -> [String: AttributeValue] {
         lock.lock()
         defer { lock.unlock() }
         return userDefinedAttrs
@@ -243,9 +243,8 @@ class MsrSpan: InternalSpan {
                         spanId: spanId,
                         parentId: parentId,
                         sessionId: sessionId,
-                        startTime: timeProvider.iso8601Timestamp(timeInMillis: startTime),
-                        startTimeInMillis: startTime,
-                        endTime: timeProvider.iso8601Timestamp(timeInMillis: endTime),
+                        startTime: startTime,
+                        endTime: endTime,
                         duration: calculateDuration(),
                         status: status,
                         attributes: attributes,

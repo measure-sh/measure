@@ -52,8 +52,9 @@ final class BaseExporter: Exporter {
 
         let events = eventStore.getEvents(eventIds: eventIds) ?? []
         let spans = spanStore.getSpans(spanIds: spanIds) ?? []
-        guard !spans.isEmpty || !events.isEmpty else {
+        guard !spans.isEmpty || !events.isEmpty else { // TODO: update logic here. remove batch if events/spans not found.
             logger.internalLog(level: .error, message: "No events and spans found for batch \(batchId), invalid export request.", error: nil, data: nil)
+            batchStore.deleteBatch(batchId)
             return nil
         }
 

@@ -109,13 +109,6 @@ extension Measure.BatchOb {
   @objc public init(apiKey: Swift.String, apiUrl: Swift.String)
   @objc deinit
 }
-public struct Checkpoint : Swift.Codable {
-  public let name: Swift.String
-  public let timestamp: Swift.String
-  public init(name: Swift.String, timestamp: Swift.String)
-  public func encode(to encoder: any Swift.Encoder) throws
-  public init(from decoder: any Swift.Decoder) throws
-}
 @objc public enum VCLifecycleEventType : Swift.Int, Swift.Codable {
   case viewDidLoad = 0
   case viewWillAppear = 1
@@ -175,6 +168,10 @@ extension Measure.SpanOb {
     @objc get
     @objc set
   }
+  @objc @NSManaged dynamic public var batchId: Swift.String? {
+    @objc get
+    @objc set
+  }
   @objc @NSManaged dynamic public var checkpoints: Foundation.Data? {
     @objc get
     @objc set
@@ -183,7 +180,7 @@ extension Measure.SpanOb {
     @objc get
     @objc set
   }
-  @objc @NSManaged dynamic public var endTime: Swift.String {
+  @objc @NSManaged dynamic public var endTime: Swift.Int64 {
     @objc get
     @objc set
   }
@@ -211,7 +208,7 @@ extension Measure.SpanOb {
     @objc get
     @objc set
   }
-  @objc @NSManaged dynamic public var startTime: Swift.String {
+  @objc @NSManaged dynamic public var startTime: Swift.Int64 {
     @objc get
     @objc set
   }
@@ -227,11 +224,11 @@ extension Measure.SpanOb {
     @objc get
     @objc set
   }
-  @objc @NSManaged dynamic public var batchId: Swift.String? {
+  @objc @NSManaged dynamic public var startTimeString: Swift.String {
     @objc get
     @objc set
   }
-  @objc @NSManaged dynamic public var startTimeInMillis: Swift.Int64 {
+  @objc @NSManaged dynamic public var endTimeString: Swift.String {
     @objc get
     @objc set
   }

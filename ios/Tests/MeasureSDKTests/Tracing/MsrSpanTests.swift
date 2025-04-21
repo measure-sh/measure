@@ -214,7 +214,7 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
                                      parentSpan: nil,
                                      spanProcessor: spanProcessor) as! MsrSpan
         span.setAttribute("key", value: "value")
-        XCTAssertEqual(span.getUserDefinedAttrs()["key"] as! String, "value")
+        XCTAssertEqual(span.getUserDefinedAttrs()["key"]?.value as! String, "value")
     }
 
     func test_setAttribute_onEndedSpan_doesNothing() {

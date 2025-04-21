@@ -143,7 +143,7 @@
 		52B7F1432D757F81001498BC /* CustomEventCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0F22D757F81001498BC /* CustomEventCollectorTests.swift */; };
 		52B7F1442D757F81001498BC /* EventProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0F32D757F81001498BC /* EventProcessorTests.swift */; };
 		52B7F1452D757F81001498BC /* BatchCreatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0F52D757F81001498BC /* BatchCreatorTests.swift */; };
-		52B7F1462D757F81001498BC /* EventExporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0F62D757F81001498BC /* EventExporterTests.swift */; };
+		52B7F1462D757F81001498BC /* ExporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0F62D757F81001498BC /* ExporterTests.swift */; };
 		52B7F1472D757F81001498BC /* EventSerializerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0F72D757F81001498BC /* EventSerializerTests.swift */; };
 		52B7F1482D757F81001498BC /* HeartbeatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0F82D757F81001498BC /* HeartbeatTests.swift */; };
 		52B7F1492D757F81001498BC /* HttpClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0F92D757F81001498BC /* HttpClientTests.swift */; };
@@ -165,7 +165,7 @@
 		52B7F1592D757F81001498BC /* MockCoreDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F10D2D757F81001498BC /* MockCoreDataManager.swift */; };
 		52B7F15A2D757F81001498BC /* MockCpuUsageCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F10E2D757F81001498BC /* MockCpuUsageCalculator.swift */; };
 		52B7F15B2D757F81001498BC /* MockCrashDataPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F10F2D757F81001498BC /* MockCrashDataPersistence.swift */; };
-		52B7F15C2D757F81001498BC /* MockEventExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1102D757F81001498BC /* MockEventExporter.swift */; };
+		52B7F15C2D757F81001498BC /* MockExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1102D757F81001498BC /* MockExporter.swift */; };
 		52B7F15D2D757F81001498BC /* MockSignalProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1112D757F81001498BC /* MockSignalProcessor.swift */; };
 		52B7F15E2D757F81001498BC /* MockEventStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1122D757F81001498BC /* MockEventStore.swift */; };
 		52B7F15F2D757F81001498BC /* MockHeartbeat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1132D757F81001498BC /* MockHeartbeat.swift */; };
@@ -236,6 +236,11 @@
 		CF7CAE4C2D940F2700E15CDB /* MockAppVersionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE4B2D940F2700E15CDB /* MockAppVersionInfo.swift */; };
 		CF7CAE552D952FA600E15CDB /* HttpEventValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */; };
 		CF7CAE582D95344100E15CDB /* HttpEventValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE572D95344100E15CDB /* HttpEventValidatorTests.swift */; };
+		CFB838212DAFEF780023592B /* SpanProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB838202DAFEF780023592B /* SpanProcessorTests.swift */; };
+		CFB8382C2DB1597B0023592B /* SpanOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB8382A2DB1597B0023592B /* SpanOb+CoreDataClass.swift */; };
+		CFB8382D2DB1597B0023592B /* SpanOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB8382B2DB1597B0023592B /* SpanOb+CoreDataProperties.swift */; };
+		CFB8382E2DB1597B0023592B /* SpanOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB8382A2DB1597B0023592B /* SpanOb+CoreDataClass.swift */; };
+		CFB8382F2DB1597B0023592B /* SpanOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB8382B2DB1597B0023592B /* SpanOb+CoreDataProperties.swift */; };
 		CFD88C6E2D9E94B40095115E /* SpanProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88C6B2D9E94B40095115E /* SpanProcessor.swift */; };
 		CFD88C6F2D9E94B40095115E /* MsrSpan.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88C692D9E94B40095115E /* MsrSpan.swift */; };
 		CFD88C702D9E94B40095115E /* Span.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88C6A2D9E94B40095115E /* Span.swift */; };
@@ -260,10 +265,8 @@
 		CFD88D652DAE36D30095115E /* BatchOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D632DAE36D30095115E /* BatchOb+CoreDataProperties.swift */; };
 		CFD88D662DAE36D30095115E /* BatchOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D622DAE36D30095115E /* BatchOb+CoreDataClass.swift */; };
 		CFD88D672DAE36D30095115E /* BatchOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D632DAE36D30095115E /* BatchOb+CoreDataProperties.swift */; };
-		CFD88D722DAFA6FA0095115E /* SpanOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D702DAFA6FA0095115E /* SpanOb+CoreDataClass.swift */; };
-		CFD88D732DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D712DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift */; };
-		CFD88D742DAFA6FA0095115E /* SpanOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D702DAFA6FA0095115E /* SpanOb+CoreDataClass.swift */; };
-		CFD88D752DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D712DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift */; };
+		CFD88D772DAFD0A70095115E /* MsrSpanBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D762DAFD0A70095115E /* MsrSpanBuilderTests.swift */; };
+		CFD88D792DAFDA530095115E /* MockSpanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D782DAFDA530095115E /* MockSpanStore.swift */; };
 		CFEC97ED2D9A7642000CFB68 /* MeasureInternalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */; };
 		CFEC97EE2D9A76A5000CFB68 /* MockMeasureInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF2362CB651C8003102DF /* MockMeasureInitializer.swift */; };
 /* End PBXBuildFile section */
@@ -522,7 +525,7 @@
 		52B7F0F22D757F81001498BC /* CustomEventCollectorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomEventCollectorTests.swift; sourceTree = "<group>"; };
 		52B7F0F32D757F81001498BC /* EventProcessorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EventProcessorTests.swift; sourceTree = "<group>"; };
 		52B7F0F52D757F81001498BC /* BatchCreatorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BatchCreatorTests.swift; sourceTree = "<group>"; };
-		52B7F0F62D757F81001498BC /* EventExporterTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EventExporterTests.swift; sourceTree = "<group>"; };
+		52B7F0F62D757F81001498BC /* ExporterTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ExporterTests.swift; sourceTree = "<group>"; };
 		52B7F0F72D757F81001498BC /* EventSerializerTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EventSerializerTests.swift; sourceTree = "<group>"; };
 		52B7F0F82D757F81001498BC /* HeartbeatTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HeartbeatTests.swift; sourceTree = "<group>"; };
 		52B7F0F92D757F81001498BC /* HttpClientTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HttpClientTests.swift; sourceTree = "<group>"; };
@@ -544,7 +547,7 @@
 		52B7F10D2D757F81001498BC /* MockCoreDataManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockCoreDataManager.swift; sourceTree = "<group>"; };
 		52B7F10E2D757F81001498BC /* MockCpuUsageCalculator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockCpuUsageCalculator.swift; sourceTree = "<group>"; };
 		52B7F10F2D757F81001498BC /* MockCrashDataPersistence.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockCrashDataPersistence.swift; sourceTree = "<group>"; };
-		52B7F1102D757F81001498BC /* MockEventExporter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockEventExporter.swift; sourceTree = "<group>"; };
+		52B7F1102D757F81001498BC /* MockExporter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockExporter.swift; sourceTree = "<group>"; };
 		52B7F1112D757F81001498BC /* MockSignalProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockSignalProcessor.swift; sourceTree = "<group>"; };
 		52B7F1122D757F81001498BC /* MockEventStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockEventStore.swift; sourceTree = "<group>"; };
 		52B7F1132D757F81001498BC /* MockHeartbeat.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockHeartbeat.swift; sourceTree = "<group>"; };
@@ -608,6 +611,9 @@
 		CF7CAE4B2D940F2700E15CDB /* MockAppVersionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAppVersionInfo.swift; sourceTree = "<group>"; };
 		CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidator.swift; sourceTree = "<group>"; };
 		CF7CAE572D95344100E15CDB /* HttpEventValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidatorTests.swift; sourceTree = "<group>"; };
+		CFB838202DAFEF780023592B /* SpanProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanProcessorTests.swift; sourceTree = "<group>"; };
+		CFB8382A2DB1597B0023592B /* SpanOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataClass.swift"; sourceTree = "<group>"; };
+		CFB8382B2DB1597B0023592B /* SpanOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		CFD88C692D9E94B40095115E /* MsrSpan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrSpan.swift; sourceTree = "<group>"; };
 		CFD88C6A2D9E94B40095115E /* Span.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Span.swift; sourceTree = "<group>"; };
 		CFD88C6B2D9E94B40095115E /* SpanProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanProcessor.swift; sourceTree = "<group>"; };
@@ -630,8 +636,8 @@
 		CFD88D472DACD3710095115E /* SpanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanStore.swift; sourceTree = "<group>"; };
 		CFD88D622DAE36D30095115E /* BatchOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BatchOb+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CFD88D632DAE36D30095115E /* BatchOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BatchOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
-		CFD88D702DAFA6FA0095115E /* SpanOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataClass.swift"; sourceTree = "<group>"; };
-		CFD88D712DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		CFD88D762DAFD0A70095115E /* MsrSpanBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrSpanBuilderTests.swift; sourceTree = "<group>"; };
+		CFD88D782DAFDA530095115E /* MockSpanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSpanStore.swift; sourceTree = "<group>"; };
 		CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInternalTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -1100,7 +1106,7 @@
 			isa = PBXGroup;
 			children = (
 				52B7F0F52D757F81001498BC /* BatchCreatorTests.swift */,
-				52B7F0F62D757F81001498BC /* EventExporterTests.swift */,
+				52B7F0F62D757F81001498BC /* ExporterTests.swift */,
 				52B7F0F72D757F81001498BC /* EventSerializerTests.swift */,
 				52B7F0F82D757F81001498BC /* HeartbeatTests.swift */,
 				52B7F0F92D757F81001498BC /* HttpClientTests.swift */,
@@ -1151,9 +1157,8 @@
 				52B7F10D2D757F81001498BC /* MockCoreDataManager.swift */,
 				52B7F10E2D757F81001498BC /* MockCpuUsageCalculator.swift */,
 				52B7F10F2D757F81001498BC /* MockCrashDataPersistence.swift */,
-				52B7F1102D757F81001498BC /* MockEventExporter.swift */,
-				52B7F1112D757F81001498BC /* MockSignalProcessor.swift */,
 				52B7F1122D757F81001498BC /* MockEventStore.swift */,
+				52B7F1102D757F81001498BC /* MockExporter.swift */,
 				52B7F1132D757F81001498BC /* MockHeartbeat.swift */,
 				52B7F1142D757F81001498BC /* MockIdProvider.swift */,
 				52B7F1152D757F81001498BC /* MockLogger.swift */,
@@ -1163,7 +1168,9 @@
 				52B7F1182D757F81001498BC /* MockRandomizer.swift */,
 				52B7F1192D757F81001498BC /* MockScreenshotGenerator.swift */,
 				52B7F11A2D757F81001498BC /* MockSessionManager.swift */,
+				52B7F1112D757F81001498BC /* MockSignalProcessor.swift */,
 				CFD88D302DAB8CA60095115E /* MockSpanProcessor.swift */,
+				CFD88D782DAFDA530095115E /* MockSpanStore.swift */,
 				52B7F11B2D757F81001498BC /* MockSvgGenerator.swift */,
 				52B7F11C2D757F81001498BC /* MockSysCtl.swift */,
 				52B7F11D2D757F81001498BC /* MockSystemCrashReporter.swift */,
@@ -1250,14 +1257,14 @@
 		52B7F17F2D76A32C001498BC /* CoreDataEntities */ = {
 			isa = PBXGroup;
 			children = (
-				CFD88D702DAFA6FA0095115E /* SpanOb+CoreDataClass.swift */,
-				CFD88D712DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift */,
 				CFD88D622DAE36D30095115E /* BatchOb+CoreDataClass.swift */,
 				CFD88D632DAE36D30095115E /* BatchOb+CoreDataProperties.swift */,
 				52B7F1892D76AFBB001498BC /* EventOb+CoreDataClass.swift */,
 				52B7F18A2D76AFBB001498BC /* EventOb+CoreDataProperties.swift */,
 				52B7F18B2D76AFBB001498BC /* SessionOb+CoreDataClass.swift */,
 				52B7F18C2D76AFBB001498BC /* SessionOb+CoreDataProperties.swift */,
+				CFB8382A2DB1597B0023592B /* SpanOb+CoreDataClass.swift */,
+				CFB8382B2DB1597B0023592B /* SpanOb+CoreDataProperties.swift */,
 			);
 			path = CoreDataEntities;
 			sourceTree = "<group>";
@@ -1352,6 +1359,8 @@
 			isa = PBXGroup;
 			children = (
 				CFD88D2E2DAB80EA0095115E /* MsrSpanTests.swift */,
+				CFD88D762DAFD0A70095115E /* MsrSpanBuilderTests.swift */,
+				CFB838202DAFEF780023592B /* SpanProcessorTests.swift */,
 			);
 			path = Tracing;
 			sourceTree = "<group>";
@@ -1778,8 +1787,8 @@
 				526D183C2D5A1913009A2E90 /* DataCleanupService.swift in Sources */,
 				526D182F2D5A1913009A2E90 /* UserAttributeProcessor.swift in Sources */,
 				526D18482D5A1913009A2E90 /* CustomEventCollector.swift in Sources */,
-				CFD88D722DAFA6FA0095115E /* SpanOb+CoreDataClass.swift in Sources */,
-				CFD88D732DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift in Sources */,
+				CFB8382C2DB1597B0023592B /* SpanOb+CoreDataClass.swift in Sources */,
+				CFB8382D2DB1597B0023592B /* SpanOb+CoreDataProperties.swift in Sources */,
 				526D18622D5A1913009A2E90 /* MSRNetworkInterceptor.swift in Sources */,
 				526D18472D5A1913009A2E90 /* AttachmentType.swift in Sources */,
 				526D186B2D5A1913009A2E90 /* MsrViewController.swift in Sources */,
@@ -1806,7 +1815,8 @@
 				52B7F1362D757F81001498BC /* InstallationIdAttributeProcessorTests.swift in Sources */,
 				52B7F14B2D757F81001498BC /* GestureTargetFinderTests.swift in Sources */,
 				CFD88D352DAB8D810095115E /* MockTraceSampler.swift in Sources */,
-				52B7F1462D757F81001498BC /* EventExporterTests.swift in Sources */,
+				CFD88D792DAFDA530095115E /* MockSpanStore.swift in Sources */,
+				52B7F1462D757F81001498BC /* ExporterTests.swift in Sources */,
 				52B7F1372D757F81001498BC /* UserAttributeProcessorTests.swift in Sources */,
 				52B7F16A2D757F81001498BC /* MockSystemFileManager.swift in Sources */,
 				52B7F1722D757F81001498BC /* ScreenshotGeneratorTests.swift in Sources */,
@@ -1818,13 +1828,16 @@
 				52B7F1672D757F81001498BC /* MockSvgGenerator.swift in Sources */,
 				52B7F1452D757F81001498BC /* BatchCreatorTests.swift in Sources */,
 				52B7F1952D76AFBB001498BC /* EventOb+CoreDataClass.swift in Sources */,
+				CFB8382E2DB1597B0023592B /* SpanOb+CoreDataClass.swift in Sources */,
+				CFB8382F2DB1597B0023592B /* SpanOb+CoreDataProperties.swift in Sources */,
 				52B7F1962D76AFBB001498BC /* EventOb+CoreDataProperties.swift in Sources */,
 				52B7F1972D76AFBB001498BC /* SessionOb+CoreDataClass.swift in Sources */,
 				52B7F1982D76AFBB001498BC /* SessionOb+CoreDataProperties.swift in Sources */,
-				52B7F15C2D757F81001498BC /* MockEventExporter.swift in Sources */,
+				52B7F15C2D757F81001498BC /* MockExporter.swift in Sources */,
 				52B7F1562D757F81001498BC /* MockBatchStore.swift in Sources */,
 				52B7F1642D757F81001498BC /* MockRandomizer.swift in Sources */,
 				52B7F16C2D757F81001498BC /* MockUserDefaultStorage.swift in Sources */,
+				CFD88D772DAFD0A70095115E /* MsrSpanBuilderTests.swift in Sources */,
 				52B7F14C2D757F81001498BC /* Attachment+Extension.swift in Sources */,
 				52B7F1542D757F81001498BC /* MockAttributeProcessor.swift in Sources */,
 				52B7F16D2D757F81001498BC /* MockUserPermissionManager.swift in Sources */,
@@ -1862,8 +1875,6 @@
 				52B7F1392D757F81001498BC /* BatchStoreTests.swift in Sources */,
 				52B7F16F2D757F81001498BC /* CpuUsageCollectorTests.swift in Sources */,
 				52B7F13B2D757F81001498BC /* EventStoreTests.swift in Sources */,
-				CFD88D742DAFA6FA0095115E /* SpanOb+CoreDataClass.swift in Sources */,
-				CFD88D752DAFA6FA0095115E /* SpanOb+CoreDataProperties.swift in Sources */,
 				52B7F14A2D757F81001498BC /* PeriodicEventExporterTests.swift in Sources */,
 				52B7F1512D757F81001498BC /* XCTextCase+Extension.swift in Sources */,
 				52B7F1412D757F81001498BC /* CrashDataFormatterTests.swift in Sources */,
@@ -1877,6 +1888,7 @@
 				52B7F14D2D757F81001498BC /* Attributes+Extension.swift in Sources */,
 				CF7CAE582D95344100E15CDB /* HttpEventValidatorTests.swift in Sources */,
 				52B7F1342D757F81001498BC /* AttributeProcessorTests.swift in Sources */,
+				CFB838212DAFEF780023592B /* SpanProcessorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

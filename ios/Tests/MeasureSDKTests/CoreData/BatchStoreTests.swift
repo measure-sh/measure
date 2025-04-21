@@ -29,8 +29,8 @@ final class BatchStoreTests: XCTestCase {
     }
 
     func testInsertBatch() {
-        let batch1 = BatchEntity(batchId: "batch1", eventIds: ["event1", "event2"], createdAt: 1_000_000)
-        let batch2 = BatchEntity(batchId: "batch2", eventIds: ["event3", "event4"], createdAt: 1_000_000)
+        let batch1 = BatchEntity(batchId: "batch1", eventIds: ["event1", "event2"], spanIds: ["span1", "span2"], createdAt: 1_000_000)
+        let batch2 = BatchEntity(batchId: "batch2", eventIds: ["event3", "event4"], spanIds: ["span3", "span4"], createdAt: 1_000_000)
 
         // Perform concurrent inserts
         let expectation1 = expectation(description: "Insert batch 1")
@@ -56,7 +56,7 @@ final class BatchStoreTests: XCTestCase {
     }
 
     func testGetBatches() {
-        let batch = BatchEntity(batchId: "batch1", eventIds: ["event1", "event2"], createdAt: 1_000_000)
+        let batch = BatchEntity(batchId: "batch1", eventIds: ["event1", "event2"], spanIds: ["span1", "span2"], createdAt: 1_000_000)
         _ = batchStore.insertBatch(batch)
 
         let expectation = expectation(description: "Get batches")
@@ -72,8 +72,8 @@ final class BatchStoreTests: XCTestCase {
     }
 
     func testDeleteBatch() {
-        let batch1 = BatchEntity(batchId: "batch1", eventIds: ["event1", "event2"], createdAt: 1_000_000)
-        let batch2 = BatchEntity(batchId: "batch2", eventIds: ["event3", "event4"], createdAt: 1_000_000)
+        let batch1 = BatchEntity(batchId: "batch1", eventIds: ["event1", "event2"], spanIds: ["span1", "span2"], createdAt: 1_000_000)
+        let batch2 = BatchEntity(batchId: "batch2", eventIds: ["event3", "event4"], spanIds: ["span3", "span4"], createdAt: 1_000_000)
 
         _ = batchStore.insertBatch(batch1)
         _ = batchStore.insertBatch(batch2)
@@ -98,7 +98,7 @@ final class BatchStoreTests: XCTestCase {
     }
 
     func testDeleteNonExistentBatch() {
-        let batch = BatchEntity(batchId: "batch1", eventIds: ["event1", "event2"], createdAt: 1_000_000)
+        let batch = BatchEntity(batchId: "batch1", eventIds: ["event1", "event2"], spanIds: ["span1", "span2"], createdAt: 1_000_000)
         _ = batchStore.insertBatch(batch)
 
         let expectation = expectation(description: "Delete non-existent batch")

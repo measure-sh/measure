@@ -112,11 +112,11 @@ final class BaseSignalProcessor: SignalProcessor {
     }
 
     private func trackSpanData(_ spanData: SpanData) {
-        spanStore.insertSpan(span: SpanEntity(spanData))
-        if let spans = spanStore.getAllSpans() {
-            print("span: \(spans)")
-            print("span.count: \(spans.count)")
-        }
+        let spanEntity = SpanEntity(spanData,
+                                    startTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.startTime),
+                                    endTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.endTime))
+        spanStore.insertSpan(span: spanEntity)
+        logger.log(level: .debug, message: "Span processed: \(spanData.name), spanId: \(spanData.spanId), duration: \(spanData.duration)", error: nil, data: nil)
     }
 
     private func track<T: Codable>( // swiftlint:disable:this function_parameter_count

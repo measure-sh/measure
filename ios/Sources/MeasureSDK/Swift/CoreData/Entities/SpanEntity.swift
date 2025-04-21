@@ -13,9 +13,10 @@ struct SpanEntity {
     let spanId: String
     let parentId: String?
     let sessionId: String?
-    let startTime: String
-    let startTimeInMillis: Int64
-    let endTime: String
+    let startTime: Int64
+    let startTimeString: String
+    let endTime: Int64
+    let endTimeString: String
     let duration: Int64
     let status: Int64?
     let attributes: Data?
@@ -30,9 +31,10 @@ struct SpanEntity {
          spanId: String,
          parentId: String?,
          sessionId: String?,
-         startTime: String,
-         startTimeInMillis: Int64,
-         endTime: String,
+         startTime: Int64,
+         startTimeString: String,
+         endTime: Int64,
+         endTimeString: String,
          duration: Int64,
          status: Int64?,
          attributes: Data?,
@@ -47,7 +49,9 @@ struct SpanEntity {
         self.parentId = parentId
         self.sessionId = sessionId
         self.startTime = startTime
+        self.startTimeString = startTimeString
         self.endTime = endTime
+        self.endTimeString = endTimeString
         self.duration = duration
         self.status = status
         self.attributes = attributes
@@ -56,10 +60,9 @@ struct SpanEntity {
         self.hasEnded = hasEnded
         self.isSampled = isSampled
         self.batchId = batchId
-        self.startTimeInMillis = startTimeInMillis
     }
 
-    init(_ spanData: SpanData) {
+    init(_ spanData: SpanData, startTimeString: String, endTimeString: String) {
         self.name = spanData.name
         self.traceId = spanData.traceId
         self.spanId = spanData.spanId
@@ -82,11 +85,12 @@ struct SpanEntity {
             self.userDefinedAttrs = nil
         }
         self.batchId = nil
-        self.startTimeInMillis = spanData.startTimeInMillis
 
         let encoder = JSONEncoder()
         self.attributes = try? encoder.encode(spanData.attributes)
         self.checkpoints = try? encoder.encode(spanData.checkpoints)
+        self.startTimeString = startTimeString
+        self.endTimeString = endTimeString
     }
 
     func toSpanData() -> SpanDataCodable {
@@ -131,8 +135,8 @@ struct SpanEntity {
                                spanId: spanId,
                                parentId: parentId,
                                sessionId: sessionId ?? "",
-                               startTime: startTime,
-                               endTime: endTime,
+                               startTime: startTimeString,
+                               endTime: endTimeString,
                                duration: duration,
                                status: SpanStatus(rawValue: status ?? 0) ?? .unset,
                                attributes: decodedAttributes ?? nil,

@@ -41,8 +41,9 @@ final class BaseSpanStore: SpanStore {
             spanOb.parentId = span.parentId
             spanOb.sessionId = span.sessionId
             spanOb.startTime = span.startTime
+            spanOb.startTimeString = span.startTimeString
             spanOb.endTime = span.endTime
-            spanOb.startTimeInMillis = span.startTimeInMillis ?? 0
+            spanOb.endTimeString = span.endTimeString
             spanOb.duration = span.duration
             spanOb.status = span.status ?? 0
             spanOb.attributes = span.attributes
@@ -56,7 +57,7 @@ final class BaseSpanStore: SpanStore {
                 try context.saveIfNeeded()
             } catch {
                 guard let self = self else { return }
-                self.logger.internalLog(level: .error, message: "Failed to save span: \(span.spanId ?? "unknown")", error: error, data: nil)
+                self.logger.internalLog(level: .error, message: "Failed to save span: \(span.spanId)", error: error, data: nil)
             }
         }
     }
@@ -193,23 +194,22 @@ final class BaseSpanStore: SpanStore {
 
 extension SpanOb {
     func toSpanEntity() -> SpanEntity {
-        return SpanEntity(
-            name: self.name,
-            traceId: self.traceId,
-            spanId: self.spanId,
-            parentId: self.parentId,
-            sessionId: self.sessionId,
-            startTime: self.startTime,
-            startTimeInMillis: self.startTimeInMillis,
-            endTime: self.endTime,
-            duration: self.duration,
-            status: self.status,
-            attributes: self.attributes,
-            userDefinedAttrs: self.userDefinedAttrs,
-            checkpoints: self.checkpoints,
-            hasEnded: self.hasEnded,
-            isSampled: self.isSampled,
-            batchId: self.batchId
-        )
+        return SpanEntity(name: self.name,
+                          traceId: self.traceId,
+                          spanId: self.spanId,
+                          parentId: self.parentId,
+                          sessionId: self.sessionId,
+                          startTime: self.startTime,
+                          startTimeString: self.startTimeString,
+                          endTime: self.endTime,
+                          endTimeString: self.endTimeString,
+                          duration: self.duration,
+                          status: self.status,
+                          attributes: self.attributes,
+                          userDefinedAttrs: self.userDefinedAttrs,
+                          checkpoints: self.checkpoints,
+                          hasEnded: self.hasEnded,
+                          isSampled: self.isSampled,
+                          batchId: self.batchId)
     }
 }
