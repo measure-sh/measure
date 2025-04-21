@@ -51,7 +51,7 @@ type BuildMapping struct {
 	VersionName  string                  `form:"version_name" binding:"required"`
 	VersionCode  string                  `form:"version_code" binding:"required"`
 	Platform     string                  `form:"platform"`
-	MappingType  string                  `form:"mapping_type" binding:"required_with=File"`
+	MappingTypes []string                `form:"mapping_type" binding:"required_with=File"`
 	Files        []*multipart.FileHeader `form:"mapping_file" binding:"required_with=MappingType"`
 	MappingFiles []*MappingFile
 	Timestamp    time.Time
@@ -66,8 +66,17 @@ func (bm BuildMapping) hasMapping() bool {
 	return false
 }
 
+func (bm BuildMapping) hasProguard() bool {
+	for _, mappingType := range bm.MappingTypes {
+		if mappingType == symbol.TypeProguard.String() {
+			return true
+		}
+	}
+	return false
+}
+
 // validate validates build mapping details.
-func (bm BuildMapping) validate(app *App) (code int, err error) {
+func (bm *BuildMapping) validate(app *App) (code int, err error) {
 	code = http.StatusBadRequest
 
 	for i, mf := range bm.MappingFiles {
@@ -100,7 +109,7 @@ func (bm BuildMapping) validate(app *App) (code int, err error) {
 		//
 		// This is critical for maintaining backwards
 		// compatibility.
-		if bm.MappingType == symbol.TypeProguard.String() {
+		if bm.hasProguard() {
 			pltfrm = platform.Android
 		} else {
 			err = errors.New("failed to determine app's platform")
@@ -108,30 +117,53 @@ func (bm BuildMapping) validate(app *App) (code int, err error) {
 		}
 	}
 
-	platformMappingErr := fmt.Errorf("%q mapping type is not valid for %q platform", bm.MappingType, pltfrm)
+	// ensure mapping types are supported for the platform
+	platformMappingErr := fmt.Errorf("%q mapping type is not valid for %q platform", bm.MappingTypes, pltfrm)
+	for _, mappingType := range bm.MappingTypes {
+		switch mappingType {
+		case symbol.TypeProguard.String():
+			if pltfrm != platform.Android {
+				err = platformMappingErr
+				return
+			}
+		case symbol.TypeDsym.String():
+			if pltfrm != platform.IOS {
+				err = platformMappingErr
+				break
+			}
+			for _, mf := range bm.MappingFiles {
+				f, err := mf.Header.Open()
+				if err != nil {
+					return http.StatusInternalServerError, err
+				}
+				defer f.Close()
+				if err := codec.IsTarGz(f); err != nil {
+					return http.StatusBadRequest, err
+				}
+			}
+		default:
+			err = fmt.Errorf("unknown mapping type %q", mappingType)
+			return
+		}
+	}
+	if pltfrm == platform.IOS {
+		// Since older iOS upload scripts(<=0.1.0) send a single mapping
+		// type `dsym` with one or more mapping files, we set the mapping type
+		// to `dsym` for all mapping files.
+		//
+		// This is critical for maintaining backwards
+		// compatibility.
+		diffLength := len(bm.MappingTypes) - len(bm.MappingFiles)
+		if diffLength > 0 {
+			for i := 0; i < diffLength; i++ {
+				bm.MappingTypes = append(bm.MappingTypes, symbol.TypeDsym.String())
+			}
+		}
+	}
 
-	switch bm.MappingType {
-	case symbol.TypeProguard.String():
-		if pltfrm != platform.Android {
-			err = platformMappingErr
-		}
-	case symbol.TypeDsym.String():
-		if pltfrm != platform.IOS {
-			err = platformMappingErr
-			break
-		}
-		for _, mf := range bm.MappingFiles {
-			f, err := mf.Header.Open()
-			if err != nil {
-				return http.StatusInternalServerError, err
-			}
-			defer f.Close()
-			if err := codec.IsTarGz(f); err != nil {
-				return http.StatusBadRequest, err
-			}
-		}
-	default:
-		err = fmt.Errorf("unknown mapping type %q", bm.MappingType)
+	// mapping types and mapping files must same length
+	if len(bm.MappingTypes) != len(bm.MappingFiles) {
+		err = fmt.Errorf("mismatch: %d mapping types found for %d files", len(bm.MappingTypes), len(bm.MappingFiles))
 		return
 	}
 
