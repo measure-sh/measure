@@ -60,7 +60,7 @@ type BuildMapping struct {
 // hasMapping checks if necessary details are
 // valid for mapping build info.
 func (bm BuildMapping) hasMapping() bool {
-	if bm.MappingType != "" && len(bm.MappingFiles) > 0 {
+	if len(bm.MappingTypes) > 0 && len(bm.MappingFiles) > 0 {
 		return true
 	}
 	return false
