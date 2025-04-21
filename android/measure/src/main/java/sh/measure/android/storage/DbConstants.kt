@@ -1,5 +1,7 @@
 package sh.measure.android.storage
 
+import sh.measure.android.events.EventType
+
 internal object DbConstants {
     const val DATABASE_NAME = "measure.db"
     const val DATABASE_VERSION = DbVersion.V4
@@ -230,7 +232,7 @@ internal object Sql {
         eventCount: Int,
         ascending: Boolean,
         sessionId: String?,
-        eventTypeAllowList: List<String>,
+        eventTypeAllowList: List<EventType>,
     ): String {
         if (sessionId != null) {
             /**
@@ -275,7 +277,7 @@ internal object Sql {
                 JOIN ${SessionsTable.TABLE_NAME} s ON e.${EventTable.COL_SESSION_ID} = s.${SessionsTable.COL_SESSION_ID}
                 WHERE eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
                 AND (
-                    e.${EventTable.COL_TYPE} IN (${eventTypeAllowList.joinToString(", ") { "'$it'" }})
+                    e.${EventTable.COL_TYPE} IN (${eventTypeAllowList.joinToString(", ") { "'${it.value}'" }})
                     OR (s.${SessionsTable.COL_NEEDS_REPORTING} = 1)
                 )
                 ORDER BY e.${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}

@@ -83,7 +83,7 @@ internal interface InternalConfig {
      * All [EventType]'s that are always exported, regardless of other filters like session
      * sampling rate and whether the session crashed or not.
      */
-    val eventTypeExportAllowList: List<String>
+    val eventTypeExportAllowList: List<EventType>
 
     /**
      * The maximum number of (events + spans) allowed in the database.

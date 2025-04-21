@@ -49,7 +49,7 @@ class AnrCollectorTest {
         anrCollector.onAnrDetected(timestamp)
 
         // Then
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         val timestampCaptor = argumentCaptor<Long>()
         val dataCaptor = argumentCaptor<ExceptionData>()
         val attributesCaptor = argumentCaptor<MutableMap<String, Any?>>()

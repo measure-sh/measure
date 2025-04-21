@@ -49,8 +49,12 @@ final class BaseBatchCreator: BatchCreator {
         }
 
         let batchId = idProvider.uuid()
+<<<<<<< HEAD
         let batch = BatchEntity(batchId: batchId, eventIds: eventIds, spanIds: spanIds, createdAt: timeProvider.now())
         let isBatchInsertionSuccessful = batchStore.insertBatch(batch)
+=======
+        let isBatchInsertionSuccessful = batchStore.insertBatch(BatchEntity(batchId: batchId, eventIds: eventIds, createdAt: timeProvider.now()))
+>>>>>>> feat-ios-performance-tracing
 
         if !isBatchInsertionSuccessful {
             logger.log(level: .error, message: "Failed to insert batched event IDs", error: nil, data: nil)

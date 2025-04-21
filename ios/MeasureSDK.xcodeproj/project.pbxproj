@@ -976,6 +976,7 @@
 				526D18092D5A1913009A2E90 /* LifecycleObserver.swift */,
 				526D180A2D5A1913009A2E90 /* Logger.swift */,
 				526D180B2D5A1913009A2E90 /* MeasureQueue.swift */,
+				CFD88D082DA4DFAE0095115E /* OtelEncodingUtils.swift */,
 				526D180C2D5A1913009A2E90 /* Randomizer.swift */,
 				CF86818D2DB6541F00C62DA5 /* SpanId.swift */,
 				526D180E2D5A1913009A2E90 /* SysCtl.swift */,
@@ -1664,6 +1665,7 @@
 			files = (
 				526D182A2D5A1913009A2E90 /* AttributeValue.swift in Sources */,
 				526D186E2D5A1913009A2E90 /* NetworkChangeCollector.swift in Sources */,
+				CFD88D092DA4DFAE0095115E /* OtelEncodingUtils.swift in Sources */,
 				526D185F2D5A1913009A2E90 /* HttpData.swift in Sources */,
 				526D18262D5A1913009A2E90 /* LaunchTracker.swift in Sources */,
 				526D18432D5A1913009A2E90 /* CrashReportingManager.swift in Sources */,

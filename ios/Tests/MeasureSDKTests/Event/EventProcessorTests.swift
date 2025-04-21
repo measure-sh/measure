@@ -129,6 +129,7 @@ final class SignalProcessorTests: XCTestCase {
             attributes.appUniqueId = "unique-id"
         }
         signalProcessor = BaseSignalProcessor(logger: logger,
+<<<<<<< HEAD
                                               idProvider: idProvider,
                                               sessionManager: sessionManager,
                                               attributeProcessors: [attributeProcessor],
@@ -137,6 +138,15 @@ final class SignalProcessorTests: XCTestCase {
                                               crashDataPersistence: crashDataPersistence,
                                               eventStore: eventStore,
                                               spanStore: spanStore)
+=======
+                                            idProvider: idProvider,
+                                            sessionManager: sessionManager,
+                                            attributeProcessors: [attributeProcessor],
+                                            configProvider: configProvider,
+                                            timeProvider: BaseTimeProvider(),
+                                            crashDataPersistence: crashDataPersistence,
+                                            eventStore: eventStore)
+>>>>>>> feat-ios-performance-tracing
         signalProcessor.track(data: exception,
                              timestamp: 1_000_000_000,
                              type: .exception,
@@ -182,8 +192,12 @@ final class SignalProcessorTests: XCTestCase {
                                               configProvider: configProvider,
                                               timeProvider: BaseTimeProvider(),
                                               crashDataPersistence: crashDataPersistence,
+<<<<<<< HEAD
                                               eventStore: eventStore,
                                               spanStore: spanStore)
+=======
+                                              eventStore: eventStore)
+>>>>>>> feat-ios-performance-tracing
         let attributes = Attributes(
             threadName: "main",
             deviceName: "iPhone",

@@ -63,7 +63,10 @@ protocol MeasureInitializer {
     var spanProcessor: SpanProcessor { get }
     var tracer: Tracer { get }
     var spanCollector: SpanCollector { get }
+<<<<<<< HEAD
     var spanStore: SpanStore { get }
+=======
+>>>>>>> feat-ios-performance-tracing
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -177,7 +180,10 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let spanProcessor: SpanProcessor
     let spanCollector: SpanCollector
     let tracer: Tracer
+<<<<<<< HEAD
     let spanStore: SpanStore
+=======
+>>>>>>> feat-ios-performance-tracing
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -237,6 +243,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                                    timeProvider: timeProvider,
                                                                    attachmentProcessor: attachmentProcessor,
                                                                    svgGenerator: svgGenerator)
+<<<<<<< HEAD
         self.spanStore = BaseSpanStore(coreDataManager: coreDataManager,
                                        logger: logger)
         self.signalProcessor = BaseSignalProcessor(logger: logger,
@@ -248,6 +255,16 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                    crashDataPersistence: crashDataPersistence,
                                                    eventStore: eventStore,
                                                    spanStore: spanStore)
+=======
+        self.signalProcessor = BaseSignalProcessor(logger: logger,
+                                                  idProvider: idProvider,
+                                                  sessionManager: sessionManager,
+                                                  attributeProcessors: attributeProcessors,
+                                                  configProvider: configProvider,
+                                                  timeProvider: timeProvider,
+                                                  crashDataPersistence: crashDataPersistence,
+                                                  eventStore: eventStore)
+>>>>>>> feat-ios-performance-tracing
         self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
         self.crashReportManager = CrashReportingManager(logger: logger,
                                                         signalProcessor: signalProcessor,
@@ -277,6 +294,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                              configProvider: configProvider,
                                              timeProvider: timeProvider,
                                              eventStore: eventStore,
+<<<<<<< HEAD
                                              batchStore: batchStore,
                                              spanStore: spanStore)
         self.exporter = BaseExporter(logger: logger,
@@ -291,6 +309,20 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                      heartbeat: heartbeat,
                                                      exporter: exporter,
                                                      dispatchQueue: MeasureQueue.periodicEventExporter)
+=======
+                                             batchStore: batchStore)
+        self.eventExporter = BaseEventExporter(logger: logger,
+                                               networkClient: networkClient,
+                                               batchCreator: batchCreator,
+                                               batchStore: batchStore,
+                                               eventStore: eventStore)
+        self.periodicEventExporter = BasePeriodicEventExporter(logger: logger,
+                                                               configProvider: configProvider,
+                                                               timeProvider: timeProvider,
+                                                               heartbeat: heartbeat,
+                                                               eventExporter: eventExporter,
+                                                               dispatchQueue: MeasureQueue.periodicEventExporter)
+>>>>>>> feat-ios-performance-tracing
         self.lifecycleCollector = BaseLifecycleCollector(signalProcessor: signalProcessor,
                                                          timeProvider: timeProvider,
                                                          logger: logger)

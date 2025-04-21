@@ -32,6 +32,6 @@ final class UUIDProvider: IdProvider {
     }
 
     func traceId() -> String {
-        return TraceId.random().hexString // afad59f818999695
+        return TraceId.random().hexString
     }
 }

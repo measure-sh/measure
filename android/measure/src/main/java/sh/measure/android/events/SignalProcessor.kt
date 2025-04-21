@@ -41,7 +41,7 @@ internal interface SignalProcessor {
     fun <T> track(
         data: T,
         timestamp: Long,
-        type: String,
+        type: EventType,
         attributes: MutableMap<String, Any?> = mutableMapOf(),
         userDefinedAttributes: Map<String, AttributeValue> = mapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
@@ -57,7 +57,7 @@ internal interface SignalProcessor {
     fun trackAppExit(
         data: AppExit,
         timestamp: Long,
-        type: String,
+        type: EventType,
         threadName: String,
         sessionId: String,
         appVersion: String?,
@@ -70,7 +70,7 @@ internal interface SignalProcessor {
     fun <T> trackUserTriggered(
         data: T,
         timestamp: Long,
-        type: String,
+        type: EventType,
         attachments: MutableList<Attachment> = mutableListOf(),
         userDefinedAttributes: Map<String, AttributeValue> = mapOf(),
     )
@@ -83,7 +83,7 @@ internal interface SignalProcessor {
     fun trackCrash(
         data: ExceptionData,
         timestamp: Long,
-        type: String,
+        type: EventType,
         attributes: MutableMap<String, Any?> = mutableMapOf(),
         userDefinedAttributes: Map<String, AttributeValue> = mapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
@@ -108,7 +108,7 @@ internal class SignalProcessorImpl(
     override fun <T> trackUserTriggered(
         data: T,
         timestamp: Long,
-        type: String,
+        type: EventType,
         attachments: MutableList<Attachment>,
         userDefinedAttributes: Map<String, AttributeValue>,
     ) {
@@ -128,7 +128,7 @@ internal class SignalProcessorImpl(
     override fun <T> track(
         data: T,
         timestamp: Long,
-        type: String,
+        type: EventType,
         attributes: MutableMap<String, Any?>,
         userDefinedAttributes: Map<String, AttributeValue>,
         attachments: MutableList<Attachment>,
@@ -178,7 +178,7 @@ internal class SignalProcessorImpl(
     override fun trackAppExit(
         data: AppExit,
         timestamp: Long,
-        type: String,
+        type: EventType,
         threadName: String,
         sessionId: String,
         appVersion: String?,
@@ -209,7 +209,7 @@ internal class SignalProcessorImpl(
     override fun trackCrash(
         data: ExceptionData,
         timestamp: Long,
-        type: String,
+        type: EventType,
         attributes: MutableMap<String, Any?>,
         userDefinedAttributes: Map<String, AttributeValue>,
         attachments: MutableList<Attachment>,
@@ -253,7 +253,7 @@ internal class SignalProcessorImpl(
 
     private fun <T> createEvent(
         timestamp: Long,
-        type: String,
+        type: EventType,
         data: T,
         attachments: MutableList<Attachment>,
         attributes: MutableMap<String, Any?>,

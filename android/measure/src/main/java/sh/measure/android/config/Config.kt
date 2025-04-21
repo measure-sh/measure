@@ -40,7 +40,7 @@ internal data class Config(
     override val maxUserDefinedAttributesPerEvent: Int = 100
     override val maxUserDefinedAttributeKeyLength: Int = 256 // 256 chars
     override val maxUserDefinedAttributeValueLength: Int = 256 // 256 chars
-    override val eventTypeExportAllowList: List<String> = listOf(
+    override val eventTypeExportAllowList: List<EventType> = listOf(
         EventType.COLD_LAUNCH,
         EventType.HOT_LAUNCH,
         EventType.WARM_LAUNCH,

@@ -15,6 +15,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
+import sh.measure.android.events.EventType
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.NoopLogger
@@ -325,7 +326,7 @@ internal class ExporterTest {
             EventEntity(
                 id = eventId,
                 timestamp = "23456789",
-                type = "type",
+                type = EventType.STRING,
                 userTriggered = false,
                 serializedData = "data",
                 sessionId = sessionId,

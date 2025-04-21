@@ -69,6 +69,8 @@ internal class DefaultEventTransformer(
                     configProvider.shouldTrackHttpHeader(key)
                 }
             }
+
+            else -> return event
         }
         return event
     }

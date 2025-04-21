@@ -109,6 +109,11 @@ extension Measure.BatchOb {
   @objc public init(apiKey: Swift.String, apiUrl: Swift.String)
   @objc deinit
 }
+public struct Checkpoint {
+  public let name: Swift.String
+  public let timestamp: Swift.Int64
+  public init(name: Swift.String, timestamp: Swift.Int64)
+}
 @objc public enum VCLifecycleEventType : Swift.Int, Swift.Codable {
   case viewDidLoad = 0
   case viewWillAppear = 1

@@ -167,6 +167,7 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                               attachmentProcessor: self.attachmentProcessor,
                                                                                               svgGenerator: self.svgGenerator)
         self.signalProcessor = signalProcessor ?? BaseSignalProcessor(logger: self.logger,
+<<<<<<< HEAD
                                                                       idProvider: self.idProvider,
                                                                       sessionManager: self.sessionManager,
                                                                       attributeProcessors: self.attributeProcessors,
@@ -175,6 +176,15 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                       crashDataPersistence: self.crashDataPersistence,
                                                                       eventStore: self.eventStore,
                                                                       spanStore: self.spanStore)
+=======
+                                                                     idProvider: self.idProvider,
+                                                                     sessionManager: self.sessionManager,
+                                                                     attributeProcessors: self.attributeProcessors,
+                                                                     configProvider: self.configProvider,
+                                                                     timeProvider: self.timeProvider,
+                                                                     crashDataPersistence: self.crashDataPersistence,
+                                                                     eventStore: self.eventStore)
+>>>>>>> feat-ios-performance-tracing
         self.systemCrashReporter = systemCrashReporter ?? BaseSystemCrashReporter(logger: self.logger)
         self.crashReportManager = crashReportManager ?? CrashReportingManager(logger: self.logger,
                                                                               signalProcessor: self.signalProcessor,
@@ -204,6 +214,7 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                              configProvider: self.configProvider,
                                                              timeProvider: self.timeProvider,
                                                              eventStore: self.eventStore,
+<<<<<<< HEAD
                                                              batchStore: self.batchStore,
                                                              spanStore: self.spanStore)
         self.exporter = exporter ?? BaseExporter(logger: self.logger,
@@ -218,6 +229,20 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                          heartbeat: self.heartbeat,
                                                                          exporter: self.exporter,
                                                                          dispatchQueue: MeasureQueue.periodicEventExporter)
+=======
+                                                             batchStore: self.batchStore)
+        self.eventExporter = eventExporter ?? BaseEventExporter(logger: self.logger,
+                                                                networkClient: self.networkClient,
+                                                                batchCreator: self.batchCreator,
+                                                                batchStore: self.batchStore,
+                                                                eventStore: self.eventStore)
+        self.periodicEventExporter = periodicEventExporter ?? BasePeriodicEventExporter(logger: self.logger,
+                                                                                        configProvider: self.configProvider,
+                                                                                        timeProvider: self.timeProvider,
+                                                                                        heartbeat: self.heartbeat,
+                                                                                        eventExporter: self.eventExporter,
+                                                                                        dispatchQueue: MeasureQueue.periodicEventExporter)
+>>>>>>> feat-ios-performance-tracing
         self.lifecycleCollector = lifecycleCollector ?? BaseLifecycleCollector(signalProcessor: self.signalProcessor,
                                                                                timeProvider: self.timeProvider,
                                                                                logger: self.logger)
