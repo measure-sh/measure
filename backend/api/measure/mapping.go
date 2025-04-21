@@ -506,15 +506,16 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 		"app_id":       bm.AppID.String(),
 		"version_name": bm.VersionName,
 		"version_code": bm.VersionCode,
-		"mapping_type": bm.MappingType,
 	}
 
-	switch bm.MappingType {
-	case symbol.TypeProguard.String():
-		for i, mf := range bm.MappingFiles {
+	for index, mappingType := range bm.MappingTypes {
+		switch mappingType {
+		case symbol.TypeProguard.String():
+			mf := bm.MappingFiles[index]
 			if !mf.ShouldUpload {
 				continue
 			}
+			metadata["mapping_type"] = symbol.TypeProguard.String()
 			metadata["original_file_name"] = mf.Header.Filename
 			for _, dif := range mf.Difs {
 				putObjectInput := &s3.PutObjectInput{
@@ -528,16 +529,16 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 					return
 				}
 
-				bm.MappingFiles[i].Key = dif.Key
-				bm.MappingFiles[i].Location = buildLocation(dif.Key)
-				bm.MappingFiles[i].UploadComplete = true
+				bm.MappingFiles[index].Key = dif.Key
+				bm.MappingFiles[index].Location = buildLocation(dif.Key)
+				bm.MappingFiles[index].UploadComplete = true
 			}
-		}
-	case symbol.TypeDsym.String():
-		for i, mf := range bm.MappingFiles {
+		case symbol.TypeDsym.String():
+			mf := bm.MappingFiles[index]
 			if !mf.ShouldUpload {
 				continue
 			}
+			metadata["mapping_type"] = symbol.TypeDsym.String()
 			metadata["original_file_name"] = mf.Header.Filename
 			for _, dif := range mf.Difs {
 				if !dif.Meta {
@@ -551,9 +552,9 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 					if err != nil {
 						return
 					}
-					bm.MappingFiles[i].Key = dif.Key
-					bm.MappingFiles[i].Location = buildLocation(dif.Key)
-					bm.MappingFiles[i].UploadComplete = true
+					bm.MappingFiles[index].Key = dif.Key
+					bm.MappingFiles[index].Location = buildLocation(dif.Key)
+					bm.MappingFiles[index].UploadComplete = true
 				}
 
 				if dif.Meta {
