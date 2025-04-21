@@ -112,7 +112,7 @@ final class BaseSignalProcessor: SignalProcessor {
     }
 
     private func trackSpanData(_ spanData: SpanData) {
-        if (!spanData.isSampled) {
+        if !spanData.isSampled {
             // Do not store spans that are not sampled
             return
         }

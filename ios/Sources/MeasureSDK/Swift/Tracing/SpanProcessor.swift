@@ -24,7 +24,7 @@ final class BaseSpanProcessor: SpanProcessor {
     private let signalProcessor: SignalProcessor
     private let attributeProcessors: [AttributeProcessor]
     private let configProvider: ConfigProvider
-    
+
     init(logger: Logger,
          signalProcessor: SignalProcessor,
          attributeProcessors: [AttributeProcessor],
@@ -34,7 +34,7 @@ final class BaseSpanProcessor: SpanProcessor {
         self.attributeProcessors = attributeProcessors
         self.configProvider = configProvider
     }
-    
+
     func onStart(_ span: InternalSpan) {
         SignPost.trace(label: "msr-spanProcessor-onStart") {
             logger.log(level: .debug, message: "Span started: \(span.name)", error: nil, data: nil)
@@ -48,18 +48,18 @@ final class BaseSpanProcessor: SpanProcessor {
             span.setInternalAttribute(attributes)
         }
     }
-    
+
     func onEnding(_ span: InternalSpan) {
         // No-op in current implementation
     }
-    
+
     func onEnded(_ span: InternalSpan) {
         if let validSpanData = sanitize(span.toSpanData()) {
             signalProcessor.trackSpan(validSpanData)
             logger.log(level: .debug, message: "Span ended: \(validSpanData.name), duration: \(validSpanData.duration)", error: nil, data: nil)
         }
     }
-    
+
     /// Sanitizes the span data according to configuration rules.
     /// - Parameter spanData: The span data to sanitize
     /// - Returns: a valid `SpanData` object and should be processed, nil if it should be discarded
@@ -72,7 +72,7 @@ final class BaseSpanProcessor: SpanProcessor {
                        data: nil)
             return nil
         }
-        
+
         // Discard span if it exceeds max span name length
         if spanData.name.count > configProvider.maxSpanNameLength {
             logger.log(level: .error,
@@ -81,7 +81,7 @@ final class BaseSpanProcessor: SpanProcessor {
                        data: nil)
             return nil
         }
-        
+
         // Clean up checkpoints
         var sanitizedCheckpoints = spanData.checkpoints
 
@@ -89,14 +89,14 @@ final class BaseSpanProcessor: SpanProcessor {
         sanitizedCheckpoints.removeAll { checkpoint in
             checkpoint.name.count > configProvider.maxCheckpointNameLength
         }
-        
+
         if sanitizedCheckpoints.count < initialSize {
             logger.log(level: .error,
                        message: "Invalid span: \(spanData.name), dropped \(initialSize - sanitizedCheckpoints.count) checkpoints due to invalid name",
                        error: nil,
                        data: nil)
         }
-        
+
         if sanitizedCheckpoints.count > configProvider.maxCheckpointsPerSpan {
             logger.log(level: .error,
                        message: "Invalid span: \(spanData.name), max checkpoints exceeded, some checkpoints will be dropped",
@@ -104,7 +104,7 @@ final class BaseSpanProcessor: SpanProcessor {
                        data: nil)
             sanitizedCheckpoints = Array(sanitizedCheckpoints.prefix(configProvider.maxCheckpointsPerSpan))
         }
-        
+
         // All validations passed, return a sanitized copy
         return SpanData(name: spanData.name,
                         traceId: spanData.traceId,
