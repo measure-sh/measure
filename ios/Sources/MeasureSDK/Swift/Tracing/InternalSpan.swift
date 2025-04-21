@@ -28,7 +28,7 @@ protocol InternalSpan: Span {
     func getStatus() -> SpanStatus
 
     /// Returns a modifiable map of user-defined attributes.
-    func getUserDefinedAttrs() -> [String: Any]
+    func getUserDefinedAttrs() -> [String: AttributeValue]
 
     /// Adds an attribute to this span.
     func setInternalAttribute(_ attribute: Attributes)

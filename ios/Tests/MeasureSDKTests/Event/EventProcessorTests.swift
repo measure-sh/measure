@@ -20,6 +20,7 @@ final class SignalProcessorTests: XCTestCase {
     var crashDataPersistence: MockCrashDataPersistence!
     var sessionManager: MockSessionManager!
     var eventStore: MockEventStore!
+    var spanStore: MockSpanStore!
     var screenshotGenerator: MockScreenshotGenerator!
     var fileManagerHelper = FileManagerHelper()
     let attributes = Attributes(
@@ -76,6 +77,7 @@ final class SignalProcessorTests: XCTestCase {
         sessionManager = MockSessionManager(sessionId: "session-id-1")
         screenshotGenerator = MockScreenshotGenerator()
         eventStore = MockEventStore()
+        spanStore = MockSpanStore()
     }
 
     override func tearDown() {
@@ -127,13 +129,14 @@ final class SignalProcessorTests: XCTestCase {
             attributes.appUniqueId = "unique-id"
         }
         signalProcessor = BaseSignalProcessor(logger: logger,
-                                            idProvider: idProvider,
-                                            sessionManager: sessionManager,
-                                            attributeProcessors: [attributeProcessor],
-                                            configProvider: configProvider,
-                                            timeProvider: BaseTimeProvider(),
-                                            crashDataPersistence: crashDataPersistence,
-                                            eventStore: eventStore)
+                                              idProvider: idProvider,
+                                              sessionManager: sessionManager,
+                                              attributeProcessors: [attributeProcessor],
+                                              configProvider: configProvider,
+                                              timeProvider: BaseTimeProvider(),
+                                              crashDataPersistence: crashDataPersistence,
+                                              eventStore: eventStore,
+                                              spanStore: spanStore)
         signalProcessor.track(data: exception,
                              timestamp: 1_000_000_000,
                              type: .exception,
@@ -179,7 +182,8 @@ final class SignalProcessorTests: XCTestCase {
                                               configProvider: configProvider,
                                               timeProvider: BaseTimeProvider(),
                                               crashDataPersistence: crashDataPersistence,
-                                              eventStore: eventStore)
+                                              eventStore: eventStore,
+                                              spanStore: spanStore)
         let attributes = Attributes(
             threadName: "main",
             deviceName: "iPhone",

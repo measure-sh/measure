@@ -8,14 +8,14 @@
 import Foundation
 
 /// Represents a checkpoint in a span's lifecycle.
-public struct Checkpoint: Codable {
+struct Checkpoint: Codable {
     /// The name of the checkpoint.
-    public let name: String
+    let name: String
 
     /// The timestamp when the checkpoint was created.
-    public let timestamp: String
+    let timestamp: String
 
-    public init(name: String, timestamp: String) {
+    init(name: String, timestamp: String) {
         self.name = name
         self.timestamp = timestamp
     }
