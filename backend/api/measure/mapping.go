@@ -369,7 +369,7 @@ func (bm BuildMapping) insert(ctx context.Context, tx *pgx.Tx) (err error) {
 func (bm BuildMapping) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
 	now := time.Now()
 
-	for index, _ := range bm.MappingTypes {
+	for index := range bm.MappingTypes {
 		mf := bm.MappingFiles[index]
 		if mf.ID == uuid.Nil {
 			continue
