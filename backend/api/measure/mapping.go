@@ -79,19 +79,6 @@ func (bm BuildMapping) hasProguard() bool {
 func (bm *BuildMapping) validate(app *App) (code int, err error) {
 	code = http.StatusBadRequest
 
-	for i, mf := range bm.MappingFiles {
-		// none of the mapping files
-		// should be non-existent
-		if mf.Header == nil {
-			code = 0
-			return
-		}
-
-		if mf.Header.Size < 1 {
-			err = fmt.Errorf("%q at %d index has zero or invalid size", "mapping_file", i)
-		}
-	}
-
 	pltfrm := app.Platform
 
 	// deduce platform from app or
@@ -132,6 +119,26 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 		}
 	}
 
+	// mapping types and mapping files must same length
+	if len(bm.MappingTypes) != len(bm.MappingFiles) {
+		err = fmt.Errorf("mismatch: %d mapping types found for %d files", len(bm.MappingTypes), len(bm.MappingFiles))
+		return
+	}
+
+	for i := range bm.MappingTypes {
+		mf := bm.MappingFiles[i]
+		// none of the mapping files
+		// should be non-existent
+		if mf.Header == nil {
+			code = 0
+			return
+		}
+
+		if mf.Header.Size < 1 {
+			err = fmt.Errorf("%q at %d index has zero or invalid size", "mapping_file", i)
+		}
+	}
+
 	// ensure mapping types are supported for the platform
 	platformMappingErr := fmt.Errorf("%q mapping type is not valid for %q platform", bm.MappingTypes, pltfrm)
 	for index, mappingType := range bm.MappingTypes {
@@ -159,12 +166,6 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 			err = fmt.Errorf("unknown mapping type %q", mappingType)
 			return
 		}
-	}
-
-	// mapping types and mapping files must same length
-	if len(bm.MappingTypes) != len(bm.MappingFiles) {
-		err = fmt.Errorf("mismatch: %d mapping types found for %d files", len(bm.MappingTypes), len(bm.MappingFiles))
-		return
 	}
 
 	return
@@ -241,7 +242,7 @@ func (bm *BuildMapping) mark(ctx context.Context, tx *pgx.Tx) (err error) {
 	// if no match found, mark all for
 	// upload.
 	if len(entries) == 0 {
-		for i := range bm.MappingFiles {
+		for i := range bm.MappingTypes {
 			bm.MappingFiles[i].ShouldUpload = true
 		}
 		return
@@ -298,7 +299,8 @@ func (bm *BuildMapping) mark(ctx context.Context, tx *pgx.Tx) (err error) {
 // shouldUpload returns true if any of the mapping
 // files has changed and hence should be uploaded.
 func (bm BuildMapping) shouldUpload() (should bool) {
-	for _, mf := range bm.MappingFiles {
+	for i := range bm.MappingTypes {
+		mf := bm.MappingFiles[i]
 		if mf.ShouldUpload {
 			return true
 		}
@@ -310,7 +312,8 @@ func (bm BuildMapping) shouldUpload() (should bool) {
 // files was updated on object store and hence needs
 // to be updated in the database.
 func (bm BuildMapping) shouldUpsert() (should bool) {
-	for _, mf := range bm.MappingFiles {
+	for i := range bm.MappingTypes {
+		mf := bm.MappingFiles[i]
 		if mf.ID != uuid.Nil && mf.Key != "" && mf.Location != "" {
 			return true
 		}
@@ -324,7 +327,8 @@ func (bm BuildMapping) insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.InsertInto(`build_mappings`)
 	defer stmt.Close()
 
-	for index, mf := range bm.MappingFiles {
+	for index, mappingType := range bm.MappingTypes {
+		mf := bm.MappingFiles[index]
 		// ignore old mapping files
 		if mf.ID != uuid.Nil {
 			continue
@@ -338,7 +342,7 @@ func (bm BuildMapping) insert(ctx context.Context, tx *pgx.Tx) (err error) {
 			Set(`app_id`, bm.AppID).
 			Set(`version_name`, bm.VersionName).
 			Set(`version_code`, bm.VersionCode).
-			Set(`mapping_type`, bm.MappingTypes[index]).
+			Set(`mapping_type`, mappingType).
 			Set(`key`, mf.Key).
 			Set(`location`, mf.Location).
 			Set(`fnv1_hash`, mf.Checksum).
@@ -363,7 +367,8 @@ func (bm BuildMapping) insert(ctx context.Context, tx *pgx.Tx) (err error) {
 func (bm BuildMapping) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
 	now := time.Now()
 
-	for _, mf := range bm.MappingFiles {
+	for index, _ := range bm.MappingTypes {
+		mf := bm.MappingFiles[index]
 		if mf.ID == uuid.Nil {
 			continue
 		}
@@ -398,51 +403,51 @@ func (bm BuildMapping) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
 // file(s) from build mapping respecting the
 // mapping type.
 func (bm *BuildMapping) extractDif() (err error) {
-	switch bm.Platform {
-	case platform.Android:
-		mf := bm.MappingFiles[0]
-		f, errHeader := mf.Header.Open()
-		if errHeader != nil {
-			return errHeader
-		}
-
-		defer func() {
-			if err := f.Close(); err != nil {
-				fmt.Println("failed to close proguard mapping file")
-			}
-		}()
-
-		bytes, errRead := io.ReadAll(f)
-		if errRead != nil {
-			return errRead
-		}
-
-		// compress bytes using zstd, if not
-		// already compressed
-		if !codec.IsZstdCompressed(bytes) {
-			bytes, err = codec.CompressZstd(bytes)
-			if err != nil {
-				return
-			}
-		}
-
-		ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("guardsquare.com"))
-		debugId := uuid.NewSHA1(ns, bytes)
-
-		mf.Difs = append(mf.Difs, &symbol.Dif{
-			Data: bytes,
-			Key:  symbol.BuildUnifiedLayout(debugId.String()) + "/proguard",
-		})
-	case platform.IOS:
-		for i := range bm.MappingFiles {
-			f, errHeader := bm.MappingFiles[i].Header.Open()
+	for index, mappingType := range bm.MappingTypes {
+		switch mappingType {
+		case symbol.TypeProguard.String():
+			mf := bm.MappingFiles[index]
+			f, errHeader := mf.Header.Open()
 			if errHeader != nil {
 				return errHeader
 			}
 
 			defer func() {
 				if err := f.Close(); err != nil {
-					fmt.Printf("failed to close dSYM mapping file with index %d\n", i)
+					fmt.Println("failed to close proguard mapping file")
+				}
+			}()
+
+			bytes, errRead := io.ReadAll(f)
+			if errRead != nil {
+				return errRead
+			}
+
+			// compress bytes using zstd, if not
+			// already compressed
+			if !codec.IsZstdCompressed(bytes) {
+				bytes, err = codec.CompressZstd(bytes)
+				if err != nil {
+					return
+				}
+			}
+
+			ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("guardsquare.com"))
+			debugId := uuid.NewSHA1(ns, bytes)
+
+			mf.Difs = append(mf.Difs, &symbol.Dif{
+				Data: bytes,
+				Key:  symbol.BuildUnifiedLayout(debugId.String()) + "/proguard",
+			})
+		case symbol.TypeDsym.String():
+			f, errHeader := bm.MappingFiles[index].Header.Open()
+			if errHeader != nil {
+				return errHeader
+			}
+
+			defer func() {
+				if err := f.Close(); err != nil {
+					fmt.Printf("failed to close dSYM mapping file with index %d\n", index)
 				}
 			}()
 
@@ -467,12 +472,12 @@ func (bm *BuildMapping) extractDif() (err error) {
 
 			for _, entity := range entities {
 				for _, difs := range entity {
-					bm.MappingFiles[i].Difs = append(bm.MappingFiles[i].Difs, difs)
+					bm.MappingFiles[index].Difs = append(bm.MappingFiles[index].Difs, difs)
 				}
 			}
+		default:
+			err = fmt.Errorf("failed to recognize mapping type %q", mappingType)
 		}
-	default:
-		err = fmt.Errorf("failed to recognize platform %q", bm.Platform)
 	}
 
 	return
