@@ -66,6 +66,8 @@ func (bm BuildMapping) hasMapping() bool {
 	return false
 }
 
+// hasProguard checks if the build mapping
+// contains proguard mapping type.
 func (bm BuildMapping) hasProguard() bool {
 	for _, mappingType := range bm.MappingTypes {
 		if mappingType == symbol.TypeProguard.String() {
