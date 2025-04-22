@@ -117,35 +117,6 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 		}
 	}
 
-	// ensure mapping types are supported for the platform
-	platformMappingErr := fmt.Errorf("%q mapping type is not valid for %q platform", bm.MappingTypes, pltfrm)
-	for _, mappingType := range bm.MappingTypes {
-		switch mappingType {
-		case symbol.TypeProguard.String():
-			if pltfrm != platform.Android {
-				err = platformMappingErr
-				return
-			}
-		case symbol.TypeDsym.String():
-			if pltfrm != platform.IOS {
-				err = platformMappingErr
-				break
-			}
-			for _, mf := range bm.MappingFiles {
-				f, err := mf.Header.Open()
-				if err != nil {
-					return http.StatusInternalServerError, err
-				}
-				defer f.Close()
-				if err := codec.IsTarGz(f); err != nil {
-					return http.StatusBadRequest, err
-				}
-			}
-		default:
-			err = fmt.Errorf("unknown mapping type %q", mappingType)
-			return
-		}
-	}
 	if pltfrm == platform.IOS {
 		// Since older iOS upload scripts(<=0.1.0) send a single mapping
 		// type `dsym` with one or more mapping files, we set the mapping type
@@ -158,6 +129,35 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 			for i := 0; i < diffLength; i++ {
 				bm.MappingTypes = append(bm.MappingTypes, symbol.TypeDsym.String())
 			}
+		}
+	}
+
+	// ensure mapping types are supported for the platform
+	platformMappingErr := fmt.Errorf("%q mapping type is not valid for %q platform", bm.MappingTypes, pltfrm)
+	for index, mappingType := range bm.MappingTypes {
+		switch mappingType {
+		case symbol.TypeProguard.String():
+			if pltfrm != platform.Android {
+				err = platformMappingErr
+				return
+			}
+		case symbol.TypeDsym.String():
+			if pltfrm != platform.IOS {
+				err = platformMappingErr
+				break
+			}
+			mf := bm.MappingFiles[index]
+			f, err := mf.Header.Open()
+			if err != nil {
+				return http.StatusInternalServerError, err
+			}
+			defer f.Close()
+			if err := codec.IsTarGz(f); err != nil {
+				return http.StatusBadRequest, err
+			}
+		default:
+			err = fmt.Errorf("unknown mapping type %q", mappingType)
+			return
 		}
 	}
 
