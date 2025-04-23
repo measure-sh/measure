@@ -16,8 +16,13 @@ abstract class MeasureFlutterPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<void> trackCustomEvent(
-      String name, int timestamp, Map<String, AttributeValue> attributes) {
-    throw UnimplementedError('trackCustomEvent() has not been implemented.');
+  Future<void> trackEvent(
+      Map<String, dynamic> data,
+      String type,
+      int timestamp,
+      Map<String, AttributeValue> userDefinedAttrs,
+      bool userTriggered,
+      String threadName) {
+    throw UnimplementedError('trackEvent() has not been implemented.');
   }
 }

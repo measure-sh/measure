@@ -25,7 +25,6 @@ final class DeviceAttributeProcessor: BaseComputeOnceAttributeProcessor {
     private var deviceLocale: String?
     private var osName: String?
     private var osVersion: String?
-    private var platform: String?
     private var deviceCpuArch: String?
 
     override func updateAttribute(_ attribute: inout Attributes) {
@@ -42,7 +41,6 @@ final class DeviceAttributeProcessor: BaseComputeOnceAttributeProcessor {
         attribute.deviceLocale = deviceLocale
         attribute.osName = osName
         attribute.osVersion = osVersion
-        attribute.platform = platform ?? AttributeConstants.platform
         attribute.deviceCpuArch = deviceCpuArch
     }
 
@@ -60,7 +58,6 @@ final class DeviceAttributeProcessor: BaseComputeOnceAttributeProcessor {
         deviceLocale = Locale.current.identifier
         osName = UIDevice.current.systemName
         osVersion = UIDevice.current.systemVersion
-        platform = AttributeConstants.platform
         deviceCpuArch = getCPUArchitecture()
     }
 

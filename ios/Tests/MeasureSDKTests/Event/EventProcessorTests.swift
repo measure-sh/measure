@@ -143,7 +143,8 @@ final class SignalProcessorTests: XCTestCase {
                              attributes: nil,
                              sessionId: nil,
                              attachments: [Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
-                             userDefinedAttributes: nil)
+                             userDefinedAttributes: nil,
+                             threadName: nil)
 
         // Check if latest attributes are saved when an event is tracked
         XCTAssertEqual(crashDataPersistence.attribute, attributes)
@@ -244,7 +245,8 @@ final class SignalProcessorTests: XCTestCase {
                              attributes: attributes,
                              sessionId: "session-id-2",
                              attachments: [Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
-                             userDefinedAttributes: nil)
+                             userDefinedAttributes: nil,
+                             threadName: nil)
 
         // Check if latest attributes are saved when an event is tracked
         XCTAssertEqual(crashDataPersistence.attribute, updatedAttributes)

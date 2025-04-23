@@ -79,7 +79,8 @@ final class BaseHttpEventCollector: HttpEventCollector {
                                   attributes: nil,
                                   sessionId: nil,
                                   attachments: nil,
-                                  userDefinedAttributes: nil)
+                                  userDefinedAttributes: nil,
+                                  threadName: nil)
         }
     }
 }

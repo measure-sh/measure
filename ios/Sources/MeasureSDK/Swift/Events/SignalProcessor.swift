@@ -18,7 +18,8 @@ protocol SignalProcessor {
         attributes: Attributes?,
         sessionId: String?,
         attachments: [Attachment]?,
-        userDefinedAttributes: String?)
+        userDefinedAttributes: String?,
+        threadName: String?)
 
     func trackUserTriggered<T: Codable>( // swiftlint:disable:this function_parameter_count
         data: T,
@@ -27,7 +28,8 @@ protocol SignalProcessor {
         attributes: Attributes?,
         sessionId: String?,
         attachments: [Attachment]?,
-        userDefinedAttributes: String?)
+        userDefinedAttributes: String?,
+        threadName: String?)
 
     func trackSpan(_ spanData: SpanData)
 }
@@ -72,7 +74,8 @@ final class BaseSignalProcessor: SignalProcessor {
         attributes: Attributes?,
         sessionId: String?,
         attachments: [Attachment]?,
-        userDefinedAttributes: String?) {
+        userDefinedAttributes: String?,
+        threadName: String?) {
         SignPost.trace(label: "track-event") {
             track(data: data,
                   timestamp: timestamp,
@@ -81,7 +84,8 @@ final class BaseSignalProcessor: SignalProcessor {
                   userTriggered: false,
                   attachments: attachments,
                   sessionId: sessionId,
-                  userDefinedAttributes: userDefinedAttributes)
+                  userDefinedAttributes: userDefinedAttributes,
+                  threadName: threadName)
         }
     }
 
@@ -92,7 +96,8 @@ final class BaseSignalProcessor: SignalProcessor {
                                         attributes: Attributes?,
                                         sessionId: String?,
                                         attachments: [Attachment]?,
-                                        userDefinedAttributes: String?) {
+                                        userDefinedAttributes: String?,
+                                        threadName: String?) {
         SignPost.trace(label: "track-event-user-triggered") {
             track(data: data,
                   timestamp: timestamp,
@@ -101,7 +106,8 @@ final class BaseSignalProcessor: SignalProcessor {
                   userTriggered: true,
                   attachments: attachments,
                   sessionId: sessionId,
-                  userDefinedAttributes: userDefinedAttributes)
+                  userDefinedAttributes: userDefinedAttributes,
+                  threadName: threadName)
         }
     }
 
@@ -113,12 +119,12 @@ final class BaseSignalProcessor: SignalProcessor {
 
     private func trackSpanData(_ spanData: SpanData) {
         if !spanData.isSampled {
-            // Do not store spans that are not sampled
-            return
-        }
-        let spanEntity = SpanEntity(spanData,
-                                    startTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.startTime),
-                                    endTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.endTime))
+        // Do not store spans that are not sampled
+        return
+       }
+       let spanEntity = SpanEntity(spanData,
+        startTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.startTime),
+        endTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.endTime))
         spanStore.insertSpan(span: spanEntity)
         logger.log(level: .debug, message: "Span processed: \(spanData.name), spanId: \(spanData.spanId), duration: \(spanData.duration)", error: nil, data: nil)
     }
@@ -131,9 +137,10 @@ final class BaseSignalProcessor: SignalProcessor {
         userTriggered: Bool,
         attachments: [Attachment]?,
         sessionId: String?,
-        userDefinedAttributes: String?
+        userDefinedAttributes: String?,
+        threadName: String?
     ) {
-        let threadName = OperationQueue.current?.underlyingQueue?.label ?? "unknown"
+        let threadName = threadName ?? OperationQueue.current?.underlyingQueue?.label ?? "unknown"
         let event = createEvent(
             data: data,
             timestamp: timestamp,

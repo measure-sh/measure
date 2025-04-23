@@ -64,7 +64,8 @@ final class AttributeProcessorTests: XCTestCase {
         XCTAssertEqual(attributes.deviceLocale, nil)
         XCTAssertEqual(attributes.osName, nil)
         XCTAssertEqual(attributes.osVersion, nil)
-        XCTAssertEqual(attributes.platform, "")
+        // platform is set to ios by default
+        XCTAssertEqual(attributes.platform, AttributeConstants.platform)
         XCTAssertEqual(attributes.networkType, nil)
         XCTAssertEqual(attributes.networkGeneration, nil)
         XCTAssertEqual(attributes.networkProvider, nil)

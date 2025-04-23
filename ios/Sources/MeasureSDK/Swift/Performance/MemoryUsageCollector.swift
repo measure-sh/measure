@@ -90,7 +90,8 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
                                        attributes: nil,
                                        sessionId: nil,
                                        attachments: nil,
-                                       userDefinedAttributes: nil)
+                                       userDefinedAttributes: nil,
+                                       threadName: nil)
         } else {
             logger.internalLog(level: .error, message: "Could not get memory usage data.", error: nil, data: nil)
         }

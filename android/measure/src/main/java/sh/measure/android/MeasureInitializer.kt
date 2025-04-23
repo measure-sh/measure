@@ -27,6 +27,7 @@ import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.CustomEventCollector
 import sh.measure.android.events.DefaultEventTransformer
 import sh.measure.android.events.EventTransformer
+import sh.measure.android.events.InternalSignalCollector
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.events.SignalProcessorImpl
 import sh.measure.android.events.UserTriggeredEventCollector
@@ -458,6 +459,10 @@ internal class MeasureInitializerImpl(
             configProvider = configProvider,
         ),
     ),
+    override val internalSignalCollector: InternalSignalCollector = InternalSignalCollector(
+        logger,
+        signalProcessor,
+    ),
 ) : MeasureInitializer
 
 internal interface MeasureInitializer {
@@ -495,4 +500,5 @@ internal interface MeasureInitializer {
     val bugReportCollector: BugReportCollector
     val executorServiceRegistry: ExecutorServiceRegistry
     val shakeBugReportCollector: ShakeBugReportCollector
+    val internalSignalCollector: InternalSignalCollector
 }

@@ -47,6 +47,7 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                                            attributes: nil,
                                            sessionId: nil,
                                            attachments: nil,
-                                           userDefinedAttributes: nil)
+                                           userDefinedAttributes: nil,
+                                           threadName: nil)
     }
 }

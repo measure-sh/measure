@@ -17,7 +17,7 @@ class AttributeConverter {
                 convertedAttributes[key] = try convert(value: value, forKey: key)
             } catch {
                 throw MethodArgumentError(
-                    code: MethodConstants.errorInvalidAttribute,
+                    code: ErrorCode.errorInvalidAttribute,
                     message: "Failed to convert attribute '\(key)'",
                     details: error.localizedDescription
                 )
@@ -43,7 +43,7 @@ class AttributeConverter {
             return .double(doubleValue)
         default:
             throw MethodArgumentError(
-                code: MethodConstants.errorInvalidAttribute,
+                code: ErrorCode.errorInvalidAttribute,
                 message: "Invalid attribute type for key '\(key)'",
                 details: "Supported types: String, Boolean, Int, Int64, Float, Double"
             )
