@@ -26,9 +26,16 @@ import Measure
         "Illegal Instruction (SIGILL)",
         "Bus Error (SIGBUS)"
     ]
+    var span: Span?
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        span = Measure.shared.startSpan(name: "ViewControllerviewDidLoad")
+        let attributes: [String: AttributeValue] = ["user_name": .string("Alice"),
+                                                    "paid_user": .boolean(true),
+                                                    "credit_balance": .int(1000),
+                                                    "latitude": .double(30.2661403415387)]
+        span?.setAttributes(attributes)
 
         self.title = "Swift View Controller"
         let tableView = UITableView(frame: view.bounds, style: .plain)
@@ -54,10 +61,15 @@ import Measure
     }
 
     override func viewDidAppear(_ animated: Bool) {
+        span?.end()
         super.viewDidAppear(animated)
         Measure.shared.trackScreenView("Home")
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        span?.setCheckpoint("ViewControllerviewWillAppear")
+        super.viewWillAppear(animated)
+    }
     // MARK: - Table Header View with Buttons
 
     func createTableHeaderView() -> UIView {

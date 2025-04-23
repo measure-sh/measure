@@ -74,7 +74,7 @@ final class BaseSessionManager: SessionManager {
     }
 
     private func createNewSession() {
-        currentSessionId = idProvider.createId()
+        currentSessionId = idProvider.uuid()
         logger.log(level: .info, message: "New session created", error: nil, data: nil)
         shouldReportSession = shouldMarkSessionForExport()
         let session = SessionEntity(sessionId: sessionId,

@@ -1,5 +1,5 @@
 //
-//  EventProcessor.swift
+//  SignalProcessor.swift
 //  MeasureSDK
 //
 //  Created by Adwin Ross on 05/09/24.
@@ -9,7 +9,7 @@ import Foundation
 
 /// A protocol for processing events. Responsible for tracking events, processing them by applying
 /// various attributes and transformations, and then eventually storing them or sending them to the server.
-protocol EventProcessor {
+protocol SignalProcessor {
     /// Tracks an event with the given data, timestamp, type, attributes, sessionId and attachments.
     func track<T: Codable>( // swiftlint:disable:this function_parameter_count
         data: T,
@@ -28,11 +28,13 @@ protocol EventProcessor {
         sessionId: String?,
         attachments: [Attachment]?,
         userDefinedAttributes: String?)
+
+    func trackSpan(_ spanData: SpanData)
 }
 
-/// A concrete implementation of the `EventProcessor` protocol, responsible for tracking and
+/// A concrete implementation of the `SignalProcessor` protocol, responsible for tracking and
 /// processing events.
-final class BaseEventProcessor: EventProcessor {
+final class BaseSignalProcessor: SignalProcessor {
     private let logger: Logger
     private let idProvider: IdProvider
     private let sessionManager: SessionManager
@@ -41,6 +43,7 @@ final class BaseEventProcessor: EventProcessor {
     private let timeProvider: TimeProvider
     private var crashDataPersistence: CrashDataPersistence
     private let eventStore: EventStore
+    private let spanStore: SpanStore
 
     init(logger: Logger,
          idProvider: IdProvider,
@@ -49,7 +52,8 @@ final class BaseEventProcessor: EventProcessor {
          configProvider: ConfigProvider,
          timeProvider: TimeProvider,
          crashDataPersistence: CrashDataPersistence,
-         eventStore: EventStore) {
+         eventStore: EventStore,
+         spanStore: SpanStore) {
         self.logger = logger
         self.idProvider = idProvider
         self.sessionManager = sessionManager
@@ -58,6 +62,7 @@ final class BaseEventProcessor: EventProcessor {
         self.timeProvider = timeProvider
         self.crashDataPersistence = crashDataPersistence
         self.eventStore = eventStore
+        self.spanStore = spanStore
     }
 
     func track<T: Codable>( // swiftlint:disable:this function_parameter_count
@@ -98,6 +103,24 @@ final class BaseEventProcessor: EventProcessor {
                   sessionId: sessionId,
                   userDefinedAttributes: userDefinedAttributes)
         }
+    }
+
+    func trackSpan(_ spanData: SpanData) {
+        SignPost.trace(label: "track-span-triggered") {
+            trackSpanData(spanData)
+        }
+    }
+
+    private func trackSpanData(_ spanData: SpanData) {
+        if !spanData.isSampled {
+            // Do not store spans that are not sampled
+            return
+        }
+        let spanEntity = SpanEntity(spanData,
+                                    startTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.startTime),
+                                    endTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.endTime))
+        spanStore.insertSpan(span: spanEntity)
+        logger.log(level: .debug, message: "Span processed: \(spanData.name), spanId: \(spanData.spanId), duration: \(spanData.duration)", error: nil, data: nil)
     }
 
     private func track<T: Codable>( // swiftlint:disable:this function_parameter_count
@@ -144,7 +167,7 @@ final class BaseEventProcessor: EventProcessor {
         sessionId: String?,
         userDefinedAttributes: String?
     ) -> Event<T> {
-        let id = idProvider.createId()
+        let id = idProvider.uuid()
         let resolvedSessionId = sessionId ?? sessionManager.sessionId
         return Event(
             id: id,

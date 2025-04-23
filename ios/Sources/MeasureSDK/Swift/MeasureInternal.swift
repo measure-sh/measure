@@ -23,8 +23,11 @@ final class MeasureInternal {
     var sessionManager: SessionManager {
         return measureInitializer.sessionManager
     }
-    private var timeProvider: TimeProvider {
+    var timeProvider: TimeProvider {
         return measureInitializer.timeProvider
+    }
+    var idProvider: IdProvider {
+        return measureInitializer.idProvider
     }
     private var configProvider: ConfigProvider {
         return measureInitializer.configProvider
@@ -50,8 +53,8 @@ final class MeasureInternal {
     private var attributeProcessors: [AttributeProcessor] {
         return measureInitializer.attributeProcessors
     }
-    private var eventProcessor: EventProcessor {
-        return measureInitializer.eventProcessor
+    private var signalProcessor: SignalProcessor {
+        return measureInitializer.signalProcessor
     }
     private var crashReportManager: CrashReportManager {
         return measureInitializer.crashReportManager
@@ -88,8 +91,8 @@ final class MeasureInternal {
     private var heartbeat: Heartbeat {
         return measureInitializer.heartbeat
     }
-    private var periodicEventExporter: PeriodicEventExporter {
-        return measureInitializer.periodicEventExporter
+    private var periodicExporter: PeriodicExporter {
+        return measureInitializer.periodicExporter
     }
     private var lifecycleCollector: LifecycleCollector {
         return measureInitializer.lifecycleCollector
@@ -120,6 +123,12 @@ final class MeasureInternal {
     }
     var attachmentProcessor: AttachmentProcessor {
         return measureInitializer.attachmentProcessor
+    }
+    var traceSampler: TraceSampler {
+        return measureInitializer.traceSampler
+    }
+    var spanCollector: SpanCollector {
+        return measureInitializer.spanCollector
     }
     private let lifecycleObserver: LifecycleObserver
     private var isStarted: Bool = false
@@ -166,10 +175,26 @@ final class MeasureInternal {
         userAttributeProcessor.clearUserId()
     }
 
+    func createSpan(name: String) -> SpanBuilder? {
+        return spanCollector.createSpan(name: name)
+    }
+
+    func startSpan(name: String, timestamp: Int64? = nil) -> Span {
+        return spanCollector.startSpan(name: name, timestamp: timestamp)
+    }
+
+    func getTraceParentHeaderValue(for span: Span) -> String {
+        return spanCollector.getTraceParentHeaderValue(for: span)
+    }
+
+    func getTraceParentHeaderKey() -> String {
+        return spanCollector.getTraceParentHeaderKey()
+    }
+
     private func applicationDidEnterBackground() {
         self.crashDataPersistence.isForeground = false
         self.sessionManager.applicationDidEnterBackground()
-        self.periodicEventExporter.applicationDidEnterBackground()
+        self.periodicExporter.applicationDidEnterBackground()
         self.lifecycleCollector.applicationDidEnterBackground()
         self.cpuUsageCollector.pause()
         self.memoryUsageCollector.pause()
@@ -179,7 +204,7 @@ final class MeasureInternal {
     private func applicationWillEnterForeground() {
         self.crashDataPersistence.isForeground = true
         self.sessionManager.applicationWillEnterForeground()
-        self.periodicEventExporter.applicationWillEnterForeground()
+        self.periodicExporter.applicationWillEnterForeground()
         self.lifecycleCollector.applicationWillEnterForeground()
         self.cpuUsageCollector.resume()
         self.memoryUsageCollector.resume()
@@ -195,11 +220,12 @@ final class MeasureInternal {
         self.userTriggeredEventCollector.enable()
         self.cpuUsageCollector.enable()
         self.memoryUsageCollector.enable()
-        self.periodicEventExporter.enable()
+        self.periodicExporter.enable()
         self.httpEventCollector.enable()
         self.networkChangeCollector.enable()
         self.lifecycleCollector.enable()
         self.crashReportManager.enable()
+        self.spanCollector.enable()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let window = UIApplication.shared.windows.first {
                 self.gestureCollector.enable(for: window)
@@ -212,12 +238,13 @@ final class MeasureInternal {
         self.userTriggeredEventCollector.disable()
         self.cpuUsageCollector.disable()
         self.memoryUsageCollector.disable()
-        self.periodicEventExporter.disable()
+        self.periodicExporter.disable()
         self.httpEventCollector.disable()
         self.networkChangeCollector.disable()
         self.gestureCollector.disable()
         self.lifecycleCollector.disable()
         self.crashReportManager.disable()
+        self.spanCollector.disabled()
     }
 
     private func registerAlwaysOnCollectors() {

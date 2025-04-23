@@ -33,6 +33,22 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var maxSpanNameLength: Int {
+        return getMergedConfig(\.maxSpanNameLength)
+    }
+
+    var maxCheckpointNameLength: Int {
+        return getMergedConfig(\.maxCheckpointNameLength)
+    }
+
+    var maxCheckpointsPerSpan: Int {
+        return getMergedConfig(\.maxCheckpointsPerSpan)
+    }
+
+    var traceSamplingRate: Float {
+        return getMergedConfig(\.traceSamplingRate)
+    }
+
     var trackHttpHeaders: Bool {
         return getMergedConfig(\.trackHttpHeaders)
     }

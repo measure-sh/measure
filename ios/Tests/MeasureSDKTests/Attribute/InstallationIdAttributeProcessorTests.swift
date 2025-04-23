@@ -18,7 +18,8 @@ final class InstallationIdAttributeProcessorTests: XCTestCase {
     override func setUp() {
         super.setUp()
         installationId = "installation_id"
-        idProvider = MockIdProvider(installationId)
+        idProvider = MockIdProvider()
+        idProvider.uuId = installationId
         userDefaultStorage = MockUserDefaultStorage()
         installationIdAttributeProcessor = InstallationIdAttributeProcessor(userDefaultStorage: userDefaultStorage,
                                                                             idProvider: idProvider)

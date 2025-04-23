@@ -1,5 +1,5 @@
 //
-//  MockEventExporter.swift
+//  MockExporter.swift
 //  MeasureSDKTests
 //
 //  Created by Adwin Ross on 21/10/24.
@@ -8,7 +8,7 @@
 import Foundation
 @testable import Measure
 
-class MockEventExporter: EventExporter {
+class MockExporter: Exporter {
     var createBatchResult: BatchCreationResult?
     var existingBatches: [BatchEntity] = []
     var exportResponses: [String: HttpResponse] = [:]
@@ -25,7 +25,7 @@ class MockEventExporter: EventExporter {
         return existingBatches
     }
 
-    func export(batchId: String, eventIds: [String]) -> HttpResponse? {
+    func export(batchId: String, eventIds: [String], spanIds: [String]) -> HttpResponse? {
         exportEventsCalled = true
         exportBatchId = batchId
         return exportResponses[batchId]

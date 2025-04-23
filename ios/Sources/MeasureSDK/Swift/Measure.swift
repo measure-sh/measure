@@ -259,4 +259,63 @@ import Foundation
         guard let measureInternal = measureInternal else { return }
         measureInternal.clearUserId()
     }
+
+    /// Returns the current time in milliseconds since epoch.
+    /// - Returns: The current time in milliseconds since epoch.
+    @objc public func getCurrentTime() -> Int64 {
+        guard let measureInternal = self.measureInternal else { return 0 }
+        return measureInternal.timeProvider.now()
+    }
+
+    /// Starts a new performance tracing span with the specified name.
+    /// - Parameter name: The name to identify this span. Follow the naming convention guide for consistent naming practices.
+    /// - Returns: A new span instance if the SDK is initialized, or an invalid no-op span if not initialized
+    public func startSpan(name: String) -> Span {
+        guard let measureInternal = self.measureInternal else { return InvalidSpan() }
+        return measureInternal.startSpan(name: name)
+    }
+
+    /// Starts a new performance tracing span with the specified name and start timestamp.
+    /// - Parameters:
+    ///   - name: The name to identify this span. Follow the naming convention guide for consistent naming practices.
+    ///   - timestamp: The milliseconds since epoch when the span started. Must be obtained using `getCurrentTime()` to minimize clock drift effects.
+    /// - Returns: A new span instance if the SDK is initialized, or an invalid no-op span if not initialized
+    ///
+    /// Note: Use this method when you need to trace an operation that has already started and you have
+    /// captured its start time using `getCurrentTime()`.
+    public func startSpan(name: String, timestamp: Int64) -> Span {
+        guard let measureInternal = self.measureInternal else { return InvalidSpan() }
+        return measureInternal.startSpan(name: name, timestamp: timestamp)
+    }
+
+    /// Creates a configurable span builder for deferred span creation.
+    /// - Parameter name: The name to identify this span. Follow the naming convention guide for consistent naming practices.
+    /// - Returns: A builder instance to configure the span if the SDK is initialized, or nil if the SDK is not initialized
+    ///
+    /// Note: Use this method when you need to create a span without immediately starting it.
+    public func createSpanBuilder(name: String) -> SpanBuilder? {
+        guard let measureInternal = self.measureInternal else { return nil }
+        return measureInternal.createSpan(name: name)
+    }
+
+    /// Returns the W3C traceparent header value for the given span.
+    /// - Parameter span: The span to extract the traceparent header value from
+    /// - Returns: A W3C trace context compliant header value in the format: `{version}-{traceId}-{spanId}-{traceFlags}`
+    ///
+    /// Example: `00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01`
+    ///
+    /// Note: Use this value in the `traceparent` HTTP header when making API calls to enable
+    /// distributed tracing between your mobile app and backend services.
+    public func getTraceParentHeaderValue(span: Span) -> String {
+        guard let measureInternal = self.measureInternal else { return "" }
+        return measureInternal.getTraceParentHeaderValue(for: span)
+    }
+
+    /// Returns the W3C traceparent header key/name.
+    /// - Returns: The standardized header key 'traceparent' that should be used when adding
+    /// distributed tracing context to HTTP requests
+    public func getTraceParentHeaderKey() -> String {
+        guard let measureInternal = self.measureInternal else { return "" }
+        return measureInternal.getTraceParentHeaderKey()
+    }
 }

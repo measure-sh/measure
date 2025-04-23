@@ -17,6 +17,7 @@ import Foundation
 struct Config: InternalConfig, MeasureConfig {
     let enableLogging: Bool
     let samplingRateForErrorFreeSessions: Float
+    let traceSamplingRate: Float
     let eventsBatchingIntervalMs: Number
     let sessionEndLastEventThresholdMs: Number
     let longPressTimeout: TimeInterval
@@ -44,17 +45,22 @@ struct Config: InternalConfig, MeasureConfig {
     let httpUrlBlocklist: [String]
     let httpUrlAllowlist: [String]
     let autoStart: Bool
+    let maxSpanNameLength: Int
+    let maxCheckpointNameLength: Int
+    let maxCheckpointsPerSpan: Int
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
+                  traceSamplingRate: Float = DefaultConfig.traceSamplingRate,
                   trackHttpHeaders: Bool = DefaultConfig.trackHttpHeaders,
                   trackHttpBody: Bool = DefaultConfig.trackHttpBody,
                   httpHeadersBlocklist: [String] = DefaultConfig.httpHeadersBlocklist,
                   httpUrlBlocklist: [String] = DefaultConfig.httpUrlBlocklist,
                   httpUrlAllowlist: [String] = DefaultConfig.httpUrlAllowlist,
-                  autoStart: Bool = DefaultConfig.enableLogging) {
+                  autoStart: Bool = DefaultConfig.autoStart) {
         self.enableLogging = enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
+        self.traceSamplingRate = traceSamplingRate
         self.trackHttpHeaders = trackHttpHeaders
         self.trackHttpBody = trackHttpBody
         self.httpHeadersBlocklist = httpHeadersBlocklist
@@ -92,5 +98,8 @@ struct Config: InternalConfig, MeasureConfig {
         self.screenshotCompressionQuality = 25
         self.layoutSnapshotDebounceInterval = 750 // 750 ms
         self.autoStart = autoStart
+        self.maxSpanNameLength = 64
+        self.maxCheckpointNameLength = 64
+        self.maxCheckpointsPerSpan = 100
     }
 }

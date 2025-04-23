@@ -1,5 +1,5 @@
 //
-//  PeriodicEventExporterTests.swift
+//  periodicExporterTests.swift
 //  MeasureSDKTests
 //
 //  Created by Adwin Ross on 21/10/24.
@@ -8,13 +8,13 @@
 import XCTest
 @testable import Measure
 
-final class PeriodicEventExporterTests: XCTestCase {
+final class PeriodicExporterTests: XCTestCase {
     private var logger: MockLogger!
     private var configProvider: MockConfigProvider!
     private var timeProvider: MockTimeProvider!
     private var heartbeat: MockHeartbeat!
-    private var eventExporter: MockEventExporter!
-    private var periodicEventExporter: BasePeriodicEventExporter!
+    private var exporter: MockExporter!
+    private var periodicExporter: BasePeriodicExporter!
 
     override func setUp() {
         super.setUp()
@@ -22,15 +22,15 @@ final class PeriodicEventExporterTests: XCTestCase {
         configProvider = MockConfigProvider()
         timeProvider = MockTimeProvider()
         heartbeat = MockHeartbeat()
-        eventExporter = MockEventExporter()
+        exporter = MockExporter()
 
-        periodicEventExporter = BasePeriodicEventExporter(logger: logger,
-                                                           configProvider: configProvider,
-                                                           timeProvider: timeProvider,
-                                                           heartbeat: heartbeat,
-                                                           eventExporter: eventExporter,
-                                                           dispatchQueue: MeasureQueue.periodicEventExporter)
-        periodicEventExporter.enable()
+        periodicExporter = BasePeriodicExporter(logger: logger,
+                                                configProvider: configProvider,
+                                                timeProvider: timeProvider,
+                                                heartbeat: heartbeat,
+                                                exporter: exporter,
+                                                dispatchQueue: MeasureQueue.periodicEventExporter)
+        periodicExporter.enable()
     }
 
     override func tearDown() {
@@ -38,13 +38,13 @@ final class PeriodicEventExporterTests: XCTestCase {
         configProvider = nil
         timeProvider = nil
         heartbeat = nil
-        eventExporter = nil
-        periodicEventExporter = nil
+        exporter = nil
+        periodicExporter = nil
         super.tearDown()
     }
 
     func testApplicationWillEnterForeground_startsHeartbeat() {
-        periodicEventExporter.applicationWillEnterForeground()
+        periodicExporter.applicationWillEnterForeground()
 
         XCTAssertTrue(heartbeat.isStarted)
         XCTAssertEqual(heartbeat.startIntervalMs, configProvider.eventsBatchingIntervalMs)
@@ -53,40 +53,40 @@ final class PeriodicEventExporterTests: XCTestCase {
     func testApplicationDidEnterBackground_stopsHeartbeatAndExportsEvents() {
         heartbeat.start(intervalMs: 100, initialDelayMs: 0)
 
-        periodicEventExporter.applicationDidEnterBackground()
+        periodicExporter.applicationDidEnterBackground()
 
         XCTAssertTrue(heartbeat.isStopped)
     }
 
     func testExportEvents_skipsIfExportInProgress() {
-        periodicEventExporter.isExportInProgress = true
+        periodicExporter.isExportInProgress = true
 
-        periodicEventExporter.applicationDidEnterBackground()
+        periodicExporter.applicationDidEnterBackground()
 
-        XCTAssertFalse(eventExporter.exportEventsCalled, "Export events should not be called if export is already in progress.")
+        XCTAssertFalse(exporter.exportEventsCalled, "Export events should not be called if export is already in progress.")
     }
 
     func testProcessNewBatchIfTimeElapsed_createsAndExportsBatch() {
         let batchingIntervalMs: Int64 = 1000
         timeProvider.millisTime = 2000
         configProvider.eventsBatchingIntervalMs = batchingIntervalMs
-        eventExporter.createBatchResult = BatchCreationResult(batchId: "testBatch", eventIds: ["event1", "event2"])
+        exporter.createBatchResult = BatchCreationResult(batchId: "testBatch", eventIds: ["event1", "event2"], spanIds: ["span1"])
 
-        periodicEventExporter.applicationWillEnterForeground()
-        periodicEventExporter.pulse()
+        periodicExporter.applicationWillEnterForeground()
+        periodicExporter.pulse()
 
-        XCTAssertEqual(eventExporter.createBatchCalled, true)
-        XCTAssertEqual(eventExporter.exportBatchId, "testBatch")
+        XCTAssertEqual(exporter.createBatchCalled, true)
+        XCTAssertEqual(exporter.exportBatchId, "testBatch")
     }
 
     func testProcessNewBatchIfTimeElapsed_doesNotCreateBatchIfIntervalNotElapsed() {
         let batchingIntervalMs: Int64 = 1000
         timeProvider.millisTime = 1500
-        periodicEventExporter.lastBatchCreationUptimeMs = 1000
+        periodicExporter.lastBatchCreationUptimeMs = 1000
         configProvider.eventsBatchingIntervalMs = batchingIntervalMs
 
-        periodicEventExporter.pulse()
+        periodicExporter.pulse()
 
-        XCTAssertFalse(eventExporter.createBatchCalled)
+        XCTAssertFalse(exporter.createBatchCalled)
     }
 }

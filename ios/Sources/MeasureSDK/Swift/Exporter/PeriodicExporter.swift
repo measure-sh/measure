@@ -1,5 +1,5 @@
 //
-//  PeriodicEventExporter.swift
+//  PeriodicExporter.swift
 //  MeasureSDK
 //
 //  Created by Adwin Ross on 17/10/24.
@@ -7,31 +7,31 @@
 
 import Foundation
 
-protocol PeriodicEventExporter {
+protocol PeriodicExporter {
     func applicationDidEnterBackground()
     func applicationWillEnterForeground()
     func enable()
     func disable()
 }
 
-final class BasePeriodicEventExporter: PeriodicEventExporter, HeartbeatListener {
+final class BasePeriodicExporter: PeriodicExporter, HeartbeatListener {
     private let logger: Logger
     private let configProvider: ConfigProvider
     private let timeProvider: TimeProvider
     private let heartbeat: Heartbeat
-    private let eventExporter: EventExporter
+    private let exporter: Exporter
     private let dispatchQueue: DispatchQueue
     private let isEnabled = AtomicBool(false)
 
     var isExportInProgress: Bool = false
     var lastBatchCreationUptimeMs: Int64 = 0
 
-    init(logger: Logger, configProvider: ConfigProvider, timeProvider: TimeProvider, heartbeat: Heartbeat, eventExporter: EventExporter, dispatchQueue: DispatchQueue) {
+    init(logger: Logger, configProvider: ConfigProvider, timeProvider: TimeProvider, heartbeat: Heartbeat, exporter: Exporter, dispatchQueue: DispatchQueue) {
         self.logger = logger
         self.configProvider = configProvider
         self.timeProvider = timeProvider
         self.heartbeat = heartbeat
-        self.eventExporter = eventExporter
+        self.exporter = exporter
         self.dispatchQueue = dispatchQueue
         self.heartbeat.addListener(self)
     }
@@ -79,7 +79,7 @@ final class BasePeriodicEventExporter: PeriodicEventExporter, HeartbeatListener 
     }
 
     private func processBatches() {
-        let batches = eventExporter.getExistingBatches()
+        let batches = exporter.getExistingBatches()
         if !batches.isEmpty {
             processExistingBatches(batches)
         } else {
@@ -89,7 +89,7 @@ final class BasePeriodicEventExporter: PeriodicEventExporter, HeartbeatListener 
 
     private func processExistingBatches(_ batches: [BatchEntity]) {
         for batch in batches {
-            let response = eventExporter.export(batchId: batch.batchId, eventIds: batch.eventIds)
+            let response = exporter.export(batchId: batch.batchId, eventIds: batch.eventIds, spanIds: batch.spanIds)
 
             switch response {
             case .success:
@@ -115,10 +115,11 @@ final class BasePeriodicEventExporter: PeriodicEventExporter, HeartbeatListener 
 
     private func processNewBatchIfTimeElapsed() {
         if timeProvider.millisTime - lastBatchCreationUptimeMs >= configProvider.eventsBatchingIntervalMs {
-            if let result = eventExporter.createBatch(nil) {
+            if let result = exporter.createBatch(nil) {
                 lastBatchCreationUptimeMs = timeProvider.millisTime
                 processExistingBatches([BatchEntity(batchId: result.batchId,
                                                     eventIds: result.eventIds,
+                                                    spanIds: result.spanIds,
                                                     createdAt: lastBatchCreationUptimeMs)])
             }
         } else {
