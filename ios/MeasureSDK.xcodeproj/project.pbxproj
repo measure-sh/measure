@@ -268,6 +268,8 @@
 		CFD88D672DAE36D30095115E /* BatchOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D632DAE36D30095115E /* BatchOb+CoreDataProperties.swift */; };
 		CFD88D772DAFD0A70095115E /* MsrSpanBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D762DAFD0A70095115E /* MsrSpanBuilderTests.swift */; };
 		CFD88D792DAFDA530095115E /* MockSpanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D782DAFDA530095115E /* MockSpanStore.swift */; };
+		CFBF626F2DB7ADA200D5ADFB /* SwizzlingUtility.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFBF626E2DB7ADA200D5ADFB /* SwizzlingUtility.swift */; };
+		CFBF62712DB7B38100D5ADFB /* SwizzlingUtilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFBF62702DB7B38100D5ADFB /* SwizzlingUtilityTests.swift */; };
 		CFEC97ED2D9A7642000CFB68 /* MeasureInternalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */; };
 		CFEC97EE2D9A76A5000CFB68 /* MockMeasureInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF2362CB651C8003102DF /* MockMeasureInitializer.swift */; };
 /* End PBXBuildFile section */
@@ -640,6 +642,8 @@
 		CFD88D632DAE36D30095115E /* BatchOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BatchOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		CFD88D762DAFD0A70095115E /* MsrSpanBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrSpanBuilderTests.swift; sourceTree = "<group>"; };
 		CFD88D782DAFDA530095115E /* MockSpanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSpanStore.swift; sourceTree = "<group>"; };
+		CFBF626E2DB7ADA200D5ADFB /* SwizzlingUtility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwizzlingUtility.swift; sourceTree = "<group>"; };
+		CFBF62702DB7B38100D5ADFB /* SwizzlingUtilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwizzlingUtilityTests.swift; sourceTree = "<group>"; };
 		CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInternalTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -978,6 +982,7 @@
 				526D180B2D5A1913009A2E90 /* MeasureQueue.swift */,
 				526D180C2D5A1913009A2E90 /* Randomizer.swift */,
 				CF86818D2DB6541F00C62DA5 /* SpanId.swift */,
+				CFBF626E2DB7ADA200D5ADFB /* SwizzlingUtility.swift */,
 				526D180E2D5A1913009A2E90 /* SysCtl.swift */,
 				526D180F2D5A1913009A2E90 /* SystemFileManager.swift */,
 				526D18102D5A1913009A2E90 /* TimeProvider.swift */,
@@ -1210,6 +1215,7 @@
 			children = (
 				52B7F12A2D757F81001498BC /* LifecycleObserverTests.swift */,
 				52B7F12B2D757F81001498BC /* TimeProviderTests.swift */,
+				CFBF62702DB7B38100D5ADFB /* SwizzlingUtilityTests.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -1684,6 +1690,7 @@
 				526D18522D5A1913009A2E90 /* ThreadDetail.swift in Sources */,
 				526D18362D5A1913009A2E90 /* MeasureConfig.swift in Sources */,
 				526D18542D5A1913009A2E90 /* Exporter.swift in Sources */,
+				CFBF626F2DB7ADA200D5ADFB /* SwizzlingUtility.swift in Sources */,
 				526D18222D5A1913009A2E90 /* MSRViewController.m in Sources */,
 				CFD88C6E2D9E94B40095115E /* SpanProcessor.swift in Sources */,
 				CFD88C6F2D9E94B40095115E /* MsrSpan.swift in Sources */,
@@ -1850,6 +1857,7 @@
 				52B7F1632D757F81001498BC /* MockNetworkClient.swift in Sources */,
 				52B7F1602D757F81001498BC /* MockIdProvider.swift in Sources */,
 				52B7F1742D757F81001498BC /* TimeProviderTests.swift in Sources */,
+				CFBF62712DB7B38100D5ADFB /* SwizzlingUtilityTests.swift in Sources */,
 				520C23972D65EBFD00F1C680 /* MeasureModel.xcdatamodeld in Sources */,
 				52B7F1482D757F81001498BC /* HeartbeatTests.swift in Sources */,
 				52B7F15E2D757F81001498BC /* MockEventStore.swift in Sources */,
