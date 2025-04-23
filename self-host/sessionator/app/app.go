@@ -15,6 +15,7 @@ import (
 type Build struct {
 	VersionCode  string
 	MappingFiles []string
+	MappingTypes []string
 	BuildInfo    BuildInfo
 }
 
