@@ -19,15 +19,24 @@ protocol LifecycleCollector {
     func disable()
 }
 
-class BaseLifecycleCollector: LifecycleCollector {
+final class BaseLifecycleCollector: LifecycleCollector {
     private let signalProcessor: SignalProcessor
     private let timeProvider: TimeProvider
+    private let tracer: Tracer
+    private let configProvider: ConfigProvider
     private let logger: Logger
     private var isEnabled = AtomicBool(false)
+    private var activeSpans: [String: Span] = [:]
 
-    init(signalProcessor: SignalProcessor, timeProvider: TimeProvider, logger: Logger) {
+    init(signalProcessor: SignalProcessor,
+         timeProvider: TimeProvider,
+         tracer: Tracer,
+         configProvider: ConfigProvider,
+         logger: Logger) {
         self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
+        self.tracer = tracer
+        self.configProvider = configProvider
         self.logger = logger
     }
 
@@ -41,7 +50,7 @@ class BaseLifecycleCollector: LifecycleCollector {
 
     func disable() {
         isEnabled.setFalseIfTrue {
-            logger.log(level: .info, message: "LifecycleCollector enabled.", error: nil, data: nil)
+            logger.log(level: .info, message: "LifecycleCollector disabled.", error: nil, data: nil)
         }
     }
 
@@ -58,31 +67,93 @@ class BaseLifecycleCollector: LifecycleCollector {
     }
 
     func processControllerLifecycleEvent(_ vcLifecycleType: VCLifecycleEventType, for viewController: UIViewController) {
+        guard isEnabled.get() else { return }
+
         let className = String(describing: type(of: viewController))
 
-        // Define the list of excluded class names
+        // Filter out internal UIKit controllers we don't want to trace
         let excludedClassNames = [
             "UIHostingController",
             "UIKitNavigationController",
             "NavigationStackHostingController",
             "NotifyingMulticolumnSplitViewController",
-            "StyleContextSplitViewNavigationController"
+            "StyleContextSplitViewController"
         ]
 
-        // Check if the class name contains any of the excluded substrings
-        let shouldTrackEvent = !excludedClassNames.contains { className.contains($0) }
+        guard !excludedClassNames.contains(where: { className.contains($0) }) else { return }
 
-        if shouldTrackEvent {
-            trackEvent(VCLifecycleData(type: vcLifecycleType.stringValue, className: className), type: .lifecycleViewController)
+        trackEvent(VCLifecycleData(type: vcLifecycleType.stringValue, className: className), type: .lifecycleViewController)
+
+        guard configProvider.trackViewControllerLoadTime else { return }
+
+        switch vcLifecycleType {
+        case .loadView:
+            startViewControllerTtidSpan(for: viewController, className: className, checkpoint: CheckpointName.vcLoadView)
+        case .viewDidLoad:
+            // Only start span in viewDidLoad if we haven't already started it in loadView
+            let key = ObjectIdentifier(viewController).debugDescription
+            if activeSpans[key] == nil {
+                startViewControllerTtidSpan(for: viewController, className: className, checkpoint: CheckpointName.vcViewDidLoad)
+            } else if let span = activeSpans[key] {
+                span.setCheckpoint(CheckpointName.vcViewDidLoad)
+            }
+        case .viewWillAppear:
+            addCheckpoint(for: viewController, checkpoint: CheckpointName.vcViewWillAppear)
+        case .viewDidAppear:
+            endViewControllerTtidSpan(for: viewController, className: className)
+        default:
+            break
         }
     }
 
     func processSwiftUILifecycleEvent(_ swiftUILifecycleType: SwiftUILifecycleType, for className: String) {
-        trackEvent(SwiftUILifecycleData(type: swiftUILifecycleType, className: className), type: .lifecycleSwiftUI)
+        trackEvent(
+            SwiftUILifecycleData(type: swiftUILifecycleType, className: className),
+            type: .lifecycleSwiftUI
+        )
     }
 
+    // MARK: - TTID Span Tracking
+
+    private func startViewControllerTtidSpan(for viewController: UIViewController, className: String, checkpoint: String) {
+        let spanName = SpanName.viewControllerTtidSpan(className: className, maxLength: configProvider.maxSpanNameLength)
+        let span = tracer
+            .spanBuilder(name: spanName)
+            .startSpan()
+            .setCheckpoint(checkpoint)
+
+        if viewController.isInitialViewController {
+            span.setAttribute(AttributeName.appStartupFirstViewController, value: true)
+        }
+
+        let key = ObjectIdentifier(viewController).debugDescription
+        activeSpans[key] = span
+    }
+
+    private func addCheckpoint(for viewController: UIViewController, checkpoint: String) {
+        let key = ObjectIdentifier(viewController).debugDescription
+
+        guard let span = activeSpans[key] else { return }
+
+        span.setCheckpoint(checkpoint)
+    }
+
+    private func endViewControllerTtidSpan(for viewController: UIViewController, className: String) {
+        let key = ObjectIdentifier(viewController).debugDescription
+
+        guard let span = activeSpans[key] else { return }
+
+        span.setCheckpoint(CheckpointName.vcViewDidAppear)
+
+        DispatchQueue.main.async {
+            span.setStatus(.ok).end()
+            self.activeSpans.removeValue(forKey: key)
+        }
+    }
+
+    // MARK: - Event tracking
+
     private func trackEvent(_ data: Codable, type: EventType) {
-        guard isEnabled.get() else { return }
         signalProcessor.track(data: data,
                               timestamp: timeProvider.now(),
                               type: type,

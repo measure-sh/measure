@@ -65,9 +65,9 @@ final class MsrSpanBuilderTests: XCTestCase {
                                   spanProcessor: spanProcessor,
                                   sessionManager: sessionManager,
                                   traceSampler: traceSampler,
-                                  logger: logger).startSpan() as! MsrSpan
+                                  logger: logger).startSpan() as? MsrSpan
 
-        XCTAssertEqual(span.startTime, 100000)
+        XCTAssertEqual(span!.startTime, 100000)
     }
 
     func test_startSpan_withTimestampUsesExplicitValue() {
@@ -77,8 +77,8 @@ final class MsrSpanBuilderTests: XCTestCase {
                                   spanProcessor: spanProcessor,
                                   sessionManager: sessionManager,
                                   traceSampler: traceSampler,
-                                  logger: logger).startSpan(1000001) as! MsrSpan
+                                  logger: logger).startSpan(1000001) as? MsrSpan
 
-        XCTAssertEqual(span.startTime, 1000001)
+        XCTAssertEqual(span!.startTime, 1000001)
     }
 }

@@ -18,4 +18,5 @@ struct DefaultConfig {
     static let httpUrlBlocklist: [String] = []
     static let httpUrlAllowlist: [String] = []
     static let autoStart = true
+    static let trackViewControllerLoadTime = true
 }

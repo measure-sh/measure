@@ -32,7 +32,7 @@ extension Measure.AttributeValue : Swift.Codable {
   public init(from decoder: any Swift.Decoder) throws
 }
 @objc final public class BaseMeasureConfig : ObjectiveC.NSObject {
-  public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil, traceSamplingRate: Swift.Float? = nil, trackHttpHeaders: Swift.Bool? = nil, trackHttpBody: Swift.Bool? = nil, httpHeadersBlocklist: [Swift.String]? = nil, httpUrlBlocklist: [Swift.String]? = nil, httpUrlAllowlist: [Swift.String]? = nil, autoStart: Swift.Bool? = nil)
+  public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil, traceSamplingRate: Swift.Float? = nil, trackHttpHeaders: Swift.Bool? = nil, trackHttpBody: Swift.Bool? = nil, httpHeadersBlocklist: [Swift.String]? = nil, httpUrlBlocklist: [Swift.String]? = nil, httpUrlAllowlist: [Swift.String]? = nil, autoStart: Swift.Bool? = nil, trackViewControllerLoadTime: Swift.Bool? = nil)
   @objc deinit
 }
 public protocol Span {

@@ -43,6 +43,7 @@ final class MockConfigProvider: ConfigProvider {
     var maxSpanNameLength: Int
     var maxCheckpointNameLength: Int
     var maxCheckpointsPerSpan: Int
+    var trackViewControllerLoadTime: Bool
 
     init(enableLogging: Bool = false,
          trackScreenshotOnCrash: Bool = true,
@@ -87,7 +88,8 @@ final class MockConfigProvider: ConfigProvider {
          traceSamplingRate: Float = 0.1,
          maxSpanNameLength: Int = 64,
          maxCheckpointNameLength: Int = 64,
-         maxCheckpointsPerSpan: Int = 100) {
+         maxCheckpointsPerSpan: Int = 100,
+         trackViewControllerLoadTime: Bool = true) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
@@ -122,6 +124,7 @@ final class MockConfigProvider: ConfigProvider {
         self.maxSpanNameLength = maxSpanNameLength
         self.maxCheckpointNameLength = maxCheckpointNameLength
         self.maxCheckpointsPerSpan = maxCheckpointsPerSpan
+        self.trackViewControllerLoadTime = trackViewControllerLoadTime
     }
 
     func loadNetworkConfig() {}
