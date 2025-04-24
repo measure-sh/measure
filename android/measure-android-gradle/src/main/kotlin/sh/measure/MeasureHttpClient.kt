@@ -8,7 +8,8 @@ import java.time.Duration
 
 abstract class MeasureHttpClient : BuildService<MeasureHttpClient.Params>, AutoCloseable {
     val client: OkHttpClient by lazy {
-        OkHttpClient.Builder().readTimeout(parameters.timeout.get())
+        OkHttpClient.Builder()
+            .readTimeout(parameters.timeout.get())
             .writeTimeout(parameters.timeout.get())
             .connectTimeout(parameters.timeout.get())
             .build()

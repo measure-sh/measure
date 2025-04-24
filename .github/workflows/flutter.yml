@@ -57,6 +57,11 @@ jobs:
         uses: gradle/actions/wrapper-validation@82758ea0fa86a76afcbc6f0f6d021368407ccee5
       - name: Publish measure to maven local
         run: ../../android/gradlew --project-dir ../../android/ :measure:publishToMavenLocal
+      - name: Publish measure gradle plugin to maven local
+        run: ../../android/gradlew --project-dir ../../android/ :measure-android-gradle:publishToMavenLocal
+        env:
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_ARTIFACT_SIGNING_PASSWORD }}
       - name: Run all checks
         run: ./example/android/gradlew --project-dir ./example/android :measure_flutter:check
       - name: Run SwiftLint

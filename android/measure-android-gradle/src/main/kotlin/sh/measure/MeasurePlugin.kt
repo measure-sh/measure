@@ -14,6 +14,7 @@ import sh.measure.asm.BytecodeTransformer
 import sh.measure.asm.NavigationTransformer
 import sh.measure.asm.OkHttpTransformer
 import sh.measure.utils.capitalize
+import java.io.File
 import java.time.Duration
 
 class MeasurePlugin : Plugin<Project> {
@@ -100,6 +101,7 @@ class MeasurePlugin : Plugin<Project> {
         ) {
             it.manifestDataProperty.set(manifestDataFileProvider(project, variant))
             it.mappingFileProperty.set(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
+            it.flutterSymbolsDirProperty.set(getFlutterSymbolsDirPath(project))
             it.appSizeFileProperty.set(appSizeFileProvider(project, variant))
             it.retriesProperty.set(DEFAULT_RETRIES)
             it.usesService(httpClientProvider)
@@ -129,6 +131,8 @@ class MeasurePlugin : Plugin<Project> {
         }
     }
 
+    private fun getFlutterExtension(project: Project): Any? = project.extensions.findByName("flutter")
+
     private fun appSizeFileProvider(project: Project, variant: Variant): Provider<RegularFile> {
         return project.layout.buildDirectory.file("intermediates/measure/${variant.name}/appSize.txt")
     }
@@ -155,4 +159,36 @@ class MeasurePlugin : Plugin<Project> {
 
     private fun extractManifestDataTaskName(variant: Variant) =
         "extract${variant.name.capitalize()}ManifestData"
+
+    // Returns the path to the flutter symbols directory if it exists.
+    // This function uses the flutter extension to get the source directory and then uses the
+    // split-debug-info gradle property to get the symbols directory.
+    private fun getFlutterSymbolsDirPath(project: Project): File? {
+        val hasFlutterExtension = project.extensions.findByName("flutter") != null
+        if (hasFlutterExtension) {
+            val splitDebugInfoPath = project.providers.gradleProperty("split-debug-info").orNull
+            if (splitDebugInfoPath != null) {
+                try {
+                    val flutterExtension = project.extensions.findByName("flutter")
+                    val flutterSourceDir = flutterExtension?.let {
+                        val source = it::class.java.getMethod("getSource").invoke(it)
+                        if (source != null) {
+                            project.file(source)
+                        } else {
+                            null
+                        }
+                    }
+                    if (flutterSourceDir != null) {
+                        val symbolsRootPath = File(flutterSourceDir, splitDebugInfoPath)
+                        return symbolsRootPath
+                    } else {
+                        project.logger.lifecycle("Flutter source directory not set")
+                    }
+                } catch (e: Exception) {
+                    project.logger.error("Error accessing Flutter source directory: ${e.message}")
+                }
+            }
+        }
+        return null
+    }
 }
