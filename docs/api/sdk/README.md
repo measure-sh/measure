@@ -526,20 +526,21 @@ Note: Only non-crashed threads are to be send in thread object.
 
 Each frame object contains further fields.
 
-| Field            | Type    | Optional | Comment                                                                                                                                                |
-| ---------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `line_num`       | number  | Yes      | Line number of the method                                                                                                                              |
-| `col_num`        | number  | Yes      | Column number of the method                                                                                                                            |
-| `module_name`    | string  | Yes      | Name of the originating module                                                                                                                         |
-| `file_name`      | string  | Yes      | Name of the originating file                                                                                                                           |
-| `class_name`     | string  | Yes      | Name of the originating class                                                                                                                          |
-| `method_name`    | string  | Yes      | Name of the originating method                                                                                                                         |
-| `binary_name`    | string  | Yes      | Name of the iOS binary image. For example, `UIKitCore`. Used for selecting the binary image to use for symbolication.                                  |
-| `symbol_address` | string  | Yes      | Address of the symbol to symbolicate. This is a hexadecimal number prefixed with `0x`. Use along with `offset` and `binary_address` for symbolication. |
-| `offset`         | number  | Yes      | The byte offset, used along with `symbol_address` and `binary_address` for symbolication.                                                              |
-| `binary_address` | string  | Yes      | The binary load address, used along with `symbol_address` and `offset` for symbolication.                                                              |
-| `in_app`         | boolean | No       | `true` if the frame originates from the app module                                                                                                     |
-| `frame_index`    | number  | Yes      | The index of the frame in the stack trace                                                                                                              |
+| Field                 | Type    | Optional | Comment                                                                                                                                                |
+|-----------------------|---------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `line_num`            | number  | Yes      | Line number of the method                                                                                                                              |
+| `col_num`             | number  | Yes      | Column number of the method                                                                                                                            |
+| `module_name`         | string  | Yes      | Name of the originating module                                                                                                                         |
+| `file_name`           | string  | Yes      | Name of the originating file                                                                                                                           |
+| `class_name`          | string  | Yes      | Name of the originating class                                                                                                                          |
+| `method_name`         | string  | Yes      | Name of the originating method                                                                                                                         |
+| `binary_name`         | string  | Yes      | Name of the iOS binary image. For example, `UIKitCore`. Used for selecting the binary image to use for symbolication.                                  |
+| `symbol_address`      | string  | Yes      | Address of the symbol to symbolicate. This is a hexadecimal number prefixed with `0x`. Use along with `offset` and `binary_address` for symbolication. |
+| `offset`              | number  | Yes      | The byte offset, used along with `symbol_address` and `binary_address` for symbolication.                                                              |
+| `binary_address`      | string  | Yes      | The binary load address, used along with `symbol_address` and `offset` for symbolication.                                                              |
+| `in_app`              | boolean | No       | `true` if the frame originates from the app module                                                                                                     |
+| `frame_index`         | number  | Yes      | The index of the frame in the stack trace                                                                                                              |
+| `instruction_address` | string  | Yes      | The =address of the instruction to symbolicate. This is a hexadecimal number prefixed with `0x`. Used for symbolication of Flutter/ELF format crashes. |
 
 `binary_image` objects
 

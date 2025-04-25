@@ -87,6 +87,7 @@ internal interface SignalProcessor {
         attributes: MutableMap<String, Any?> = mutableMapOf(),
         userDefinedAttributes: Map<String, AttributeValue> = mapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
+        threadName: String? = null,
     )
 
     fun trackSpan(spanData: SpanData)
@@ -152,7 +153,7 @@ internal class SignalProcessorImpl(
                             userDefinedAttributes = userDefinedAttributes,
                             sessionId = sessionId,
                         )
-                        applyAttributes(event, resolvedThreadName)
+                        applyAttributes(attributes, event, resolvedThreadName)
                         val transformedEvent = InternalTrace.trace(
                             label = { "msr-transform-event" },
                             block = { eventTransformer.transform(event) },
@@ -187,17 +188,18 @@ internal class SignalProcessorImpl(
         InternalTrace.trace(
             label = { "msr-trackEvent" },
             block = {
+                val attributes = mutableMapOf<String, Any?>()
                 val event = createEvent(
                     data = data,
                     timestamp = timestamp,
                     type = type,
                     attachments = mutableListOf(),
-                    attributes = mutableMapOf(),
+                    attributes = attributes,
                     userTriggered = false,
                     userDefinedAttributes = mutableMapOf(),
                     sessionId = sessionId,
                 )
-                applyAttributes(event, threadName)
+                applyAttributes(attributes, event, threadName)
                 event.updateVersionAttribute(appVersion, appBuild)
                 InternalTrace.trace(label = { "msr-store-event" }, block = {
                     signalStore.store(event)
@@ -213,8 +215,9 @@ internal class SignalProcessorImpl(
         attributes: MutableMap<String, Any?>,
         userDefinedAttributes: Map<String, AttributeValue>,
         attachments: MutableList<Attachment>,
+        threadName: String?,
     ) {
-        val threadName = Thread.currentThread().name
+        val threadName = threadName ?: Thread.currentThread().name
         val event = createEvent(
             data = data,
             timestamp = timestamp,
@@ -227,7 +230,7 @@ internal class SignalProcessorImpl(
         if (configProvider.trackScreenshotOnCrash) {
             addScreenshotAsAttachment(event)
         }
-        applyAttributes(event, threadName)
+        applyAttributes(attributes, event, threadName)
         eventTransformer.transform(event)?.let {
             signalStore.store(event)
             onEventTracked(event)
@@ -276,9 +279,16 @@ internal class SignalProcessorImpl(
         )
     }
 
-    private fun <T> applyAttributes(event: Event<T>, threadName: String) {
+    private fun <T> applyAttributes(
+        attributes: MutableMap<String, Any?>,
+        event: Event<T>,
+        threadName: String,
+    ) {
         InternalTrace.trace(label = { "msr-apply-attributes" }, block = {
             event.appendAttribute(Attribute.THREAD_NAME, threadName)
+            if (!attributes.contains(Attribute.PLATFORM_KEY)) {
+                event.appendAttribute(Attribute.PLATFORM_KEY, "android")
+            }
             event.appendAttributes(attributeProcessors)
         })
     }

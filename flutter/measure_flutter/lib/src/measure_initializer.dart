@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:measure_flutter/src/config/measure_config.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
+import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/logger/flutter_logger.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
@@ -11,6 +12,7 @@ final class MeasureInitializer {
   late final Logger _logger;
   late final MsrMethodChannel _methodChannel;
   late final CustomEventCollector _customEventCollector;
+  late final ExceptionCollector _exceptionCollector;
   late final SignalProcessor _signalProcessor;
 
   Logger get logger => _logger;
@@ -18,6 +20,8 @@ final class MeasureInitializer {
   MsrMethodChannel get methodChannel => _methodChannel;
 
   CustomEventCollector get customEventCollector => _customEventCollector;
+
+  ExceptionCollector get exceptionCollector => _exceptionCollector;
 
   SignalProcessor get signalProcessor => _signalProcessor;
 
@@ -31,6 +35,10 @@ final class MeasureInitializer {
     _signalProcessor =
         DefaultSignalProcessor(logger: logger, channel: _methodChannel);
     _customEventCollector = CustomEventCollector(
+      logger: logger,
+      signalProcessor: signalProcessor,
+    );
+    _exceptionCollector = ExceptionCollector(
       logger: logger,
       signalProcessor: signalProcessor,
     );
@@ -51,5 +59,9 @@ final class MeasureInitializer {
           logger: _logger,
           signalProcessor: signalProcessor,
         );
+    _exceptionCollector = ExceptionCollector(
+      logger: _logger,
+      signalProcessor: signalProcessor,
+    );
   }
 }

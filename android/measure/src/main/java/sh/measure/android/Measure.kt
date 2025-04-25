@@ -527,9 +527,28 @@ object Measure {
      *
      * This method is not intended for public usage and can change in future versions. To
      * track events use [trackEvent].
+     *
+     * Usage Notes:
+     * * [data] is a "mutable" map as certain data may be added by the native SDK. For
+     * example, for and exception event the foreground property is set by the native SDK.
+     * * [attributes] set from cross-platform frameworks may be overridden by the native SDK. To
+     * prevent this modification is required in the [sh.measure.android.events.SignalProcessor].
+     *
+     * @param data the event data compatible for the given event [type].
+     * @param type the event type, must be one of [EventType].
+     * @param timestamp the event timestamp in milliseconds since epoch.
+     * @param attributes key-value pairs providing additional context to the event. Must be one of
+     *  [sh.measure.android.attributes.Attribute].
+     * @param userDefinedAttrs custom key-value pairs providing additional context to the event.
+     * @param attachments list of attachments to be sent with the event.
+     * @param userTriggered whether the event was triggered by the user.
+     * @param sessionId optional session ID associated with the event. By default the the event will
+     * be associated with the current session ID.
+     * @param threadName optional thread name associated with the event. By default the the event
+     * will be associated with the thread on which this function is processed.
      */
     fun internalTrackEvent(
-        data: Map<String, Any?>,
+        data: MutableMap<String, Any?>,
         type: String,
         timestamp: Long,
         attributes: MutableMap<String, Any?> = mutableMapOf<String, Any?>(),

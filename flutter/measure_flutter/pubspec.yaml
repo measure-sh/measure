@@ -11,6 +11,8 @@ dependencies:
   flutter:
     sdk: flutter
   plugin_platform_interface: ^2.1.8
+  logger: ^2.5.0
+  stack_trace: ^1.12.0
   json_annotation: ^4.9.0
 
 dev_dependencies:

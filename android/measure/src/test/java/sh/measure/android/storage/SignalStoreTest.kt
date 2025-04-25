@@ -206,12 +206,13 @@ internal class SignalStoreTest {
             attachments = mutableListOf(attachment),
             id = idProvider.id,
         )
-        `when`(fileStorage.writeAttachment(event.id, attachment.bytes!!)).thenReturn("fake-path")
+        val bytes = attachment.bytes!!
+        `when`(fileStorage.writeAttachment(event.id, bytes)).thenReturn("fake-path")
 
         signalStore.store(event)
         signalStore.flush()
 
-        verify(fileStorage).writeAttachment(event.id, attachment.bytes)
+        verify(fileStorage).writeAttachment(event.id, bytes)
         val eventsCaptor = argumentCaptor<List<EventEntity>>()
         verify(database).insertSignals(eventsCaptor.capture(), eq(emptyList()))
         val eventEntity = eventsCaptor.firstValue.first()

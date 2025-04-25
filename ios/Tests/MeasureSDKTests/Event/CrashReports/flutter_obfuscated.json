@@ -1,0 +1,26 @@
+{
+  "foreground" : true,
+  "handled": false,
+  "threads" : [],
+  "exceptions": [
+      {
+        "thread_sequence" : 0,
+        "frames" : [
+            {
+                "frame_index": 0,
+                "in_app": false,
+                "binary_address": "0x7af7026000",
+                "instruction_address": "0x7af71c4903"
+            },
+            {
+                "frame_index": 1,
+                "in_app": false,
+                "binary_address": "0x7af7026000",
+                "instruction_address": "0x7af71c48cf"
+            }
+        ]
+      }
+  ]
+}
+
+

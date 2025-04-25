@@ -63,7 +63,7 @@ final class MockMeasureInitializer: MeasureInitializer {
     let spanProcessor: SpanProcessor
     let spanCollector: SpanCollector
     let tracer: Tracer
-    let internalEventCollector: InternalEventCollector
+    var internalSignalCollector: InternalSignalCollector
 
     init(client: Client? = nil, // swiftlint:disable:this function_body_length
          configProvider: ConfigProvider? = nil,
@@ -118,7 +118,7 @@ final class MockMeasureInitializer: MeasureInitializer {
          spanProcessor: SpanProcessor? = nil,
          spanCollector: SpanCollector? = nil,
          tracer: Tracer? = nil,
-         internalEventCollector: InternalEventCollector? = nil) {
+         internalSignalCollector: InternalSignalCollector? = nil) {
         self.client = client ?? ClientInfo(apiKey: "test", apiUrl: "https://test.com")
         self.configProvider = configProvider ?? BaseConfigProvider(defaultConfig: Config(),
                                                                    configLoader: BaseConfigLoader())
@@ -285,7 +285,7 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                client: self.client,
                                                                                configProvider: self.configProvider,
                                                                                httpEventValidator: self.httpEventValidator)
-        self.internalEventCollector = internalEventCollector ?? BaseInternalEventCollector(logger: self.logger,
-                                                                                           signalProcessor: self.signalProcessor)
+        self.internalSignalCollector = internalSignalCollector ?? BaseInternalSignalCollector(logger: self.logger,
+                                                                                             signalProcessor: self.signalProcessor)
     }
 }

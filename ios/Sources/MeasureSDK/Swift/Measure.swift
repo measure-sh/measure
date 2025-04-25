@@ -163,9 +163,34 @@ import Foundation
         customEventCollector.trackEvent(name: name, attributes: attributes, timestamp: timestamp)
     }
 
-    public func internalTrackEvent(data: [String: Any?], type: String, timestamp: Int64, attributes: [String: Any?], userDefinedAttrs: [String: AttributeValue], userTriggered: Bool, sessionId: String?, threadName: String?) {
-        guard let internalEventCollector = measureInternal?.internalEventCollector else { return }
-        internalEventCollector.trackEvent(data: data, type: type, timestamp: timestamp, attributes: attributes, userDefinedAttrs: userDefinedAttrs, userTriggered: userTriggered, sessionId: sessionId, threadName: threadName)
+    /// An internal method to track events from cross-platform frameworks
+    /// like Flutter and React Native.
+    ///
+    /// This method is not intended for public usage and can change in future versions. To
+    /// track events use trackEvent.
+    ///
+    /// Usage Notes:
+    /// * data is a "mutable" map as certain data may be added by the native SDK. For
+    ///   example, for an exception event the foreground property is set by the native SDK.
+    /// * attributes set from cross-platform frameworks may be overridden by the native SDK. To
+    ///   prevent this modify the SignalProcessor.
+    ///
+    /// - Parameters:
+    ///   - data: The event data compatible for the given event type.
+    ///   - type: The event type, must be one of EventType.
+    ///   - timestamp: The event timestamp in milliseconds since epoch.
+    ///   - attributes: Key-value pairs providing additional context to the event. Must be one of
+    ///     ShMeasureIOSAttributes.Attribute.
+    ///   - userDefinedAttrs: Custom key-value pairs providing additional context to the event.
+    ///   - attachments: List of attachments to be sent with the event.
+    ///   - userTriggered: Whether the event was triggered by the user.
+    ///   - sessionId: Optional session ID associated with the event. By default the event will
+    ///     be associated with the current session ID.
+    ///   - threadName: Optional thread name associated with the event. By default the event
+    ///     will be associated with the thread on which this function is processed.
+    public func internalTrackEvent(data: inout [String: Any?], type: String, timestamp: Int64, attributes: [String: Any?], userDefinedAttrs: [String: AttributeValue], userTriggered: Bool, sessionId: String?, threadName: String?) {
+        guard let internalEventCollector = measureInternal?.internalSignalCollector else { return }
+        internalEventCollector.trackEvent(data: &data, type: type, timestamp: timestamp, attributes: attributes, userDefinedAttrs: userDefinedAttrs, userTriggered: userTriggered, sessionId: sessionId, threadName: threadName)
     }
 
     /// Tracks an event with optional timestamp.

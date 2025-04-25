@@ -291,27 +291,8 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         return shakeBugReportCollector.isShakeToLaunchBugReportEnabled()
     }
 
-    private fun unregisterCollectors() {
-        unhandledExceptionCollector.unregister()
-        anrCollector.unregister()
-        userTriggeredEventCollector.unregister()
-        activityLifecycleCollector.unregister()
-        appLifecycleCollector.unregister()
-        cpuUsageCollector.pause()
-        memoryUsageCollector.pause()
-        componentCallbacksCollector.unregister()
-        gestureCollector.unregister()
-        networkChangesCollector.unregister()
-        httpEventCollector.unregister()
-        powerStateProvider.unregister()
-        periodicExporter.unregister()
-        spanCollector.unregister()
-        customEventCollector.unregister()
-        periodicSignalStoreScheduler.unregister()
-    }
-
     fun internalTrackEvent(
-        data: Map<String, Any?>,
+        data: MutableMap<String, Any?>,
         type: String,
         timestamp: Long,
         attributes: MutableMap<String, Any?>,
@@ -334,5 +315,24 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
                 threadName = threadName,
             )
         }
+    }
+
+    private fun unregisterCollectors() {
+        unhandledExceptionCollector.unregister()
+        anrCollector.unregister()
+        userTriggeredEventCollector.unregister()
+        activityLifecycleCollector.unregister()
+        appLifecycleCollector.unregister()
+        cpuUsageCollector.pause()
+        memoryUsageCollector.pause()
+        componentCallbacksCollector.unregister()
+        gestureCollector.unregister()
+        networkChangesCollector.unregister()
+        httpEventCollector.unregister()
+        powerStateProvider.unregister()
+        periodicExporter.unregister()
+        spanCollector.unregister()
+        customEventCollector.unregister()
+        periodicSignalStoreScheduler.unregister()
     }
 }
