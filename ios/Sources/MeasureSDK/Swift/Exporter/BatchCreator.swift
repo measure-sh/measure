@@ -35,11 +35,6 @@ final class BaseBatchCreator: BatchCreator {
     func create(sessionId: String? = nil) -> BatchCreationResult? {
         let eventToAttachmentSizeMap = eventStore.getUnBatchedEventsWithAttachmentSize(eventCount: configProvider.maxEventsInBatch, ascending: true, sessionId: nil)
 
-        if eventToAttachmentSizeMap.isEmpty {
-            logger.log(level: .debug, message: "No events to batch", error: nil, data: nil)
-            return nil
-        }
-
         let eventIds = filterEventsForMaxAttachmentSize(eventToAttachmentSizeMap)
         let spanIds = spanStore.getUnBatchedSpans(spanCount: configProvider.maxEventsInBatch, ascending: true)
 
