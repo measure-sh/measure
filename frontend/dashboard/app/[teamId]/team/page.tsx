@@ -2,15 +2,17 @@
 
 import { FormEventHandler, useEffect, useState } from "react"
 import DangerConfirmationModal from "@/app/components/danger_confirmation_modal"
-import { TeamsApiStatus, fetchTeamsFromServer, emptyTeam, AuthzAndMembersApiStatus, InviteMemberApiStatus, RemoveMemberApiStatus, RoleChangeApiStatus, TeamNameChangeApiStatus, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, changeTeamNameFromServer, changeRoleFromServer, inviteMemberFromServer, removeMemberFromServer, CreateTeamApiStatus, createTeamFromServer } from "@/app/api/api_calls"
+import { Team, TeamsApiStatus, fetchTeamsFromServer, AuthzAndMembersApiStatus, InviteMemberApiStatus, RemoveMemberApiStatus, RoleChangeApiStatus, TeamNameChangeApiStatus, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, changeTeamNameFromServer, changeRoleFromServer, inviteMemberFromServer, removeMemberFromServer, CreateTeamApiStatus, createTeamFromServer, PendingInvitesApiStatus, PendingInvite, fetchPendingInvitesFromServer, RemovePendingInviteApiStatus, removePendingInviteFromServer, resendPendingInviteFromServer, ResendPendingInviteApiStatus } from "@/app/api/api_calls"
 import AlertDialogModal from "@/app/components/alert_dialog_modal"
 import { formatToCamelCase } from "@/app/utils/string_utils"
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
 import { measureAuth } from "@/app/auth/measure_auth"
+import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
+import { get } from "http"
 
-export default function Team({ params }: { params: { teamId: string } }) {
+export default function TeamOverview({ params }: { params: { teamId: string } }) {
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading)
-  const [team, setTeam] = useState(emptyTeam)
+  const [team, setTeam] = useState<Team | null>()
 
   const [currentUserId, setCurrentUserId] = useState<String>()
 
@@ -38,6 +40,22 @@ export default function Team({ params }: { params: { teamId: string } }) {
 
   const [getAuthzAndMembersApiStatus, setAuthzAndMembersApiStatus] = useState(AuthzAndMembersApiStatus.Loading)
   const [authzAndMembers, setAuthzAndMembers] = useState(defaultAuthzAndMembers)
+
+  const [pendingInvitesApiStatus, setPendingInvitesApiStatus] = useState(PendingInvitesApiStatus.Loading)
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[] | null>(null)
+
+  const [resendPendingInviteConfirmationModalOpen, setResendPendingInviteConfirmationModalOpen] = useState(false)
+  const [resendPendingInviteApiStatus, setResendPendingInviteApiStatus] = useState(ResendPendingInviteApiStatus.Init)
+  const [resendPendingInviteId, setResendPendingInviteId] = useState("")
+  const [resendPendingInviteEmail, setResendPendingInviteEmail] = useState("")
+  const [resendPendingInviteSuccessMsg, setResendPendingInviteSuccessMsg] = useState("")
+  const [resendPendingInviteErrorMsg, setResendPendingInviteErrorMsg] = useState("")
+
+  const [removePendingInviteConfirmationModalOpen, setRemovePendingInviteConfirmationModalOpen] = useState(false)
+  const [removePendingInviteApiStatus, setRemovePendingInviteApiStatus] = useState(RemovePendingInviteApiStatus.Init)
+  const [removePendingInviteId, setRemovePendingInviteId] = useState("")
+  const [removePendingInviteEmail, setRemovePendingInviteEmail] = useState("")
+  const [removePendingInviteErrorMsg, setRemovePendingInviteErrorMsg] = useState("")
 
   const [selectedDropdownRolesMap, setSelectedDropdownRolesMap] = useState<Map<String, String>>(new Map())
   const [changeRoleConfirmationModalOpen, setChangeRoleConfirmationModalOpen] = useState(false)
@@ -102,6 +120,64 @@ export default function Team({ params }: { params: { teamId: string } }) {
     getAuthzAndMembers()
   }, [])
 
+  const getPendingInvites = async () => {
+    setPendingInvitesApiStatus(PendingInvitesApiStatus.Loading)
+
+    const result = await fetchPendingInvitesFromServer(params.teamId)
+
+    switch (result.status) {
+      case PendingInvitesApiStatus.Error:
+        setPendingInvitesApiStatus(PendingInvitesApiStatus.Error)
+        break
+      case PendingInvitesApiStatus.Success:
+        setPendingInvitesApiStatus(PendingInvitesApiStatus.Success)
+        setPendingInvites(result.data)
+        break
+    }
+  }
+
+  useEffect(() => {
+    getPendingInvites()
+  }, [])
+
+  const resendPendingInvite = async () => {
+    setResendPendingInviteSuccessMsg("")
+    setResendPendingInviteErrorMsg("")
+    setResendPendingInviteApiStatus(ResendPendingInviteApiStatus.Loading)
+
+    const result = await resendPendingInviteFromServer(params.teamId, resendPendingInviteId)
+
+    switch (result.status) {
+      case ResendPendingInviteApiStatus.Error:
+        setResendPendingInviteApiStatus(ResendPendingInviteApiStatus.Error)
+        setResendPendingInviteErrorMsg(result.error)
+        break
+      case ResendPendingInviteApiStatus.Success:
+        setResendPendingInviteApiStatus(ResendPendingInviteApiStatus.Success)
+        setResendPendingInviteSuccessMsg("Invite Resent!")
+        getPendingInvites()
+        break
+    }
+  }
+
+  const removePendingInvite = async () => {
+    setRemovePendingInviteErrorMsg("")
+    setRemovePendingInviteApiStatus(RemovePendingInviteApiStatus.Loading)
+
+    const result = await removePendingInviteFromServer(params.teamId, removePendingInviteId)
+
+    switch (result.status) {
+      case RemovePendingInviteApiStatus.Error:
+        setRemovePendingInviteApiStatus(RemovePendingInviteApiStatus.Error)
+        setRemovePendingInviteErrorMsg(result.error)
+        break
+      case RemovePendingInviteApiStatus.Success:
+        setRemovePendingInviteApiStatus(RemovePendingInviteApiStatus.Success)
+        getPendingInvites()
+        break
+    }
+  }
+
   const changeTeamName = async () => {
     setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Loading)
 
@@ -119,6 +195,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
   }
 
   const changeRole = async () => {
+    setChangeRoleErrorMsg("")
     setRoleChangeApiStatus(RoleChangeApiStatus.Loading)
 
     const result = await changeRoleFromServer(params.teamId, roleChangeNewRole, roleChangeMemberId)
@@ -135,6 +212,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
   }
 
   const inviteMember = async () => {
+    setInviteMemberErrorMsg("")
     setInviteMemberApiStatus(InviteMemberApiStatus.Loading)
 
     const result = await inviteMemberFromServer(params.teamId, inviteMemberEmail, inviteMemberRole)
@@ -146,12 +224,15 @@ export default function Team({ params }: { params: { teamId: string } }) {
         break
       case InviteMemberApiStatus.Success:
         setInviteMemberApiStatus(InviteMemberApiStatus.Success)
+        setInviteMemberEmail("")
         getAuthzAndMembers()
+        getPendingInvites()
         break
     }
   }
 
   const removeMember = async () => {
+    setRemoveMemberErrorMsg("")
     setRemoveMemberApiStatus(RemoveMemberApiStatus.Loading)
 
     const result = await removeMemberFromServer(params.teamId, removeMemberId)
@@ -175,6 +256,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
       return
     }
 
+    setCreateTeamErrorMsg("")
     setCreateTeamApiStatus(CreateTeamApiStatus.Loading)
 
     const result = await createTeamFromServer(createTeamName)
@@ -206,8 +288,26 @@ export default function Team({ params }: { params: { teamId: string } }) {
       {teamsApiStatus === TeamsApiStatus.Success &&
         <div className="flex flex-col items-start">
 
+          {/* Modal for confirming pending invite resend */}
+          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to resend pending invite for <span className="font-display font-bold">{resendPendingInviteEmail}</span>?</p>} open={resendPendingInviteConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+            onAffirmativeAction={() => {
+              setResendPendingInviteConfirmationModalOpen(false)
+              resendPendingInvite()
+            }}
+            onCancelAction={() => setResendPendingInviteConfirmationModalOpen(false)}
+          />
+
+          {/* Modal for confirming pending invite removal */}
+          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to remove pending invite for <span className="font-display font-bold">{removePendingInviteEmail}</span>?</p>} open={removePendingInviteConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+            onAffirmativeAction={() => {
+              setRemovePendingInviteConfirmationModalOpen(false)
+              removePendingInvite()
+            }}
+            onCancelAction={() => setRemovePendingInviteConfirmationModalOpen(false)}
+          />
+
           {/* Modal for confirming team name change */}
-          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to rename team <span className="font-display font-bold">{team.name}</span> to <span className="font-display font-bold">{newTeamName}</span>?</p>} open={teamNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to rename team <span className="font-display font-bold">{team!.name}</span> to <span className="font-display font-bold">{newTeamName}</span>?</p>} open={teamNameConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
               setTeamNameConfirmationModalOpen(false)
               changeTeamName()
@@ -225,7 +325,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           />
 
           {/* Modal for confirming member removal */}
-          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to remove <span className="font-display font-bold">{removeMemberEmail}</span> from team <span className="font-display font-bold">{team.name}</span>?</p>} open={removeMemberConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to remove <span className="font-display font-bold">{removeMemberEmail}</span> from team <span className="font-display font-bold">{team!.name}</span>?</p>} open={removeMemberConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
             onAffirmativeAction={() => {
               setRemoveMemberConfirmationModalOpen(false)
               removeMember()
@@ -244,9 +344,9 @@ export default function Team({ params }: { params: { teamId: string } }) {
           <p className="font-body max-w-6xl text-center">Team name</p>
           <div className="py-1" />
           <div className="flex flex-row items-center">
-            <input id="change-team-name-input" type="text" defaultValue={team.name}
+            <input id="change-team-name-input" type="text" defaultValue={team!.name}
               onChange={(event) => {
-                event.target.value === team.name ? setSaveTeamNameButtonDisabled(true) : setSaveTeamNameButtonDisabled(false)
+                event.target.value === team!.name ? setSaveTeamNameButtonDisabled(true) : setSaveTeamNameButtonDisabled(false)
                 setNewTeamName(event.target.value)
                 setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Init)
               }}
@@ -263,7 +363,7 @@ export default function Team({ params }: { params: { teamId: string } }) {
           <p className="font-body max-w-6xl text-center">Invite team members</p>
           <div className="py-1" />
           <div className="flex flex-row items-center">
-            <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300  py-2 px-4 font-body placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} defaultValue={inviteMemberEmail} />
+            <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300  py-2 px-4 font-body placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} value={inviteMemberEmail} />
             <div className="px-2" />
             <DropdownSelect title="Roles" type={DropdownSelectType.SingleString} items={authzAndMembers.can_invite.map((i) => formatToCamelCase(i))} initialSelected={formatToCamelCase(authzAndMembers.can_invite[0])} onChangeSelected={(item) => setInviteMemberRole(item as string)} />
             <button disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""} onClick={inviteMember} className="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
@@ -271,8 +371,6 @@ export default function Team({ params }: { params: { teamId: string } }) {
           {inviteMemberApiStatus !== InviteMemberApiStatus.Init && <div className="py-1" />}
           {/* Loading message for invite member */}
           {inviteMemberApiStatus === InviteMemberApiStatus.Loading && <p className="text-sm font-display">Inviting member...</p>}
-          {/* Success message for invite member */}
-          {inviteMemberApiStatus === InviteMemberApiStatus.Success && <p className="text-sm font-display">Invited to team!</p>}
           {/* Error message for invite member */}
           {inviteMemberApiStatus === InviteMemberApiStatus.Error && <p className="text-sm font-display">{inviteMemberErrorMsg}</p>}
 
@@ -318,11 +416,9 @@ export default function Team({ params }: { params: { teamId: string } }) {
                         setChangeRoleConfirmationModalOpen(true)
                       }}>Change Role</button>
                       {/* Loading message for role change */}
-                      {roleChangeApiStatus === RoleChangeApiStatus.Loading && roleChangeMemberId === id && <p className="font-display">Changing role...</p>}
+                      {roleChangeApiStatus === RoleChangeApiStatus.Loading && roleChangeMemberId === id && <p className="font-display pl-4 w-24 text-xs" title="Changing role...">Changing role...</p>}
                       {/* Error message for role change */}
-                      {roleChangeApiStatus === RoleChangeApiStatus.Error && roleChangeMemberId === id && <p className="font-display pl-4 w-24 text-xs">Error: {changeRoleErrorMsg}</p>}
-                      {/* Success message for role change */}
-                      {roleChangeApiStatus === RoleChangeApiStatus.Success && roleChangeMemberId === id && <p className="font-display text-center">Role changed!</p>}
+                      {roleChangeApiStatus === RoleChangeApiStatus.Error && roleChangeMemberId === id && <p className="font-display pl-4 w-24 text-xs" title={"Error: " + changeRoleErrorMsg}>Error: {changeRoleErrorMsg}</p>}
                     </div>
                   }
 
@@ -335,9 +431,9 @@ export default function Team({ params }: { params: { teamId: string } }) {
                         setRemoveMemberConfirmationModalOpen(true)
                       }}>Remove</button>
                       {/* Loading message for member removal */}
-                      {removeMemberApiStatus === RemoveMemberApiStatus.Loading && removeMemberId === id && <p className="font-display text-center">Removing member...</p>}
+                      {removeMemberApiStatus === RemoveMemberApiStatus.Loading && removeMemberId === id && <p className="font-display pl-4 w-24 text-xs truncate" title="Removing member...">Removing member...</p>}
                       {/* Error message for member removal */}
-                      {removeMemberApiStatus === RemoveMemberApiStatus.Error && removeMemberId === id && <p className="font-display pl-4 w-24 text-xs">Error: {removeMemberErrorMsg}</p>}
+                      {removeMemberApiStatus === RemoveMemberApiStatus.Error && removeMemberId === id && <p className="font-display pl-4 w-24 text-xs" title={"Error: " + removeMemberErrorMsg}>Error: {removeMemberErrorMsg}</p>}
                     </div>
                   }
 
@@ -345,15 +441,69 @@ export default function Team({ params }: { params: { teamId: string } }) {
               ))}
             </div>}
 
+          {(pendingInvitesApiStatus !== PendingInvitesApiStatus.Success || (pendingInvitesApiStatus === PendingInvitesApiStatus.Success && pendingInvites?.length! > 0)) && <p className="mt-8 mb-2 font-display text-2xl max-w-6xl text-center">Pending Invites</p>}
+          {/* Loading message for fetch pending invites */}
+          {pendingInvitesApiStatus === PendingInvitesApiStatus.Loading && <p className="font-display">Fetching pending invites...</p>}
+          {/* Error message for fetch pending invites */}
+          {pendingInvitesApiStatus === PendingInvitesApiStatus.Error && <p className="font-display">Error fetching pending invites, please refresh page to try again</p>}
+
+          {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success && pendingInvitesApiStatus === PendingInvitesApiStatus.Success && pendingInvites?.length! > 0 &&
+            <div className="table w-full" style={{ tableLayout: "fixed" }}>
+              <div className="table-header-group bg-neutral-950">
+                <div className="table-row text-white font-display">
+                  <div className="table-cell w-64 p-4">Invitee</div>
+                  <div className="table-cell w-64 p-4">Invited By</div>
+                  <div className="table-cell w-24 p-4 text-center">Invited As</div>
+                  <div className="table-cell w-48 p-4 text-center">Valid Until</div>
+                  <div className="table-cell w-24 p-4 text-center" />
+                  <div className="table-cell w-24 p-4 text-center" />
+                </div>
+              </div>
+              <div className="table-row-group">
+                {pendingInvites!.map(({ id, email, invited_by_email, role, valid_until }) => (
+                  <div key={id} className="table-row font-body">
+                    <div className="table-cell p-4 truncate" title={email}>{email}</div>
+                    <div className="table-cell p-4 truncate" title={invited_by_email}>{invited_by_email}</div>
+                    <div className="table-cell p-4 text-center">{formatToCamelCase(role)}</div>
+                    <div className="table-cell p-4 text-center">{formatDateToHumanReadableDateTime(valid_until)}</div>
+                    <div className="table-cell p-4">
+                      <button disabled={!authzAndMembers.can_invite.includes(role) || resendPendingInviteApiStatus === ResendPendingInviteApiStatus.Loading} className="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
+                        setResendPendingInviteId(id)
+                        setResendPendingInviteEmail(email)
+                        setResendPendingInviteConfirmationModalOpen(true)
+                      }}>Resend</button>
+                      {/* Loading message for pending invite resend */}
+                      {resendPendingInviteApiStatus === ResendPendingInviteApiStatus.Loading && resendPendingInviteId === id && <p className="font-display pl-4 w-24 text-xs truncate" title="Resending pending invite...">Resending pending invite...</p>}
+                      {/* Error message for pending invite resend */}
+                      {resendPendingInviteApiStatus === ResendPendingInviteApiStatus.Error && resendPendingInviteId === id && <p className="font-display pl-4 w-24 text-xs truncate" title={"Error: " + resendPendingInviteErrorMsg}>Error: {resendPendingInviteErrorMsg}</p>}
+                      {/* Success message for pending invite resend */}
+                      {resendPendingInviteApiStatus === ResendPendingInviteApiStatus.Success && resendPendingInviteId === id && <p className="font-display pl-4 w-24 text-xs truncate" title={resendPendingInviteSuccessMsg}>{resendPendingInviteSuccessMsg}</p>}
+                    </div>
+                    <div className="table-cell p-4">
+                      <button disabled={!authzAndMembers.can_invite.includes(role) || removePendingInviteApiStatus === RemovePendingInviteApiStatus.Loading} className="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
+                        setRemovePendingInviteId(id)
+                        setRemovePendingInviteEmail(email)
+                        setRemovePendingInviteConfirmationModalOpen(true)
+                      }}>Revoke</button>
+                      {/* Loading message for pending invite removal */}
+                      {removePendingInviteApiStatus === RemovePendingInviteApiStatus.Loading && removePendingInviteId === id && <p className="font-display pl-4 w-24 text-xs truncate" title="Revoking pending invite...">Revoking pending invite...</p>}
+                      {/* Error message for pending invite removal */}
+                      {removePendingInviteApiStatus === RemovePendingInviteApiStatus.Error && removePendingInviteId === id && <p className="font-display pl-4 w-24 text-xs truncate" title={"Error: " + removePendingInviteErrorMsg}>Error: {removePendingInviteErrorMsg}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>}
+
           {/* Create new team */}
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success &&
-            <div>
-              <div className="py-4" />
-              <div className="w-full border border-black h-0" />
+            <div className="w-full">
               <div className="py-8" />
+              <div className="w-full border border-black h-0" />
+              <div className="py-4" />
               <form onSubmit={createTeam} className="flex flex-col">
                 <p className="font-display text-2xl">Create new team</p>
-                <div className="py-2" />
+                <div className="py-4" />
                 <input id="app-name" type="string" placeholder="Enter team name" className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400" onChange={(event) => setCreateTeamName(event.target.value)} />
                 <div className="py-2" />
                 <button type="submit" disabled={createTeamApiStatus === CreateTeamApiStatus.Loading || createTeamName.length === 0} className={`w-fit outline-hidden hover:enabled:bg-yellow-200 focus-visible:enabled:bg-yellow-200 active:enabled:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4 ${(createTeamApiStatus === CreateTeamApiStatus.Loading) ? 'pointer-events-none' : 'pointer-events-auto'}`}>Create Team</button>

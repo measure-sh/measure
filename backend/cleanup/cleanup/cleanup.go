@@ -33,6 +33,9 @@ func DeleteStaleData(ctx context.Context) {
 	// delete shortened filters
 	deleteStaleShortenedFilters(ctx)
 
+	// delete stale invites
+	deleteStaleInvites(ctx)
+
 	// fetch each app's retention thresholds
 	appRetentions, err := fetchAppRetentions(ctx)
 	if err != nil {
@@ -87,6 +90,22 @@ func deleteStaleShortenedFilters(ctx context.Context) {
 	}
 
 	fmt.Printf("Succesfully deleted stale short filters\n")
+}
+
+// deleteStaleInvites deletes stale invites that
+// have passed the expiry threshold
+func deleteStaleInvites(ctx context.Context) {
+	threshold := time.Now().Add(-48 * time.Hour) // 48 hour expiry
+	stmt := sqlf.PostgreSQL.DeleteFrom("public.invites").
+		Where("updated_at < ?", threshold)
+
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		fmt.Printf("Failed to delete stale invites: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Succesfully deleted stale invites\n")
 }
 
 // deleteEventFilters deletes stale event filters for each

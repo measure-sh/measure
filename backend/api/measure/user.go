@@ -185,14 +185,34 @@ func (u *User) touchLastSignInAt(ctx context.Context) (err error) {
 	return
 }
 
-// GetUsersByInvitees provides existing & new invitees by matching
+// getEmail retrieves the email address of the user.
+func (u *User) getEmail(ctx context.Context) (err error) {
+	stmt := sqlf.PostgreSQL.
+		From("public.users").
+		Select("email").
+		Where("id = ?", nil)
+
+	defer stmt.Close()
+
+	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), u.ID).Scan(&u.Email)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("user not found")
+		}
+		return fmt.Errorf("failed to retrieve email: %w", err)
+	}
+
+	return
+}
+
+// GetExistingAndNewInvitees provides existing & new invitees by matching
 // each user's and invitee's email.
 //
 // Only confirmed users are considered as viable candidates for
 // team invitation.
-func GetUsersByInvitees(invitees []Invitee) ([]Invitee, []Invitee, error) {
-	var oldUsers []Invitee
-	var newUsers []Invitee
+func GetExistingAndNewInvitees(invitees []Invitee) ([]Invitee, []Invitee, error) {
+	var existingInvitees []Invitee
+	var newInvitees []Invitee
 	var emailList string
 
 	var emails []string
@@ -227,7 +247,7 @@ func GetUsersByInvitees(invitees []Invitee) ([]Invitee, []Invitee, error) {
 					return nil, nil, err
 				}
 				invitee.ID = uuid
-				oldUsers = append(oldUsers, invitee)
+				existingInvitees = append(existingInvitees, invitee)
 			}
 		}
 		newInvitee := true
@@ -238,11 +258,11 @@ func GetUsersByInvitees(invitees []Invitee) ([]Invitee, []Invitee, error) {
 		}
 
 		if newInvitee {
-			newUsers = append(newUsers, invitee)
+			newInvitees = append(newInvitees, invitee)
 		}
 	}
 
-	return oldUsers, newUsers, nil
+	return existingInvitees, newInvitees, nil
 }
 
 // FindUserByEmail finds a user from their email.

@@ -211,39 +211,54 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-36)
     - [Response Body](#response-body-38)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-38)
-  - [POST `/teams/:id/invite`](#post-teamsidinvite)
+  - [GET `/teams/:id/invites`](#get-teamsidinvites)
     - [Usage Notes](#usage-notes-38)
-    - [Request body](#request-body-8)
     - [Authorization \& Content Type](#authorization--content-type-37)
     - [Response Body](#response-body-39)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-39)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+  - [POST `/teams/:id/invite`](#post-teamsidinvite)
     - [Usage Notes](#usage-notes-39)
-    - [Request body](#request-body-9)
+    - [Request body](#request-body-8)
     - [Authorization \& Content Type](#authorization--content-type-38)
     - [Response Body](#response-body-40)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-40)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
+  - [PATCH `/teams/:id/invite/:inviteId`](#patch-teamsidinviteid)
     - [Usage Notes](#usage-notes-40)
     - [Authorization \& Content Type](#authorization--content-type-39)
     - [Response Body](#response-body-41)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-41)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [DELETE `/teams/:id/invite/:inviteId`](#delete-teamsidinviteid)
     - [Usage Notes](#usage-notes-41)
     - [Authorization \& Content Type](#authorization--content-type-40)
     - [Response Body](#response-body-42)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-42)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-42)
-    - [Request body](#request-body-10)
+    - [Request body](#request-body-9)
     - [Authorization \& Content Type](#authorization--content-type-41)
     - [Response Body](#response-body-43)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-43)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
     - [Usage Notes](#usage-notes-43)
     - [Authorization \& Content Type](#authorization--content-type-42)
     - [Response Body](#response-body-44)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-44)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+    - [Usage Notes](#usage-notes-44)
+    - [Authorization \& Content Type](#authorization--content-type-43)
+    - [Response Body](#response-body-45)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-45)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+    - [Usage Notes](#usage-notes-45)
+    - [Request body](#request-body-10)
+    - [Authorization \& Content Type](#authorization--content-type-44)
+    - [Response Body](#response-body-46)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-46)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+    - [Usage Notes](#usage-notes-46)
+    - [Authorization \& Content Type](#authorization--content-type-45)
+    - [Response Body](#response-body-47)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-47)
 
 ## Auth
 
@@ -4957,7 +4972,10 @@ List of HTTP status codes for success and failures.
 - [**GET `/teams/:id/apps`**](#get-teamsidapps) - Fetch list of apps for a team.
 - [**GET `/teams/:id/apps/:id`**](#get-teamsidappsid) - Fetch details of an app for a team.
 - [**POST `/teams/:id/apps`**](#post-teamsidapps) - Create a new app for a team.
+- [**GET `/teams/:id/invites`**](#get-teamsidinvites) - Fetch valid pending invites for a team.
 - [**POST `/teams/:id/invite`**](#post-teamsidinvite) - Invite new members (both existing & non measure users) to a team.
+- [**PATCH `/teams/:id/invite/:id`**](#patch-teamsidinviteid) - Resend a team invite.
+- [**DELETE `/teams/:id/invite/:id`**](#delete-teamsidinviteid) - Delete a team invite.
 - [**PATCH `/teams/:id/rename`**](#patch-teamsidrename) -  Rename a team.
 - [**GET `/teams/:id/members`**](#get-teamsidmembers) -  Fetch list of team members for a team.
 - [**DELETE `/teams/:id/members/:id`**](#delete-teamsidmembersid) -  Remove a member from a team.
@@ -5393,6 +5411,94 @@ List of HTTP status codes for success and failures.
 
 </details>
 
+### GET `/teams/:id/invites`
+
+Fetch valid pending invites for a team
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI as the first ID
+- Only valid invites are returned. Expired invites are ignored.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+    [
+      {
+          "id": "4ce39d97-f8cd-419c-9a68-36b7d49eab9f",
+          "invited_by_user_id": "0c367906-7a66-4103-a3ae-cb40a40def35",
+          "invited_by_email": "admin@acme.com",
+          "invited_to_team_id": "00000000-0000-0000-0000-000000000000",
+          "role": "admin",
+          "email": "member1@acme.com",
+          "created_at": "2025-04-26T12:57:33.463326Z",
+          "updated_at": "2025-04-26T12:57:33.463326Z",
+          "valid_until": "2025-04-28T12:57:33.463326Z"
+      },
+      {
+          "id": "8c618258-8c35-4d52-9880-7b1f1de85a53",
+          "invited_by_user_id": "0c367906-7a66-4103-a3ae-cb40a40def35",
+          "invited_by_email": "owner@acme.com",
+          "invited_to_team_id": "00000000-0000-0000-0000-000000000000",
+          "role": "developer",
+          "email": "member2@acme.com",
+          "created_at": "2025-04-26T12:57:41.236412Z",
+          "updated_at": "2025-04-26T12:57:41.236412Z",
+          "valid_until": "2025-04-28T12:57:41.236412Z"
+      }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
 ### POST `/teams/:id/invite`
 
 Invite new members (both existing & non measure users) to a team
@@ -5417,16 +5523,19 @@ Invite new members (both existing & non measure users) to a team
 
 #### Authorization & Content Type
 
-1. Set content type as `Content-Type: application/json; charset=utf-8`
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
 
 The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
 
-| **Name**       | **Value**                       |
-| -------------- | ------------------------------- |
-| `Content-Type` | application/json; charset=utf-8 |
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
 </details>
 
 #### Response Body
@@ -5439,6 +5548,140 @@ The required headers must be present in each request.
   ```json
   {
     "ok":"invited newuser@gmail.com"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### PATCH `/teams/:id/invite/:id`
+
+Resend a team invite
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI
+- Invite's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok":"Resent invite 3bbc91df-9ad8-445a-b60b-9ca603140cd1"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### DELETE `/teams/:id/invite/:id`
+
+Delete a team invite
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI
+- Invite's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok":"Removed invite 3bbc91df-9ad8-445a-b60b-9ca603140cd1"
   }
   ```
 

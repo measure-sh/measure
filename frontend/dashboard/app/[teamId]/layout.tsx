@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher"
-import { TeamsApiStatus, emptyTeam, fetchTeamsFromServer } from "../api/api_calls"
+import { Team, TeamsApiStatus, fetchTeamsFromServer } from "../api/api_calls"
 import { measureAuth } from "../auth/measure_auth"
 
 export default function DashboardLayout({
@@ -62,8 +62,8 @@ export default function DashboardLayout({
   }, [])
 
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading)
-  const [teams, setTeams] = useState([emptyTeam])
-  const [selectedTeam, setSelectedTeam] = useState(teams[0].id)
+  const [teams, setTeams] = useState<Team[] | null>(null)
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
 
   const pathName = usePathname()
   const router = useRouter()
@@ -82,7 +82,7 @@ export default function DashboardLayout({
       case TeamsApiStatus.Success:
         setTeamsApiStatus(TeamsApiStatus.Success)
         setTeams(result.data!)
-        setSelectedTeam(result.data!.find((e: { id: string, name: string }) => pathName.includes(e.id))!.id)
+        setSelectedTeam(result.data!.find((e: { id: string, name: string }) => pathName.includes(e.id))!)
         break
     }
   }
@@ -96,9 +96,9 @@ export default function DashboardLayout({
     await measureAuth.signout()
   }
 
-  const onTeamChanged = (item: string) => {
-    const selectedTeamId = teams.find((e) => e.name === item)!.id
-    const newPath = pathName.replace(/^\/[^\/]*/, '/' + selectedTeamId)
+  const onTeamChanged = (item: Team) => {
+    const selectedTeam = teams!.find((e) => e.id === item.id)!
+    const newPath = pathName.replace(/^\/[^\/]*/, '/' + selectedTeam.id)
     router.push(newPath)
   }
 
@@ -116,14 +116,14 @@ export default function DashboardLayout({
         <aside className="md:border-black md:border-r md:sticky md:top-0 md:h-screen">
           <nav className="flex flex-col p-2 md:h-full w-screen md:w-60">
             <div className="py-4" />
-            <TeamSwitcher items={teams.map((e) => e.name)} initialItemIndex={teams.findIndex((e) => e.id === selectedTeam)} teamsSwitcherStatus={teamsApiStatusToTeamsSwitcherStatus[teamsApiStatus]} onChangeSelectedItem={(item) => onTeamChanged(item)} />
+            <TeamSwitcher items={teams} initialItemIndex={teams?.findIndex((e) => e.id === selectedTeam!.id)} teamsSwitcherStatus={teamsApiStatusToTeamsSwitcherStatus[teamsApiStatus]} onChangeSelectedItem={(item) => onTeamChanged(item)} />
             {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg text-center font-display pt-4">Please refresh page to try again.</p>}
             {teamsApiStatus === TeamsApiStatus.Success && <div className="py-4" />}
             {teamsApiStatus === TeamsApiStatus.Success &&
               <ul>
                 {menuItems.map(({ hrefSuffix, title }) => (
                   <li key={title}>
-                    <Link href={`/${selectedTeam}/${hrefSuffix}` + (currentQuery != '' && pathName.includes(hrefSuffix) ? '?' + currentQuery : '')} className={`mx-4 mb-3 outline-hidden flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) ? 'bg-neutral-950 text-white hover:text-black focus-visible:text-black' : ''}`}>{title}</Link>
+                    <Link href={`/${selectedTeam?.id}/${hrefSuffix}` + (currentQuery != '' && pathName.includes(hrefSuffix) ? '?' + currentQuery : '')} className={`mx-4 mb-3 outline-hidden flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4 ${pathName.includes(hrefSuffix) ? 'bg-neutral-950 text-white hover:text-black focus-visible:text-black' : ''}`}>{title}</Link>
                   </li>
                 ))}
               </ul>}

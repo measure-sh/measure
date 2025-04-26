@@ -61,7 +61,7 @@ func GetUsage(c *gin.Context) {
 	var team = new(Team)
 	team.ID = &teamId
 
-	apps, err := team.getApps()
+	apps, err := team.getApps(ctx)
 	if err != nil {
 		msg := fmt.Sprintf("error occurred while querying apps list for team: %s", teamId)
 		fmt.Println(msg, err)
