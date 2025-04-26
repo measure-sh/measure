@@ -182,6 +182,29 @@ export enum RoleChangeApiStatus {
   Cancelled
 }
 
+export enum PendingInvitesApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled
+}
+
+export enum ResendPendingInviteApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled
+}
+
+export enum RemovePendingInviteApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled
+}
+
 export enum InviteMemberApiStatus {
   Init,
   Loading,
@@ -298,7 +321,22 @@ export enum BugReportStatus {
   Closed = "Closed"
 }
 
-export const emptyTeam = { 'id': '', 'name': '' }
+export type Team = {
+  id: string
+  name: string
+}
+
+export type PendingInvite = {
+  id: string,
+  invited_by_user_id: string,
+  invited_by_email: string,
+  invited_to_team_id: string,
+  role: string,
+  email: string,
+  created_at: string,
+  updated_at: string,
+  valid_until: string
+}
 
 export type App = {
   id: string
@@ -1647,6 +1685,63 @@ export const changeRoleFromServer = async (teamId: string, newRole: string, memb
     return { status: RoleChangeApiStatus.Success }
   } catch {
     return { status: RoleChangeApiStatus.Cancelled }
+  }
+}
+
+export const fetchPendingInvitesFromServer = async (teamId: string) => {
+  const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+
+  try {
+    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/invites`)
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { status: PendingInvitesApiStatus.Error, error: data.error }
+    }
+
+    return { status: PendingInvitesApiStatus.Success, data: data }
+  } catch {
+    return { status: PendingInvitesApiStatus.Cancelled, data: null }
+  }
+}
+
+export const resendPendingInviteFromServer = async (teamId: string, inviteId: string) => {
+  const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+  const opts = {
+    method: 'PATCH',
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/invite/${inviteId}`, opts)
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { status: ResendPendingInviteApiStatus.Error, error: data.error }
+    }
+
+    return { status: ResendPendingInviteApiStatus.Success }
+  } catch {
+    return { status: ResendPendingInviteApiStatus.Cancelled }
+  }
+}
+
+export const removePendingInviteFromServer = async (teamId: string, inviteId: string) => {
+  const origin = process.env.NEXT_PUBLIC_API_BASE_URL
+  const opts = {
+    method: 'DELETE',
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(`${origin}/teams/${teamId}/invite/${inviteId}`, opts)
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { status: RemovePendingInviteApiStatus.Error, error: data.error }
+    }
+
+    return { status: RemovePendingInviteApiStatus.Success }
+  } catch {
+    return { status: RemovePendingInviteApiStatus.Cancelled }
   }
 }
 

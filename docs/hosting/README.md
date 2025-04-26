@@ -142,7 +142,13 @@ For the next few prompts, you'll need to obtain a Google & GitHub OAuth Applicat
 
 Once you have created the above apps, copy the key and secrets and enter in the relevant prompts.
 
-At this point, the install script will attempt to start all the Measure docker compose services. You should see a similar output.
+Next, you'll need to set up an SMTP email provider. This is used to send emails for team invites, alerts and so on. Follow the below link to obtain SMTP credentials:
+
+- [Set up SMTP email provider](./smtp-email.md)
+
+Once your provider is set up, copy the values and enter in the relevant prompts.
+
+Once completed, the install script will attempt to start all the Measure docker compose services. You should see a similar output.
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/b33fbca4-4567-4077-9432-8be9f9c8b078" alt="Successful installation" />
@@ -322,7 +328,13 @@ To continue, you'll need to obtain a Google & GitHub OAuth Application's credent
 - [Create a Google OAuth App](./google-oauth.md)
 - [Create a GitHub OAuth App](./github-oauth.md)
 
-Once you have created the above apps, copy the key and secrets and enter in the relevant prompts.
+Once you have created the above apps, copy the key and secrets and enter them in the relevant prompts.
+
+Next, you'll need to set up an SMTP email provider. This is used to send emails for team invites, alerts and so on. Follow the below link to obtain SMTP credentials:
+
+- [Set up SMTP email provider](./smtp-email.md)
+
+Once your provider is set up, copy the values and enter them in the relevant prompts.
 
 ### 3. Start the containers
 

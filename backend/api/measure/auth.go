@@ -4,6 +4,7 @@ import (
 	"backend/api/authsession"
 	"backend/api/cipher"
 	"backend/api/server"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -182,6 +183,40 @@ func ValidateRefreshToken() gin.HandlerFunc {
 	}
 }
 
+// addNewUserToInvitedTeams adds a new user to the teams
+// they were invited to and removes the invites after the addition.
+//
+// This is called when a new user is created via OAuth flow.
+func addNewUserToInvitedTeams(ctx context.Context, userId string, email string) error {
+	invites, err := GetValidInvitesForEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+
+	// Add user to invited teams
+	for _, invite := range invites {
+		invitedToTeam := &Team{
+			ID: &invite.InvitedToTeamId,
+		}
+
+		invitee := &Invitee{
+			ID:    uuid.MustParse(userId),
+			Email: invite.Email,
+			Role:  invite.InvitedAsRole,
+		}
+		invitees := []Invitee{*invitee}
+		if err := invitedToTeam.addMembers(ctx, invitees); err != nil {
+			return err
+		}
+		// remove the invite after adding the user
+		if err := invitedToTeam.removeInvite(ctx, invite.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // SigninGitHub handles OAuth flow via GitHub.
 func SigninGitHub(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -341,6 +376,13 @@ func SigninGitHub(c *gin.Context) {
 					"error": msg,
 				})
 				return
+			}
+
+			if err := addNewUserToInvitedTeams(ctx, *msrUser.ID, ghUser.Email); err != nil {
+				// If there is an error while adding user to invited team,
+				// log and continue. We don't want to fail sign in process
+				// because of this.
+				fmt.Println(msg, err)
 			}
 		} else {
 			// update user's last sign in at value
@@ -545,6 +587,14 @@ func SigninGoogle(c *gin.Context) {
 			})
 			return
 		}
+
+		if err := addNewUserToInvitedTeams(ctx, *msrUser.ID, googUser.Email); err != nil {
+			// If there is an error while adding user to invited team,
+			// log and continue. We don't want to fail sign in process
+			// because of this.
+			fmt.Println(msg, err)
+		}
+
 	} else {
 		// update user's last sign in at value
 		if err := msrUser.touchLastSignInAt(ctx); err != nil {

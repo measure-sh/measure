@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useRef, useState } from 'react'
+import { Team } from '../api/api_calls'
 
 export enum TeamsSwitcherStatus {
   Loading,
@@ -9,15 +10,15 @@ export enum TeamsSwitcherStatus {
 }
 
 interface TeamSwitcherProps {
-  items: string[]
+  items: Team[] | null
   initialItemIndex?: number
   teamsSwitcherStatus: TeamsSwitcherStatus
-  onChangeSelectedItem?: (item: string) => void
+  onChangeSelectedItem?: (item: Team) => void
 }
 
 const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0, teamsSwitcherStatus, onChangeSelectedItem }) => {
   const [isOpen, setIsOpen] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<string | null>(null)
+  const [selectedItem, setSelectedItem] = useState<Team | null>(null)
   const teamSwitcherRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -52,7 +53,7 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
     setIsOpen(!isOpen)
   }
 
-  const selectItem = (item: string) => {
+  const selectItem = (item: Team) => {
     setSelectedItem(item)
     setIsOpen(false)
     if (onChangeSelectedItem) {
@@ -71,7 +72,7 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
         {teamsSwitcherStatus == TeamsSwitcherStatus.Error && <p className="pl-8 truncate w-max">Error</p>}
         {teamsSwitcherStatus == TeamsSwitcherStatus.Success &&
           <div className="flex flex-row justify-center">
-            <p className="pl-8 truncate w-max">{selectedItem ? selectedItem : items[initialItemIndex]}</p>
+            <p className="pl-8 truncate w-max">{selectedItem ? selectedItem.name : items![initialItemIndex].name}</p>
             <p className="pl-3 pr-4 pt-1 text-sm">⏷</p>
           </div>}
       </button>
@@ -83,14 +84,14 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
             aria-orientation="vertical"
             aria-labelledby="options-menu"
           >
-            {items.map((item) => (
+            {items!.map((item) => (
               <button
-                key={item}
+                key={item.id}
                 onClick={() => selectItem(item)}
                 className="block w-full px-2 py-2 text-white bg-neutral-950 font-display text-left hover:text-black hover:bg-yellow-200 active:bg-yellow-300 outline-hidden focus:bg-yellow-200"
                 role="menuitem"
               >
-                {item}
+                {item.name}
               </button>
             ))}
           </div>
