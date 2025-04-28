@@ -12,14 +12,14 @@ A large TTID means users wait too long to see content while navigating the app.
 
 > Note that the fully qualified ViewController name may be truncated to fit within the 64 character limits for span names.
 
-## How it works
-
 **ViewController load time** tracking works by monitoring the ViewController's lifecycle events:
 
 1. The span starts in either the `loadView` or `viewDidLoad` callback of the ViewController:
    - If you inherit from `MsrViewController` (Swift) or `MSRViewController` (Objective-C), the span will start from `loadView`.
    - Otherwise, the span will start from `viewDidLoad`.
 2. The span ends when `viewDidAppear` is called, indicating that the view is fully visible on screen.
+
+## How it works
 
 The SDK uses method swizzling to automatically track these lifecycle events without requiring any manual instrumentation.
 
