@@ -220,8 +220,24 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                          heartbeat: self.heartbeat,
                                                                          exporter: self.exporter,
                                                                          dispatchQueue: MeasureQueue.periodicEventExporter)
+        self.randomizer = randomizer ?? BaseRandomizer()
+        self.traceSampler = traceSampler ?? BaseTraceSampler(configProvider: self.configProvider,
+                                                             randomizer: self.randomizer)
+        self.spanProcessor = spanProcessor ?? BaseSpanProcessor(logger: self.logger,
+                                                                signalProcessor: self.signalProcessor,
+                                                                attributeProcessors: attributeProcessors,
+                                                                configProvider: self.configProvider)
+        self.tracer = tracer ?? MsrTracer(logger: self.logger,
+                                          idProvider: self.idProvider,
+                                          timeProvider: self.timeProvider,
+                                          spanProcessor: self.spanProcessor,
+                                          sessionManager: self.sessionManager,
+                                          traceSampler: self.traceSampler)
+        self.spanCollector = spanCollector ?? BaseSpanCollector(tracer: self.tracer)
         self.lifecycleCollector = lifecycleCollector ?? BaseLifecycleCollector(signalProcessor: self.signalProcessor,
                                                                                timeProvider: self.timeProvider,
+                                                                               tracer: self.tracer,
+                                                                               configProvider: self.configProvider,
                                                                                logger: self.logger)
         self.cpuUsageCalculator = cpuUsageCalculator ?? BaseCpuUsageCalculator()
         self.memoryUsageCalculator = memoryUsageCalculator ?? BaseMemoryUsageCalculator()
@@ -269,20 +285,6 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                client: self.client,
                                                                                configProvider: self.configProvider,
                                                                                httpEventValidator: self.httpEventValidator)
-        self.randomizer = randomizer ?? BaseRandomizer()
-        self.traceSampler = traceSampler ?? BaseTraceSampler(configProvider: self.configProvider,
-                                                             randomizer: self.randomizer)
-        self.spanProcessor = spanProcessor ?? BaseSpanProcessor(logger: self.logger,
-                                                                signalProcessor: self.signalProcessor,
-                                                                attributeProcessors: attributeProcessors,
-                                                                configProvider: self.configProvider)
-        self.tracer = tracer ?? MsrTracer(logger: self.logger,
-                                          idProvider: self.idProvider,
-                                          timeProvider: self.timeProvider,
-                                          spanProcessor: self.spanProcessor,
-                                          sessionManager: self.sessionManager,
-                                          traceSampler: self.traceSampler)
-        self.spanCollector = spanCollector ?? BaseSpanCollector(tracer: self.tracer)
         self.internalEventCollector = internalEventCollector ?? BaseInternalEventCollector(logger: self.logger,
                                                                                            signalProcessor: self.signalProcessor)
     }

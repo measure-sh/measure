@@ -9,7 +9,6 @@
 import Foundation
 import CoreData
 
-
 extension SpanOb {
 
     @nonobjc public class func fetchRequest() -> NSFetchRequest<SpanOb> {

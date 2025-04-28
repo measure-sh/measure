@@ -18,6 +18,7 @@ protocol MeasureConfig {
     var httpUrlBlocklist: [String] { get }
     var httpUrlAllowlist: [String] { get }
     var autoStart: Bool { get }
+    var trackViewControllerLoadTime: Bool { get }
 }
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -72,6 +73,23 @@ protocol MeasureConfig {
     ///
     let httpUrlAllowlist: [String]
 
+    /// Enables or disables automatic collection of ViewController load time. Defaults to `true`.
+    ///
+    /// ViewController load time measures the time between when the ViewController's view is loaded
+    /// and the first frame is drawn on the screen. This is also known as **Time to First Frame (TTF)**
+    /// or **Time to Initial Display (TTID)**.
+    ///
+    /// A large TTID value means users are waiting too long before any content appears on screen during
+    /// app navigation.
+    ///
+    /// Each ViewController load time is captured as a `Span` with the name
+    /// `VC TTID <class name>`. For example, for a class
+    /// `MainViewController`, the span name would be:
+    /// `VC TTID MainViewController`.
+    ///
+    /// Set to `false` to disable this tracking.
+    let trackViewControllerLoadTime: Bool
+
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
     /// - Parameters:
     ///   - enableLogging: Enable or disable internal SDK logs. Defaults to `false`.
@@ -106,7 +124,8 @@ protocol MeasureConfig {
                 httpHeadersBlocklist: [String]? = nil,
                 httpUrlBlocklist: [String]? = nil,
                 httpUrlAllowlist: [String]? = nil,
-                autoStart: Bool? = nil) {
+                autoStart: Bool? = nil,
+                trackViewControllerLoadTime: Bool? = nil) {
         self.enableLogging = enableLogging ?? DefaultConfig.enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions ?? DefaultConfig.sessionSamplingRate
         self.traceSamplingRate = traceSamplingRate ?? DefaultConfig.traceSamplingRate
@@ -116,6 +135,7 @@ protocol MeasureConfig {
         self.httpUrlBlocklist = httpUrlBlocklist ?? DefaultConfig.httpUrlBlocklist
         self.httpUrlAllowlist = httpUrlAllowlist ?? DefaultConfig.httpUrlAllowlist
         self.autoStart = autoStart ?? DefaultConfig.autoStart
+        self.trackViewControllerLoadTime = trackViewControllerLoadTime ?? DefaultConfig.trackViewControllerLoadTime
 
         if !(0.0...1.0).contains(self.samplingRateForErrorFreeSessions) {
             debugPrint("Session sampling rate must be between 0.0 and 1.0")

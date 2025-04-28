@@ -33,6 +33,10 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var trackViewControllerLoadTime: Bool {
+        return getMergedConfig(\.trackViewControllerLoadTime)
+    }
+
     var maxSpanNameLength: Int {
         return getMergedConfig(\.maxSpanNameLength)
     }

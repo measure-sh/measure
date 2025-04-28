@@ -19,7 +19,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let config = BaseMeasureConfig(enableLogging: true,
                                        samplingRateForErrorFreeSessions: 1.0,
                                        traceSamplingRate: 1.0,
-                                       autoStart: true)
+                                       autoStart: true,
+                                       trackViewControllerLoadTime: true)
         measureInstance.initialize(with: clientInfo, config: config)
         measureInstance.setUserId("test_user_ios")
 

@@ -192,7 +192,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                    httpHeadersBlocklist: config.httpHeadersBlocklist,
                                    httpUrlBlocklist: config.httpUrlBlocklist,
                                    httpUrlAllowlist: config.httpUrlAllowlist,
-                                   autoStart: config.autoStart)
+                                   autoStart: config.autoStart,
+                                   trackViewControllerLoadTime: config.trackViewControllerLoadTime)
 
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
@@ -294,8 +295,23 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                      heartbeat: heartbeat,
                                                      exporter: exporter,
                                                      dispatchQueue: MeasureQueue.periodicEventExporter)
+        self.randomizer = BaseRandomizer()
+        self.traceSampler = BaseTraceSampler(configProvider: configProvider, randomizer: randomizer)
+        self.spanProcessor = BaseSpanProcessor(logger: logger,
+                                               signalProcessor: signalProcessor,
+                                               attributeProcessors: attributeProcessors,
+                                               configProvider: configProvider)
+        self.tracer = MsrTracer(logger: logger,
+                                idProvider: idProvider,
+                                timeProvider: timeProvider,
+                                spanProcessor: spanProcessor,
+                                sessionManager: sessionManager,
+                                traceSampler: traceSampler)
+        self.spanCollector = BaseSpanCollector(tracer: tracer)
         self.lifecycleCollector = BaseLifecycleCollector(signalProcessor: signalProcessor,
                                                          timeProvider: timeProvider,
+                                                         tracer: tracer,
+                                                         configProvider: configProvider,
                                                          logger: logger)
         self.cpuUsageCalculator = BaseCpuUsageCalculator()
         self.memoryUsageCalculator = BaseMemoryUsageCalculator()
@@ -344,19 +360,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          client: client,
                                                          configProvider: configProvider,
                                                          httpEventValidator: httpEventValidator)
-        self.randomizer = BaseRandomizer()
-        self.traceSampler = BaseTraceSampler(configProvider: configProvider, randomizer: randomizer)
-        self.spanProcessor = BaseSpanProcessor(logger: logger,
-                                               signalProcessor: signalProcessor,
-                                               attributeProcessors: attributeProcessors,
-                                               configProvider: configProvider)
-        self.tracer = MsrTracer(logger: logger,
-                                idProvider: idProvider,
-                                timeProvider: timeProvider,
-                                spanProcessor: spanProcessor,
-                                sessionManager: sessionManager,
-                                traceSampler: traceSampler)
-        self.spanCollector = BaseSpanCollector(tracer: tracer)
-        self.internalEventCollector = BaseInternalEventCollector(logger: logger, signalProcessor: signalProcessor)
+        self.internalEventCollector = BaseInternalEventCollector(logger: self.logger,
+                                                                                                   signalProcessor: self.signalProcessor)
     }
 }

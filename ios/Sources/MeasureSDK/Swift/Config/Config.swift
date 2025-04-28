@@ -48,6 +48,7 @@ struct Config: InternalConfig, MeasureConfig {
     let maxSpanNameLength: Int
     let maxCheckpointNameLength: Int
     let maxCheckpointsPerSpan: Int
+    let trackViewControllerLoadTime: Bool
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
@@ -57,7 +58,8 @@ struct Config: InternalConfig, MeasureConfig {
                   httpHeadersBlocklist: [String] = DefaultConfig.httpHeadersBlocklist,
                   httpUrlBlocklist: [String] = DefaultConfig.httpUrlBlocklist,
                   httpUrlAllowlist: [String] = DefaultConfig.httpUrlAllowlist,
-                  autoStart: Bool = DefaultConfig.autoStart) {
+                  autoStart: Bool = DefaultConfig.autoStart,
+                  trackViewControllerLoadTime: Bool = DefaultConfig.trackViewControllerLoadTime) {
         self.enableLogging = enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
         self.traceSamplingRate = traceSamplingRate
@@ -66,6 +68,8 @@ struct Config: InternalConfig, MeasureConfig {
         self.httpHeadersBlocklist = httpHeadersBlocklist
         self.httpUrlBlocklist = httpUrlBlocklist
         self.httpUrlAllowlist = httpUrlAllowlist
+        self.autoStart = autoStart
+        self.trackViewControllerLoadTime = trackViewControllerLoadTime
         self.eventsBatchingIntervalMs = 30000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndLastEventThresholdMs = 20 * 60 * 1000 // 20 minitues
@@ -97,7 +101,6 @@ struct Config: InternalConfig, MeasureConfig {
         self.screenshotMaskHexColor = "#222222"
         self.screenshotCompressionQuality = 25
         self.layoutSnapshotDebounceInterval = 750 // 750 ms
-        self.autoStart = autoStart
         self.maxSpanNameLength = 64
         self.maxCheckpointNameLength = 64
         self.maxCheckpointsPerSpan = 100

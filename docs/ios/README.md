@@ -151,6 +151,7 @@ The following data is automatically collected by Measure. Read the individual do
 * [CPU monitoring](/docs/ios/features/feature_cpu_monitoring.md)
 * [Memory monitoring](/docs/ios/features/feature_memory_monitoring.md)
 * [Performance Tracing](/docs/ios/features/feature_performance_tracing.md)
+* [Screen Load Time](/docs/ios/features/feature_screen_load_time.md)
 
 ## Crash Reporting  
 

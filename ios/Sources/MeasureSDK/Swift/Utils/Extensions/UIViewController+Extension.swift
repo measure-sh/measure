@@ -8,6 +8,51 @@
 import UIKit
 
 extension UIViewController {
+    /// Returns true if the view controller is considered the initial/root controller of the app
+    var isInitialViewController: Bool {
+        // Check if this is the root view controller
+        if #available(iOS 13.0, *) {
+            if let windowScene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+               let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController {
+                return self === rootVC || isInitial(in: rootVC)
+            }
+        }
+
+        // Fallback to AppDelegate window
+        if let rootVC = UIApplication.shared.windows.first(where: { $0.isKeyWindow })?.rootViewController {
+            return self === rootVC || isInitial(in: rootVC)
+        }
+
+        return false
+    }
+
+    private func isInitial(in rootVC: UIViewController) -> Bool {
+        // If self is embedded in UINavigationController
+        if let nav = rootVC as? UINavigationController {
+            return nav.viewControllers.first === self
+        }
+
+        // If self is part of a UITabBarController
+        if let tab = rootVC as? UITabBarController {
+            if tab.selectedViewController === self {
+                return true
+            }
+
+            if let nav = tab.selectedViewController as? UINavigationController {
+                return nav.viewControllers.first === self
+            }
+
+            return tab.viewControllers?.first === self
+        }
+
+        // If self is embedded in a container view controller
+        if let container = rootVC as? UIPageViewController {
+            return container.viewControllers?.first === self
+        }
+
+        return false
+    }
+
     /// Swizzled implementation of `viewDidLoad`.
     /// Sends a lifecycle event for `viewDidLoad` and calls the original implementation.
     @objc func swizzled_viewDidLoad() {

@@ -11,7 +11,8 @@ let config = BaseMeasureConfig(enableLogging: true,
                                httpHeadersBlocklist: ["Authorization"],
                                httpUrlBlocklist: ["http://localhost:8080"],
                                httpUrlAllowlist: ["example.com"],
-                               autoStart: true)
+                               autoStart: true,
+                               trackViewControllerLoadTime: true)
 Measure.shared.initialize(with: clientInfo, config: config)
 ```
 
@@ -25,6 +26,7 @@ Measure.shared.initialize(with: clientInfo, config: config)
 * [**httpUrlBlocklist**](#httpUrlBlocklist)
 * [**httpUrlAllowlist**](#httpUrlAllowlist)
 * [**autoStart**](#autoStart)
+* [**trackViewControllerLoadTime**](#trackViewControllerLoadTime)
 
 
 ## `samplingRateForErrorFreeSessions`
@@ -94,3 +96,15 @@ Defaults to true.
 
 Use `Measure.start` to start the SDK at a different point and `Measure.stop` to stop the SDK from tracking
 data.
+
+## `trackViewControllerLoadTime`
+
+Enables or disables automatic collection of ViewController load time.
+
+Defaults to `true`.
+    
+ViewController load time measures the time between when the ViewController's view is loaded and the first frame is drawn on the screen. This is also known as **Time to First Frame (TTF)** or **Time to Initial Display (TTID)**.
+    
+A large TTID value means users are waiting too long before any content appears on screen during app navigation.
+    
+Each ViewController load time is captured as a `Span` with the name `VC TTID <class name>`. For example, for a class `MainViewController`, the span name would be: `VC TTID MainViewController`.
