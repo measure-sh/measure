@@ -56,10 +56,10 @@ final class BaseSvgGenerator: SvgGenerator {
     }
 
     private func svgRect(frame: CGRect, isTarget: Bool) -> String {
-        let x = Int(frame.origin.x) // swiftlint:disable:this identifier_name
-        let y = Int(frame.origin.y) // swiftlint:disable:this identifier_name
-        let width = Int(frame.width)
-        let height = Int(frame.height)
+        let x = frame.origin.x.safeInt // swiftlint:disable:this identifier_name
+        let y = frame.origin.x.safeInt // swiftlint:disable:this identifier_name
+        let width = frame.width.safeInt
+        let height = frame.height.safeInt
         let targetClass = isTarget ? " class=\"target-rect\"" : ""
 
         return "<rect x=\"\(x)\" y=\"\(y)\" width=\"\(width)\" height=\"\(height)\"\(targetClass)/>"
