@@ -57,7 +57,7 @@ Add Measure as a dependency by adding `dependencies` value to your `Package.swif
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.1.0")
+    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.2.0")
 ]
 ```
 
