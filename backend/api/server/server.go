@@ -3,10 +3,13 @@ package server
 import (
 	"backend/api/inet"
 	"context"
+	"fmt"
 	"log"
+	"net"
 	"os"
 	"strings"
 
+	"cloud.google.com/go/cloudsqlconn"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/gin-gonic/gin"
@@ -60,9 +63,25 @@ type ServerConfig struct {
 	AccessTokenSecret          []byte
 	RefreshTokenSecret         []byte
 	OtelServiceName            string
+	CloudEnv                   bool
+}
+
+// IsCloud is true if the service is assumed
+// running on a cloud environment.
+func (sc *ServerConfig) IsCloud() bool {
+	if sc.CloudEnv {
+		return true
+	}
+
+	return false
 }
 
 func NewConfig() *ServerConfig {
+	cloudEnv := false
+	if ce := os.Getenv("CLOUD_ENV"); ce == "true" {
+		cloudEnv = true
+	}
+
 	symbolsBucket := os.Getenv("SYMBOLS_S3_BUCKET")
 	if symbolsBucket == "" {
 		log.Println("SYMBOLS_S3_BUCKET env var not set, mapping file uploads won't work")
@@ -196,14 +215,49 @@ func NewConfig() *ServerConfig {
 		AccessTokenSecret:          []byte(atSecret),
 		RefreshTokenSecret:         []byte(rtSecret),
 		OtelServiceName:            otelServiceName,
+		CloudEnv:                   cloudEnv,
 	}
 }
 
 func Init(config *ServerConfig) {
-	pgPool, err := pgxpool.New(context.Background(), config.PG.DSN)
-	if err != nil {
-		// log.Fatalf("Unable to create PG connection pool: %v\n", err)
-		log.Printf("Unable to create PG connection pool: %v\n", err)
+	ctx := context.Background()
+	var pgPool *pgxpool.Pool
+
+	if config.IsCloud() {
+		pgConfig, err := pgxpool.ParseConfig(config.PG.DSN)
+		fmt.Println("pgConfig", pgConfig)
+		if err != nil {
+			log.Printf("Unable to parse postgres DSN\n")
+		}
+
+		d, err := cloudsqlconn.NewDialer(ctx,
+			// Always use IAM authentication.
+			cloudsqlconn.WithIAMAuthN(),
+			// In Cloud Run CPU is throttled outside of a request
+			// context causing the backend refresh to fail, hence
+			// the need for `WithLazyRefresh()` option.
+			cloudsqlconn.WithLazyRefresh(),
+		)
+		if err != nil {
+			log.Printf("Failed to dial postgress connection.")
+		}
+
+		pgConfig.ConnConfig.DialFunc = func(ctx context.Context, _ string, instance string) (net.Conn, error) {
+			return d.Dial(ctx, pgConfig.ConnConfig.Host, cloudsqlconn.WithPrivateIP())
+		}
+
+		pgPool, err = pgxpool.NewWithConfig(ctx, pgConfig)
+		if err != nil {
+			log.Printf("Failed to acquire postgres connection pool.")
+		}
+	} else {
+		fmt.Println("Acquiring postgres connection pool without IAM")
+		pool, err := pgxpool.New(ctx, config.PG.DSN)
+		if err != nil {
+			// log.Fatalf("Unable to create PG connection pool: %v\n", err)
+			log.Printf("Unable to create PG connection pool: %v\n", err)
+		}
+		pgPool = pool
 	}
 
 	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
