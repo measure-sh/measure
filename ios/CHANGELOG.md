@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.2.0] - 2025-04-29
+
+### :bug: Bug fixes
+
+
+- (**ios**): Update cgfloat to int conversion logic (#2098)
+- (**ios**): Update cpu frequency generation logic (#2092)
+- (**ios**): Start the sdk when autostart is enabled (#2036)
+
+### :hammer: Misc
+
+
+- (**ios**): Update swizzling logic (#2079)
+- (**ios**): Update swiftlint config (#2027)
+- (**ios**): Update json encoding logic (#1959)
+- (**ios**): Remove swift-lint check on ci (#2017)
+
+### :sparkles: New features
+
+
+- (**ios**): Track view controller ttid (#2083)
+- (**ios**): Implement performance tracing (#2076)
+- (**ios**): Expose APIs to allow start/stop of SDK (#2007)
+
 ## [ios-v0.1.0] - 2025-03-28
 
 ### :books: Documentation
@@ -25,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
+- (**ios**): Prepare sdk release 0.1.0 (#2000)
 - (**ios**): Update release script (#1999)
 - (**ios**): Update pod name to measure-sh (#1998)
 - (**ios**): Update heartbeat tests (#1994)
@@ -83,4 +108,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677)
 - (**ios**): Initial project setup  (#1034)
 
+[ios-v0.2.0]: https://github.com///compare/ios-v0.1.0..ios-v0.2.0
 
