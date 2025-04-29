@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :sparkles: New features
+
+- (**backend**): Implement email invites by @anupcowkur in #2091
+
 ### :bug: Bug fixes
 
 - (**backend**): Prevent removal or role change of member in their default team by @anupcowkur in #2071
