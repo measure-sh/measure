@@ -235,6 +235,7 @@
 		CF1BB3B22DB8BD8900588506 /* SpanConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB3B12DB8BD8900588506 /* SpanConstants.swift */; };
 		CF1BB3B72DBA39FF00588506 /* LifecycleCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB3B62DBA39FF00588506 /* LifecycleCollectorTests.swift */; };
 		CF1BB3B92DBA3A7F00588506 /* MockTracer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB3B82DBA3A7F00588506 /* MockTracer.swift */; };
+		CF1BB3BF2DC0BCA300588506 /* CGFloat+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB3BE2DC0BCA300588506 /* CGFloat+Extension.swift */; };
 		CF4FE3942D913BAC0073D8AE /* Measure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* Measure.framework */; };
 		CF4FE3952D913BAC0073D8AE /* Measure.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* Measure.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CF7CAE4A2D940E4700E15CDB /* AppVersionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE492D940E4700E15CDB /* AppVersionInfo.swift */; };
@@ -620,6 +621,7 @@
 		CF1BB3B12DB8BD8900588506 /* SpanConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanConstants.swift; sourceTree = "<group>"; };
 		CF1BB3B62DBA39FF00588506 /* LifecycleCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleCollectorTests.swift; sourceTree = "<group>"; };
 		CF1BB3B82DBA3A7F00588506 /* MockTracer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockTracer.swift; sourceTree = "<group>"; };
+		CF1BB3BE2DC0BCA300588506 /* CGFloat+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGFloat+Extension.swift"; sourceTree = "<group>"; };
 		CF7CAE492D940E4700E15CDB /* AppVersionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersionInfo.swift; sourceTree = "<group>"; };
 		CF7CAE4B2D940F2700E15CDB /* MockAppVersionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAppVersionInfo.swift; sourceTree = "<group>"; };
 		CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidator.swift; sourceTree = "<group>"; };
@@ -968,6 +970,7 @@
 		526D18052D5A1913009A2E90 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
+				CF1BB3BE2DC0BCA300588506 /* CGFloat+Extension.swift */,
 				526D17FD2D5A1913009A2E90 /* InputStream+Extension.swift */,
 				526D17FE2D5A1913009A2E90 /* NSManagedObjectContext+Extension.swift */,
 				526D17FF2D5A1913009A2E90 /* NSObject+Extension.swift */,
@@ -1712,11 +1715,12 @@
 				526D18892D5A1913009A2E90 /* SysCtl.swift in Sources */,
 				526D18522D5A1913009A2E90 /* ThreadDetail.swift in Sources */,
 				526D18362D5A1913009A2E90 /* MeasureConfig.swift in Sources */,
-				526D18542D5A1913009A2E90 /* EventExporter.swift in Sources */,
+				526D18542D5A1913009A2E90 /* Exporter.swift in Sources */,
 				69C449692DA9266400E44CF4 /* InternalEventCollector.swift in Sources */,
 				526D18542D5A1913009A2E90 /* Exporter.swift in Sources */,
 				CFBF626F2DB7ADA200D5ADFB /* SwizzlingUtility.swift in Sources */,
 				526D18222D5A1913009A2E90 /* MSRViewController.m in Sources */,
+				CF1BB3BF2DC0BCA300588506 /* CGFloat+Extension.swift in Sources */,
 				CFD88C6E2D9E94B40095115E /* SpanProcessor.swift in Sources */,
 				CFD88C6F2D9E94B40095115E /* MsrSpan.swift in Sources */,
 				CFD88C702D9E94B40095115E /* Span.swift in Sources */,
