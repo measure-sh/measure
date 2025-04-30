@@ -242,8 +242,8 @@ func Init(config *ServerConfig) {
 			log.Printf("Failed to dial postgress connection.")
 		}
 
-		pgConfig.ConnConfig.DialFunc = func(ctx context.Context, _ string, instance string) (net.Conn, error) {
-			return d.Dial(ctx, pgConfig.ConnConfig.Host, cloudsqlconn.WithPrivateIP())
+		pgConfig.ConnConfig.DialFunc = func(ctx context.Context, _ string, _ string) (net.Conn, error) {
+			return d.Dial(ctx, "modified-media-423607-u5:us-central1:s-csql-01", cloudsqlconn.WithPrivateIP())
 		}
 
 		pgPool, err = pgxpool.NewWithConfig(ctx, pgConfig)
