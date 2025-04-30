@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Check user & member role in team member removal, role change, invite resend & invite revoke by @anupcowkur in #2103
 - (**backend**): Prevent removal or role change of member in their default team by @anupcowkur in #2071
 - (**backend**): Get own team correctly when user is owner of multiple teams by @anupcowkur in #2069
 - (**frontend**): Relaxes cookie restricitions in dev by @anupcowkur in #2096
