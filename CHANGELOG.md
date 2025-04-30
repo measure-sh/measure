@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Use cookies to store access + refresh tokens by @anupcowkur in #2064
 
+### :books: Documentation
+
+- (**backend**): Add banner in contributing (#2101) by @detj in #2101
+
 ## [0.7.0] - 2025-04-15
 
 ### :sparkles: New features
