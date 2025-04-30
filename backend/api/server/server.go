@@ -227,7 +227,7 @@ func Init(config *ServerConfig) {
 		pgConfig, err := pgxpool.ParseConfig(config.PG.DSN)
 		fmt.Println("pgConfig", pgConfig)
 		if err != nil {
-			log.Printf("Unable to parse postgres DSN\n")
+			fmt.Println("Unable to parse postgres DSN")
 		}
 
 		d, err := cloudsqlconn.NewDialer(ctx,
@@ -239,18 +239,18 @@ func Init(config *ServerConfig) {
 			cloudsqlconn.WithLazyRefresh(),
 		)
 		if err != nil {
-			log.Printf("Failed to dial postgress connection.")
+			fmt.Println("Failed to dial postgress connection.")
 		}
 
 		pgConfig.ConnConfig.DialFunc = func(ctx context.Context, second string, third string) (net.Conn, error) {
-			log.Printf(">>> Entering custom DialFunc: second: %s, third: %s\n", second, third)
+			fmt.Printf(">>> Entering custom DialFunc: second: %s, third: %s\n", second, third)
 			return d.Dial(ctx, "modified-media-423607-u5:us-central1:s-csql-01", cloudsqlconn.WithPrivateIP())
 		}
 
-		log.Println("Creating connection pool with modified config...")
+		fmt.Println("Creating connection pool with modified config...")
 		pgPool, err = pgxpool.NewWithConfig(ctx, pgConfig)
 		if err != nil {
-			log.Printf("Failed to acquire postgres connection pool.")
+			fmt.Println("Failed to acquire postgres connection pool.")
 		}
 	} else {
 		fmt.Println("Acquiring postgres connection pool without IAM")
