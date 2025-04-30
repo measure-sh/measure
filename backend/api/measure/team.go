@@ -1083,6 +1083,29 @@ func ResendInvite(c *gin.Context) {
 		ID: &teamId,
 	}
 
+	// check if user role can resend invite
+	invite, err := team.getInviteById(c.Request.Context(), inviteId.String())
+	if err != nil {
+		msg := "couldn't perform authorization checks: couldn't fetch invite"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if invite.InvitedAsRole == unknown {
+		msg := "couldn't perform authorization checks: 'invited as role' unknown"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if userRole < invite.InvitedAsRole {
+		msg := fmt.Sprintf("you don't have permissions to resend invite [%s] in team [%s]", inviteId, teamId)
+		fmt.Println(msg)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
 	err = team.resendInvite(c.Request.Context(), inviteId)
 	if err != nil {
 		msg := "failed to resend invite"
@@ -1105,21 +1128,15 @@ func ResendInvite(c *gin.Context) {
 		fmt.Println(msg, err)
 	}
 
-	invite, err := team.getInviteById(c.Request.Context(), inviteId.String())
-	if err != nil {
-		msg := "failed to fetch invite"
-		fmt.Println(msg, err)
-	} else {
-		emailInfo := &email.EmailInfo{
-			From:        server.Server.Config.TxEmailAddress,
-			To:          invite.Email,
-			Subject:     "Invitation to join Measure",
-			ContentType: mail.TypeTextHTML,
-			Body:        fmt.Sprintf("You have been invited by <b>%s</b> to join <b>Measure</b>!<br><br> Sign up at the link below to become <b>%s</b> in <b>%s</b> .<br><br><a href=\"%s\">Sign Up</a><br><br>Note: Please use the current email while signing up.", *user.Email, invite.InvitedAsRole, *team.Name, server.Server.Config.SiteOrigin+"/auth/login"),
-		}
-
-		email.SendEmail(*emailInfo)
+	emailInfo := &email.EmailInfo{
+		From:        server.Server.Config.TxEmailAddress,
+		To:          invite.Email,
+		Subject:     "Invitation to join Measure",
+		ContentType: mail.TypeTextHTML,
+		Body:        fmt.Sprintf("You have been invited by <b>%s</b> to join <b>Measure</b>!<br><br> Sign up at the link below to become <b>%s</b> in <b>%s</b> .<br><br><a href=\"%s\">Sign Up</a><br><br>Note: Please use the current email while signing up.", *user.Email, invite.InvitedAsRole, *team.Name, server.Server.Config.SiteOrigin+"/auth/login"),
 	}
+
+	email.SendEmail(*emailInfo)
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": fmt.Sprintf("Resent invite %s", inviteId),
@@ -1201,7 +1218,32 @@ func RemoveInvite(c *gin.Context) {
 		ID: &teamId,
 	}
 
-	err = team.removeInvite(c.Request.Context(), inviteId)
+	ctx := c.Request.Context()
+
+	// check if user role can remove invite
+	invite, err := team.getInviteById(ctx, inviteId.String())
+	if err != nil {
+		msg := "couldn't perform authorization checks: couldn't fetch invite"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if invite.InvitedAsRole == unknown {
+		msg := "couldn't perform authorization checks: 'invited as role' unknown"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if userRole < invite.InvitedAsRole {
+		msg := fmt.Sprintf("you don't have permissions to remove invite [%s] in team [%s]", inviteId, teamId)
+		fmt.Println(msg)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	err = team.removeInvite(ctx, inviteId)
 	if err != nil {
 		msg := "failed to remove invite"
 		fmt.Println(msg, err)
@@ -1460,14 +1502,37 @@ func RemoveTeamMember(c *gin.Context) {
 		ID: &teamId,
 	}
 
-	// check if member is being removed from their default team
 	memberUser := &User{
 		ID: &memberIdStr,
 	}
 
+	// check if user role can remove member
+	memberRole, err := memberUser.getRole(teamId.String())
+	if err != nil {
+		msg := "couldn't perform authorization checks: couldn't fetch member role"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if memberRole == unknown {
+		msg := "couldn't perform authorization checks: member role unknown"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if userRole < memberRole {
+		msg := fmt.Sprintf("you don't have permissions to remove member [%s] from team [%s]", memberId, teamId)
+		fmt.Println(msg)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	// check if member is being removed from their default team
 	memberOwnTeam, err := memberUser.getOwnTeam(c.Request.Context())
 	if err != nil {
-		msg := "failed to lookup member's default team"
+		msg := "couldn't perform authorization checks: failed to lookup member's default team"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -1591,14 +1656,37 @@ func ChangeMemberRole(c *gin.Context) {
 		ID: &teamId,
 	}
 
-	// check if member role is being changed in default team
 	memberUser := &User{
 		ID: &memberIdStr,
 	}
 
+	// check if user role can change member role
+	memberRole, err := memberUser.getRole(teamId.String())
+	if err != nil {
+		msg := "couldn't perform authorization checks: couldn't fetch member role"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if memberRole == unknown {
+		msg := "couldn't perform authorization checks: member role unknown"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if userRole < memberRole {
+		msg := fmt.Sprintf("you don't have permissions to change role of member [%s] in team [%s]", memberId, teamId)
+		fmt.Println(msg)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	// check if member role is being changed in default team
 	memberOwnTeam, err := memberUser.getOwnTeam(c)
 	if err != nil {
-		msg := "failed to lookup member's default team"
+		msg := "couldn't perform authorization checks: failed to lookup member's default team"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
