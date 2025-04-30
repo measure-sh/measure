@@ -14,6 +14,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/leporo/sqlf"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
@@ -56,6 +57,50 @@ func main() {
 	// health check
 	r.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "pong")
+	})
+
+	r.GET("/test", func(c *gin.Context) {
+		ctx := c.Request.Context()
+
+		type User struct {
+			Id        uint
+			Username  string
+			Email     string
+			IsActive  bool
+			CreatedAt time.Time
+		}
+
+		stmt := sqlf.PostgreSQL.
+			From("users").
+			Select("id").
+			Select("username").
+			Select("email").
+			Select("is_active").
+			Select("created_at")
+
+		defer stmt.Close()
+
+		rows, err := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
+
+		if err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+
+		var users []User
+
+		for rows.Next() {
+			var u User
+
+			if err := rows.Scan(&u.Id, &u.Username, &u.Email, &u.IsActive, &u.CreatedAt); err != nil {
+				c.AbortWithError(http.StatusInternalServerError, err)
+				return
+			}
+
+			users = append(users, u)
+		}
+
+		c.JSON(http.StatusOK, users)
 	})
 
 	// SDK routes
