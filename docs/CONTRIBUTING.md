@@ -9,6 +9,12 @@
 
 ## Local environment setup
 
+> [!WARNING]
+>
+> Not interested in contributing? If you just want to try out measure, follow our [self hosting guide](./hosting/README.md).
+>
+> **The self hosting guide is the official and recommended way to try out measure.**
+
 ### Prerequisites
 
 - Docker >= v26.1.3
@@ -59,7 +65,7 @@ docker compose --profile init --profile migrate up
 > [!NOTE]
 >
 > #### About Compose Profiles
-> 
+>
 > Both `init` and `migrate` profiles are idempotent in nature. You can use them everytime, though for subsequent runs you may choose to skip them.
 
 Alternatively, you could build and up the containers in separate steps, like this.
