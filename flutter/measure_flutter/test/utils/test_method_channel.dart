@@ -23,4 +23,9 @@ class TestMethodChannel implements MsrMethodChannel {
     trackedEvents.add(
         (data, type, timestamp, userDefinedAttrs, userTriggered, threadName));
   }
+
+  @override
+  Future<void> triggerNativeCrash() {
+    return Future.value();
+  }
 }

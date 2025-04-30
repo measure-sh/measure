@@ -64,7 +64,7 @@ protocol MeasureInitializer {
     var tracer: Tracer { get }
     var spanCollector: SpanCollector { get }
     var spanStore: SpanStore { get }
-    var internalEventCollector: InternalEventCollector { get }
+    var internalSignalCollector: InternalSignalCollector { get set }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -123,7 +123,7 @@ protocol MeasureInitializer {
 /// - `randomizer`: `Randomizer` object that generates random numbers.
 /// - `spanProcessor`: `SpanProcessor` object that processes spans at different stages of their lifecycle.
 /// - `tracer`: `Tracer` object to create and manage tracing spans.
-/// - `internalEventCollector`: `InternalEventCollector` object that collects events from cross plafrom frameworks.
+/// - `internalSignalCollector`: `InternalEventCollector` object that collects events from cross plafrom frameworks.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -180,7 +180,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let spanCollector: SpanCollector
     let tracer: Tracer
     let spanStore: SpanStore
-    let internalEventCollector: InternalEventCollector
+    var internalSignalCollector: InternalSignalCollector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -360,7 +360,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          client: client,
                                                          configProvider: configProvider,
                                                          httpEventValidator: httpEventValidator)
-        self.internalEventCollector = BaseInternalEventCollector(logger: self.logger,
-                                                                                                   signalProcessor: self.signalProcessor)
+        self.internalSignalCollector = BaseInternalSignalCollector(logger: self.logger,
+                                                                   signalProcessor: self.signalProcessor)
     }
 }

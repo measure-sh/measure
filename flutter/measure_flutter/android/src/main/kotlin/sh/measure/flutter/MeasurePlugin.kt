@@ -1,5 +1,6 @@
 package sh.measure.flutter
 
+import android.os.Looper
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -20,6 +21,7 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         try {
             when (call.method) {
                 MethodConstants.FUNCTION_TRACK_EVENT -> handleTrackEvent(call, result)
+                MethodConstants.FUNCTION_TRIGGER_NATIVE_CRASH -> triggerNativeCrash()
                 else -> result.notImplemented()
             }
         } catch (e: MethodArgumentException) {
@@ -33,10 +35,17 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         }
     }
 
+    private fun triggerNativeCrash() {
+        val exception = RuntimeException("Native app crashed")
+        val mainThread = Looper.getMainLooper().thread
+        mainThread.uncaughtExceptionHandler?.uncaughtException(mainThread, exception)
+        mainThread.join();
+    }
+
     private fun handleTrackEvent(call: MethodCall, result: MethodChannel.Result) {
         val reader = MethodCallReader(call)
         val eventType = reader.requireArg<String>(MethodConstants.ARG_EVENT_TYPE)
-        val eventData = reader.requireArg<Map<String, Any>>(MethodConstants.ARG_EVENT_DATA)
+        val eventData = reader.requireArg<MutableMap<String, Any?>>(MethodConstants.ARG_EVENT_DATA)
         val timestamp = reader.requireArg<Long>(MethodConstants.ARG_TIMESTAMP)
         val rawAttributes = reader.requireArg<Map<String, Any>>(MethodConstants.ARG_USER_DEFINED_ATTRS)
         val convertedAttributes = AttributeConverter.convertAttributes(rawAttributes)
@@ -54,7 +63,7 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
     }
 
     private fun trackEvent(
-        data: Map<String, Any>,
+        data: MutableMap<String, Any?>,
         type: String,
         timestamp: Long,
         userDefinedAttrs: MutableMap<String, AttributeValue> = mutableMapOf<String, AttributeValue>(),

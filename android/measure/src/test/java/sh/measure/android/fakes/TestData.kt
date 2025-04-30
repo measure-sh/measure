@@ -13,6 +13,8 @@ import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionFactory
+import sh.measure.android.exceptions.ExceptionUnit
+import sh.measure.android.exceptions.Frame
 import sh.measure.android.exporter.AttachmentPacket
 import sh.measure.android.exporter.EventPacket
 import sh.measure.android.exporter.SpanPacket
@@ -60,6 +62,81 @@ internal object TestData {
             handled,
             thread,
             foreground,
+        )
+    }
+
+    fun getUnObfuscatedFlutterExceptionData(
+        handled: Boolean = false,
+        foreground: Boolean = true,
+    ): ExceptionData {
+        return ExceptionData(
+            exceptions = listOf(
+                ExceptionUnit(
+                    type = null,
+                    message = null,
+                    frames = listOf(
+                        Frame(
+                            class_name = "_MyAppState",
+                            method_name = "_throwException",
+                            file_name = "main.dart",
+                            line_num = 84,
+                            col_num = 5,
+                            module_name = "package:measure_flutter_example/",
+                            frame_index = 0,
+                        ),
+                        Frame(
+                            class_name = "_InkResponseState",
+                            method_name = "handleTap",
+                            file_name = "ink_well.dart",
+                            line_num = 1176,
+                            col_num = 21,
+                            module_name = "package:flutter/src/material/",
+                            frame_index = 1,
+                        ),
+                        Frame(
+                            class_name = null,
+                            method_name = "_invoke1",
+                            file_name = "hooks.dart",
+                            line_num = 330,
+                            col_num = 10,
+                            module_name = "dart:ui/",
+                            frame_index = 2,
+                        ),
+                    ),
+                ),
+            ),
+            handled = handled,
+            threads = listOf(),
+            foreground = foreground,
+        )
+    }
+
+    fun getObfuscatedFlutterExceptionData(
+        handled: Boolean = false,
+        foreground: Boolean = true,
+    ): ExceptionData {
+        return ExceptionData(
+            exceptions = listOf(
+                ExceptionUnit(
+                    type = null,
+                    message = null,
+                    frames = listOf(
+                        Frame(
+                            frame_index = 0,
+                            binary_address = "0x7af7026000",
+                            instruction_address = "0x7af71c4903",
+                        ),
+                        Frame(
+                            frame_index = 1,
+                            binary_address = "0x7af7026000",
+                            instruction_address = "0x7af71c48cf",
+                        ),
+                    ),
+                ),
+            ),
+            handled = handled,
+            threads = listOf(),
+            foreground = foreground,
         )
     }
 

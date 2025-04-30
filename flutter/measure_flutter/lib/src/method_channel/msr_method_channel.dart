@@ -16,13 +16,23 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
       bool userTriggered,
       String? threadName) async {
     final encodedAttributes = userDefinedAttrs.encode();
-    await _methodChannel.invokeMethod(MethodConstants.functionTrackEvent, {
-      MethodConstants.argEventData: data,
-      MethodConstants.argEventType: type,
-      MethodConstants.argTimestamp: timestamp,
-      MethodConstants.argUserDefinedAttrs: encodedAttributes,
-      MethodConstants.argUserTriggered: userTriggered,
-      MethodConstants.argThreadName: threadName,
-    });
+    try {
+      await _methodChannel.invokeMethod(MethodConstants.functionTrackEvent, {
+        MethodConstants.argEventData: data,
+        MethodConstants.argEventType: type,
+        MethodConstants.argTimestamp: timestamp,
+        MethodConstants.argUserDefinedAttrs: encodedAttributes,
+        MethodConstants.argUserTriggered: userTriggered,
+        MethodConstants.argThreadName: threadName,
+      });
+    } catch (e, stackTrace) {
+      return Future.error(e, stackTrace);
+    }
+  }
+
+  @override
+  Future<void> triggerNativeCrash() async {
+    await _methodChannel
+        .invokeMethod(MethodConstants.functionTriggerNativeCrash);
   }
 }

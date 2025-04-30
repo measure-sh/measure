@@ -146,7 +146,7 @@ extension SwiftUICore.View {
   @objc final public func start()
   @objc final public func stop()
   final public func trackEvent(name: Swift.String, attributes: [Swift.String : Measure.AttributeValue], timestamp: Swift.Int64?)
-  final public func internalTrackEvent(data: [Swift.String : Any?], type: Swift.String, timestamp: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], userTriggered: Swift.Bool, sessionId: Swift.String?, threadName: Swift.String?)
+  final public func internalTrackEvent(data: inout [Swift.String : Any?], type: Swift.String, timestamp: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], userTriggered: Swift.Bool, sessionId: Swift.String?, threadName: Swift.String?)
   @objc final public func trackEvent(_ name: Swift.String, attributes: [Swift.String : Any], timestamp: Foundation.NSNumber?)
   @objc final public func trackScreenView(_ screenName: Swift.String)
   @objc final public func setUserId(_ userId: Swift.String)

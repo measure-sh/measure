@@ -25,4 +25,8 @@ abstract class MeasureFlutterPlatform extends PlatformInterface {
       String threadName) {
     throw UnimplementedError('trackEvent() has not been implemented.');
   }
+
+  Future<void> triggerNativeCrash() {
+    throw UnimplementedError('triggerNativeCrash() has not been implemented.');
+  }
 }

@@ -3,6 +3,7 @@ package sh.measure.flutter
 object MethodConstants {
     // functions
     const val FUNCTION_TRACK_EVENT = "trackEvent"
+    const val FUNCTION_TRIGGER_NATIVE_CRASH = "triggerNativeCrash"
 
     // arguments
     const val ARG_EVENT_DATA = "event_data"

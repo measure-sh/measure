@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import sh.measure.android.NativeBridge
@@ -65,6 +66,7 @@ class AnrCollectorTest {
             attributes = attributesCaptor.capture(),
             userDefinedAttributes = userDefinedAttributeCaptor.capture(),
             attachments = attachmentsCaptor.capture(),
+            threadName = eq(null),
         )
 
         assertEquals(EventType.ANR, typeCaptor.firstValue)

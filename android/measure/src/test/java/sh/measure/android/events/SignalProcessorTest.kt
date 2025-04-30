@@ -74,7 +74,10 @@ internal class SignalProcessorTest {
             timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
             sessionId = sessionManager.getSessionId(),
-        ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
+        ).apply {
+            appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name)
+            appendAttribute(Attribute.PLATFORM_KEY, "android")
+        }
 
         assertEquals(1, signalStore.trackedEvents.size)
         assertEquals(expectedEvent, signalStore.trackedEvents.first())
@@ -102,7 +105,10 @@ internal class SignalProcessorTest {
             id = idProvider.id,
             sessionId = sessionManager.getSessionId(),
             attachments = attachments,
-        ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
+        ).apply {
+            appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name)
+            appendAttribute(Attribute.PLATFORM_KEY, "android")
+        }
 
         assertEquals(1, signalStore.trackedEvents.size)
         assertEquals(expectedEvent, signalStore.trackedEvents.first())
@@ -173,7 +179,10 @@ internal class SignalProcessorTest {
             id = idProvider.id,
             sessionId = sessionManager.getSessionId(),
             attributes = mutableMapOf("key" to "value"),
-        ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
+        ).apply {
+            appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name)
+            appendAttribute(Attribute.PLATFORM_KEY, "android")
+        }
 
         assertEquals(1, signalStore.trackedEvents.size)
         assertEquals(expectedEvent, signalStore.trackedEvents.first())
@@ -427,7 +436,10 @@ internal class SignalProcessorTest {
             id = idProvider.id,
             sessionId = sessionManager.getSessionId(),
             userTriggered = true,
-        ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
+        ).apply {
+            appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name)
+            appendAttribute(Attribute.PLATFORM_KEY, "android")
+        }
 
         signalProcessor.trackUserTriggered(
             data = data,

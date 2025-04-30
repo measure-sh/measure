@@ -30,7 +30,7 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
     
     private func handleTrackEvent(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         let reader = MethodCallReader(call)
-        let eventData: [String: Any?] = try reader.requireArg(MethodConstants.argEventData)
+        var eventData: [String: Any?] = try reader.requireArg(MethodConstants.argEventData)
         let eventType: String = try reader.requireArg(MethodConstants.argEventType)
         let timestamp: Int64 = try reader.requireArg(MethodConstants.argTimestamp)
         let rawAttributes: [String: Any] = try reader.requireArg(MethodConstants.argUserDefinedAttrs)
@@ -38,7 +38,7 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         let userTriggered: Bool = try reader.requireArg(MethodConstants.argUserTriggered)
         let threadName: String? = reader.optionalArg(MethodConstants.argThreadName)
         trackEvent(
-            data: eventData,
+            data: &eventData,
             type: eventType,
             timestamp: timestamp,
             userDefinedAttrs: convertedAttributes,
@@ -49,12 +49,12 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         result(nil)
     }
     
-    private func trackEvent(data: [String: Any?], type: String, timestamp: Int64, userDefinedAttrs: [String: AttributeValue], userTriggered: Bool, sessionId: String?, threadName: String?) {
+    private func trackEvent(data: inout [String: Any?], type: String, timestamp: Int64, userDefinedAttrs: [String: AttributeValue], userTriggered: Bool, sessionId: String?, threadName: String?) {
         var attributes = [String: Any?]()
         attributes[Attribute.platform] = Attribute.platformFlutter
         
         Measure.shared.internalTrackEvent(
-            data: data,
+            data: &data,
             type: type,
             timestamp: timestamp,
             attributes: attributes,

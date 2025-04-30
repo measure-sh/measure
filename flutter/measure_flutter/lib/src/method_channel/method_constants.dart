@@ -1,6 +1,7 @@
 class MethodConstants {
   // Function names
   static const String functionTrackEvent = 'trackEvent';
+  static const String functionTriggerNativeCrash = 'triggerNativeCrash';
 
   // Argument keys
   static const String argEventData = 'event_data';

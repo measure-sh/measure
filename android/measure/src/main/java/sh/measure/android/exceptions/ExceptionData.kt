@@ -42,7 +42,7 @@ internal data class ExceptionUnit(
     /**
      * The fully qualified type of the exception. For example, java.lang.Exception.
      */
-    val type: String,
+    val type: String?,
 
     /**
      * A message which describes the exception.
@@ -53,6 +53,26 @@ internal data class ExceptionUnit(
      * A list of stack frames for the exception.
      */
     val frames: List<Frame>,
+
+    /**
+     * An optional POSIX signal received by the process.
+     */
+    val signal: String? = null,
+
+    /**
+     * The name of the thread.
+     */
+    val thread_name: String? = null,
+
+    /**
+     * The sequence number of the thread.
+     */
+    val thread_sequence: Int = 0,
+
+    /**
+     * The OS System Build unique for the device.
+     */
+    val os_build_number: String? = null,
 )
 
 /**
@@ -80,7 +100,38 @@ internal data class Frame(
      */
     val line_num: Int? = null,
 
+    /**
+     * The library or module where the crash occurred.
+     */
     val module_name: String? = null,
 
+    /**
+     * The column number of the method called.
+     */
     val col_num: Int? = null,
+
+    /**
+     * The instruction address of the frame.
+     */
+    val instruction_address: String? = null,
+
+    /**
+     * The binary address of the frame.
+     */
+    val binary_address: String? = null,
+
+    /**
+     * The symbol address of the frame.
+     */
+    val symbol_address: String? = null,
+
+    /**
+     * The index of the frame in the stacktrace.
+     */
+    val frame_index: Int? = null,
+
+    /**
+     * `true` if the frame originates from the app module
+     */
+    val in_app: Boolean = false,
 )

@@ -175,7 +175,14 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             offset: 1234,
             frameIndex: 0,
             symbolAddress: "0x0000000100000000",
-            inApp: true
+            inApp: true,
+            className: "EventSerializer",
+            methodName: "serialize",
+            fileName: "EventSerializer.swift",
+            lineNumber: 102,
+            columnNumber: 12,
+            moduleName: "measure",
+            instructionAddress: "0x0000000000000000"
         )
 
         // Binary image setup
@@ -252,6 +259,14 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
                         XCTAssertEqual(firstFrame["frame_index"] as? Number, 0)
                         XCTAssertEqual(firstFrame["symbol_address"] as? String, "0x0000000100000000")
                         XCTAssertEqual(firstFrame["in_app"] as? Bool, true)
+                        XCTAssertEqual(firstFrame["class_name"] as? String, "EventSerializer")
+                        XCTAssertEqual(firstFrame["method_name"] as? String, "serialize")
+                        XCTAssertEqual(firstFrame["file_name"] as? String, "EventSerializer.swift")
+                        XCTAssertEqual(firstFrame["line_num"] as? Number, 102)
+                        XCTAssertEqual(firstFrame["col_num"] as? Number, 12)
+                        XCTAssertEqual(firstFrame["module_name"] as? String, "measure")
+                        XCTAssertEqual(firstFrame["instruction_address"] as? String, "0x0000000000000000")
+                        
                     } else {
                         XCTFail("Stack frames are not present in the exception details.")
                     }

@@ -6,7 +6,8 @@ class NoopLogger extends Logger {
   bool get enabled => true;
 
   @override
-  void log(LogLevel level, String message, [Object? error]) {
+  void log(LogLevel level, String message,
+      [Object? error, StackTrace? stackTrace]) {
     // No-op
   }
 }

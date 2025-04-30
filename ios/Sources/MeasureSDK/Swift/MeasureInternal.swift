@@ -130,8 +130,13 @@ final class MeasureInternal {
     var spanCollector: SpanCollector {
         return measureInitializer.spanCollector
     }
-    var internalEventCollector: InternalEventCollector {
-        return measureInitializer.internalEventCollector
+    var internalSignalCollector: InternalSignalCollector {
+        get {
+            return measureInitializer.internalSignalCollector
+        }
+        set {
+            measureInitializer.internalSignalCollector = newValue
+        }
     }
     private let lifecycleObserver: LifecycleObserver
     private var isStarted: Bool = false
@@ -177,7 +182,7 @@ final class MeasureInternal {
     func clearUserId() {
         userAttributeProcessor.clearUserId()
     }
-
+    
     func createSpan(name: String) -> SpanBuilder? {
         return spanCollector.createSpan(name: name)
     }
@@ -196,6 +201,7 @@ final class MeasureInternal {
 
     private func applicationDidEnterBackground() {
         self.crashDataPersistence.isForeground = false
+        self.internalSignalCollector.isForeground = false
         self.sessionManager.applicationDidEnterBackground()
         self.periodicExporter.applicationDidEnterBackground()
         self.lifecycleCollector.applicationDidEnterBackground()
@@ -206,6 +212,7 @@ final class MeasureInternal {
 
     private func applicationWillEnterForeground() {
         self.crashDataPersistence.isForeground = true
+        self.internalSignalCollector.isForeground = true
         self.sessionManager.applicationWillEnterForeground()
         self.periodicExporter.applicationWillEnterForeground()
         self.lifecycleCollector.applicationWillEnterForeground()
@@ -229,7 +236,7 @@ final class MeasureInternal {
         self.lifecycleCollector.enable()
         self.crashReportManager.enable()
         self.spanCollector.enable()
-        self.internalEventCollector.enable()
+        self.internalSignalCollector.enable()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let window = UIApplication.shared.windows.first {
                 self.gestureCollector.enable(for: window)
@@ -249,7 +256,7 @@ final class MeasureInternal {
         self.lifecycleCollector.disable()
         self.crashReportManager.disable()
         self.spanCollector.disabled()
-        self.internalEventCollector.disable()
+        self.internalSignalCollector.disable()
     }
 
     private func registerAlwaysOnCollectors() {
