@@ -242,10 +242,12 @@ func Init(config *ServerConfig) {
 			log.Printf("Failed to dial postgress connection.")
 		}
 
-		pgConfig.ConnConfig.DialFunc = func(ctx context.Context, _ string, _ string) (net.Conn, error) {
+		pgConfig.ConnConfig.DialFunc = func(ctx context.Context, second string, third string) (net.Conn, error) {
+			log.Printf(">>> Entering custom DialFunc: second: %s, third: %s\n", second, third)
 			return d.Dial(ctx, "modified-media-423607-u5:us-central1:s-csql-01", cloudsqlconn.WithPrivateIP())
 		}
 
+		log.Println("Creating connection pool with modified config...")
 		pgPool, err = pgxpool.NewWithConfig(ctx, pgConfig)
 		if err != nil {
 			log.Printf("Failed to acquire postgres connection pool.")
