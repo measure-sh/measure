@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher"
 import { Team, TeamsApiStatus, fetchTeamsFromServer } from "../api/api_calls"
 import { measureAuth } from "../auth/measure_auth"
+import UserAvatar from "../components/user_avatar"
 
 export default function DashboardLayout({
   children,
@@ -70,6 +71,7 @@ export default function DashboardLayout({
   const searchParams = useSearchParams()
   const currentQuery = searchParams.toString()
 
+
   const getTeams = async () => {
     setTeamsApiStatus(TeamsApiStatus.Loading)
 
@@ -116,9 +118,11 @@ export default function DashboardLayout({
         <aside className="md:border-black md:border-r md:sticky md:top-0 md:h-screen">
           <nav className="flex flex-col p-2 md:h-full w-screen md:w-60">
             <div className="py-4" />
+            <UserAvatar onLogoutClick={() => logoutUser()} />
+            <div className="py-4" />
             <TeamSwitcher items={teams} initialItemIndex={teams?.findIndex((e) => e.id === selectedTeam!.id)} teamsSwitcherStatus={teamsApiStatusToTeamsSwitcherStatus[teamsApiStatus]} onChangeSelectedItem={(item) => onTeamChanged(item)} />
             {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg text-center font-display pt-4">Please refresh page to try again.</p>}
-            {teamsApiStatus === TeamsApiStatus.Success && <div className="py-4" />}
+            {teamsApiStatus === TeamsApiStatus.Success && <div className="py-8" />}
             {teamsApiStatus === TeamsApiStatus.Success &&
               <ul>
                 {menuItems.map(({ hrefSuffix, title }) => (
@@ -137,7 +141,6 @@ export default function DashboardLayout({
               <div className='px-1' />
               <p className='mt-1'>Support</p>
             </a>
-            <button className="mx-4 mb-2 outline-hidden flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => logoutUser()}>Logout</button>
           </nav>
         </aside>
         {teamsApiStatus === TeamsApiStatus.Success && <main className="md:overflow-auto">{children}</main>}

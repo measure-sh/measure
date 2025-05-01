@@ -4,6 +4,12 @@ export type MeasureAuthSession = {
     user: {
         id: string,
         own_team_id: string
+        name: string,
+        email: string,
+        confirmed_at: string,
+        last_sign_in_at: string,
+        created_at: string,
+        updated_at: string,
     }
 }
 
@@ -136,7 +142,13 @@ export class MeasureAuth {
             const session: MeasureAuthSession = {
                 user: {
                     id: data.user.id,
-                    own_team_id: data.user.own_team_id
+                    own_team_id: data.user.own_team_id,
+                    name: data.user.name,
+                    email: data.user.email,
+                    confirmed_at: data.user.confirmed_at,
+                    last_sign_in_at: data.user.last_sign_in_at,
+                    created_at: data.user.created_at,
+                    updated_at: data.user.updated_at,
                 },
             }
 

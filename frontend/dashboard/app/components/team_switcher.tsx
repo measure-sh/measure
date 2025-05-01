@@ -62,14 +62,14 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
   }
 
   return (
-    <div className="z-50 relative w-40 self-center inline-block text-left" ref={teamSwitcherRef} >
+    <div className="relative w-48 self-center inline-block text-left" ref={teamSwitcherRef} >
       <button
         type="button"
         onClick={toggleTeamSwitcher}
         disabled={teamsSwitcherStatus === TeamsSwitcherStatus.Loading || teamsSwitcherStatus === TeamsSwitcherStatus.Error}
-        className="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300">
-        {teamsSwitcherStatus == TeamsSwitcherStatus.Loading && <p className="pl-8 truncate w-max">Updating...</p>}
-        {teamsSwitcherStatus == TeamsSwitcherStatus.Error && <p className="pl-8 truncate w-max">Error</p>}
+        className="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300">
+        {teamsSwitcherStatus == TeamsSwitcherStatus.Loading && <p className="w-full truncate">Updating...</p>}
+        {teamsSwitcherStatus == TeamsSwitcherStatus.Error && <p className="w-full truncate">Error</p>}
         {teamsSwitcherStatus == TeamsSwitcherStatus.Success &&
           <div className="flex flex-row justify-center">
             <p className="pl-8 truncate w-max">{selectedItem ? selectedItem.name : items![initialItemIndex].name}</p>
@@ -78,7 +78,7 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
       </button>
 
       {isOpen && (
-        <div className="origin-top-right absolute left-0 mt-2 w-48 rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
+        <div className="z-50 origin-top-left absolute left-0 mt-2 w-48 shadow-lg border border-black">
           <div
             role="menu"
             aria-orientation="vertical"

@@ -753,10 +753,29 @@ func GetAuthSession(c *gin.Context) {
 		return
 	}
 
+	user := &User{
+		ID: &userId,
+	}
+
+	err := user.getUserDetails(c.Request.Context())
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Unable to get user details: %v", err),
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"user": gin.H{
-			"id":          userId,
-			"own_team_id": ownTeamId,
+			"id":              userId,
+			"own_team_id":     ownTeamId,
+			"name":            user.Name,
+			"email":           user.Email,
+			"confirmed_at":    user.ConfirmedAt,
+			"last_sign_in_at": user.LastSignInAt,
+			"created_at":      user.CreatedAt,
+			"updated_at":      user.UpdatedAt,
 		},
 	})
 }

@@ -14,27 +14,21 @@ import (
 )
 
 type User struct {
-	ID              *string    `json:"id"`
-	Name            *string    `json:"name"`
-	Email           *string    `json:"email"`
-	InvitedByUserId *string    `json:"invited_by_user_id"`
-	InvitedToTeamId *string    `json:"invited_to_team_id"`
-	InvitedAsRole   *string    `json:"invited_as_role"`
-	ConfirmedAt     *time.Time `json:"confirmed_at"`
-	LastSignInAt    *time.Time `json:"last_sign_in_at"`
-	CreatedAt       *time.Time `json:"created_at"`
-	UpdatedAt       *time.Time `json:"updated_at"`
+	ID           *string    `json:"id"`
+	Name         *string    `json:"name"`
+	Email        *string    `json:"email"`
+	ConfirmedAt  *time.Time `json:"confirmed_at"`
+	LastSignInAt *time.Time `json:"last_sign_in_at"`
+	CreatedAt    *time.Time `json:"created_at"`
+	UpdatedAt    *time.Time `json:"updated_at"`
 }
 
 func (u User) String() string {
 	return fmt.Sprintf(
-		"ID: %s, Name: %s, Email: %s,Email: %s,InvitedByUserId: %s,InvitedToTeamId: %s InvitedAsRole: %v, LastSignInAt: %v, CreatedAt: %v, UpdatedAt: %v",
+		"ID: %s, Name: %s, Email: %s,Email: %s, LastSignInAt: %v, CreatedAt: %v, UpdatedAt: %v",
 		stringOrNil(u.ID),
 		stringOrNil(u.Name),
 		stringOrNil(u.Email),
-		stringOrNil(u.InvitedByUserId),
-		stringOrNil(u.InvitedToTeamId),
-		stringOrNil(u.InvitedAsRole),
 		timeOrNil(u.ConfirmedAt),
 		timeOrNil(u.LastSignInAt),
 		timeOrNil(u.CreatedAt),
@@ -200,6 +194,32 @@ func (u *User) getEmail(ctx context.Context) (err error) {
 			return fmt.Errorf("user not found")
 		}
 		return fmt.Errorf("failed to retrieve email: %w", err)
+	}
+
+	return
+}
+
+// getUser retrieves the user details from the database.
+func (u *User) getUserDetails(ctx context.Context) (err error) {
+	stmt := sqlf.PostgreSQL.
+		From("public.users").
+		Select("id").
+		Select("name").
+		Select("email").
+		Select("confirmed_at").
+		Select("last_sign_in_at").
+		Select("created_at").
+		Select("updated_at").
+		Where("id = ?", nil)
+
+	defer stmt.Close()
+
+	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), u.ID).Scan(&u.ID, &u.Name, &u.Email, &u.ConfirmedAt, &u.LastSignInAt, &u.CreatedAt, &u.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("user not found")
+		}
+		return fmt.Errorf("failed to retrieve user: %w", err)
 	}
 
 	return
