@@ -144,7 +144,7 @@ func (a Attribute) Validate() error {
 	)
 
 	switch a.Platform {
-	case platform.Android, platform.IOS:
+	case platform.Android, platform.IOS, platform.Flutter:
 	default:
 		return fmt.Errorf(`%q does not contain a valid platform value`, `attribute.platform`)
 	}
