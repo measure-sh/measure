@@ -180,6 +180,10 @@ var iOSValidTypes = []string{
 	TypeBugReport,
 }
 
+var flutterValidTypes = []string{
+	TypeCustom,
+}
+
 // ValidLifecycleActivityTypes defines allowed
 // `lifecycle_activity.type` values.
 var ValidLifecycleActivityTypes = []string{
@@ -882,6 +886,10 @@ func (e *EventField) Validate() error {
 	case platform.IOS:
 		if !slices.Contains(iOSValidTypes, e.Type) {
 			return fmt.Errorf(`%q is not a valid event type for iOS`, e.Type)
+		}
+	case platform.Flutter:
+		if !slices.Contains(flutterValidTypes, e.Type) {
+			return fmt.Errorf(`%q is not a valid event type for Flutter`, e.Type)
 		}
 	default:
 		return fmt.Errorf(`%q is not a valid platform value`, e.Attribute.Platform)
