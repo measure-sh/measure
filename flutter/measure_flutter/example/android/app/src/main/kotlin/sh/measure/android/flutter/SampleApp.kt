@@ -1,4 +1,4 @@
-package sh.measure.flutter
+package sh.measure.android.flutter
 
 import android.app.Application
 import sh.measure.android.Measure
