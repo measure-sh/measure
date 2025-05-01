@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "sh.measure.flutter"
+    namespace = "sh.measure.android.flutter"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
 
@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "sh.measure.flutter"
+        applicationId = "sh.measure.android.flutter"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
