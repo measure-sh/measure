@@ -6,10 +6,10 @@ exports[`TeamSwitcher renders correctly in collapsed state 1`] = `
   "baseElement": <body>
     <div>
       <div
-        class="z-50 relative w-40 self-center inline-block text-left"
+        class="relative w-48 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+          class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           type="button"
         >
           <div
@@ -32,10 +32,10 @@ exports[`TeamSwitcher renders correctly in collapsed state 1`] = `
   </body>,
   "container": <div>
     <div
-      class="z-50 relative w-40 self-center inline-block text-left"
+      class="relative w-48 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+        class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         type="button"
       >
         <div
@@ -115,15 +115,15 @@ exports[`TeamSwitcher renders correctly in error state 1`] = `
   "baseElement": <body>
     <div>
       <div
-        class="z-50 relative w-40 self-center inline-block text-left"
+        class="relative w-48 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+          class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           disabled=""
           type="button"
         >
           <p
-            class="pl-8 truncate w-max"
+            class="w-full truncate"
           >
             Error
           </p>
@@ -133,15 +133,15 @@ exports[`TeamSwitcher renders correctly in error state 1`] = `
   </body>,
   "container": <div>
     <div
-      class="z-50 relative w-40 self-center inline-block text-left"
+      class="relative w-48 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+        class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         disabled=""
         type="button"
       >
         <p
-          class="pl-8 truncate w-max"
+          class="w-full truncate"
         >
           Error
         </p>
@@ -208,15 +208,15 @@ exports[`TeamSwitcher renders correctly in loading state 1`] = `
   "baseElement": <body>
     <div>
       <div
-        class="z-50 relative w-40 self-center inline-block text-left"
+        class="relative w-48 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+          class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           disabled=""
           type="button"
         >
           <p
-            class="pl-8 truncate w-max"
+            class="w-full truncate"
           >
             Updating...
           </p>
@@ -226,15 +226,15 @@ exports[`TeamSwitcher renders correctly in loading state 1`] = `
   </body>,
   "container": <div>
     <div
-      class="z-50 relative w-40 self-center inline-block text-left"
+      class="relative w-48 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+        class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         disabled=""
         type="button"
       >
         <p
-          class="pl-8 truncate w-max"
+          class="w-full truncate"
         >
           Updating...
         </p>
@@ -301,10 +301,10 @@ exports[`TeamSwitcher renders correctly in opened state 1`] = `
   "baseElement": <body>
     <div>
       <div
-        class="z-50 relative w-40 self-center inline-block text-left"
+        class="relative w-48 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+          class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           type="button"
         >
           <div
@@ -327,10 +327,10 @@ exports[`TeamSwitcher renders correctly in opened state 1`] = `
   </body>,
   "container": <div>
     <div
-      class="z-50 relative w-40 self-center inline-block text-left"
+      class="relative w-48 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+        class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         type="button"
       >
         <div
@@ -410,10 +410,10 @@ exports[`TeamSwitcher renders correctly in opened state 2`] = `
   "baseElement": <body>
     <div>
       <div
-        class="z-50 relative w-40 self-center inline-block text-left"
+        class="relative w-48 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+          class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           type="button"
         >
           <div
@@ -432,7 +432,7 @@ exports[`TeamSwitcher renders correctly in opened state 2`] = `
           </div>
         </button>
         <div
-          class="origin-top-right absolute left-0 mt-2 w-48 rounded-md shadow-lg ring-1 ring-black ring-opacity-5"
+          class="z-50 origin-top-left absolute left-0 mt-2 w-48 shadow-lg border border-black"
         >
           <div
             aria-labelledby="options-menu"
@@ -464,10 +464,10 @@ exports[`TeamSwitcher renders correctly in opened state 2`] = `
   </body>,
   "container": <div>
     <div
-      class="z-50 relative w-40 self-center inline-block text-left"
+      class="relative w-48 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+        class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         type="button"
       >
         <div
@@ -486,7 +486,7 @@ exports[`TeamSwitcher renders correctly in opened state 2`] = `
         </div>
       </button>
       <div
-        class="origin-top-right absolute left-0 mt-2 w-48 rounded-md shadow-lg ring-1 ring-black ring-opacity-5"
+        class="z-50 origin-top-left absolute left-0 mt-2 w-48 shadow-lg border border-black"
       >
         <div
           aria-labelledby="options-menu"
@@ -575,10 +575,10 @@ exports[`TeamSwitcher renders correctly on new team selection 1`] = `
   "baseElement": <body>
     <div>
       <div
-        class="z-50 relative w-40 self-center inline-block text-left"
+        class="relative w-48 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+          class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           type="button"
         >
           <div
@@ -601,10 +601,10 @@ exports[`TeamSwitcher renders correctly on new team selection 1`] = `
   </body>,
   "container": <div>
     <div
-      class="z-50 relative w-40 self-center inline-block text-left"
+      class="relative w-48 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+        class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         type="button"
       >
         <div
@@ -684,10 +684,10 @@ exports[`TeamSwitcher renders correctly on new team selection 2`] = `
   "baseElement": <body>
     <div>
       <div
-        class="z-50 relative w-40 self-center inline-block text-left"
+        class="relative w-48 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+          class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           type="button"
         >
           <div
@@ -710,10 +710,10 @@ exports[`TeamSwitcher renders correctly on new team selection 2`] = `
   </body>,
   "container": <div>
     <div
-      class="z-50 relative w-40 self-center inline-block text-left"
+      class="relative w-48 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+        class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         type="button"
       >
         <div
@@ -793,10 +793,10 @@ exports[`TeamSwitcher renders correctly on passing in initial item index 1`] = `
   "baseElement": <body>
     <div>
       <div
-        class="z-50 relative w-40 self-center inline-block text-left"
+        class="relative w-48 self-center inline-block text-left"
       >
         <button
-          class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+          class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
           type="button"
         >
           <div
@@ -819,10 +819,10 @@ exports[`TeamSwitcher renders correctly on passing in initial item index 1`] = `
   </body>,
   "container": <div>
     <div
-      class="z-50 relative w-40 self-center inline-block text-left"
+      class="relative w-48 self-center inline-block text-left"
     >
       <button
-        class="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
+        class="py-2 w-full font-display border border-black rounded-md outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300"
         type="button"
       >
         <div

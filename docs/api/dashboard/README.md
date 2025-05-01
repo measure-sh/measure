@@ -519,7 +519,13 @@ The required headers must be present in each request.
   {
     "user": {
         "id": "835283a5-cddc-472b-84ad-5ea3319efeed",
-        "own_team_id": "e47ac49d-0697-4e85-8607-1a34536c04e3"
+        "own_team_id": "e47ac49d-0697-4e85-8607-1a34536c04e3",
+        "name": "Dummy User",
+        "email": "dummy@gmail.com",
+        "confirmed_at": "2024-06-19T22:14:49.77Z",
+        "last_sign_in_at": "2024-06-19T22:14:49.77Z",
+        "created_at": "2024-06-19T22:14:49.77Z",
+        "updated_at": "2024-06-19T22:14:49.77Z",
     }
   }
   ```
