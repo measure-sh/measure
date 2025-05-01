@@ -212,7 +212,7 @@ func VerifyMachO(r *bytes.Reader) (err error) {
 
 	magic := hex.EncodeToString(buffer[:4])
 
-	if n < 4 || magic != "cffaedfe" && magic != "cefaedfe" {
+	if n < 4 || magic != "cffaedfe" && magic != "cefaedfe" && magic != "cafebabe" {
 		return errors.New("failed to find valid Mach-O magic number")
 	}
 
