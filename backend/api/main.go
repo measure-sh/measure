@@ -71,7 +71,7 @@ func main() {
 		}
 
 		stmt := sqlf.PostgreSQL.
-			From("users").
+			From("measure.users").
 			Select("id").
 			Select("username").
 			Select("email").
