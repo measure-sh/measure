@@ -28,11 +28,15 @@
             android:value="2" />
         <meta-data
             android:name="sh.measure.android.API_KEY"
-            android:value="msrsh_b05e51d6f7e1f30d29bc396d020219ee4359893485ffbaada1da86527acd3e74_5592ba84" />
+            android:value="msrsh_67119df24c9c64b49269266b676a9f0c3ba430bbb32cdf157a59c1ea12a675fe_dabf1702" />
 
         <meta-data
             android:name="sh.measure.android.API_URL"
-            android:value="http://10.0.2.2" />
+            android:value="http://10.0.2.2:8080" />
+
+        <meta-data
+            android:name="sh.measure.android.BUILD_API_URL"
+            android:value="http://localhost:8080" />
     </application>
     <queries>
         <intent>
