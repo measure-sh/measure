@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :sparkles: New features
 
 - (**backend**): Implement email invites by @anupcowkur in #2091
+- (**frontend**): Show logged in user avatar by @anupcowkur in #2110
 
 ### :bug: Bug fixes
 
