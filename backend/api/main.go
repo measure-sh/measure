@@ -70,6 +70,8 @@ func main() {
 			CreatedAt time.Time
 		}
 
+		// whatever comment
+
 		stmt := sqlf.PostgreSQL.
 			From("'measure.users'").
 			Select("id").
