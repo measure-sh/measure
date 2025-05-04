@@ -117,6 +117,9 @@ func ValidateAccessToken() gin.HandlerFunc {
 		}
 
 		if claims, ok := accessToken.Claims.(jwt.MapClaims); ok {
+			sessionId := claims["jti"]
+			c.Set("sessionId", sessionId)
+
 			userId := claims["sub"]
 			c.Set("userId", userId)
 
@@ -421,6 +424,7 @@ func SigninGitHub(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"access_token":  authSess.AccessToken,
 			"refresh_token": authSess.RefreshToken,
+			"session_id":    authSess.ID,
 			"user_id":       userId,
 			"own_team_id":   team.ID,
 		})
@@ -521,9 +525,10 @@ func SigninGoogle(c *gin.Context) {
 	}
 
 	googUser := authsession.GoogleUser{
-		ID:    payload.Subject,
-		Name:  payload.Claims["name"].(string),
-		Email: payload.Claims["email"].(string),
+		ID:      payload.Subject,
+		Name:    payload.Claims["name"].(string),
+		Email:   payload.Claims["email"].(string),
+		Picture: payload.Claims["picture"].(string),
 	}
 
 	userMeta, err := json.Marshal(googUser)
@@ -632,6 +637,7 @@ func SigninGoogle(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"access_token":  authSess.AccessToken,
 		"refresh_token": authSess.RefreshToken,
+		"session_id":    authSess.ID,
 		"user_id":       userId,
 		"own_team_id":   team.ID,
 	})
@@ -738,6 +744,9 @@ func RefreshToken(c *gin.Context) {
 func GetAuthSession(c *gin.Context) {
 	userId := c.GetString("userId")
 	ownTeamId := c.GetString("ownTeamId")
+	sessionId := c.GetString("sessionId")
+
+	ctx := c.Request.Context()
 
 	if userId == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -757,11 +766,57 @@ func GetAuthSession(c *gin.Context) {
 		ID: &userId,
 	}
 
-	err := user.getUserDetails(c.Request.Context())
+	err := user.getUserDetails(ctx)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Unable to get user details: %v", err),
+		})
+		return
+	}
+
+	jti, err := uuid.Parse(sessionId)
+	if err != nil {
+		msg := "failed to parse session id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	session, err := authsession.GetAuthSession(ctx, jti)
+	if errors.Is(err, pgx.ErrNoRows) {
+		msg := "could not fetch session"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	// parse avatar url from user meta
+	// depending on the oauth provider
+	var userMeta map[string]interface{}
+	if err := json.Unmarshal(session.UserMeta, &userMeta); err != nil {
+		msg := "failed to parse user meta data"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	var avatarUrl string
+	if session.OAuthProvider == "github" {
+		avatarUrl = userMeta["avatar_url"].(string)
+	} else if session.OAuthProvider == "google" {
+		avatarUrl = userMeta["picture"].(string)
+	} else {
+		msg := "invalid oauth provider: " + session.OAuthProvider
+		fmt.Println(msg, err)
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": msg,
 		})
 		return
 	}
@@ -772,6 +827,7 @@ func GetAuthSession(c *gin.Context) {
 			"own_team_id":     ownTeamId,
 			"name":            user.Name,
 			"email":           user.Email,
+			"avatar_url":      avatarUrl,
 			"confirmed_at":    user.ConfirmedAt,
 			"last_sign_in_at": user.LastSignInAt,
 			"created_at":      user.CreatedAt,

@@ -41,6 +41,7 @@ export default function GoogleSignIn() {
         data-ux_mode="popup"
         data-nonce={hashedNonce}
         data-login_uri={`${origin}/auth/callback/google?nonce=${encodeURIComponent(nonce)}&state=${encodeURIComponent(state)}`}
+        data-scope="openid email profile"
         data-auto_prompt="false"
         data-itp_support="true"
         data-use_fedcm_for_prompt="true">

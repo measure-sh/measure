@@ -25,7 +25,7 @@ type User struct {
 
 func (u User) String() string {
 	return fmt.Sprintf(
-		"ID: %s, Name: %s, Email: %s,Email: %s, LastSignInAt: %v, CreatedAt: %v, UpdatedAt: %v",
+		"ID: %s, Name: %s, Email: %s, ConfirmedAt: %s, LastSignInAt: %v, CreatedAt: %v, UpdatedAt: %v",
 		stringOrNil(u.ID),
 		stringOrNil(u.Name),
 		stringOrNil(u.Email),
