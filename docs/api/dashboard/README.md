@@ -310,6 +310,7 @@ The required headers must be present in each request.
   {
     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDUyMjU0ODQsImlhdCI6MTc0NTIyMzY4NCwiaXNzIjoibWVhc3VyZSIsIm90aSI6ImU0N2FjNDlkLTA2OTctNGU4NS04NjA3LTFhMzQ1MzZjMDRlMyIsInN1YiI6IjgzNTI4M2E1LWNkZGMtNDcyYi04NGFkLTVlYTMzMTllZmVlZCJ9.UA-rtIY8TPjB3gkt0xgxTTXWa84uB6nr9vMyg0gMnSI",
     "refresh_token": "yJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9eyJleHAiOjE3NDU4Mjg0ODQsImp0aSI6ImYwY2NlMjViLTkyOWQtNGI4ZS1iOTgyLWM1YmRlOWJmZmJlYyJ9.1-meGfGQ8i9IlNxKXmBlDc4lEu-O63jG2vrd7yP0-j8",
+    "session_id": "afae8473-2419-4303-a262-2aea520de295",
     "user_id": "835283a5-cddc-472b-84ad-5ea3319efeed",
     "own_team_id": "e47ac49d-0697-4e85-8607-1a34536c04e3"
   }
@@ -383,6 +384,7 @@ The required headers must be present in each request.
   {
     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDUyMjU2NTksImlhdCI6MTc0NTIyMzg1OSwiaXNzIjoibWVhc3VyZSIsIm90aSI6ImU0N2FjNDlkLTA2OTctNGU4NS04NjA3LTFhMzQ1MzZjMDRlMyIsInN1YiI6IjgzNTI4M2E1LWNkZGMtNDcyYi04NGFkLTVlYTMzMTllZmVlZCJ9.XzbpImWw9GXFlIXHCu92QNsA1D8m_Y9ZFVDEDqG_wtM",
     "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDU4Mjg2NTksImp0aSI6Ijg0Njk3ODhkLWVjNTEtNDdkNi1hM2RkLTRhYWY2NzI4ZmYzNyJ9.MeMIsk1KEHvPa2AAbDBQWqeKJwQcxbk1lXb7Mhcz-uQ",
+    "session_id": "afae8473-2419-4303-a262-2aea520de295",
     "user_id": "835283a5-cddc-472b-84ad-5ea3319efeed",
     "own_team_id": "e47ac49d-0697-4e85-8607-1a34536c04e3"
   }

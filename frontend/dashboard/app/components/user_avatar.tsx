@@ -2,15 +2,17 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { measureAuth, MeasureAuthSession } from '../auth/measure_auth'
+import Image from 'next/image'
 
 interface UserAvatarProps {
   onLogoutClick?: () => void
 }
-measureAuth.getSession
+
 const UserAvatar: React.FC<UserAvatarProps> = ({ onLogoutClick }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [session, setSession] = useState<MeasureAuthSession | null>(null)
   const [sessionError, setSessionError] = useState<Error | null>(null)
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false)
   const teamSwitcherRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -71,7 +73,24 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ onLogoutClick }) => {
         className="aspect-square w-full font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300">
         {session === null && sessionError === null && <p className="w-full truncate text-xs">Updating...</p>}
         {session === null && sessionError !== null && <p className="w-full truncate text-xs">Error</p>}
-        {session !== null && sessionError === null && <p className="w-full text-xs p-2 truncate" title={session!.user.name}>{session!.user.name}</p>}
+        {session !== null && sessionError === null && !avatarLoadFailed && (
+          <div className="relative w-full h-full">
+            <Image
+              src={session!.user.avatar_url}
+              fill
+              loading='lazy'
+              sizes="96px"
+              alt={session!.user.name}
+              className="object-fit rounded-full"
+              onError={(_) => {
+                setAvatarLoadFailed(true)
+              }}
+            />
+          </div>
+        )}
+        {session !== null && sessionError === null && avatarLoadFailed && (
+          <p className="w-full truncate text-xs">{session!.user.name}</p>
+        )}
       </button>
 
       {isOpen && (

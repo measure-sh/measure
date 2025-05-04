@@ -30,10 +30,11 @@ type AuthSession struct {
 }
 
 // createAccessToken creates a new access token.
-func createAccessToken(userId, ownTeamId uuid.UUID, secret []byte, expiry time.Time) (token string, err error) {
+func createAccessToken(jti, userId, ownTeamId uuid.UUID, secret []byte, expiry time.Time) (token string, err error) {
 	claims := jwt.MapClaims{
 		"iat": time.Now().Unix(),
 		"sub": userId.String(),
+		"jti": jti.String(),
 		"exp": expiry.Unix(),
 		"iss": "measure",
 		"oti": ownTeamId.String(),
@@ -81,7 +82,7 @@ func NewAuthSession(userId, ownTeamId uuid.UUID, provider string, meta json.RawM
 	atSecret := server.Server.Config.AccessTokenSecret
 	atExpiryAt := now.Add(accessTokenExpiryDuration)
 
-	accessToken, err := createAccessToken(userId, ownTeamId, atSecret, atExpiryAt)
+	accessToken, err := createAccessToken(authSession.ID, userId, ownTeamId, atSecret, atExpiryAt)
 	if err != nil {
 		return
 	}

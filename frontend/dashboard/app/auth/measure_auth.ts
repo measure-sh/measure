@@ -6,6 +6,7 @@ export type MeasureAuthSession = {
         own_team_id: string
         name: string,
         email: string,
+        avatar_url: string,
         confirmed_at: string,
         last_sign_in_at: string,
         created_at: string,
@@ -113,7 +114,7 @@ export class MeasureAuth {
         }
         // Construct the OAuth URL.
         const oauthUrl = new URL("https://github.com/login/oauth/authorize")
-        oauthUrl.searchParams.append("scope", "user:email")
+        oauthUrl.searchParams.append("scope", "user:email read:user")
         oauthUrl.searchParams.append("client_id", options.clientId)
         oauthUrl.searchParams.append("state", state)
         oauthUrl.searchParams.append("redirect_uri", options.options.redirectTo.toString())
@@ -145,6 +146,7 @@ export class MeasureAuth {
                     own_team_id: data.user.own_team_id,
                     name: data.user.name,
                     email: data.user.email,
+                    avatar_url: data.user.avatar_url,
                     confirmed_at: data.user.confirmed_at,
                     last_sign_in_at: data.user.last_sign_in_at,
                     created_at: data.user.created_at,

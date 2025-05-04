@@ -35,19 +35,21 @@ type GitHubToken struct {
 
 // GitHubUser represents the GitHub user.
 type GitHubUser struct {
-	ID       int    `json:"id"`
-	Login    string `json:"login"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Company  string `json:"company"`
-	Location string `json:"location"`
+	ID        int    `json:"id"`
+	Login     string `json:"login"`
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	AvatarUrl string `json:"avatar_url"`
+	Company   string `json:"company"`
+	Location  string `json:"location"`
 }
 
 // GoogleUser represents the Google user.
 type GoogleUser struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Email   string `json:"email"`
+	Picture string `json:"picture"`
 }
 
 // Save saves the authentication state.
