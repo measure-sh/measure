@@ -74,7 +74,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   }
 
   const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
-    if (pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
+    if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
       updatePageState({
         filters: updatedFilters,
         keyId: pageState.filters.serialisedFilters && searchParams.get(keyIdUrlKey) ? searchParams.get(keyIdUrlKey) : pageState.keyId,

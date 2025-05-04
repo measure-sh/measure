@@ -60,7 +60,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
 
     const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
         // update filters only if they have changed
-        if (pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
+        if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
             updatePageState({
                 filters: updatedFilters,
                 // Reset pagination on filters change if previous filters were not default filters
