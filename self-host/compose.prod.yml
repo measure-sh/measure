@@ -7,21 +7,40 @@ services:
       - HOSTNAME=0.0.0.0
     volumes: !reset null
     restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
 
   api:
     environment:
       - GIN_MODE=release
     develop: !reset null
     restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
 
   cleanup:
     environment:
       - GIN_MODE=release
     develop: !reset null
     restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
 
   migrator:
     develop: !reset null
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
 
   symbolicator:
     volumes:
@@ -31,9 +50,55 @@ services:
       # see: https://docs.docker.com/reference/compose-file/merge/#unique-resources
       - ./symbolicator/config.prod.yml:/etc/symbolicator/config.yml:ro
     restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
+  minio:
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
+  mc:
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
+  dbmate-postgres:
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
+  dbmate-clickhouse:
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
+  postgres:
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
 
   clickhouse:
     ports:
       !reset # see: https://docs.docker.com/compose/compose-file/13-merge/#reset-value
       - "9000:9000/tcp"
     restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
