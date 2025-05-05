@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"backend/api/codec"
-	osName "backend/api/os"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -15,7 +14,6 @@ import (
 	"path/filepath"
 	"sessionator/app"
 	"sessionator/config"
-	"strings"
 	"sync"
 	"time"
 
@@ -327,6 +325,11 @@ func UploadBuilds(url, apiKey string, app app.App) (string, error) {
 		}
 		fw.Write([]byte(code))
 
+		// print all mapping types
+		for _, mappingType := range build.MappingTypes {
+			fmt.Printf("mapping type: %s\n", mappingType)
+		}
+
 		for index, mappingType := range build.MappingTypes {
 			mappingFile := build.MappingFiles[index]
 			f, err := os.Open(mappingFile)
@@ -334,8 +337,8 @@ func UploadBuilds(url, apiKey string, app app.App) (string, error) {
 				return "", err
 			}
 
-			switch strings.ToLower(attribute.OSName) {
-			case osName.IOS:
+			switch mappingType {
+			case "dsym":
 				if err := codec.IsTarGz(f); err != nil {
 					return "", err
 				}
@@ -359,11 +362,11 @@ func UploadBuilds(url, apiKey string, app app.App) (string, error) {
 			f.Close()
 		}
 
-		fw, err = w.CreateFormField("os_name")
+		fw, err = w.CreateFormField("platform")
 		if err != nil {
 			return "", err
 		}
-		fw.Write([]byte(attribute.OSName))
+		fw.Write([]byte(attribute.Platform))
 
 		fw, err = w.CreateFormField("build_size")
 		if err != nil {
@@ -645,8 +648,8 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 			fmt.Printf("app (%d): %s\n", i+1, app.FullName())
 			fmt.Printf("event and span files count: %d\n", len(app.EventAndSpanFiles))
 			fmt.Printf("blob files count: %d\n", len(app.BlobFiles))
-			fmt.Printf("mapping file: %s\n\n", mapping)
-			fmt.Printf("mapping types: %s\n", types)
+			fmt.Printf("mapping file: %s\n", mapping)
+			fmt.Printf("mapping type: %s\n\n", types)
 		}
 
 		if clean || cleanAll {

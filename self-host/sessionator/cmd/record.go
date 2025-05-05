@@ -330,9 +330,9 @@ func writeBuild(c *gin.Context) {
 	}
 
 	for i := range mappingTypes {
-		if mappingTypes[i] != "proguard" && mappingTypes[i] != "dsym" {
+		if mappingTypes[i] != "proguard" && mappingTypes[i] != "dsym" && mappingTypes[i] != "elf_debug_info" {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Errorf(`"mapping_file" should be either %q or %q`, "proguard", "dsym"),
+				"error": fmt.Errorf(`"mapping_file" should be either %q, %q or %q`, "proguard", "dsym", "elf_debug_info"),
 			})
 			return
 		}
@@ -370,6 +370,9 @@ func writeBuild(c *gin.Context) {
 				return
 			}
 
+			filename = header.Filename
+			filename = strings.ReplaceAll(filename, " ", "")
+		case "elf_debug_info":
 			filename = header.Filename
 			filename = strings.ReplaceAll(filename, " ", "")
 		}
