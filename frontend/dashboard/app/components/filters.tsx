@@ -618,7 +618,7 @@ const Filters: React.FC<FiltersProps> = ({
           if (urlFilters.rootSpanName) {
             const selectedRootSpanName = parsedRootSpanNames.find((name: string) => name === urlFilters.rootSpanName)
             if (selectedRootSpanName === undefined) {
-              throw Error("Invalid root span name: " + urlFilters.rootSpanName + " provided in URL")
+              setSelectedRootSpanName(parsedRootSpanNames[0])
             } else {
               setSelectedRootSpanName(selectedRootSpanName)
             }
