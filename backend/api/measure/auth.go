@@ -429,10 +429,6 @@ func SigninGitHub(c *gin.Context) {
 			"own_team_id":   team.ID,
 		})
 
-		// deliberately ignore any error, because
-		// expired sessions may get cleared eventually
-		authsession.RemoveExpiredSessions(ctx)
-
 		return
 	default:
 		fmt.Println(msg)
@@ -641,10 +637,6 @@ func SigninGoogle(c *gin.Context) {
 		"user_id":       userId,
 		"own_team_id":   team.ID,
 	})
-
-	// deliberately ignore any error, because
-	// expired sessions may get cleared eventually
-	authsession.RemoveExpiredSessions(ctx)
 }
 
 // RefreshToken refreshes a previous session from
