@@ -166,6 +166,11 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 			if err := codec.IsTarGz(f); err != nil {
 				return http.StatusBadRequest, err
 			}
+		case symbol.TypeElfDebug.String():
+			if osName != os.Android {
+				err = osMappingError
+				return
+			}
 		default:
 			err = fmt.Errorf("unknown mapping type %q", mappingType)
 			return

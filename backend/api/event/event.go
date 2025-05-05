@@ -910,9 +910,14 @@ func (e *EventField) Validate() error {
 	}
 
 	if e.IsException() {
-		if len(e.Exception.Exceptions) < 1 || len(e.Exception.Threads) < 1 {
-			return fmt.Errorf(`%q must contain at least one exception & thread`, `exception`)
+		if len(e.Exception.Exceptions) < 1 {
+			return fmt.Errorf(`%q must contain at least one exception`, `exception`)
 		}
+
+		// TODO: this is no longer true with Flutter
+		// if len(e.Exception.Threads) < 1 {
+		// 	return fmt.Errorf(`%q must contain at least one  & thread`, `exception`)
+		// }
 	}
 
 	if e.IsAppExit() {
@@ -1221,7 +1226,7 @@ func (e *EventField) Validate() error {
 // to which OS.
 func (e Exception) GetOSName() (osName string) {
 	osName = os.Unknown
-	if len(e.Exceptions) < 1 || len(e.Threads) < 1 {
+	if len(e.Exceptions) < 1 {
 		return osName
 	}
 

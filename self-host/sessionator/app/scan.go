@@ -177,7 +177,7 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				}
 
 				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)
-				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, "elf_debug_info")
+				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, "elf_debug")
 			}
 
 			blob, err := filepath.Match("*/*/blobs/*", rel)
