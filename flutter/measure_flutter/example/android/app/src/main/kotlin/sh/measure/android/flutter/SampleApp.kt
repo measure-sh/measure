@@ -7,6 +7,11 @@ import sh.measure.android.config.MeasureConfig
 class SampleApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        Measure.init(this, MeasureConfig(enableLogging = true))
+        Measure.init(
+            this, MeasureConfig(
+                enableLogging = true,
+                samplingRateForErrorFreeSessions = 1f,
+            )
+        )
     }
 }
