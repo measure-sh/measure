@@ -122,9 +122,6 @@ func ValidateAccessToken() gin.HandlerFunc {
 
 			userId := claims["sub"]
 			c.Set("userId", userId)
-
-			ownTeamId := claims["oti"]
-			c.Set("ownTeamId", ownTeamId)
 		} else {
 			msg := "failed to read claims from access token"
 			fmt.Println(msg, err)
@@ -412,7 +409,7 @@ func SigninGitHub(c *gin.Context) {
 			return
 		}
 
-		authSess, err := authsession.NewAuthSession(userId, *team.ID, "github", userMeta)
+		authSess, err := authsession.NewAuthSession(userId, "github", userMeta)
 		if err != nil {
 			return
 		}
@@ -621,7 +618,7 @@ func SigninGoogle(c *gin.Context) {
 		return
 	}
 
-	authSess, err := authsession.NewAuthSession(userId, *team.ID, "google", userMeta)
+	authSess, err := authsession.NewAuthSession(userId, "google", userMeta)
 	if err != nil {
 		return
 	}
@@ -678,22 +675,7 @@ func RefreshToken(c *gin.Context) {
 
 	defer tx.Rollback(ctx)
 
-	userIdStr := oldSession.UserID.String()
-	user := &User{
-		ID: &userIdStr,
-	}
-
-	ownTeam, err := user.getOwnTeam(ctx)
-	if err != nil {
-		msg := "failed to refresh session. Could not lookup user's team"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	newSession, err := authsession.NewAuthSession(oldSession.UserID, *ownTeam.ID, oldSession.OAuthProvider, oldSession.UserMeta)
+	newSession, err := authsession.NewAuthSession(oldSession.UserID, oldSession.OAuthProvider, oldSession.UserMeta)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -735,7 +717,6 @@ func RefreshToken(c *gin.Context) {
 // GetSession returns the current session information
 func GetAuthSession(c *gin.Context) {
 	userId := c.GetString("userId")
-	ownTeamId := c.GetString("ownTeamId")
 	sessionId := c.GetString("sessionId")
 
 	ctx := c.Request.Context()
@@ -747,22 +728,27 @@ func GetAuthSession(c *gin.Context) {
 		return
 	}
 
-	if ownTeamId == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Own team not found for userId: " + userId,
-		})
-		return
-	}
-
 	user := &User{
 		ID: &userId,
 	}
 
-	err := user.getUserDetails(ctx)
+	ownTeam, err := user.getOwnTeam(ctx)
+	if err != nil {
+		msg := "Unable to get user's team"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	err = user.getUserDetails(ctx)
 
 	if err != nil {
+		msg := "Unable to get user details"
+		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Unable to get user details: %v", err),
+			"error": msg,
 		})
 		return
 	}
@@ -816,7 +802,7 @@ func GetAuthSession(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"user": gin.H{
 			"id":              userId,
-			"own_team_id":     ownTeamId,
+			"own_team_id":     ownTeam.ID,
 			"name":            user.Name,
 			"email":           user.Email,
 			"avatar_url":      avatarUrl,
