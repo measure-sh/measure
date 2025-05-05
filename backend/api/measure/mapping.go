@@ -92,6 +92,7 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 	}
 
 	if osName == "" {
+		// TODO: update the comment as we don't use platform anymore
 		// Since, older Android SDKs (<=android-gradle-plugn@0.7.0) were
 		// not sending `platform` parameter, we set the OS name to Android
 		// when the payload lacks the `platform` parameter and the mapping
