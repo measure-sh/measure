@@ -139,22 +139,6 @@ func GetAuthSession(ctx context.Context, id uuid.UUID) (authSession AuthSession,
 	return
 }
 
-// RemoveExpiredSessions removes expired auth sessions.
-func RemoveExpiredSessions(ctx context.Context) (err error) {
-	stmt := sqlf.PostgreSQL.
-		DeleteFrom("public.auth_sessions").
-		Where("rt_expiry_at < ?", time.Now())
-
-	defer stmt.Close()
-
-	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	return
-}
-
 // Save saves the authentication session to database.
 func (au *AuthSession) Save(ctx context.Context, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.

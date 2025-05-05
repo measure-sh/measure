@@ -30,6 +30,9 @@ type AppRetention struct {
 }
 
 func DeleteStaleData(ctx context.Context) {
+	// delete stale auth sessions
+	deleteStaleAuthSessions(ctx)
+
 	// delete shortened filters
 	deleteStaleShortenedFilters(ctx)
 
@@ -74,6 +77,22 @@ func DeleteStaleData(ctx context.Context) {
 	deleteEventsAndAttachments(ctx, appRetentions)
 
 	fmt.Println("Finished cleaning up stale data")
+}
+
+// deleteStaleAuthSessions deletes stale auth sessions that
+// have passed the expiry time
+func deleteStaleAuthSessions(ctx context.Context) {
+	threshold := time.Now()
+	stmt := sqlf.PostgreSQL.DeleteFrom("public.auth_sessions").
+		Where("rt_expiry_at < ?", threshold)
+
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		fmt.Printf("Failed to delete stale auth sessions: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Succesfully deleted stale auth sessions\n")
 }
 
 // deleteStaleShortenedFilters deletes stale shortened filters that
