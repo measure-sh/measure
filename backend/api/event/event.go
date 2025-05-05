@@ -1,7 +1,7 @@
 package event
 
 import (
-	"backend/api/platform"
+	"backend/api/os"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
@@ -242,15 +242,15 @@ var ValidNetworkGenerations = []string{
 
 // getValidLifecycleAppTypes defines valid
 // `lifecycle_app.type` values according
-// to the platform.
-func getValidLifecycleAppTypes(p string) (types []string) {
-	switch p {
-	case platform.Android:
+// to the OS.
+func getValidLifecycleAppTypes(osName string) (types []string) {
+	switch osName {
+	case os.Android:
 		types = []string{
 			LifecycleAppTypeBackground,
 			LifecycleAppTypeForeground,
 		}
-	case platform.IOS:
+	case os.IOS:
 		types = []string{
 			LifecycleAppTypeBackground,
 			LifecycleAppTypeForeground,
@@ -814,8 +814,8 @@ func (e EventField) IsScreenView() bool {
 func (e EventField) NeedsSymbolication() (result bool) {
 	result = false
 
-	switch e.Attribute.Platform {
-	case platform.Android:
+	switch e.Attribute.OSName {
+	case os.Android:
 		if e.IsException() || e.IsANR() {
 			result = true
 			return
@@ -855,7 +855,7 @@ func (e EventField) NeedsSymbolication() (result bool) {
 			result = true
 			return
 		}
-	case platform.IOS:
+	case os.IOS:
 		if e.IsException() {
 			result = true
 			return
@@ -874,17 +874,17 @@ func (e EventField) HasAttachments() bool {
 // Validate validates the event for data
 // integrity.
 func (e *EventField) Validate() error {
-	switch e.Attribute.Platform {
-	case platform.Android:
+	switch strings.ToLower(e.Attribute.OSName) {
+	case os.Android:
 		if !slices.Contains(androidValidTypes, e.Type) {
 			return fmt.Errorf(`%q is not a valid event type for Android`, e.Type)
 		}
-	case platform.IOS:
+	case os.IOS:
 		if !slices.Contains(iOSValidTypes, e.Type) {
 			return fmt.Errorf(`%q is not a valid event type for iOS`, e.Type)
 		}
 	default:
-		return fmt.Errorf(`%q is not a valid platform value`, e.Attribute.Platform)
+		return fmt.Errorf(`%q is not a valid os_name value`, e.Attribute.OSName)
 	}
 
 	if e.ID == uuid.Nil {
@@ -1052,7 +1052,7 @@ func (e *EventField) Validate() error {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_app.type`, maxLifecycleAppTypeChars)
 		}
 
-		validTypes := getValidLifecycleAppTypes(e.Attribute.Platform)
+		validTypes := getValidLifecycleAppTypes(strings.ToLower(e.Attribute.OSName))
 
 		if !slices.Contains(validTypes, e.LifecycleApp.Type) {
 			return fmt.Errorf(`%q contains invalid lifecycle app type`, `lifecycle_app.type`)
@@ -1217,20 +1217,20 @@ func (e *EventField) Validate() error {
 	return nil
 }
 
-// GetPlatform determines the exception belongs
-// to which platform.
-func (e Exception) GetPlatform() (p string) {
-	p = platform.Unknown
+// GetOSName determines the exception belongs
+// to which OS.
+func (e Exception) GetOSName() (osName string) {
+	osName = os.Unknown
 	if len(e.Exceptions) < 1 || len(e.Threads) < 1 {
-		return p
+		return osName
 	}
 
 	// If ExceptionUnitiOS is not nil, then we can
 	// safely assume the platform as iOS
 	if e.Exceptions[0].ExceptionUnitiOS != nil && e.Exceptions[0].Signal != "" {
-		p = platform.IOS
+		osName = os.IOS
 	} else {
-		p = platform.Android
+		osName = os.Android
 	}
 
 	return
@@ -1249,10 +1249,10 @@ func (e Exception) IsNested() bool {
 // for certain OutOfMemory stacktraces in
 // Android.
 func (e Exception) HasNoFrames() bool {
-	switch e.GetPlatform() {
-	case platform.Android:
+	switch e.GetOSName() {
+	case os.Android:
 		return len(e.Exceptions[len(e.Exceptions)-1].Frames) == 0
-	case platform.IOS:
+	case os.IOS:
 		return len(e.Exceptions[0].Frames) == 0
 	}
 
@@ -1300,12 +1300,12 @@ func (e Exception) GetTitle() string {
 // GetType provides the type of
 // the exception.
 func (e Exception) GetType() string {
-	switch e.GetPlatform() {
+	switch e.GetOSName() {
 	default:
 		return "unknown type"
-	case platform.Android:
+	case os.Android:
 		return e.Exceptions[len(e.Exceptions)-1].Type
-	case platform.IOS:
+	case os.IOS:
 		return e.Exceptions[0].Signal
 	}
 }
@@ -1313,12 +1313,12 @@ func (e Exception) GetType() string {
 // GetMessage provides the message of
 // the exception.
 func (e Exception) GetMessage() string {
-	switch e.GetPlatform() {
+	switch e.GetOSName() {
 	default:
 		return "unknown message"
-	case platform.Android:
+	case os.Android:
 		return e.Exceptions[len(e.Exceptions)-1].Message
-	case platform.IOS:
+	case os.IOS:
 		// iOS doesn't have a typical message to
 		// use for an exception
 		return ""
@@ -1333,10 +1333,10 @@ func (e Exception) GetFileName() string {
 		return ""
 	}
 
-	switch e.GetPlatform() {
-	case platform.Android:
+	switch e.GetOSName() {
+	case os.Android:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
-	case platform.IOS:
+	case os.IOS:
 		return e.GetRelevantFrame().FileName
 	}
 
@@ -1351,10 +1351,10 @@ func (e Exception) GetLineNumber() int {
 		return 0
 	}
 
-	switch e.GetPlatform() {
-	case platform.Android:
+	switch e.GetOSName() {
+	case os.Android:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
-	case platform.IOS:
+	case os.IOS:
 		return e.GetRelevantFrame().LineNum
 	}
 
@@ -1369,10 +1369,10 @@ func (e Exception) GetMethodName() string {
 		return ""
 	}
 
-	switch e.GetPlatform() {
-	case platform.Android:
+	switch e.GetOSName() {
+	case os.Android:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
-	case platform.IOS:
+	case os.IOS:
 		return e.GetRelevantFrame().MethodName
 	}
 
@@ -1397,8 +1397,8 @@ func (e Exception) GetDisplayTitle() string {
 func (e Exception) Stacktrace() string {
 	var b strings.Builder
 
-	switch e.GetPlatform() {
-	case platform.Android:
+	switch e.GetOSName() {
+	case os.Android:
 		for i := len(e.Exceptions) - 1; i >= 0; i-- {
 			firstException := i == len(e.Exceptions)-1
 			lastException := i == 0
@@ -1430,7 +1430,7 @@ func (e Exception) Stacktrace() string {
 				}
 			}
 		}
-	case platform.IOS:
+	case os.IOS:
 		// iOS Stacktrace syntax
 		//
 		// See more: https://developer.apple.com/documentation/xcode/adding-identifiable-symbol-names-to-a-crash-report
@@ -1485,8 +1485,8 @@ func (e *Exception) ComputeFingerprint() (err error) {
 	// parts of the input
 	sep := ":"
 
-	switch e.GetPlatform() {
-	case platform.Android:
+	switch e.GetOSName() {
+	case os.Android:
 		// get the innermost exception
 		innermostException := e.Exceptions[len(e.Exceptions)-1]
 
@@ -1506,7 +1506,7 @@ func (e *Exception) ComputeFingerprint() (err error) {
 				input += sep + fileName
 			}
 		}
-	case platform.IOS:
+	case os.IOS:
 		// initialize with the exception type
 		input = e.GetType()
 

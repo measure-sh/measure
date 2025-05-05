@@ -1,4 +1,4 @@
-package platform
+package os
 
 const (
 	IOS     = "ios"

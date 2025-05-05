@@ -1,9 +1,10 @@
 package event
 
 import (
-	"backend/api/platform"
+	"backend/api/os"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -143,10 +144,10 @@ func (a Attribute) Validate() error {
 		maxDeviceCPUArchChars      = 16
 	)
 
-	switch a.Platform {
-	case platform.Android, platform.IOS:
+	switch strings.ToLower(a.OSName) {
+	case os.Android, os.IOS:
 	default:
-		return fmt.Errorf(`%q does not contain a valid platform value`, `attribute.platform`)
+		return fmt.Errorf(`%q does not contain a valid OS name value`, `attribute.os_name`)
 	}
 
 	if a.InstallationID == uuid.Nil {

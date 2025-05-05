@@ -7,7 +7,7 @@ import (
 	"backend/api/group"
 	"backend/api/inet"
 	"backend/api/numeric"
-	"backend/api/platform"
+	"backend/api/os"
 	"backend/api/server"
 	"backend/api/span"
 	"backend/api/symbolicator"
@@ -74,7 +74,7 @@ type eventreq struct {
 	id                     uuid.UUID
 	appId                  uuid.UUID
 	status                 status
-	platform               string
+	osName                 string
 	symbolicateEvents      map[uuid.UUID]int
 	symbolicateSpans       map[string]int
 	exceptionIds           []int
@@ -254,11 +254,11 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 			ev.HotLaunch.Compute()
 		}
 
-		// read platfrom from payload
+		// read OS name from payload 
 		// if we haven't figured out
-		// platform already.
-		if e.platform == "" {
-			e.platform = ev.Attribute.Platform
+		// already.
+		if e.osName == "" {
+			e.osName = ev.Attribute.OSName
 		}
 
 		e.events = append(e.events, ev)
@@ -292,11 +292,11 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 			e.symbolicateSpans[sp.SpanName] = i
 		}
 
-		// read platfrom from payload
+		// read OS name from payload
 		// if we haven't figured out
-		// platform already.
-		if e.platform == "" {
-			e.platform = sp.Attributes.Platform
+		// already.
+		if e.osName == "" {
+			e.osName = sp.Attributes.OSName
 		}
 
 		e.spans = append(e.spans, sp)
@@ -2098,7 +2098,7 @@ func PutEvents(c *gin.Context) {
 	msg := `failed to parse event request payload`
 	eventReq := eventreq{
 		appId:             appId,
-		platform:          app.Platform,
+		osName:            app.OSName,
 		symbolicateEvents: make(map[uuid.UUID]int),
 		symbolicateSpans:  make(map[string]int),
 		attachments:       make(map[uuid.UUID]*blob),
@@ -2226,22 +2226,22 @@ func PutEvents(c *gin.Context) {
 	if eventReq.needsSymbolication() {
 		config := server.Server.Config
 		origin := config.SymbolicatorOrigin
-		pltfrm := eventReq.platform
+		osName := eventReq.osName
 		sources := []symbolicator.Source{}
 
 		// configure correct sources as per
-		// platform
-		switch pltfrm {
-		case platform.Android:
+		// OS
+		switch osName {
+		case os.Android:
 			sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-		case platform.IOS:
+		case os.IOS:
 			// by default only symbolicate app's own symbols. to symbolicate iOS
 			// system framework symbols, append a GCSSourceApple source containing
 			// all iOS system framework symbol debug information files.
 			sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
 		}
 
-		symblctr := symbolicator.New(origin, pltfrm, sources)
+		symblctr := symbolicator.New(origin, osName, sources)
 
 		// start span to trace symbolication
 		symbolicationTracer := otel.Tracer("symbolication-tracer")
@@ -2362,10 +2362,10 @@ func PutEvents(c *gin.Context) {
 	if !app.Onboarded && len(eventReq.events) > 0 {
 		firstEvent := eventReq.events[0]
 		uniqueID := firstEvent.Attribute.AppUniqueID
-		platform := firstEvent.Attribute.Platform
+		osName := firstEvent.Attribute.OSName
 		version := firstEvent.Attribute.AppVersion
 
-		if err := app.Onboard(ctx, &tx, uniqueID, platform, version); err != nil {
+		if err := app.Onboard(ctx, &tx, uniqueID, osName, version); err != nil {
 			msg := `failed to onboard app`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{

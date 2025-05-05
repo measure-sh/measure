@@ -14,7 +14,7 @@ import (
 	"backend/api/chrono"
 	"backend/api/cipher"
 	"backend/api/codec"
-	"backend/api/platform"
+	"backend/api/os"
 	"backend/api/server"
 	"backend/api/symbol"
 
@@ -50,7 +50,7 @@ type BuildMapping struct {
 	AppID        uuid.UUID
 	VersionName  string                  `form:"version_name" binding:"required"`
 	VersionCode  string                  `form:"version_code" binding:"required"`
-	Platform     string                  `form:"platform"`
+	OSName       string                  `form:"platform"` // TODO: rename this to os_name
 	MappingType  string                  `form:"mapping_type" binding:"required_with=File"`
 	Files        []*multipart.FileHeader `form:"mapping_file" binding:"required_with=MappingType"`
 	MappingFiles []*MappingFile
@@ -83,41 +83,41 @@ func (bm BuildMapping) validate(app *App) (code int, err error) {
 		}
 	}
 
-	pltfrm := app.Platform
+	osName := app.OSName
 
-	// deduce platform from app or
+	// deduce OS name from app or
 	// from payload. ensure we have
-	// a platform or fail fast.
-	if pltfrm == "" && bm.Platform != "" {
-		pltfrm = bm.Platform
+	// an OS or fail fast.
+	if osName == "" && bm.OSName != "" {
+		osName = bm.OSName
 	}
 
-	if pltfrm == "" {
+	if osName == "" {
 		// Since, older Android SDKs (<=android-gradle-plugn@0.7.0) were
-		// not sending `platform` parameter, we set the platform to Android
-		// when the payload lacks the `platform` parameter and the mapping
+		// not sending `platform` parameter, we set the os_name to Android
+		// when the payload lacks the `os_name` parameter and the mapping
 		// type is `proguard`.
 		//
 		// This is critical for maintaining backwards
 		// compatibility.
 		if bm.MappingType == symbol.TypeProguard.String() {
-			pltfrm = platform.Android
+			osName = os.Android
 		} else {
-			err = errors.New("failed to determine app's platform")
+			err = errors.New("failed to determine app's OS")
 			return
 		}
 	}
 
-	platformMappingErr := fmt.Errorf("%q mapping type is not valid for %q platform", bm.MappingType, pltfrm)
+	osMappingErr := fmt.Errorf("%q mapping type is not valid for %q OS", bm.MappingType, osName)
 
 	switch bm.MappingType {
 	case symbol.TypeProguard.String():
-		if pltfrm != platform.Android {
-			err = platformMappingErr
+		if osName != os.Android {
+			err = osMappingErr
 		}
 	case symbol.TypeDsym.String():
-		if pltfrm != platform.IOS {
-			err = platformMappingErr
+		if osName != os.IOS {
+			err = osMappingErr
 			break
 		}
 		for _, mf := range bm.MappingFiles {

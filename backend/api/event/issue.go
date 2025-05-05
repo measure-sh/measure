@@ -2,7 +2,7 @@ package event
 
 import (
 	"backend/api/chrono"
-	"backend/api/platform"
+	"backend/api/os"
 	"bytes"
 	"strings"
 	"text/tabwriter"
@@ -89,10 +89,10 @@ func (e *EventException) ComputeView() {
 
 		for j := range e.Exception.Threads[i].Frames {
 			frame := e.Exception.Threads[i].Frames[j]
-			switch frame.GetPlatform() {
+			switch frame.GetOSName() {
 			default:
 				tv.Frames = append(tv.Frames, frame.String())
-			case platform.IOS:
+			case os.IOS:
 				t.Write(append([]byte(frame.String()), '\n'))
 
 				// flush on last frame

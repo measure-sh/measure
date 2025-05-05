@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"backend/api/codec"
-	"backend/api/platform"
+	osName "backend/api/os"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"sessionator/app"
 	"sessionator/config"
+	"strings"
 	"sync"
 	"time"
 
@@ -334,8 +335,8 @@ func UploadBuilds(url, apiKey string, app app.App) (string, error) {
 				return "", err
 			}
 
-			switch attribute.Platform {
-			case platform.IOS:
+			switch strings.ToLower(attribute.OSName) {
+			case osName.IOS:
 				if err := codec.IsTarGz(f); err != nil {
 					return "", err
 				}
@@ -360,11 +361,12 @@ func UploadBuilds(url, apiKey string, app app.App) (string, error) {
 		}
 		fw.Write([]byte(mappingType))
 
+		// TODO: rename to os_name
 		fw, err = w.CreateFormField("platform")
 		if err != nil {
 			return "", err
 		}
-		fw.Write([]byte(attribute.Platform))
+		fw.Write([]byte(attribute.OSName))
 
 		fw, err = w.CreateFormField("build_size")
 		if err != nil {

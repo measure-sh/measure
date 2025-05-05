@@ -4,7 +4,7 @@ import (
 	"backend/api/cache"
 	"backend/api/chrono"
 	"backend/api/event"
-	"backend/api/platform"
+	osName "backend/api/os"
 	"backend/api/span"
 	"backend/api/symbol"
 	"bytes"
@@ -131,9 +131,9 @@ type Symbolicator struct {
 	// Origin is the http origin of the
 	// symbolicator service.
 	Origin string
-	// Platform represents the app's
-	// platform.
-	Platform string
+	// OSName represents the app's
+	// OS.
+	OSName string
 	// Sources is a list of symbol sources
 	// the symbolicator is requested to use.
 	Sources []Source
@@ -189,7 +189,7 @@ type Symbolicator struct {
 func New(origin, platform string, sources []Source) (symbolicator *Symbolicator) {
 	symbolicator = &Symbolicator{
 		Origin:   origin,
-		Platform: platform,
+		OSName: platform,
 	}
 
 	if len(sources) > 0 {
@@ -212,13 +212,13 @@ func New(origin, platform string, sources []Source) (symbolicator *Symbolicator)
 // appropriate mapping file and managing symbolicator
 // request to response cycle.
 func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appId uuid.UUID, events []event.EventField, spans []span.SpanField) (err error) {
-	switch s.Platform {
-	case platform.Android:
+	switch s.OSName {
+	case osName.Android:
 		if s.requestJVM == nil {
 			s.requestJVM = NewRequestJVM()
 		}
 		for i, ev := range events {
-			if ev.Attribute.Platform != platform.Android {
+			if ev.Attribute.OSName != osName.Android {
 				continue
 			}
 			if !ev.NeedsSymbolication() {
@@ -339,7 +339,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 		}
 
 		for i := range spans {
-			if spans[i].Attributes.Platform != platform.Android {
+			if spans[i].Attributes.OSName != osName.Android {
 				continue
 			}
 			if !spans[i].NeedsSymbolication() {
@@ -366,9 +366,9 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 
 		s.rewriteN(events, spans)
 		s.reset()
-	case platform.IOS:
+	case osName.IOS:
 		for _, ev := range events {
-			if ev.Attribute.Platform != platform.IOS {
+			if strings.ToLower(ev.Attribute.OSName) != osName.IOS {
 				continue
 			}
 
@@ -416,8 +416,8 @@ func (s *Symbolicator) makeRequest() (err error) {
 
 	url := s.Origin
 
-	switch s.Platform {
-	case platform.Android:
+	switch s.OSName {
+	case osName.Android:
 		url += "/symbolicate-jvm"
 		s.requestJVM.Sources = s.Sources
 
@@ -442,7 +442,7 @@ func (s *Symbolicator) makeRequest() (err error) {
 			return
 		}
 		s.req.Header.Set("Content-Type", "application/json")
-	case platform.IOS:
+	case osName.IOS:
 		writer := multipart.NewWriter(&reqBody)
 		crashReport := s.appleCrashReport
 		url += "/applecrashreport"
@@ -528,8 +528,8 @@ func (s *Symbolicator) makeRequest() (err error) {
 		return
 	}
 
-	switch s.Platform {
-	case platform.Android:
+	switch s.OSName {
+	case osName.Android:
 		if err = json.Unmarshal(respBody, &s.responseJVM); err != nil {
 			return
 		}
@@ -538,7 +538,7 @@ func (s *Symbolicator) makeRequest() (err error) {
 			err = ErrJVMSymbolicationFailure
 			return
 		}
-	case platform.IOS:
+	case osName.IOS:
 		if err = json.Unmarshal(respBody, &s.responseNative); err != nil {
 			return
 		}
@@ -556,13 +556,13 @@ func (s *Symbolicator) makeRequest() (err error) {
 func (s Symbolicator) logResponse() {
 	var bytes []byte
 	var err error
-	switch s.Platform {
-	case platform.Android:
+	switch s.OSName {
+	case osName.Android:
 		bytes, err = json.MarshalIndent(s.responseJVM, "", "  ")
 		if err != nil {
 			panic(err)
 		}
-	case platform.IOS:
+	case osName.IOS:
 		bytes, err = json.MarshalIndent(s.responseNative, "", "  ")
 		if err != nil {
 			panic(err)
@@ -576,8 +576,8 @@ func (s Symbolicator) logResponse() {
 // rewrite partially updates the original
 // event with symbolicated data.
 func (s Symbolicator) rewrite(ev event.EventField) {
-	switch s.Platform {
-	case platform.IOS:
+	switch s.OSName {
+	case osName.IOS:
 		for i, st := range s.responseNative.Stacktraces {
 			for _, f := range st.Frames {
 				if f.Status != "symbolicated" {
@@ -595,8 +595,8 @@ func (s Symbolicator) rewrite(ev event.EventField) {
 // rewriteN partially updates the original
 // events with symbolicated data.
 func (s Symbolicator) rewriteN(evs []event.EventField, sps []span.SpanField) {
-	switch s.Platform {
-	case platform.Android:
+	switch s.OSName {
+	case osName.Android:
 		stacktraces := s.responseJVM.Stacktraces
 		classes := s.responseJVM.Classes
 		lambdaSubstr := "SyntheticLambda"
