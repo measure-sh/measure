@@ -14,8 +14,36 @@ const space_mono = Space_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Measure',
-  description: 'Open Source Mobile App Monitoring'
+  title: {
+    default: 'Measure',
+    template: '%s | Measure',
+  },
+
+  description: 'Open Source Mobile App Monitoring',
+
+  openGraph: {
+    title: 'Measure',
+    description: 'Open Source Mobile App Monitoring',
+    url: '/',
+    siteName: 'measure.sh',
+    images: [
+      {
+        url: 'https://measure.sh/images/social_preview.png',
+        width: 1200,
+        height: 630,
+        alt: 'Measure preview image',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Measure',
+    description: 'Open Source Mobile App Monitoring',
+    images: ['https://measure.sh/images/social_preview.png'],
+  },
 }
 
 export const viewport: Viewport = {
