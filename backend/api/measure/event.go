@@ -254,7 +254,7 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 			ev.HotLaunch.Compute()
 		}
 
-		// read OS name from payload 
+		// read OS name from payload
 		// if we haven't figured out
 		// already.
 		if e.osName == "" {
@@ -2362,7 +2362,8 @@ func PutEvents(c *gin.Context) {
 	if !app.Onboarded && len(eventReq.events) > 0 {
 		firstEvent := eventReq.events[0]
 		uniqueID := firstEvent.Attribute.AppUniqueID
-		osName := firstEvent.Attribute.OSName
+		// TODO: needs to be lowercased for iOS.
+		osName := strings.ToLower(firstEvent.Attribute.OSName)
 		version := firstEvent.Attribute.AppVersion
 
 		if err := app.Onboard(ctx, &tx, uniqueID, osName, version); err != nil {
