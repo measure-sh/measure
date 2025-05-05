@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"debug/elf"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
@@ -212,7 +213,7 @@ func VerifyMachO(r *bytes.Reader) (err error) {
 
 	magic := hex.EncodeToString(buffer[:4])
 
-	if n < 4 || magic != "cffaedfe" && magic != "cefaedfe" {
+	if n < 4 || magic != "cffaedfe" && magic != "cefaedfe" && magic != "cafebabe" {
 		return errors.New("failed to find valid Mach-O magic number")
 	}
 
@@ -250,4 +251,63 @@ func GetMachOUUID(r *bytes.Reader) (string, error) {
 // to hex string.
 func formatUUID(uuid []byte) string {
 	return fmt.Sprintf("%s-%s-%s-%s-%s", hex.EncodeToString(uuid[0:4]), hex.EncodeToString(uuid[4:6]), hex.EncodeToString(uuid[6:8]), hex.EncodeToString(uuid[8:10]), hex.EncodeToString(uuid[10:16]))
+}
+
+// extracts the architecture from an ELF file
+func GetArchFromELF(elfData []byte) (string, error) {
+	f, err := elf.NewFile(bytes.NewReader(elfData))
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	switch f.Machine {
+	case elf.EM_X86_64:
+		return "x86_64", nil
+	case elf.EM_386:
+		return "x86", nil
+	case elf.EM_ARM:
+		return "arm", nil
+	case elf.EM_AARCH64:
+		return "arm64", nil
+	default:
+		return "", fmt.Errorf("unknown architecture: %v", f.Machine)
+	}
+}
+
+// extracts the build ID from an ELF file
+func GetBuildIDFromELF(elfData []byte) (string, error) {
+	f, err := elf.NewFile(bytes.NewReader(elfData))
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	// Look for the .note.gnu.build-id section
+	section := f.Section(".note.gnu.build-id")
+	if section == nil {
+		return "", fmt.Errorf("build-id section not found")
+	}
+
+	data, err := section.Data()
+	if err != nil {
+		return "", err
+	}
+
+	// Parse the note section
+	// The build ID note has:
+	// - 4 bytes: name size (usually 4)
+	// - 4 bytes: desc size (usually 20 for SHA1)
+	// - 4 bytes: type (GNU_BUILD_ID = 3)
+	// - name_size bytes: name ("GNU\0")
+	// - desc_size bytes: the actual build ID
+
+	if len(data) < 16 {
+		return "", fmt.Errorf("build-id section too small")
+	}
+
+	// Skip the header and name to get to the build ID
+	// Header is 12 bytes, name is typically 4 bytes
+	buildID := data[16:]
+	return hex.EncodeToString(buildID), nil
 }
