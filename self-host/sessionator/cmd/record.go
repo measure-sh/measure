@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"sessionator/app"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -303,7 +302,7 @@ func writeBuild(c *gin.Context) {
 	appUniqueID := c.Request.FormValue("app_unique_id")
 	versionName := c.Request.FormValue("version_name")
 	versionCode := c.Request.FormValue("version_code")
-	mappingType := c.Request.FormValue("mapping_type")
+	mappingTypes := c.Request.Form["mapping_type"]
 
 	if appUniqueID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -326,20 +325,23 @@ func writeBuild(c *gin.Context) {
 
 	// default to "proguard"
 	// mapping type
-	if mappingType == "" {
-		mappingType = "proguard"
+	if len(mappingTypes) == 0 {
+		mappingTypes = []string{"proguard"}
 	}
 
-	if !slices.Contains([]string{"proguard", "dsym"}, mappingType) {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Errorf(`"mapping_file" should be either %q or %q`, "proguard", "dsym"),
-		})
-		return
+	for i := range mappingTypes {
+		if mappingTypes[i] != "proguard" && mappingTypes[i] != "dsym" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Errorf(`"mapping_file" should be either %q or %q`, "proguard", "dsym"),
+			})
+			return
+		}
 	}
 
 	files := c.Request.MultipartForm.File["mapping_file"]
 
-	for i, header := range files {
+	for i, mappingType := range mappingTypes {
+		header := files[i]
 		if header.Header == nil || header.Size < 1 {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": fmt.Errorf("failed to read header of mapping file %q from multipart request indexed %d", header.Filename, i),

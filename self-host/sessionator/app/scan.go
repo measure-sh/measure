@@ -129,6 +129,7 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				}
 
 				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)
+				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, "proguard")
 			}
 
 			dSYMMapping, err := filepath.Match("*/*/*/*.tgz", rel)
@@ -152,6 +153,7 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				}
 
 				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)
+				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, "dsym")
 			}
 
 			blob, err := filepath.Match("*/*/blobs/*", rel)
