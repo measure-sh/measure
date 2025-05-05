@@ -50,7 +50,8 @@ type BuildMapping struct {
 	AppID        uuid.UUID
 	VersionName  string                  `form:"version_name" binding:"required"`
 	VersionCode  string                  `form:"version_code" binding:"required"`
-	OSName       string                  `form:"platform"` // TODO: rename this to os_name
+	Platform     string                  `form:"platform"` // Verify if this can be removed
+	OSName       string                  `form:"os_name"`
 	MappingType  string                  `form:"mapping_type" binding:"required_with=File"`
 	Files        []*multipart.FileHeader `form:"mapping_file" binding:"required_with=MappingType"`
 	MappingFiles []*MappingFile

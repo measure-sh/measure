@@ -36,7 +36,7 @@ type App struct {
 	TeamId       uuid.UUID  `json:"team_id"`
 	AppName      string     `json:"name" binding:"required"`
 	UniqueId     string     `json:"unique_identifier"`
-	OSName       string     `json:"platform"` // TODO: rename the json tag to `os_name`
+	OSName       string     `json:"os_name"`
 	APIKey       *APIKey    `json:"api_key"`
 	FirstVersion string     `json:"first_version"`
 	Onboarded    bool       `json:"onboarded"`
@@ -49,7 +49,7 @@ func (a App) MarshalJSON() ([]byte, error) {
 	type Alias App
 	return json.Marshal(&struct {
 		*Alias
-		OSName      *string    `json:"platform"` // TODO: rename the json tag to `os_name`
+		OSName      *string    `json:"os_name"`
 		OnboardedAt *time.Time `json:"onboarded_at"`
 		UniqueId    *string    `json:"unique_identifier"`
 	}{
@@ -1231,8 +1231,7 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 	cols := []string{
 		"apps.app_name",
 		"apps.unique_identifier",
-		// TODO: rename to os_name
-		"apps.platform",
+		"apps.os_name",
 		"apps.first_version",
 		"apps.onboarded",
 		"apps.onboarded_at",
@@ -1354,8 +1353,7 @@ func (a *App) Populate(ctx context.Context) (err error) {
 		Select("team_id::UUID").
 		Select("unique_identifier").
 		Select("app_name").
-		// TODO: rename to os_name
-		Select("platform").
+		Select("os_name").
 		Select("first_version").
 		Select("onboarded").
 		Select("onboarded_at").
@@ -1373,7 +1371,7 @@ func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, osName,
 	stmt := sqlf.PostgreSQL.Update("public.apps").
 		Set("onboarded", true).
 		Set("unique_identifier", uniqueIdentifier).
-		Set("platform", osName). // TODO: rename to osName
+		Set("os_name", osName).
 		Set("first_version", firstVersion).
 		Set("onboarded_at", now).
 		Set("updated_at", now).
@@ -2027,8 +2025,7 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 		Select("id").
 		Select("onboarded").
 		Select("unique_identifier").
-		// TODO: run a migration to rename this column to os_name
-		Select("platform").
+		Select("os_name").
 		Select("first_version").
 		From("public.apps").
 		Where("id = ?", id)

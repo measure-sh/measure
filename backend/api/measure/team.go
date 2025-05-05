@@ -75,8 +75,7 @@ func (t *Team) getApps(ctx context.Context) ([]App, error) {
 		Select(`apps.app_name`, nil).
 		Select(`apps.team_id`, nil).
 		Select(`apps.unique_identifier`, nil).
-		// TODO: rename to os_name
-		Select(`apps.platform`, nil).
+		Select(`apps.os_name`, nil).
 		Select(`apps.first_version`, nil).
 		Select(`apps.onboarded`, nil).
 		Select(`apps.onboarded_at`, nil).
