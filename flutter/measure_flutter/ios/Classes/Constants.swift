@@ -10,6 +10,7 @@ import Foundation
 enum MethodConstants {
     // functions
     static let functionTrackEvent = "trackEvent"
+      static let functionTriggerNativeCrash = "triggerNativeCrash"
 
     // arguments
     static let argEventData = "event_data"

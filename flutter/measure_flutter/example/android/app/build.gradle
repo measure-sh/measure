@@ -30,12 +30,14 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix ".d"
+            manifestPlaceholders["measureApiKey"] = "msrsh_f266e068dfe7e95834881bd7fd3675e8f0f5bea0f918978d5f1626e56a8df9d0_f2c39747"
         }
         release {
             signingConfig = signingConfigs.debug
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            manifestPlaceholders["measureApiKey"] = "msrsh_67119df24c9c64b49269266b676a9f0c3ba430bbb32cdf157a59c1ea12a675fe_dabf1702"
         }
     }
 }

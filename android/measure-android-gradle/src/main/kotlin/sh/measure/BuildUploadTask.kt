@@ -26,10 +26,10 @@ private const val VERSION_NAME = "version_name"
 private const val BUILD_SIZE = "build_size"
 private const val BUILD_TYPE = "build_type"
 private const val MAPPING_TYPE = "mapping_type"
-private const val PLATFORM = "platform"
-private const val PLATFORM_ANDROID = "android"
+private const val OS_NAME = "os_name"
+private const val OS_ANDROID = "android"
 private const val TYPE_PROGUARD = "proguard"
-private const val TYPE_FLUTTER_SYMBOLS = "elf_debug_info"
+private const val TYPE_FLUTTER_SYMBOLS = "elf_debug"
 private const val MAPPING_FILE = "mapping_file"
 private const val BUILDS_PATH = "builds"
 
@@ -83,7 +83,7 @@ abstract class BuildUploadTask : DefaultTask() {
             addFormDataPart(APP_UNIQUE_ID, manifestData.appUniqueId)
             addFormDataPart(VERSION_CODE, manifestData.versionCode)
             addFormDataPart(VERSION_NAME, manifestData.versionName)
-            addFormDataPart(PLATFORM, PLATFORM_ANDROID)
+            addFormDataPart(OS_NAME, OS_ANDROID)
 
             if (mappingFile != null) {
                 logger.info("[INFO]: proguard mapping file found at ${mappingFile.absolutePath}")

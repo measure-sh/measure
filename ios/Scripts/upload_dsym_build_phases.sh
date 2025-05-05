@@ -11,7 +11,6 @@ api_url="$1"
 api_key="$2"
 
 # Set hardcoded values
-MAPPING_TYPE="dsym"
 BUILD_TYPE="ipa"
 
 # Collect version name and version code from the Info.plist
@@ -77,6 +76,8 @@ for TGZ in "${TGZ_FILES[@]}"; do
     echo "  - $TGZ"
 done
 
+OS_NAME="ios"
+
 # Construct the curl command
 CURL_COMMAND="curl --request PUT \
   --url $api_url/builds \
@@ -84,14 +85,14 @@ CURL_COMMAND="curl --request PUT \
   --header 'Content-Type: multipart/form-data' \
   --form version_name=$VERSION_NAME \
   --form version_code=$VERSION_CODE \
-  --form mapping_type=$MAPPING_TYPE \
   --form build_size=$BUILD_SIZE \
   --form build_type=$BUILD_TYPE \
-  --form app_unique_id=sh.measure.DemoApp"
+  --form app_unique_id=sh.measure.DemoApp" \
+  --form os_name=$OS_NAME"
 
 # Attach each dSYM .tgz file
 for TGZ in "${TGZ_FILES[@]}"; do
-  CURL_COMMAND="$CURL_COMMAND --form mapping_file=@$TGZ"
+  CURL_COMMAND="$CURL_COMMAND --form mapping_type=dsym --form mapping_file=@$TGZ"
 done
 
 # Execute the curl command

@@ -34,14 +34,15 @@ class Measure implements MeasureApi {
     } catch (e, stackTrace) {
       _logInitializationFailure(enableLogging, e, stackTrace);
     }
-    _initFlutterOnError();
+    await _initFlutterOnError();
     await _initPlatformDispatcherOnError(block);
   }
 
-  void _initFlutterOnError() {
+  Future<void> _initFlutterOnError() async {
     final originalHandler = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.onError = (FlutterErrorDetails details) async {
       if (originalHandler != null) {
+        await _measure.trackError(details, handled: false);
         originalHandler(details);
       } else {
         FlutterError.presentError(details);

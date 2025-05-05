@@ -83,3 +83,37 @@ func TestANRStacktraceOne(t *testing.T) {
 		t.Errorf("Expected %q stacktrace, but got %q", expected, got)
 	}
 }
+
+func TestObfuscatedDartNestedExceptionStacktraceOne(t *testing.T) {
+	exception, err := readException("./dart_nested_exception_one.json")
+	if err != nil {
+		panic(err)
+	}
+
+	expected, err := readStacktrace("./dart_nested_exception_stacktrace_one.txt")
+	if err != nil {
+		panic(err)
+	}
+	got := exception.Stacktrace()
+
+	if expected != got {
+		t.Errorf("Expected %q stacktrace, but got %q", expected, got)
+	}
+}
+
+func TestObfuscatedDartExceptionStacktraceOne(t *testing.T) {
+	exception, err := readException("./dart_exception_one.json")
+	if err != nil {
+		panic(err)
+	}
+
+	expected, err := readStacktrace("./dart_exception_stacktrace_one.txt")
+	if err != nil {
+		panic(err)
+	}
+	got := exception.Stacktrace()
+
+	if expected != got {
+		t.Errorf("Expected %q stacktrace, but got %q", expected, got)
+	}
+}

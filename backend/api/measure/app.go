@@ -18,8 +18,8 @@ import (
 	"backend/api/journey"
 	"backend/api/metrics"
 	"backend/api/numeric"
+	"backend/api/opsys"
 	"backend/api/paginate"
-	"backend/api/platform"
 	"backend/api/server"
 	"backend/api/span"
 	"backend/api/timeline"
@@ -36,7 +36,7 @@ type App struct {
 	TeamId       uuid.UUID  `json:"team_id"`
 	AppName      string     `json:"name" binding:"required"`
 	UniqueId     string     `json:"unique_identifier"`
-	Platform     string     `json:"platform"`
+	OSName       string     `json:"os_name"`
 	APIKey       *APIKey    `json:"api_key"`
 	FirstVersion string     `json:"first_version"`
 	Onboarded    bool       `json:"onboarded"`
@@ -49,15 +49,15 @@ func (a App) MarshalJSON() ([]byte, error) {
 	type Alias App
 	return json.Marshal(&struct {
 		*Alias
-		Platform    *string    `json:"platform"`
+		OSName      *string    `json:"os_name"`
 		OnboardedAt *time.Time `json:"onboarded_at"`
 		UniqueId    *string    `json:"unique_identifier"`
 	}{
-		Platform: func() *string {
-			if a.Platform == "" {
+		OSName: func() *string {
+			if a.OSName == "" {
 				return nil
 			}
-			return &a.Platform
+			return &a.OSName
 		}(),
 		UniqueId: func() *string {
 			if a.UniqueId == "" {
@@ -704,8 +704,8 @@ func (a App) GetIssueFreeMetrics(
 	crashFree = &metrics.CrashFreeSession{}
 	perceivedCrashFree = &metrics.PerceivedCrashFreeSession{}
 
-	switch a.Platform {
-	case platform.Android:
+	switch a.OSName {
+	case opsys.Android:
 		anrFree = &metrics.ANRFreeSession{}
 		perceivedANRFree = &metrics.PerceivedANRFreeSession{}
 	}
@@ -723,8 +723,8 @@ func (a App) GetIssueFreeMetrics(
 		Select("uniqMergeIf(perceived_crash_sessions, app_version in (?)) as selected_perceived_crash_sessions", selectedVersions.Parameterize()).
 		Select("uniqMergeIf(perceived_crash_sessions, app_version not in (?)) as unselected_perceived_crash_sessions", selectedVersions.Parameterize())
 
-	switch a.Platform {
-	case platform.Android:
+	switch a.OSName {
+	case opsys.Android:
 		stmt.
 			Select("uniqMergeIf(anr_sessions, app_version in (?)) as selected_anr_sessions", selectedVersions.Parameterize()).
 			Select("uniqMergeIf(anr_sessions, app_version not in (?)) as unselected_anr_sessions", selectedVersions.Parameterize()).
@@ -759,8 +759,8 @@ func (a App) GetIssueFreeMetrics(
 		&perceivedCrashUnselected,
 	}
 
-	switch a.Platform {
-	case platform.Android:
+	switch a.OSName {
+	case opsys.Android:
 		dest = append(dest, &anrSelected, &anrUnselected, &perceivedANRSelected, &perceivedANRUnselected)
 	}
 
@@ -772,8 +772,8 @@ func (a App) GetIssueFreeMetrics(
 		crashFree.CrashFreeSessions = math.NaN()
 		perceivedCrashFree.CrashFreeSessions = math.NaN()
 
-		switch a.Platform {
-		case platform.Android:
+		switch a.OSName {
+		case opsys.Android:
 			anrFree.ANRFreeSessions = math.NaN()
 			perceivedANRFree.ANRFreeSessions = math.NaN()
 		}
@@ -781,8 +781,8 @@ func (a App) GetIssueFreeMetrics(
 		crashFree.CrashFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(crashSelected) / float64(selected))) * 100)
 		perceivedCrashFree.CrashFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedCrashSelected) / float64(selected))) * 100)
 
-		switch a.Platform {
-		case platform.Android:
+		switch a.OSName {
+		case opsys.Android:
 			anrFree.ANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrSelected) / float64(selected))) * 100)
 			perceivedANRFree.ANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRSelected) / float64(selected))) * 100)
 		}
@@ -792,8 +792,8 @@ func (a App) GetIssueFreeMetrics(
 		crashFreeUnselected = math.NaN()
 		perceivedCrashFreeUnselected = math.NaN()
 
-		switch a.Platform {
-		case platform.Android:
+		switch a.OSName {
+		case opsys.Android:
 			anrFreeUnselected = math.NaN()
 			perceivedANRFreeUnselected = math.NaN()
 		}
@@ -801,8 +801,8 @@ func (a App) GetIssueFreeMetrics(
 		crashFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(crashUnselected) / float64(unselected))) * 100)
 		perceivedCrashFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedCrashUnselected) / float64(unselected))) * 100)
 
-		switch a.Platform {
-		case platform.Android:
+		switch a.OSName {
+		case opsys.Android:
 			anrFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrUnselected) / float64(unselected))) * 100)
 			perceivedANRFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRUnselected) / float64(unselected))) * 100)
 		}
@@ -824,8 +824,8 @@ func (a App) GetIssueFreeMetrics(
 			perceivedCrashFree.Delta = 1
 		}
 
-		switch a.Platform {
-		case platform.Android:
+		switch a.OSName {
+		case opsys.Android:
 			if anrFreeUnselected != 0 {
 				anrFree.Delta = numeric.RoundTwoDecimalsFloat64(anrFree.ANRFreeSessions / anrFreeUnselected)
 			} else {
@@ -852,8 +852,8 @@ func (a App) GetIssueFreeMetrics(
 			perceivedCrashFree.Delta = 1
 		}
 
-		switch a.Platform {
-		case platform.Android:
+		switch a.OSName {
+		case opsys.Android:
 			if anrFree.ANRFreeSessions != 0 {
 				anrFree.Delta = 1
 			}
@@ -867,8 +867,8 @@ func (a App) GetIssueFreeMetrics(
 	crashFree.SetNaNs()
 	perceivedCrashFree.SetNaNs()
 
-	switch a.Platform {
-	case platform.Android:
+	switch a.OSName {
+	case opsys.Android:
 		anrFree.SetNaNs()
 		perceivedANRFree.SetNaNs()
 	}
@@ -956,8 +956,8 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts filter.JourneyOpts) (events []event.EventField, err error) {
 	whereVals := []any{}
 
-	switch a.Platform {
-	case platform.Android:
+	switch opsys.ToFamily(a.OSName) {
+	case opsys.Android:
 		whereVals = append(
 			whereVals,
 			event.TypeLifecycleActivity,
@@ -971,7 +971,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				event.LifecycleFragmentTypeResumed,
 			},
 		)
-	case platform.IOS:
+	case opsys.AppleFamily:
 		whereVals = append(
 			whereVals,
 			event.TypeLifecycleViewController,
@@ -987,17 +987,17 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	}
 
 	if opts.All {
-		switch a.Platform {
-		case platform.Android:
+		switch opsys.ToFamily(a.OSName) {
+		case opsys.Android:
 			whereVals = append(whereVals, event.TypeException, false, event.TypeANR)
-		case platform.IOS:
+		case opsys.AppleFamily:
 			whereVals = append(whereVals, event.TypeException, false)
 		}
 	} else if opts.Exceptions {
 		whereVals = append(whereVals, event.TypeException, false)
 	} else if opts.ANRs {
-		switch a.Platform {
-		case platform.Android:
+		switch a.OSName {
+		case opsys.Android:
 			whereVals = append(whereVals, event.TypeANR)
 		}
 	}
@@ -1011,8 +1011,8 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		Where(`app_id = toUUID(?)`, a.ID).
 		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To)
 
-	switch a.Platform {
-	case platform.Android:
+	switch opsys.ToFamily(a.OSName) {
+	case opsys.Android:
 		stmt.
 			Select(`toString(lifecycle_activity.type)`).
 			Select(`toString(lifecycle_activity.class_name)`).
@@ -1020,7 +1020,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			Select(`toString(lifecycle_fragment.class_name)`).
 			Select(`toString(lifecycle_fragment.parent_activity)`).
 			Select(`toString(lifecycle_fragment.parent_fragment)`)
-	case platform.IOS:
+	case opsys.AppleFamily:
 		stmt.
 			Select(`toString(lifecycle_view_controller.type)`).
 			Select(`toString(lifecycle_view_controller.class_name)`).
@@ -1037,17 +1037,17 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	}
 
 	if opts.All {
-		switch a.Platform {
-		case platform.Android:
+		switch opsys.ToFamily(a.OSName) {
+		case opsys.Android:
 			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
-		case platform.IOS:
+		case opsys.AppleFamily:
 			stmt.Where("((type = ? and `lifecycle_view_controller.type` in ?) or (type = ? and `lifecycle_swift_ui.type` in ?) or (type = ? and `exception.handled` = ?))", whereVals...)
 		}
 	} else if opts.Exceptions {
 		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ? and `exception.handled` = ?))", whereVals...)
 	} else if opts.ANRs {
-		switch a.Platform {
-		case platform.Android:
+		switch a.OSName {
+		case opsys.Android:
 			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?))", whereVals...)
 		}
 	}
@@ -1117,8 +1117,8 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			&ev.SessionID,
 		}
 
-		switch a.Platform {
-		case platform.Android:
+		switch opsys.ToFamily(a.OSName) {
+		case opsys.Android:
 			dest = append(
 				dest,
 				&lifecycleActivityType,
@@ -1128,7 +1128,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				&lifecycleFragmentParentActivity,
 				&lifecycleFragmentParentFragment,
 			)
-		case platform.IOS:
+		case opsys.AppleFamily:
 			dest = append(
 				dest,
 				&lifecycleViewControllerType,
@@ -1217,7 +1217,7 @@ func (a *App) add() (*APIKey, error) {
 func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 	var appName pgtype.Text
 	var uniqueId pgtype.Text
-	var platform pgtype.Text
+	var osName pgtype.Text
 	var firstVersion pgtype.Text
 	var onboarded pgtype.Bool
 	var onboardedAt pgtype.Timestamptz
@@ -1231,7 +1231,7 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 	cols := []string{
 		"apps.app_name",
 		"apps.unique_identifier",
-		"apps.platform",
+		"apps.os_name",
 		"apps.first_version",
 		"apps.onboarded",
 		"apps.onboarded_at",
@@ -1255,7 +1255,7 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 	dest := []any{
 		&appName,
 		&uniqueId,
-		&platform,
+		&osName,
 		&firstVersion,
 		&onboarded,
 		&onboardedAt,
@@ -1286,10 +1286,10 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 		a.UniqueId = ""
 	}
 
-	if platform.Valid {
-		a.Platform = platform.String
+	if osName.Valid {
+		a.OSName = osName.String
 	} else {
-		a.Platform = ""
+		a.OSName = ""
 	}
 
 	if firstVersion.Valid {
@@ -1353,7 +1353,7 @@ func (a *App) Populate(ctx context.Context) (err error) {
 		Select("team_id::UUID").
 		Select("unique_identifier").
 		Select("app_name").
-		Select("platform").
+		Select("os_name").
 		Select("first_version").
 		Select("onboarded").
 		Select("onboarded_at").
@@ -1363,15 +1363,15 @@ func (a *App) Populate(ctx context.Context) (err error) {
 
 	defer stmt.Close()
 
-	return server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&a.TeamId, &a.UniqueId, &a.AppName, &a.Platform, &a.FirstVersion, &a.Onboarded, &a.OnboardedAt, &a.CreatedAt, &a.UpdatedAt)
+	return server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&a.TeamId, &a.UniqueId, &a.AppName, &a.OSName, &a.FirstVersion, &a.Onboarded, &a.OnboardedAt, &a.CreatedAt, &a.UpdatedAt)
 }
 
-func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, platform, firstVersion string) error {
+func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, osName, firstVersion string) error {
 	now := time.Now()
 	stmt := sqlf.PostgreSQL.Update("public.apps").
 		Set("onboarded", true).
 		Set("unique_identifier", uniqueIdentifier).
-		Set("platform", platform).
+		Set("os_name", osName).
 		Set("first_version", firstVersion).
 		Set("onboarded_at", now).
 		Set("updated_at", now).
@@ -1454,6 +1454,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`exception.foreground`,
 		`exception.exceptions`,
 		`exception.threads`,
+		`toString(exception.framework)`,
 		`toString(lifecycle_app.type)`,
 		`cold_launch.process_start_uptime`,
 		`cold_launch.process_start_requested_uptime`,
@@ -1511,8 +1512,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`custom.name`,
 	}
 
-	switch a.Platform {
-	case platform.Android:
+	switch opsys.ToFamily(a.OSName) {
+	case opsys.Android:
 		cols = append(cols, []string{
 			`anr.fingerprint`,
 			`anr.foreground`,
@@ -1554,7 +1555,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			`toString(navigation.from)`,
 			`toString(navigation.source)`,
 		}...)
-	case platform.IOS:
+	case opsys.AppleFamily:
 		cols = append(cols, []string{
 			`toString(lifecycle_view_controller.type)`,
 			`toString(lifecycle_view_controller.class_name)`,
@@ -1703,6 +1704,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&exception.Foreground,
 			&exceptionExceptions,
 			&exceptionThreads,
+			&exception.Framework,
 
 			// lifecycle app
 			&lifecycleApp.Type,
@@ -1780,8 +1782,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&custom.Name,
 		}
 
-		switch a.Platform {
-		case platform.Android:
+		switch opsys.ToFamily(a.OSName) {
+		case opsys.Android:
 			dest = append(dest, []any{
 				// anr
 				&anr.Fingerprint,
@@ -1840,7 +1842,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 				&navigation.From,
 				&navigation.Source,
 			}...)
-		case platform.IOS:
+		case opsys.AppleFamily:
 			dest = append(dest, []any{
 				&lifecycleViewController.Type,
 				&lifecycleViewController.ClassName,
@@ -2018,14 +2020,14 @@ func NewApp(teamId uuid.UUID) *App {
 func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 	var onboarded pgtype.Bool
 	var uniqueId pgtype.Text
-	var platform pgtype.Text
+	var os pgtype.Text
 	var firstVersion pgtype.Text
 
 	stmt := sqlf.PostgreSQL.
 		Select("id").
 		Select("onboarded").
 		Select("unique_identifier").
-		Select("platform").
+		Select("os_name").
 		Select("first_version").
 		From("public.apps").
 		Where("id = ?", id)
@@ -2036,7 +2038,7 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 		app = &App{}
 	}
 
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&app.ID, &onboarded, &uniqueId, &platform, &firstVersion); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&app.ID, &onboarded, &uniqueId, &os, &firstVersion); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {
@@ -2056,10 +2058,10 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 		app.UniqueId = ""
 	}
 
-	if platform.Valid {
-		app.Platform = platform.String
+	if os.Valid {
+		app.OSName = os.String
 	} else {
-		app.Platform = ""
+		app.OSName = ""
 	}
 
 	if firstVersion.Valid {
@@ -2201,7 +2203,7 @@ func GetAppJourney(c *gin.Context) {
 		if journeyEvents[i].IsUnhandledException() {
 			issueEvents = append(issueEvents, journeyEvents[i])
 		}
-		if app.Platform == platform.Android && journeyEvents[i].IsANR() {
+		if app.OSName == opsys.Android && journeyEvents[i].IsANR() {
 			issueEvents = append(issueEvents, journeyEvents[i])
 		}
 	}
@@ -2227,12 +2229,12 @@ func GetAppJourney(c *gin.Context) {
 	var nodes []Node
 	var links []Link
 
-	switch app.Platform {
-	case platform.Android:
+	switch opsys.ToFamily(app.OSName) {
+	case opsys.Android:
 		journeyGraph = journey.NewJourneyAndroid(journeyEvents, &journey.Options{
 			BiGraph: af.BiGraph,
 		})
-	case platform.IOS:
+	case opsys.AppleFamily:
 		journeyGraph = journey.NewJourneyiOS(journeyEvents, &journey.Options{
 			BiGraph: af.BiGraph,
 		})

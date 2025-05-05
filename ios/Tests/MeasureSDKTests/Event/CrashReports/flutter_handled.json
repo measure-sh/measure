@@ -38,6 +38,13 @@
             }
         ]
       }
+  ],
+  "binary_images": [
+      {
+          "baseAddr": "7af7026000",
+          "uuid": "369f5a6f980ba1e36116077ffc3e28e0",
+          "arch": "arm64"
+      }
   ]
 }
 

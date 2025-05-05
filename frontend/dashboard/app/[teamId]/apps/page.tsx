@@ -204,7 +204,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               </div>
               <p>Package name: {filters.app!.unique_identifier}</p>
               <div className="py-1" />
-              <p>Platform: {filters.app!.platform}</p>
+              <p>Platform: {filters.app!.os_name}</p>
               <div className="py-1" />
               <p>Created at: {formatDateToHumanReadableDateTime(filters.app!.created_at)}</p>
             </div>

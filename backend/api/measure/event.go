@@ -7,7 +7,7 @@ import (
 	"backend/api/group"
 	"backend/api/inet"
 	"backend/api/numeric"
-	"backend/api/platform"
+	"backend/api/opsys"
 	"backend/api/server"
 	"backend/api/span"
 	"backend/api/symbolicator"
@@ -74,7 +74,7 @@ type eventreq struct {
 	id                     uuid.UUID
 	appId                  uuid.UUID
 	status                 status
-	platform               string
+	osName                 string
 	symbolicateEvents      map[uuid.UUID]int
 	symbolicateSpans       map[string]int
 	exceptionIds           []int
@@ -254,11 +254,11 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 			ev.HotLaunch.Compute()
 		}
 
-		// read platfrom from payload
+		// read OS name from payload
 		// if we haven't figured out
-		// platform already.
-		if e.platform == "" {
-			e.platform = ev.Attribute.Platform
+		// already.
+		if e.osName == "" {
+			e.osName = strings.ToLower(ev.Attribute.OSName)
 		}
 
 		e.events = append(e.events, ev)
@@ -292,11 +292,11 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 			e.symbolicateSpans[sp.SpanName] = i
 		}
 
-		// read platfrom from payload
+		// read OS name from payload
 		// if we haven't figured out
-		// platform already.
-		if e.platform == "" {
-			e.platform = sp.Attributes.Platform
+		// already.
+		if e.osName == "" {
+			e.osName = strings.ToLower(sp.Attributes.OSName)
 		}
 
 		e.spans = append(e.spans, sp)
@@ -518,10 +518,25 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (er
 		ID: &e.appId,
 	}
 
+	// Track fingerprints we've already processed in this transaction.
+	// We cannot rely on the database query to check for any
+	// and newly created groups as the transaction is commited
+	// later.
+	// Not doing so would result in duplicate groups with repeated
+	// fingerprints.
+	processedFingerprints := make(map[string]bool)
+
 	for i := range events {
 		if events[i].Exception.Fingerprint == "" {
 			msg := fmt.Sprintf("no fingerprint found for event %q, cannot bucket exception", events[i].ID)
 			fmt.Println(msg)
+			continue
+		}
+
+		// Skip database lookup if we've already processed
+		// this fingerprint in this transaction.
+		if processedFingerprints[events[i].Exception.Fingerprint] {
+			// The group was just created, no need to update timestamps yet
 			continue
 		}
 
@@ -536,7 +551,9 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (er
 				return err
 			}
 
-			return nil
+			// Mark this fingerprint as processed in this transaction
+			processedFingerprints[events[i].Exception.Fingerprint] = true
+			continue
 		}
 
 		if !matchedGroup.EventExists(events[i].ID) {
@@ -792,7 +809,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.exceptions`, exceptionExceptions).
 				Set(`exception.threads`, exceptionThreads).
 				Set(`exception.foreground`, e.events[i].Exception.Foreground).
-				Set(`exception.binary_images`, binaryImages)
+				Set(`exception.binary_images`, binaryImages).
+				Set(`exception.framework`, e.events[i].Exception.GetFramework())
 		} else {
 			row.
 				Set(`exception.handled`, nil).
@@ -800,7 +818,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.exceptions`, nil).
 				Set(`exception.threads`, nil).
 				Set(`exception.foreground`, nil).
-				Set(`exception.binary_images`, nil)
+				Set(`exception.binary_images`, nil).
+				Set(`exception.framework`, nil)
 		}
 
 		// app exit
@@ -1347,6 +1366,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		Select("toString(attribute.network_type) network_type").
 		Select("exception.exceptions exceptions").
 		Select("exception.threads threads").
+		Select("exception.framework framework").
 		Select("attachments").
 		Select(fmt.Sprintf("row_number() over (order by timestamp %s, id) as row_num", order)).
 		Clause(prewhere, af.AppID, group.Fingerprint).
@@ -1373,7 +1393,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		substmt.Clause("AND id in").SubQuery("(", ")", subQuery)
 	}
 
-	substmt.GroupBy("id, type, timestamp, session_id, attribute.app_version, attribute.app_build, attribute.device_manufacturer, attribute.device_model, attribute.network_type, exceptions, threads, attachments")
+	substmt.GroupBy("id, type, timestamp, session_id, attribute.app_version, attribute.app_build, attribute.device_manufacturer, attribute.device_model, attribute.network_type, exceptions, threads, framework, attachments")
 
 	stmt := sqlf.New("with ? as page_size, ? as last_timestamp, ? as last_id select", pageSize, keyTimestamp, af.KeyID)
 
@@ -1393,6 +1413,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		Select("network_type").
 		Select("exceptions").
 		Select("threads").
+		Select("toString(framework)").
 		Select("attachments").
 		From("").
 		SubQuery("(", ") as t", substmt).
@@ -1411,8 +1432,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		var exceptions string
 		var threads string
 		var attachments string
-
-		if err = rows.Scan(&e.ID, &e.Type, &e.Timestamp, &e.SessionID, &e.Attribute.AppVersion, &e.Attribute.AppBuild, &e.Attribute.DeviceManufacturer, &e.Attribute.DeviceModel, &e.Attribute.NetworkType, &exceptions, &threads, &attachments); err != nil {
+		if err = rows.Scan(&e.ID, &e.Type, &e.Timestamp, &e.SessionID, &e.Attribute.AppVersion, &e.Attribute.AppBuild, &e.Attribute.DeviceManufacturer, &e.Attribute.DeviceModel, &e.Attribute.NetworkType, &exceptions, &threads, &e.Exception.Framework, &attachments); err != nil {
 			return
 		}
 
@@ -2098,7 +2118,7 @@ func PutEvents(c *gin.Context) {
 	msg := `failed to parse event request payload`
 	eventReq := eventreq{
 		appId:             appId,
-		platform:          app.Platform,
+		osName:            app.OSName,
 		symbolicateEvents: make(map[uuid.UUID]int),
 		symbolicateSpans:  make(map[string]int),
 		attachments:       make(map[uuid.UUID]*blob),
@@ -2226,22 +2246,22 @@ func PutEvents(c *gin.Context) {
 	if eventReq.needsSymbolication() {
 		config := server.Server.Config
 		origin := config.SymbolicatorOrigin
-		pltfrm := eventReq.platform
+		osName := eventReq.osName
 		sources := []symbolicator.Source{}
 
 		// configure correct sources as per
-		// platform
-		switch pltfrm {
-		case platform.Android:
+		// OS
+		switch opsys.ToFamily(osName) {
+		case opsys.Android:
 			sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-		case platform.IOS:
+		case opsys.AppleFamily:
 			// by default only symbolicate app's own symbols. to symbolicate iOS
 			// system framework symbols, append a GCSSourceApple source containing
 			// all iOS system framework symbol debug information files.
 			sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
 		}
 
-		symblctr := symbolicator.New(origin, pltfrm, sources)
+		symblctr := symbolicator.New(origin, osName, sources)
 
 		// start span to trace symbolication
 		symbolicationTracer := otel.Tracer("symbolication-tracer")
@@ -2362,10 +2382,10 @@ func PutEvents(c *gin.Context) {
 	if !app.Onboarded && len(eventReq.events) > 0 {
 		firstEvent := eventReq.events[0]
 		uniqueID := firstEvent.Attribute.AppUniqueID
-		platform := firstEvent.Attribute.Platform
+		osName := strings.ToLower(firstEvent.Attribute.OSName)
 		version := firstEvent.Attribute.AppVersion
 
-		if err := app.Onboard(ctx, &tx, uniqueID, platform, version); err != nil {
+		if err := app.Onboard(ctx, &tx, uniqueID, osName, version); err != nil {
 			msg := `failed to onboard app`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{

@@ -129,6 +129,7 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				}
 
 				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)
+				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, "proguard")
 			}
 
 			dSYMMapping, err := filepath.Match("*/*/*/*.tgz", rel)
@@ -152,6 +153,31 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				}
 
 				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)
+				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, "dsym")
+			}
+
+			elfDebugInfo, err := filepath.Match("*/*/*/*.symbols", rel)
+			if err != nil {
+				return err
+			}
+			if elfDebugInfo {
+				app := apps.Lookup(parts[0], parts[1])
+				info, err := d.Info()
+				if err != nil {
+					return err
+				}
+				if info.Size() < 1 {
+					return fmt.Errorf(`%q has empty ELF debug info file. check %q`, app.FullName(), rel)
+				}
+				_, ok := app.Builds[code]
+				if !ok {
+					app.Builds[code] = &Build{
+						VersionCode: code,
+					}
+				}
+
+				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)
+				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, "elf_debug")
 			}
 
 			blob, err := filepath.Match("*/*/blobs/*", rel)
