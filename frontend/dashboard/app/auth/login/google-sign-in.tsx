@@ -1,6 +1,7 @@
 "use client"
 
 import { measureAuth } from "@/app/auth/measure_auth"
+import Script from "next/script"
 import { useEffect, useState } from "react"
 
 const origin = process?.env?.NEXT_PUBLIC_SITE_URL
@@ -35,6 +36,8 @@ export default function GoogleSignIn() {
 
   return (
     <>
+      <Script src="https://accounts.google.com/gsi/client" />
+
       <div id="g_id_onload"
         data-client_id={googleClientID}
         data-context="signin"

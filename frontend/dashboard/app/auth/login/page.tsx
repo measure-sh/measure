@@ -1,12 +1,11 @@
-'use client';
+'use client'
 
-import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
 import Messages from "./messages"
 import GoogleSignIn from "./google-sign-in"
 import GitHubSignIn from "./github-sign-in"
-import Script from "next/script"
-import { measureAuth, MeasureAuthSession } from "@/app/auth/measure_auth";
+import { measureAuth, MeasureAuthSession } from "@/app/auth/measure_auth"
 
 export default function Login({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   const error = searchParams["error"]
@@ -43,12 +42,7 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
       <div className="w-full space-y-6" style={{ width: "400px" }}>
         {loading && <p className="font-body text-center">Loading...</p>}
         {home && <p className="font-body text-center">Logging in...</p>}
-        {!loading && !session && !error && !message && (
-          <div>
-            <Script src="https://accounts.google.com/gsi/client" />
-            <GoogleSignIn />
-          </div>
-        )}
+        {!loading && !session && !error && !message && <GoogleSignIn />}
       </div>
       <div className="my-6 place-content-end" style={{ width: "400px" }}>
         {!loading && !session && !error && !message && <GitHubSignIn />}
