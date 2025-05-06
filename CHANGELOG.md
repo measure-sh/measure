@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Remove "Own Team Id" from access token by @anupcowkur in #2121
 - (**backend**): Delete stale auth sessions in cleanup by @anupcowkur in #2120
 - (**backend**): Use cookies to store access + refresh tokens by @anupcowkur in #2064
+- (**frontend**): Update social preview links metadata by @anupcowkur in #2125
 - (**frontend**): Move gsi client script inside google-sign-in component by @anupcowkur in #2123
 
 ### :books: Documentation
