@@ -13,22 +13,27 @@ const space_mono = Space_Mono({
   variable: '--font-space-mono'
 })
 
+const title = 'Measure'
+const description = 'Open source tool to monitor mobile apps'
+const siteName = 'measure.sh'
+const previewImage = 'https://measure.sh/images/social_preview.png'
+
 export const metadata: Metadata = {
   title: {
-    default: 'Measure',
-    template: '%s | Measure',
+    default: title,
+    template: `%s | ${title}`,
   },
 
-  description: 'Open Source Mobile App Monitoring',
+  description: description,
 
   openGraph: {
-    title: 'Measure',
-    description: 'Open Source Mobile App Monitoring',
+    title: title,
+    description: description,
     url: '/',
-    siteName: 'measure.sh',
+    siteName: siteName,
     images: [
       {
-        url: 'https://measure.sh/images/social_preview.png',
+        url: previewImage,
         width: 1200,
         height: 630,
         alt: 'Measure preview image',
@@ -40,9 +45,9 @@ export const metadata: Metadata = {
 
   twitter: {
     card: 'summary_large_image',
-    title: 'Measure',
-    description: 'Open Source Mobile App Monitoring',
-    images: ['https://measure.sh/images/social_preview.png'],
+    title: title,
+    description: description,
+    images: [previewImage],
   },
 }
 
