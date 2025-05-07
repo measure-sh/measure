@@ -243,6 +243,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
     const percentage = elapsedTime.toMillis() / duration.toMillis()
     const scrollPercentage = Math.max(0, Math.min(percentage, 1))
 
+    console.log("scrollPercentage", scrollPercentage)
     setSeekBarValue(scrollPercentage * 100)
     setSelectedEventIndex(eventIndex)
   }
