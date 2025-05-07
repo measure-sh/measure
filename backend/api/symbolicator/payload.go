@@ -105,6 +105,25 @@ type requestJVM struct {
 	Modules []moduleJVM `json:"modules"`
 }
 
+// requestNative represents the payload sent
+// to Sentry's Symbolicator for native
+// symbolication.
+type requestNative struct {
+	// Platform defines the platform which
+	// should be 'native'.
+	Platform string `json:"platform"`
+	// Sources is the lists of symbol Sources
+	// as defined by Sentry Symbolicator.
+	// https://getsentry.github.io/symbolicator/api/
+	Sources []Source `json:"sources"`
+	// Classes form a list of all classes that
+	// needs symbolication.
+	Stacktraces []stacktraceNative `json:"stacktraces"`
+	// Modules form a list of Debug Information
+	// Files and their types.
+	Modules []moduleJVM `json:"modules"`
+}
+
 // AddModule adds a module to the JVM request
 // payload only if not already present.
 func (r *requestJVM) AddModule(debugId string, mType string) {
@@ -153,6 +172,16 @@ func NewRequestJVM() *requestJVM {
 		Classes:     []string{},
 		Exceptions:  []exceptionJVM{},
 		Stacktraces: []stacktraceJVM{},
+		Modules:     []moduleJVM{},
+	}
+}
+
+// NewRequestNative creates a new response payload
+// for symbolicating native events.
+func NewRequestNative() *requestNative {
+	return &requestNative{
+		Platform:    "native",
+		Stacktraces: []stacktraceNative{},
 		Modules:     []moduleJVM{},
 	}
 }

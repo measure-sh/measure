@@ -168,6 +168,9 @@ type Symbolicator struct {
 	// responseJVM contains the payload for JVM
 	// symbolicator response.
 	responseJVM *responseJVM
+	// requestNative contains the payload for native
+	// symbolicator request.
+	requestNative *requestNative
 	// responseNative contains the payload for native
 	// symbolicator response. Currently, used by
 	// Apple platform apps.
