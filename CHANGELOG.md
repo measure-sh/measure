@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Check user & member role in team member removal, role change, invite resend & invite revoke by @anupcowkur in #2103
 - (**backend**): Prevent removal or role change of member in their default team by @anupcowkur in #2071
 - (**backend**): Get own team correctly when user is owner of multiple teams by @anupcowkur in #2069
+- (**frontend**): Add missing css semicolons by @anupcowkur in #2129
 - (**frontend**): Fix metadata for social preview links by @anupcowkur in #2122
 - (**frontend**): Select first root span available if url span invalid by @anupcowkur in #2119
 - (**frontend**): Update filters on ready state change by @anupcowkur in #2116
