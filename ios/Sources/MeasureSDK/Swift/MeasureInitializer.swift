@@ -65,6 +65,8 @@ protocol MeasureInitializer {
     var spanCollector: SpanCollector { get }
     var spanStore: SpanStore { get }
     var internalSignalCollector: InternalSignalCollector { get set }
+    var bugReportManager: BugReportManager { get }
+    var bugReportCollector: BugReportCollector { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -104,6 +106,7 @@ protocol MeasureInitializer {
 /// - `memoryUsageCalculator`: `MemoryUsageCalculator` object that generates memory usage data.
 /// - `customEventCollector`: `CustomEventCollector` object that triggers custom events.
 /// - `spanCollector`: `SpanCollector`object that generates span data.
+/// - `bugReportCollector`: `BugReportCollector` object which is responsible to managing bug report collection.
 /// - `sysCtl`: `SysCtl` object which provides sysctl functionalities.
 /// - `httpClient`: `HttpClient` object that handles HTTP requests.
 /// - `networkClient`: `NetworkClient` object is responsible for initializing the network configuration and executing API requests.
@@ -124,6 +127,7 @@ protocol MeasureInitializer {
 /// - `spanProcessor`: `SpanProcessor` object that processes spans at different stages of their lifecycle.
 /// - `tracer`: `Tracer` object to create and manage tracing spans.
 /// - `internalSignalCollector`: `InternalEventCollector` object that collects events from cross plafrom frameworks.
+/// - `bugReportingManager`: `BugReportingManager` object that manages the BugReportingViewController.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -181,6 +185,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let tracer: Tracer
     let spanStore: SpanStore
     var internalSignalCollector: InternalSignalCollector
+    let bugReportManager: BugReportManager
+    let bugReportCollector: BugReportCollector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -362,5 +368,13 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          httpEventValidator: httpEventValidator)
         self.internalSignalCollector = BaseInternalSignalCollector(logger: self.logger,
                                                                    signalProcessor: self.signalProcessor)
+        let screenshotGenerator = BaseScreenshotGenerator(configProvider: configProvider,
+                                                          logger: logger,
+                                                          attachmentProcessor: attachmentProcessor,
+                                                          userPermissionManager: userPermissionManager)
+        self.bugReportManager = BaseBugReportManager(screenshotGenerator: screenshotGenerator,
+                                                     configProvider: configProvider,
+                                                     idProvider: idProvider)
+        self.bugReportCollector = BaseBugReportCollector(bugReportManager: bugReportManager, signalProcessor: signalProcessor, timeProvider: timeProvider)
     }
 }

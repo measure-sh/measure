@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UIKit
 
 /// `Measure` is a singleton class responsible for managing the initialization and configuration of the Measure SDK.
 ///
@@ -39,6 +40,7 @@ import Foundation
     private var measureLifecycleLock = NSLock()
     private var measureInternal: MeasureInternal?
     var meaureInitializerInternal: MeasureInitializer?
+//    private var floatingButtonController: FloatingButtonController?
 
     // Private initializer to ensure the singleton pattern
     private override init() {
@@ -347,5 +349,17 @@ import Foundation
     public func getTraceParentHeaderKey() -> String {
         guard let measureInternal = self.measureInternal else { return "" }
         return measureInternal.getTraceParentHeaderKey()
+    }
+
+    /// Takes a screenshot and launches the bug report flow.
+    /// - Parameters:
+    ///   - takeScreenshot: Set to `false` to disable the screenshot. Defaults to `true`.
+    ///   - attributes: Optional key-value pairs for additional metadata about the bug report.
+    /// - SeeAlso: `MsrBugReportViewController` - the view controller that will be launched.
+    /// - SeeAlso: `trackBugReport()` - to track a bug report using a custom experience instead of the built-in one.
+    public func launchBugReport(takeScreenshot: Bool = true,
+                                attributes: [String: AttributeValue] = [:]) {
+        guard let measureInternal = self.measureInternal else { return }
+        measureInternal.startBugReportFlow(takeScreenshot: takeScreenshot, attributes: attributes)
     }
 }

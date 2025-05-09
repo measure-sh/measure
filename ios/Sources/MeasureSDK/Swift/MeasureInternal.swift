@@ -138,6 +138,9 @@ final class MeasureInternal {
             measureInitializer.internalSignalCollector = newValue
         }
     }
+    var bugReportCollector: BugReportCollector {
+        return measureInitializer.bugReportCollector
+    }
     private let lifecycleObserver: LifecycleObserver
     private var isStarted: Bool = false
 
@@ -182,7 +185,7 @@ final class MeasureInternal {
     func clearUserId() {
         userAttributeProcessor.clearUserId()
     }
-    
+
     func createSpan(name: String) -> SpanBuilder? {
         return spanCollector.createSpan(name: name)
     }
@@ -197,6 +200,11 @@ final class MeasureInternal {
 
     func getTraceParentHeaderKey() -> String {
         return spanCollector.getTraceParentHeaderKey()
+    }
+
+    func startBugReportFlow(takeScreenshot: Bool = true,
+                            attributes: [String: AttributeValue] = [:]) {
+        bugReportCollector.startBugReportFlow(takeScreenshot: takeScreenshot, attributes: attributes)
     }
 
     private func applicationDidEnterBackground() {

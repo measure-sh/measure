@@ -63,7 +63,7 @@ import Measure
     func createTableHeaderView() -> UIView {
         let headerView = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 150))
 
-        let buttonTitles = ["SwiftUI Controller", "Objc Controller", "Collection Controller", "System Controls"]
+        let buttonTitles = ["SwiftUI Controller", "Objc Controller", "Collection Controller", "System Controls", "Bug Reporter"]
 
         // Create vertical stack views to hold two buttons each
         let verticalStackView1 = UIStackView()
@@ -126,6 +126,8 @@ import Measure
             if let controller = self.storyboard?.instantiateViewController(withIdentifier: "ControlsViewController") {
                 self.navigationController?.pushViewController(controller, animated: true)
             }
+        case 4:
+            Measure.shared.launchBugReport()
         default:
             let controller = ControlsViewController()
             self.navigationController?.pushViewController(controller, animated: true)

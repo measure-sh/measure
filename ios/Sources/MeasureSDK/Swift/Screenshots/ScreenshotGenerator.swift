@@ -27,10 +27,10 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
     }
 
     func generate(window: UIWindow, name: String, storageType: AttachmentStorageType) -> Attachment? {
-        guard userPermissionManager.isPhotoLibraryUsagePermissionAvailable() else {
-            logger.log(level: .debug, message: "Photos permission not available.", error: nil, data: nil)
-            return nil
-        }
+//        guard userPermissionManager.isPhotoLibraryUsagePermissionAvailable() else {
+//            logger.log(level: .debug, message: "Photos permission not available.", error: nil, data: nil)
+//            return nil
+//        }
         let sensitiveFrames = findSensitiveFrames(in: window, rootView: window, types: [UITextView.self, UILabel.self, UIImageView.self])
 
         let renderer = UIGraphicsImageRenderer(bounds: window.bounds)

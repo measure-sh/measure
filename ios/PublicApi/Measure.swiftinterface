@@ -109,6 +109,8 @@ extension Measure.BatchOb {
   @objc public init(apiKey: Swift.String, apiUrl: Swift.String)
   @objc deinit
 }
+public struct MsrAttachment {
+}
 @objc public enum VCLifecycleEventType : Swift.Int, Swift.Codable {
   case viewDidLoad = 0
   case viewWillAppear = 1
@@ -157,6 +159,7 @@ extension SwiftUICore.View {
   final public func createSpanBuilder(name: Swift.String) -> (any Measure.SpanBuilder)?
   final public func getTraceParentHeaderValue(span: any Measure.Span) -> Swift.String
   final public func getTraceParentHeaderKey() -> Swift.String
+  final public func launchBugReport(takeScreenshot: Swift.Bool = true, attributes: [Swift.String : Measure.AttributeValue] = [:])
   @objc deinit
 }
 @_inheritsConvenienceInitializers @objc(SpanOb) public class SpanOb : CoreData.NSManagedObject {
