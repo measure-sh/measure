@@ -107,7 +107,7 @@ func main() {
 		ctx := c.Request.Context()
 
 		type User struct {
-			Id        uint
+			Id        uint32
 			Name      string
 			Email     string
 			CreatedAt time.Time
