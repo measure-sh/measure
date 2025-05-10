@@ -92,6 +92,7 @@ func application(_ application: UIApplication,
 }
 
 ```
+> Replace `apiKey` with the API key provided in the web dashboard upon app creation, and set `apiUrl` to `https://measure-api.<your-domain>.com`, replacing `<your-domain>` with your own domain.
 
 ### 3. Verify
 
