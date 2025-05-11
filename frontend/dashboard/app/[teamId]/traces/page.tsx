@@ -89,8 +89,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
     }, [pageState.paginationOffset, pageState.filters])
 
     return (
-        <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-            <div className="py-4" />
+        <div className="flex flex-col selection:bg-yellow-200/75 items-start">
             <p className="font-display text-4xl max-w-6xl text-center">Traces</p>
             <div className="py-4" />
 
@@ -147,29 +146,29 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                     <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
                         <div className="table-header-group bg-neutral-950">
                             <div className="table-row text-white font-display">
-                                <div className="table-cell w-96 p-4">Trace</div>
-                                <div className="table-cell w-48 p-4 text-center">Start Time</div>
-                                <div className="table-cell w-48 p-4 text-center">Duration</div>
-                                <div className="table-cell w-48 p-4 text-center">Status</div>
+                                <div className="table-cell p-4 truncate" style={{ width: "40%" }}>Trace</div>
+                                <div className="table-cell p-4 truncate text-center" style={{ width: "20%" }}>Start Time</div>
+                                <div className="table-cell p-4 truncate text-center" style={{ width: "20%" }}>Duration</div>
+                                <div className="table-cell p-4 truncate text-center" style={{ width: "20%" }}>Status</div>
                             </div>
                         </div>
                         <div className="table-row-group font-body">
                             {pageState.spans.results?.map(({ app_id, span_name, span_id, trace_id, status, start_time, duration, app_version, app_build, os_name, os_version, device_manufacturer, device_model }, idx) => (
-                                <Link key={`${idx}-${span_id}`} href={`/${params.teamId}/traces/${app_id}/${trace_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
-                                    <div className="table-cell p-4">
+                                <Link key={`${idx}-${span_id}`} href={`/${params.teamId}/traces/${app_id}/${trace_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
+                                    <div className="table-cell p-4" style={{ width: "40%" }}>
                                         <p className='truncate'>{span_name}</p>
                                         <div className='py-1' />
                                         <p className='text-xs truncate'>Trace ID: {trace_id}</p>
                                         <div className='py-1' />
                                         <p className='text-xs truncate text-gray-500'>{"v" + app_version + "(" + app_build + "), " + os_name + " " + os_version + ", " + device_manufacturer + " " + device_model}</p>
                                     </div>
-                                    <div className="table-cell p-4 text-center">
+                                    <div className="table-cell p-4 text-center" style={{ width: "20%" }}>
                                         <p className='truncate'>{formatDateToHumanReadableDate(start_time)}</p>
                                         <div className='py-1' />
                                         <p className='text-xs truncate'>{formatDateToHumanReadableTime(start_time)}</p>
                                     </div>
-                                    <div className="table-cell p-4 text-center truncate">{formatMillisToHumanReadable(duration)}</div>
-                                    <div className={`table-cell p-4 text-center truncate ${status === 1 ? "text-green-600" : status === 2 ? "text-red-600" : ""}`}>{status === 0 ? 'Unset' : status === 1 ? 'Okay' : 'Error'}</div>
+                                    <div className="table-cell p-4 text-center truncate" style={{ width: "20%" }}>{formatMillisToHumanReadable(duration)}</div>
+                                    <div className={`table-cell p-4 text-center truncate ${status === 1 ? "text-green-600" : status === 2 ? "text-red-600" : ""}`} style={{ width: "20%" }}>{status === 0 ? 'Unset' : status === 1 ? 'Okay' : 'Error'}</div>
                                 </Link>
                             ))}
                         </div>

@@ -31,8 +31,7 @@ export default function TraceDetails({ params }: { params: { teamId: string, app
   }, [])
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-      <div className="py-4" />
+    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
       <p className="font-display text-4xl">Trace: {params.traceId}</p>
       <div className="py-2" />
 
