@@ -90,8 +90,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
     }, [pageState.paginationOffset, pageState.filters])
 
     return (
-        <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-            <div className="py-4" />
+        <div className="flex flex-col selection:bg-yellow-200/75 items-start">
             <p className="font-display text-4xl max-w-6xl text-center">Sessions</p>
             <div className="py-4" />
 
@@ -148,14 +147,14 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                     <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
                         <div className="table-header-group bg-neutral-950">
                             <div className="table-row text-white font-display">
-                                <div className="table-cell w-96 p-4">Session Id</div>
-                                <div className="table-cell w-48 p-4 text-center">Start Time</div>
-                                <div className="table-cell w-48 p-4 text-center">Duration</div>
+                                <div className="table-cell p-4 truncate" style={{ width: "40%" }}>Session Id</div>
+                                <div className="table-cell p-4 truncate text-center" style={{ width: "30%" }}>Start Time</div>
+                                <div className="table-cell p-4 truncate text-center" style={{ width: "30%" }}>Duration</div>
                             </div>
                         </div>
                         <div className="table-row-group font-body">
                             {pageState.sessionsOverview.results?.map(({ session_id, app_id, first_event_time, duration, matched_free_text, attribute }, idx) => (
-                                <Link key={`${idx}-${session_id}`} href={`/${params.teamId}/sessions/${app_id}/${session_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
+                                <Link key={`${idx}-${session_id}`} href={`/${params.teamId}/sessions/${app_id}/${session_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
                                     <div className="table-cell p-4">
                                         <p className='truncate'>{session_id}</p>
                                         <div className='py-1' />

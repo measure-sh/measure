@@ -125,8 +125,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   }, [pageState.filters, pageState.keyId, pageState.keyTimestamp, pageState.limit])
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-      <div className="py-4" />
+    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
       {pageState.filters.ready && <p className="font-display font-normal text-4xl max-w-6xl text-center">{pageState.filters.app!.name}</p>}
       <div className="py-1" />
       <p className="font-display font-light text-3xl max-w-6xl text-center">{decodeURIComponent(exceptionsGroupName)}</p>

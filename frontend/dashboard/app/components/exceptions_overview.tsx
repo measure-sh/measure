@@ -107,8 +107,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
   }, [pageState.keyId, pageState.filters])
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-      <div className="py-4" />
+    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
       <p className="font-display text-4xl max-w-6xl text-center">{exceptionsType === ExceptionsType.Crash ? 'Crashes' : 'ANRs'}</p>
       <div className="py-4" />
 
@@ -162,21 +161,21 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
           <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
             <div className="table-header-group bg-neutral-950">
               <div className="table-row text-white font-display">
-                <div className="table-cell w-96 p-4">{exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'} Name</div>
-                <div className="table-cell w-48 p-4 text-center">Instances</div>
-                <div className="table-cell w-48 p-4 text-center">Percentage contribution</div>
+                <div className="table-cell p-4 truncate" style={{ width: "40%" }}>{exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'} Name</div>
+                <div className="table-cell p-4 truncate text-center" style={{ width: "30%" }}>Instances</div>
+                <div className="table-cell p-4 truncate text-center" style={{ width: "30%" }}>Percentage contribution</div>
               </div>
             </div>
             <div className="table-row-group font-body">
               {pageState.exceptionsOverview.results?.map(({ id, type, message, method_name, file_name, line_number, count, percentage_contribution }) => (
                 <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${pageState.filters.app!.id}/${id}/${type + (file_name !== "" ? "@" + file_name : "")}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
-                  <div className="table-cell p-4">
+                  <div className="table-cell p-4" style={{ width: "40%" }}>
                     <p className='truncate'>{(file_name !== "" ? file_name : "unknown_file") + ": " + (method_name !== "" ? method_name : "unknown_method") + "()"}</p>
                     <div className='py-1' />
                     <p className='text-xs truncate text-gray-500'>{`${type}${message ? `:${message}` : ''}`}</p>
                   </div>
-                  <div className="table-cell p-4 text-center">{count}</div>
-                  <div className="table-cell p-4 text-center">{percentage_contribution}%</div>
+                  <div className="table-cell p-4 text-center truncate" style={{ width: "30%" }}>{count}</div>
+                  <div className="table-cell p-4 text-center truncate" style={{ width: "30%" }}>{percentage_contribution}%</div>
                 </Link>
               ))}
             </div>

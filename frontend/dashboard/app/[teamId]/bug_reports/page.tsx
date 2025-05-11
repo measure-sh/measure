@@ -90,8 +90,7 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
     }, [pageState.paginationOffset, pageState.filters])
 
     return (
-        <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-            <div className="py-4" />
+        <div className="flex flex-col selection:bg-yellow-200/75 items-start">
             <p className="font-display text-4xl max-w-6xl text-center">Bug Reports</p>
             <div className="py-4" />
 
@@ -149,14 +148,14 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                     <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
                         <div className="table-header-group bg-neutral-950">
                             <div className="table-row text-white font-display">
-                                <div className="table-cell w-96 p-4">Bug Report Id</div>
-                                <div className="table-cell w-48 p-4 text-center">Time</div>
-                                <div className="table-cell w-48 p-4 text-center">Status</div>
+                                <div className="table-cell p-4 truncate" style={{ width: "40%" }}>Bug Report Id</div>
+                                <div className="table-cell p-4 truncate text-center" style={{ width: "30%" }}>Time</div>
+                                <div className="table-cell p-4 truncate text-center" style={{ width: "30%" }}>Status</div>
                             </div>
                         </div>
                         <div className="table-row-group font-body">
                             {pageState.bugReportsOverview.results?.map(({ event_id, description, status, app_id, timestamp, matched_free_text, attribute }, idx) => (
-                                <Link key={`${idx}-${event_id}`} href={`/${params.teamId}/bug_reports/${app_id}/${event_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
+                                <Link key={`${idx}-${event_id}`} href={`/${params.teamId}/bug_reports/${app_id}/${event_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
                                     <div className="table-cell p-4">
                                         <p className="truncate text-xs text-gray-500">{event_id}</p>
                                         <div className='py-1' />

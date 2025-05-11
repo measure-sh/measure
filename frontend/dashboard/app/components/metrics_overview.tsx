@@ -38,7 +38,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ filters }) => {
   }, [filters])
 
   return (
-    <div className="flex flex-wrap gap-16 w-5/6">
+    <div className="flex flex-wrap gap-x-40 gap-y-16 w-full">
       <InfoCircleAppAdoption status={metricsApiStatus} title="App adoption" noData={metrics.adoption.nan} value={metrics.adoption.adoption} sessions={metrics.adoption.selected_version} totalSessions={metrics.adoption.all_versions} />
       <InfoCircleExceptionRate status={metricsApiStatus} title="Crash free sessions" noData={metrics.crash_free_sessions.nan} tooltipMsgLine1="Crash free sessions = (1 - Sessions which experienced a crash in selected app versions / Total sessions of selected app versions) * 100" tooltipMsgLine2="Delta value = Crash free sessions percentage of selected app versions / Crash free sessions percentage of unselected app versions" value={metrics.crash_free_sessions.crash_free_sessions} delta={metrics.crash_free_sessions.delta} />
       <InfoCircleExceptionRate status={metricsApiStatus} title="Perceived crash free sessions" noData={metrics.perceived_crash_free_sessions.nan} tooltipMsgLine1="Perceived crash free sessions = (1 - Sessions which experienced a visible crash in selected app versions / Total sessions of selected app versions) * 100" tooltipMsgLine2="Delta value = Perceived crash free sessions percentage of selected app versions / Perceived crash free sessions percentage of unselected app versions" value={metrics.perceived_crash_free_sessions.perceived_crash_free_sessions} delta={metrics.perceived_crash_free_sessions.delta} />
