@@ -189,10 +189,10 @@ type Symbolicator struct {
 }
 
 // New creates a new Symbolicator.
-func New(origin, platform string, sources []Source) (symbolicator *Symbolicator) {
+func New(origin, osName string, sources []Source) (symbolicator *Symbolicator) {
 	symbolicator = &Symbolicator{
-		Origin:   origin,
-		OSName: platform,
+		Origin: origin,
+		OSName: osName,
 	}
 
 	if len(sources) > 0 {
