@@ -82,7 +82,7 @@ func (bm BuildMapping) hasProguard() bool {
 func (bm *BuildMapping) validate(app *App) (code int, err error) {
 	code = http.StatusBadRequest
 
-	osName := app.OSName
+	osName := strings.ToLower(app.OSName)
 
 	// deduce OS name from app or
 	// from payload. ensure we have
