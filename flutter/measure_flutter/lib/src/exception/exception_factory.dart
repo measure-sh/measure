@@ -11,8 +11,9 @@ final class ExceptionFactory {
 
   static ExceptionData from(FlutterErrorDetails details, bool handled) {
     final result = _parseStackTrace(details.stack);
+    final binaryAddr =
+        _baseAddrRegex.firstMatch(details.stack.toString())?.group(1);
     final List<Trace> traces = result.traces;
-    final String? binaryAddr = result.binaryAddr;
     final type = details.exception.runtimeType.toString();
     final message = _getMessage(details);
     final List<ExceptionUnit> exceptions = [];
@@ -28,7 +29,7 @@ final class ExceptionFactory {
     }
     final remainingTraces = traces.skip(1);
     for (Trace trace in remainingTraces) {
-      final List<MsrFrame> frames = _createMsrFrames(trace.frames);
+      final List<MsrFrame> frames = _createMsrFrames(trace.frames, binaryAddr);
       exceptions.add(ExceptionUnit(frames: frames));
     }
 
@@ -45,9 +46,9 @@ final class ExceptionFactory {
 
   static TraceResult _parseStackTrace(dynamic stackTrace) {
     if (stackTrace is Chain) {
-      return TraceResult(stackTrace.traces, null);
+      return TraceResult(stackTrace.traces);
     } else if (stackTrace is Trace) {
-      return TraceResult([stackTrace], null);
+      return TraceResult([stackTrace]);
     }
 
     if (stackTrace is StackTrace) {
@@ -56,20 +57,23 @@ final class ExceptionFactory {
 
     if (stackTrace is String) {
       final startOffset = _frameRegex.firstMatch(stackTrace)?.start ?? 0;
-      final binaryAddr = _baseAddrRegex.firstMatch(stackTrace)?.group(1);
       final chain = Chain.parse(
           startOffset == 0 ? stackTrace : stackTrace.substring(startOffset));
-      return TraceResult(chain.traces, binaryAddr);
+      return TraceResult(chain.traces);
     }
-    return TraceResult([], null);
+    return TraceResult([]);
   }
 
-  static List<MsrFrame> _createMsrFrames(List<Frame> frames,
-      [String? binaryAddr]) {
+  static List<MsrFrame> _createMsrFrames(
+      List<Frame> frames, String? binaryAddr) {
     var index = 0;
     return frames
+        .where((frame) {
+          var member = frame.member;
+          return member != null && _absRegex.hasMatch(member);
+        })
         .map((frame) {
-          if (frame is UnparsedFrame) {
+          if (frame is UnparsedFrame && binaryAddr != null) {
             return _createUnparsedMsrFrame(frame, binaryAddr, index++);
           } else {
             return _createParsedMsrFrame(frame, index++);
@@ -80,7 +84,7 @@ final class ExceptionFactory {
   }
 
   static MsrFrame? _createUnparsedMsrFrame(
-      UnparsedFrame frame, String? binaryAddr, int index) {
+      UnparsedFrame frame, String binaryAddr, int index) {
     final match = _absRegex.firstMatch(frame.member);
     if (match != null) {
       var symbolAddr = match.group(1)!;
@@ -142,7 +146,6 @@ final class ExceptionFactory {
 
 class TraceResult {
   final List<Trace> traces;
-  final String? binaryAddr;
 
-  TraceResult(this.traces, this.binaryAddr);
+  TraceResult(this.traces);
 }
