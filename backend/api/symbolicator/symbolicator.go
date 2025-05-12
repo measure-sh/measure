@@ -2,7 +2,6 @@ package symbolicator
 
 import (
 	"backend/api/cache"
-	"backend/api/chrono"
 	"backend/api/event"
 	osName "backend/api/os"
 	"backend/api/span"
@@ -25,11 +24,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// maxRetryCount defines the maximum
-// number of times a failed symbolicator
-// request will be retried.
-const maxRetryCount = 5
-
 // logRequest determines if symbolicator
 // should log the relevent parts of the
 // request payload.
@@ -40,16 +34,11 @@ const logRequest = false
 // logResponse determines if symbolicator
 // should log the relevant parts of the
 // response payload.
-//
-// set to `true` for quick debugging.
-const logResponse = false
+const logResponse = true
 
-// defaultRetryDuration is the default duration
-// between each retry of symbolicator requests.
-var defaultRetryDuration = time.Second * 10
+// set to `true` for quick debugging.
 
 var ErrRequestFailed = errors.New("symbolicator received non-200 status")
-var ErrRetryExhausted = errors.New("symbolicator retry exhaustion")
 var ErrJVMSymbolicationFailure = errors.New("symbolicator received JVM errors")
 var ErrNativeSymbolicationFailure = errors.New("symbolicator received native errors")
 
@@ -148,9 +137,7 @@ type Symbolicator struct {
 	// res contains the http response returned
 	// from the symbolicator service.
 	res []byte
-	// retryCount counts the number of times
-	// a symbolicator request has been retried.
-	retryCount int
+
 	// lineNoLUT is a look up table for storing
 	// & restoring negative line numbers in JVM
 	// stacktraces before & after symbolication.
@@ -192,7 +179,7 @@ type Symbolicator struct {
 func New(origin, osName string, sources []Source) (symbolicator *Symbolicator) {
 	symbolicator = &Symbolicator{
 		Origin: origin,
-		OSName: osName,
+		OSName: strings.ToLower(osName),
 	}
 
 	if len(sources) > 0 {
@@ -215,7 +202,7 @@ func New(origin, osName string, sources []Source) (symbolicator *Symbolicator) {
 // appropriate mapping file and managing symbolicator
 // request to response cycle.
 func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appId uuid.UUID, events []event.EventField, spans []span.SpanField) (err error) {
-	switch s.OSName {
+	switch strings.ToLower(s.OSName) {
 	case osName.Android:
 		if s.requestJVM == nil {
 			s.requestJVM = NewRequestJVM()
@@ -359,7 +346,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 			s.ttidSpans = append(s.ttidSpans, i)
 		}
 
-		if err = s.makeRequest(); err != nil {
+		if err = s.makeRequestJvm(); err != nil {
 			return
 		}
 
@@ -389,7 +376,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 				fmt.Printf("apple crash report request\n%s\n", string(s.appleCrashReport))
 			}
 
-			if err = s.makeRequest(); err != nil {
+			if err = s.makeRequestApple(nil); err != nil {
 				return
 			}
 
@@ -405,94 +392,90 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 	return
 }
 
-// makeRequest creates a symbolicator request
-// appropriate to the platform.
-func (s *Symbolicator) makeRequest() (err error) {
+// makeRequestJvm creates and sends a symbolicator request for Android JVM platform.
+func (s *Symbolicator) makeRequestJvm() (err error) {
 	var reqBody bytes.Buffer
-	var sources []byte
-	if len(s.Sources) > 0 {
-		sources, err = json.Marshal(s.Sources)
+	url := s.Origin + "/symbolicate-jvm"
+	s.requestJVM.Sources = s.Sources
+
+	reqBytes, errJSON := json.Marshal(s.requestJVM)
+	if errJSON != nil {
+		return errJSON
+	}
+	if _, err = reqBody.Write(reqBytes); err != nil {
+		return
+	}
+
+	if logRequest {
+		var dst bytes.Buffer
+		if err = json.Indent(&dst, reqBytes, "", "  "); err != nil {
+			return
+		}
+		fmt.Printf("jvm symbolicator request\n%s\n", dst.String())
+	}
+
+	s.req, err = http.NewRequest("POST", url, &reqBody)
+	if err != nil {
+		return
+	}
+	s.req.Header.Set("Content-Type", "application/json")
+
+	return s.sendRequest()
+}
+
+// makeRequestApple creates and sends a symbolicator request for iOS platform with multipart form.
+func (s *Symbolicator) makeRequestApple(sources []byte) (err error) {
+	var reqBody bytes.Buffer
+	url := s.Origin + "/applecrashreport"
+	writer := multipart.NewWriter(&reqBody)
+	crashReport := s.appleCrashReport
+
+	// if there are sources, add the "sources" form field
+	if len(sources) > 0 {
+		jsonHeader := make(textproto.MIMEHeader)
+		jsonHeader.Set("Content-Disposition", `form-data; name="sources"`)
+		jsonHeader.Set("Content-Type", "application/json")
+
+		jsonPart, errSources := writer.CreatePart(jsonHeader)
+		if errSources != nil {
+			return errSources
+		}
+
+		_, err = jsonPart.Write(sources)
 		if err != nil {
 			return
 		}
 	}
 
-	url := s.Origin
+	header := make(textproto.MIMEHeader)
+	header.Set("Content-Disposition", `form-data; name="apple_crash_report"; filename="crash-report.txt"`)
+	header.Set("Content-Type", "text/plain")
 
-	switch s.OSName {
-	case osName.Android:
-		url += "/symbolicate-jvm"
-		s.requestJVM.Sources = s.Sources
-
-		reqBytes, errJSON := json.Marshal(s.requestJVM)
-		if errJSON != nil {
-			return errJSON
-		}
-		if _, err = reqBody.Write(reqBytes); err != nil {
-			return
-		}
-
-		if logRequest {
-			var dst bytes.Buffer
-			if err = json.Indent(&dst, reqBytes, "", "  "); err != nil {
-				return
-			}
-			fmt.Printf("jvm symbolicator request\n%s\n", dst.String())
-		}
-
-		s.req, err = http.NewRequest("POST", url, &reqBody)
-		if err != nil {
-			return
-		}
-		s.req.Header.Set("Content-Type", "application/json")
-	case osName.IOS:
-		writer := multipart.NewWriter(&reqBody)
-		crashReport := s.appleCrashReport
-		url += "/applecrashreport"
-
-		// if there are sources, add the "sources"
-		// form field
-		if len(sources) > 0 {
-			jsonHeader := make(textproto.MIMEHeader)
-			jsonHeader.Set("Content-Disposition", `form-data; name="sources"`)
-			jsonHeader.Set("Content-Type", "application/json")
-
-			jsonPart, errSources := writer.CreatePart(jsonHeader)
-			if errSources != nil {
-				return errSources
-			}
-
-			_, err = jsonPart.Write(sources)
-			if err != nil {
-				return
-			}
-		}
-
-		header := make(textproto.MIMEHeader)
-		header.Set("Content-Disposition", `form-data; name="apple_crash_report"; filename="crash-report.txt"`)
-		header.Set("Content-Type", "text/plain")
-
-		fileWriter, errReport := writer.CreatePart(header)
-		if errReport != nil {
-			return errReport
-		}
-
-		if _, err = io.Copy(fileWriter, bytes.NewBuffer(crashReport)); err != nil {
-			return
-		}
-
-		if err = writer.Close(); err != nil {
-			return
-		}
-
-		s.req, err = http.NewRequest("POST", url, &reqBody)
-		if err != nil {
-			return
-		}
-
-		s.req.Header.Set("Content-Type", writer.FormDataContentType())
+	fileWriter, errReport := writer.CreatePart(header)
+	if errReport != nil {
+		return errReport
 	}
 
+	if _, err = io.Copy(fileWriter, bytes.NewBuffer(crashReport)); err != nil {
+		return
+	}
+
+	if err = writer.Close(); err != nil {
+		return
+	}
+
+	s.req, err = http.NewRequest("POST", url, &reqBody)
+	if err != nil {
+		return
+	}
+
+	s.req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	return s.sendRequest()
+}
+
+// sendRequest sends the HTTP request and processes the response.
+func (s *Symbolicator) sendRequest() (err error) {
 	res, err := httpClient.Do(s.req)
 	if err != nil {
 		fmt.Println("failed sending symbolicator request:", err)
@@ -504,16 +487,6 @@ func (s *Symbolicator) makeRequest() (err error) {
 	}
 
 	defer res.Body.Close()
-
-	switch res.StatusCode {
-	case http.StatusNotFound,
-		http.StatusInternalServerError,
-		http.StatusServiceUnavailable,
-		http.StatusBadGateway,
-		http.StatusTooManyRequests:
-		// retry after few seconds
-		return s.retry(defaultRetryDuration)
-	}
 
 	if res.StatusCode != http.StatusOK {
 		err = ErrRequestFailed
@@ -531,7 +504,7 @@ func (s *Symbolicator) makeRequest() (err error) {
 		return
 	}
 
-	switch s.OSName {
+	switch strings.ToLower(s.OSName) {
 	case osName.Android:
 		if err = json.Unmarshal(respBody, &s.responseJVM); err != nil {
 			return
@@ -547,7 +520,7 @@ func (s *Symbolicator) makeRequest() (err error) {
 		}
 
 		if s.responseNative.Status != "completed" {
-			return s.retry(defaultRetryDuration)
+			return ErrRequestFailed
 		}
 	}
 
@@ -559,12 +532,12 @@ func (s *Symbolicator) makeRequest() (err error) {
 func (s Symbolicator) logResponse() {
 	var bytes []byte
 	var err error
-	switch s.OSName {
-	case osName.Android:
-		bytes, err = json.MarshalIndent(s.responseJVM, "", "  ")
-		if err != nil {
-			panic(err)
-		}
+	switch strings.ToLower(s.OSName) {
+	// case osName.Android:
+	// 	bytes, err = json.MarshalIndent(s.responseJVM, "", "  ")
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
 	case osName.IOS:
 		bytes, err = json.MarshalIndent(s.responseNative, "", "  ")
 		if err != nil {
@@ -579,7 +552,7 @@ func (s Symbolicator) logResponse() {
 // rewrite partially updates the original
 // event with symbolicated data.
 func (s Symbolicator) rewrite(ev event.EventField) {
-	switch s.OSName {
+	switch strings.ToLower(s.OSName) {
 	case osName.IOS:
 		for i, st := range s.responseNative.Stacktraces {
 			for _, f := range st.Frames {
@@ -598,7 +571,7 @@ func (s Symbolicator) rewrite(ev event.EventField) {
 // rewriteN partially updates the original
 // events with symbolicated data.
 func (s Symbolicator) rewriteN(evs []event.EventField, sps []span.SpanField) {
-	switch s.OSName {
+	switch strings.ToLower(s.OSName) {
 	case osName.Android:
 		stacktraces := s.responseJVM.Stacktraces
 		classes := s.responseJVM.Classes
@@ -796,33 +769,12 @@ func (s *Symbolicator) reset() {
 	s.appleCrashReport = []byte{}
 	s.req = nil
 	s.res = []byte{}
-	s.retryCount = 0
 	s.lineNoLUT = []lineNoEntry{}
 	s.stacktraceLUT = []stacktraceEntry{}
 	s.ttidSpans = []int{}
 	s.requestJVM = nil
 	s.responseJVM = nil
 	s.responseNative = nil
-}
-
-// retry retries a failed symbolicator request
-// with a randomly added duration jitter to avoid
-// thundering-herd like problems.
-func (s *Symbolicator) retry(d time.Duration) error {
-	if s.retryCount >= maxRetryCount {
-		return ErrRetryExhausted
-	}
-
-	dur := defaultRetryDuration
-	if d.Seconds() > 0 {
-		dur = d
-	}
-
-	s.retryCount += 1
-	fmt.Printf("retrying symbolicator request for %d time(s) in about %v\n", s.retryCount, dur)
-	chrono.JitterySleep(dur)
-
-	return s.makeRequest()
 }
 
 // makeAppleCrashReport creates an Apple crash report

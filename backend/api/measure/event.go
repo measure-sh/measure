@@ -258,7 +258,7 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		// if we haven't figured out
 		// already.
 		if e.osName == "" {
-			e.osName = ev.Attribute.OSName
+			e.osName = strings.ToLower(ev.Attribute.OSName)
 		}
 
 		e.events = append(e.events, ev)
@@ -296,7 +296,7 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		// if we haven't figured out
 		// already.
 		if e.osName == "" {
-			e.osName = sp.Attributes.OSName
+			e.osName = strings.ToLower(sp.Attributes.OSName)
 		}
 
 		e.spans = append(e.spans, sp)
@@ -2226,7 +2226,7 @@ func PutEvents(c *gin.Context) {
 	if eventReq.needsSymbolication() {
 		config := server.Server.Config
 		origin := config.SymbolicatorOrigin
-		osName := eventReq.osName
+		osName := strings.ToLower(eventReq.osName)
 		sources := []symbolicator.Source{}
 
 		// configure correct sources as per

@@ -814,7 +814,7 @@ func (e EventField) IsScreenView() bool {
 func (e EventField) NeedsSymbolication() (result bool) {
 	result = false
 
-	switch e.Attribute.OSName {
+	switch strings.ToLower(e.Attribute.OSName) {
 	case os.Android:
 		if e.IsException() || e.IsANR() {
 			result = true
