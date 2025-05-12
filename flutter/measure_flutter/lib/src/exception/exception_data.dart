@@ -175,6 +175,7 @@ class MsrFrame {
 
   /// `true` if the frame originates from the app module
   /// Defaults to false.
+  @JsonKey(name: "in_app")
   final bool inApp;
 
   MsrFrame({

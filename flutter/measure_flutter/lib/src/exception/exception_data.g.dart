@@ -73,6 +73,7 @@ MsrFrame _$MsrFrameFromJson(Map<String, dynamic> json) => MsrFrame(
       binaryAddress: json['binary_address'] as String?,
       symbolAddress: json['symbol_address'] as String?,
       instructionAddress: json['instruction_address'] as String?,
+      inApp: json['in_app'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$MsrFrameToJson(MsrFrame instance) => <String, dynamic>{
@@ -86,4 +87,5 @@ Map<String, dynamic> _$MsrFrameToJson(MsrFrame instance) => <String, dynamic>{
       'binary_address': instance.binaryAddress,
       'symbol_address': instance.symbolAddress,
       'instruction_address': instance.instructionAddress,
+      'in_app': instance.inApp,
     };
