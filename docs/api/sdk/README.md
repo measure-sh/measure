@@ -726,11 +726,15 @@ Use the `warm_launch` type for Android warm app launch time.
 
 | Field               | Type    | Optional | Comment                                                                |
 | ------------------- | ------- | -------- | ---------------------------------------------------------------------- |
-| app_visible_uptime  | uint64  | Yes      | The time since the app became visible to the user, in ms.              |
-| on_next_draw_uptime | uint64  | No       | The time at which the app became visible to the user, in ms.           |
-| launched_activity   | string  | No       | The activity which drew the first frame during launch                  |
-| has_saved_state     | boolean | No       | Whether the _launched_activity_ was created with a saved state bundle. |
-| intent_data         | string  | Yes      | The Intent data used to launch the _launched_activity_.                |
+| `app_visible_uptime`  | uint64  | Yes      | The time since the app became visible to the user, in ms.              |
+| `process_start_uptime`           | uint64  | Yes      | The start uptime, measure in ms.                                       |
+| `process_start_requested_uptime` | uint64  | Yes      | The start uptime, measure in ms.                                       |
+| `content_provider_attach_uptime` | uint64  | Yes      | The start uptime, measure in ms.                                       |
+| `on_next_draw_uptime`            | uint64  | No       | The time at which the app became visible to the user, is ms.                  |
+| `launched_activity`              | string  | No       | The activity which drew the first frame during launch.            |
+| `has_saved_state`                | boolean | No       | Whether the _launched_activity_ was created with a saved state bundle. |
+| `intent_data`                    | string  | Yes      | The Intent data used to launch the _launched_activity_.                |
+| `is_lukewarm`                    | string  | Yes      | Whether the launch benefitted from state restoration.                |
 
 #### **`hot_launch`**
 
