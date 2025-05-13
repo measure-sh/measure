@@ -44,6 +44,9 @@ type Frame struct {
 	// InApp is `true` if the frame originates
 	// from the app module.
 	InApp bool `json:"in_app"`
+	// InstructionAddr is `true` if the frame originates
+	// from the app module.
+	InstructionAddr string `json:"instruction_address"`
 	*FrameiOS
 }
 
@@ -52,7 +55,7 @@ type Frames []Frame
 // GetOSName figures out the frame's
 // app OS by inspection.
 // TODO: this could be removed
-// as the frame shoudn't have logic 
+// as the frame shoudn't have logic
 // based on the OS.
 func (f Frame) GetOSName() string {
 	if f.FrameiOS != nil && f.BinaryName != "" {

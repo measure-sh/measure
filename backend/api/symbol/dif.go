@@ -171,30 +171,61 @@ func BuildUnifiedLayout(id string) string {
 	return fmt.Sprintf("%s/%s", stripped[:2], stripped[2:])
 }
 
-// GetMappingKey fetches the mapping file key
-// from database.
-func GetMappingKey(
+// GetMappings fetches all mapping file keys
+// from database for a given app version and returns
+// a map of keys to their mapping types.
+func GetMappings(
 	ctx context.Context,
 	db *pgxpool.Pool,
 	appId uuid.UUID,
 	name, code string,
-	mType MappingType,
-) (key string, err error) {
+) (keyMap map[string]MappingType, err error) {
 	stmt := sqlf.PostgreSQL.
 		From("build_mappings").
-		Select("key").
+		Select("key, mapping_type").
 		Where("app_id = ?", appId).
 		Where("version_name = ?", name).
-		Where("version_code = ?", code).
-		Where("mapping_type = ?", mType)
+		Where("version_code = ?", code)
 
 	defer stmt.Close()
 
-	if err = db.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&key); err != nil {
-		return
+	rows, err := db.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	keyMap = make(map[string]MappingType)
+	for rows.Next() {
+		var key string
+		var mTypeStr string // Change to string to match database type
+		if err = rows.Scan(&key, &mTypeStr); err != nil {
+			return nil, err
+		}
+		// Convert string to MappingType
+		mType := ParseMappingType(mTypeStr)
+		keyMap[key] = mType
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return
+}
+
+// ParseMappingType converts a string mapping type to MappingType enum
+func ParseMappingType(s string) MappingType {
+	switch s {
+	case "proguard":
+		return TypeProguard
+	case "dsym":
+		return TypeDsym
+	case "elf_debug":
+		return TypeElfDebug
+	default:
+		return TypeUnknown
+	}
 }
 
 // MappingKeyToDebugId formats a mapping key

@@ -2,6 +2,7 @@ package event
 
 import (
 	"backend/api/os"
+	"backend/api/symbtype"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
@@ -1239,6 +1240,21 @@ func (e Exception) GetOSName() (osName string) {
 	}
 
 	return
+}
+
+// GetSymbolicationPlatform returns the
+// platform to be used for symbolication
+func (e Exception) GetSymbolicationPlatform() (sp string) {
+	sp = symbtype.Unknown
+	if e.Exceptions[0].ExceptionUnitiOS != nil && e.Exceptions[0].Signal != "" {
+		return symbtype.AppleCrashReport
+	}
+
+	if e.Exceptions[0].Frames[0].InstructionAddr != "" {
+		return symbtype.Native
+	}
+
+	return symbtype.JVM
 }
 
 // IsNested returns true in case of

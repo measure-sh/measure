@@ -121,7 +121,7 @@ type requestNative struct {
 	Stacktraces []stacktraceNative `json:"stacktraces"`
 	// Modules form a list of Debug Information
 	// Files and their types.
-	Modules []moduleJVM `json:"modules"`
+	Modules []moduleNative `json:"modules"`
 }
 
 // AddModule adds a module to the JVM request
@@ -176,12 +176,27 @@ func NewRequestJVM() *requestJVM {
 	}
 }
 
+// AddModule adds a module to the JVM request
+// payload only if not already present.
+func (r *requestNative) AddModule(debugId string) {
+	for _, m := range r.Modules {
+		if m.DebugId == debugId {
+			return
+		}
+	}
+
+	r.Modules = append(r.Modules, moduleNative{
+		DebugId:     debugId,
+		DebugStatus: "true", // TODO: what goes here?
+	})
+}
+
 // NewRequestNative creates a new response payload
 // for symbolicating native events.
 func NewRequestNative() *requestNative {
 	return &requestNative{
 		Platform:    "native",
 		Stacktraces: []stacktraceNative{},
-		Modules:     []moduleJVM{},
+		Modules:     []moduleNative{},
 	}
 }
