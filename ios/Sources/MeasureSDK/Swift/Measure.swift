@@ -362,4 +362,52 @@ import UIKit
         guard let measureInternal = self.measureInternal else { return }
         measureInternal.startBugReportFlow(takeScreenshot: takeScreenshot, attributes: attributes)
     }
+
+    @objc public func handleMotionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        guard motion == .motionShake, let measureInternal = self.measureInternal else { return }
+        measureInternal.handleMotionEnded(motion, with: event)
+    }
+
+    /// Enables automatic bug reporting using shake detection.
+    /// When the device is shaken, this will automatically launch the built-in bug report UI.
+    ///
+    /// - Parameter takeScreenshot: Set to `true` to include a screenshot with the report (default is `true`).
+    /// - SeeAlso: `disableShakeToLaunchBugReport()`
+    @objc public func enableShakeToLaunchBugReport(takeScreenshot: Bool = true) {
+        guard let measureInternal = self.measureInternal else { return }
+        measureInternal.enableShakeToLaunchBugReport(takeScreenshot: takeScreenshot)
+    }
+
+    /// Disables automatic bug reporting triggered by shaking the device.
+    /// After calling this method, shake gestures will no longer open the bug report screen.
+    ///
+    /// - SeeAlso: `enableShakeToLaunchBugReport(takeScreenshot:)`
+    @objc public func disableShakeToLaunchBugReport() {
+        guard let measureInternal = self.measureInternal else { return }
+        measureInternal.disableShakeToLaunchBugReport()
+    }
+
+    /// Checks whether the shake-to-launch bug report feature is currently enabled.
+    ///
+    /// - Returns: `true` if shake detection is active and will launch the bug report UI, otherwise `false`.
+    @objc public func isShakeToLaunchBugReportEnabled() -> Bool {
+        guard let measureInternal = self.measureInternal else { return false }
+        return measureInternal.isShakeToLaunchBugReportEnabled()
+    }
+
+    /// Sets a custom shake listener for manually handling shake gestures.
+    /// This is useful for showing a confirmation UI or triggering a custom bug reporting flow instead of
+    /// launching the built-in experience.
+    ///
+    /// Key behavior:
+    /// - Setting a non-`nil` listener enables shake detection.
+    /// - Setting `nil` disables shake detection.
+    /// - The listener is throttled and will only fire once every 5 seconds.
+    /// - Has no effect if automatic shake reporting is already enabled.
+    ///
+    /// - Parameter listener: A custom `MsrShakeListener` to receive shake callbacks, or `nil` to disable.
+    public func setShakeListener(_ listener: MsrShakeListener?) {
+        guard let measureInternal = self.measureInternal else { return }
+        measureInternal.setShakeListener(listener)
+    }
 }

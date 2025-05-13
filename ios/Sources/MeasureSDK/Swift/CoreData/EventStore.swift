@@ -64,6 +64,7 @@ final class BaseEventStore: EventStore { // swiftlint:disable:this type_body_len
             eventOb.screenView = event.screenView
             eventOb.timestampInMillis = event.timestampInMillis
             eventOb.needsReporting = event.needsReporting
+            eventOb.bugReport = event.bugReport
 
             do {
                 try context.saveIfNeeded()

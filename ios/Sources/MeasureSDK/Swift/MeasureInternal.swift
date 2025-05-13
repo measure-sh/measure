@@ -141,6 +141,12 @@ final class MeasureInternal {
     var bugReportCollector: BugReportCollector {
         return measureInitializer.bugReportCollector
     }
+    var shakeBugReportCollector: ShakeBugReportCollector {
+        return measureInitializer.shakeBugReportCollector
+    }
+    var shakeDetector: ShakeDetector {
+        return measureInitializer.shakeDetector
+    }
     private let lifecycleObserver: LifecycleObserver
     private var isStarted: Bool = false
 
@@ -205,6 +211,27 @@ final class MeasureInternal {
     func startBugReportFlow(takeScreenshot: Bool = true,
                             attributes: [String: AttributeValue] = [:]) {
         bugReportCollector.startBugReportFlow(takeScreenshot: takeScreenshot, attributes: attributes)
+    }
+
+    func enableShakeToLaunchBugReport(takeScreenshot: Bool) {
+        shakeBugReportCollector.enableAutoLaunch(takeScreenshot: takeScreenshot)
+    }
+
+    func disableShakeToLaunchBugReport() {
+        shakeBugReportCollector.disableAutoLaunch()
+    }
+
+    func setShakeListener(_ shakeListener: MsrShakeListener?) {
+        shakeBugReportCollector.setShakeListener(shakeListener)
+    }
+
+    func isShakeToLaunchBugReportEnabled() -> Bool {
+        return shakeBugReportCollector.isShakeToLaunchBugReportEnabled()
+    }
+
+    func handleMotionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        guard let motionShakeDetector = measureInitializer.shakeDetector as? MotionShakeDetector else { return }
+        motionShakeDetector.handleMotionEnded(motion, with: event)
     }
 
     private func applicationDidEnterBackground() {

@@ -242,6 +242,11 @@
 		CF1BB4942DCC7F0E00588506 /* BugReportData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB4932DCC7F0E00588506 /* BugReportData.swift */; };
 		CF1BB4962DCC7FE300588506 /* BugReportCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB4952DCC7FE300588506 /* BugReportCollector.swift */; };
 		CF1BB4982DCC856A00588506 /* MsrAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB4972DCC856A00588506 /* MsrAttachment.swift */; };
+		CF1BB49A2DCDF4A800588506 /* ShakeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB4992DCDF4A800588506 /* ShakeDetector.swift */; };
+		CF1BB49C2DCDF4DF00588506 /* AccelerometerShakeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB49B2DCDF4DC00588506 /* AccelerometerShakeDetector.swift */; };
+		CF1BB49E2DCDF99A00588506 /* ShakeBugReportCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB49D2DCDF99A00588506 /* ShakeBugReportCollector.swift */; };
+		CF1BB4A02DD2039000588506 /* BugReportImageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB49F2DD2039000588506 /* BugReportImageCell.swift */; };
+		CF1BB4A22DD3128F00588506 /* MotionShakeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB4A12DD3128F00588506 /* MotionShakeDetector.swift */; };
 		CF4FE3942D913BAC0073D8AE /* Measure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* Measure.framework */; };
 		CF4FE3952D913BAC0073D8AE /* Measure.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* Measure.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CF7CAE4A2D940E4700E15CDB /* AppVersionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE492D940E4700E15CDB /* AppVersionInfo.swift */; };
@@ -634,6 +639,11 @@
 		CF1BB4932DCC7F0E00588506 /* BugReportData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BugReportData.swift; sourceTree = "<group>"; };
 		CF1BB4952DCC7FE300588506 /* BugReportCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BugReportCollector.swift; sourceTree = "<group>"; };
 		CF1BB4972DCC856A00588506 /* MsrAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrAttachment.swift; sourceTree = "<group>"; };
+		CF1BB4992DCDF4A800588506 /* ShakeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShakeDetector.swift; sourceTree = "<group>"; };
+		CF1BB49B2DCDF4DC00588506 /* AccelerometerShakeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccelerometerShakeDetector.swift; sourceTree = "<group>"; };
+		CF1BB49D2DCDF99A00588506 /* ShakeBugReportCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShakeBugReportCollector.swift; sourceTree = "<group>"; };
+		CF1BB49F2DD2039000588506 /* BugReportImageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BugReportImageCell.swift; sourceTree = "<group>"; };
+		CF1BB4A12DD3128F00588506 /* MotionShakeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionShakeDetector.swift; sourceTree = "<group>"; };
 		CF7CAE492D940E4700E15CDB /* AppVersionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersionInfo.swift; sourceTree = "<group>"; };
 		CF7CAE4B2D940F2700E15CDB /* MockAppVersionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAppVersionInfo.swift; sourceTree = "<group>"; };
 		CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidator.swift; sourceTree = "<group>"; };
@@ -1381,11 +1391,16 @@
 		CF1BB3E02DC3537500588506 /* BugReport */ = {
 			isa = PBXGroup;
 			children = (
+				CF1BB49B2DCDF4DC00588506 /* AccelerometerShakeDetector.swift */,
 				CF1BB4952DCC7FE300588506 /* BugReportCollector.swift */,
 				CF1BB4932DCC7F0E00588506 /* BugReportData.swift */,
-				CF1BB3E52DC8B05200588506 /* BugReportManager.swift */,
+				CF1BB49F2DD2039000588506 /* BugReportImageCell.swift */,
 				CF1BB3E32DC8A72600588506 /* BugReportingViewController.swift */,
+				CF1BB3E52DC8B05200588506 /* BugReportManager.swift */,
 				CF1BB3E12DC77CF400588506 /* FloatingButtonViewController.swift */,
+				CF1BB4A12DD3128F00588506 /* MotionShakeDetector.swift */,
+				CF1BB49D2DCDF99A00588506 /* ShakeBugReportCollector.swift */,
+				CF1BB4992DCDF4A800588506 /* ShakeDetector.swift */,
 			);
 			path = BugReport;
 			sourceTree = "<group>";
@@ -1796,12 +1811,15 @@
 				526D18312D5A1913009A2E90 /* ClientInfo.swift in Sources */,
 				526D18672D5A1913009A2E90 /* LayoutSnapshotGenerator.swift in Sources */,
 				526D18922D5A1913009A2E90 /* MeasureInternal.swift in Sources */,
+				CF1BB4A02DD2039000588506 /* BugReportImageCell.swift in Sources */,
 				526D18352D5A1913009A2E90 /* InternalConfig.swift in Sources */,
 				526D18442D5A1913009A2E90 /* SystemCrashReporter.swift in Sources */,
 				CF86818F2DB6541F00C62DA5 /* SpanId.swift in Sources */,
 				CF8681902DB6541F00C62DA5 /* TraceId.swift in Sources */,
+				CF1BB49E2DCDF99A00588506 /* ShakeBugReportCollector.swift in Sources */,
 				526D18402D5A1913009A2E90 /* CrashDataPersistence.swift in Sources */,
 				526D18862D5A1913009A2E90 /* MeasureQueue.swift in Sources */,
+				CF1BB4A22DD3128F00588506 /* MotionShakeDetector.swift in Sources */,
 				526D187F2D5A1913009A2E90 /* UIViewController+Extension.swift in Sources */,
 				526D185D2D5A1913009A2E90 /* GestureEvents.swift in Sources */,
 				526D185B2D5A1913009A2E90 /* GestureCollector.swift in Sources */,
@@ -1846,6 +1864,7 @@
 				526D18642D5A1913009A2E90 /* URLSessionTaskInterceptor.swift in Sources */,
 				520C23962D65EBFD00F1C680 /* MeasureModel.xcdatamodeld in Sources */,
 				526D18692D5A1913009A2E90 /* LifecycleEvents.swift in Sources */,
+				CF1BB49A2DCDF4A800588506 /* ShakeDetector.swift in Sources */,
 				CF1BB3E42DC8A72600588506 /* BugReportingViewController.swift in Sources */,
 				CF1200002D9BF5A000A3FCF7 /* AtomicBool.swift in Sources */,
 				526D185E2D5A1913009A2E90 /* GestureTargetFinder.swift in Sources */,
@@ -1863,6 +1882,7 @@
 				526D18782D5A1913009A2E90 /* ScreenshotGenerator.swift in Sources */,
 				CFD88D012DA4D4910095115E /* SpanData.swift in Sources */,
 				526D18752D5A1913009A2E90 /* MemoryUsageCollector.swift in Sources */,
+				CF1BB49C2DCDF4DF00588506 /* AccelerometerShakeDetector.swift in Sources */,
 				526D18942D5A1913009A2E90 /* SessionManager.swift in Sources */,
 				CFD88D112DA797A00095115E /* Tracer.swift in Sources */,
 				526D183C2D5A1913009A2E90 /* DataCleanupService.swift in Sources */,

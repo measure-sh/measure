@@ -68,7 +68,7 @@ class FloatingButtonViewController: UIViewController {
     }
 
     @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
-        if let attachment = screenshotGenerator.generate(window: view.window!, name: "FloatingButton", storageType: .data) {
+        if let attachment = screenshotGenerator.generate(window: view.window!, name: screenshotName, storageType: .data) {
             delegate?.floatingButtonViewController(attachment)
         }
         self.view.removeFromSuperview()

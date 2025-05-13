@@ -49,6 +49,8 @@ struct Config: InternalConfig, MeasureConfig {
     let maxCheckpointNameLength: Int
     let maxCheckpointsPerSpan: Int
     let trackViewControllerLoadTime: Bool
+    let maxAttachmentsInBugReport: Int
+    let maxDescriptionLengthInBugReport: Int
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
@@ -70,7 +72,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.httpUrlAllowlist = httpUrlAllowlist
         self.autoStart = autoStart
         self.trackViewControllerLoadTime = trackViewControllerLoadTime
-        self.eventsBatchingIntervalMs = 30000 // 30 seconds
+        self.eventsBatchingIntervalMs = 3000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndLastEventThresholdMs = 20 * 60 * 1000 // 20 minitues
         self.timeoutIntervalForRequest = 30 // 30 seconds
@@ -104,5 +106,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.maxSpanNameLength = 64
         self.maxCheckpointNameLength = 64
         self.maxCheckpointsPerSpan = 100
+        self.maxAttachmentsInBugReport = 5
+        self.maxDescriptionLengthInBugReport = 1000
     }
 }

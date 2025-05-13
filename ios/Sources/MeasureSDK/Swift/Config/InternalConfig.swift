@@ -80,4 +80,10 @@ protocol InternalConfig {
 
     /// Max checkpoints per span. Defaults to 100.
     var maxCheckpointsPerSpan: Int { get }
+
+    /// The maximum number of attachments allowed in a bug report. Defaults to 5.
+    var maxAttachmentsInBugReport: Int { get }
+
+    /// The maximum number of characters allowed in the bug report description. Defaults to 1000.
+    var maxDescriptionLengthInBugReport: Int { get }
 }

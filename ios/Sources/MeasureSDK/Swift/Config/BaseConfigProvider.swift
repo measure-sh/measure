@@ -33,6 +33,14 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var maxAttachmentsInBugReport: Int {
+        return getMergedConfig(\.maxAttachmentsInBugReport)
+    }
+
+    var maxDescriptionLengthInBugReport: Int {
+        return getMergedConfig(\.maxDescriptionLengthInBugReport)
+    }
+
     var trackViewControllerLoadTime: Bool {
         return getMergedConfig(\.trackViewControllerLoadTime)
     }

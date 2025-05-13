@@ -55,18 +55,6 @@ final class BaseBugReportManager: BugReportManager {
             }
         }
     }
-
-//    func closeBugReporter() {
-//        DispatchQueue.main.async { [weak self] in
-//            guard let self = self else { return }
-//            if let bugVC = self.bugReportingViewController {
-//                bugVC.dismiss(animated: true) {
-//                    self.isBugReporterOpen = false
-//                    self.bugReportingViewController = nil
-//                }
-//            }
-//        }
-//    }
 }
 
 extension BaseBugReportManager: BugReportingViewControllerDelegate {

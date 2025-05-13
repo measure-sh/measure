@@ -67,6 +67,8 @@ protocol MeasureInitializer {
     var internalSignalCollector: InternalSignalCollector { get set }
     var bugReportManager: BugReportManager { get }
     var bugReportCollector: BugReportCollector { get }
+    var shakeBugReportCollector: ShakeBugReportCollector { get }
+    var shakeDetector: ShakeDetector { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -107,6 +109,7 @@ protocol MeasureInitializer {
 /// - `customEventCollector`: `CustomEventCollector` object that triggers custom events.
 /// - `spanCollector`: `SpanCollector`object that generates span data.
 /// - `bugReportCollector`: `BugReportCollector` object which is responsible to managing bug report collection.
+/// - `shakeBugReportCollector`: `ShakeBugReportCollector` object which is responsible to managing bug report collection when shake gesture in enabled.
 /// - `sysCtl`: `SysCtl` object which provides sysctl functionalities.
 /// - `httpClient`: `HttpClient` object that handles HTTP requests.
 /// - `networkClient`: `NetworkClient` object is responsible for initializing the network configuration and executing API requests.
@@ -128,6 +131,7 @@ protocol MeasureInitializer {
 /// - `tracer`: `Tracer` object to create and manage tracing spans.
 /// - `internalSignalCollector`: `InternalEventCollector` object that collects events from cross plafrom frameworks.
 /// - `bugReportingManager`: `BugReportingManager` object that manages the BugReportingViewController.
+/// - `shakeDetector`: `ShakeDetector` object responsible detecting shake gesture.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -187,6 +191,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
     var internalSignalCollector: InternalSignalCollector
     let bugReportManager: BugReportManager
     let bugReportCollector: BugReportCollector
+    let shakeBugReportCollector: ShakeBugReportCollector
+    let shakeDetector: ShakeDetector
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -375,6 +381,13 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.bugReportManager = BaseBugReportManager(screenshotGenerator: screenshotGenerator,
                                                      configProvider: configProvider,
                                                      idProvider: idProvider)
-        self.bugReportCollector = BaseBugReportCollector(bugReportManager: bugReportManager, signalProcessor: signalProcessor, timeProvider: timeProvider)
+        self.bugReportCollector = BaseBugReportCollector(bugReportManager: bugReportManager,
+                                                         signalProcessor: signalProcessor,
+                                                         timeProvider: timeProvider,
+                                                         sessionManager: sessionManager)
+        self.shakeDetector = MotionShakeDetector()
+        self.shakeBugReportCollector = ShakeBugReportCollector(autoLaunchEnabled: true,
+                                                               bugReportManager: bugReportManager,
+                                                               shakeDetector: shakeDetector)
     }
 }

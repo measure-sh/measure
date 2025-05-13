@@ -11,7 +11,6 @@ import UIKit
 protocol BugReportCollector {
     func startBugReportFlow(takeScreenshot: Bool,
                             attributes: [String: AttributeValue]?)
-
     func validateBugReport(attachmentsCount: Int, descriptionLength: Int) -> Bool
 }
 
@@ -20,11 +19,16 @@ final class BaseBugReportCollector: BugReportCollector {
     private let signalProcessor: SignalProcessor
     private let timeProvider: TimeProvider
     private var userDefinedAttributes: [String: AttributeValue]?
+    private let sessionManager: SessionManager
 
-    init(bugReportManager: BugReportManager, signalProcessor: SignalProcessor, timeProvider: TimeProvider) {
+    init(bugReportManager: BugReportManager,
+         signalProcessor: SignalProcessor,
+         timeProvider: TimeProvider,
+         sessionManager: SessionManager) {
         self.bugReportManager = bugReportManager
         self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
+        self.sessionManager = sessionManager
         self.bugReportManager.setBugReportCollector(self)
     }
 
@@ -47,5 +51,6 @@ final class BaseBugReportCollector: BugReportCollector {
                                            attachments: attachments,
                                            userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(userDefinedAttributes),
                                            threadName: nil)
+        sessionManager.markCurrentSessionAsCrashed()
     }
 }

@@ -23,6 +23,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                                        trackViewControllerLoadTime: true)
         measureInstance.initialize(with: clientInfo, config: config)
         measureInstance.setUserId("test_user_ios")
+        measureInstance.enableShakeToLaunchBugReport(takeScreenshot: true)
 
         return true
     }
@@ -39,5 +40,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Called when the user discards a scene session.
         // If any sessions were discarded while the application was not running, this will be called shortly after application:didFinishLaunchingWithOptions.
         // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
+    }
+}
+
+extension UIWindow {
+    open override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        if motion == .motionShake {
+            Measure.shared.handleMotionEnded(motion, with: event)
+        }
     }
 }

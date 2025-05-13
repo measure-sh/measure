@@ -12,13 +12,7 @@ protocol BugReportingViewControllerDelegate: AnyObject {
     func bugReportingViewControllerDidRequestScreenshot(_ attachments: [MsrAttachment])
 }
 
-class BugReportingViewController: UIViewController,
-                                  UITextViewDelegate,
-                                  UICollectionViewDataSource,
-                                  UICollectionViewDelegateFlowLayout,
-                                  UIImagePickerControllerDelegate,
-                                  UINavigationControllerDelegate {
-
+class BugReportingViewController: UIViewController, UINavigationControllerDelegate {
     weak var delegate: BugReportingViewControllerDelegate?
     private let navBar = UIView()
     private let cancelButton = UIButton(type: .system)
@@ -28,6 +22,7 @@ class BugReportingViewController: UIViewController,
     private let textView = UITextView()
     private let placeholderLabel = UILabel()
     private let configProvider: ConfigProvider
+    private var isDarkModeEnabled: Bool = false
 
     private let imagesCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
@@ -43,9 +38,10 @@ class BugReportingViewController: UIViewController,
     private let screenshotButton = UIButton(type: .system)
     private let uploadButton = UIButton(type: .system)
 
-    init(attachments: [MsrAttachment] = [], configProvider: ConfigProvider) {
+    init(attachments: [MsrAttachment] = [], configProvider: ConfigProvider, isDarkModeEnabled: Bool = false) {
         self.attachments = attachments
         self.configProvider = configProvider
+        self.isDarkModeEnabled = isDarkModeEnabled
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -55,7 +51,7 @@ class BugReportingViewController: UIViewController,
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .black
+        view.backgroundColor = isDarkModeEnabled ? UIColor(white: 0.15, alpha: 1) : .white
 
         setupNavBar()
         setupTextView()
@@ -67,7 +63,7 @@ class BugReportingViewController: UIViewController,
     }
 
     private func setupNavBar() {
-        navBar.backgroundColor = .black
+        navBar.backgroundColor = isDarkModeEnabled ? UIColor(white: 0.15, alpha: 1) : .white
         navBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(navBar)
 
@@ -76,24 +72,27 @@ class BugReportingViewController: UIViewController,
             cancelButton.setImage(UIImage(systemName: "xmark"), for: .normal)
         }
         cancelButton.setTitle(nil, for: .normal)
-        cancelButton.tintColor = .white
+        cancelButton.tintColor = isDarkModeEnabled ? .white : .black
+        cancelButton.backgroundColor = isDarkModeEnabled ? UIColor(white: 0.2, alpha: 1) : UIColor(white: 0.95, alpha: 1)
+        cancelButton.layer.cornerRadius = 16
         cancelButton.translatesAutoresizingMaskIntoConstraints = false
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         navBar.addSubview(cancelButton)
 
         // Title
-        titleLabel.text = "Report technical problem"
-        titleLabel.textColor = .white
+        titleLabel.text = "Report a bug"
+        titleLabel.textColor = isDarkModeEnabled ? .white : .black
         titleLabel.font = UIFont.boldSystemFont(ofSize: 18)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         navBar.addSubview(titleLabel)
 
         // Send button
         sendButton.setTitle("Send", for: .normal)
-        sendButton.setTitleColor(.gray, for: .normal)
-        sendButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+        sendButton.setTitleColor(isDarkModeEnabled ? .gray : .lightGray, for: .normal)
+        sendButton.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
         sendButton.translatesAutoresizingMaskIntoConstraints = false
         sendButton.addTarget(self, action: #selector(sentTapped), for: .touchUpInside)
+        sendButton.isEnabled = false
         navBar.addSubview(sendButton)
     }
 
@@ -117,14 +116,14 @@ class BugReportingViewController: UIViewController,
 
     private func setupTextView() {
         textView.backgroundColor = .clear
-        textView.textColor = .white
+        textView.textColor = isDarkModeEnabled ? .white : .black
         textView.font = UIFont.systemFont(ofSize: 16)
         textView.delegate = self
         textView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(textView)
 
-        placeholderLabel.text = "Briefly explain what happened or what isn't working."
-        placeholderLabel.textColor = .gray
+        placeholderLabel.text = "Briefly describe the issue you are facing."
+        placeholderLabel.textColor = isDarkModeEnabled ? .gray : .lightGray
         placeholderLabel.font = UIFont.systemFont(ofSize: 16)
         placeholderLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(placeholderLabel)
@@ -133,26 +132,30 @@ class BugReportingViewController: UIViewController,
     private func setupImagesCollectionView() {
         imagesCollectionView.delegate = self
         imagesCollectionView.dataSource = self
-        imagesCollectionView.register(ImageCell.self, forCellWithReuseIdentifier: "ImageCell")
+        imagesCollectionView.register(BugReportImageCell.self, forCellWithReuseIdentifier: "ImageCell")
         imagesCollectionView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(imagesCollectionView)
     }
 
     private func setupActionButtons() {
         screenshotButton.setTitle("Screenshot", for: .normal)
-        screenshotButton.setTitleColor(.white, for: .normal)
-        screenshotButton.backgroundColor = UIColor(white: 0.15, alpha: 1)
-        screenshotButton.layer.cornerRadius = 12
+        screenshotButton.setTitleColor(isDarkModeEnabled ? .white : .black, for: .normal)
+        screenshotButton.backgroundColor = isDarkModeEnabled ? UIColor(white: 0.2, alpha: 1) : UIColor(white: 0.95, alpha: 1)
+        screenshotButton.layer.cornerRadius = 20
+        screenshotButton.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
         screenshotButton.translatesAutoresizingMaskIntoConstraints = false
         screenshotButton.addTarget(self, action: #selector(screenshotButtonTapped), for: .touchUpInside)
+        screenshotButton.isEnabled = attachments.count < 5
         view.addSubview(screenshotButton)
 
         uploadButton.setTitle("Upload", for: .normal)
-        uploadButton.setTitleColor(.white, for: .normal)
-        uploadButton.backgroundColor = UIColor(white: 0.15, alpha: 1)
-        uploadButton.layer.cornerRadius = 12
+        uploadButton.setTitleColor(isDarkModeEnabled ? .white : .black, for: .normal)
+        uploadButton.backgroundColor = isDarkModeEnabled ? UIColor(white: 0.2, alpha: 1) : UIColor(white: 0.95, alpha: 1)
+        uploadButton.layer.cornerRadius = 20
+        uploadButton.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
         uploadButton.translatesAutoresizingMaskIntoConstraints = false
         uploadButton.addTarget(self, action: #selector(uploadButtonTapped), for: .touchUpInside)
+        uploadButton.isEnabled = attachments.count < 5
         view.addSubview(uploadButton)
     }
 
@@ -221,42 +224,75 @@ class BugReportingViewController: UIViewController,
         ])
     }
 
-    // MARK: - UICollectionViewDataSource
+    func addAttachment(_ attachment: MsrAttachment) {
+        guard attachments.count < 5 else { return }
+        attachments.append(attachment)
+        imagesCollectionView.reloadData()
+        updateActionButtonsState()
+    }
+
+    private func updateActionButtonsState() {
+        let isEnabled = attachments.count < 5
+        screenshotButton.isEnabled = isEnabled
+        uploadButton.isEnabled = isEnabled
+
+        let buttonColor = isEnabled ? (isDarkModeEnabled ? UIColor.white : .black) : (isDarkModeEnabled ? .gray : .lightGray)
+
+        screenshotButton.setTitleColor(buttonColor, for: .normal)
+        uploadButton.setTitleColor(buttonColor, for: .normal)
+    }
+}
+
+// MARK: - UITextViewDelegate
+extension BugReportingViewController: UITextViewDelegate {
+    func textViewDidChange(_ textView: UITextView) {
+        let isTextAdded = !textView.text.isEmpty
+        placeholderLabel.isHidden = isTextAdded
+        sendButton.isEnabled = isTextAdded
+        sendButton.setTitleColor(isTextAdded ? (isDarkModeEnabled ? .white : .black) : (isDarkModeEnabled ? .gray : .lightGray), for: .normal)
+    }
+
+    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText string: String) -> Bool {
+        let currentText = textView.text as NSString
+        let newText = currentText.replacingCharacters(in: range, with: string)
+        return newText.count <= configProvider.maxDescriptionLengthInBugReport
+    }
+}
+
+// MARK: - UICollectionViewDataSource
+extension BugReportingViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return attachments.count
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ImageCell", for: indexPath) as! ImageCell
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ImageCell", for: indexPath) as? BugReportImageCell else {
+            return UICollectionViewCell()
+        }
         if let image = UIImage(data: attachments[indexPath.item].bytes) {
-            cell.configure(with: image)
+            cell.configure(with: image, isDarkModeEnabled: isDarkModeEnabled)
             cell.onDelete = { [weak self] in
                 self?.attachments.remove(at: indexPath.item)
                 collectionView.reloadData()
+                self?.updateActionButtonsState()
             }
         }
         return cell
     }
+}
 
-    // MARK: - UICollectionViewDelegateFlowLayout
+// MARK: - UICollectionViewDelegateFlowLayout
+extension BugReportingViewController: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         return CGSize(width: 100, height: 140)
     }
+}
 
-    // MARK: - UITextViewDelegate
-    func textViewDidChange(_ textView: UITextView) {
-        placeholderLabel.isHidden = !textView.text.isEmpty
-    }
-
-    // MARK: - Public Methods
-    func addAttachment(_ attachment: MsrAttachment) {
-        attachments.append(attachment)
-        imagesCollectionView.reloadData()
-    }
-
-    // MARK: - UIImagePickerControllerDelegate
+// MARK: - UIImagePickerControllerDelegate
+extension BugReportingViewController: UIImagePickerControllerDelegate {
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-        if let image = info[.editedImage] as? UIImage ?? info[.originalImage] as? UIImage, let imageData = image.jpegData(compressionQuality: CGFloat(configProvider.screenshotCompressionQuality/100)) {
+        if let image = info[.editedImage] as? UIImage ?? info[.originalImage] as? UIImage,
+           let imageData = image.jpegData(compressionQuality: CGFloat(configProvider.screenshotCompressionQuality/100)) {
             addAttachment(MsrAttachment(name: galleryImageName, bytes: imageData, type: .screenshot))
         }
         picker.dismiss(animated: true)
@@ -264,72 +300,5 @@ class BugReportingViewController: UIViewController,
 
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         picker.dismiss(animated: true)
-    }
-}
-
-class ImageCell: UICollectionViewCell {
-    private let containerView = UIView()
-    private let screenshotImageView = UIImageView()
-    private let deleteButton = UIButton(type: .system)
-    var onDelete: (() -> Void)?
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupViews()
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    private func setupViews() {
-        backgroundColor = .clear
-
-        containerView.backgroundColor = .black
-        containerView.layer.cornerRadius = 8
-        containerView.layer.borderWidth = 1
-        containerView.layer.borderColor = UIColor.gray.cgColor
-        containerView.clipsToBounds = true
-        containerView.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(containerView)
-
-        screenshotImageView.contentMode = .scaleAspectFit
-        screenshotImageView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(screenshotImageView)
-
-        if #available(iOS 13.0, *) {
-            deleteButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
-        }
-        deleteButton.tintColor = .white
-        deleteButton.backgroundColor = UIColor(white: 0, alpha: 0.5)
-        deleteButton.layer.cornerRadius = 12
-        deleteButton.translatesAutoresizingMaskIntoConstraints = false
-        deleteButton.addTarget(self, action: #selector(deleteButtonTapped), for: .touchUpInside)
-        containerView.addSubview(deleteButton)
-
-        NSLayoutConstraint.activate([
-            containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            containerView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-
-            screenshotImageView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            screenshotImageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-            screenshotImageView.widthAnchor.constraint(equalTo: containerView.widthAnchor, multiplier: 0.8),
-            screenshotImageView.heightAnchor.constraint(equalTo: containerView.heightAnchor, multiplier: 0.8),
-
-            deleteButton.widthAnchor.constraint(equalToConstant: 24),
-            deleteButton.heightAnchor.constraint(equalToConstant: 24),
-            deleteButton.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 4),
-            deleteButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -4)
-        ])
-    }
-
-    func configure(with image: UIImage) {
-        screenshotImageView.image = image
-    }
-
-    @objc private func deleteButtonTapped() {
-        onDelete?()
     }
 }

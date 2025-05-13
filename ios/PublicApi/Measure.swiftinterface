@@ -3,6 +3,7 @@
 // swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -Onone -enable-experimental-feature OpaqueTypeErasure -enable-bare-slash-regex -module-name Measure
 // swift-module-flags-ignorable: -no-verify-emitted-module-interface
 import CoreData
+import CoreMotion
 import CoreTelephony
 import CrashReporter
 import Foundation
@@ -128,6 +129,9 @@ public struct MsrAttachment {
     get
   }
 }
+public protocol MsrShakeListener : AnyObject {
+  func onShake()
+}
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 @_Concurrency.MainActor @preconcurrency public struct MsrMoniterView<Content> : SwiftUICore.View where Content : SwiftUICore.View {
   @_Concurrency.MainActor @preconcurrency public init(_ viewName: Swift.String? = nil, content: @escaping () -> Content)
@@ -160,6 +164,11 @@ extension SwiftUICore.View {
   final public func getTraceParentHeaderValue(span: any Measure.Span) -> Swift.String
   final public func getTraceParentHeaderKey() -> Swift.String
   final public func launchBugReport(takeScreenshot: Swift.Bool = true, attributes: [Swift.String : Measure.AttributeValue] = [:])
+  @objc final public func handleMotionEnded(_ motion: UIKit.UIEvent.EventSubtype, with event: UIKit.UIEvent?)
+  @objc final public func enableShakeToLaunchBugReport(takeScreenshot: Swift.Bool = true)
+  @objc final public func disableShakeToLaunchBugReport()
+  @objc final public func isShakeToLaunchBugReportEnabled() -> Swift.Bool
+  final public func setShakeListener(_ listener: (any Measure.MsrShakeListener)?)
   @objc deinit
 }
 @_inheritsConvenienceInitializers @objc(SpanOb) public class SpanOb : CoreData.NSManagedObject {
