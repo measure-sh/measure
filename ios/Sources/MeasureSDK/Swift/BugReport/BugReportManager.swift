@@ -20,13 +20,11 @@ final class BaseBugReportManager: BugReportManager {
     private var localAttachments: [MsrAttachment] = []
     private var isBugReporterOpen: Bool = false
     private let configProvider: ConfigProvider
-    private let idProvider: IdProvider
     private weak var bugReportCollector: BaseBugReportCollector?
 
-    init(screenshotGenerator: ScreenshotGenerator, configProvider: ConfigProvider, idProvider: IdProvider) {
+    init(screenshotGenerator: ScreenshotGenerator, configProvider: ConfigProvider) {
         self.screenshotGenerator = screenshotGenerator
         self.configProvider = configProvider
-        self.idProvider = idProvider
     }
 
     func setBugReportCollector(_ collector: BaseBugReportCollector) {
@@ -62,8 +60,7 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
         self.bugReportingViewController = nil
         self.isBugReporterOpen = false
         if let description = description, let attachments = attachments {
-            let attachmentsToSend = attachments.map { $0.toEventAttachment(id: idProvider.uuid())}
-            bugReportCollector?.trackBugReport(description, attachments: attachmentsToSend)
+            bugReportCollector?.trackBugReport(description: description, attachments: attachments, attributes: nil)
         }
     }
 
@@ -92,15 +89,12 @@ extension BaseBugReportManager: FloatingButtonViewControllerDelegate {
     func floatingButtonViewController(_ attachment: Attachment) {
         self.isBugReporterOpen = false
         // Convert the attachment to UIImage and add it to the bug reporter
-        if let bytes = attachment.bytes, let image = UIImage(data: bytes) {
+        if let bytes = attachment.bytes {
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
-                // Reopen the bug reporter with the new image
-                if let imageData = image.jpegData(compressionQuality: CGFloat(configProvider.screenshotCompressionQuality/100)) {
-                    let attachment = MsrAttachment(name: attachment.name, bytes: imageData, type: attachment.type)
-                    self.openBugReporter(attachments: [attachment])
-                    self.bugReportingViewController?.addAttachment(attachment)
-                }
+                let attachment = MsrAttachment(name: attachment.name, bytes: bytes, type: attachment.type)
+                self.openBugReporter(attachments: [attachment])
+                self.bugReportingViewController?.addAttachment(attachment)
             }
         }
     }

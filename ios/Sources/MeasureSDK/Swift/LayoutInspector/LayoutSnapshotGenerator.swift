@@ -9,6 +9,7 @@ import UIKit
 
 protocol LayoutSnapshotGenerator {
     func generate(window: UIWindow, touchPoint: CGPoint) -> Attachment?
+    func generate(for viewController: UIViewController) -> Attachment?
 }
 
 final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
@@ -41,6 +42,23 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
 
         guard let layoutSnapshot = svgGenerator.generate(for: window, frames: collectFrames(in: window, rootView: window), targetView: targetView) else {
             logger.log(level: .debug, message: "Failed to compress image.", error: nil, data: nil)
+            return nil
+        }
+
+        return attachmentProcessor.getAttachmentObject(for: layoutSnapshot,
+                                                       name: layoutSnapshotName,
+                                                       storageType: .data,
+                                                       attachmentType: .layoutSnapshot)
+    }
+
+    func generate(for viewController: UIViewController) -> Attachment? {
+        guard let rootView = viewController.view else {
+            return nil
+        }
+        let frames = collectFrames(in: rootView, rootView: rootView)
+
+        guard let layoutSnapshot = svgGenerator.generate(for: rootView, frames: frames, targetView: nil) else {
+            logger.log(level: .debug, message: "LayoutSnapshotGenerator: Failed to generate SVG snapshot.", error: nil, data: nil)
             return nil
         }
 

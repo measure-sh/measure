@@ -11,7 +11,11 @@ import UIKit
 protocol BugReportCollector {
     func startBugReportFlow(takeScreenshot: Bool,
                             attributes: [String: AttributeValue]?)
-    func validateBugReport(attachmentsCount: Int, descriptionLength: Int) -> Bool
+    func validateBugReport(attachmentsCount: Int,
+                           descriptionLength: Int) -> Bool
+    func trackBugReport(description: String,
+                        attachments: [MsrAttachment],
+                        attributes: [String: AttributeValue]?)
 }
 
 final class BaseBugReportCollector: BugReportCollector {
@@ -20,15 +24,18 @@ final class BaseBugReportCollector: BugReportCollector {
     private let timeProvider: TimeProvider
     private var userDefinedAttributes: [String: AttributeValue]?
     private let sessionManager: SessionManager
+    private let idProvider: IdProvider
 
     init(bugReportManager: BugReportManager,
          signalProcessor: SignalProcessor,
          timeProvider: TimeProvider,
-         sessionManager: SessionManager) {
+         sessionManager: SessionManager,
+         idProvider: IdProvider) {
         self.bugReportManager = bugReportManager
         self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.sessionManager = sessionManager
+        self.idProvider = idProvider
         self.bugReportManager.setBugReportCollector(self)
     }
 
@@ -39,16 +46,20 @@ final class BaseBugReportCollector: BugReportCollector {
     }
 
     func validateBugReport(attachmentsCount: Int, descriptionLength: Int) -> Bool {
+        // TODO: add checks
         return true
     }
 
-    func trackBugReport(_ description: String, attachments: [Attachment]) {
+    func trackBugReport(description: String,
+                        attachments: [MsrAttachment],
+                        attributes: [String: AttributeValue]?) {
+        let attachmentsToSend = attachments.map { $0.toEventAttachment(id: idProvider.uuid()) }
         signalProcessor.trackUserTriggered(data: BugReportData(description: description),
                                            timestamp: timeProvider.now(),
                                            type: .bugReport,
                                            attributes: nil,
                                            sessionId: nil,
-                                           attachments: attachments,
+                                           attachments: attachmentsToSend,
                                            userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(userDefinedAttributes),
                                            threadName: nil)
         sessionManager.markCurrentSessionAsCrashed()

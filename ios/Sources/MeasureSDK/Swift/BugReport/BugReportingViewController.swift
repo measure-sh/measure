@@ -292,7 +292,7 @@ extension BugReportingViewController: UICollectionViewDelegateFlowLayout {
 extension BugReportingViewController: UIImagePickerControllerDelegate {
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         if let image = info[.editedImage] as? UIImage ?? info[.originalImage] as? UIImage,
-           let imageData = image.jpegData(compressionQuality: CGFloat(configProvider.screenshotCompressionQuality/100)) {
+           let imageData = image.jpegData(compressionQuality: CGFloat(configProvider.screenshotCompressionQuality) / 100.0) {
             addAttachment(MsrAttachment(name: galleryImageName, bytes: imageData, type: .screenshot))
         }
         picker.dismiss(animated: true)

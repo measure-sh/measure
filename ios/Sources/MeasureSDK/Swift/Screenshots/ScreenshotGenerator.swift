@@ -8,7 +8,10 @@
 import UIKit
 
 protocol ScreenshotGenerator {
-    func generate(window: UIWindow, name: String, storageType: AttachmentStorageType) -> Attachment?
+    func generate(window: UIWindow,
+                  name: String,
+                  storageType: AttachmentStorageType) -> Attachment?
+    func generate(viewController: UIViewController) -> Attachment?
 }
 
 final class BaseScreenshotGenerator: ScreenshotGenerator {
@@ -18,7 +21,10 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
     private let attachmentProcessor: AttachmentProcessor
     private let userPermissionManager: UserPermissionManager
 
-    init(configProvider: ConfigProvider, logger: Logger, attachmentProcessor: AttachmentProcessor, userPermissionManager: UserPermissionManager) {
+    init(configProvider: ConfigProvider,
+         logger: Logger,
+         attachmentProcessor: AttachmentProcessor,
+         userPermissionManager: UserPermissionManager) {
         self.configProvider = configProvider
         self.maskColor = UIColor(hex: configProvider.screenshotMaskHexColor) ?? .black
         self.logger = logger
@@ -26,7 +32,9 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
         self.userPermissionManager = userPermissionManager
     }
 
-    func generate(window: UIWindow, name: String, storageType: AttachmentStorageType) -> Attachment? {
+    func generate(window: UIWindow,
+                  name: String,
+                  storageType: AttachmentStorageType) -> Attachment? {
 //        guard userPermissionManager.isPhotoLibraryUsagePermissionAvailable() else {
 //            logger.log(level: .debug, message: "Photos permission not available.", error: nil, data: nil)
 //            return nil
@@ -48,6 +56,15 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
         }
 
         return attachmentProcessor.getAttachmentObject(for: compressedData, name: name, storageType: storageType, attachmentType: .screenshot)
+    }
+
+    func generate(viewController: UIViewController) -> Attachment? {
+        guard let window = viewController.view.window else {
+            logger.log(level: .debug, message: "ScreenshotGenerator: ViewController does not have an attached window.", error: nil, data: nil)
+            return nil
+        }
+
+        return generate(window: window, name: screenshotName, storageType: .data)
     }
 
     private func findSensitiveFrames(in view: UIView, rootView: UIView, types: [UIView.Type]) -> [CGRect] {

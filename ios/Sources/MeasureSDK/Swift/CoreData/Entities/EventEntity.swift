@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct EventEntity { // swiftlint:disable:this type_body_length file_length
+struct EventEntity { // swiftlint:disable:this type_body_length
     let id: String
     let sessionId: String
     let timestamp: String
@@ -509,4 +509,4 @@ struct EventEntity { // swiftlint:disable:this type_body_length file_length
             return nil
         }
     }
-}
+} // swiftlint:disable:this file_length

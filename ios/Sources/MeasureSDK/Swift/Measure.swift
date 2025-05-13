@@ -363,11 +363,6 @@ import UIKit
         measureInternal.startBugReportFlow(takeScreenshot: takeScreenshot, attributes: attributes)
     }
 
-    @objc public func handleMotionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
-        guard motion == .motionShake, let measureInternal = self.measureInternal else { return }
-        measureInternal.handleMotionEnded(motion, with: event)
-    }
-
     /// Enables automatic bug reporting using shake detection.
     /// When the device is shaken, this will automatically launch the built-in bug report UI.
     ///
@@ -409,5 +404,48 @@ import UIKit
     public func setShakeListener(_ listener: MsrShakeListener?) {
         guard let measureInternal = self.measureInternal else { return }
         measureInternal.setShakeListener(listener)
+    }
+
+    /// Tracks a custom bug report.
+    ///
+    /// For a pre-built UI experience to collect bug reports, see `launchBugReportActivity()`.
+    /// Attachments can contain screenshots, layout snapshots or images from the gallery.
+    ///
+    /// - Parameters:
+    ///   - description: Description of the bug. Max characters: 4000.
+    ///   - attachments: Optional list of attachments. Max: 5.
+    ///   - attributes: Optional key-value pairs for additional metadata about the bug report.
+    public func trackBugReport(description: String,
+                               attachments: [MsrAttachment] = [],
+                               attributes: [String: AttributeValue]?) {
+        guard let measureInternal = self.measureInternal else { return }
+        measureInternal.trackBugReport(description: description, attachments: attachments, attributes: attributes)
+    }
+
+    /// Takes a screenshot of the current activity window. This method must be called from the main thread.
+    /// 
+    /// The screenshot will be masked for privacy based on the configuration provided during
+    /// initialization using `MeasureConfig.screenshotMaskLevel`, by default all text and media are masked.
+    /// 
+    /// - Parameters:
+    ///   - viewController: The view controller to capture.
+    ///   
+    /// - Returns: `MsrAttachment` object containing the screenshot data.
+    public func captureScreenshot(for viewController: UIViewController) -> MsrAttachment? {
+        guard let measureInternal = self.measureInternal else { return nil }
+        return measureInternal.captureScreenshot(for: viewController)
+    }
+
+    /// Takes a snapshot of the current view hierarchy layout. This method must be called from the main thread.
+    /// 
+    /// The snapshot captures information about visible elements including their position and
+    /// dimensions. These are cheaper to capture and take less storage than screenshots.
+    /// 
+    /// - Parameters:
+    ///   - viewController: The view controller to capture.
+    /// - Returns: `MsrAttachment` object containing the layout snapshot data.
+    func captureLayoutSnapshot(from viewController: UIViewController) -> MsrAttachment? {
+        guard let measureInternal = self.measureInternal else { return nil }
+        return measureInternal.captureLayoutSnapshot(for: viewController)
     }
 }

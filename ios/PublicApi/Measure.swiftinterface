@@ -164,11 +164,12 @@ extension SwiftUICore.View {
   final public func getTraceParentHeaderValue(span: any Measure.Span) -> Swift.String
   final public func getTraceParentHeaderKey() -> Swift.String
   final public func launchBugReport(takeScreenshot: Swift.Bool = true, attributes: [Swift.String : Measure.AttributeValue] = [:])
-  @objc final public func handleMotionEnded(_ motion: UIKit.UIEvent.EventSubtype, with event: UIKit.UIEvent?)
   @objc final public func enableShakeToLaunchBugReport(takeScreenshot: Swift.Bool = true)
   @objc final public func disableShakeToLaunchBugReport()
   @objc final public func isShakeToLaunchBugReportEnabled() -> Swift.Bool
   final public func setShakeListener(_ listener: (any Measure.MsrShakeListener)?)
+  final public func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Measure.AttributeValue]?)
+  final public func captureScreenshot(for viewController: UIKit.UIViewController) -> Measure.MsrAttachment?
   @objc deinit
 }
 @_inheritsConvenienceInitializers @objc(SpanOb) public class SpanOb : CoreData.NSManagedObject {

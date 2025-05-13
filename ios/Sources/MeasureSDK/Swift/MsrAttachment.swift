@@ -17,12 +17,6 @@ public struct MsrAttachment {
     let name: String
     let bytes: Data
     let type: AttachmentType
-
-    init(name: String, bytes: Data, type: AttachmentType) {
-        self.name = name
-        self.bytes = bytes
-        self.type = type
-    }
 }
 
 extension MsrAttachment {

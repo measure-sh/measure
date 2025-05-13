@@ -147,6 +147,12 @@ final class MeasureInternal {
     var shakeDetector: ShakeDetector {
         return measureInitializer.shakeDetector
     }
+    var screenshotGenerator: ScreenshotGenerator {
+        return measureInitializer.screenshotGenerator
+    }
+    var layoutSnapshotGenerator: LayoutSnapshotGenerator {
+        return measureInitializer.layoutSnapshotGenerator
+    }
     private let lifecycleObserver: LifecycleObserver
     private var isStarted: Bool = false
 
@@ -229,9 +235,18 @@ final class MeasureInternal {
         return shakeBugReportCollector.isShakeToLaunchBugReportEnabled()
     }
 
-    func handleMotionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
-        guard let motionShakeDetector = measureInitializer.shakeDetector as? MotionShakeDetector else { return }
-        motionShakeDetector.handleMotionEnded(motion, with: event)
+    func trackBugReport(description: String,
+                        attachments: [MsrAttachment],
+                        attributes: [String: AttributeValue]?) {
+        bugReportCollector.trackBugReport(description: description, attachments: attachments, attributes: attributes)
+    }
+
+    func captureScreenshot(for viewController: UIViewController) -> MsrAttachment? {
+        return screenshotGenerator.generate(viewController: viewController)?.toMsrAttachment()
+    }
+
+    func captureLayoutSnapshot(for viewController: UIViewController) -> MsrAttachment? {
+        return layoutSnapshotGenerator.generate(for: viewController)?.toMsrAttachment()
     }
 
     private func applicationDidEnterBackground() {

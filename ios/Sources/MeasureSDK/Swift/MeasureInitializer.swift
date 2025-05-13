@@ -69,6 +69,7 @@ protocol MeasureInitializer {
     var bugReportCollector: BugReportCollector { get }
     var shakeBugReportCollector: ShakeBugReportCollector { get }
     var shakeDetector: ShakeDetector { get }
+    var screenshotGenerator: ScreenshotGenerator { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -132,6 +133,7 @@ protocol MeasureInitializer {
 /// - `internalSignalCollector`: `InternalEventCollector` object that collects events from cross plafrom frameworks.
 /// - `bugReportingManager`: `BugReportingManager` object that manages the BugReportingViewController.
 /// - `shakeDetector`: `ShakeDetector` object responsible detecting shake gesture.
+/// - `screenshotGenerator`: `ScreenshotGenerator` object responsible for generating a screenshot.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -193,6 +195,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let bugReportCollector: BugReportCollector
     let shakeBugReportCollector: ShakeBugReportCollector
     let shakeDetector: ShakeDetector
+    let screenshotGenerator: ScreenshotGenerator
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -379,15 +382,20 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                           attachmentProcessor: attachmentProcessor,
                                                           userPermissionManager: userPermissionManager)
         self.bugReportManager = BaseBugReportManager(screenshotGenerator: screenshotGenerator,
-                                                     configProvider: configProvider,
-                                                     idProvider: idProvider)
+                                                     configProvider: configProvider)
         self.bugReportCollector = BaseBugReportCollector(bugReportManager: bugReportManager,
                                                          signalProcessor: signalProcessor,
                                                          timeProvider: timeProvider,
-                                                         sessionManager: sessionManager)
-        self.shakeDetector = MotionShakeDetector()
+                                                         sessionManager: sessionManager,
+                                                         idProvider: idProvider)
+        self.shakeDetector = AccelerometerShakeDetector()
+        self.screenshotGenerator = BaseScreenshotGenerator(configProvider: configProvider,
+                                                           logger: logger,
+                                                           attachmentProcessor: attachmentProcessor,
+                                                           userPermissionManager: userPermissionManager)
         self.shakeBugReportCollector = ShakeBugReportCollector(autoLaunchEnabled: true,
                                                                bugReportManager: bugReportManager,
-                                                               shakeDetector: shakeDetector)
+                                                               shakeDetector: shakeDetector,
+                                                               screenshotGenerator: screenshotGenerator)
     }
 }

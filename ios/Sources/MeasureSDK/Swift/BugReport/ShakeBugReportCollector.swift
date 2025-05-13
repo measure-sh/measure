@@ -21,6 +21,7 @@ final class ShakeBugReportCollector: ShakeDetectorListener {
         self.autoLaunchEnabled = autoLaunchEnabled
         self.shakeDetector = shakeDetector
         self.bugReportManager = bugReportManager
+        self.screenshotGenerator = screenshotGenerator
 
         if autoLaunchEnabled {
             enableAutoLaunch(takeScreenshot: false)
@@ -56,9 +57,9 @@ final class ShakeBugReportCollector: ShakeDetectorListener {
 
     func onShake() {
         if autoLaunch.get() {
-            if let attachment = screenshotGenerator.generate(window: UIApplication.shared.windows.filter {$0.isKeyWindow}.first, name: screenshotName, storageType: .data) {
-                bugReportManager.openBugReporter(attachments: [attachment])
-            }
+//            if let attachment = screenshotGenerator.generate(window: UIApplication.shared.windows.filter {$0.isKeyWindow}.first, name: screenshotName, storageType: .data) {
+                bugReportManager.openBugReporter(attachments: [])
+//            }
         } else if let listener = listener {
             listener.onShake()
         }
