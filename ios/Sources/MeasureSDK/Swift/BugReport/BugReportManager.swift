@@ -48,8 +48,9 @@ final class BaseBugReportManager: BugReportManager {
                 while let presented = top.presentedViewController {
                     top = presented
                 }
-                self.isBugReporterOpen = true
-                top.present(bugVC, animated: true, completion: nil)
+                top.present(bugVC, animated: true) {
+                    self.isBugReporterOpen = true
+                }
             }
         }
     }
@@ -66,6 +67,7 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
 
     func bugReportingViewControllerDidRequestScreenshot(_ attachments: [MsrAttachment]) {
         self.bugReportingViewController = nil
+        self.isBugReporterOpen = false
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.localAttachments = attachments
@@ -87,7 +89,6 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
 
 extension BaseBugReportManager: FloatingButtonViewControllerDelegate {
     func floatingButtonViewController(_ attachment: Attachment) {
-        self.isBugReporterOpen = false
         // Convert the attachment to UIImage and add it to the bug reporter
         if let bytes = attachment.bytes {
             DispatchQueue.main.async { [weak self] in
