@@ -4,7 +4,6 @@ import (
 	"backend/api/cache"
 	"backend/api/chrono"
 	"backend/api/event"
-	osName "backend/api/os"
 	"backend/api/span"
 	"backend/api/symbol"
 	"backend/api/symbtype"
@@ -175,6 +174,9 @@ type Symbolicator struct {
 	// symbolicator response. Currently, used by
 	// Apple platform apps.
 	responseNative *responseNative
+	// responseApple contains the payload for apple
+	// crash report symbolicator response.
+	responseApple *responseApple
 	// jvmLambdaWorkaround determines if each of the
 	// JVM stacktrace class names should be matched
 	// and replaced during the rewrite stage of
@@ -277,6 +279,22 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 				s.prepareJvmException(exceptions, threads, i)
 			case symbtype.Native:
 				s.prepareNativeException(ev, i)
+				// configure module with debug id for
+				// native symbolication request if we
+				// encountered any Native exceptions
+				// or classes.
+				if len(mappings) > 0 && s.requestNative != nil && (len(s.requestNative.Stacktraces) > 0) {
+					for key, mType := range mappings {
+						switch mType {
+						case symbol.TypeDsym:
+							debugId := symbol.MappingKeyToDebugId(key)
+							s.requestNative.AddMachOModule(debugId, ev.Attribute.DeviceCPUArch, ev.Exception.Exceptions[0].Frames[0].BinaryAddress)
+						case symbol.TypeElfDebug:
+							codeId := symbol.MappingKeyToCodeId(key)
+							s.requestNative.AddElfModule(codeId, ev.Attribute.DeviceCPUArch, ev.Exception.Exceptions[0].Frames[0].BinaryAddress)
+						}
+					}
+				}
 			default:
 				fmt.Printf("unknown symbolication platform %s\n", sp)
 				continue
@@ -319,27 +337,6 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 			}
 			s.requestJVM.AddModule(debugId, symbol.TypeProguard.String())
 		}
-
-		// configure module with debug id for
-		// native symbolication request if we
-		// encountered any Native exceptions
-		// or classes.
-		if len(mappings) > 0 && s.requestNative != nil && (len(s.requestNative.Stacktraces) > 0) {
-			var debugId = ""
-			for key, mType := range mappings {
-				if mType == symbol.TypeDsym {
-					debugId = symbol.MappingKeyToDebugId(key)
-				}
-				if mType == symbol.TypeElfDebug {
-					debugId = symbol.MappingKeyToDebugId(key)
-				}
-			}
-			if debugId == "" {
-				fmt.Printf("No mapping found for app id %s, version %s, build %s\n", appId, name, code)
-				continue
-			}
-			s.requestNative.AddModule(debugId)
-		}
 	}
 
 	// send JVM symbolication request
@@ -350,7 +347,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 			return
 		}
 
-		if err = s.makeRequest(); err != nil {
+		if err = s.makeRequest(symbtype.JVM); err != nil {
 			return
 		}
 
@@ -368,7 +365,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 			return
 		}
 
-		if err = s.makeRequest(); err != nil {
+		if err = s.makeRequest(symbtype.Native); err != nil {
 			return
 		}
 
@@ -396,7 +393,7 @@ func (s *Symbolicator) symbolicateAppleCrashReport(ev event.EventField) (err err
 		fmt.Printf("apple crash report request\n%s\n", string(s.appleCrashReport))
 	}
 
-	if err = s.makeRequest(); err != nil {
+	if err = s.makeRequest(symbtype.AppleCrashReport); err != nil {
 		return
 	}
 
@@ -478,7 +475,7 @@ func (s Symbolicator) logResponse(st string) {
 			panic(err)
 		}
 	case symbtype.AppleCrashReport:
-		bytes, err = json.MarshalIndent(s.responseNative, "", "  ")
+		bytes, err = json.MarshalIndent(s.responseApple, "", "  ")
 		if err != nil {
 			panic(err)
 		}
@@ -489,14 +486,14 @@ func (s Symbolicator) logResponse(st string) {
 		}
 	}
 
-	fmt.Println("symbolicator response")
+	fmt.Printf("symbolicator response for %s\n", st)
 	fmt.Println(string(bytes))
 }
 
 // rewriteAppleCrashReport partially updates the original
 // event with symbolicated data.
 func (s Symbolicator) rewriteAppleCrashReport(ev event.EventField) {
-	for i, st := range s.responseNative.Stacktraces {
+	for i, st := range s.responseApple.Stacktraces {
 		for _, f := range st.Frames {
 			if f.Status != "symbolicated" {
 				continue
@@ -553,40 +550,43 @@ func (s Symbolicator) rewriteJvmException(evs []event.EventField, sps []span.Spa
 			}
 
 			if j != -1 && k != -1 {
-				origClass := exceptions[j].Frames[k].ClassName
-				if len(stacktraces[n].Frames) > len(exceptions[j].Frames) {
-					// when count of symbolicated output frames is more
-					// than count of unsymbolicated input frames, it implies
-					// that symbolicator came across an inline frame and
-					// unfurled it into multiple frames.
-					// so, prepare new event.Frame objects with the intention
-					// to capture all the output frame data.
-					frames := event.Frames{}
-					for _, frameJVM := range stacktraces[n].Frames {
-						className := frameJVM.Module
+				if len(stacktraces) > 0 && len(exceptions) > 0 {
+					origClass := exceptions[j].Frames[k].ClassName
+
+					if len(stacktraces[n].Frames) > len(exceptions[j].Frames) {
+						// when count of symbolicated output frames is more
+						// than count of unsymbolicated input frames, it implies
+						// that symbolicator came across an inline frame and
+						// unfurled it into multiple frames.
+						// so, prepare new event.Frame objects with the intention
+						// to capture all the output frame data.
+						frames := event.Frames{}
+						for _, frameJVM := range stacktraces[n].Frames {
+							className := frameJVM.Module
+							if s.jvmLambdaWorkaround && strings.Contains(className, lambdaSubstr) {
+								className = s.responseJVM.rewriteClass(origClass, className)
+							}
+							frame := event.Frame{
+								LineNum:    frameJVM.LineNo,
+								MethodName: frameJVM.Function,
+								ClassName:  className,
+								FileName:   frameJVM.Filename,
+							}
+							frames = append(frames, frame)
+						}
+						exceptions[j].Frames = frames
+					} else {
+						// no inline frames apparently, just rewrite original frame
+						// object parameters with output frame object parameters.
+						exceptions[j].Frames[k].MethodName = stacktraces[n].Frames[k].Function
+						exceptions[j].Frames[k].FileName = stacktraces[n].Frames[k].Filename
+						className := stacktraces[n].Frames[k].Module
 						if s.jvmLambdaWorkaround && strings.Contains(className, lambdaSubstr) {
 							className = s.responseJVM.rewriteClass(origClass, className)
 						}
-						frame := event.Frame{
-							LineNum:    frameJVM.LineNo,
-							MethodName: frameJVM.Function,
-							ClassName:  className,
-							FileName:   frameJVM.Filename,
-						}
-						frames = append(frames, frame)
+						exceptions[j].Frames[k].ClassName = className
+						exceptions[j].Frames[k].LineNum = stacktraces[n].Frames[k].LineNo
 					}
-					exceptions[j].Frames = frames
-				} else {
-					// no inline frames apparently, just rewrite original frame
-					// object parameters with output frame object parameters.
-					exceptions[j].Frames[k].MethodName = stacktraces[n].Frames[k].Function
-					exceptions[j].Frames[k].FileName = stacktraces[n].Frames[k].Filename
-					className := stacktraces[n].Frames[k].Module
-					if s.jvmLambdaWorkaround && strings.Contains(className, lambdaSubstr) {
-						className = s.responseJVM.rewriteClass(origClass, className)
-					}
-					exceptions[j].Frames[k].ClassName = className
-					exceptions[j].Frames[k].LineNum = stacktraces[n].Frames[k].LineNo
 				}
 			}
 
@@ -714,12 +714,14 @@ func (s *Symbolicator) reset() {
 	s.requestJVM = nil
 	s.responseJVM = nil
 	s.responseNative = nil
+	s.requestNative = nil
+	s.responseApple = nil
 }
 
 // retry retries a failed symbolicator request
 // with a randomly added duration jitter to avoid
 // thundering-herd like problems.
-func (s *Symbolicator) retry(d time.Duration) error {
+func (s *Symbolicator) retry(st string, d time.Duration) error {
 	if s.retryCount >= maxRetryCount {
 		return ErrRetryExhausted
 	}
@@ -733,7 +735,7 @@ func (s *Symbolicator) retry(d time.Duration) error {
 	fmt.Printf("retrying symbolicator request for %d time(s) in about %v\n", s.retryCount, dur)
 	chrono.JitterySleep(dur)
 
-	return s.makeRequest()
+	return s.makeRequest(st)
 }
 
 // makeAppleCrashReport creates an Apple crash report
@@ -873,7 +875,7 @@ func (s *Symbolicator) prepareAppleCrashReportRequest() (err error) {
 	return
 }
 
-func (s *Symbolicator) makeRequest() (err error) {
+func (s *Symbolicator) makeRequest(st string) (err error) {
 	res, err := httpClient.Do(s.req)
 	if err != nil {
 		fmt.Println("failed sending symbolicator request:", err)
@@ -893,7 +895,7 @@ func (s *Symbolicator) makeRequest() (err error) {
 		http.StatusBadGateway,
 		http.StatusTooManyRequests:
 		// retry after few seconds
-		return s.retry(defaultRetryDuration)
+		return s.retry(st, defaultRetryDuration)
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -912,8 +914,8 @@ func (s *Symbolicator) makeRequest() (err error) {
 		return
 	}
 
-	switch s.OSName {
-	case osName.Android:
+	switch st {
+	case symbtype.JVM:
 		if err = json.Unmarshal(respBody, &s.responseJVM); err != nil {
 			return
 		}
@@ -922,13 +924,21 @@ func (s *Symbolicator) makeRequest() (err error) {
 			err = ErrJVMSymbolicationFailure
 			return
 		}
-	case osName.IOS:
+	case symbtype.AppleCrashReport:
+		if err = json.Unmarshal(respBody, &s.responseApple); err != nil {
+			return
+		}
+
+		if s.responseApple.Status != "completed" {
+			return s.retry(st, defaultRetryDuration)
+		}
+	case symbtype.Native:
 		if err = json.Unmarshal(respBody, &s.responseNative); err != nil {
 			return
 		}
 
 		if s.responseNative.Status != "completed" {
-			return s.retry(defaultRetryDuration)
+			return s.retry(st, defaultRetryDuration)
 		}
 	}
 
@@ -1024,6 +1034,5 @@ func (s *Symbolicator) prepareNativeException(ev event.EventField, index int) {
 // rewriteNativeException partially updates the original
 // events with symbolicated data.
 func (s Symbolicator) rewriteNativeException(evs []event.EventField) {
-	// TODO: rewrite the native exception
-	return
+	// TODO: implement
 }

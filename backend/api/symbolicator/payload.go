@@ -8,6 +8,18 @@ type frameNative struct {
 	Status          string `json:"status"`
 	OriginalIndex   int    `json:"original_index"`
 	InstructionAddr string `json:"instruction_addr"`
+	Symbol          string `json:"symbol"`
+	Package         string `json:"package"`
+	Function        string `json:"function"`
+	Filename        string `json:"filename"`
+	AbsPath         string `json:"abs_path"`
+	LineNo          int    `json:"lineno"`
+}
+
+type frameApple struct {
+	Status          string `json:"status"`
+	OriginalIndex   int    `json:"original_index"`
+	InstructionAddr string `json:"instruction_addr"`
 	Package         string `json:"package"`
 	Lang            string `json:"lang"`
 	Symbol          string `json:"symbol"`
@@ -24,7 +36,22 @@ type stacktraceNative struct {
 	Frames       []frameNative `json:"frames"`
 }
 
+type stacktraceApple struct {
+	ThreadId     int          `json:"thread_id"`
+	IsRequesting bool         `json:"is_requesting"`
+	Frames       []frameApple `json:"frames"`
+}
+
 type moduleNative struct {
+	DebugStatus string `json:"debug_status"`
+	DebugId     string `json:"debug_id"`
+	CodeId      string `json:"code_id"`
+	Arch        string `json:"arch"`
+	ImageAddr   string `json:"image_addr"`
+	Type        string `json:"type"`
+}
+
+type moduleApple struct {
 	DebugStatus string `json:"debug_status"`
 	DebugId     string `json:"debug_id"`
 }
@@ -33,6 +60,12 @@ type responseNative struct {
 	Status      string             `json:"status"`
 	Stacktraces []stacktraceNative `json:"stacktraces"`
 	Modules     []moduleNative     `json:"modules"`
+}
+
+type responseApple struct {
+	Status      string            `json:"status"`
+	Stacktraces []stacktraceApple `json:"stacktraces"`
+	Modules     []moduleApple     `json:"modules"`
 }
 
 type exceptionJVM struct {
@@ -178,7 +211,7 @@ func NewRequestJVM() *requestJVM {
 
 // AddModule adds a module to the JVM request
 // payload only if not already present.
-func (r *requestNative) AddModule(debugId string) {
+func (r *requestNative) AddMachOModule(debugId string, arch string, imageAddr string) {
 	for _, m := range r.Modules {
 		if m.DebugId == debugId {
 			return
@@ -186,8 +219,27 @@ func (r *requestNative) AddModule(debugId string) {
 	}
 
 	r.Modules = append(r.Modules, moduleNative{
-		DebugId:     debugId,
-		DebugStatus: "true", // TODO: what goes here?
+		DebugId:   debugId,
+		Type:      "macho",
+		Arch:      arch,
+		ImageAddr: imageAddr,
+	})
+}
+
+// AddModule adds a module to the JVM request
+// payload only if not already present.
+func (r *requestNative) AddElfModule(codeId string, arch string, imageAddr string) {
+	for _, m := range r.Modules {
+		if m.CodeId == codeId {
+			return
+		}
+	}
+
+	r.Modules = append(r.Modules, moduleNative{
+		CodeId:    codeId,
+		Type:      "elf",
+		Arch:      arch,
+		ImageAddr: imageAddr,
 	})
 }
 

@@ -234,6 +234,14 @@ func MappingKeyToDebugId(key string) string {
 	return fmt.Sprintf("%s%s-%s-%s-%s-%s", key[:2], key[3:9], key[9:13], key[13:17], key[17:21], key[21:33])
 }
 
+// MappingKeyToCodeId formats a mapping key
+// in Unified Layout to a valid CodeId.
+func MappingKeyToCodeId(key string) string {
+	noSlash := strings.Replace(key, "/", "", -1)
+	result := strings.Replace(noSlash, "debuginfo", "", -1)
+	return result
+}
+
 // VerifyMachO verifies Mach-O magic number.
 func VerifyMachO(r *bytes.Reader) (err error) {
 	buffer := make([]byte, 4096)
