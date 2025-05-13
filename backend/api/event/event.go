@@ -347,12 +347,15 @@ type BinaryImage struct {
 	StartAddr string `json:"start_addr" binding:"required"`
 	// EndAddr is the upper memory boundary of
 	// the binary.
-	EndAddr string `json:"end_addr" binding:"required"`
+	EndAddr string `json:"end_addr"`
+	// BaseAddr is the base memory address of
+	// the binary.
+	BaseAddr string `json:"base_addr"`
 	// System indicates a system binary marker.
-	System bool `json:"system" binding:"required"`
+	System bool `json:"system"`
 	// Name is the name of the app, framework
 	// or library binary.
-	Name string `json:"name" binding:"required"`
+	Name string `json:"name"`
 	// Arch is the CPU architecture the binary
 	// is compiled for.
 	Arch string `json:"arch" binding:"required"`
@@ -361,7 +364,7 @@ type BinaryImage struct {
 	Uuid string `json:"uuid" binding:"required"`
 	// Path is path where the binary was
 	// located at runtime.
-	Path string `json:"path" binding:"required"`
+	Path string `json:"path"`
 }
 
 // FingerprintComputer describes the behavior

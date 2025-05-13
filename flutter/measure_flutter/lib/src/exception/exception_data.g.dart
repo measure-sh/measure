@@ -16,6 +16,9 @@ ExceptionData _$ExceptionDataFromJson(Map<String, dynamic> json) =>
           .map((e) => MeasureThread.fromJson(e as Map<String, dynamic>))
           .toList(),
       foreground: json['foreground'] as bool,
+      binaryImages: (json['binary_images'] as List<dynamic>)
+          .map((e) => BinaryImage.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
 Map<String, dynamic> _$ExceptionDataToJson(ExceptionData instance) =>
@@ -24,6 +27,7 @@ Map<String, dynamic> _$ExceptionDataToJson(ExceptionData instance) =>
       'handled': instance.handled,
       'threads': instance.threads.map((e) => e.toJson()).toList(),
       'foreground': instance.foreground,
+      'binary_images': instance.binaryImages.map((e) => e.toJson()).toList(),
     };
 
 MeasureThread _$MeasureThreadFromJson(Map<String, dynamic> json) =>
@@ -88,4 +92,17 @@ Map<String, dynamic> _$MsrFrameToJson(MsrFrame instance) => <String, dynamic>{
       'symbol_address': instance.symbolAddress,
       'instruction_address': instance.instructionAddress,
       'in_app': instance.inApp,
+    };
+
+BinaryImage _$BinaryImageFromJson(Map<String, dynamic> json) => BinaryImage(
+      baseAddr: json['base_addr'] as String,
+      uuid: json['uuid'] as String,
+      arch: json['arch'] as String,
+    );
+
+Map<String, dynamic> _$BinaryImageToJson(BinaryImage instance) =>
+    <String, dynamic>{
+      'base_addr': instance.baseAddr,
+      'uuid': instance.uuid,
+      'arch': instance.arch,
     };

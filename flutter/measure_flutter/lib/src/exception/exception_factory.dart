@@ -8,11 +8,19 @@ final class ExceptionFactory {
   static final _absRegex = RegExp(r'^\s*#[0-9]+ +abs +([A-Fa-f0-9]+)');
   static final _frameRegex = RegExp(r'^\s*#', multiLine: true);
   static final _baseAddrRegex = RegExp(r'isolate_dso_base[:=] *([A-Fa-f0-9]+)');
+  static final _buildIdRegex = RegExp(r"build_id: *'([A-Fa-f0-9]+)'");
+  static final _archRegex = RegExp(r'arch[:=] *([A-Za-z0-9]+)');
 
   static ExceptionData from(FlutterErrorDetails details, bool handled) {
     final result = _parseStackTrace(details.stack);
-    final binaryAddr =
-        _baseAddrRegex.firstMatch(details.stack.toString())?.group(1);
+    var stackStr = details.stack.toString();
+    final baseAddr = _baseAddrRegex.firstMatch(stackStr)?.group(1);
+    final buildId = _buildIdRegex.firstMatch(stackStr)?.group(1);
+    final arch = _archRegex.firstMatch(stackStr)?.group(1);
+    if (baseAddr == null || buildId == null || arch == null) {
+      // TODO: Handle this case better without throwing
+      throw Exception('Unable to parse stack trace');
+    }
     final List<Trace> traces = result.traces;
     final type = details.exception.runtimeType.toString();
     final message = _getMessage(details);
@@ -20,8 +28,7 @@ final class ExceptionFactory {
 
     if (traces.isNotEmpty) {
       final firstTrace = traces.first;
-      final List<MsrFrame> primaryFrames =
-          _createMsrFrames(firstTrace.frames, binaryAddr);
+      final List<MsrFrame> primaryFrames = _createMsrFrames(firstTrace.frames);
       exceptions.add(
           ExceptionUnit(frames: primaryFrames, type: type, message: message));
     } else {
@@ -29,7 +36,7 @@ final class ExceptionFactory {
     }
     final remainingTraces = traces.skip(1);
     for (Trace trace in remainingTraces) {
-      final List<MsrFrame> frames = _createMsrFrames(trace.frames, binaryAddr);
+      final List<MsrFrame> frames = _createMsrFrames(trace.frames);
       exceptions.add(ExceptionUnit(frames: frames));
     }
 
@@ -38,10 +45,12 @@ final class ExceptionFactory {
     // We're not maintaining the application lifecycle state
     // in Flutter.
     return ExceptionData(
-        exceptions: exceptions,
-        handled: handled,
-        threads: [],
-        foreground: true);
+      exceptions: exceptions,
+      handled: handled,
+      threads: [],
+      foreground: true,
+      binaryImages: [BinaryImage(baseAddr: baseAddr, uuid: buildId, arch: arch)],
+    );
   }
 
   static TraceResult _parseStackTrace(dynamic stackTrace) {
@@ -64,8 +73,7 @@ final class ExceptionFactory {
     return TraceResult([]);
   }
 
-  static List<MsrFrame> _createMsrFrames(
-      List<Frame> frames, String? binaryAddr) {
+  static List<MsrFrame> _createMsrFrames(List<Frame> frames) {
     var index = 0;
     return frames
         .where((frame) {
@@ -73,8 +81,8 @@ final class ExceptionFactory {
           return member != null && _absRegex.hasMatch(member);
         })
         .map((frame) {
-          if (frame is UnparsedFrame && binaryAddr != null) {
-            return _createUnparsedMsrFrame(frame, binaryAddr, index++);
+          if (frame is UnparsedFrame) {
+            return _createUnparsedMsrFrame(frame, index++);
           } else {
             return _createParsedMsrFrame(frame, index++);
           }
@@ -83,14 +91,12 @@ final class ExceptionFactory {
         .toList();
   }
 
-  static MsrFrame? _createUnparsedMsrFrame(
-      UnparsedFrame frame, String binaryAddr, int index) {
+  static MsrFrame? _createUnparsedMsrFrame(UnparsedFrame frame, int index) {
     final match = _absRegex.firstMatch(frame.member);
     if (match != null) {
       var symbolAddr = match.group(1)!;
       return MsrFrame(
           frameIndex: index,
-          binaryAddress: '0x$binaryAddr',
           instructionAddress: '0x${symbolAddr.replaceAll(RegExp(r'^0+'), '')}');
     }
     return null;
