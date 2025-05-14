@@ -24,6 +24,9 @@ measure.sh is designed from the ground up for easy self-hosting. Follow along to
   - [4. Access your Measure dashboard](#4-access-your-measure-dashboard)
 - [Frequently Asked Questions](#frequently-asked-questions)
   - [Q. Can I use podman instead of docker?](#q-can-i-use-podman-instead-of-docker)
+  - [Q. I made some mistake and want to start the installation over?](#q-i-made-some-mistake-and-want-to-start-the-installation-over)
+  - [Q. How to perform healthcheck of Measure services?](#q-how-to-perform-healthcheck-of-measure-services)
+  - [Q. Can I host Measure behind a VPN?](#q-can-i-host-measure-behind-a-vpn)
   - [Q. Why does ClickHouse consume high amount of CPU or memory?](#q-why-does-clickhouse-consume-high-amount-of-cpu-or-memory)
 
 ## Objectives
@@ -366,6 +369,70 @@ sudo ./install.sh --podman
 ```
 
 You can administer the instance using docker and docker compose commands as if you were using docker.
+
+### Q. I made some mistake and want to start the installation over?
+
+If you want to start over the installation from a clean slate, do the following.
+
+1. **Run the following from the `self-host` directory**
+
+    ```sh
+    sudo docker compose down --rmi --remove-orphans --volumes
+    ```
+
+2. **Remove the cloned `measure` directory**
+
+    ```sh
+    rm -rf ~/measure
+    ```
+
+3. **Repeat the installation process from start**
+
+### Q. How to perform healthcheck of Measure services?
+
+To perform health check for the API service, use:
+
+```sh
+curl -s https://measure.yourcompany.com | grep measure
+
+# local environment
+curl -s http://localhost:3000 | grep measure
+```
+
+To perform health check for the Dashboard service, use:
+
+```sh
+curl -s https://measure-api.yourcompany.com/ping | grep pong
+
+# local environment
+curl -s http://localhost:8080/ping | grep pong
+```
+
+Replace the domain names accordingly. These health check endpoints are useful when defining Measure services as backends for a load balancer or proxy.
+
+### Q. Can I host Measure behind a VPN?
+
+Absolutely! Hosting Measure behind a VPN is a great way to shield it from public internet. Though, keep the following in mind.
+
+1. **Measure API service must be accessible on public internet.** This allows the Measure SDK in your mobile app to communicate to the Measure backend.
+2. **Measure Dashboard service must bind on the private address.** Typically, proxy servers will listen on all network interfaces. When hosting behind a VPN, make sure to bind the Dashboard service on a private IP only. This is essential to achieve network level isolation. For example, the Caddy configuration would look like:
+
+    ```
+    measure.yourcompany.com {
+      # listen only on private IP
+      # change the IP accordingly
+      bind 10.0.0.1
+      reverse_proxy http://localhost:3000
+    }
+
+    measure-api.yourcompany.com {
+      reverse_proxy http://localhost:8080
+    }
+    ```
+
+[Read more on `bind`.](https://caddyserver.com/docs/caddyfile/directives/bind)
+
+In the above setup, only authorized VPN users will be able to access the Measure Dashboard, without disrupting ingestion of events coming from Measure SDKs.
 
 ### Q. Why does ClickHouse consume high amount of CPU or memory?
 
