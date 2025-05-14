@@ -25,6 +25,8 @@ public struct BugReportConfig {
         public let lightFloatingButtonIcon: UIColor
         public let darkfloatingExitButtonText: UIColor
         public let lightfloatingExitButtonText: UIColor
+        public let badgeColor: UIColor
+        public let badgeTextColor: UIColor
 
         public var background: UIColor {
             isDarkMode ? darkBackground : lightBackground
@@ -71,6 +73,8 @@ public struct BugReportConfig {
             lightFloatingButtonIcon: UIColor,
             darkfloatingExitButtonText: UIColor,
             lightfloatingExitButtonText: UIColor,
+            badgeColor: UIColor,
+            badgeTextColor: UIColor,
             isDarkMode: Bool
         ) {
             self.darkBackground = darkBackground
@@ -87,6 +91,8 @@ public struct BugReportConfig {
             self.lightFloatingButtonIcon = lightFloatingButtonIcon
             self.darkfloatingExitButtonText = darkfloatingExitButtonText
             self.lightfloatingExitButtonText = lightfloatingExitButtonText
+            self.badgeColor = badgeColor
+            self.badgeTextColor = badgeTextColor
             self.isDarkMode = isDarkMode
         }
 
@@ -105,6 +111,8 @@ public struct BugReportConfig {
             lightFloatingButtonIcon: UIColor? = nil,
             darkfloatingExitButtonText: UIColor? = nil,
             lightfloatingExitButtonText: UIColor? = nil,
+            badgeColor: UIColor? = nil,
+            badgeTextColor: UIColor? = nil,
             isDarkMode: Bool? = nil
         ) -> Colors {
             return Colors(
@@ -122,6 +130,8 @@ public struct BugReportConfig {
                 lightFloatingButtonIcon: lightFloatingButtonIcon ?? self.lightFloatingButtonIcon,
                 darkfloatingExitButtonText: darkfloatingExitButtonText ?? self.darkfloatingExitButtonText,
                 lightfloatingExitButtonText: lightfloatingExitButtonText ?? self.lightfloatingExitButtonText,
+                badgeColor: badgeColor ?? self.badgeColor,
+                badgeTextColor: badgeTextColor ?? self.badgeTextColor,
                 isDarkMode: isDarkMode ?? self.isDarkMode
             )
         }
@@ -166,42 +176,14 @@ public struct BugReportConfig {
 
     // MARK: - Dimensions
     public struct Dimensions {
-        public let navBarHeight: CGFloat
-        public let buttonCornerRadius: CGFloat
-        public let cancelButtonCornerRadius: CGFloat
-        public let floatingButtonCornerRadius: CGFloat
-        public let floatingButtonSize: CGFloat
-        public let floatingButtonPadding: CGFloat
         public let topPadding: CGFloat
 
-        public init(navBarHeight: CGFloat, buttonCornerRadius: CGFloat, cancelButtonCornerRadius: CGFloat, floatingButtonCornerRadius: CGFloat, floatingButtonSize: CGFloat, floatingButtonPadding: CGFloat, topPadding: CGFloat) {
-            self.navBarHeight = navBarHeight
-            self.buttonCornerRadius = buttonCornerRadius
-            self.cancelButtonCornerRadius = cancelButtonCornerRadius
-            self.floatingButtonCornerRadius = floatingButtonCornerRadius
-            self.floatingButtonSize = floatingButtonSize
-            self.floatingButtonPadding = floatingButtonPadding
+        public init(topPadding: CGFloat) {
             self.topPadding = topPadding
         }
 
-        public func update(
-            navBarHeight: CGFloat? = nil,
-            buttonCornerRadius: CGFloat? = nil,
-            cancelButtonCornerRadius: CGFloat? = nil,
-            floatingButtonCornerRadius: CGFloat? = nil,
-            floatingButtonSize: CGFloat? = nil,
-            floatingButtonPadding: CGFloat? = nil,
-            topPadding: CGFloat? = nil
-        ) -> Dimensions {
-            return Dimensions(
-                navBarHeight: navBarHeight ?? self.navBarHeight,
-                buttonCornerRadius: buttonCornerRadius ?? self.buttonCornerRadius,
-                cancelButtonCornerRadius: cancelButtonCornerRadius ?? self.cancelButtonCornerRadius,
-                floatingButtonCornerRadius: floatingButtonCornerRadius ?? self.floatingButtonCornerRadius,
-                floatingButtonSize: floatingButtonSize ?? self.floatingButtonSize,
-                floatingButtonPadding: floatingButtonPadding ?? self.floatingButtonPadding,
-                topPadding: topPadding ?? self.topPadding
-            )
+        public func update(topPadding: CGFloat? = nil) -> Dimensions {
+            return Dimensions(topPadding: topPadding ?? self.topPadding)
         }
     }
 
@@ -258,6 +240,8 @@ public struct BugReportConfig {
             lightFloatingButtonIcon: .white,
             darkfloatingExitButtonText: .white,
             lightfloatingExitButtonText: .white,
+            badgeColor: .systemRed,
+            badgeTextColor: .white,
             isDarkMode: true
         ),
         text: Text(
@@ -269,12 +253,6 @@ public struct BugReportConfig {
             exitScreenshotMode: "Tap to exit Screenshot mode"
         ),
         dimensions: Dimensions(
-            navBarHeight: 56,
-            buttonCornerRadius: 20,
-            cancelButtonCornerRadius: 16,
-            floatingButtonCornerRadius: 25,
-            floatingButtonSize: 50,
-            floatingButtonPadding: 16,
             topPadding: 20
         ),
         fonts: Fonts(

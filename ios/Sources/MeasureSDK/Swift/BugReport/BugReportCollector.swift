@@ -15,7 +15,7 @@ protocol BugReportCollector {
     func validateBugReport(attachmentsCount: Int,
                            descriptionLength: Int) -> Bool
     func trackBugReport(description: String,
-                        attachments: [MsrAttachment],
+                        attachments: [Attachment],
                         attributes: [String: AttributeValue]?)
 }
 
@@ -54,15 +54,14 @@ final class BaseBugReportCollector: BugReportCollector {
     }
 
     func trackBugReport(description: String,
-                        attachments: [MsrAttachment],
+                        attachments: [Attachment],
                         attributes: [String: AttributeValue]?) {
-        let attachmentsToSend = attachments.map { $0.toEventAttachment(id: idProvider.uuid()) }
         signalProcessor.trackUserTriggered(data: BugReportData(description: description),
                                            timestamp: timeProvider.now(),
                                            type: .bugReport,
                                            attributes: nil,
                                            sessionId: nil,
-                                           attachments: attachmentsToSend,
+                                           attachments: attachments,
                                            userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(userDefinedAttributes),
                                            threadName: nil)
         sessionManager.markCurrentSessionAsCrashed()

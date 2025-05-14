@@ -239,7 +239,7 @@ final class MeasureInternal {
     func trackBugReport(description: String,
                         attachments: [MsrAttachment],
                         attributes: [String: AttributeValue]?) {
-        bugReportCollector.trackBugReport(description: description, attachments: attachments, attributes: attributes)
+        bugReportCollector.trackBugReport(description: description, attachments: attachments.map { $0.toEventAttachment(id: idProvider.uuid()) }, attributes: attributes)
     }
 
     func captureScreenshot(for viewController: UIViewController) -> MsrAttachment? {

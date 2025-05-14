@@ -8,8 +8,8 @@
 import UIKit
 
 protocol BugReportingViewControllerDelegate: AnyObject {
-    func bugReportingViewControllerDidDismiss(_ description: String?, attachments: [MsrAttachment]?)
-    func bugReportingViewControllerDidRequestScreenshot(_ attachments: [MsrAttachment])
+    func bugReportingViewControllerDidDismiss(_ description: String?, attachments: [Attachment]?)
+    func bugReportingViewControllerDidRequestScreenshot(_ attachments: [Attachment])
 }
 
 class BugReportingViewController: UIViewController, UINavigationControllerDelegate {
@@ -22,6 +22,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     private let placeholderLabel = UILabel()
     private let configProvider: ConfigProvider
     private let bugReportConfig: BugReportConfig
+    private let idProvider: IdProvider
 
     private let imagesCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
@@ -32,15 +33,16 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         collectionView.showsHorizontalScrollIndicator = false
         return collectionView
     }()
-    private var attachments: [MsrAttachment]
+    private var attachments: [Attachment]
 
     private let screenshotButton = UIButton(type: .system)
     private let uploadButton = UIButton(type: .system)
 
-    init(attachments: [MsrAttachment] = [], configProvider: ConfigProvider, bugReportConfig: BugReportConfig) {
+    init(attachments: [Attachment] = [], configProvider: ConfigProvider, bugReportConfig: BugReportConfig, idProvider: IdProvider) {
         self.attachments = attachments
         self.configProvider = configProvider
         self.bugReportConfig = bugReportConfig
+        self.idProvider = idProvider
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -73,7 +75,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         cancelButton.setTitle(nil, for: .normal)
         cancelButton.tintColor = bugReportConfig.colors.text
         cancelButton.backgroundColor = bugReportConfig.colors.buttonBackground
-        cancelButton.layer.cornerRadius = bugReportConfig.dimensions.cancelButtonCornerRadius
+        cancelButton.layer.cornerRadius = 16
         cancelButton.translatesAutoresizingMaskIntoConstraints = false
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         navBar.addSubview(cancelButton)
@@ -140,7 +142,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         screenshotButton.setTitle(bugReportConfig.text.screenshotButton, for: .normal)
         screenshotButton.setTitleColor(bugReportConfig.colors.text, for: .normal)
         screenshotButton.backgroundColor = bugReportConfig.colors.buttonBackground
-        screenshotButton.layer.cornerRadius = bugReportConfig.dimensions.buttonCornerRadius
+        screenshotButton.layer.cornerRadius = 20
         screenshotButton.titleLabel?.font = bugReportConfig.fonts.button
         screenshotButton.translatesAutoresizingMaskIntoConstraints = false
         screenshotButton.addTarget(self, action: #selector(screenshotButtonTapped), for: .touchUpInside)
@@ -150,7 +152,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         uploadButton.setTitle(bugReportConfig.text.uploadButton, for: .normal)
         uploadButton.setTitleColor(bugReportConfig.colors.text, for: .normal)
         uploadButton.backgroundColor = bugReportConfig.colors.buttonBackground
-        uploadButton.layer.cornerRadius = bugReportConfig.dimensions.buttonCornerRadius
+        uploadButton.layer.cornerRadius = 20
         uploadButton.titleLabel?.font = bugReportConfig.fonts.button
         uploadButton.translatesAutoresizingMaskIntoConstraints = false
         uploadButton.addTarget(self, action: #selector(uploadButtonTapped), for: .touchUpInside)
@@ -182,7 +184,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
             navBar.topAnchor.constraint(equalTo: safe.topAnchor),
             navBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             navBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            navBar.heightAnchor.constraint(equalToConstant: bugReportConfig.dimensions.navBarHeight),
+            navBar.heightAnchor.constraint(equalToConstant: 56),
 
             cancelButton.leadingAnchor.constraint(equalTo: navBar.leadingAnchor, constant: 8),
             cancelButton.centerYAnchor.constraint(equalTo: navBar.centerYAnchor),
@@ -213,17 +215,17 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
             // Action buttons
             screenshotButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             screenshotButton.topAnchor.constraint(equalTo: imagesCollectionView.bottomAnchor, constant: 16),
-            screenshotButton.widthAnchor.constraint(equalToConstant: 160),
             screenshotButton.heightAnchor.constraint(equalToConstant: 44),
+            screenshotButton.trailingAnchor.constraint(equalTo: uploadButton.leadingAnchor, constant: -16),
+            screenshotButton.widthAnchor.constraint(equalTo: uploadButton.widthAnchor, multiplier: 1.0),
 
             uploadButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             uploadButton.topAnchor.constraint(equalTo: imagesCollectionView.bottomAnchor, constant: 16),
-            uploadButton.widthAnchor.constraint(equalToConstant: 160),
             uploadButton.heightAnchor.constraint(equalToConstant: 44)
         ])
     }
 
-    func addAttachment(_ attachment: MsrAttachment) {
+    func addAttachment(_ attachment: Attachment) {
         guard attachments.count < 5 else { return }
         attachments.append(attachment)
         imagesCollectionView.reloadData()
@@ -268,7 +270,7 @@ extension BugReportingViewController: UICollectionViewDataSource {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ImageCell", for: indexPath) as? BugReportImageCell else {
             return UICollectionViewCell()
         }
-        if let image = UIImage(data: attachments[indexPath.item].bytes) {
+        if let data = attachments[indexPath.item].bytes, let image = UIImage(data: data) {
             cell.configure(with: image, isDarkModeEnabled: false)
             cell.onDelete = { [weak self] in
                 self?.attachments.remove(at: indexPath.item)
@@ -292,7 +294,7 @@ extension BugReportingViewController: UIImagePickerControllerDelegate {
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         if let image = info[.editedImage] as? UIImage ?? info[.originalImage] as? UIImage,
            let imageData = image.jpegData(compressionQuality: CGFloat(configProvider.screenshotCompressionQuality) / 100.0) {
-            addAttachment(MsrAttachment(name: galleryImageName, bytes: imageData, type: .screenshot))
+            addAttachment(Attachment(name: galleryImageName, type: .screenshot, size: Int64(imageData.count), id: idProvider.uuid(), bytes: imageData, path: nil))
         }
         picker.dismiss(animated: true)
     }

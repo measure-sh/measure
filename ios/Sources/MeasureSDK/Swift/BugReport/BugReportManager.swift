@@ -10,7 +10,7 @@ import UIKit
 
 protocol BugReportManager {
     func setBugReportConfig(_ bugReportConfig: BugReportConfig)
-    func openBugReporter(attachments: [MsrAttachment])
+    func openBugReporter(attachments: [Attachment])
     func setBugReportCollector(_ collector: BaseBugReportCollector)
 }
 
@@ -18,15 +18,17 @@ final class BaseBugReportManager: BugReportManager {
     private var bugReportingViewController: BugReportingViewController?
     private var floatingButtonViewController: FloatingButtonViewController?
     private let screenshotGenerator: ScreenshotGenerator
-    private var localAttachments: [MsrAttachment] = []
+    private var localAttachments: [Attachment] = []
     private var isBugReporterOpen: Bool = false
     private let configProvider: ConfigProvider
+    private let idProvider: IdProvider
     private var bugReportConfig: BugReportConfig?
     private weak var bugReportCollector: BaseBugReportCollector?
 
-    init(screenshotGenerator: ScreenshotGenerator, configProvider: ConfigProvider) {
+    init(screenshotGenerator: ScreenshotGenerator, configProvider: ConfigProvider, idProvider: IdProvider) {
         self.screenshotGenerator = screenshotGenerator
         self.configProvider = configProvider
+        self.idProvider = idProvider
     }
 
     func setBugReportCollector(_ collector: BaseBugReportCollector) {
@@ -37,33 +39,35 @@ final class BaseBugReportManager: BugReportManager {
         self.bugReportConfig = bugReportConfig
     }
 
-    func openBugReporter(attachments: [MsrAttachment]) {
+    func openBugReporter(attachments: [Attachment]) {
         if self.bugReportingViewController != nil || self.isBugReporterOpen {
             return
         }
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
+            self.openBugReportViewController()
+        }
+    }
 
-            localAttachments.append(contentsOf: attachments)
-            let bugVC = BugReportingViewController(attachments: self.localAttachments, configProvider: configProvider, bugReportConfig: bugReportConfig ?? BugReportConfig.default)
-            bugVC.modalPresentationStyle = .fullScreen
-            bugVC.delegate = self
-            self.bugReportingViewController = bugVC
-            if let root = UIApplication.shared.windows.first(where: { $0.isKeyWindow })?.rootViewController {
-                var top = root
-                while let presented = top.presentedViewController {
-                    top = presented
-                }
-                top.present(bugVC, animated: true) {
-                    self.isBugReporterOpen = true
-                }
+    private func openBugReportViewController() {
+        let bugVC = BugReportingViewController(attachments: self.localAttachments, configProvider: configProvider, bugReportConfig: bugReportConfig ?? BugReportConfig.default, idProvider: idProvider)
+        bugVC.modalPresentationStyle = .fullScreen
+        bugVC.delegate = self
+        self.bugReportingViewController = bugVC
+        if let root = UIApplication.shared.windows.first(where: { $0.isKeyWindow })?.rootViewController {
+            var top = root
+            while let presented = top.presentedViewController {
+                top = presented
+            }
+            top.present(bugVC, animated: true) {
+                self.isBugReporterOpen = true
             }
         }
     }
 }
 
 extension BaseBugReportManager: BugReportingViewControllerDelegate {
-    func bugReportingViewControllerDidDismiss(_ description: String?, attachments: [MsrAttachment]?) {
+    func bugReportingViewControllerDidDismiss(_ description: String?, attachments: [Attachment]?) {
         self.bugReportingViewController = nil
         self.isBugReporterOpen = false
         if let description = description, let attachments = attachments {
@@ -71,7 +75,7 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
         }
     }
 
-    func bugReportingViewControllerDidRequestScreenshot(_ attachments: [MsrAttachment]) {
+    func bugReportingViewControllerDidRequestScreenshot(_ attachments: [Attachment]) {
         self.bugReportingViewController = nil
         self.isBugReporterOpen = false
         DispatchQueue.main.async { [weak self] in
@@ -79,7 +83,7 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
             self.localAttachments = attachments
 
             // Create and show the floating button controller
-            self.floatingButtonViewController = FloatingButtonViewController(screenshotGenerator: self.screenshotGenerator, bugReportConfig: bugReportConfig ?? BugReportConfig.default)
+            self.floatingButtonViewController = FloatingButtonViewController(screenshotGenerator: self.screenshotGenerator, bugReportConfig: bugReportConfig ?? BugReportConfig.default, attachments: self.localAttachments, configProvider: configProvider)
             self.floatingButtonViewController?.delegate = self
 
             // Get the key window
@@ -94,22 +98,11 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
 }
 
 extension BaseBugReportManager: FloatingButtonViewControllerDelegate {
-    func floatingButtonViewController(_ attachment: Attachment) {
-        // Convert the attachment to UIImage and add it to the bug reporter
-        if let bytes = attachment.bytes {
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                let attachment = MsrAttachment(name: attachment.name, bytes: bytes, type: attachment.type)
-                self.openBugReporter(attachments: [attachment])
-                self.bugReportingViewController?.addAttachment(attachment)
-            }
-        }
-    }
-
-    func floatingButtonViewControllerDismissed() {
+    func floatingButtonViewControllerDismissed(_ attachments: [Attachment]) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            self.openBugReporter(attachments: [])
+            self.localAttachments = attachments
+            self.openBugReporter(attachments: attachments)
         }
     }
 }

@@ -128,6 +128,8 @@ public struct BugReportConfig {
     public let lightFloatingButtonIcon: UIKit.UIColor
     public let darkfloatingExitButtonText: UIKit.UIColor
     public let lightfloatingExitButtonText: UIKit.UIColor
+    public let badgeColor: UIKit.UIColor
+    public let badgeTextColor: UIKit.UIColor
     public var background: UIKit.UIColor {
       get
     }
@@ -150,8 +152,8 @@ public struct BugReportConfig {
       get
     }
     public let isDarkMode: Swift.Bool
-    public init(darkBackground: UIKit.UIColor, lightBackground: UIKit.UIColor, darkButtonBackground: UIKit.UIColor, lightButtonBackground: UIKit.UIColor, darkText: UIKit.UIColor, lightText: UIKit.UIColor, darkPlaceholder: UIKit.UIColor, lightPlaceholder: UIKit.UIColor, darkFloatingButtonBackground: UIKit.UIColor, lightFloatingButtonBackground: UIKit.UIColor, darkFloatingButtonIcon: UIKit.UIColor, lightFloatingButtonIcon: UIKit.UIColor, darkfloatingExitButtonText: UIKit.UIColor, lightfloatingExitButtonText: UIKit.UIColor, isDarkMode: Swift.Bool)
-    public func update(darkBackground: UIKit.UIColor? = nil, lightBackground: UIKit.UIColor? = nil, darkButtonBackground: UIKit.UIColor? = nil, lightButtonBackground: UIKit.UIColor? = nil, darkText: UIKit.UIColor? = nil, lightText: UIKit.UIColor? = nil, darkPlaceholder: UIKit.UIColor? = nil, lightPlaceholder: UIKit.UIColor? = nil, darkFloatingButtonBackground: UIKit.UIColor? = nil, lightFloatingButtonBackground: UIKit.UIColor? = nil, darkFloatingButtonIcon: UIKit.UIColor? = nil, lightFloatingButtonIcon: UIKit.UIColor? = nil, darkfloatingExitButtonText: UIKit.UIColor? = nil, lightfloatingExitButtonText: UIKit.UIColor? = nil, isDarkMode: Swift.Bool? = nil) -> Measure.BugReportConfig.Colors
+    public init(darkBackground: UIKit.UIColor, lightBackground: UIKit.UIColor, darkButtonBackground: UIKit.UIColor, lightButtonBackground: UIKit.UIColor, darkText: UIKit.UIColor, lightText: UIKit.UIColor, darkPlaceholder: UIKit.UIColor, lightPlaceholder: UIKit.UIColor, darkFloatingButtonBackground: UIKit.UIColor, lightFloatingButtonBackground: UIKit.UIColor, darkFloatingButtonIcon: UIKit.UIColor, lightFloatingButtonIcon: UIKit.UIColor, darkfloatingExitButtonText: UIKit.UIColor, lightfloatingExitButtonText: UIKit.UIColor, badgeColor: UIKit.UIColor, badgeTextColor: UIKit.UIColor, isDarkMode: Swift.Bool)
+    public func update(darkBackground: UIKit.UIColor? = nil, lightBackground: UIKit.UIColor? = nil, darkButtonBackground: UIKit.UIColor? = nil, lightButtonBackground: UIKit.UIColor? = nil, darkText: UIKit.UIColor? = nil, lightText: UIKit.UIColor? = nil, darkPlaceholder: UIKit.UIColor? = nil, lightPlaceholder: UIKit.UIColor? = nil, darkFloatingButtonBackground: UIKit.UIColor? = nil, lightFloatingButtonBackground: UIKit.UIColor? = nil, darkFloatingButtonIcon: UIKit.UIColor? = nil, lightFloatingButtonIcon: UIKit.UIColor? = nil, darkfloatingExitButtonText: UIKit.UIColor? = nil, lightfloatingExitButtonText: UIKit.UIColor? = nil, badgeColor: UIKit.UIColor? = nil, badgeTextColor: UIKit.UIColor? = nil, isDarkMode: Swift.Bool? = nil) -> Measure.BugReportConfig.Colors
   }
   public struct Text {
     public let reportBugTitle: Swift.String
@@ -164,15 +166,9 @@ public struct BugReportConfig {
     public func update(reportBugTitle: Swift.String? = nil, descriptionPlaceholder: Swift.String? = nil, sendButton: Swift.String? = nil, screenshotButton: Swift.String? = nil, uploadButton: Swift.String? = nil, exitScreenshotMode: Swift.String? = nil) -> Measure.BugReportConfig.Text
   }
   public struct Dimensions {
-    public let navBarHeight: CoreFoundation.CGFloat
-    public let buttonCornerRadius: CoreFoundation.CGFloat
-    public let cancelButtonCornerRadius: CoreFoundation.CGFloat
-    public let floatingButtonCornerRadius: CoreFoundation.CGFloat
-    public let floatingButtonSize: CoreFoundation.CGFloat
-    public let floatingButtonPadding: CoreFoundation.CGFloat
     public let topPadding: CoreFoundation.CGFloat
-    public init(navBarHeight: CoreFoundation.CGFloat, buttonCornerRadius: CoreFoundation.CGFloat, cancelButtonCornerRadius: CoreFoundation.CGFloat, floatingButtonCornerRadius: CoreFoundation.CGFloat, floatingButtonSize: CoreFoundation.CGFloat, floatingButtonPadding: CoreFoundation.CGFloat, topPadding: CoreFoundation.CGFloat)
-    public func update(navBarHeight: CoreFoundation.CGFloat? = nil, buttonCornerRadius: CoreFoundation.CGFloat? = nil, cancelButtonCornerRadius: CoreFoundation.CGFloat? = nil, floatingButtonCornerRadius: CoreFoundation.CGFloat? = nil, floatingButtonSize: CoreFoundation.CGFloat? = nil, floatingButtonPadding: CoreFoundation.CGFloat? = nil, topPadding: CoreFoundation.CGFloat? = nil) -> Measure.BugReportConfig.Dimensions
+    public init(topPadding: CoreFoundation.CGFloat)
+    public func update(topPadding: CoreFoundation.CGFloat? = nil) -> Measure.BugReportConfig.Dimensions
   }
   public struct Fonts {
     public let title: UIKit.UIFont

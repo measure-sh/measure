@@ -382,7 +382,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                           attachmentProcessor: attachmentProcessor,
                                                           userPermissionManager: userPermissionManager)
         self.bugReportManager = BaseBugReportManager(screenshotGenerator: screenshotGenerator,
-                                                     configProvider: configProvider)
+                                                     configProvider: configProvider,
+                                                     idProvider: idProvider)
         self.bugReportCollector = BaseBugReportCollector(bugReportManager: bugReportManager,
                                                          signalProcessor: signalProcessor,
                                                          timeProvider: timeProvider,
