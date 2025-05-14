@@ -49,7 +49,7 @@ final class ExceptionFactory {
       handled: handled,
       threads: [],
       foreground: true,
-      binaryImages: [BinaryImage(baseAddr: baseAddr, uuid: buildId, arch: arch)],
+      binaryImages: [BinaryImage(baseAddr: '0x$baseAddr', uuid: buildId, arch: arch)],
     );
   }
 

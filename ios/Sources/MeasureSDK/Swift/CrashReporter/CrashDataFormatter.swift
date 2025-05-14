@@ -259,6 +259,7 @@ final class CrashDataFormatter {
 
             let binaryImage = BinaryImage(startAddress: startAddress,
                                           endAddress: endAddress,
+                                          baseAddress: nil,
                                           system: !(self.executableName == imageName),
                                           name: imageName,
                                           arch: arch,

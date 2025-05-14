@@ -32,7 +32,7 @@
 
         <meta-data
             android:name="sh.measure.android.API_URL"
-            android:value="https://0d2c-2401-4900-1c70-cc5d-406a-c5f2-b116-24e.ngrok-free.app" />
+            android:value="https://7942-2401-4900-1c6f-26a9-dc4e-213a-b3d2-7109.ngrok-free.app" />
 
         <meta-data
             android:name="sh.measure.android.BUILD_API_URL"

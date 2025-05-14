@@ -145,5 +145,5 @@ internal data class Frame(
 internal data class BinaryImage(
     val uuid: String,
     val arch: String,
-    val base_address: String,
+    val base_addr: String,
 )

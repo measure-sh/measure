@@ -29,7 +29,7 @@ private const val MAPPING_TYPE = "mapping_type"
 private const val PLATFORM = "platform"
 private const val PLATFORM_ANDROID = "android"
 private const val TYPE_PROGUARD = "proguard"
-private const val TYPE_FLUTTER_SYMBOLS = "elf_debug_info"
+private const val TYPE_FLUTTER_SYMBOLS = "elf_debug"
 private const val MAPPING_FILE = "mapping_file"
 private const val BUILDS_PATH = "builds"
 

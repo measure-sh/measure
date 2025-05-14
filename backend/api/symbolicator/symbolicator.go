@@ -41,7 +41,7 @@ const logRequest = true
 // response payload.
 //
 // set to `true` for quick debugging.
-const logResponse = false
+const logResponse = true
 
 // defaultRetryDuration is the default duration
 // between each retry of symbolicator requests.
@@ -279,19 +279,32 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 				s.prepareJvmException(exceptions, threads, i)
 			case symbtype.Native:
 				s.prepareNativeException(ev, i)
-				// configure module with debug id for
-				// native symbolication request if we
-				// encountered any Native exceptions
-				// or classes.
+				// symbolication request if we
+				// encountered any Native exceptions.
 				if len(mappings) > 0 && s.requestNative != nil && (len(s.requestNative.Stacktraces) > 0) {
+					baseAddr := ev.Exception.BinaryImages[0].BaseAddr
+
+					// Dart exceptions need to be symbolicated
+					// and may require changes in the future
+					// to support more languages.
+					// For Dart running on iOS, dSYM files are
+					// used for symbolication. Symbolicator
+					// requires a debug_id to be added to the
+					// module. This is extracted from the
+					// mapping key.
+					// While Dart running on Android, ELF files
+					// are used for symbolication. Symbolicator
+					// requires a code_id to be added to the module.
+					// This is extracted from exception itself
+					// and parsed from the binary images.
 					for key, mType := range mappings {
 						switch mType {
 						case symbol.TypeDsym:
 							debugId := symbol.MappingKeyToDebugId(key)
-							s.requestNative.AddMachOModule(debugId, ev.Attribute.DeviceCPUArch, ev.Exception.Exceptions[0].Frames[0].BinaryAddress)
+							s.requestNative.AddMachOModule(debugId, ev.Exception.BinaryImages[0].Arch, baseAddr)
 						case symbol.TypeElfDebug:
-							codeId := symbol.MappingKeyToCodeId(key)
-							s.requestNative.AddElfModule(codeId, ev.Attribute.DeviceCPUArch, ev.Exception.Exceptions[0].Frames[0].BinaryAddress)
+							uuid := ev.Exception.BinaryImages[0].Uuid
+							s.requestNative.AddElfModule(uuid, ev.Exception.BinaryImages[0].Arch, baseAddr)
 						}
 					}
 				}
@@ -1034,5 +1047,5 @@ func (s *Symbolicator) prepareNativeException(ev event.EventField, index int) {
 // rewriteNativeException partially updates the original
 // events with symbolicated data.
 func (s Symbolicator) rewriteNativeException(evs []event.EventField) {
-	// TODO: implement
+
 }
