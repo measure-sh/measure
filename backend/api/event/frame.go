@@ -44,8 +44,8 @@ type Frame struct {
 	// InApp is `true` if the frame originates
 	// from the app module.
 	InApp bool `json:"in_app"`
-	// InstructionAddr is `true` if the frame originates
-	// from the app module.
+	// InstructionAddr is the instruction address
+	// of the frame.
 	InstructionAddr string `json:"instruction_address"`
 	*FrameiOS
 }

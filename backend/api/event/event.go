@@ -1421,8 +1421,8 @@ func (e Exception) GetDisplayTitle() string {
 func (e Exception) Stacktrace() string {
 	var b strings.Builder
 
-	switch e.GetOSName() {
-	case os.Android:
+	switch e.GetSymbolicationPlatform() {
+	case symbtype.JVM:
 		for i := len(e.Exceptions) - 1; i >= 0; i-- {
 			firstException := i == len(e.Exceptions)-1
 			lastException := i == 0
@@ -1454,7 +1454,16 @@ func (e Exception) Stacktrace() string {
 				}
 			}
 		}
-	case os.IOS:
+	case symbtype.Native:
+		for _, exception := range e.Exceptions {
+			for index, frame := range exception.Frames {
+				fileLocation := fmt.Sprintf("%s%s:%d", frame.ModuleName, frame.FileName, frame.LineNum)
+				formattedFrame := fmt.Sprintf(" #%d      %s (%s)\n", index, frame.MethodName, fileLocation)
+				b.WriteString(formattedFrame)
+			}
+		}
+
+	case symbtype.AppleCrashReport:
 		// iOS Stacktrace syntax
 		//
 		// See more: https://developer.apple.com/documentation/xcode/adding-identifiable-symbol-names-to-a-crash-report

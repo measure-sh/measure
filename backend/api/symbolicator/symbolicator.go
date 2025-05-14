@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"net/textproto"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -1068,24 +1069,45 @@ func (s Symbolicator) rewriteNativeException(evs []event.EventField) {
 					// to capture all the output frame data.
 					frames := event.Frames{}
 					for _, frameNative := range stacktraces[n].Frames {
+						moduleName := extractDirectoryPath(frameNative.AbsPath)
 						frame := event.Frame{
 							LineNum:         frameNative.LineNo,
 							MethodName:      frameNative.Function,
 							FileName:        frameNative.Filename,
 							InstructionAddr: frameNative.InstructionAddr,
+							ModuleName:      moduleName,
 						}
 						frames = append(frames, frame)
 					}
 					exceptions[j].Frames = frames
 				} else {
+					moduleName := extractDirectoryPath(stacktraces[n].Frames[k].AbsPath)
 					// no inline frames apparently, just rewrite original frame
 					// object parameters with output frame object parameters.
 					exceptions[j].Frames[k].MethodName = stacktraces[n].Frames[k].Function
 					exceptions[j].Frames[k].FileName = stacktraces[n].Frames[k].Filename
 					exceptions[j].Frames[k].LineNum = stacktraces[n].Frames[k].LineNo
 					exceptions[j].Frames[k].InstructionAddr = stacktraces[n].Frames[k].InstructionAddr
+					exceptions[j].Frames[k].ModuleName = moduleName
 				}
 			}
 		}
 	}
+}
+
+// TODO: move this to a more relevant package
+// ExtractDirectoryPath extracts the directory path from a file path,
+// removing the filename part at the end.
+func extractDirectoryPath(filePath string) string {
+	// This regex matches everything up to the last slash followed by anything that doesn't contain a slash
+	regex := regexp.MustCompile(`(.*/)([^/]+)$`)
+	matches := regex.FindStringSubmatch(filePath)
+
+	if len(matches) >= 2 {
+		// The first capturing group contains the directory path
+		return matches[1]
+	}
+
+	// If there's no match, return the original string
+	return filePath
 }

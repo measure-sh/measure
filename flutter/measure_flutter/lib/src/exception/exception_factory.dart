@@ -11,16 +11,12 @@ final class ExceptionFactory {
   static final _buildIdRegex = RegExp(r"build_id: *'([A-Fa-f0-9]+)'");
   static final _archRegex = RegExp(r'arch[:=] *([A-Za-z0-9]+)');
 
-  static ExceptionData from(FlutterErrorDetails details, bool handled) {
-    final result = _parseStackTrace(details.stack);
-    var stackStr = details.stack.toString();
-    final baseAddr = _baseAddrRegex.firstMatch(stackStr)?.group(1);
-    final buildId = _buildIdRegex.firstMatch(stackStr)?.group(1);
-    final arch = _archRegex.firstMatch(stackStr)?.group(1);
-    if (baseAddr == null || buildId == null || arch == null) {
-      // TODO: Handle this case better without throwing
-      throw Exception('Unable to parse stack trace');
+  static ExceptionData? from(FlutterErrorDetails details, bool handled) {
+    var stackTrace = details.stack;
+    if (stackTrace == null) {
+      return null;
     }
+    final result = _parseStackTrace(stackTrace);
     final List<Trace> traces = result.traces;
     final type = details.exception.runtimeType.toString();
     final message = _getMessage(details);
@@ -49,7 +45,7 @@ final class ExceptionFactory {
       handled: handled,
       threads: [],
       foreground: true,
-      binaryImages: [BinaryImage(baseAddr: '0x$baseAddr', uuid: buildId, arch: arch)],
+      binaryImages: _createBinaryImage(stackTrace),
     );
   }
 
