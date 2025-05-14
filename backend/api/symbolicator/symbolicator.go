@@ -1042,11 +1042,6 @@ func (s *Symbolicator) prepareNativeException(ev event.EventField, index int) {
 			Frames: framesNative,
 		})
 	}
-
-	// print the contents of stacktrace LUT
-	for i := range s.stacktraceLUT {
-		fmt.Printf("stacktrace LUT entry %d: %v\n", i, s.stacktraceLUT[i])
-	}
 }
 
 // rewriteNativeException partially updates the original
@@ -1074,9 +1069,10 @@ func (s Symbolicator) rewriteNativeException(evs []event.EventField) {
 					frames := event.Frames{}
 					for _, frameNative := range stacktraces[n].Frames {
 						frame := event.Frame{
-							LineNum:    frameNative.LineNo,
-							MethodName: frameNative.Function,
-							FileName:   frameNative.Filename,
+							LineNum:         frameNative.LineNo,
+							MethodName:      frameNative.Function,
+							FileName:        frameNative.Filename,
+							InstructionAddr: frameNative.InstructionAddr,
 						}
 						frames = append(frames, frame)
 					}
@@ -1087,6 +1083,7 @@ func (s Symbolicator) rewriteNativeException(evs []event.EventField) {
 					exceptions[j].Frames[k].MethodName = stacktraces[n].Frames[k].Function
 					exceptions[j].Frames[k].FileName = stacktraces[n].Frames[k].Filename
 					exceptions[j].Frames[k].LineNum = stacktraces[n].Frames[k].LineNo
+					exceptions[j].Frames[k].InstructionAddr = stacktraces[n].Frames[k].InstructionAddr
 				}
 			}
 		}
