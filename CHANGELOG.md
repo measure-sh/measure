@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Update self host guide (#2139) by @detj in #2139
 - (**backend**): Add banner in contributing (#2101) by @detj in #2101
+- Remove defunct command from contribution guide (#2137) by @detj in #2137
 - Update github-oauth.md (#2131) by @DominatorVbN in #2131
 
 ## [0.7.0] - 2025-04-15
