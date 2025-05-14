@@ -215,8 +215,9 @@ final class MeasureInternal {
     }
 
     func startBugReportFlow(takeScreenshot: Bool = true,
+                            bugReportConfig: BugReportConfig,
                             attributes: [String: AttributeValue] = [:]) {
-        bugReportCollector.startBugReportFlow(takeScreenshot: takeScreenshot, attributes: attributes)
+        bugReportCollector.startBugReportFlow(takeScreenshot: takeScreenshot, bugReportConfig: bugReportConfig, attributes: attributes)
     }
 
     func enableShakeToLaunchBugReport(takeScreenshot: Bool) {

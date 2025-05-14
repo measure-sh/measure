@@ -18,11 +18,10 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     private let cancelButton = UIButton(type: .system)
     private let titleLabel = UILabel()
     private let sendButton = UIButton(type: .system)
-
     private let textView = UITextView()
     private let placeholderLabel = UILabel()
     private let configProvider: ConfigProvider
-    private var isDarkModeEnabled: Bool = false
+    private let bugReportConfig: BugReportConfig
 
     private let imagesCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
@@ -38,10 +37,10 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     private let screenshotButton = UIButton(type: .system)
     private let uploadButton = UIButton(type: .system)
 
-    init(attachments: [MsrAttachment] = [], configProvider: ConfigProvider, isDarkModeEnabled: Bool = false) {
+    init(attachments: [MsrAttachment] = [], configProvider: ConfigProvider, bugReportConfig: BugReportConfig) {
         self.attachments = attachments
         self.configProvider = configProvider
-        self.isDarkModeEnabled = isDarkModeEnabled
+        self.bugReportConfig = bugReportConfig
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -51,7 +50,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = isDarkModeEnabled ? UIColor(white: 0.15, alpha: 1) : .white
+        view.backgroundColor = bugReportConfig.colors.background
 
         setupNavBar()
         setupTextView()
@@ -63,7 +62,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     }
 
     private func setupNavBar() {
-        navBar.backgroundColor = isDarkModeEnabled ? UIColor(white: 0.15, alpha: 1) : .white
+        navBar.backgroundColor = bugReportConfig.colors.background
         navBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(navBar)
 
@@ -72,24 +71,24 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
             cancelButton.setImage(UIImage(systemName: "xmark"), for: .normal)
         }
         cancelButton.setTitle(nil, for: .normal)
-        cancelButton.tintColor = isDarkModeEnabled ? .white : .black
-        cancelButton.backgroundColor = isDarkModeEnabled ? UIColor(white: 0.2, alpha: 1) : UIColor(white: 0.95, alpha: 1)
-        cancelButton.layer.cornerRadius = 16
+        cancelButton.tintColor = bugReportConfig.colors.text
+        cancelButton.backgroundColor = bugReportConfig.colors.buttonBackground
+        cancelButton.layer.cornerRadius = bugReportConfig.dimensions.cancelButtonCornerRadius
         cancelButton.translatesAutoresizingMaskIntoConstraints = false
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         navBar.addSubview(cancelButton)
 
         // Title
-        titleLabel.text = "Report a bug"
-        titleLabel.textColor = isDarkModeEnabled ? .white : .black
-        titleLabel.font = UIFont.boldSystemFont(ofSize: 18)
+        titleLabel.text = bugReportConfig.text.reportBugTitle
+        titleLabel.textColor = bugReportConfig.colors.text
+        titleLabel.font = bugReportConfig.fonts.title
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         navBar.addSubview(titleLabel)
 
         // Send button
-        sendButton.setTitle("Send", for: .normal)
-        sendButton.setTitleColor(isDarkModeEnabled ? .gray : .lightGray, for: .normal)
-        sendButton.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
+        sendButton.setTitle(bugReportConfig.text.sendButton, for: .normal)
+        sendButton.setTitleColor(bugReportConfig.colors.placeholder, for: .normal)
+        sendButton.titleLabel?.font = bugReportConfig.fonts.button
         sendButton.translatesAutoresizingMaskIntoConstraints = false
         sendButton.addTarget(self, action: #selector(sentTapped), for: .touchUpInside)
         sendButton.isEnabled = false
@@ -116,15 +115,15 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
 
     private func setupTextView() {
         textView.backgroundColor = .clear
-        textView.textColor = isDarkModeEnabled ? .white : .black
-        textView.font = UIFont.systemFont(ofSize: 16)
+        textView.textColor = bugReportConfig.colors.text
+        textView.font = bugReportConfig.fonts.description
         textView.delegate = self
         textView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(textView)
 
-        placeholderLabel.text = "Briefly describe the issue you are facing."
-        placeholderLabel.textColor = isDarkModeEnabled ? .gray : .lightGray
-        placeholderLabel.font = UIFont.systemFont(ofSize: 16)
+        placeholderLabel.text = bugReportConfig.text.descriptionPlaceholder
+        placeholderLabel.textColor = bugReportConfig.colors.placeholder
+        placeholderLabel.font = bugReportConfig.fonts.description
         placeholderLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(placeholderLabel)
     }
@@ -138,21 +137,21 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     }
 
     private func setupActionButtons() {
-        screenshotButton.setTitle("Screenshot", for: .normal)
-        screenshotButton.setTitleColor(isDarkModeEnabled ? .white : .black, for: .normal)
-        screenshotButton.backgroundColor = isDarkModeEnabled ? UIColor(white: 0.2, alpha: 1) : UIColor(white: 0.95, alpha: 1)
-        screenshotButton.layer.cornerRadius = 20
-        screenshotButton.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
+        screenshotButton.setTitle(bugReportConfig.text.screenshotButton, for: .normal)
+        screenshotButton.setTitleColor(bugReportConfig.colors.text, for: .normal)
+        screenshotButton.backgroundColor = bugReportConfig.colors.buttonBackground
+        screenshotButton.layer.cornerRadius = bugReportConfig.dimensions.buttonCornerRadius
+        screenshotButton.titleLabel?.font = bugReportConfig.fonts.button
         screenshotButton.translatesAutoresizingMaskIntoConstraints = false
         screenshotButton.addTarget(self, action: #selector(screenshotButtonTapped), for: .touchUpInside)
         screenshotButton.isEnabled = attachments.count < 5
         view.addSubview(screenshotButton)
 
-        uploadButton.setTitle("Upload", for: .normal)
-        uploadButton.setTitleColor(isDarkModeEnabled ? .white : .black, for: .normal)
-        uploadButton.backgroundColor = isDarkModeEnabled ? UIColor(white: 0.2, alpha: 1) : UIColor(white: 0.95, alpha: 1)
-        uploadButton.layer.cornerRadius = 20
-        uploadButton.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
+        uploadButton.setTitle(bugReportConfig.text.uploadButton, for: .normal)
+        uploadButton.setTitleColor(bugReportConfig.colors.text, for: .normal)
+        uploadButton.backgroundColor = bugReportConfig.colors.buttonBackground
+        uploadButton.layer.cornerRadius = bugReportConfig.dimensions.buttonCornerRadius
+        uploadButton.titleLabel?.font = bugReportConfig.fonts.button
         uploadButton.translatesAutoresizingMaskIntoConstraints = false
         uploadButton.addTarget(self, action: #selector(uploadButtonTapped), for: .touchUpInside)
         uploadButton.isEnabled = attachments.count < 5
@@ -183,7 +182,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
             navBar.topAnchor.constraint(equalTo: safe.topAnchor),
             navBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             navBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            navBar.heightAnchor.constraint(equalToConstant: 56),
+            navBar.heightAnchor.constraint(equalToConstant: bugReportConfig.dimensions.navBarHeight),
 
             cancelButton.leadingAnchor.constraint(equalTo: navBar.leadingAnchor, constant: 8),
             cancelButton.centerYAnchor.constraint(equalTo: navBar.centerYAnchor),
@@ -236,7 +235,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         screenshotButton.isEnabled = isEnabled
         uploadButton.isEnabled = isEnabled
 
-        let buttonColor = isEnabled ? (isDarkModeEnabled ? UIColor.white : .black) : (isDarkModeEnabled ? .gray : .lightGray)
+        let buttonColor = isEnabled ? bugReportConfig.colors.text : bugReportConfig.colors.placeholder
 
         screenshotButton.setTitleColor(buttonColor, for: .normal)
         uploadButton.setTitleColor(buttonColor, for: .normal)
@@ -249,7 +248,7 @@ extension BugReportingViewController: UITextViewDelegate {
         let isTextAdded = !textView.text.isEmpty
         placeholderLabel.isHidden = isTextAdded
         sendButton.isEnabled = isTextAdded
-        sendButton.setTitleColor(isTextAdded ? (isDarkModeEnabled ? .white : .black) : (isDarkModeEnabled ? .gray : .lightGray), for: .normal)
+        sendButton.setTitleColor(isTextAdded ? bugReportConfig.colors.text : bugReportConfig.colors.placeholder, for: .normal)
     }
 
     func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText string: String) -> Bool {
@@ -270,7 +269,7 @@ extension BugReportingViewController: UICollectionViewDataSource {
             return UICollectionViewCell()
         }
         if let image = UIImage(data: attachments[indexPath.item].bytes) {
-            cell.configure(with: image, isDarkModeEnabled: isDarkModeEnabled)
+            cell.configure(with: image, isDarkModeEnabled: false)
             cell.onDelete = { [weak self] in
                 self?.attachments.remove(at: indexPath.item)
                 collectionView.reloadData()

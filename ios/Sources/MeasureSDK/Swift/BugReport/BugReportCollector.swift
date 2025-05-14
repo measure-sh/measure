@@ -10,6 +10,7 @@ import UIKit
 
 protocol BugReportCollector {
     func startBugReportFlow(takeScreenshot: Bool,
+                            bugReportConfig: BugReportConfig,
                             attributes: [String: AttributeValue]?)
     func validateBugReport(attachmentsCount: Int,
                            descriptionLength: Int) -> Bool
@@ -40,8 +41,10 @@ final class BaseBugReportCollector: BugReportCollector {
     }
 
     func startBugReportFlow(takeScreenshot: Bool,
+                            bugReportConfig: BugReportConfig,
                             attributes: [String: AttributeValue]?) {
         self.userDefinedAttributes = attributes
+        bugReportManager.setBugReportConfig(bugReportConfig)
         bugReportManager.openBugReporter(attachments: [])
     }
 

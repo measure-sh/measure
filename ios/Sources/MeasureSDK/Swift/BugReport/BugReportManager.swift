@@ -9,6 +9,7 @@ import Foundation
 import UIKit
 
 protocol BugReportManager {
+    func setBugReportConfig(_ bugReportConfig: BugReportConfig)
     func openBugReporter(attachments: [MsrAttachment])
     func setBugReportCollector(_ collector: BaseBugReportCollector)
 }
@@ -20,6 +21,7 @@ final class BaseBugReportManager: BugReportManager {
     private var localAttachments: [MsrAttachment] = []
     private var isBugReporterOpen: Bool = false
     private let configProvider: ConfigProvider
+    private var bugReportConfig: BugReportConfig?
     private weak var bugReportCollector: BaseBugReportCollector?
 
     init(screenshotGenerator: ScreenshotGenerator, configProvider: ConfigProvider) {
@@ -31,6 +33,10 @@ final class BaseBugReportManager: BugReportManager {
         self.bugReportCollector = collector
     }
 
+    func setBugReportConfig(_ bugReportConfig: BugReportConfig) {
+        self.bugReportConfig = bugReportConfig
+    }
+
     func openBugReporter(attachments: [MsrAttachment]) {
         if self.bugReportingViewController != nil || self.isBugReporterOpen {
             return
@@ -39,7 +45,7 @@ final class BaseBugReportManager: BugReportManager {
             guard let self = self else { return }
 
             localAttachments.append(contentsOf: attachments)
-            let bugVC = BugReportingViewController(attachments: self.localAttachments, configProvider: configProvider)
+            let bugVC = BugReportingViewController(attachments: self.localAttachments, configProvider: configProvider, bugReportConfig: bugReportConfig ?? BugReportConfig.default)
             bugVC.modalPresentationStyle = .fullScreen
             bugVC.delegate = self
             self.bugReportingViewController = bugVC
@@ -73,7 +79,7 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
             self.localAttachments = attachments
 
             // Create and show the floating button controller
-            self.floatingButtonViewController = FloatingButtonViewController(screenshotGenerator: self.screenshotGenerator)
+            self.floatingButtonViewController = FloatingButtonViewController(screenshotGenerator: self.screenshotGenerator, bugReportConfig: bugReportConfig ?? BugReportConfig.default)
             self.floatingButtonViewController?.delegate = self
 
             // Get the key window

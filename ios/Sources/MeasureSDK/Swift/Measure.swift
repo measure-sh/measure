@@ -355,12 +355,11 @@ import UIKit
     /// - Parameters:
     ///   - takeScreenshot: Set to `false` to disable the screenshot. Defaults to `true`.
     ///   - attributes: Optional key-value pairs for additional metadata about the bug report.
-    /// - SeeAlso: `MsrBugReportViewController` - the view controller that will be launched.
-    /// - SeeAlso: `trackBugReport()` - to track a bug report using a custom experience instead of the built-in one.
     public func launchBugReport(takeScreenshot: Bool = true,
+                                bugReportConfig: BugReportConfig = .default,
                                 attributes: [String: AttributeValue] = [:]) {
         guard let measureInternal = self.measureInternal else { return }
-        measureInternal.startBugReportFlow(takeScreenshot: takeScreenshot, attributes: attributes)
+        measureInternal.startBugReportFlow(takeScreenshot: takeScreenshot, bugReportConfig: bugReportConfig, attributes: attributes)
     }
 
     /// Enables automatic bug reporting using shake detection.

@@ -127,7 +127,10 @@ import Measure
                 self.navigationController?.pushViewController(controller, animated: true)
             }
         case 4:
-            Measure.shared.launchBugReport()
+//            let text = BugReportConfig.default.text.update(sendButton: "Submit Feedback")
+            let color = BugReportConfig.default.colors.update(isDarkMode: false)
+            let config = BugReportConfig(colors: color)
+            Measure.shared.launchBugReport(takeScreenshot: true, bugReportConfig: config)
         default:
             let controller = ControlsViewController()
             self.navigationController?.pushViewController(controller, animated: true)
