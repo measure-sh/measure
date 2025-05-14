@@ -1070,9 +1070,10 @@ func (s Symbolicator) rewriteNativeException(evs []event.EventField) {
 					frames := event.Frames{}
 					for _, frameNative := range stacktraces[n].Frames {
 						moduleName := extractDirectoryPath(frameNative.AbsPath)
+						functionName := formatFunctionName(frameNative.Function)
 						frame := event.Frame{
 							LineNum:         frameNative.LineNo,
-							MethodName:      frameNative.Function,
+							MethodName:      functionName,
 							FileName:        frameNative.Filename,
 							InstructionAddr: frameNative.InstructionAddr,
 							ModuleName:      moduleName,
@@ -1082,9 +1083,10 @@ func (s Symbolicator) rewriteNativeException(evs []event.EventField) {
 					exceptions[j].Frames = frames
 				} else {
 					moduleName := extractDirectoryPath(stacktraces[n].Frames[k].AbsPath)
+					functionName := formatFunctionName(stacktraces[n].Frames[k].Function)
 					// no inline frames apparently, just rewrite original frame
 					// object parameters with output frame object parameters.
-					exceptions[j].Frames[k].MethodName = stacktraces[n].Frames[k].Function
+					exceptions[j].Frames[k].MethodName = functionName
 					exceptions[j].Frames[k].FileName = stacktraces[n].Frames[k].Filename
 					exceptions[j].Frames[k].LineNum = stacktraces[n].Frames[k].LineNo
 					exceptions[j].Frames[k].InstructionAddr = stacktraces[n].Frames[k].InstructionAddr
@@ -1110,4 +1112,15 @@ func extractDirectoryPath(filePath string) string {
 
 	// If there's no match, return the original string
 	return filePath
+}
+
+// formatFunctionName removes the suffixed contents in rounded brackets.
+// For example, from "MainScreen._trackError (#2)" it will extract "MainScreen._trackError"
+func formatFunctionName(input string) string {
+	re := regexp.MustCompile(`^([^(]*)`)
+	match := re.FindStringSubmatch(input)
+	if len(match) > 1 {
+		return strings.TrimSpace(match[1])
+	}
+	return input
 }
