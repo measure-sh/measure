@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**backend**): Update self host guide (#2139) by @detj in #2139
 - (**backend**): Add banner in contributing (#2101) by @detj in #2101
 - Update github-oauth.md (#2131) by @DominatorVbN in #2131
 
