@@ -1273,10 +1273,12 @@ func (e Exception) IsNested() bool {
 // for certain OutOfMemory stacktraces in
 // Android.
 func (e Exception) HasNoFrames() bool {
-	switch e.GetOSName() {
-	case os.Android:
+	switch e.GetSymbolicationPlatform() {
+	case symbtype.JVM:
 		return len(e.Exceptions[len(e.Exceptions)-1].Frames) == 0
-	case os.IOS:
+	case symbtype.AppleCrashReport:
+		return len(e.Exceptions[0].Frames) == 0
+	case symbtype.Native:
 		return len(e.Exceptions[0].Frames) == 0
 	}
 
@@ -1324,28 +1326,32 @@ func (e Exception) GetTitle() string {
 // GetType provides the type of
 // the exception.
 func (e Exception) GetType() string {
-	switch e.GetOSName() {
+	switch e.GetSymbolicationPlatform() {
 	default:
 		return "unknown type"
-	case os.Android:
+	case symbtype.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Type
-	case os.IOS:
+	case symbtype.AppleCrashReport:
 		return e.Exceptions[0].Signal
+	case symbtype.Native:
+		return e.Exceptions[0].Type
 	}
 }
 
 // GetMessage provides the message of
 // the exception.
 func (e Exception) GetMessage() string {
-	switch e.GetOSName() {
+	switch e.GetSymbolicationPlatform() {
 	default:
 		return "unknown message"
-	case os.Android:
+	case symbtype.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Message
-	case os.IOS:
+	case symbtype.AppleCrashReport:
 		// iOS doesn't have a typical message to
 		// use for an exception
 		return ""
+	case symbtype.Native:
+		return e.Exceptions[0].Message
 	}
 }
 
@@ -1357,11 +1363,13 @@ func (e Exception) GetFileName() string {
 		return ""
 	}
 
-	switch e.GetOSName() {
-	case os.Android:
+	switch e.GetSymbolicationPlatform() {
+	case symbtype.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
-	case os.IOS:
+	case symbtype.AppleCrashReport:
 		return e.GetRelevantFrame().FileName
+	case symbtype.Native:
+		return e.Exceptions[0].Frames[0].FileName
 	}
 
 	return ""
@@ -1375,10 +1383,10 @@ func (e Exception) GetLineNumber() int {
 		return 0
 	}
 
-	switch e.GetOSName() {
-	case os.Android:
+	switch e.GetSymbolicationPlatform() {
+	case symbtype.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
-	case os.IOS:
+	case symbtype.Native:
 		return e.GetRelevantFrame().LineNum
 	}
 
@@ -1393,11 +1401,13 @@ func (e Exception) GetMethodName() string {
 		return ""
 	}
 
-	switch e.GetOSName() {
-	case os.Android:
+	switch e.GetSymbolicationPlatform() {
+	case symbtype.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
-	case os.IOS:
+	case symbtype.AppleCrashReport:
 		return e.GetRelevantFrame().MethodName
+	case symbtype.Native:
+		return e.Exceptions[0].Frames[0].MethodName
 	}
 
 	return ""
@@ -1455,10 +1465,13 @@ func (e Exception) Stacktrace() string {
 			}
 		}
 	case symbtype.Native:
-		for _, exception := range e.Exceptions {
-			for index, frame := range exception.Frames {
+		for i, exception := range e.Exceptions {
+			if i > 0 {
+				b.WriteString("<asynchronous gap>\n")
+			}
+			for j, frame := range exception.Frames {
 				fileLocation := fmt.Sprintf("%s%s:%d", frame.ModuleName, frame.FileName, frame.LineNum)
-				formattedFrame := fmt.Sprintf(" #%d      %s (%s)\n", index, frame.MethodName, fileLocation)
+				formattedFrame := fmt.Sprintf(" #%d      %s (%s)\n", j, frame.MethodName, fileLocation)
 				b.WriteString(formattedFrame)
 			}
 		}
@@ -1518,8 +1531,8 @@ func (e *Exception) ComputeFingerprint() (err error) {
 	// parts of the input
 	sep := ":"
 
-	switch e.GetOSName() {
-	case os.Android:
+	switch e.GetSymbolicationPlatform() {
+	case symbtype.JVM:
 		// get the innermost exception
 		innermostException := e.Exceptions[len(e.Exceptions)-1]
 
@@ -1539,7 +1552,7 @@ func (e *Exception) ComputeFingerprint() (err error) {
 				input += sep + fileName
 			}
 		}
-	case os.IOS:
+	case symbtype.AppleCrashReport:
 		// initialize with the exception type
 		input = e.GetType()
 
@@ -1548,6 +1561,14 @@ func (e *Exception) ComputeFingerprint() (err error) {
 		// first frame.
 		frame := e.GetRelevantFrame()
 
+		if frame.MethodName != "" {
+			input += sep + frame.MethodName
+		}
+		if frame.FileName != "" {
+			input += sep + frame.FileName
+		}
+	case symbtype.Native:
+		frame := e.Exceptions[0].Frames[0]
 		if frame.MethodName != "" {
 			input += sep + frame.MethodName
 		}
