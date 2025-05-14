@@ -328,7 +328,7 @@ List of HTTP status codes for success and failures.
 
 ## References
 
-Exhaustive list of all JSON fields.
+Exhaustive list of all JSON blocks/properties.
 
 ### Attributes
 
@@ -527,7 +527,7 @@ Note: Only non-crashed threads are to be send in thread object.
 Each frame object contains further fields.
 
 | Field                 | Type    | Optional | Comment                                                                                                                                                |
-|-----------------------|---------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `line_num`            | number  | Yes      | Line number of the method                                                                                                                              |
 | `col_num`             | number  | Yes      | Column number of the method                                                                                                                            |
 | `module_name`         | string  | Yes      | Name of the originating module                                                                                                                         |
@@ -724,25 +724,29 @@ Use the `cold_launch` type for Android cold app launch time.
 
 Use the `warm_launch` type for Android warm app launch time.
 
-| Field               | Type    | Optional | Comment                                                                |
-| ------------------- | ------- | -------- | ---------------------------------------------------------------------- |
-| app_visible_uptime  | uint64  | Yes      | The time since the app became visible to the user, in ms.              |
-| on_next_draw_uptime | uint64  | No       | The time at which the app became visible to the user, in ms.           |
-| launched_activity   | string  | No       | The activity which drew the first frame during launch                  |
-| has_saved_state     | boolean | No       | Whether the _launched_activity_ was created with a saved state bundle. |
-| intent_data         | string  | Yes      | The Intent data used to launch the _launched_activity_.                |
+| Field                            | Type    | Optional | Comment                                                                |
+| -------------------------------- | ------- | -------- | ---------------------------------------------------------------------- |
+| `app_visible_uptime`             | uint64  | Yes      | The time since the app became visible to the user, in ms.              |
+| `process_start_uptime`           | uint64  | Yes      | The start uptime, measure in ms.                                       |
+| `process_start_requested_uptime` | uint64  | Yes      | The start uptime, measure in ms.                                       |
+| `content_provider_attach_uptime` | uint64  | Yes      | The start uptime, measure in ms.                                       |
+| `on_next_draw_uptime`            | uint64  | No       | The time at which the app became visible to the user, is ms.           |
+| `launched_activity`              | string  | No       | The activity which drew the first frame during launch.                 |
+| `has_saved_state`                | boolean | No       | Whether the _launched_activity_ was created with a saved state bundle. |
+| `intent_data`                    | string  | Yes      | The Intent data used to launch the _launched_activity_.                |
+| `is_lukewarm`                    | string  | Yes      | Whether the launch benefitted from state restoration.                  |
 
 #### **`hot_launch`**
 
 Use the `hot_launch` type for Android hot app launch time.
 
-| Field               | Type    | Optional | Comment                                                           |
-| ------------------- | ------- | -------- | ----------------------------------------------------------------- |
-| app_visible_uptime  | uint64  | Yes      | The time elapsed since the app became visible to the user, in ms. |
-| on_next_draw_uptime | uint64  | No       | The time at which the app became visible to the user, in ms.      |
-| launched_activity   | string  | No       | The activity which drew the first frame during launch             |
-| has_saved_state     | boolean | No       | Whether the _launched_activity_ was created with a saved state.   |
-| intent_data         | string  | Yes      | The Intent data used to launch the _launched_activity_.           |
+| Field                 | Type    | Optional | Comment                                                           |
+| --------------------- | ------- | -------- | ----------------------------------------------------------------- |
+| `app_visible_uptime`  | uint64  | Yes      | The time elapsed since the app became visible to the user, in ms. |
+| `on_next_draw_uptime` | uint64  | No       | The time at which the app became visible to the user, in ms.      |
+| `launched_activity`   | string  | No       | The activity which drew the first frame during launch             |
+| `has_saved_state`     | boolean | No       | Whether the _launched_activity_ was created with a saved state.   |
+| `intent_data`         | string  | Yes      | The Intent data used to launch the _launched_activity_.           |
 
 #### **`cpu_usage`**
 
@@ -765,16 +769,16 @@ Use the `cpu_usage` type for CPU usage of a Linux based OS.
 
 Use the `memory_usage` type for memory usage of JVM applications.
 
-| Field             | Type   | Optional | Description                                                                                                                   |
-| ----------------- | :----- | :------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| java_max_heap     | uint64 | No       | Maximum size of the Java heap allocated to the application. Measured in kB.                                                   |
-| java_total_heap   | uint64 | No       | Total size of the Java heap available for memory allocation. Measured in kB.                                                  |
-| java_free_heap    | uint64 | No       | Amount of free memory available in the Java heap. Measured in kB.                                                             |
-| total_pss         | uint64 | No       | Total proportional set size - the amount of memory used by the process, including shared memory and code. Measured in kB.     |
-| rss               | uint64 | Yes      | Resident set size of the Java process - the amount of physical memory currently used by the Java application. Measured in kB. |
-| native_total_heap | uint64 | No       | Total size of the native heap (memory outside of Java's control) available for memory allocation. Measured in kB.             |
-| native_free_heap  | uint64 | No       | Amount of free memory available in the native heap. Measured in kB.                                                           |
-| interval          | uint64 | No       | The interval between two consecutive readings. Measured in ms.                                                                |
+| Field               | Type   | Optional | Description                                                                                                                   |
+| ------------------- | :----- | :------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `java_max_heap`     | uint64 | No       | Maximum size of the Java heap allocated to the application. Measured in kB.                                                   |
+| `java_total_heap`   | uint64 | No       | Total size of the Java heap available for memory allocation. Measured in kB.                                                  |
+| `java_free_heap`    | uint64 | No       | Amount of free memory available in the Java heap. Measured in kB.                                                             |
+| `total_pss`         | uint64 | No       | Total proportional set size - the amount of memory used by the process, including shared memory and code. Measured in kB.     |
+| `rss`               | uint64 | Yes      | Resident set size of the Java process - the amount of physical memory currently used by the Java application. Measured in kB. |
+| `native_total_heap` | uint64 | No       | Total size of the native heap (memory outside of Java's control) available for memory allocation. Measured in kB.             |
+| `native_free_heap`  | uint64 | No       | Amount of free memory available in the native heap. Measured in kB.                                                           |
+| `interval`          | uint64 | No       | The interval between two consecutive readings. Measured in ms.                                                                |
 
 #### **`memory_usage_absolute`**
 
@@ -796,23 +800,23 @@ Use the `low_memory` type for a low memory event from the system.
 > trim_memory events instead. Removed in Android SDK version 0.8.0.
 > https://developer.android.com/reference/android/content/ComponentCallbacks#onLowMemory()
 
-| Field             | Type   | Optional | Description                                                                                                                   |
-| ----------------- | :----- | :------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| java_max_heap     | uint64 | No       | Maximum size of the Java heap allocated to the application. Measured in kB.                                                   |
-| java_total_heap   | uint64 | No       | Total size of the Java heap available for memory allocation. Measured in kB.                                                  |
-| java_free_heap    | uint64 | No       | Amount of free memory available in the Java heap. Measured in kB.                                                             |
-| total_pss         | uint64 | No       | Total proportional set size - the amount of memory used by the process, including shared memory and code. Measured in kB.     |
-| rss               | uint64 | Yes      | Resident set size of the Java process - the amount of physical memory currently used by the Java application. Measured in kB. |
-| native_total_heap | uint64 | No       | Total size of the native heap (memory outside of Java's control) available for memory allocation. Measured in kB.             |
-| native_free_heap  | uint64 | No       | Amount of free memory available in the native heap. Measured in kB.                                                           |
+| Field               | Type   | Optional | Description                                                                                                                   |
+| ------------------- | :----- | :------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `java_max_heap`     | uint64 | No       | Maximum size of the Java heap allocated to the application. Measured in kB.                                                   |
+| `java_total_heap`   | uint64 | No       | Total size of the Java heap available for memory allocation. Measured in kB.                                                  |
+| `java_free_heap`    | uint64 | No       | Amount of free memory available in the Java heap. Measured in kB.                                                             |
+| `total_pss`         | uint64 | No       | Total proportional set size - the amount of memory used by the process, including shared memory and code. Measured in kB.     |
+| `rss`               | uint64 | Yes      | Resident set size of the Java process - the amount of physical memory currently used by the Java application. Measured in kB. |
+| `native_total_heap` | uint64 | No       | Total size of the native heap (memory outside of Java's control) available for memory allocation. Measured in kB.             |
+| `native_free_heap`  | uint64 | No       | Amount of free memory available in the native heap. Measured in kB.                                                           |
 
 #### **`trim_memory`**
 
 Use the `trim_memory` type for a trim memory event raised by Android.
 
-| Field | Type   | Optional | Description                                                                                                                              |
-| ----- | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| level | string | No       | One of the constants from [ComponentCallbacks2](https://developer.android.com/reference/android/content/ComponentCallbacks2#constants_1) |
+| Field   | Type   | Optional | Description                                                                                                                              |
+| ------- | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `level` | string | No       | One of the constants from [ComponentCallbacks2](https://developer.android.com/reference/android/content/ComponentCallbacks2#constants_1) |
 
 
 
@@ -824,28 +828,28 @@ Use the `navigation` type for navigation events.
 > This event is no longer tracked and will be removed in future versions.
 > Android SDK removed support for this event from v0.9.0 onwards.
 
-| Field  | Type   | Optional | Description                                                                                                                                                     |
-| ------ | ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| source | string | Yes      | Adds context on how the event was collected. Null if not set.<br/>Example: `androidx_navigation` if the event was collected from `androidx.navigation` library. |
-| from   | string | Yes      | The source page or screen from where the navigation was triggered, if available, null otherwise.                                                                |
-| to     | string | No       | The destination page or screen where the navigation led to.                                                                                                     |
+| Field    | Type   | Optional | Description                                                                                                                                                     |
+| -------- | ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source` | string | Yes      | Adds context on how the event was collected. Null if not set.<br/>Example: `androidx_navigation` if the event was collected from `androidx.navigation` library. |
+| `from`   | string | Yes      | The source page or screen from where the navigation was triggered, if available, null otherwise.                                                                |
+| `to`     | string | No       | The destination page or screen where the navigation led to.                                                                                                     |
 
 
 #### **`screen_view`**
 
 Use the `screen_view` type for screen view events.
 
-| Field | Type   | Optional | Description                   |
-| ----- | ------ | -------- | ----------------------------- |
-| name  | string | No       | The name of the screen viewed |
+| Field  | Type   | Optional | Description                   |
+| ------ | ------ | -------- | ----------------------------- |
+| `name` | string | No       | The name of the screen viewed |
 
 #### **`custom`**
 
 Use the `custom` type for custom events.
 
-| Field | Type   | Optional | Description                  |
-| ----- | ------ | -------- | ---------------------------- |
-| name  | string | No       | The name of the custom event |
+| Field  | Type   | Optional | Description                  |
+| ------ | ------ | -------- | ---------------------------- |
+| `name` | string | No       | The name of the custom event |
 
 ### Traces
 
