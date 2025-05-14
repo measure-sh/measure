@@ -1042,10 +1042,53 @@ func (s *Symbolicator) prepareNativeException(ev event.EventField, index int) {
 			Frames: framesNative,
 		})
 	}
+
+	// print the contents of stacktrace LUT
+	for i := range s.stacktraceLUT {
+		fmt.Printf("stacktrace LUT entry %d: %v\n", i, s.stacktraceLUT[i])
+	}
 }
 
 // rewriteNativeException partially updates the original
 // events with symbolicated data.
 func (s Symbolicator) rewriteNativeException(evs []event.EventField) {
+	stacktraces := s.responseNative.Stacktraces
 
+	for _, entry := range s.stacktraceLUT {
+		i := entry[0]
+		j := entry[1]
+		k := entry[2]
+		n := entry[5]
+
+		exceptions := evs[i].Exception.Exceptions
+
+		if j != -1 && k != -1 {
+			if len(stacktraces) > 0 && len(exceptions) > 0 {
+				if len(stacktraces[n].Frames) > len(exceptions[j].Frames) {
+					// when count of symbolicated output frames is more
+					// than count of unsymbolicated input frames, it implies
+					// that symbolicator came across an inline frame and
+					// unfurled it into multiple frames.
+					// so, prepare new event.Frame objects with the intention
+					// to capture all the output frame data.
+					frames := event.Frames{}
+					for _, frameNative := range stacktraces[n].Frames {
+						frame := event.Frame{
+							LineNum:    frameNative.LineNo,
+							MethodName: frameNative.Function,
+							FileName:   frameNative.Filename,
+						}
+						frames = append(frames, frame)
+					}
+					exceptions[j].Frames = frames
+				} else {
+					// no inline frames apparently, just rewrite original frame
+					// object parameters with output frame object parameters.
+					exceptions[j].Frames[k].MethodName = stacktraces[n].Frames[k].Function
+					exceptions[j].Frames[k].FileName = stacktraces[n].Frames[k].Filename
+					exceptions[j].Frames[k].LineNum = stacktraces[n].Frames[k].LineNo
+				}
+			}
+		}
+	}
 }
