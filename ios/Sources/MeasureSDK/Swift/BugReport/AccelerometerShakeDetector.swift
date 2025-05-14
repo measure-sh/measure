@@ -13,9 +13,11 @@ final class AccelerometerShakeDetector: ShakeDetector {
     private let queue = OperationQueue()
     private weak var listener: ShakeDetectorListener?
     private var lastShakeTime: Date = .distantPast
+    private let configProvider: ConfigProvider
 
-    private let shakeThreshold: Double = 2.7
-    private let minimumShakeInterval: TimeInterval = 1.0
+    init(configProvider: ConfigProvider) {
+        self.configProvider = configProvider
+    }
 
     func start() -> Bool {
         guard motionManager.isAccelerometerAvailable else {
@@ -32,8 +34,8 @@ final class AccelerometerShakeDetector: ShakeDetector {
                 acceleration.z * acceleration.z
             )
 
-            if gForce > self.shakeThreshold &&
-               Date().timeIntervalSince(self.lastShakeTime) > self.minimumShakeInterval {
+            if gForce > Double(self.configProvider.shakeAccelerationThreshold) &&
+                Date().timeIntervalSince(self.lastShakeTime) > Double(self.configProvider.shakeMinTimeIntervalMs/1000) {
                 self.lastShakeTime = Date()
                 DispatchQueue.main.async {
                     self.listener?.onShake()

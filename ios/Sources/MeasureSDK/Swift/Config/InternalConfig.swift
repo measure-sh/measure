@@ -86,4 +86,10 @@ protocol InternalConfig {
 
     /// The maximum number of characters allowed in the bug report description. Defaults to 1000.
     var maxDescriptionLengthInBugReport: Int { get }
+    
+    /// The force threshold to trigger a shake (higher = less sensitive). Defaults to 20.
+    var shakeAccelerationThreshold: Float { get }
+
+    /// Minimum time between shake detections in milliseconds. Defaults to 1500 ms.
+    var shakeMinTimeIntervalMs: Number { get }
 }

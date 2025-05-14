@@ -33,6 +33,14 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var shakeAccelerationThreshold: Float {
+        return getMergedConfig(\.shakeAccelerationThreshold)
+    }
+
+    var shakeMinTimeIntervalMs: Number {
+        return getMergedConfig(\.shakeMinTimeIntervalMs)
+    }
+
     var maxAttachmentsInBugReport: Int {
         return getMergedConfig(\.maxAttachmentsInBugReport)
     }

@@ -388,7 +388,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          timeProvider: timeProvider,
                                                          sessionManager: sessionManager,
                                                          idProvider: idProvider)
-        self.shakeDetector = AccelerometerShakeDetector()
+        self.shakeDetector = AccelerometerShakeDetector(configProvider: configProvider)
         self.screenshotGenerator = BaseScreenshotGenerator(configProvider: configProvider,
                                                            logger: logger,
                                                            attachmentProcessor: attachmentProcessor,
