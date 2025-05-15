@@ -2,7 +2,7 @@ package event
 
 import (
 	"backend/api/chrono"
-	"backend/api/os"
+	"backend/api/symbtype"
 	"bytes"
 	"strings"
 	"text/tabwriter"
@@ -79,6 +79,8 @@ func (e *EventException) ComputeView() {
 		Message:    e.Exception.GetMessage(),
 	}
 
+	sp := e.Exception.GetSymbolicationPlatform()
+
 	var buf bytes.Buffer
 	w := &buf
 
@@ -89,10 +91,10 @@ func (e *EventException) ComputeView() {
 
 		for j := range e.Exception.Threads[i].Frames {
 			frame := e.Exception.Threads[i].Frames[j]
-			switch frame.GetOSName() {
+			switch sp {
 			default:
 				tv.Frames = append(tv.Frames, frame.String())
-			case os.IOS:
+			case symbtype.AppleCrashReport:
 				t.Write(append([]byte(frame.String()), '\n'))
 
 				// flush on last frame
