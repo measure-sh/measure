@@ -1226,25 +1226,6 @@ func (e *EventField) Validate() error {
 	return nil
 }
 
-// GetOSName determines the exception belongs
-// to which OS.
-func (e Exception) GetOSName() (osName string) {
-	osName = os.Unknown
-	if len(e.Exceptions) < 1 {
-		return osName
-	}
-
-	// If ExceptionUnitiOS is not nil, then we can
-	// safely assume the platform as iOS
-	if e.Exceptions[0].ExceptionUnitiOS != nil && e.Exceptions[0].Signal != "" {
-		osName = os.IOS
-	} else {
-		osName = os.Android
-	}
-
-	return
-}
-
 // GetSymbolicationPlatform returns the
 // platform to be used for symbolication
 func (e Exception) GetSymbolicationPlatform() (sp string) {
