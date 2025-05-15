@@ -579,7 +579,12 @@ const Filters: React.FC<FiltersProps> = ({
             setSelectedApp(appFromGivenId)
           }
         } else if (sessionPersistedFilters) {
-          setSelectedApp(sessionPersistedFilters.app)
+          let appFromSessionPersistedFilters = result.data.find((e: App) => e.id === sessionPersistedFilters.app.id)
+          if (appFromSessionPersistedFilters === undefined) {
+            setSelectedApp(result.data[0])
+          } else {
+            setSelectedApp(appFromSessionPersistedFilters)
+          }
         } else {
           setSelectedApp(result.data[0])
         }
