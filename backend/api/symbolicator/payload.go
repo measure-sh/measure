@@ -211,15 +211,15 @@ func NewRequestJVM() *requestJVM {
 
 // AddModule adds a module to the JVM request
 // payload only if not already present.
-func (r *requestNative) AddMachOModule(debugId string, arch string, imageAddr string) {
+func (r *requestNative) AddMachOModule(codeId string, arch string, imageAddr string) {
 	for _, m := range r.Modules {
-		if m.DebugId == debugId {
+		if m.CodeId == codeId {
 			return
 		}
 	}
 
 	r.Modules = append(r.Modules, moduleNative{
-		DebugId:   debugId,
+		CodeId:    codeId,
 		Type:      "macho",
 		Arch:      arch,
 		ImageAddr: imageAddr,

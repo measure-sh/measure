@@ -284,6 +284,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 				// encountered any Native exceptions.
 				if len(mappings) > 0 && s.requestNative != nil && (len(s.requestNative.Stacktraces) > 0) {
 					baseAddr := "0x" + ev.Exception.BinaryImages[0].BaseAddr
+					uuid := ev.Exception.BinaryImages[0].Uuid
 
 					// Dart exceptions need to be symbolicated
 					// and may require changes in the future
@@ -298,13 +299,11 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 					// requires a code_id to be added to the module.
 					// This is extracted from exception itself
 					// and parsed from the binary images.
-					for key, mType := range mappings {
+					for _, mType := range mappings {
 						switch mType {
 						case symbol.TypeDsym:
-							debugId := symbol.MappingKeyToDebugId(key)
-							s.requestNative.AddMachOModule(debugId, ev.Exception.BinaryImages[0].Arch, baseAddr)
+							s.requestNative.AddMachOModule(uuid, ev.Exception.BinaryImages[0].Arch, baseAddr)
 						case symbol.TypeElfDebug:
-							uuid := ev.Exception.BinaryImages[0].Uuid
 							s.requestNative.AddElfModule(uuid, ev.Exception.BinaryImages[0].Arch, baseAddr)
 						}
 					}
