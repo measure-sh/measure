@@ -9,9 +9,28 @@ import Measure
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
-    let config = BaseMeasureConfig(enableLogging: true, samplingRateForErrorFreeSessions: 1.0)
-    let clientInfo = ClientInfo(apiKey: "msrsh_49154dbe42ba4649414c62059c72bd80fb7848fd74ad554d27d89edc5a107a5a_27ab5454", apiUrl: "https://7942-2401-4900-1c6f-26a9-dc4e-213a-b3d2-7109.ngrok-free.app")
+
+    let config = BaseMeasureConfig(
+      enableLogging: true,
+      samplingRateForErrorFreeSessions: 1.0
+    )
+
+    let clientInfo: ClientInfo
+
+    #if DEBUG
+    clientInfo = ClientInfo(
+      apiKey: "msrsh_7c22875ec57832fa068f8f74e8a4663dd38688e462ca9bb5f70e2028ac0d5cd7_4461dc8e",
+      apiUrl: "https://be1a-2401-4900-1c2b-5214-9494-4f78-a8d8-51ae.ngrok-free.app"
+    )
+    #else
+    clientInfo = ClientInfo(
+      apiKey: "msrsh_49154dbe42ba4649414c62059c72bd80fb7848fd74ad554d27d89edc5a107a5a_27ab5454",
+      apiUrl: "https://be1a-2401-4900-1c2b-5214-9494-4f78-a8d8-51ae.ngrok-free.app"
+    )
+    #endif
+
     Measure.shared.initialize(with: clientInfo, config: config)
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }
