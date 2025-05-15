@@ -27,6 +27,7 @@ measure.sh is designed from the ground up for easy self-hosting. Follow along to
   - [Q. I made some mistake and want to start the installation over?](#q-i-made-some-mistake-and-want-to-start-the-installation-over)
   - [Q. How to perform healthcheck of Measure services?](#q-how-to-perform-healthcheck-of-measure-services)
   - [Q. Can I host Measure behind a VPN?](#q-can-i-host-measure-behind-a-vpn)
+  - [Q. I'm using nginx as a reverse proxy. What configurations should I change?](#q-im-using-nginx-as-a-reverse-proxy-what-configurations-should-i-change)
   - [Q. Why does ClickHouse consume high amount of CPU or memory?](#q-why-does-clickhouse-consume-high-amount-of-cpu-or-memory)
 
 ## Objectives
@@ -433,6 +434,20 @@ Absolutely! Hosting Measure behind a VPN is a great way to shield it from public
 [Read more on `bind`.](https://caddyserver.com/docs/caddyfile/directives/bind)
 
 In the above setup, only authorized VPN users will be able to access the Measure Dashboard, without disrupting ingestion of events coming from Measure SDKs.
+
+### Q. I'm using nginx as a reverse proxy. What configurations should I change?
+
+When using nginx, make sure to increase the `client_max_body_size` to sufficiently large value like `1024M` (1 GiB). This ensures large debug mapping files, like proguard and macho files will not fail to upload.
+
+```
+http {
+  # other configuration
+
+  client_max_body_size 1024M;
+
+  # other configuration
+}
+```
 
 ### Q. Why does ClickHouse consume high amount of CPU or memory?
 
