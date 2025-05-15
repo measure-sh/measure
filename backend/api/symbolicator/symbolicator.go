@@ -283,7 +283,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 				// symbolication request if we
 				// encountered any Native exceptions.
 				if len(mappings) > 0 && s.requestNative != nil && (len(s.requestNative.Stacktraces) > 0) {
-					baseAddr := ev.Exception.BinaryImages[0].BaseAddr
+					baseAddr := "0x" + ev.Exception.BinaryImages[0].BaseAddr
 
 					// Dart exceptions need to be symbolicated
 					// and may require changes in the future
