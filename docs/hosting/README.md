@@ -437,7 +437,7 @@ In the above setup, only authorized VPN users will be able to access the Measure
 
 ### Q. I'm using nginx as a reverse proxy. What configurations should I change?
 
-When using nginx, make sure to increase the `client_max_body_size` to sufficiently large value like `1024M` (1 GiB). This allows large debug mapping files, like proguard and macho files will not fail to upload.
+When using nginx, make sure to increase the `client_max_body_size` to sufficiently large value like `1024M` (1 GiB). This ensures large debug mapping files, like proguard and macho files will not fail to upload.
 
 ```
 http {
