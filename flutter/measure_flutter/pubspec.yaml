@@ -1,7 +1,7 @@
 name: measure_flutter
 description: "A new Flutter plugin project."
 version: 0.0.1
-homepage:
+homepage: https://github.com/measure-sh/measure
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
