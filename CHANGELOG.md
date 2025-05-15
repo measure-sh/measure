@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :sparkles: New features
 
 - (**backend**): Implement email invites by @anupcowkur in #2091
+- (**frontend**): Add collapsible sidebar with submenus by @anupcowkur in #2148
 - (**frontend**): Show profile pic of logged in user by @anupcowkur in #2115
 - (**frontend**): Show logged in user avatar by @anupcowkur in #2110
 
