@@ -488,16 +488,16 @@ const Filters: React.FC<FiltersProps> = ({
   const [selectedApp, setSelectedApp] = useState<App | null>(null)
 
   const [rootSpanNames, setRootSpanNames] = useState([] as string[])
-  const [selectedRootSpanName, setSelectedRootSpanName] = useState(urlFilters.rootSpanName ? urlFilters.rootSpanName : '')
+  const [selectedRootSpanName, setSelectedRootSpanName] = useState('')
 
-  const [selectedSpanStatuses, setSelectedSpanStatuses] = useState(urlFilters.spanStatuses ? urlFilters.spanStatuses : filterSource === FilterSource.Spans ? [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error] : [])
+  const [selectedSpanStatuses, setSelectedSpanStatuses] = useState(filterSource === FilterSource.Spans ? [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error] : [])
 
-  const [selectedBugReportStatuses, setSelectedBugReportStatuses] = useState(urlFilters.bugReportStatuses ? urlFilters.bugReportStatuses : [BugReportStatus.Open])
+  const [selectedBugReportStatuses, setSelectedBugReportStatuses] = useState([BugReportStatus.Open])
 
   const [versions, setVersions] = useState([] as AppVersion[])
   const [selectedVersions, setSelectedVersions] = useState([] as AppVersion[])
 
-  const [selectedSessionType, setSelectedSessionType] = useState(urlFilters.sessionType ? urlFilters.sessionType : SessionType.All)
+  const [selectedSessionType, setSelectedSessionType] = useState(SessionType.All)
 
   const [osVersions, setOsVersions] = useState([] as OsVersion[])
   const [selectedOsVersions, setSelectedOsVersions] = useState([] as OsVersion[])
@@ -525,9 +525,9 @@ const Filters: React.FC<FiltersProps> = ({
 
   const [userDefAttrs, setUserDefAttrs] = useState([] as UserDefAttr[])
   const [userDefAttrOps, setUserDefAttrOps] = useState<Map<string, string[]>>(new Map())
-  const [selectedUdAttrMatchers, setSelectedUdAttrMatchers] = useState<UdAttrMatcher[]>(urlFilters.udAttrMatchers ? urlFilters.udAttrMatchers : [])
+  const [selectedUdAttrMatchers, setSelectedUdAttrMatchers] = useState<UdAttrMatcher[]>([])
 
-  const [selectedFreeText, setSelectedFreeText] = useState(urlFilters.freeText ? urlFilters.freeText : '')
+  const [selectedFreeText, setSelectedFreeText] = useState('')
 
   const initDateRange = urlFilters.dateRange ? urlFilters.dateRange : sessionPersistedFilters ? sessionPersistedFilters.dateRange : DateRange.Last6Hours
   const [selectedDateRange, setSelectedDateRange] = useState(initDateRange)
@@ -620,7 +620,7 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedRootSpanNames = result.data.results
           setRootSpanNames(parsedRootSpanNames)
 
-          if (urlFilters.rootSpanName) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.rootSpanName) {
             const selectedRootSpanName = parsedRootSpanNames.find((name: string) => name === urlFilters.rootSpanName)
             if (selectedRootSpanName === undefined) {
               setSelectedRootSpanName(parsedRootSpanNames[0])
@@ -680,7 +680,7 @@ const Filters: React.FC<FiltersProps> = ({
 
           setVersions(parsedVersions)
 
-          if (urlFilters.versions) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.versions) {
             const selectedVersions = urlFilters.versions
               .filter((index) => index >= 0 && index < parsedVersions.length)
               .map((index) => parsedVersions[index])
@@ -698,7 +698,7 @@ const Filters: React.FC<FiltersProps> = ({
 
           setOsVersions(parsedOsVersions)
 
-          if (urlFilters.osVersions) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.osVersions) {
             const selectedOsVersions = urlFilters.osVersions
               .filter((index) => index >= 0 && index < parsedOsVersions.length)
               .map((index) => parsedOsVersions[index])
@@ -712,7 +712,7 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedCountries = result.data.countries
           setCountries(parsedCountries)
 
-          if (urlFilters.countries) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.countries) {
             const selectedCountries = urlFilters.countries
               .filter((index) => index >= 0 && index < parsedCountries.length)
               .map((index) => parsedCountries[index])
@@ -726,7 +726,7 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedNetworkProviders = result.data.network_providers
           setNetworkProviders(parsedNetworkProviders)
 
-          if (urlFilters.networkProviders) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.networkProviders) {
             const selectedNetworkProviders = urlFilters.networkProviders
               .filter((index) => index >= 0 && index < parsedNetworkProviders.length)
               .map((index) => parsedNetworkProviders[index])
@@ -740,7 +740,7 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedNetworkTypes = result.data.network_types
           setNetworkTypes(parsedNetworkTypes)
 
-          if (urlFilters.networkTypes) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.networkTypes) {
             const selectedNetworkTypes = urlFilters.networkTypes
               .filter((index) => index >= 0 && index < parsedNetworkTypes.length)
               .map((index) => parsedNetworkTypes[index])
@@ -754,7 +754,7 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedNetworkGenerations = result.data.network_generations
           setNetworkGenerations(parsedNetworkGenerations)
 
-          if (urlFilters.networkGenerations) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.networkGenerations) {
             const selectedNetworkGenerations = urlFilters.networkGenerations
               .filter((index) => index >= 0 && index < parsedNetworkGenerations.length)
               .map((index) => parsedNetworkGenerations[index])
@@ -769,7 +769,7 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedLocales = result.data.locales
           setLocales(parsedLocales)
 
-          if (urlFilters.locales) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.locales) {
             const selectedLocales = urlFilters.locales
               .filter((index) => index >= 0 && index < parsedLocales.length)
               .map((index) => parsedLocales[index])
@@ -783,7 +783,7 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedDeviceManufacturers = result.data.device_manufacturers
           setDeviceManufacturers(parsedDeviceManufacturers)
 
-          if (urlFilters.deviceManufacturers) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.deviceManufacturers) {
             const selectedDeviceManufacturers = urlFilters.deviceManufacturers
               .filter((index) => index >= 0 && index < parsedDeviceManufacturers.length)
               .map((index) => parsedDeviceManufacturers[index])
@@ -797,7 +797,7 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedDeviceNames = result.data.device_names
           setDeviceNames(parsedDeviceNames)
 
-          if (urlFilters.deviceNames) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.deviceNames) {
             const selectedDeviceNames = urlFilters.deviceNames
               .filter((index) => index >= 0 && index < parsedDeviceNames.length)
               .map((index) => parsedDeviceNames[index])
@@ -813,6 +813,58 @@ const Filters: React.FC<FiltersProps> = ({
 
           setUserDefAttrs(parsedUserDefAttrs)
           setUserDefAttrOps(parsedUserDefAttrOps)
+
+          if (urlFilters.appId === selectedApp!.id && urlFilters.udAttrMatchers) {
+            const selectedUdAttrMatchers = urlFilters.udAttrMatchers
+              .filter((m: UdAttrMatcher) => {
+                // Find the attribute definition for this matcher
+                const attr = parsedUserDefAttrs.find((attr: UserDefAttr) => attr.key === m.key)
+                if (!attr) return false
+                // Use the type from the attribute definition and check if the op is valid for this type
+                const ops = parsedUserDefAttrOps.get(attr.type)
+                const opExists = ops ? ops.includes(m.op) : false
+                // Accept if key exists, op exists for the type, and value is not undefined
+                return opExists && m.value !== undefined
+              })
+            setSelectedUdAttrMatchers(selectedUdAttrMatchers)
+          } else {
+            setSelectedUdAttrMatchers([])
+          }
+        } else {
+          setUserDefAttrs([])
+          setUserDefAttrOps(new Map<string, string[]>())
+          setSelectedUdAttrMatchers([])
+        }
+
+
+        if (urlFilters.appId === selectedApp!.id && urlFilters.spanStatuses) {
+          const selectedSpanStatuses = urlFilters.spanStatuses
+            .filter((s: string) => Object.values(SpanStatus).includes(s as SpanStatus))
+            .map((s: string) => s as SpanStatus)
+          setSelectedSpanStatuses(selectedSpanStatuses)
+        } else {
+          setSelectedSpanStatuses(filterSource === FilterSource.Spans ? [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error] : [])
+        }
+
+        if (urlFilters.appId === selectedApp!.id && urlFilters.bugReportStatuses) {
+          const selectedBugReportStatuses = urlFilters.bugReportStatuses
+            .filter((s: string) => Object.values(BugReportStatus).includes(s as BugReportStatus))
+            .map((s: string) => s as BugReportStatus)
+          setSelectedBugReportStatuses(selectedBugReportStatuses)
+        } else {
+          setSelectedBugReportStatuses([BugReportStatus.Open])
+        }
+
+        if (urlFilters.appId === selectedApp!.id && urlFilters.sessionType) {
+          setSelectedSessionType(urlFilters.sessionType)
+        } else {
+          setSelectedSessionType(SessionType.All)
+        }
+
+        if (urlFilters.appId === selectedApp!.id && urlFilters.freeText) {
+          setSelectedFreeText(urlFilters.freeText)
+        } else {
+          setSelectedFreeText('')
         }
 
         break
