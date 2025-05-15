@@ -12,6 +12,7 @@ final class ExceptionFactory {
   static final _archRegex = RegExp(r'arch[:=] *([A-Za-z0-9]+)');
 
   static ExceptionData? from(FlutterErrorDetails details, bool handled) {
+    print(details.stack);
     var stackTrace = details.stack;
     if (stackTrace == null) {
       return null;
@@ -143,6 +144,17 @@ final class ExceptionFactory {
 
   static String _getMessage(FlutterErrorDetails details) {
     return details.exception.toString();
+  }
+
+  static List<BinaryImage> _createBinaryImage(StackTrace stack) {
+    var stackStr = stack.toString();
+    final baseAddr = _baseAddrRegex.firstMatch(stackStr)?.group(1);
+    final buildId = _buildIdRegex.firstMatch(stackStr)?.group(1);
+    final arch = _archRegex.firstMatch(stackStr)?.group(1);
+    if (baseAddr != null && buildId != null && arch != null) {
+      return [BinaryImage(baseAddr: baseAddr, uuid: buildId, arch: arch)];
+    }
+    return [];
   }
 }
 
