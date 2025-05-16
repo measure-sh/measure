@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:developer' as developer;
+import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:measure_flutter/attribute_value.dart';
@@ -8,7 +10,7 @@ import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/measure_interface.dart';
 import 'package:measure_flutter/src/measure_internal.dart';
 
-class Measure implements IMeasure {
+class Measure implements MeasureApi {
   Measure._();
 
   static final Measure instance = Measure._();
@@ -20,13 +22,11 @@ class Measure implements IMeasure {
   bool get isInitialized => _isInitialized;
 
   @override
-  Future<void> init({
+  Future<void> start(
+    FutureOr<void> Function() block, {
     bool enableLogging = false,
   }) async {
-    if (_isInitialized) {
-      return;
-    }
-
+    WidgetsFlutterBinding.ensureInitialized();
     try {
       await _initializeInternal(enableLogging);
       _isInitialized = true;
@@ -34,6 +34,19 @@ class Measure implements IMeasure {
     } catch (e, stackTrace) {
       _logInitializationFailure(enableLogging, e, stackTrace);
     }
+    _initFlutterOnError();
+    await _initPlatformDispatcherOnError(block);
+  }
+
+  void _initFlutterOnError() {
+    final originalHandler = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (originalHandler != null) {
+        originalHandler(details);
+      } else {
+        FlutterError.presentError(details);
+      }
+    };
   }
 
   @override
@@ -48,9 +61,10 @@ class Measure implements IMeasure {
   }
 
   @override
-  Future<void> trackFlutterError(FlutterErrorDetails details) {
+  Future<void> trackHandledError(Object error, StackTrace stack) {
     if (_isInitialized) {
-      return _measure.trackFlutterError(details);
+      final details = FlutterErrorDetails(exception: error, stack: stack);
+      return _measure.trackError(details, handled: false);
     }
     return Future.value();
   }
@@ -88,5 +102,17 @@ class Measure implements IMeasure {
   void _logInitializationSuccess() {
     _measure.logger
         .log(LogLevel.debug, "Successfully initialized Measure Flutter SDK");
+  }
+
+  Future<void> _initPlatformDispatcherOnError(
+    FutureOr<void> Function() block,
+  ) async {
+    PlatformDispatcher.instance.onError = (exception, stackTrace) {
+      final details =
+          FlutterErrorDetails(exception: exception, stack: stackTrace);
+      _measure.trackError(details, handled: false);
+      return false;
+    };
+    await block();
   }
 }

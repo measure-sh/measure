@@ -87,8 +87,9 @@ void main() {
       );
 
       collector.register();
-      collector.trackFlutterError(
+      collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
+        handled: false,
       );
 
       expect(signalProcessor.trackedExceptions.length, 1);
@@ -136,8 +137,9 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
       );
 
       collector.register();
-      collector.trackFlutterError(
+      collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
+        handled: false,
       );
 
       expect(signalProcessor.trackedExceptions.length, 1);

@@ -1,7 +1,8 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
 
-abstract class IMeasure {
-  Future<void> init({
+abstract class MeasureApi {
+  Future<void> start(
+    FutureOr<void> Function() action, {
     bool enableLogging = false,
   });
 
@@ -10,7 +11,7 @@ abstract class IMeasure {
     required DateTime? timestamp,
   });
 
-  void trackFlutterError(FlutterErrorDetails details);
+  void trackHandledError(Object error, StackTrace stack);
 
   void triggerNativeCrash();
 }

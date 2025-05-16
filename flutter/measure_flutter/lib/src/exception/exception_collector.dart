@@ -26,9 +26,12 @@ final class ExceptionCollector {
     enabled = false;
   }
 
-  Future<void> trackFlutterError(FlutterErrorDetails details) {
+  Future<void> trackError(
+    FlutterErrorDetails details, {
+    required bool handled,
+  }) {
     if (!enabled) return Future.value();
-    final ExceptionData exceptionData = ExceptionFactory.from(details);
+    final ExceptionData exceptionData = ExceptionFactory.from(details, handled);
     return signalProcessor.trackEvent(
       data: exceptionData,
       type: EventType.exception,
