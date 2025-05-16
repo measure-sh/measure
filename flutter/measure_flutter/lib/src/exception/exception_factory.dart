@@ -9,7 +9,7 @@ final class ExceptionFactory {
   static final _frameRegex = RegExp(r'^\s*#', multiLine: true);
   static final _baseAddrRegex = RegExp(r'isolate_dso_base[:=] *([A-Fa-f0-9]+)');
 
-  static ExceptionData from(FlutterErrorDetails details) {
+  static ExceptionData from(FlutterErrorDetails details, bool handled) {
     final result = _parseStackTrace(details.stack);
     final List<Trace> traces = result.traces;
     final String? binaryAddr = result.binaryAddr;
@@ -31,9 +31,6 @@ final class ExceptionFactory {
       final List<MsrFrame> frames = _createMsrFrames(trace.frames);
       exceptions.add(ExceptionUnit(frames: frames));
     }
-
-    // FlutterError does not crash the app
-    final handled = details.exception is FlutterError;
 
     // The foreground property is hard coded to true.
     // Native platforms are expected to update this value.

@@ -9,22 +9,7 @@ import 'package:measure_flutter_example/src/list_item.dart';
 import 'package:stack_trace/stack_trace.dart';
 
 Future<void> main() async {
-  FlutterError.onError = (FlutterErrorDetails details) async {
-    await Measure.instance.trackFlutterError(details);
-    FlutterError.dumpErrorToConsole(details, forceReport: true);
-  };
-
-  runZonedGuarded(() async {
-    await Measure.instance.init(enableLogging: true);
-    runApp(const MyApp());
-  }, (error, stackTrace) async {
-    final details = FlutterErrorDetails(
-      exception: error,
-      stack: stackTrace,
-    );
-    await Measure.instance.trackFlutterError(details);
-    FlutterError.dumpErrorToConsole(details, forceReport: true);
-  });
+  await Measure.instance.start(() => runApp(MyApp()), enableLogging: true);
 }
 
 class MyApp extends StatefulWidget {

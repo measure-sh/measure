@@ -34,8 +34,11 @@ final class MeasureInternal {
     _customEventCollector.trackCustomEvent(name, timestamp, attributes);
   }
 
-  Future<void> trackFlutterError(FlutterErrorDetails details) {
-    return _exceptionCollector.trackFlutterError(details);
+  Future<void> trackError(
+    FlutterErrorDetails details, {
+    required bool handled,
+  }) {
+    return _exceptionCollector.trackError(details, handled: handled);
   }
 
   void triggerNativeCrash() {
