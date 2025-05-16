@@ -33,6 +33,10 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var accelerometerUpdateInterval: TimeInterval {
+        return getMergedConfig(\.accelerometerUpdateInterval)
+    }
+
     var shakeAccelerationThreshold: Float {
         return getMergedConfig(\.shakeAccelerationThreshold)
     }

@@ -45,7 +45,7 @@ final class BaseBugReportCollector: BugReportCollector {
                             attributes: [String: AttributeValue]?) {
         self.userDefinedAttributes = attributes
         bugReportManager.setBugReportConfig(bugReportConfig)
-        bugReportManager.openBugReporter(attachments: [])
+        bugReportManager.openBugReporter([], takeScreenshot: takeScreenshot)
     }
 
     func validateBugReport(attachmentsCount: Int, descriptionLength: Int) -> Bool {

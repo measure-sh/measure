@@ -10,7 +10,7 @@ import UIKit
 
 protocol BugReportManager {
     func setBugReportConfig(_ bugReportConfig: BugReportConfig)
-    func openBugReporter(attachments: [Attachment])
+    func openBugReporter(_ attachments: [Attachment], takeScreenshot: Bool)
     func setBugReportCollector(_ collector: BaseBugReportCollector)
 }
 
@@ -24,6 +24,7 @@ final class BaseBugReportManager: BugReportManager {
     private let idProvider: IdProvider
     private var bugReportConfig: BugReportConfig?
     private weak var bugReportCollector: BaseBugReportCollector?
+    private var hasBugReportFlowStarted = false
 
     init(screenshotGenerator: ScreenshotGenerator, configProvider: ConfigProvider, idProvider: IdProvider) {
         self.screenshotGenerator = screenshotGenerator
@@ -39,12 +40,18 @@ final class BaseBugReportManager: BugReportManager {
         self.bugReportConfig = bugReportConfig
     }
 
-    func openBugReporter(attachments: [Attachment]) {
-        if self.bugReportingViewController != nil || self.isBugReporterOpen {
+    func openBugReporter(_ attachments: [Attachment], takeScreenshot: Bool) {
+        if self.bugReportingViewController != nil || self.isBugReporterOpen || self.hasBugReportFlowStarted {
             return
         }
+        self.hasBugReportFlowStarted = true
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
+            if takeScreenshot,
+               let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }),
+               let attachment = screenshotGenerator.generate(window: window, name: screenshotName, storageType: .data) {
+                localAttachments.append(attachment)
+            }
             self.openBugReportViewController()
         }
     }
@@ -73,6 +80,8 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
         if let description = description, let attachments = attachments {
             bugReportCollector?.trackBugReport(description: description, attachments: attachments, attributes: nil)
         }
+        self.localAttachments = []
+        self.hasBugReportFlowStarted = false
     }
 
     func bugReportingViewControllerDidRequestScreenshot(_ attachments: [Attachment]) {
@@ -82,15 +91,14 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
             guard let self = self else { return }
             self.localAttachments = attachments
 
-            // Create and show the floating button controller
-            self.floatingButtonViewController = FloatingButtonViewController(screenshotGenerator: self.screenshotGenerator, bugReportConfig: bugReportConfig ?? BugReportConfig.default, attachments: self.localAttachments, configProvider: configProvider)
+            self.floatingButtonViewController = FloatingButtonViewController(screenshotGenerator: self.screenshotGenerator,
+                                                                             bugReportConfig: bugReportConfig ?? BugReportConfig.default,
+                                                                             attachments: self.localAttachments,
+                                                                             configProvider: configProvider)
             self.floatingButtonViewController?.delegate = self
 
-            // Get the key window
             if let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) {
-                // Set the frame to match the window bounds
                 self.floatingButtonViewController?.view.frame = window.bounds
-                // Add the view to the window
                 window.addSubview(self.floatingButtonViewController!.view)
             }
         }
@@ -102,7 +110,7 @@ extension BaseBugReportManager: FloatingButtonViewControllerDelegate {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.localAttachments = attachments
-            self.openBugReporter(attachments: attachments)
+            self.openBugReportViewController()
         }
     }
 }

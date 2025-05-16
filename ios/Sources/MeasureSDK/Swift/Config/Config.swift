@@ -53,6 +53,7 @@ struct Config: InternalConfig, MeasureConfig {
     let maxDescriptionLengthInBugReport: Int
     let shakeAccelerationThreshold: Float
     let shakeMinTimeIntervalMs: Number
+    let accelerometerUpdateInterval: TimeInterval
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
@@ -109,8 +110,9 @@ struct Config: InternalConfig, MeasureConfig {
         self.maxCheckpointNameLength = 64
         self.maxCheckpointsPerSpan = 100
         self.maxAttachmentsInBugReport = 5
-        self.maxDescriptionLengthInBugReport = 1000
+        self.maxDescriptionLengthInBugReport = 4000
         self.shakeAccelerationThreshold = 20
         self.shakeMinTimeIntervalMs = 1500
+        self.accelerometerUpdateInterval = 0.1
     }
 }

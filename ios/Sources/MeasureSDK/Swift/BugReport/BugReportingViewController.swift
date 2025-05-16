@@ -36,7 +36,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     private var attachments: [Attachment]
 
     private let screenshotButton = UIButton(type: .system)
-    private let uploadButton = UIButton(type: .system)
+    private let galleryButton = UIButton(type: .system)
 
     init(attachments: [Attachment] = [], configProvider: ConfigProvider, bugReportConfig: BugReportConfig, idProvider: IdProvider) {
         self.attachments = attachments
@@ -139,25 +139,44 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     }
 
     private func setupActionButtons() {
+        // Configure screenshot button
+        if #available(iOS 13.0, *) {
+            let screenshotConfig = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+            let screenshotImage = UIImage(systemName: "camera.fill", withConfiguration: screenshotConfig)
+            screenshotButton.setImage(screenshotImage, for: .normal)
+            screenshotButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 0)
+            screenshotButton.titleEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: -8)
+        }
         screenshotButton.setTitle(bugReportConfig.text.screenshotButton, for: .normal)
         screenshotButton.setTitleColor(bugReportConfig.colors.text, for: .normal)
+        screenshotButton.tintColor = bugReportConfig.colors.text
         screenshotButton.backgroundColor = bugReportConfig.colors.buttonBackground
         screenshotButton.layer.cornerRadius = 20
         screenshotButton.titleLabel?.font = bugReportConfig.fonts.button
         screenshotButton.translatesAutoresizingMaskIntoConstraints = false
         screenshotButton.addTarget(self, action: #selector(screenshotButtonTapped), for: .touchUpInside)
-        screenshotButton.isEnabled = attachments.count < 5
+        screenshotButton.isEnabled = attachments.count < configProvider.maxAttachmentsInBugReport
         view.addSubview(screenshotButton)
 
-        uploadButton.setTitle(bugReportConfig.text.uploadButton, for: .normal)
-        uploadButton.setTitleColor(bugReportConfig.colors.text, for: .normal)
-        uploadButton.backgroundColor = bugReportConfig.colors.buttonBackground
-        uploadButton.layer.cornerRadius = 20
-        uploadButton.titleLabel?.font = bugReportConfig.fonts.button
-        uploadButton.translatesAutoresizingMaskIntoConstraints = false
-        uploadButton.addTarget(self, action: #selector(uploadButtonTapped), for: .touchUpInside)
-        uploadButton.isEnabled = attachments.count < 5
-        view.addSubview(uploadButton)
+        // Configure gallery button
+        if #available(iOS 13.0, *) {
+            let galleryConfig = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+            let galleryImage = UIImage(systemName: "photo.fill", withConfiguration: galleryConfig)
+            galleryButton.setImage(galleryImage, for: .normal)
+            galleryButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 0)
+            galleryButton.titleEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: -8)
+        }
+        galleryButton.setTitle(bugReportConfig.text.galleryButton, for: .normal)
+        galleryButton.setTitleColor(bugReportConfig.colors.text, for: .normal)
+        galleryButton.tintColor = bugReportConfig.colors.text
+        galleryButton.backgroundColor = bugReportConfig.colors.buttonBackground
+        galleryButton.layer.cornerRadius = 20
+        galleryButton.titleLabel?.font = bugReportConfig.fonts.button
+        galleryButton.translatesAutoresizingMaskIntoConstraints = false
+        galleryButton.addTarget(self, action: #selector(galleryButtonTapped), for: .touchUpInside)
+        galleryButton.isEnabled = attachments.count < configProvider.maxAttachmentsInBugReport
+        view.addSubview(galleryButton)
+        updateActionButtonsState()
     }
 
     @objc private func screenshotButtonTapped() {
@@ -168,7 +187,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         }
     }
 
-    @objc private func uploadButtonTapped() {
+    @objc private func galleryButtonTapped() {
         let imagePicker = UIImagePickerController()
         imagePicker.delegate = self
         imagePicker.sourceType = .photoLibrary
@@ -216,12 +235,12 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
             screenshotButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             screenshotButton.topAnchor.constraint(equalTo: imagesCollectionView.bottomAnchor, constant: 16),
             screenshotButton.heightAnchor.constraint(equalToConstant: 44),
-            screenshotButton.trailingAnchor.constraint(equalTo: uploadButton.leadingAnchor, constant: -16),
-            screenshotButton.widthAnchor.constraint(equalTo: uploadButton.widthAnchor, multiplier: 1.0),
+            screenshotButton.trailingAnchor.constraint(equalTo: galleryButton.leadingAnchor, constant: -16),
+            screenshotButton.widthAnchor.constraint(equalTo: galleryButton.widthAnchor, multiplier: 1.0),
 
-            uploadButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            uploadButton.topAnchor.constraint(equalTo: imagesCollectionView.bottomAnchor, constant: 16),
-            uploadButton.heightAnchor.constraint(equalToConstant: 44)
+            galleryButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            galleryButton.topAnchor.constraint(equalTo: imagesCollectionView.bottomAnchor, constant: 16),
+            galleryButton.heightAnchor.constraint(equalToConstant: 44)
         ])
     }
 
@@ -233,14 +252,14 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     }
 
     private func updateActionButtonsState() {
-        let isEnabled = attachments.count < 5
+        let isEnabled = attachments.count < configProvider.maxAttachmentsInBugReport
         screenshotButton.isEnabled = isEnabled
-        uploadButton.isEnabled = isEnabled
+        galleryButton.isEnabled = isEnabled
 
         let buttonColor = isEnabled ? bugReportConfig.colors.text : bugReportConfig.colors.placeholder
 
         screenshotButton.setTitleColor(buttonColor, for: .normal)
-        uploadButton.setTitleColor(buttonColor, for: .normal)
+        galleryButton.setTitleColor(buttonColor, for: .normal)
     }
 }
 

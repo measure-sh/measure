@@ -160,10 +160,10 @@ public struct BugReportConfig {
     public let descriptionPlaceholder: Swift.String
     public let sendButton: Swift.String
     public let screenshotButton: Swift.String
-    public let uploadButton: Swift.String
+    public let galleryButton: Swift.String
     public let exitScreenshotMode: Swift.String
-    public init(reportBugTitle: Swift.String, descriptionPlaceholder: Swift.String, sendButton: Swift.String, screenshotButton: Swift.String, uploadButton: Swift.String, exitScreenshotMode: Swift.String)
-    public func update(reportBugTitle: Swift.String? = nil, descriptionPlaceholder: Swift.String? = nil, sendButton: Swift.String? = nil, screenshotButton: Swift.String? = nil, uploadButton: Swift.String? = nil, exitScreenshotMode: Swift.String? = nil) -> Measure.BugReportConfig.Text
+    public init(reportBugTitle: Swift.String, descriptionPlaceholder: Swift.String, sendButton: Swift.String, screenshotButton: Swift.String, galleryButton: Swift.String, exitScreenshotMode: Swift.String)
+    public func update(reportBugTitle: Swift.String? = nil, descriptionPlaceholder: Swift.String? = nil, sendButton: Swift.String? = nil, screenshotButton: Swift.String? = nil, galleryButton: Swift.String? = nil, exitScreenshotMode: Swift.String? = nil) -> Measure.BugReportConfig.Text
   }
   public struct Dimensions {
     public let topPadding: CoreFoundation.CGFloat

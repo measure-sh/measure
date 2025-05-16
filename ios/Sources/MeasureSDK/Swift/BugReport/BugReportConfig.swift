@@ -143,15 +143,15 @@ public struct BugReportConfig {
         public let descriptionPlaceholder: String
         public let sendButton: String
         public let screenshotButton: String
-        public let uploadButton: String
+        public let galleryButton: String
         public let exitScreenshotMode: String
 
-        public init(reportBugTitle: String, descriptionPlaceholder: String, sendButton: String, screenshotButton: String, uploadButton: String, exitScreenshotMode: String) {
+        public init(reportBugTitle: String, descriptionPlaceholder: String, sendButton: String, screenshotButton: String, galleryButton: String, exitScreenshotMode: String) {
             self.reportBugTitle = reportBugTitle
             self.descriptionPlaceholder = descriptionPlaceholder
             self.sendButton = sendButton
             self.screenshotButton = screenshotButton
-            self.uploadButton = uploadButton
+            self.galleryButton = galleryButton
             self.exitScreenshotMode = exitScreenshotMode
         }
 
@@ -160,7 +160,7 @@ public struct BugReportConfig {
             descriptionPlaceholder: String? = nil,
             sendButton: String? = nil,
             screenshotButton: String? = nil,
-            uploadButton: String? = nil,
+            galleryButton: String? = nil,
             exitScreenshotMode: String? = nil
         ) -> Text {
             return Text(
@@ -168,7 +168,7 @@ public struct BugReportConfig {
                 descriptionPlaceholder: descriptionPlaceholder ?? self.descriptionPlaceholder,
                 sendButton: sendButton ?? self.sendButton,
                 screenshotButton: screenshotButton ?? self.screenshotButton,
-                uploadButton: uploadButton ?? self.uploadButton,
+                galleryButton: galleryButton ?? self.galleryButton,
                 exitScreenshotMode: exitScreenshotMode ?? self.exitScreenshotMode
             )
         }
@@ -217,7 +217,10 @@ public struct BugReportConfig {
     public let dimensions: Dimensions
     public let fonts: Fonts
 
-    public init(colors: Colors = BugReportConfig.default.colors, text: Text = BugReportConfig.default.text, dimensions: Dimensions = BugReportConfig.default.dimensions, fonts: Fonts = BugReportConfig.default.fonts) {
+    public init(colors: Colors = BugReportConfig.default.colors,
+                text: Text = BugReportConfig.default.text,
+                dimensions: Dimensions = BugReportConfig.default.dimensions,
+                fonts: Fonts = BugReportConfig.default.fonts) {
         self.colors = colors
         self.text = text
         self.dimensions = dimensions
@@ -249,7 +252,7 @@ public struct BugReportConfig {
             descriptionPlaceholder: "Briefly describe the issue you are facing.",
             sendButton: "Send",
             screenshotButton: "Screenshot",
-            uploadButton: "Upload",
+            galleryButton: "Gallery",
             exitScreenshotMode: "Tap to exit Screenshot mode"
         ),
         dimensions: Dimensions(

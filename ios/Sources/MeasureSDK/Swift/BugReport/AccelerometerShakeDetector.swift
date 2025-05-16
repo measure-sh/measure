@@ -24,7 +24,7 @@ final class AccelerometerShakeDetector: ShakeDetector {
             return false
         }
 
-        motionManager.accelerometerUpdateInterval = 0.1
+        motionManager.accelerometerUpdateInterval = configProvider.accelerometerUpdateInterval
         motionManager.startAccelerometerUpdates(to: queue) { [weak self] data, _ in
             guard let self, let acceleration = data?.acceleration else { return }
 
