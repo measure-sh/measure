@@ -20,7 +20,7 @@ final class ExceptionFactory {
     final result = _parseStackTrace(stackTrace);
     final List<Trace> traces = result.traces;
     final type = details.exception.runtimeType.toString();
-    final message = _getMessage(details);
+    final message = _getMessage(details, type);
     final List<ExceptionUnit> exceptions = [];
 
     if (traces.isNotEmpty) {
@@ -142,10 +142,15 @@ final class ExceptionFactory {
     return null;
   }
 
-  static String _getMessage(FlutterErrorDetails details) {
-    return details.exception.toString();
+  static String _getMessage(FlutterErrorDetails details, String type) {
+    // Remove the type from the message if it's present at the beginning
+    final String exceptionStr = details.exception.toString();
+    if (exceptionStr.startsWith(type) && exceptionStr.length >= type.length) {
+      return exceptionStr.substring(type.length).trim();
+    } else {
+      return exceptionStr;
+    }
   }
-
   static List<BinaryImage> _createBinaryImage(StackTrace stack) {
     var stackStr = stack.toString();
     final baseAddr = _baseAddrRegex.firstMatch(stackStr)?.group(1);
