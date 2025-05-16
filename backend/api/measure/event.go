@@ -518,10 +518,25 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (er
 		ID: &e.appId,
 	}
 
+	// Track fingerprints we've already processed in this transaction.
+	// We cannot rely on the database query to check for any
+	// and newly created groups as the transaction is commited
+	// later.
+	// Not doing so would result in duplicate groups with repeated
+	// fingerprints.
+	processedFingerprints := make(map[string]bool)
+
 	for i := range events {
 		if events[i].Exception.Fingerprint == "" {
 			msg := fmt.Sprintf("no fingerprint found for event %q, cannot bucket exception", events[i].ID)
 			fmt.Println(msg)
+			continue
+		}
+
+		// Skip database lookup if we've already processed
+		// this fingerprint in this transaction.
+		if processedFingerprints[events[i].Exception.Fingerprint] {
+			// The group was just created, no need to update timestamps yet
 			continue
 		}
 
@@ -536,7 +551,9 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (er
 				return err
 			}
 
-			return nil
+			// Mark this fingerprint as processed in this transaction
+			processedFingerprints[events[i].Exception.Fingerprint] = true
+			continue
 		}
 
 		if !matchedGroup.EventExists(events[i].ID) {
@@ -1476,7 +1493,7 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 	stmt := sqlf.
 		From("events").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
-		Select("concat(toString(attribute.app_version), '', '(', toString(attribute.app_build), ')') as app_version").
+		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as app_version").
 		Select("uniqIf(id, type = ? and exception.handled = false) as total_exceptions", event.TypeException).
 		Select("round((1 - (exception_sessions / total_sessions)) * 100, 2) as crash_free_sessions").
 		Select("uniq(session_id) as total_sessions").
@@ -1747,7 +1764,7 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 	stmt := sqlf.
 		From("events").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
-		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build), ')') as app_version").
+		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as app_version").
 		Select("uniqIf(id, type = ?) as total_anr", event.TypeANR).
 		Select("round((1 - (anr_sessions / total_sessions)) * 100, 2) as anr_free_sessions").
 		Select("uniq(session_id) as total_sessions").
@@ -1994,7 +2011,7 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 		From(`events`).
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as version").
-		Select("uniq(id) as instances").
+		Select("uniqIf(id, type = ? and exception.handled = false) as total_exceptions", event.TypeException).
 		Clause(fmt.Sprintf("prewhere app_id = toUUID(?) and %s.fingerprint = ?", groupType), af.AppID, fingerprint)
 
 	defer stmt.Close()
