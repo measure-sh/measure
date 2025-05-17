@@ -1455,8 +1455,14 @@ func (e Exception) Stacktrace() string {
 		for i := len(e.Exceptions) - 1; i >= 0; i-- {
 			exception := e.Exceptions[i]
 			for j, frame := range exception.Frames {
-				fileLocation := fmt.Sprintf("%s%s:%d", frame.ModuleName, frame.FileName, frame.LineNum)
-				formattedFrame := fmt.Sprintf(" #%d      %s (%s)\n", j, frame.MethodName, fileLocation)
+				var fileLocation string
+				if frame.ModuleName == "" && frame.FileName == "" && frame.LineNum == 0 {
+					fileLocation = ""
+				} else {
+					fileLocation = fmt.Sprintf("(%s%s:%d)", frame.ModuleName, frame.FileName, frame.LineNum)
+				}
+
+				formattedFrame := fmt.Sprintf(" #%d      %s %s\n", j, frame.MethodName, fileLocation)
 				b.WriteString(formattedFrame)
 			}
 			if i > 0 {
