@@ -14,6 +14,8 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
             switch call.method {
             case MethodConstants.functionTrackEvent:
                 try handleTrackEvent(call, result: result)
+            case MethodConstants.functionTriggerNativeCrash:
+                triggerNativeCrash()
             default:
                 result(FlutterMethodNotImplemented)
             }
@@ -63,5 +65,10 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
             sessionId: sessionId,
             threadName: threadName
         )
+    }
+    
+    private func triggerNativeCrash() {
+        let optionalString: String? = nil
+        let crashString = optionalString!
     }
 }
