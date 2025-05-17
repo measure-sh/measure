@@ -1350,7 +1350,7 @@ func (e Exception) GetFileName() string {
 	case symbtype.AppleCrashReport:
 		return e.GetRelevantFrame().FileName
 	case symbtype.Native:
-		return e.Exceptions[0].Frames[0].FileName
+		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
 	}
 
 	return ""
@@ -1368,7 +1368,7 @@ func (e Exception) GetLineNumber() int {
 	case symbtype.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
 	case symbtype.Native:
-		return e.GetRelevantFrame().LineNum
+		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
 	}
 
 	return 0
@@ -1388,7 +1388,7 @@ func (e Exception) GetMethodName() string {
 	case symbtype.AppleCrashReport:
 		return e.GetRelevantFrame().MethodName
 	case symbtype.Native:
-		return e.Exceptions[0].Frames[0].MethodName
+		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
 	}
 
 	return ""
@@ -1446,14 +1446,15 @@ func (e Exception) Stacktrace() string {
 			}
 		}
 	case symbtype.Native:
-		for i, exception := range e.Exceptions {
-			if i > 0 {
-				b.WriteString("<asynchronous gap>\n")
-			}
+		for i := len(e.Exceptions) - 1; i >= 0; i-- {
+			exception := e.Exceptions[i]
 			for j, frame := range exception.Frames {
 				fileLocation := fmt.Sprintf("%s%s:%d", frame.ModuleName, frame.FileName, frame.LineNum)
 				formattedFrame := fmt.Sprintf(" #%d      %s (%s)\n", j, frame.MethodName, fileLocation)
 				b.WriteString(formattedFrame)
+			}
+			if i > 0 {
+				b.WriteString("===== asynchronous gap ===========================\n")
 			}
 		}
 
