@@ -415,7 +415,6 @@ func (s *Symbolicator) symbolicateAppleCrashReport(ev event.EventField) (err err
 	}
 
 	s.rewriteAppleCrashReport(ev)
-	s.reset()
 	return
 }
 
