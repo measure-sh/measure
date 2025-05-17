@@ -1315,6 +1315,9 @@ func (e Exception) GetType() string {
 	case symbtype.AppleCrashReport:
 		return e.Exceptions[0].Signal
 	case symbtype.Native:
+		// We do not look for the deepest exception
+		// as only the top most exception unit
+		// contains the type.
 		return e.Exceptions[0].Type
 	}
 }
@@ -1332,6 +1335,9 @@ func (e Exception) GetMessage() string {
 		// use for an exception
 		return ""
 	case symbtype.Native:
+		// We do not look for the deepest exception
+		// as only the top most exception unit
+		// contains the message.
 		return e.Exceptions[0].Message
 	}
 }
@@ -1550,12 +1556,24 @@ func (e *Exception) ComputeFingerprint() (err error) {
 			input += sep + frame.FileName
 		}
 	case symbtype.Native:
-		frame := e.Exceptions[0].Frames[0]
-		if frame.MethodName != "" {
-			input += sep + frame.MethodName
-		}
-		if frame.FileName != "" {
-			input += sep + frame.FileName
+		// get the innermost exception
+		innermostException := e.Exceptions[len(e.Exceptions)-1]
+
+		// initialize fingerprint data with the exception type
+		input = innermostException.Type
+
+		// get the method name and file name from the first frame of the innermost exception
+		if len(innermostException.Frames) > 0 {
+			methodName := innermostException.Frames[0].MethodName
+			fileName := innermostException.Frames[0].FileName
+
+			// Include any non-empty information
+			if methodName != "" {
+				input += sep + methodName
+			}
+			if fileName != "" {
+				input += sep + fileName
+			}
 		}
 	default:
 		return errors.New("failed to compute fingerprint for unknown platform")
