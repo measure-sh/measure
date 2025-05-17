@@ -143,11 +143,18 @@ final class ExceptionFactory {
     return null;
   }
 
+  /// Remove the type from the message if it's present.
+  /// Example message — Format Exception: Invalid argument(s): This is an error
+  /// Resulting message — Invalid argument(s): This is an error
   static String _getMessage(FlutterErrorDetails details, String type) {
-    // Remove the type from the message if it's present at the beginning
     final String exceptionStr = details.exception.toString();
     if (exceptionStr.startsWith(type) && exceptionStr.length >= type.length) {
-      return exceptionStr.substring(type.length).trim();
+      final removedType = exceptionStr.substring(type.length).trim();
+      if (removedType.startsWith(": ")) {
+        return removedType.substring(2).trim();
+      } else {
+        return removedType;
+      }
     } else {
       return exceptionStr;
     }
