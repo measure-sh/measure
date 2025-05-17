@@ -52,7 +52,8 @@ final class ExceptionFactory {
 
   static TraceResult _parseStackTrace(dynamic stackTrace) {
     if (stackTrace is Chain) {
-      return TraceResult(stackTrace.traces);
+      final traces = stackTrace.traces.reversed.toList();
+      return TraceResult(traces);
     } else if (stackTrace is Trace) {
       return TraceResult([stackTrace]);
     }
