@@ -1366,6 +1366,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		Select("toString(attribute.network_type) network_type").
 		Select("exception.exceptions exceptions").
 		Select("exception.threads threads").
+		Select("exception.framework framework").
 		Select("attachments").
 		Select(fmt.Sprintf("row_number() over (order by timestamp %s, id) as row_num", order)).
 		Clause(prewhere, af.AppID, group.Fingerprint).
@@ -1392,7 +1393,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		substmt.Clause("AND id in").SubQuery("(", ")", subQuery)
 	}
 
-	substmt.GroupBy("id, type, timestamp, session_id, attribute.app_version, attribute.app_build, attribute.device_manufacturer, attribute.device_model, attribute.network_type, exceptions, threads, attachments")
+	substmt.GroupBy("id, type, timestamp, session_id, attribute.app_version, attribute.app_build, attribute.device_manufacturer, attribute.device_model, attribute.network_type, exceptions, threads, framework, attachments")
 
 	stmt := sqlf.New("with ? as page_size, ? as last_timestamp, ? as last_id select", pageSize, keyTimestamp, af.KeyID)
 
@@ -1412,6 +1413,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		Select("network_type").
 		Select("exceptions").
 		Select("threads").
+		Select("framework").
 		Select("attachments").
 		From("").
 		SubQuery("(", ") as t", substmt).
@@ -1430,8 +1432,8 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		var exceptions string
 		var threads string
 		var attachments string
-
-		if err = rows.Scan(&e.ID, &e.Type, &e.Timestamp, &e.SessionID, &e.Attribute.AppVersion, &e.Attribute.AppBuild, &e.Attribute.DeviceManufacturer, &e.Attribute.DeviceModel, &e.Attribute.NetworkType, &exceptions, &threads, &attachments); err != nil {
+		var f string
+		if err = rows.Scan(&e.ID, &e.Type, &e.Timestamp, &e.SessionID, &e.Attribute.AppVersion, &e.Attribute.AppBuild, &e.Attribute.DeviceManufacturer, &e.Attribute.DeviceModel, &e.Attribute.NetworkType, &exceptions, &threads, &f, &attachments); err != nil {
 			return
 		}
 
@@ -1444,7 +1446,15 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		if err = json.Unmarshal([]byte(attachments), &e.Attachments); err != nil {
 			return
 		}
-
+		// remove null characters from
+		// framework which are added
+		// by ClickHouse
+		index := strings.IndexByte(f, 0)
+		if index > 0 {
+			e.Exception.Framework = f[:index]
+		} else {
+			e.Exception.Framework = f
+		}
 		e.ComputeView()
 		events = append(events, e)
 	}
