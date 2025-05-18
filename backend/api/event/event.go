@@ -819,9 +819,24 @@ func (e EventField) IsScreenView() bool {
 func (e EventField) NeedsSymbolication() (result bool) {
 	result = false
 
+	if e.Type == TypeException {
+		switch e.Exception.GetFramework() {
+		case framework.JVM:
+			result = true
+		case framework.IOS:
+			result = true
+		case framework.Dart:
+			if e.Exception.Exceptions[0].Frames[0].InstructionAddr == "" {
+				result = true
+			}
+		}
+
+		return
+	}
+
 	switch strings.ToLower(e.Attribute.OSName) {
 	case os.Android:
-		if e.IsException() || e.IsANR() {
+		if e.IsANR() {
 			result = true
 			return
 		}
@@ -857,11 +872,6 @@ func (e EventField) NeedsSymbolication() (result bool) {
 		}
 
 		if e.IsHotLaunch() && len(e.HotLaunch.LaunchedActivity) > 0 {
-			result = true
-			return
-		}
-	case os.IOS:
-		if e.IsException() {
 			result = true
 			return
 		}
