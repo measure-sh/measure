@@ -12,7 +12,7 @@ internal object ExceptionFactory {
         handled: Boolean,
         thread: Thread,
         foreground: Boolean,
-        framework: String?,
+        framework: String? = ExceptionFramework.JVM,
     ): ExceptionData {
         val exceptions = mutableListOf<ExceptionUnit>()
         var error: Throwable? = throwable

@@ -32,7 +32,7 @@
 
         <meta-data
             android:name="sh.measure.android.API_URL"
-            android:value="https://be1a-2401-4900-1c2b-5214-9494-4f78-a8d8-51ae.ngrok-free.app" />
+            android:value="https://humbly-natural-polliwog.ngrok-free.app" />
 
         <meta-data
             android:name="sh.measure.android.BUILD_API_URL"
