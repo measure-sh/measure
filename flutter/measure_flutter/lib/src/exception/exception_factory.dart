@@ -75,12 +75,18 @@ final class ExceptionFactory {
 
   static List<MsrFrame> _createMsrFrames(List<Frame> frames) {
     var index = 0;
+    bool hasUnparsedFrame =
+        frames.any((frame) => frame.member != null && frame is UnparsedFrame);
     return frames
         .where((frame) {
           var member = frame.member;
           return member != null;
         })
         .map((frame) {
+          if (hasUnparsedFrame && frame is! UnparsedFrame) {
+            return null;
+          }
+
           if (frame is UnparsedFrame) {
             return _createUnparsedMsrFrame(frame, index++);
           } else {
@@ -119,9 +125,7 @@ final class ExceptionFactory {
   }
 
   static String? _extractMethodName(Frame frame) {
-    return (frame.member != null && frame.member!.contains('.'))
-        ? frame.member!.substring(frame.member!.indexOf('.') + 1)
-        : frame.member;
+    return frame.member;
   }
 
   static String? _extractClassName(Frame frame) {
