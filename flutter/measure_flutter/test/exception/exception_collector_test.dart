@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/exception/exception_data.dart';
+import 'package:measure_flutter/src/exception/exception_framework.dart';
 
 import '../utils/fake_signal_processor.dart';
 import '../utils/noop_logger.dart';
@@ -85,6 +86,7 @@ void main() {
         threads: [],
         foreground: true,
         binaryImages: [],
+        framework: exceptionFramework,
       );
 
       collector.register();
@@ -140,6 +142,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
             arch: "arm64",
           )
         ],
+        framework: exceptionFramework,
       );
 
       collector.register();

@@ -31,6 +31,8 @@ internal data class ExceptionData(
      * The list of binary images loaded in the process.
      */
     val binary_images: List<BinaryImage> = listOf(),
+
+    val framework: String? = ExceptionFramework.JVM,
 )
 
 @Serializable

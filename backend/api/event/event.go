@@ -1,8 +1,8 @@
 package event
 
 import (
+	"backend/api/framework"
 	"backend/api/os"
-	"backend/api/symbtype"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
@@ -334,6 +334,7 @@ type Exception struct {
 	Fingerprint  string         `json:"fingerprint"`
 	Foreground   bool           `json:"foreground" binding:"required"`
 	BinaryImages []BinaryImage  `json:"binary_images,omitempty"`
+	Framework    string         `json:"framework"`
 }
 
 // BinaryImage represents each binary image
@@ -922,6 +923,10 @@ func (e *EventField) Validate() error {
 		// if len(e.Exception.Threads) < 1 {
 		// 	return fmt.Errorf(`%q must contain at least one  & thread`, `exception`)
 		// }
+
+		if e.Exception.GetFramework() == "" {
+			return fmt.Errorf(`%q must not be empty`, `exception.framework`)
+		}
 	}
 
 	if e.IsAppExit() {
@@ -1226,19 +1231,17 @@ func (e *EventField) Validate() error {
 	return nil
 }
 
-// GetSymbolicationPlatform returns the
-// platform to be used for symbolication
-func (e Exception) GetSymbolicationPlatform() (sp string) {
-	sp = symbtype.Unknown
-	if e.Exceptions[0].ExceptionUnitiOS != nil && e.Exceptions[0].Signal != "" {
-		return symbtype.AppleCrashReport
+// GetFramework returns the exception framework
+// in a backwards compatible way.
+func (e Exception) GetFramework() (f string) {
+	if e.Framework == "" {
+		if e.Exceptions[0].ExceptionUnitiOS != nil && e.Exceptions[0].Signal != "" {
+			return framework.IOS
+		}
+		return framework.JVM
 	}
 
-	if e.Exceptions[0].Frames[0].InstructionAddr != "" {
-		return symbtype.Native
-	}
-
-	return symbtype.JVM
+	return e.Framework
 }
 
 // IsNested returns true in case of
@@ -1254,12 +1257,12 @@ func (e Exception) IsNested() bool {
 // for certain OutOfMemory stacktraces in
 // Android.
 func (e Exception) HasNoFrames() bool {
-	switch e.GetSymbolicationPlatform() {
-	case symbtype.JVM:
+	switch e.GetFramework() {
+	case framework.JVM:
 		return len(e.Exceptions[len(e.Exceptions)-1].Frames) == 0
-	case symbtype.AppleCrashReport:
+	case framework.IOS:
 		return len(e.Exceptions[0].Frames) == 0
-	case symbtype.Native:
+	case framework.Dart:
 		return len(e.Exceptions[0].Frames) == 0
 	}
 
@@ -1307,14 +1310,14 @@ func (e Exception) GetTitle() string {
 // GetType provides the type of
 // the exception.
 func (e Exception) GetType() string {
-	switch e.GetSymbolicationPlatform() {
+	switch e.GetFramework() {
 	default:
 		return "unknown type"
-	case symbtype.JVM:
+	case framework.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Type
-	case symbtype.AppleCrashReport:
+	case framework.IOS:
 		return e.Exceptions[0].Signal
-	case symbtype.Native:
+	case framework.Dart:
 		// We do not look for the deepest exception
 		// as only the top most exception unit
 		// contains the type.
@@ -1325,16 +1328,16 @@ func (e Exception) GetType() string {
 // GetMessage provides the message of
 // the exception.
 func (e Exception) GetMessage() string {
-	switch e.GetSymbolicationPlatform() {
+	switch e.GetFramework() {
 	default:
 		return "unknown message"
-	case symbtype.JVM:
+	case framework.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Message
-	case symbtype.AppleCrashReport:
+	case framework.IOS:
 		// iOS doesn't have a typical message to
 		// use for an exception
 		return ""
-	case symbtype.Native:
+	case framework.Dart:
 		// We do not look for the deepest exception
 		// as only the top most exception unit
 		// contains the message.
@@ -1350,12 +1353,12 @@ func (e Exception) GetFileName() string {
 		return ""
 	}
 
-	switch e.GetSymbolicationPlatform() {
-	case symbtype.JVM:
+	switch e.GetFramework() {
+	case framework.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
-	case symbtype.AppleCrashReport:
+	case framework.IOS:
 		return e.GetRelevantFrame().FileName
-	case symbtype.Native:
+	case framework.Dart:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
 	}
 
@@ -1370,10 +1373,10 @@ func (e Exception) GetLineNumber() int {
 		return 0
 	}
 
-	switch e.GetSymbolicationPlatform() {
-	case symbtype.JVM:
+	switch e.GetFramework() {
+	case framework.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
-	case symbtype.Native:
+	case framework.Dart:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
 	}
 
@@ -1388,12 +1391,12 @@ func (e Exception) GetMethodName() string {
 		return ""
 	}
 
-	switch e.GetSymbolicationPlatform() {
-	case symbtype.JVM:
+	switch e.GetFramework() {
+	case framework.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
-	case symbtype.AppleCrashReport:
+	case framework.IOS:
 		return e.GetRelevantFrame().MethodName
-	case symbtype.Native:
+	case framework.Dart:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
 	}
 
@@ -1418,8 +1421,8 @@ func (e Exception) GetDisplayTitle() string {
 func (e Exception) Stacktrace() string {
 	var b strings.Builder
 
-	switch e.GetSymbolicationPlatform() {
-	case symbtype.JVM:
+	switch e.GetFramework() {
+	case framework.JVM:
 		for i := len(e.Exceptions) - 1; i >= 0; i-- {
 			firstException := i == len(e.Exceptions)-1
 			lastException := i == 0
@@ -1451,7 +1454,7 @@ func (e Exception) Stacktrace() string {
 				}
 			}
 		}
-	case symbtype.Native:
+	case framework.Dart:
 		for i := len(e.Exceptions) - 1; i >= 0; i-- {
 			exception := e.Exceptions[i]
 			for j, frame := range exception.Frames {
@@ -1470,7 +1473,7 @@ func (e Exception) Stacktrace() string {
 			}
 		}
 
-	case symbtype.AppleCrashReport:
+	case framework.IOS:
 		// iOS Stacktrace syntax
 		//
 		// See more: https://developer.apple.com/documentation/xcode/adding-identifiable-symbol-names-to-a-crash-report
@@ -1525,8 +1528,8 @@ func (e *Exception) ComputeFingerprint() (err error) {
 	// parts of the input
 	sep := ":"
 
-	switch e.GetSymbolicationPlatform() {
-	case symbtype.JVM:
+	switch e.GetFramework() {
+	case framework.JVM:
 		// get the innermost exception
 		innermostException := e.Exceptions[len(e.Exceptions)-1]
 
@@ -1546,7 +1549,7 @@ func (e *Exception) ComputeFingerprint() (err error) {
 				input += sep + fileName
 			}
 		}
-	case symbtype.AppleCrashReport:
+	case framework.IOS:
 		// initialize with the exception type
 		input = e.GetType()
 
@@ -1561,7 +1564,7 @@ func (e *Exception) ComputeFingerprint() (err error) {
 		if frame.FileName != "" {
 			input += sep + frame.FileName
 		}
-	case symbtype.Native:
+	case framework.Dart:
 		// get the innermost exception
 		innermostException := e.Exceptions[len(e.Exceptions)-1]
 

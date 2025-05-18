@@ -809,7 +809,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.exceptions`, exceptionExceptions).
 				Set(`exception.threads`, exceptionThreads).
 				Set(`exception.foreground`, e.events[i].Exception.Foreground).
-				Set(`exception.binary_images`, binaryImages)
+				Set(`exception.binary_images`, binaryImages).
+				Set(`exception.framework`, e.events[i].Exception.GetFramework())
 		} else {
 			row.
 				Set(`exception.handled`, nil).
@@ -817,7 +818,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.exceptions`, nil).
 				Set(`exception.threads`, nil).
 				Set(`exception.foreground`, nil).
-				Set(`exception.binary_images`, nil)
+				Set(`exception.binary_images`, nil).
+				Set(`exception.framework`, nil)
 		}
 
 		// app exit

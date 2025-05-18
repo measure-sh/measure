@@ -19,6 +19,7 @@ ExceptionData _$ExceptionDataFromJson(Map<String, dynamic> json) =>
       binaryImages: (json['binary_images'] as List<dynamic>)
           .map((e) => BinaryImage.fromJson(e as Map<String, dynamic>))
           .toList(),
+      framework: json['framework'] as String,
     );
 
 Map<String, dynamic> _$ExceptionDataToJson(ExceptionData instance) =>
@@ -28,6 +29,7 @@ Map<String, dynamic> _$ExceptionDataToJson(ExceptionData instance) =>
       'threads': instance.threads.map((e) => e.toJson()).toList(),
       'foreground': instance.foreground,
       'binary_images': instance.binaryImages.map((e) => e.toJson()).toList(),
+      'framework': instance.framework,
     };
 
 MeasureThread _$MeasureThreadFromJson(Map<String, dynamic> json) =>

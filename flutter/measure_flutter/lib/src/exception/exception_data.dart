@@ -21,12 +21,16 @@ class ExceptionData implements JsonSerialized {
   @JsonKey(name: "binary_images")
   final List<BinaryImage> binaryImages;
 
+  /// The framework where the exception originated in.
+  final String framework;
+
   ExceptionData({
     required this.exceptions,
     required this.handled,
     required this.threads,
     required this.foreground,
     required this.binaryImages,
+    required this.framework,
   });
 
   @override
@@ -44,7 +48,8 @@ class ExceptionData implements JsonSerialized {
           handled == other.handled &&
           threads == other.threads &&
           foreground == other.foreground &&
-          binaryImages == other.binaryImages;
+          binaryImages == other.binaryImages &&
+          framework == other.framework;
 
   @override
   int get hashCode =>
@@ -52,7 +57,8 @@ class ExceptionData implements JsonSerialized {
       handled.hashCode ^
       threads.hashCode ^
       foreground.hashCode ^
-      binaryImages.hashCode;
+      binaryImages.hashCode ^
+      framework.hashCode;
 }
 
 @JsonSerializable(explicitToJson: true)

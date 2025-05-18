@@ -140,7 +140,8 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             ],
             foreground: true,
             threads: [],
-            binaryImages: nil
+            binaryImages: nil,
+            framework: "ios"
         )
         
         eventCollector.trackEvent(
@@ -231,7 +232,8 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             ],
             foreground: true,
             threads: [],
-            binaryImages: nil
+            binaryImages: nil,
+            framework: "ios"
         )
         
         eventCollector.trackEvent(

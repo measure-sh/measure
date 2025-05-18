@@ -4,9 +4,9 @@ import (
 	"backend/api/cache"
 	"backend/api/chrono"
 	"backend/api/event"
+	"backend/api/framework"
 	"backend/api/span"
 	"backend/api/symbol"
-	"backend/api/symbtype"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -226,11 +226,9 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 		// apple exceptions are symbolicated
 		// in place and do not need any
 		// further processing
-		if ev.Type == event.TypeException {
-			if ev.Exception.GetSymbolicationPlatform() == symbtype.AppleCrashReport {
-				s.symbolicateAppleCrashReport(ev)
-				continue
-			}
+		if ev.Type == event.TypeException && ev.Exception.GetFramework() == framework.IOS {
+			s.symbolicateAppleCrashReport(ev)
+			continue
 		}
 
 		// find the mapping keys and mapping types
@@ -272,13 +270,13 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 
 		switch ev.Type {
 		case event.TypeException:
-			sp := ev.Exception.GetSymbolicationPlatform()
-			switch sp {
-			case symbtype.JVM:
+			f := ev.Exception.GetFramework()
+			switch f {
+			case framework.JVM:
 				exceptions := ev.Exception.Exceptions
 				threads := ev.Exception.Threads
 				s.prepareJvmException(exceptions, threads, i)
-			case symbtype.Native:
+			case framework.Dart:
 				s.prepareNativeException(ev, i)
 				// symbolication request if we
 				// encountered any Native exceptions.
@@ -309,7 +307,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 					}
 				}
 			default:
-				fmt.Printf("unknown symbolication platform %s\n", sp)
+				fmt.Printf("unknown symbolication platform %s\n", f)
 				continue
 			}
 		case event.TypeANR:
@@ -360,12 +358,12 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 			return
 		}
 
-		if err = s.makeRequest(symbtype.JVM); err != nil {
+		if err = s.makeRequest(framework.JVM); err != nil {
 			return
 		}
 
 		if logResponse {
-			s.logResponse(symbtype.JVM)
+			s.logResponse(framework.JVM)
 		}
 		s.rewriteJvmException(events, spans)
 	}
@@ -378,12 +376,12 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 			return
 		}
 
-		if err = s.makeRequest(symbtype.Native); err != nil {
+		if err = s.makeRequest(framework.Dart); err != nil {
 			return
 		}
 
 		if logResponse {
-			s.logResponse(symbtype.Native)
+			s.logResponse(framework.Dart)
 		}
 		s.rewriteNativeException(events)
 	}
@@ -406,12 +404,12 @@ func (s *Symbolicator) symbolicateAppleCrashReport(ev event.EventField) (err err
 		fmt.Printf("apple crash report request\n%s\n", string(s.appleCrashReport))
 	}
 
-	if err = s.makeRequest(symbtype.AppleCrashReport); err != nil {
+	if err = s.makeRequest(framework.IOS); err != nil {
 		return
 	}
 
 	if logResponse {
-		s.logResponse(symbtype.AppleCrashReport)
+		s.logResponse(framework.IOS)
 	}
 
 	s.rewriteAppleCrashReport(ev)
@@ -481,17 +479,17 @@ func (s Symbolicator) logResponse(st string) {
 	var bytes []byte
 	var err error
 	switch st {
-	case symbtype.JVM:
+	case framework.JVM:
 		bytes, err = json.MarshalIndent(s.responseJVM, "", "  ")
 		if err != nil {
 			panic(err)
 		}
-	case symbtype.AppleCrashReport:
+	case framework.IOS:
 		bytes, err = json.MarshalIndent(s.responseApple, "", "  ")
 		if err != nil {
 			panic(err)
 		}
-	case symbtype.Native:
+	case framework.Dart:
 		bytes, err = json.MarshalIndent(s.responseNative, "", "  ")
 		if err != nil {
 			panic(err)
@@ -927,7 +925,7 @@ func (s *Symbolicator) makeRequest(st string) (err error) {
 	}
 
 	switch st {
-	case symbtype.JVM:
+	case framework.JVM:
 		if err = json.Unmarshal(respBody, &s.responseJVM); err != nil {
 			return
 		}
@@ -936,7 +934,7 @@ func (s *Symbolicator) makeRequest(st string) (err error) {
 			err = ErrJVMSymbolicationFailure
 			return
 		}
-	case symbtype.AppleCrashReport:
+	case framework.IOS:
 		if err = json.Unmarshal(respBody, &s.responseApple); err != nil {
 			return
 		}
@@ -944,7 +942,7 @@ func (s *Symbolicator) makeRequest(st string) (err error) {
 		if s.responseApple.Status != "completed" {
 			return s.retry(st, defaultRetryDuration)
 		}
-	case symbtype.Native:
+	case framework.Dart:
 		if err = json.Unmarshal(respBody, &s.responseNative); err != nil {
 			return
 		}

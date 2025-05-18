@@ -22,6 +22,8 @@ struct Exception: Codable {
 
     /// An optional array of all the `BinaryImage` needed for symbolication.
     let binaryImages: [BinaryImage]?
+    
+    let framework: String?
 
     enum CodingKeys: String, CodingKey {
         case handled
@@ -29,5 +31,6 @@ struct Exception: Codable {
         case foreground
         case threads
         case binaryImages = "binary_images"
+        case framework
     }
 }
