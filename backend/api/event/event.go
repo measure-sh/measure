@@ -826,7 +826,7 @@ func (e EventField) NeedsSymbolication() (result bool) {
 		case framework.IOS:
 			result = true
 		case framework.Dart:
-			if e.Exception.Exceptions[0].Frames[0].InstructionAddr == "" {
+			if e.Exception.Exceptions[0].Frames[0].InstructionAddr != "" {
 				result = true
 			}
 		}
@@ -1431,7 +1431,8 @@ func (e Exception) GetDisplayTitle() string {
 func (e Exception) Stacktrace() string {
 	var b strings.Builder
 
-	switch e.GetFramework() {
+	f := e.GetFramework()
+	switch f {
 	case framework.JVM:
 		for i := len(e.Exceptions) - 1; i >= 0; i-- {
 			firstException := i == len(e.Exceptions)-1
@@ -1482,7 +1483,6 @@ func (e Exception) Stacktrace() string {
 				b.WriteString("===== asynchronous gap ===========================\n")
 			}
 		}
-
 	case framework.IOS:
 		// iOS Stacktrace syntax
 		//
@@ -1518,6 +1518,8 @@ func (e Exception) Stacktrace() string {
 
 		t.Flush()
 		b.WriteString(buf.String())
+	default:
+		fmt.Printf("unknown framework %s\n", f)
 	}
 
 	return b.String()
