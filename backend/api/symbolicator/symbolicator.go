@@ -151,14 +151,22 @@ type Symbolicator struct {
 	// retryCount counts the number of times
 	// a symbolicator request has been retried.
 	retryCount int
-	// lineNoLUT is a look up table for storing
+	// jvmLineNoLUT is a look up table for storing
 	// & restoring negative line numbers in JVM
 	// stacktraces before & after symbolication.
-	lineNoLUT []lineNoEntry
-	// stacktraceLUT is a look up table for storing
+	jvmLineNoLUT []lineNoEntry
+	// jvmStacktraceLUT is a look up table for storing
 	// & restoring JVM stacktrace frames before &
 	// after symbolication.
-	stacktraceLUT []stacktraceEntry
+	jvmStacktraceLUT []stacktraceEntry
+	// nativeLineNoLUT is a look up table for storing
+	// & restoring negative line numbers in native
+	// stacktraces before & after symbolication.
+	nativeLineNoLUT []lineNoEntry
+	// nativeStacktraceLUT is a look up table for storing
+	// & restoring native stacktrace frames before &
+	// after symbolication.
+	nativeStacktraceLUT []stacktraceEntry
 	// ttidSpans stores the index of the TTID span
 	// that needs symbolication.
 	ttidSpans []int
@@ -430,7 +438,7 @@ func (s *Symbolicator) prepareJvmException(exceptions event.ExceptionUnits, thre
 		for k, frame := range excep.Frames {
 			line := frame.LineNum
 			if line < 0 {
-				s.lineNoLUT = append(s.lineNoLUT, lineNoEntry{index, j, k, -1, -1, frame.LineNum})
+				s.jvmLineNoLUT = append(s.jvmLineNoLUT, lineNoEntry{index, j, k, -1, -1, frame.LineNum})
 				line = 0
 			}
 			frameJVMs = append(frameJVMs, frameJVM{
@@ -441,7 +449,7 @@ func (s *Symbolicator) prepareJvmException(exceptions event.ExceptionUnits, thre
 				Module:   frame.ClassName,
 			})
 			s.requestJVM.AddClass(frame.ClassName)
-			s.stacktraceLUT = append(s.stacktraceLUT, stacktraceEntry{index, j, k, -1, -1, len(s.requestJVM.Stacktraces)})
+			s.jvmStacktraceLUT = append(s.jvmStacktraceLUT, stacktraceEntry{index, j, k, -1, -1, len(s.requestJVM.Stacktraces)})
 		}
 		s.requestJVM.Stacktraces = append(s.requestJVM.Stacktraces, stacktraceJVM{
 			Frames: frameJVMs,
@@ -453,7 +461,7 @@ func (s *Symbolicator) prepareJvmException(exceptions event.ExceptionUnits, thre
 		for m, frame := range thread.Frames {
 			line := frame.LineNum
 			if line < 0 {
-				s.lineNoLUT = append(s.lineNoLUT, lineNoEntry{index, -1, -1, l, m, frame.LineNum})
+				s.jvmLineNoLUT = append(s.jvmLineNoLUT, lineNoEntry{index, -1, -1, l, m, frame.LineNum})
 				line = 0
 			}
 			frameJVMs = append(frameJVMs, frameJVM{
@@ -464,7 +472,7 @@ func (s *Symbolicator) prepareJvmException(exceptions event.ExceptionUnits, thre
 				Module:   frame.ClassName,
 			})
 			s.requestJVM.AddClass(frame.ClassName)
-			s.stacktraceLUT = append(s.stacktraceLUT, stacktraceEntry{index, -1, -1, l, m, len(s.requestJVM.Stacktraces)})
+			s.jvmStacktraceLUT = append(s.jvmStacktraceLUT, stacktraceEntry{index, -1, -1, l, m, len(s.requestJVM.Stacktraces)})
 		}
 		s.requestJVM.Stacktraces = append(s.requestJVM.Stacktraces, stacktraceJVM{
 			Frames: frameJVMs,
@@ -527,7 +535,7 @@ func (s Symbolicator) rewriteJvmException(evs []event.EventField, sps []span.Spa
 	// rewritten at one go. while other kinds of
 	// events are iterated and rewritten separately
 
-	for _, entry := range s.stacktraceLUT {
+	for _, entry := range s.jvmStacktraceLUT {
 		i := entry[0]
 		j := entry[1]
 		k := entry[2]
@@ -633,7 +641,7 @@ func (s Symbolicator) rewriteJvmException(evs []event.EventField, sps []span.Spa
 	}
 
 	// restore negative line numbers
-	for _, entry := range s.lineNoLUT {
+	for _, entry := range s.jvmLineNoLUT {
 		n := entry[5]
 		if entry[1] != -1 && entry[2] != -1 {
 			i := entry[0]
@@ -718,8 +726,10 @@ func (s *Symbolicator) reset() {
 	s.req = nil
 	s.res = []byte{}
 	s.retryCount = 0
-	s.lineNoLUT = []lineNoEntry{}
-	s.stacktraceLUT = []stacktraceEntry{}
+	s.jvmLineNoLUT = []lineNoEntry{}
+	s.jvmStacktraceLUT = []stacktraceEntry{}
+	s.nativeLineNoLUT = []lineNoEntry{}
+	s.nativeStacktraceLUT = []stacktraceEntry{}
 	s.ttidSpans = []int{}
 	s.requestJVM = nil
 	s.responseJVM = nil
@@ -1026,14 +1036,14 @@ func (s *Symbolicator) prepareNativeException(ev event.EventField, index int) {
 		for k, frame := range excep.Frames {
 			line := frame.LineNum
 			if line < 0 {
-				s.lineNoLUT = append(s.lineNoLUT, lineNoEntry{index, j, k, -1, -1, frame.LineNum})
+				s.nativeLineNoLUT = append(s.nativeLineNoLUT, lineNoEntry{index, j, k, -1, -1, frame.LineNum})
 				line = 0
 			}
 			framesNative = append(framesNative, frameNative{
 				OriginalIndex:   k,
 				InstructionAddr: frame.InstructionAddr,
 			})
-			s.stacktraceLUT = append(s.stacktraceLUT, stacktraceEntry{index, j, k, -1, -1, len(s.requestNative.Stacktraces)})
+			s.nativeStacktraceLUT = append(s.nativeStacktraceLUT, stacktraceEntry{index, j, k, -1, -1, len(s.requestNative.Stacktraces)})
 		}
 		s.requestNative.Stacktraces = append(s.requestNative.Stacktraces, stacktraceNative{
 			Frames: framesNative,
@@ -1046,7 +1056,7 @@ func (s *Symbolicator) prepareNativeException(ev event.EventField, index int) {
 func (s Symbolicator) rewriteNativeException(evs []event.EventField) {
 	stacktraces := s.responseNative.Stacktraces
 
-	for _, entry := range s.stacktraceLUT {
+	for _, entry := range s.nativeStacktraceLUT {
 		i := entry[0]
 		j := entry[1]
 		k := entry[2]
