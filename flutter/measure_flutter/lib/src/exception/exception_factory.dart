@@ -76,7 +76,7 @@ final class ExceptionFactory {
     return frames
         .where((frame) {
           var member = frame.member;
-          return member != null && _absRegex.hasMatch(member);
+          return member != null;
         })
         .map((frame) {
           if (frame is UnparsedFrame) {
@@ -159,6 +159,7 @@ final class ExceptionFactory {
       return exceptionStr;
     }
   }
+
   static List<BinaryImage> _createBinaryImage(StackTrace stack) {
     var stackStr = stack.toString();
     final baseAddr = _baseAddrRegex.firstMatch(stackStr)?.group(1);

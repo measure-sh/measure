@@ -84,6 +84,7 @@ void main() {
         handled: false,
         threads: [],
         foreground: true,
+        binaryImages: [],
       );
 
       collector.register();
@@ -120,12 +121,10 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
             frames: [
               MsrFrame(
                 frameIndex: 0,
-                binaryAddress: '0x7af7026000',
                 instructionAddress: "0x7af71c4903",
               ),
               MsrFrame(
                 frameIndex: 1,
-                binaryAddress: '0x7af7026000',
                 instructionAddress: "0x7af71c48cf",
               ),
             ],
@@ -134,6 +133,13 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
         handled: false,
         threads: [],
         foreground: true,
+        binaryImages: [
+          BinaryImage(
+            baseAddr: "7af7026000",
+            uuid: "369f5a6f980ba1e36116077ffc3e28e0",
+            arch: "arm64",
+          )
+        ],
       );
 
       collector.register();
