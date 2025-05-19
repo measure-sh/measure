@@ -33,6 +33,10 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var screenshotMaskLevel: ScreenshotMaskLevel {
+        return getMergedConfig(\.screenshotMaskLevel)
+    }
+
     var accelerometerUpdateInterval: TimeInterval {
         return getMergedConfig(\.accelerometerUpdateInterval)
     }

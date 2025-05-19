@@ -20,7 +20,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                                        samplingRateForErrorFreeSessions: 1.0,
                                        traceSamplingRate: 1.0,
                                        autoStart: true,
-                                       trackViewControllerLoadTime: true)
+                                       trackViewControllerLoadTime: true,
+                                       screenshotMaskLevel: .allTextAndMedia)
         measureInstance.initialize(with: clientInfo, config: config)
         measureInstance.setUserId("test_user_ios")
         measureInstance.enableShakeToLaunchBugReport(takeScreenshot: true)

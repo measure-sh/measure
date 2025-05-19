@@ -54,6 +54,7 @@ struct Config: InternalConfig, MeasureConfig {
     let shakeAccelerationThreshold: Float
     let shakeMinTimeIntervalMs: Number
     let accelerometerUpdateInterval: TimeInterval
+    let screenshotMaskLevel: ScreenshotMaskLevel
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
@@ -64,7 +65,8 @@ struct Config: InternalConfig, MeasureConfig {
                   httpUrlBlocklist: [String] = DefaultConfig.httpUrlBlocklist,
                   httpUrlAllowlist: [String] = DefaultConfig.httpUrlAllowlist,
                   autoStart: Bool = DefaultConfig.autoStart,
-                  trackViewControllerLoadTime: Bool = DefaultConfig.trackViewControllerLoadTime) {
+                  trackViewControllerLoadTime: Bool = DefaultConfig.trackViewControllerLoadTime,
+                  screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel) {
         self.enableLogging = enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
         self.traceSamplingRate = traceSamplingRate
@@ -75,6 +77,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.httpUrlAllowlist = httpUrlAllowlist
         self.autoStart = autoStart
         self.trackViewControllerLoadTime = trackViewControllerLoadTime
+        self.screenshotMaskLevel = screenshotMaskLevel
         self.eventsBatchingIntervalMs = 3000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndLastEventThresholdMs = 20 * 60 * 1000 // 20 minitues

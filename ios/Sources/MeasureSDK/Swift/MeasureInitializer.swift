@@ -208,7 +208,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                    httpUrlBlocklist: config.httpUrlBlocklist,
                                    httpUrlAllowlist: config.httpUrlAllowlist,
                                    autoStart: config.autoStart,
-                                   trackViewControllerLoadTime: config.trackViewControllerLoadTime)
+                                   trackViewControllerLoadTime: config.trackViewControllerLoadTime,
+                                   screenshotMaskLevel: config.screenshotMaskLevel)
 
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())

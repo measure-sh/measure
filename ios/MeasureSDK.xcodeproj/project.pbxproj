@@ -247,6 +247,7 @@
 		CF1BB49E2DCDF99A00588506 /* ShakeBugReportCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB49D2DCDF99A00588506 /* ShakeBugReportCollector.swift */; };
 		CF1BB4A02DD2039000588506 /* BugReportImageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB49F2DD2039000588506 /* BugReportImageCell.swift */; };
 		CF1BB4B42DD399DF00588506 /* BugReportConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB4B32DD399DF00588506 /* BugReportConfig.swift */; };
+		CF1BB4ED2DDB474100588506 /* ScreenshotMaskLevel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB4EC2DDB474100588506 /* ScreenshotMaskLevel.swift */; };
 		CF4FE3942D913BAC0073D8AE /* Measure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* Measure.framework */; };
 		CF4FE3952D913BAC0073D8AE /* Measure.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* Measure.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CF7CAE4A2D940E4700E15CDB /* AppVersionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE492D940E4700E15CDB /* AppVersionInfo.swift */; };
@@ -644,6 +645,7 @@
 		CF1BB49D2DCDF99A00588506 /* ShakeBugReportCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShakeBugReportCollector.swift; sourceTree = "<group>"; };
 		CF1BB49F2DD2039000588506 /* BugReportImageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BugReportImageCell.swift; sourceTree = "<group>"; };
 		CF1BB4B32DD399DF00588506 /* BugReportConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BugReportConfig.swift; sourceTree = "<group>"; };
+		CF1BB4EC2DDB474100588506 /* ScreenshotMaskLevel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotMaskLevel.swift; sourceTree = "<group>"; };
 		CF7CAE492D940E4700E15CDB /* AppVersionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersionInfo.swift; sourceTree = "<group>"; };
 		CF7CAE4B2D940F2700E15CDB /* MockAppVersionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAppVersionInfo.swift; sourceTree = "<group>"; };
 		CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidator.swift; sourceTree = "<group>"; };
@@ -818,6 +820,7 @@
 				526D17A92D5A1913009A2E90 /* DefaultConfig.swift */,
 				526D17AA2D5A1913009A2E90 /* InternalConfig.swift */,
 				526D17AB2D5A1913009A2E90 /* MeasureConfig.swift */,
+				CF1BB4EC2DDB474100588506 /* ScreenshotMaskLevel.swift */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -1829,6 +1832,7 @@
 				526D182B2D5A1913009A2E90 /* ComputeOnceAttributeProcessor.swift in Sources */,
 				526D18882D5A1913009A2E90 /* SignPost.swift in Sources */,
 				529B319B2D5B85FC007A8E45 /* BinaryImage.swift in Sources */,
+				CF1BB4ED2DDB474100588506 /* ScreenshotMaskLevel.swift in Sources */,
 				526D18842D5A1913009A2E90 /* LifecycleObserver.swift in Sources */,
 				526D18502D5A1913009A2E90 /* ExceptionDetail.swift in Sources */,
 				526D182E2D5A1913009A2E90 /* NetworkStateAttributeProcessor.swift in Sources */,
