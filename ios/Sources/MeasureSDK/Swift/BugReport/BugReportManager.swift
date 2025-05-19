@@ -48,7 +48,7 @@ final class BaseBugReportManager: BugReportManager {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             if takeScreenshot,
-               let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }),
+               let window = UIWindow.keyWindow(),
                let attachment = screenshotGenerator.generate(window: window, name: screenshotName, storageType: .data) {
                 localAttachments.append(attachment)
             }
@@ -61,7 +61,7 @@ final class BaseBugReportManager: BugReportManager {
         bugVC.modalPresentationStyle = .fullScreen
         bugVC.delegate = self
         self.bugReportingViewController = bugVC
-        if let root = UIApplication.shared.windows.first(where: { $0.isKeyWindow })?.rootViewController {
+        if let root = UIWindow.keyWindow()?.rootViewController {
             var top = root
             while let presented = top.presentedViewController {
                 top = presented
@@ -97,7 +97,7 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
                                                                              configProvider: configProvider)
             self.floatingButtonViewController?.delegate = self
 
-            if let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) {
+            if let window = UIWindow.keyWindow() {
                 self.floatingButtonViewController?.view.frame = window.bounds
                 window.addSubview(self.floatingButtonViewController!.view)
             }

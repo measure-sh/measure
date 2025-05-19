@@ -38,6 +38,10 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     private let screenshotButton = UIButton(type: .system)
     private let galleryButton = UIButton(type: .system)
 
+    private var screenshotButtonBottomConstraint: NSLayoutConstraint?
+    private var galleryButtonBottomConstraint: NSLayoutConstraint?
+    private var textViewHeightConstraint: NSLayoutConstraint?
+
     init(attachments: [Attachment] = [], configProvider: ConfigProvider, bugReportConfig: BugReportConfig, idProvider: IdProvider) {
         self.attachments = attachments
         self.configProvider = configProvider
@@ -61,6 +65,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         setupConstraints()
 
         imagesCollectionView.reloadData()
+        updateConstraints(for: view.bounds.size)
     }
 
     private func setupNavBar() {
@@ -196,13 +201,13 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     }
 
     private func setupConstraints() {
-        let safe = view.safeAreaLayoutGuide
+        let safeArea = view.safeAreaLayoutGuide
 
         NSLayoutConstraint.activate([
             // NavBar
-            navBar.topAnchor.constraint(equalTo: safe.topAnchor),
-            navBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            navBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            navBar.topAnchor.constraint(equalTo: safeArea.topAnchor),
+            navBar.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor),
+            navBar.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor),
             navBar.heightAnchor.constraint(equalToConstant: 56),
 
             cancelButton.leadingAnchor.constraint(equalTo: navBar.leadingAnchor, constant: 8),
@@ -218,30 +223,33 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
 
             // TextView
             textView.topAnchor.constraint(equalTo: navBar.bottomAnchor, constant: 8),
-            textView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            textView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            textView.heightAnchor.constraint(equalToConstant: 120),
+            textView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: 16),
+            textView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -16),
 
             placeholderLabel.leadingAnchor.constraint(equalTo: textView.leadingAnchor, constant: 5),
             placeholderLabel.topAnchor.constraint(equalTo: textView.topAnchor, constant: 8),
 
             // Images CollectionView
-            imagesCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            imagesCollectionView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: 16),
             imagesCollectionView.topAnchor.constraint(equalTo: textView.bottomAnchor, constant: 16),
-            imagesCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            imagesCollectionView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -16),
             imagesCollectionView.heightAnchor.constraint(equalToConstant: 140),
 
             // Action buttons
-            screenshotButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            screenshotButton.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: 16),
             screenshotButton.topAnchor.constraint(equalTo: imagesCollectionView.bottomAnchor, constant: 16),
             screenshotButton.heightAnchor.constraint(equalToConstant: 44),
             screenshotButton.trailingAnchor.constraint(equalTo: galleryButton.leadingAnchor, constant: -16),
             screenshotButton.widthAnchor.constraint(equalTo: galleryButton.widthAnchor, multiplier: 1.0),
 
-            galleryButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            galleryButton.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -16),
             galleryButton.topAnchor.constraint(equalTo: imagesCollectionView.bottomAnchor, constant: 16),
             galleryButton.heightAnchor.constraint(equalToConstant: 44)
         ])
+
+        screenshotButtonBottomConstraint = screenshotButton.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor, constant: -8)
+        galleryButtonBottomConstraint = galleryButton.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor, constant: -8)
+        textViewHeightConstraint = textView.heightAnchor.constraint(equalToConstant: 120)
     }
 
     func addAttachment(_ attachment: Attachment) {
@@ -260,6 +268,25 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
 
         screenshotButton.setTitleColor(buttonColor, for: .normal)
         galleryButton.setTitleColor(buttonColor, for: .normal)
+    }
+
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(alongsideTransition: { _ in
+            self.updateConstraints(for: size)
+        })
+    }
+
+    private func updateConstraints(for size: CGSize) {
+        let isLandscape = size.height < size.width
+        #if !targetEnvironment(macCatalyst)
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            screenshotButtonBottomConstraint?.isActive = isLandscape
+            galleryButtonBottomConstraint?.isActive = isLandscape
+            textViewHeightConstraint?.constant = isLandscape ? 80 : 120
+        }
+        #endif
+        textViewHeightConstraint?.isActive = true
     }
 }
 

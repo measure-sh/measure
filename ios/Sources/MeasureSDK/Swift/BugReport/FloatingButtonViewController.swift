@@ -22,6 +22,7 @@ final class FloatingButtonViewController: UIViewController {
     private var attachments = [Attachment]()
     private let configProvider: ConfigProvider
     weak var delegate: FloatingButtonViewControllerDelegate?
+    private var lastKnownBounds: CGRect = .zero
 
     override func loadView() {
         self.view = FloatingButtonContainerView(cancelButton: cancelButton, floatingButton: button)
@@ -109,13 +110,8 @@ final class FloatingButtonViewController: UIViewController {
         view.addSubview(cancelButton)
         view.addSubview(button)
 
-        // Setup constraints
-        cancelButton.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            cancelButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: bugReportConfig.dimensions.topPadding),
-            cancelButton.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 0),
-            cancelButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: 0)
-        ])
+        // Initial manual layout
+        layoutCancelButton()
 
         // Add gesture recognizers
         let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
@@ -210,6 +206,38 @@ final class FloatingButtonViewController: UIViewController {
             width: badgeSize,
             height: badgeSize
         )
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        NotificationCenter.default.addObserver(self, selector: #selector(handleOrientationOrBoundsChange), name: UIDevice.orientationDidChangeNotification, object: nil)
+    }
+
+    @objc private func handleOrientationOrBoundsChange() {
+        DispatchQueue.main.async {
+            self.snapToEdge()
+            self.layoutCancelButton()
+        }
+    }
+
+    private func layoutCancelButton() {
+        let isLandscape = UIScreen.main.bounds.width > UIScreen.main.bounds.height
+        let buttonHeight: CGFloat = 24
+        self.cancelButton.frame = CGRect(x: 0,
+                                         y: self.view.safeAreaInsets.top + self.bugReportConfig.dimensions.topPadding,
+                                         width: UIScreen.main.bounds.width,
+                                         height: buttonHeight)
+        self.cancelButton.setNeedsLayout()
+        self.cancelButton.layoutIfNeeded()
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        layoutCancelButton()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 }
 
