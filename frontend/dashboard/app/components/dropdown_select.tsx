@@ -289,7 +289,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                 key={index}
                 onSelect={() => handleItemClick(item)}
                 className={cn(
-                  "flex items-center cursor-default focus:ring-3 focus:ring-yellow-300",
+                  "flex items-center cursor-default focus-visible:ring-3 focus-visible:ring-yellow-300",
                 )}
                 tabIndex={0}
                 onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
