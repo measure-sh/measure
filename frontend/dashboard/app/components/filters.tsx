@@ -474,6 +474,8 @@ const Filters: React.FC<FiltersProps> = ({
     }
   }
 
+  const customDateInputStyle = "font-display border border-black rounded-md p-1.5 text-sm transition-all outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+
   const searchParams = useSearchParams()
 
   const urlFilters = deserializeUrlFilters(searchParams.toString())
@@ -1032,13 +1034,13 @@ const Filters: React.FC<FiltersProps> = ({
               }
               } />}
               {showDates && selectedDateRange === DateRange.Custom && <p className="font-display px-2">:</p>}
-              {showDates && selectedDateRange === DateRange.Custom && <input type="datetime-local" defaultValue={formatIsoDateForDateTimeInputField(selectedStartDate)} max={formatIsoDateForDateTimeInputField(selectedEndDate)} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+              {showDates && selectedDateRange === DateRange.Custom && <input type="datetime-local" defaultValue={formatIsoDateForDateTimeInputField(selectedStartDate)} max={formatIsoDateForDateTimeInputField(selectedEndDate)} className={customDateInputStyle} onChange={(e) => {
                 if (isValidTimestamp(e.target.value)) {
                   setSelectedStartDate(DateTime.fromISO(e.target.value).toISO()!)
                 }
               }} />}
               {showDates && selectedDateRange === DateRange.Custom && <p className="font-display px-2">to</p>}
-              {showDates && selectedDateRange === DateRange.Custom && <input type="datetime-local" defaultValue={formatIsoDateForDateTimeInputField(selectedEndDate)} min={formatIsoDateForDateTimeInputField(selectedStartDate)} max={formatIsoDateForDateTimeInputField(DateTime.now().toISO())} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+              {showDates && selectedDateRange === DateRange.Custom && <input type="datetime-local" defaultValue={formatIsoDateForDateTimeInputField(selectedEndDate)} min={formatIsoDateForDateTimeInputField(selectedStartDate)} max={formatIsoDateForDateTimeInputField(DateTime.now().toISO())} className={customDateInputStyle} onChange={(e) => {
                 if (isValidTimestamp(e.target.value)) {
                   // If "To" date is greater than now, ignore the change and reset to current end date.
                   // We need to do this since setting "max" isn't enough in some browsers
