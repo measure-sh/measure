@@ -46,14 +46,17 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
   const selectSingleItem = (item: string | AppVersion | OsVersion) => {
     setSelected(item)
     setOpen(false)
+    onChangeSelected?.(item)
   }
 
   const selectAll = () => {
     setSelected(items)
+    onChangeSelected?.(items)
   }
 
   const clearAll = () => {
     setSelected([])
+    onChangeSelected?.([])
   }
 
   const selectLatestAppVersion = () => {
@@ -64,15 +67,19 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
     )
 
     setSelected([latestVersion])
+    onChangeSelected?.([latestVersion])
   }
 
   const toggleCheckboxStringItem = (item: string) => {
     let curSelected = selected as string[]
+    let newSelected
     if (curSelected.includes(item)) {
-      setSelected(curSelected.filter(a => a != item))
+      newSelected = curSelected.filter(a => a != item)
     } else {
-      setSelected([item, ...curSelected])
+      newSelected = [item, ...curSelected]
     }
+    setSelected(newSelected)
+    onChangeSelected?.(newSelected)
   }
 
   const isOsVersionSelected = (item: OsVersion) => {
@@ -83,11 +90,14 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
 
   const toggleCheckboxOsVersionItem = (item: OsVersion) => {
     let curSelected = selected as OsVersion[]
+    let newSelected
     if (isOsVersionSelected(item)) {
-      setSelected(curSelected.filter(a => a.displayName != item.displayName))
+      newSelected = curSelected.filter(a => a.displayName != item.displayName)
     } else {
-      setSelected([item, ...curSelected])
+      newSelected = [item, ...curSelected]
     }
+    setSelected(newSelected)
+    onChangeSelected?.(newSelected)
   }
 
   const isAppVersionSelected = (item: AppVersion) => {
@@ -98,20 +108,19 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
 
   const toggleCheckboxAppVersionItem = (item: AppVersion) => {
     let curSelected = selected as AppVersion[]
+    let newSelected
     if (isAppVersionSelected(item)) {
       // If only one item is selected, do nothing
       if (curSelected.length === 1) {
         return
       }
-      setSelected(curSelected.filter(a => a.displayName != item.displayName))
+      newSelected = curSelected.filter(a => a.displayName != item.displayName)
     } else {
-      setSelected([item, ...curSelected])
+      newSelected = [item, ...curSelected]
     }
+    setSelected(newSelected)
+    onChangeSelected?.(newSelected)
   }
-
-  useEffect(() => {
-    onChangeSelected?.(selected)
-  }, [selected, onChangeSelected])
 
   // Helper to get display text for selected items
   const getDisplayText = () => {
