@@ -26,12 +26,12 @@ export default function Accordion({
     <div className="py-2">
       <h2>
         <button
-          className="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
+          className="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
           onClick={(e) => { e.preventDefault(); setAccordionOpen(!accordionOpen); }}
           aria-expanded={accordionOpen}
           aria-controls={`accordion-text-${id}`}
         >
-          <span>{title}</span>
+          <span className='font-display'>{title}</span>
           <svg className="fill-neutral-950 shrink-0 ml-8" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
             <rect y="7" width="16" height="2" rx="1" className={`ttransform origin-center transition duration-200 ease-out ${accordionOpen && 'rotate-180!'}`} />
             <rect y="7" width="16" height="2" rx="1" className={`transform origin-center rotate-90 transition duration-200 ease-out ${accordionOpen && 'rotate-180!'}`} />

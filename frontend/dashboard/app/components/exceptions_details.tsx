@@ -13,6 +13,8 @@ import Image from 'next/image'
 import CopyAiContext from './copy_ai_context'
 import LoadingSpinner from './loading_spinner'
 import ExceptionsDistributionPlot from './exceptions_distribution_plot'
+import { buttonVariants } from './button'
+import { cn } from '../utils/shadcn_utils'
 
 interface PageState {
   exceptionsDetailsApiStatus: ExceptionsDetailsApiStatus
@@ -220,7 +222,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                     <Link
                       key={pageState.exceptionsDetails.results[0].id}
                       href={`/${teamId}/sessions/${appId}/${pageState.exceptionsDetails.results[0].session_id}`}
-                      className="outline-hidden justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">
+                      className={cn(buttonVariants({ variant: "outline" }), "justify-center w-fit font-display border border-black rounded-md select-none")}>
                       View Session
                     </Link>
                     <div className='px-2' />

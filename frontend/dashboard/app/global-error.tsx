@@ -3,6 +3,7 @@
 import { H } from '@highlight-run/next/client'
 import Link from 'next/link'
 import { useEffect } from 'react'
+import { Button } from './components/button'
 
 export default function Error({
   error,
@@ -28,7 +29,12 @@ export default function Error({
             <div className="py-1" />
             <p className="w-fit bg-red-200 border border-black selection:bg-yellow-200/50 grid text-left text-sm font-body whitespace-pre-wrap rounded-md p-4">{error.message}</p>
             <div className="py-2" />
-            <button className="outline-hidden text-sm flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(error.message)}>Copy</button>
+            <Button
+              variant="outline"
+              className="font-display border border-black rounded-md select-none"
+              onClick={() => navigator.clipboard.writeText(error.message)}
+            >Copy
+            </Button>
           </div>
         </div>
       </body>

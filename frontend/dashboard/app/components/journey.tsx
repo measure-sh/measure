@@ -306,7 +306,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
           >
             {selectedNode !== undefined &&
               <div>
-                <button className="outline-hidden flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black active:border-black focus-visible:border-black hover:text-black active:text-black focus-visible:text-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => setSelectedNode(undefined)}>Close</button>
+                <button className="outline-hidden flex justify-center hover:bg-yellow-200 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-white hover:border-black focus-visible:border-black hover:text-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => setSelectedNode(undefined)}>Close</button>
                 <p className='mt-6 text-lg'>{selectedNode!.id}</p>
                 {selectedNode.issues?.crashes?.length! > 0 && (
                   <div>

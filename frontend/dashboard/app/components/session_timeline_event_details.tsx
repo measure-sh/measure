@@ -4,6 +4,8 @@ import { ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { formatDateToHumanReadableDateTime, formatMillisToHumanReadable } from '../utils/time_utils'
+import { buttonVariants } from './button'
+import { cn } from '../utils/shadcn_utils'
 
 type SessionTimelineEventDetailsProps = {
   teamId: string
@@ -104,24 +106,25 @@ export default function SessionTimelineEventDetails({
   }
 
   function getDetailsLinkFromEventDetails(): ReactNode {
+    const linkStyle = cn(buttonVariants({ variant: "outline" }), "justify-center w-fit font-display bg-neutral-800 border border-white hover:border-black rounded-md text-white hover:text-black rounded-md select-none")
     if ((eventType === "exception" && eventDetails.user_triggered === false) || eventType === "anr") {
       return (
         <div className='px-4 pt-4'>
-          <Link key={eventDetails.id} href={`/${teamId}/${eventType === "exception" ? 'crashes' : 'anrs'}/${appId}/${eventDetails.group_id}/${eventDetails.type + "@" + eventDetails.file_name}`} className="outline-hidden justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black rounded-md text-white hover:text-black font-display transition-colors duration-100 py-2 px-4">View {eventType === "exception" ? 'Crash' : 'ANR'} Details</Link>
+          <Link key={eventDetails.id} href={`/${teamId}/${eventType === "exception" ? 'crashes' : 'anrs'}/${appId}/${eventDetails.group_id}/${eventDetails.type + "@" + eventDetails.file_name}`} className={linkStyle}>View {eventType === "exception" ? 'Crash' : 'ANR'} Details</Link>
         </div>
       )
     }
     if (eventType === "trace") {
       return (
         <div className='px-4 pt-8 pb-4'>
-          <Link key={eventDetails.id} href={`/${teamId}/traces/${appId}/${eventDetails.trace_id}`} className="outline-hidden justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black rounded-md text-white hover:text-black font-display transition-colors duration-100 py-2 px-4">View Trace Details</Link>
+          <Link key={eventDetails.id} href={`/${teamId}/traces/${appId}/${eventDetails.trace_id}`} className={linkStyle}>View Trace Details</Link>
         </div>
       )
     }
     if (eventType === "bug_report") {
       return (
         <div className='px-4 pt-8 pb-4'>
-          <Link key={eventDetails.id} href={`/${teamId}/bug_reports/${appId}/${eventDetails.bug_report_id}`} className="outline-hidden justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black rounded-md text-white hover:text-black font-display transition-colors duration-100 py-2 px-4">View Bug Report Details</Link>
+          <Link key={eventDetails.id} href={`/${teamId}/bug_reports/${appId}/${eventDetails.bug_report_id}`} className={linkStyle}>View Bug Report Details</Link>
         </div>
       )
     }

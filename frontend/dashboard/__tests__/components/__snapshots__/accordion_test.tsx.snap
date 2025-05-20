@@ -12,9 +12,11 @@ exports[`Accordion renders correctly in collapsed state 1`] = `
           <button
             aria-controls="accordion-text-ID"
             aria-expanded="false"
-            class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
+            class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
           >
-            <span>
+            <span
+              class="font-display"
+            >
               TITLE
             </span>
             <svg
@@ -67,9 +69,11 @@ exports[`Accordion renders correctly in collapsed state 1`] = `
         <button
           aria-controls="accordion-text-ID"
           aria-expanded="false"
-          class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
+          class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
         >
-          <span>
+          <span
+            class="font-display"
+          >
             TITLE
           </span>
           <svg
@@ -179,9 +183,11 @@ exports[`Accordion renders correctly in opened state 1`] = `
           <button
             aria-controls="accordion-text-ID"
             aria-expanded="true"
-            class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
+            class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
           >
-            <span>
+            <span
+              class="font-display"
+            >
               TITLE
             </span>
             <svg
@@ -234,9 +240,11 @@ exports[`Accordion renders correctly in opened state 1`] = `
         <button
           aria-controls="accordion-text-ID"
           aria-expanded="true"
-          class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
+          class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
         >
-          <span>
+          <span
+            class="font-display"
+          >
             TITLE
           </span>
           <svg
@@ -346,9 +354,11 @@ exports[`Accordion renders correctly once it's openened and closed again 1`] = `
           <button
             aria-controls="accordion-text-ID"
             aria-expanded="true"
-            class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
+            class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
           >
-            <span>
+            <span
+              class="font-display"
+            >
               TITLE
             </span>
             <svg
@@ -401,9 +411,11 @@ exports[`Accordion renders correctly once it's openened and closed again 1`] = `
         <button
           aria-controls="accordion-text-ID"
           aria-expanded="true"
-          class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
+          class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
         >
-          <span>
+          <span
+            class="font-display"
+          >
             TITLE
           </span>
           <svg
@@ -513,9 +525,11 @@ exports[`Accordion renders correctly once it's openened and closed again 2`] = `
           <button
             aria-controls="accordion-text-ID"
             aria-expanded="false"
-            class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
+            class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
           >
-            <span>
+            <span
+              class="font-display"
+            >
               TITLE
             </span>
             <svg
@@ -568,9 +582,11 @@ exports[`Accordion renders correctly once it's openened and closed again 2`] = `
         <button
           aria-controls="accordion-text-ID"
           aria-expanded="false"
-          class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:outline-yellow-300"
+          class="flex items-center justify-between w-full text-left py-2 outline-hidden focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
         >
-          <span>
+          <span
+            class="font-display"
+          >
             TITLE
           </span>
           <svg
