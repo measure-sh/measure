@@ -60,51 +60,66 @@ jobs:
       - name: Test with ${{ matrix.go-version }}
         run: go test ./...
 
-  push-api:
-    name: Build and push image
+  trigger-cloud-deploy:
+    name: Triggle Cloud Deploy
     runs-on: ubuntu-latest
-    # if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
-    needs: [build-api, test-api]
-    permissions:
-      contents: read
-      packages: write
-      attestations: write
-      id-token: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Login to Container Registry
-        uses: docker/login-action@v3
+      - name: Dispatch Cloud Deploy
+        uses: peter-evans/repository-dispatch@v3
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.CLOUD_DISPATCH_TOKEN }}
+          repository: measure-sh/cloud
+        # env:
+        #   CLOUD_DISPATCH_PAT: ${{ secrets.CLOUD_DISPATCH_PAT }}
+        #   TARGET_REPO: ${{ gitub.repository/owner }}
+        # run: |
+        #   TARGET_REPO="${{ github.repository_owner }}/cloud"
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.API_IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
+  # push-api:
+  #   name: Build and push image
+  #   runs-on: ubuntu-latest
+  #   # if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
+  #   needs: [build-api, test-api]
+  #   permissions:
+  #     contents: read
+  #     packages: write
+  #     attestations: write
+  #     id-token: write
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
 
-      - name: Build and push OCI image
-        id: push
-        uses: docker/build-push-action@v6
-        with:
-          context: backend/api
-          file: backend/api/dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: |
-            org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/backend/api/dockerfile
-            org.opencontainers.image.description=Measure API Server
-            org.opencontainers.image.licenses=Apache-2.0
+  #     - name: Login to Container Registry
+  #       uses: docker/login-action@v3
+  #       with:
+  #         registry: ${{ env.REGISTRY }}
+  #         username: ${{ github.actor }}
+  #         password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v1
-        with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          subject-digest: ${{ steps.push.outputs.digest }}
-          push-to-registry: false
+  #     - name: Extract metadata (tags, labels) for Docker
+  #       id: meta
+  #       uses: docker/metadata-action@v5
+  #       with:
+  #         images: ${{ env.REGISTRY }}/${{ env.API_IMAGE_NAME }}
+  #         tags: |
+  #           type=ref,event=branch
+
+  #     - name: Build and push OCI image
+  #       id: push
+  #       uses: docker/build-push-action@v6
+  #       with:
+  #         context: backend/api
+  #         file: backend/api/dockerfile
+  #         push: true
+  #         tags: ${{ steps.meta.outputs.tags }}
+  #         labels: |
+  #           org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/backend/api/dockerfile
+  #           org.opencontainers.image.description=Measure API Server
+  #           org.opencontainers.image.licenses=Apache-2.0
+
+  #     - name: Generate artifact attestation
+  #       uses: actions/attest-build-provenance@v1
+  #       with:
+  #         subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+  #         subject-digest: ${{ steps.push.outputs.digest }}
+  #         push-to-registry: false
