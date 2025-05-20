@@ -189,7 +189,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, i
               <CommandItem
                 key={attr.key}
                 onSelect={() => toggleAttr(attr)}
-                className="flex flex-col items-start px-4 sm:px-4 px-0 sm:w-full w-fit focus:ring-3 focus:ring-yellow-300"
+                className="flex flex-col items-start px-4 sm:px-4 px-0 sm:w-full w-fit focus-visible:ring-3 focus-visible:ring-yellow-300"
                 tabIndex={0}
                 onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
                   if (e.key === 'Enter') {
