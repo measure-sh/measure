@@ -69,6 +69,12 @@ jobs:
         with:
           token: ${{ secrets.CLOUD_DISPATCH_TOKEN }}
           repository: measure-sh/cloud
+          event-type: "cloud-deploy"
+          client-payload: |-
+            {
+              "ref": "${{ github.ref }}",
+              "sha": "${{ github.sha }}"
+            }
         # env:
         #   CLOUD_DISPATCH_PAT: ${{ secrets.CLOUD_DISPATCH_PAT }}
         #   TARGET_REPO: ${{ gitub.repository/owner }}
