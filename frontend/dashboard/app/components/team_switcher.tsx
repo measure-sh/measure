@@ -4,6 +4,8 @@ import React, { useState } from 'react'
 import { Team } from '../api/api_calls'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from './dropdown_menu'
 import { DropdownMenuSeparator } from '@radix-ui/react-dropdown-menu'
+import { ChevronsUpDown } from 'lucide-react'
+import { Button } from './button'
 
 export enum TeamsSwitcherStatus {
   Loading,
@@ -30,19 +32,22 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className='w-full hover:bg-yellow-200 select-none' disabled={teamsSwitcherStatus === TeamsSwitcherStatus.Loading || teamsSwitcherStatus === TeamsSwitcherStatus.Error}>
-        <div className="w-full font-display text-sm border border-black rounded-md truncate p-2 text-left">
+      <DropdownMenuTrigger asChild className='w-full select-none'>
+        <Button
+          variant="outline"
+          className="flex justify-between w-full font-display border border-black rounded-md"
+          disabled={teamsSwitcherStatus === TeamsSwitcherStatus.Loading || teamsSwitcherStatus === TeamsSwitcherStatus.Error}
+        >
           {teamsSwitcherStatus == TeamsSwitcherStatus.Loading && <p>Fetching teams...</p>}
           {teamsSwitcherStatus == TeamsSwitcherStatus.Error && <p>Teams Fetch Error</p>}
-          {teamsSwitcherStatus == TeamsSwitcherStatus.Success &&
-            <div className="flex flex-row items-center">
-              <p className='w-full'>{selectedItem ? selectedItem.name : items![initialItemIndex].name}</p>
-              <p className="pl-3 pr-4 pt-1 text-sm">⏷</p>
-            </div>
-          }
-        </div>
+          {teamsSwitcherStatus == TeamsSwitcherStatus.Success && <span className="truncate">{selectedItem ? selectedItem.name : items![initialItemIndex].name}</span>}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className='select-none'>
+      <DropdownMenuContent
+        className='select-none'
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         <DropdownMenuLabel className='font-display'>Select Team</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {teamsSwitcherStatus === TeamsSwitcherStatus.Success && items?.map((item, index) => (

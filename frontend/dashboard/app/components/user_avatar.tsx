@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { measureAuth, MeasureAuthSession } from '../auth/measure_auth'
 import Image from 'next/image'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './dropdown_menu'
+import { Button } from './button'
 
 interface UserAvatarProps {
   onLogoutClick?: () => void
@@ -31,10 +32,15 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ onLogoutClick }) => {
 
   return (
     <DropdownMenu >
-      <DropdownMenuTrigger className='w-full hover:bg-yellow-200'>
-        <div className='flex font-body flex-row items-center w-full p-1 rounded-md border border-black'>
+      <DropdownMenuTrigger asChild className='w-full' tabIndex={-1}>
+        <Button
+          variant="outline"
+          size={"lg"}
+          className="flex flex-row items-center w-full p-1 font-display border border-black"
+          disabled={session === null && sessionError === null}
+        >
           <div
-            className="aspect-square w-12 font-display rounded-full">
+            className="aspect-square w-12 rounded-full">
             {session !== null && sessionError === null && (
               <div className="relative w-full h-full">
                 <Image
@@ -52,14 +58,16 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ onLogoutClick }) => {
           {session === null && sessionError === null && <p className="w-full truncate text-xs">Updating...</p>}
           {session === null && sessionError !== null && <p className="w-full truncate text-xs">Error</p>}
           {session !== null && sessionError === null &&
-            <div className='flex flex-col items-start truncate text-xs w-full font-display'>
+            <div className='flex flex-col items-start truncate text-xs w-full'>
               <p className='text-sm'>{session?.user.name}</p>
               <p className='text-[10px]'>{session?.user.email}</p>
             </div>}
-        </div>
-
+        </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent
+        className='select-none'
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         <DropdownMenuLabel className='font-display'>Account</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogoutClick} className='font-body'>
