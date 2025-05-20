@@ -32,11 +32,11 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ onLogoutClick }) => {
 
   return (
     <DropdownMenu >
-      <DropdownMenuTrigger asChild className='w-full' tabIndex={-1}>
+      <DropdownMenuTrigger asChild className='w-full'>
         <Button
           variant="outline"
           size={"lg"}
-          className="flex flex-row items-center w-full p-1 font-display border border-black"
+          className="flex flex-row items-center w-full p-1 font-display border border-black select-none"
           disabled={session === null && sessionError === null}
         >
           <div

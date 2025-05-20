@@ -50,7 +50,7 @@ export default function GoogleSignIn() {
         data-use_fedcm_for_prompt="true">
       </div>
 
-      <div className="g_id_signin"
+      <div className="g_id_signin rounded-md"
         data-type="standard"
         data-shape="rectangular"
         data-theme="outline"

@@ -8,7 +8,7 @@ import { formatToCamelCase } from "@/app/utils/string_utils"
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
 import { measureAuth } from "@/app/auth/measure_auth"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
-import { get } from "http"
+import { Button } from "@/app/components/button"
 
 export default function TeamOverview({ params }: { params: { teamId: string } }) {
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading)
@@ -349,8 +349,14 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                 setNewTeamName(event.target.value)
                 setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Init)
               }}
-              className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400" />
-            <button disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading} className="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => setTeamNameConfirmationModalOpen(true)}>Save</button>
+              className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
+            <Button
+              variant="outline"
+              className="m-4 font-display border border-black rounded-md select-none"
+              disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
+              onClick={() => setTeamNameConfirmationModalOpen(true)}>
+              Save
+            </Button>
           </div>
           {teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading || teamNameChangeApiStatus === TeamNameChangeApiStatus.Error && <div className="py-1" />}
           {/* Loading message for team name change */}
@@ -362,10 +368,16 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
           <p className="font-body max-w-6xl text-center">Invite team members</p>
           <div className="py-1" />
           <div className="flex flex-row items-center">
-            <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300  py-2 px-4 font-body placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} value={inviteMemberEmail} />
+            <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} value={inviteMemberEmail} />
             <div className="px-2" />
             <DropdownSelect title="Roles" type={DropdownSelectType.SingleString} items={authzAndMembers.can_invite.map((i) => formatToCamelCase(i))} initialSelected={formatToCamelCase(authzAndMembers.can_invite[0])} onChangeSelected={(item) => setInviteMemberRole(item as string)} />
-            <button disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""} onClick={inviteMember} className="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4">Invite</button>
+            <Button
+              variant="outline"
+              className="m-4 font-display border border-black rounded-md select-none"
+              disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""}
+              onClick={inviteMember}>
+              Invite
+            </Button>
           </div>
           {inviteMemberApiStatus !== InviteMemberApiStatus.Init && <div className="py-1" />}
           {/* Loading message for invite member */}
@@ -407,13 +419,19 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                   {/* Show change role button if not current user */}
                   {id !== currentUserId &&
                     <div className="table-cell p-4 pl-0">
-                      <button disabled={selectedDropdownRolesMap.get(id) === undefined || selectedDropdownRolesMap.get(id) === role} className="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
-                        setRoleChangeMemberId(id)
-                        setRoleChangeMemberEmail(authzAndMembers.members.filter((i) => i.id === id)[0].email)
-                        setRoleChangeOldRole(formatToCamelCase(authzAndMembers.members.filter((i) => i.id === id)[0].role))
-                        setRoleChangeNewRole(selectedDropdownRolesMap.get(id) as string)
-                        setChangeRoleConfirmationModalOpen(true)
-                      }}>Change Role</button>
+                      <Button
+                        variant="outline"
+                        className="m-4 font-display border border-black rounded-md select-none"
+                        disabled={selectedDropdownRolesMap.get(id) === undefined || selectedDropdownRolesMap.get(id) === role}
+                        onClick={() => {
+                          setRoleChangeMemberId(id)
+                          setRoleChangeMemberEmail(authzAndMembers.members.filter((i) => i.id === id)[0].email)
+                          setRoleChangeOldRole(formatToCamelCase(authzAndMembers.members.filter((i) => i.id === id)[0].role))
+                          setRoleChangeNewRole(selectedDropdownRolesMap.get(id) as string)
+                          setChangeRoleConfirmationModalOpen(true)
+                        }}>
+                        Change Role
+                      </Button>
                       {/* Loading message for role change */}
                       {roleChangeApiStatus === RoleChangeApiStatus.Loading && roleChangeMemberId === id && <p className="font-display pl-4 w-24 text-xs" title="Changing role...">Changing role...</p>}
                       {/* Error message for role change */}
@@ -424,11 +442,17 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                   {/* Show remove member button if not current user */}
                   {id !== currentUserId &&
                     <div className="table-cell p-4 pl-0">
-                      <button disabled={authz.can_remove === false || removeMemberApiStatus === RemoveMemberApiStatus.Loading} className="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
-                        setRemoveMemberId(id)
-                        setRemoveMemberEmail(authzAndMembers.members.filter((i) => i.id === id)[0].email)
-                        setRemoveMemberConfirmationModalOpen(true)
-                      }}>Remove</button>
+                      <Button
+                        variant="outline"
+                        className="m-4 font-display border border-black rounded-md select-none"
+                        disabled={authz.can_remove === false || removeMemberApiStatus === RemoveMemberApiStatus.Loading}
+                        onClick={() => {
+                          setRemoveMemberId(id)
+                          setRemoveMemberEmail(authzAndMembers.members.filter((i) => i.id === id)[0].email)
+                          setRemoveMemberConfirmationModalOpen(true)
+                        }}>
+                        Remove
+                      </Button>
                       {/* Loading message for member removal */}
                       {removeMemberApiStatus === RemoveMemberApiStatus.Loading && removeMemberId === id && <p className="font-display pl-4 w-24 text-xs truncate" title="Removing member...">Removing member...</p>}
                       {/* Error message for member removal */}
@@ -466,11 +490,17 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                     <div className="table-cell p-4 text-center">{formatToCamelCase(role)}</div>
                     <div className="table-cell p-4 text-center">{formatDateToHumanReadableDateTime(valid_until)}</div>
                     <div className="table-cell p-4">
-                      <button disabled={!authzAndMembers.can_invite.includes(role) || resendPendingInviteApiStatus === ResendPendingInviteApiStatus.Loading} className="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
-                        setResendPendingInviteId(id)
-                        setResendPendingInviteEmail(email)
-                        setResendPendingInviteConfirmationModalOpen(true)
-                      }}>Resend</button>
+                      <Button
+                        variant="outline"
+                        className="m-4 font-display border border-black rounded-md select-none"
+                        disabled={!authzAndMembers.can_invite.includes(role) || resendPendingInviteApiStatus === ResendPendingInviteApiStatus.Loading}
+                        onClick={() => {
+                          setResendPendingInviteId(id)
+                          setResendPendingInviteEmail(email)
+                          setResendPendingInviteConfirmationModalOpen(true)
+                        }}>
+                        Resend
+                      </Button>
                       {/* Loading message for pending invite resend */}
                       {resendPendingInviteApiStatus === ResendPendingInviteApiStatus.Loading && resendPendingInviteId === id && <p className="font-display pl-4 w-24 text-xs truncate" title="Resending pending invite...">Resending pending invite...</p>}
                       {/* Error message for pending invite resend */}
@@ -479,11 +509,17 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                       {resendPendingInviteApiStatus === ResendPendingInviteApiStatus.Success && resendPendingInviteId === id && <p className="font-display pl-4 w-24 text-xs truncate" title={resendPendingInviteSuccessMsg}>{resendPendingInviteSuccessMsg}</p>}
                     </div>
                     <div className="table-cell p-4">
-                      <button disabled={!authzAndMembers.can_invite.includes(role) || removePendingInviteApiStatus === RemovePendingInviteApiStatus.Loading} className="m-4 outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={() => {
-                        setRemovePendingInviteId(id)
-                        setRemovePendingInviteEmail(email)
-                        setRemovePendingInviteConfirmationModalOpen(true)
-                      }}>Revoke</button>
+                      <Button
+                        variant="outline"
+                        className="m-4 font-display border border-black rounded-md select-none"
+                        disabled={!authzAndMembers.can_invite.includes(role) || removePendingInviteApiStatus === RemovePendingInviteApiStatus.Loading}
+                        onClick={() => {
+                          setRemovePendingInviteId(id)
+                          setRemovePendingInviteEmail(email)
+                          setRemovePendingInviteConfirmationModalOpen(true)
+                        }}>
+                        Revoke
+                      </Button>
                       {/* Loading message for pending invite removal */}
                       {removePendingInviteApiStatus === RemovePendingInviteApiStatus.Loading && removePendingInviteId === id && <p className="font-display pl-4 w-24 text-xs truncate" title="Revoking pending invite...">Revoking pending invite...</p>}
                       {/* Error message for pending invite removal */}
@@ -503,9 +539,15 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
               <form onSubmit={createTeam} className="flex flex-col">
                 <p className="font-display text-2xl">Create new team</p>
                 <div className="py-4" />
-                <input id="app-name" type="string" placeholder="Enter team name" className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400" onChange={(event) => setCreateTeamName(event.target.value)} />
+                <input id="app-name" type="string" placeholder="Enter team name" className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" onChange={(event) => setCreateTeamName(event.target.value)} />
                 <div className="py-2" />
-                <button type="submit" disabled={createTeamApiStatus === CreateTeamApiStatus.Loading || createTeamName.length === 0} className={`w-fit outline-hidden hover:enabled:bg-yellow-200 focus-visible:enabled:bg-yellow-200 active:enabled:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4 ${(createTeamApiStatus === CreateTeamApiStatus.Loading) ? 'pointer-events-none' : 'pointer-events-auto'}`}>Create Team</button>
+                <Button
+                  variant="outline"
+                  type="submit"
+                  className="w-fit font-display border border-black rounded-md select-none"
+                  disabled={createTeamApiStatus === CreateTeamApiStatus.Loading || createTeamName.length === 0}>
+                  Create Team
+                </Button>
                 <div className="py-2" />
               </form>
               {createTeamApiStatus === CreateTeamApiStatus.Loading && <p className="font-display">Creating team...</p>}

@@ -1,6 +1,7 @@
 "use client"
 
 import { ReactNode } from "react";
+import { Button } from "./button";
 
 interface AlertDialogModalProps {
     body: ReactNode,
@@ -16,7 +17,13 @@ const AlertDialogModal: React.FC<AlertDialogModalProps> = ({ body, open, affirma
                 <div className="flex flex-col bg-white rounded-lg border border-black py-4 px-8">
                     {body}
                     <div className="py-2" />
-                    <button type="button" className="outline-hidden hover:bg-yellow-200 focus-visible:bg-yellow-200 active:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4" onClick={onAffirmativeAction}>{affirmativeText}</button>
+                    <Button
+                        variant="outline"
+                        className="font-display border border-black rounded-md select-none"
+                        onClick={onAffirmativeAction}
+                    >
+                        {affirmativeText}
+                    </Button>
                 </div>
             </div>
         </div>

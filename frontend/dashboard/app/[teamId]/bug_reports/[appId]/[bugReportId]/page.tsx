@@ -5,6 +5,8 @@ import Image from 'next/image'
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
 import Link from "next/link"
 import { FormEventHandler, useEffect, useState } from "react"
+import { Button, buttonVariants } from "@/app/components/button"
+import { cn } from "@/app/utils/shadcn_utils"
 
 export default function BugReport({ params }: { params: { teamId: string, appId: string, bugReportId: string } }) {
   const [bugReport, setBugReport] = useState(emptyBugReport)
@@ -80,9 +82,15 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
           {bugReport.description && <p className="font-body text-lg">{bugReport.description}</p>}
           <div className="py-8" />
           <div className="flex flex-row">
-            <Link href={`/${params.teamId}/sessions/${params.appId}/${bugReport.session_id}`} className="outline-hidden justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session</Link>
+            <Link href={`/${params.teamId}/sessions/${params.appId}/${bugReport.session_id}`} className={cn(buttonVariants({ variant: "outline" }), "font-display border border-black rounded-md select-none")}>View Session</Link>
             <div className="px-2" />
-            <button onClick={updateBugReportStatus} disabled={updateBugReportStatusApiStatus === UpdateBugReportStatusApiStatus.Loading} className={`w-fit outline-hidden hover:enabled:bg-yellow-200 focus-visible:enabled:bg-yellow-200 active:enabled:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4 ${(updateBugReportStatusApiStatus === UpdateBugReportStatusApiStatus.Loading) ? 'pointer-events-none' : 'pointer-events-auto'}`}>{bugReport.status === 0 ? "Close Bug Report" : "Re-Open Bug Report"}</button>
+            <Button
+              variant="outline"
+              className="w-fit font-display border border-black rounded-md select-none"
+              disabled={updateBugReportStatusApiStatus === UpdateBugReportStatusApiStatus.Loading}
+              onClick={updateBugReportStatus}>
+              {bugReport.status === 0 ? "Close Bug Report" : "Re-Open Bug Report"}
+            </Button>
           </div>
           {updateBugReportStatusApiStatus === UpdateBugReportStatusApiStatus.Error && <p className="font-display text-xs mt-2">Error updating bug report status. Please try again.</p>}
 

@@ -7,6 +7,8 @@ import landingHeroAnim from "./animations/landing_hero.json"
 import dynamic from 'next/dynamic'
 import { useRef, useState } from 'react'
 import VideoPlayButton from './components/video_play_button'
+import { buttonVariants } from './components/button'
+import { cn } from './utils/shadcn_utils'
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
 
@@ -262,7 +264,7 @@ export default function Home() {
         <div className="py-12 md:py-16" />
         <p className="font-body text-black text-lg leading-relaxed max-w-4xl text-center">Let&apos;s get to the root cause:</p>
         <div className="py-2" />
-        <Link href="https://github.com/measure-sh/measure" className='m-4 outline-hidden flex flex-row place-items-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4'>
+        <Link href="https://github.com/measure-sh/measure" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "m-4 font-display border border-black rounded-md select-none")}>
           <Image
             src='/images/github_logo.svg'
             width={24}

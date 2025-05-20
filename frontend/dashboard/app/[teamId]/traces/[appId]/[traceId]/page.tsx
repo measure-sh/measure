@@ -1,7 +1,9 @@
 "use client"
 
 import { TraceApiStatus, emptyTrace, fetchTraceFromServer } from "@/app/api/api_calls"
+import { buttonVariants } from "@/app/components/button"
 import TraceViz from "@/app/components/trace_viz"
+import { cn } from "@/app/utils/shadcn_utils"
 import { formatDateToHumanReadableDateTime, formatMillisToHumanReadable } from "@/app/utils/time_utils"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -48,7 +50,7 @@ export default function TraceDetails({ params }: { params: { teamId: string, app
           <p className="font-body"> App version: {trace.app_version}</p>
           <p className="font-body"> Network type: {trace.network_type}</p>
           <div className="py-4" />
-          <Link href={`/${params.teamId}/sessions/${params.appId}/${trace.session_id}`} className="outline-hidden justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session</Link>
+          <Link href={`/${params.teamId}/sessions/${params.appId}/${trace.session_id}`} className={cn(buttonVariants({ variant: "outline" }), "justify-center w-fit font-display border border-black rounded-md select-none")}>View Session</Link>
           <div className="py-4" />
           <TraceViz inputTrace={trace} />
         </div>}
