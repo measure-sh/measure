@@ -283,7 +283,14 @@ You can run measure.sh locally on macOS for trying it out quickly, but keep in m
 
 > [!WARNING]
 >
+> ### macOS Compatibility
+>
 > Not all features on macOS may work as expected. Don't use this setup for production. This guide was tested on macOS 14.6, though older or newer versions of macOS may work too.
+>
+> ### Using Podman on macOS
+>
+> Podman on macOS runs containers inside a virtual machine. Make sure to allocate sufficient memory (at least 8 GB)
+> to the podman machine. Low memory may crash the application or lead to instability.
 
 ### System Requirements
 
