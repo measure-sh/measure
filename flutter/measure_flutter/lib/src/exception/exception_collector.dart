@@ -32,7 +32,8 @@ final class ExceptionCollector {
     required bool handled,
   }) {
     if (!enabled) return Future.value();
-    final ExceptionData? exceptionData = ExceptionFactory.from(details, handled);
+    final ExceptionData? exceptionData =
+        ExceptionFactory.from(details, handled);
     if (exceptionData == null) {
       logger.log(LogLevel.error, "Failed to parse exception");
       return Future.value();
