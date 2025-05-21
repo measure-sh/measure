@@ -227,9 +227,10 @@ export class MeasureAuth {
         // Skip token refresh if we're already refreshing
         const isRefreshRequest = endpoint === `/auth/refresh`
 
-        // Abort existing requests for the same endpoint (except for shortFilters)
+        // Abort existing requests for the same endpoint unless it's a GET or if it's shortFilters request
         const existingController = this.inFlightRequests.get(endpoint)
-        if (existingController && !endpoint.includes('shortFilters')) {
+        const isGetRequest = (config.method ? config.method.toLowerCase() : 'get') === 'get'
+        if (existingController && !isGetRequest && !endpoint.includes('shortFilters')) {
             existingController.abort()
             this.inFlightRequests.delete(endpoint)
         }
