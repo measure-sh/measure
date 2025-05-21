@@ -1574,16 +1574,15 @@ func (e *Exception) ComputeFingerprint() (err error) {
 			input += sep + frame.FileName
 		}
 	case framework.Dart:
-		// get the innermost exception
-		innermostException := e.Exceptions[len(e.Exceptions)-1]
+		// get the outermost exception
+		outermostException := e.Exceptions[0]
 
 		// initialize fingerprint data with the exception type
-		input = innermostException.Type
+		input = outermostException.Type
 
-		// get the method name and file name from the first frame of the innermost exception
-		if len(innermostException.Frames) > 0 {
-			methodName := innermostException.Frames[0].MethodName
-			fileName := innermostException.Frames[0].FileName
+		if len(outermostException.Frames) > 0 {
+			methodName := outermostException.Frames[0].MethodName
+			fileName := outermostException.Frames[0].FileName
 
 			// Include any non-empty information
 			if methodName != "" {
