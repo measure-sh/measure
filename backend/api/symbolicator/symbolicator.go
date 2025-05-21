@@ -285,7 +285,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 				// symbolication request.
 				// The UUID represents the code_id received
 				// from the exception event.
-				if len(mappings) > 0 && s.requestNative != nil {
+				if len(mappings) > 0 {
 					baseAddr := "0x" + ev.Exception.BinaryImages[0].BaseAddr
 					uuid := ev.Exception.BinaryImages[0].Uuid
 
@@ -728,7 +728,7 @@ func (s *Symbolicator) reset() {
 // retry retries a failed symbolicator request
 // with a randomly added duration jitter to avoid
 // thundering-herd like problems.
-func (s *Symbolicator) retry(st string, d time.Duration) error {
+func (s *Symbolicator) retry(framewrk string, d time.Duration) error {
 	if s.retryCount >= maxRetryCount {
 		return ErrRetryExhausted
 	}
@@ -742,7 +742,7 @@ func (s *Symbolicator) retry(st string, d time.Duration) error {
 	fmt.Printf("retrying symbolicator request for %d time(s) in about %v\n", s.retryCount, dur)
 	chrono.JitterySleep(dur)
 
-	return s.makeRequest(st)
+	return s.makeRequest(framewrk)
 }
 
 // makeAppleCrashReport creates an Apple crash report
@@ -882,7 +882,9 @@ func (s *Symbolicator) prepareAppleCrashReportRequest() (err error) {
 	return
 }
 
-func (s *Symbolicator) makeRequest(st string) (err error) {
+// makeRequest sends the symbolicator request
+// and handles the response.
+func (s *Symbolicator) makeRequest(framewrk string) (err error) {
 	res, err := httpClient.Do(s.req)
 	if err != nil {
 		fmt.Println("failed sending symbolicator request:", err)
@@ -902,7 +904,7 @@ func (s *Symbolicator) makeRequest(st string) (err error) {
 		http.StatusBadGateway,
 		http.StatusTooManyRequests:
 		// retry after few seconds
-		return s.retry(st, defaultRetryDuration)
+		return s.retry(framewrk, defaultRetryDuration)
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -921,7 +923,7 @@ func (s *Symbolicator) makeRequest(st string) (err error) {
 		return
 	}
 
-	switch st {
+	switch framewrk {
 	case framework.JVM:
 		if err = json.Unmarshal(respBody, &s.responseJVM); err != nil {
 			return
@@ -937,7 +939,7 @@ func (s *Symbolicator) makeRequest(st string) (err error) {
 		}
 
 		if s.responseApple.Status != "completed" {
-			return s.retry(st, defaultRetryDuration)
+			return s.retry(framewrk, defaultRetryDuration)
 		}
 	case framework.Dart:
 		if err = json.Unmarshal(respBody, &s.responseNative); err != nil {
@@ -945,13 +947,15 @@ func (s *Symbolicator) makeRequest(st string) (err error) {
 		}
 
 		if s.responseNative.Status != "completed" {
-			return s.retry(st, defaultRetryDuration)
+			return s.retry(framewrk, defaultRetryDuration)
 		}
 	}
 
 	return
 }
 
+// prepareJvmRequest prepares the jvm request
+// for symbolicator.
 func (s *Symbolicator) prepareJvmRequest() (err error) {
 	var reqBody bytes.Buffer
 	url := s.Origin
@@ -984,6 +988,8 @@ func (s *Symbolicator) prepareJvmRequest() (err error) {
 	return
 }
 
+// prepareNativeRequest prepares the native request
+// for symbolicator.
 func (s *Symbolicator) prepareNativeRequest() (err error) {
 	var reqBody bytes.Buffer
 	url := s.Origin
@@ -1016,6 +1022,9 @@ func (s *Symbolicator) prepareNativeRequest() (err error) {
 	return
 }
 
+// prepareNativeException prepares the native exception
+// for symbolicator by adding the exception frames
+// to the request.
 func (s *Symbolicator) prepareNativeException(ev event.EventField, index int) {
 	exceptions := ev.Exception.Exceptions
 	for j, excep := range exceptions {
@@ -1113,8 +1122,8 @@ func extractDirectoryPath(filePath string) string {
 }
 
 // formatFunctionName removes the suffixed contents
-// in rounded brackets. For example,
-// from "MainScreen._trackError (#2)" it will
+// in rounded brackets for Dart. For example,
+// from "MainScreen._trackError (#2)" this will
 // extract "MainScreen._trackError".
 func formatFunctionName(input string) string {
 	re := regexp.MustCompile(`^([^(]*)`)
