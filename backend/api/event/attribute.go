@@ -92,7 +92,7 @@ type Attribute struct {
 	DeviceCPUArch string `json:"device_cpu_arch"`
 
 	// OSName is the operating system's name
-	OSName string `json:"os_name"`
+	OSName string `json:"os_name" binding:"required"`
 
 	// OSVersion is the operating system's vesrion.
 	OSVersion string `json:"os_version"`
