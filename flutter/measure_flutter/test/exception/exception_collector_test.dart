@@ -54,7 +54,7 @@ void main() {
             frames: [
               MsrFrame(
                 className: "_MyAppState",
-                methodName: "_throwException",
+                methodName: "_MyAppState._throwException",
                 fileName: "main.dart",
                 lineNum: 84,
                 colNum: 5,
@@ -63,7 +63,7 @@ void main() {
               ),
               MsrFrame(
                 className: "_InkResponseState",
-                methodName: "handleTap",
+                methodName: "_InkResponseState.handleTap",
                 fileName: "ink_well.dart",
                 lineNum: 1176,
                 colNum: 21,
