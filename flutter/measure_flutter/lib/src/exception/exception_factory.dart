@@ -13,7 +13,6 @@ final class ExceptionFactory {
   static final _archRegex = RegExp(r'arch[:=] *([A-Za-z0-9]+)');
 
   static ExceptionData? from(FlutterErrorDetails details, bool handled) {
-    print(details.stack);
     var stackTrace = details.stack;
     if (stackTrace == null) {
       return null;
