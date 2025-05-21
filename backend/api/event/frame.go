@@ -1,6 +1,7 @@
 package event
 
 import (
+	"backend/api/framework"
 	"backend/api/os"
 	"backend/api/text"
 	"fmt"
@@ -52,19 +53,6 @@ type Frame struct {
 
 type Frames []Frame
 
-// GetOSName figures out the frame's
-// app OS by inspection.
-// TODO: this could be removed
-// as the frame shoudn't have logic
-// based on the OS.
-func (f Frame) GetOSName() string {
-	if f.FrameiOS != nil && f.BinaryName != "" {
-		return os.IOS
-	} else {
-		return os.Android
-	}
-}
-
 // CodeInfo provides a serialized
 // version of the frame's code information.
 func (f Frame) CodeInfo() string {
@@ -88,10 +76,10 @@ func (f Frame) FileInfo() string {
 }
 
 // String provides a serialized
-// version of the frame.
-func (f Frame) String() string {
-	switch f.GetOSName() {
-	// consider "Android" as default OS
+// version of the frame based on
+// the given framework.
+func (f Frame) String(frmwrk string) string {
+	switch frmwrk {
 	default:
 		codeInfo := f.CodeInfo()
 		fileInfo := f.FileInfo()
@@ -101,7 +89,7 @@ func (f Frame) String() string {
 		}
 
 		return fmt.Sprintf(`%s%s`, codeInfo, fileInfo)
-	case os.IOS:
+	case framework.IOS:
 		binaryName := f.BinaryName
 		methodName := f.MethodName
 		className := f.ClassName

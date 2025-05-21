@@ -929,11 +929,6 @@ func (e *EventField) Validate() error {
 			return fmt.Errorf(`%q must contain at least one exception`, `exception`)
 		}
 
-		// TODO: this is no longer true with Flutter
-		// if len(e.Exception.Threads) < 1 {
-		// 	return fmt.Errorf(`%q must contain at least one  & thread`, `exception`)
-		// }
-
 		if e.Exception.GetFramework() == "" {
 			return fmt.Errorf(`%q must not be empty`, `exception.framework`)
 		}
@@ -1458,7 +1453,7 @@ func (e Exception) Stacktrace() string {
 
 			for j := range e.Exceptions[i].Frames {
 				lastFrame := j == len(e.Exceptions[i].Frames)-1
-				frame := e.Exceptions[i].Frames[j].String()
+				frame := e.Exceptions[i].Frames[j].String(f)
 				b.WriteString(FramePrefix + frame)
 				if !lastFrame || !lastException {
 					b.WriteString("\n")
@@ -1512,7 +1507,7 @@ func (e Exception) Stacktrace() string {
 		for _, exception := range e.Exceptions {
 			b.WriteString(exception.ThreadName + ":\n")
 			for _, frame := range exception.Frames {
-				fmt.Fprintln(t, frame.String())
+				fmt.Fprintln(t, frame.String(f))
 			}
 		}
 
@@ -1705,7 +1700,7 @@ func (a ANR) Stacktrace() string {
 
 		for j := range a.Exceptions[i].Frames {
 			lastFrame := j == len(a.Exceptions[i].Frames)-1
-			frame := a.Exceptions[i].Frames[j].String()
+			frame := a.Exceptions[i].Frames[j].String(framework.JVM)
 			b.WriteString(FramePrefix + frame)
 			if !lastFrame || !lastException {
 				b.WriteString("\n")
