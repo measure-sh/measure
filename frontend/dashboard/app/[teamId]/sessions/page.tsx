@@ -129,9 +129,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
             {pageState.filters.ready
                 && (pageState.sessionsOverviewApiStatus === SessionsOverviewApiStatus.Success || pageState.sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading) &&
                 <div className="flex flex-col items-center w-full">
-                    <div className="py-4" />
                     <SessionsOverviewPlot filters={pageState.filters} />
-                    <div className="py-4" />
                     <div className='self-end'>
                         <Paginator
                             prevEnabled={pageState.sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? false : pageState.sessionsOverview.meta.previous}

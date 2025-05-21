@@ -62,7 +62,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
   }, [exceptionsType, exceptionsGroupId, filters])
 
   return (
-    <div className="flex border border-black font-body items-center justify-center w-full h-[32rem]">
+    <div className="flex font-body items-center justify-center w-full h-[32rem]">
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Loading && <LoadingSpinner />}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
@@ -70,8 +70,10 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
         <ResponsiveLine
           data={plot!}
           curve="monotoneX"
+          enableArea={true}
+          areaOpacity={0.1}
           colors={{ scheme: 'nivo' }}
-          margin={{ top: 40, right: 60, bottom: 120, left: 60 }}
+          margin={{ top: 40, right: 60, bottom: 180, left: 50 }}
           xFormat="time:%Y-%m-%d"
           xScale={{
             format: '%Y-%m-%d',
@@ -81,7 +83,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
           }}
           yScale={{
             type: 'linear',
-            min: 'auto',
+            min: 0,
             max: 'auto'
           }}
           yFormat=" >-.2f"
@@ -104,9 +106,10 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
             legendPosition: 'middle'
           }}
           pointSize={6}
-          pointBorderWidth={2}
+          pointBorderWidth={1.5}
+          pointColor={"rgba(255, 255, 255, 255)"}
           pointBorderColor={{
-            from: 'color',
+            from: 'serieColor',
             modifiers: [
               [
                 'darker',
@@ -119,7 +122,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
           enableSlices="x"
           sliceTooltip={({ slice }) => {
             return (
-              <div className="bg-neutral-950 text-white flex flex-col p-2 text-xs">
+              <div className="bg-neutral-800 text-white flex flex-col p-2 text-xs rounded-md">
                 <p className='p-2'>Date: {formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
                 {slice.points.map((point) => (
                   <div className="flex flex-row items-center p-2" key={point.id}>

@@ -335,9 +335,21 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                   legendPosition: 'middle'
                 }}
                 colors={{ scheme: 'nivo' }}
+                pointSize={6}
+                pointBorderWidth={1.5}
+                pointColor={"rgba(255, 255, 255, 255)"}
+                pointBorderColor={{
+                  from: 'serieColor',
+                  modifiers: [
+                    [
+                      'darker',
+                      0.3
+                    ]
+                  ]
+                }}
                 tooltip={({ point }) => {
                   return (
-                    <div className='bg-neutral-950 text-white flex flex-row items-center p-2 text-xs'>
+                    <div className='bg-neutral-800 text-white flex flex-row items-center p-2 text-xs rounded-md'>
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
                       <div className="flex flex-col items-left px-4 py-1" key={point.id}>
                         <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
@@ -390,9 +402,21 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                   legendPosition: 'middle'
                 }}
                 colors={{ scheme: 'nivo' }}
+                pointSize={6}
+                pointBorderWidth={1.5}
+                pointColor={"rgba(255, 255, 255, 255)"}
+                pointBorderColor={{
+                  from: 'serieColor',
+                  modifiers: [
+                    [
+                      'darker',
+                      0.3
+                    ]
+                  ]
+                }}
                 tooltip={({ point }) => {
                   return (
-                    <div className='bg-neutral-950 text-white flex flex-row items-center p-2 text-xs'>
+                    <div className='bg-neutral-800 text-white flex flex-row items-center p-2 text-xs rounded-md'>
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
                       <div className="flex flex-col items-left px-4 py-1" key={point.id}>
                         <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
@@ -446,12 +470,11 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                   legendPosition: 'middle'
                 }}
                 colors={{ scheme: 'nivo' }}
-                enableArea
-                enableCrosshair
-                pointSize={5}
-                pointBorderWidth={2}
+                pointSize={6}
+                pointBorderWidth={1.5}
+                pointColor={"rgba(255, 255, 255, 255)"}
                 pointBorderColor={{
-                  from: 'color',
+                  from: 'serieColor',
                   modifiers: [
                     [
                       'darker',
@@ -461,7 +484,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                 }}
                 tooltip={({ point }) => {
                   return (
-                    <div className='bg-neutral-950 text-white flex flex-col p-2 text-xs'>
+                    <div className='bg-neutral-800 text-white flex flex-col p-2 text-xs rounded-md'>
                       <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
                       <p>Cpu Usage: {point.data.yFormatted.toString()}%</p>
                     </div>

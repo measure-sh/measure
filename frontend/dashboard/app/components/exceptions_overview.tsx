@@ -145,11 +145,9 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
       {pageState.filters.ready
         && (pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Success || pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading) &&
         <div className="flex flex-col items-center w-full">
-          <div className="py-4" />
           <ExceptionsOverviewPlot
             exceptionsType={exceptionsType}
             filters={pageState.filters} />
-          <div className="py-4" />
           <div className='self-end'>
             <Paginator prevEnabled={pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : pageState.exceptionsOverview.meta.previous} nextEnabled={pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : pageState.exceptionsOverview.meta.next} displayText=''
               onNext={handleNextPage}

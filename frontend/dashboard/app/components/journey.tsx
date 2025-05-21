@@ -234,10 +234,10 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
   }, [selectedNode])
 
   return (
-    <div className="flex items-center justify-center border border-black text-black font-body text-sm w-full h-full overflow-hidden">
+    <div className="flex items-center justify-center text-black font-body text-sm w-full h-full overflow-hidden">
       {journeyApiStatus === JourneyApiStatus.Loading && <LoadingSpinner />}
       {journeyApiStatus === JourneyApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
-      {journeyApiStatus === JourneyApiStatus.NoData && <p className="text-lg font-display text-center p-4">No data</p>}
+      {journeyApiStatus === JourneyApiStatus.NoData && <p className="text-lg font-display text-center p-4">No journey data</p>}
       {journeyApiStatus === JourneyApiStatus.Success
         &&
         <div className='relative w-full h-full'>
@@ -275,13 +275,13 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
             linkTooltip={({
               link
             }) =>
-              <div className={`flex flex-col p-2 text-xs font-body rounded-sm bg-neutral-800 text-white max-w-72 break-words`}>
+              <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-neutral-800 text-white max-w-72 break-words`}>
                 <p className='p-2'>{link.source.id.split(".").pop()} → {link.target.id.split(".").pop()}: {link.value > 1 ? link.value + ' sessions' : link.value + ' session'}</p>
               </div>}
             nodeTooltip={({
               node
             }) =>
-              <div className={`flex flex-col p-2 text-xs font-body rounded-sm bg-neutral-800 text-white max-w-72 break-words`}>
+              <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-neutral-800 text-white max-w-72 break-words`}>
                 <p className='p-2'>{node.id}</p>
 
                 {node.issues?.crashes?.length! > 0 &&

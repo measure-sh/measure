@@ -162,7 +162,6 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
 
       {pageState.filters.ready &&
         <div className='w-full'>
-          <div className="py-6" />
           <div className="flex flex-col md:flex-row w-full">
             <ExceptionspDetailsPlot
               exceptionsType={exceptionsType}
@@ -174,7 +173,6 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
               exceptionsGroupId={exceptionsGroupId}
               filters={pageState.filters} />
           </div>
-          <div className="py-4" />
 
           {pageState.exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Error &&
             <p className="text-lg font-display">Error fetching list of {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
