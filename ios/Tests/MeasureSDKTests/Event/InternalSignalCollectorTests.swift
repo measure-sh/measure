@@ -103,7 +103,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
                     frames: [
                         StackFrame(
                             binaryName: nil,
-                            binaryAddress: "0x7af7026000",
+                            binaryAddress: nil,
                             offset: nil,
                             frameIndex: 0,
                             symbolAddress: nil,
@@ -118,7 +118,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
                         ),
                         StackFrame(
                             binaryName: nil,
-                            binaryAddress: "0x7af7026000",
+                            binaryAddress: nil,
                             offset: nil,
                             frameIndex: 1,
                             symbolAddress: nil,
