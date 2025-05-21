@@ -9,6 +9,7 @@ import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_se
 import { measureAuth } from "@/app/auth/measure_auth"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
 import { Button } from "@/app/components/button"
+import { get } from "http"
 
 export default function TeamOverview({ params }: { params: { teamId: string } }) {
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading)
@@ -207,6 +208,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
         break
       case RoleChangeApiStatus.Success:
         setRoleChangeApiStatus(RoleChangeApiStatus.Success)
+        getAuthzAndMembers()
         break
     }
   }
