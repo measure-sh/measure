@@ -929,7 +929,49 @@ func (e *EventField) Validate() error {
 			return fmt.Errorf(`%q must contain at least one exception`, `exception`)
 		}
 
-		if e.Exception.GetFramework() == "" {
+		f := e.Exception.GetFramework()
+		switch f {
+		case framework.IOS:
+			if len(e.Exception.Threads) < 1 {
+				return fmt.Errorf(`%q must contain at least one thread`, `exception.threads`)
+			}
+
+			if len(e.Exception.BinaryImages) > 0 {
+				for i, bi := range e.Exception.BinaryImages {
+					if bi.StartAddr == "" {
+						return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `start_addr`)
+					}
+					if bi.EndAddr == "" {
+						return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `end_addr`)
+					}
+					if bi.Name == "" {
+						return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `name`)
+					}
+					if bi.Path == "" {
+						return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `path`)
+					}
+				}
+			}
+
+		case framework.JVM:
+			if len(e.Exception.Threads) < 1 {
+				return fmt.Errorf(`%q must contain at least one thread`, `exception.threads`)
+			}
+		case framework.Dart:
+			if len(e.Exception.BinaryImages) > 1 {
+				return fmt.Errorf(`%q must contain at most one binary image`, `exception.binary_images`)
+			}
+
+			if len(e.Exception.BinaryImages) > 0 {
+				if e.Exception.BinaryImages[0].Arch == "" {
+					return fmt.Errorf(`%q must not be empty`, `exception.binary_images[0].arch`)
+				}
+
+				if e.Exception.BinaryImages[0].BaseAddr == "" {
+					return fmt.Errorf(`%q must not be empty`, `exception.binary_images[0].base_addr`)
+				}
+			}
+		default:
 			return fmt.Errorf(`%q must not be empty`, `exception.framework`)
 		}
 	}
