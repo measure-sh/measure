@@ -35,14 +35,14 @@ const maxRetryCount = 5
 // request payload.
 //
 // set to `true` for quick debugging.
-const logRequest = true
+const logRequest = false
 
 // logResponse determines if symbolicator
 // should log the relevant parts of the
 // response payload.
 //
 // set to `true` for quick debugging.
-const logResponse = true
+const logResponse = false
 
 // defaultRetryDuration is the default duration
 // between each retry of symbolicator requests.
