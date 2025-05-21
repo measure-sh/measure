@@ -1383,6 +1383,8 @@ func (e Exception) GetLineNumber() int {
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
 	case framework.Dart:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
+	case framework.IOS:
+		return e.GetRelevantFrame().LineNum
 	}
 
 	return 0
