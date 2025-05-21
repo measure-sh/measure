@@ -75,11 +75,11 @@ jobs:
               "ref": "${{ github.ref }}",
               "sha": "${{ github.sha }}"
             }
-        # env:
-        #   CLOUD_DISPATCH_PAT: ${{ secrets.CLOUD_DISPATCH_PAT }}
-        #   TARGET_REPO: ${{ gitub.repository/owner }}
-        # run: |
-        #   TARGET_REPO="${{ github.repository_owner }}/cloud"
+  # env:
+  #   CLOUD_DISPATCH_PAT: ${{ secrets.CLOUD_DISPATCH_PAT }}
+  #   TARGET_REPO: ${{ gitub.repository/owner }}
+  # run: |
+  #   TARGET_REPO="${{ github.repository_owner }}/cloud"
 
   # push-api:
   #   name: Build and push image
