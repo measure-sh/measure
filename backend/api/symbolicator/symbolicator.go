@@ -1090,25 +1090,32 @@ func (s Symbolicator) rewriteNativeException(evs []event.EventField) {
 	}
 }
 
-// TODO: move this to a more relevant package
-// ExtractDirectoryPath extracts the directory path from a file path,
-// removing the filename part at the end.
+// extractDirectoryPath removes the
+// filename part from the absolute path
+// of the Dart stacktrace.
 func extractDirectoryPath(filePath string) string {
-	// This regex matches everything up to the last slash followed by anything that doesn't contain a slash
+	// This regex matches everything
+	// up to the last slash followed
+	// by anything that doesn't contain
+	// a slash.
 	regex := regexp.MustCompile(`(.*/)([^/]+)$`)
 	matches := regex.FindStringSubmatch(filePath)
 
 	if len(matches) >= 2 {
-		// The first capturing group contains the directory path
+		// The first capturing group
+		//  contains the directory path
 		return matches[1]
 	}
 
-	// If there's no match, return the original string
+	// If there's no match, return
+	// the original string
 	return filePath
 }
 
-// formatFunctionName removes the suffixed contents in rounded brackets.
-// For example, from "MainScreen._trackError (#2)" it will extract "MainScreen._trackError"
+// formatFunctionName removes the suffixed contents
+// in rounded brackets. For example,
+// from "MainScreen._trackError (#2)" it will
+// extract "MainScreen._trackError".
 func formatFunctionName(input string) string {
 	re := regexp.MustCompile(`^([^(]*)`)
 	match := re.FindStringSubmatch(input)
@@ -1118,12 +1125,16 @@ func formatFunctionName(input string) string {
 	return input
 }
 
+// ensureRequestJVM initializes the
+// requestJVM field if it is nil.
 func ensureRequestJVM(s *Symbolicator) {
 	if s.requestJVM == nil {
 		s.requestJVM = NewRequestJVM()
 	}
 }
 
+// ensureRequestNative initializes the
+// requestNative field if it is nil.
 func ensureRequestNative(s *Symbolicator) {
 	if s.requestNative == nil {
 		s.requestNative = NewRequestNative()
