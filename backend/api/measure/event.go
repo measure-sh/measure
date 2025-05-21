@@ -2391,7 +2391,6 @@ func PutEvents(c *gin.Context) {
 	if !app.Onboarded && len(eventReq.events) > 0 {
 		firstEvent := eventReq.events[0]
 		uniqueID := firstEvent.Attribute.AppUniqueID
-		// TODO: needs to be lowercased for iOS.
 		osName := strings.ToLower(firstEvent.Attribute.OSName)
 		version := firstEvent.Attribute.AppVersion
 
