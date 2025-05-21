@@ -325,11 +325,6 @@ func UploadBuilds(url, apiKey string, app app.App) (string, error) {
 		}
 		fw.Write([]byte(code))
 
-		// print all mapping types
-		for _, mappingType := range build.MappingTypes {
-			fmt.Printf("mapping type: %s\n", mappingType)
-		}
-
 		for index, mappingType := range build.MappingTypes {
 			mappingFile := build.MappingFiles[index]
 			f, err := os.Open(mappingFile)
