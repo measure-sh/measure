@@ -108,7 +108,7 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
   }, [spanMetricsPlotApiData, quantile])
 
   return (
-    <div className="flex border border-black font-body items-center justify-center w-full h-[36rem]">
+    <div className="flex font-body items-center justify-center w-full h-[36rem]">
       {spanMetricsPlotApiStatus === SpanMetricsPlotApiStatus.Loading && <LoadingSpinner />}
       {spanMetricsPlotApiStatus === SpanMetricsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {spanMetricsPlotApiStatus === SpanMetricsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
@@ -120,8 +120,10 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
           <ResponsiveLine
             data={plot!}
             curve="monotoneX"
+            enableArea={true}
+            areaOpacity={0.1}
             colors={{ scheme: 'nivo' }}
-            margin={{ top: 0, right: 120, bottom: 140, left: 120 }}
+            margin={{ top: 20, right: 20, bottom: 140, left: 100 }}
             xFormat="time:%Y-%m-%d"
             xScale={{
               format: '%Y-%m-%d',
@@ -131,7 +133,7 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
             }}
             yScale={{
               type: 'linear',
-              min: 'auto',
+              min: 0,
               max: 'auto'
             }}
             yFormat=".2f"
@@ -152,10 +154,11 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
               legendOffset: -80,
               legendPosition: 'middle'
             }}
-            pointSize={3}
-            pointBorderWidth={2}
+            pointSize={6}
+            pointBorderWidth={1.5}
+            pointColor={"rgba(255, 255, 255, 255)"}
             pointBorderColor={{
-              from: 'color',
+              from: 'serieColor',
               modifiers: [
                 [
                   'darker',
@@ -168,7 +171,7 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
             enableSlices="x"
             sliceTooltip={({ slice }) => {
               return (
-                <div className="bg-neutral-950 text-white flex flex-col p-2 text-xs">
+                <div className="bg-neutral-800 text-white flex flex-col p-2 text-xs rounded-md">
                   <p className='p-2'>Date: {formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
                   {slice.points.map((point) => (
                     <div className="flex flex-row items-center p-2" key={point.id}>

@@ -129,10 +129,8 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
             {pageState.filters.ready
                 && (pageState.bugReportsOverviewApiStatus === BugReportsOverviewApiStatus.Success || pageState.bugReportsOverviewApiStatus === BugReportsOverviewApiStatus.Loading) &&
                 <div className="flex flex-col items-center w-full">
-                    <div className="py-4" />
                     <BugReportsOverviewPlot
                         filters={pageState.filters} />
-                    <div className="py-4" />
                     <div className='self-end'>
                         <Paginator
                             prevEnabled={pageState.bugReportsOverviewApiStatus === BugReportsOverviewApiStatus.Loading ? false : pageState.bugReportsOverview.meta.previous}

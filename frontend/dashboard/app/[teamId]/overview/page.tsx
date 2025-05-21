@@ -74,10 +74,10 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         showUdAttrs={false}
         onFiltersChanged={handleFiltersChanged} />
 
-      <div className="py-4" />
+      <div className="py-2" />
 
       {pageState.filters.ready &&
-        <div className='w-full h-[700px]'>
+        <div className='w-full h-[600px]'>
           <Journey
             teamId={params.teamId}
             bidirectional={false}

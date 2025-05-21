@@ -129,7 +129,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         <div className="flex flex-col items-start w-full">
           <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={months!} initialSelected={selectedMonth!} onChangeSelected={(item) => setSelectedMonth(item as string)} />
           <div className="py-4" />
-          <div className='w-full h-[36rem] border border-black'>
+          <div className='w-full h-[36rem]'>
             <ResponsivePie
               data={selectedMonthUsage!}
               animate
@@ -146,7 +146,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
               arcLinkLabelsColor={{ from: 'color' }}
               tooltip={({ datum: { id, label, value, color } }) => {
                 return (
-                  <div className="bg-neutral-950 text-white flex flex-col py-2 px-4 font-display">
+                  <div className="bg-neutral-800 text-white flex flex-col py-2 px-4 font-display rounded-md">
                     <p className='text-sm font-semibold' style={{ color: color }}>{label}</p>
                     <div className='py-0.5' />
                     <p className='text-xs'>Sessions: {value}</p>

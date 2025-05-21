@@ -127,10 +127,8 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
             {pageState.filters.ready
                 && (pageState.spansApiStatus === SpansApiStatus.Success || pageState.spansApiStatus === SpansApiStatus.Loading) &&
                 <div className="flex flex-col items-center w-full">
-                    <div className="py-4" />
                     <SpanMetricsPlot
                         filters={pageState.filters} />
-                    <div className="py-4" />
                     <div className='self-end'>
                         <Paginator
                             prevEnabled={pageState.spansApiStatus === SpansApiStatus.Loading ? false : pageState.spans.meta.previous}
