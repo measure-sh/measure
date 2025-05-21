@@ -1505,7 +1505,7 @@ func GetExceptionPlotInstances(ctx context.Context, af *filter.AppFilter) (issue
 	stmt := sqlf.
 		From("events").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
-		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as app_version").
+		Select("concat(toString(attribute.app_version), '', '(', toString(attribute.app_build), ')') as app_version").
 		Select("uniqIf(id, type = ? and exception.handled = false) as total_exceptions", event.TypeException).
 		Select("round((1 - (exception_sessions / total_sessions)) * 100, 2) as crash_free_sessions").
 		Select("uniq(session_id) as total_sessions").
@@ -1776,7 +1776,7 @@ func GetANRPlotInstances(ctx context.Context, af *filter.AppFilter) (issueInstan
 	stmt := sqlf.
 		From("events").
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
-		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as app_version").
+		Select("concat(toString(attribute.app_version), '', '(', toString(attribute.app_build), ')') as app_version").
 		Select("uniqIf(id, type = ?) as total_anr", event.TypeANR).
 		Select("round((1 - (anr_sessions / total_sessions)) * 100, 2) as anr_free_sessions").
 		Select("uniq(session_id) as total_sessions").
@@ -2023,7 +2023,7 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 		From(`events`).
 		Select("formatDateTime(timestamp, '%Y-%m-%d', ?) as datetime", af.Timezone).
 		Select("concat(toString(attribute.app_version), ' ', '(', toString(attribute.app_build),')') as version").
-		Select("uniqIf(id, type = ? and exception.handled = false) as total_exceptions", event.TypeException).
+		Select("uniq(id) as instances").
 		Clause(fmt.Sprintf("prewhere app_id = toUUID(?) and %s.fingerprint = ?", groupType), af.AppID, fingerprint)
 
 	defer stmt.Close()
