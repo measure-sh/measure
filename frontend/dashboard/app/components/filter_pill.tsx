@@ -16,7 +16,7 @@ const FilterPill: React.FC<FilterPillProps> = ({ title }) => {
           {title}
         </p>
       </TooltipTrigger>
-      <TooltipContent side="bottom" align="start" className="font-display max-w-96 text-sm text-white fill-bg-neutral-800 bg-neutral-800">
+      <TooltipContent side="bottom" align="start" className="font-display max-w-96 text-sm text-white fill-neutral-800 bg-neutral-800">
         {title.length <= tooltipChars ? title : title.slice(0, tooltipChars) + "..."}
       </TooltipContent>
     </Tooltip>
