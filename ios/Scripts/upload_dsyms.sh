@@ -93,11 +93,6 @@ for DSYM_TGZ in "${DSYM_TGZ_FILES[@]}"; do
   CURL_COMMAND="$CURL_COMMAND --form mapping_type=dsym --form mapping_file=@$DSYM_TGZ"
 done
 
-# Display the curl command that will be executed (with API key masked)
-DISPLAY_CURL_COMMAND=$(echo "$CURL_COMMAND" | sed "s/Bearer $API_KEY/Bearer XXXX-API-KEY-MASKED-XXXX/g")
-echo "Request that will be executed:"
-echo "$DISPLAY_CURL_COMMAND --write-out '%{http_code}' --silent --output /dev/null"
-
 # Execute the curl command and capture the HTTP response code
 echo "Executing curl command..."
 HTTP_RESPONSE=$(eval "$CURL_COMMAND --write-out '%{http_code}' --silent --output /dev/null")
