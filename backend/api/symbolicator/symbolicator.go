@@ -268,43 +268,27 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 			continue
 		}
 
-		if s.requestJVM == nil {
-			s.requestJVM = NewRequestJVM()
-		}
-
-		if s.requestNative == nil {
-			s.requestNative = NewRequestNative()
-		}
-
 		switch ev.Type {
 		case event.TypeException:
 			f := ev.Exception.GetFramework()
 			switch f {
 			case framework.JVM:
+				ensureRequestJVM(s)
 				exceptions := ev.Exception.Exceptions
 				threads := ev.Exception.Threads
 				s.prepareJvmException(exceptions, threads, i)
 			case framework.Dart:
+				ensureRequestNative(s)
 				s.prepareNativeException(ev, i)
-				// symbolication request if we
-				// encountered any Native exceptions.
-				if len(mappings) > 0 && s.requestNative != nil && (len(s.requestNative.Stacktraces) > 0) {
+
+				// configure modules for Native
+				// symbolication request.
+				// The UUID represents the code_id received
+				// from the exception event.
+				if len(mappings) > 0 && s.requestNative != nil {
 					baseAddr := "0x" + ev.Exception.BinaryImages[0].BaseAddr
 					uuid := ev.Exception.BinaryImages[0].Uuid
 
-					// Dart exceptions need to be symbolicated
-					// and may require changes in the future
-					// to support more languages.
-					// For Dart running on iOS, dSYM files are
-					// used for symbolication. Symbolicator
-					// requires a debug_id to be added to the
-					// module. This is extracted from the
-					// mapping key.
-					// While Dart running on Android, ELF files
-					// are used for symbolication. Symbolicator
-					// requires a code_id to be added to the module.
-					// This is extracted from exception itself
-					// and parsed from the binary images.
 					for _, mType := range mappings {
 						switch mType {
 						case symbol.TypeDsym:
@@ -315,35 +299,39 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 					}
 				}
 			default:
-				fmt.Printf("unknown symbolication platform %s\n", f)
+				fmt.Printf("unknown exception framework %s\n", f)
 				continue
 			}
 		case event.TypeANR:
+			ensureRequestJVM(s)
 			exceptions := ev.ANR.Exceptions
 			threads := ev.ANR.Threads
 			s.prepareJvmException(exceptions, threads, i)
 		case event.TypeLifecycleActivity:
+			ensureRequestJVM(s)
 			s.requestJVM.AddClass(ev.LifecycleActivity.ClassName)
 		case event.TypeLifecycleFragment:
+			ensureRequestJVM(s)
 			s.requestJVM.AddClass(ev.LifecycleFragment.ClassName)
 			s.requestJVM.AddClass(ev.LifecycleFragment.ParentActivity)
 			s.requestJVM.AddClass(ev.LifecycleFragment.ParentFragment)
 		case event.TypeColdLaunch:
+			ensureRequestJVM(s)
 			s.requestJVM.AddClass(ev.ColdLaunch.LaunchedActivity)
 		case event.TypeWarmLaunch:
+			ensureRequestJVM(s)
 			s.requestJVM.AddClass(ev.WarmLaunch.LaunchedActivity)
 		case event.TypeHotLaunch:
+			ensureRequestJVM(s)
 			s.requestJVM.AddClass(ev.HotLaunch.LaunchedActivity)
 		case event.TypeAppExit:
+			ensureRequestJVM(s)
 			s.requestJVM.AddClass(ev.AppExit.Trace)
 		}
 
 		// configure module with debug id for
-		// JVM symbolication request if we
-		// encountered any JVM exceptions or
-		// classes.
-		if len(mappings) > 0 && s.requestJVM != nil && (len(s.requestJVM.Exceptions) > 0 ||
-			len(s.requestJVM.Classes) > 0) {
+		// JVM symbolication request if needed.
+		if len(mappings) > 0 && s.requestJVM != nil {
 			var debugId = ""
 			for key, mType := range mappings {
 				if mType == symbol.TypeProguard {
@@ -361,7 +349,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 	// send JVM symbolication request
 	// if we have any exceptions or classes
 	// in the JVM request.
-	if s.requestJVM != nil && (len(s.requestJVM.Exceptions) > 0 || len(s.requestJVM.Classes) > 0) {
+	if s.requestJVM != nil {
 		if err = s.prepareJvmRequest(); err != nil {
 			return
 		}
@@ -379,7 +367,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 	// send Native symbolication request
 	// if we have any stacktraces in the
 	// Native request.
-	if s.requestNative != nil && (len(s.requestNative.Stacktraces) > 0) {
+	if s.requestNative != nil {
 		if err = s.prepareNativeRequest(); err != nil {
 			return
 		}
@@ -424,7 +412,7 @@ func (s *Symbolicator) symbolicateAppleCrashReport(ev event.EventField) (err err
 	return
 }
 
-func (s *Symbolicator) prepareJvmException(exceptions event.ExceptionUnits, threads event.Threads, index int) (err error) {
+func (s *Symbolicator) prepareJvmException(exceptions event.ExceptionUnits, threads event.Threads, index int) {
 	for j, excep := range exceptions {
 		s.requestJVM.Exceptions = append(s.requestJVM.Exceptions, exceptionJVM{
 			Type: excep.Type,
@@ -478,15 +466,14 @@ func (s *Symbolicator) prepareJvmException(exceptions event.ExceptionUnits, thre
 			Frames: frameJVMs,
 		})
 	}
-	return
 }
 
 // logResponse logs the symbolicator request's
 // response body.
-func (s Symbolicator) logResponse(st string) {
+func (s Symbolicator) logResponse(frmwrk string) {
 	var bytes []byte
 	var err error
-	switch st {
+	switch frmwrk {
 	case framework.JVM:
 		bytes, err = json.MarshalIndent(s.responseJVM, "", "  ")
 		if err != nil {
@@ -504,7 +491,7 @@ func (s Symbolicator) logResponse(st string) {
 		}
 	}
 
-	fmt.Printf("symbolicator response for %s\n", st)
+	fmt.Printf("symbolicator response for %s\n", frmwrk)
 	fmt.Println(string(bytes))
 }
 
@@ -1129,4 +1116,16 @@ func formatFunctionName(input string) string {
 		return strings.TrimSpace(match[1])
 	}
 	return input
+}
+
+func ensureRequestJVM(s *Symbolicator) {
+	if s.requestJVM == nil {
+		s.requestJVM = NewRequestJVM()
+	}
+}
+
+func ensureRequestNative(s *Symbolicator) {
+	if s.requestNative == nil {
+		s.requestNative = NewRequestNative()
+	}
 }
