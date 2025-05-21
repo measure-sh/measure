@@ -2,7 +2,6 @@ package event
 
 import (
 	"backend/api/framework"
-	"backend/api/os"
 	"backend/api/text"
 	"fmt"
 	"strconv"
