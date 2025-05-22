@@ -4,13 +4,15 @@ import { describe, it, beforeEach, expect } from '@jest/globals'
 import '@testing-library/jest-dom'
 import SessionsOverview from '@/app/[teamId]/sessions/page'
 
-// Global replace mock for router.replace
+// Global replace and push mocks for router
 const replaceMock = jest.fn()
+const pushMock = jest.fn()
 
 // Mock next/navigation hooks
 jest.mock('next/navigation', () => ({
     useRouter: () => ({
         replace: replaceMock,
+        push: pushMock,
     }),
     // By default, return empty search params.
     useSearchParams: () => new URLSearchParams(),
@@ -116,19 +118,10 @@ jest.mock('@/app/utils/time_utils', () => ({
     formatMillisToHumanReadable: jest.fn(() => '1s')
 }))
 
-// Mock Next.js Link component
-jest.mock('next/link', () => ({
-    __esModule: true,
-    default: ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => (
-        <a href={href} className={className} data-testid="mock-link">
-            {children}
-        </a>
-    ),
-}))
-
 describe('SessionsOverview Component', () => {
     beforeEach(() => {
         replaceMock.mockClear()
+        pushMock.mockClear()
     })
 
     it('renders the Sessions heading and Filters component', () => {
@@ -142,7 +135,7 @@ describe('SessionsOverview Component', () => {
         expect(screen.queryByTestId('sessions-overview-plot-mock')).not.toBeInTheDocument()
         expect(screen.queryByTestId('paginator-mock')).not.toBeInTheDocument()
         expect(screen.queryByTestId('loading-bar-mock')).not.toBeInTheDocument()
-        expect(screen.queryByText('Session Id')).not.toBeInTheDocument()
+        expect(screen.queryByText('Session')).not.toBeInTheDocument()
     })
 
     it('renders main sessions UI, updates URL when filters become ready, and renders table headers', async () => {
@@ -158,8 +151,9 @@ describe('SessionsOverview Component', () => {
         // Verify main UI components are rendered.
         expect(await screen.findByTestId('sessions-overview-plot-mock')).toBeInTheDocument()
         expect(await screen.findByTestId('paginator-mock')).toBeInTheDocument()
+
         // Check that the table header cells are rendered.
-        expect(screen.getByText('Session Id')).toBeInTheDocument()
+        expect(screen.getByText('Session')).toBeInTheDocument()
         expect(screen.getByText('Start Time')).toBeInTheDocument()
         expect(screen.getByText('Duration')).toBeInTheDocument()
     })
@@ -172,7 +166,7 @@ describe('SessionsOverview Component', () => {
         })
 
         // Verify the session data is displayed
-        expect(screen.getByText('session1')).toBeInTheDocument()
+        expect(screen.getByText('ID: session1')).toBeInTheDocument()
         expect(screen.getByText('Jan 1, 2020')).toBeInTheDocument()
         expect(screen.getByText('12:00 AM')).toBeInTheDocument()
         expect(screen.getByText('1s')).toBeInTheDocument()
@@ -219,9 +213,16 @@ describe('SessionsOverview Component', () => {
             fireEvent.click(updateButton)
         })
 
-        // Check that the link includes the correct path
-        const link = screen.getByTestId('mock-link')
-        expect(link).toHaveAttribute('href', '/123/sessions/app1/session1')
+        // Click the table row to trigger navigation
+        const row = screen.getByRole('button', { name: /ID: session1/i })
+        fireEvent.click(row)
+        expect(pushMock).toHaveBeenCalledWith('/123/sessions/app1/session1')
+
+        // Simulate keyboard navigation (Enter)
+        await act(async () => {
+            fireEvent.keyDown(row!, { key: 'Enter' })
+        })
+        expect(pushMock).toHaveBeenCalledWith('/123/sessions/app1/session1')
     })
 
     describe('Pagination offset handling', () => {
@@ -360,7 +361,7 @@ describe('SessionsOverview Component', () => {
         })
 
         // After loading, the loading bar should be invisible
-        await screen.findByText('session1')
+        await screen.findByText('ID: session1')
         expect(loadingBarContainer).not.toHaveClass('visible')
         expect(loadingBarContainer).toHaveClass('invisible')
     })

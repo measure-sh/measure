@@ -7,11 +7,13 @@ import { ExceptionsType } from '@/app/api/api_calls'
 
 // Global replace mock for router.replace
 const replaceMock = jest.fn()
+const pushMock = jest.fn()
 
 // Mock next/navigation hooks
 jest.mock('next/navigation', () => ({
     useRouter: () => ({
         replace: replaceMock,
+        push: pushMock,
     }),
     // By default, return empty search params.
     useSearchParams: () => new URLSearchParams(),
@@ -122,20 +124,10 @@ jest.mock('@/app/components/loading_bar', () => () => (
     <div data-testid="loading-bar-mock">LoadingBar Rendered</div>
 ))
 
-// Mock Next.js Link component
-jest.mock('next/link', () => ({
-    __esModule: true,
-    default: ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => (
-        <a href={href} className={className} data-testid="mock-link">
-            {children}
-        </a>
-    ),
-}))
-
-
 describe('ExceptionsOverview Component - Crashes', () => {
     beforeEach(() => {
         replaceMock.mockClear()
+        pushMock.mockClear()
     })
 
     it('renders the Crashes heading and Filters component', () => {
@@ -167,7 +159,7 @@ describe('ExceptionsOverview Component - Crashes', () => {
         expect(await screen.findByTestId('paginator-mock')).toBeInTheDocument()
 
         // Check that the table header cells are rendered
-        expect(screen.getByText('Crash Name')).toBeInTheDocument()
+        expect(screen.getByText('Crash')).toBeInTheDocument()
         expect(screen.getByText('Instances')).toBeInTheDocument()
         expect(screen.getByText('Percentage contribution')).toBeInTheDocument()
     })
@@ -179,7 +171,6 @@ describe('ExceptionsOverview Component - Crashes', () => {
             fireEvent.click(updateButton)
         })
 
-        // Verify the exception data is displayed
         expect(screen.getByText('MainActivity.java: onCreate()')).toBeInTheDocument()
         expect(screen.getByText('NullPointerException:Attempt to invoke virtual method on a null object reference')).toBeInTheDocument()
         expect(screen.getByText('120')).toBeInTheDocument()
@@ -225,9 +216,19 @@ describe('ExceptionsOverview Component - Crashes', () => {
             fireEvent.click(updateButton)
         })
 
-        // Check that the link includes the correct path
-        const link = screen.getByTestId('mock-link')
-        expect(link).toHaveAttribute('href', '/123/crashes/app1/exception1/NullPointerException@MainActivity.java')
+        // Find the row and simulate click
+        const row = screen.getByText('MainActivity.java: onCreate()').closest('tr')
+        expect(row).toBeTruthy()
+        await act(async () => {
+            fireEvent.click(row!)
+        })
+        expect(pushMock).toHaveBeenCalledWith('/123/crashes/app1/exception1/NullPointerException@MainActivity.java')
+
+        // Simulate keyboard navigation (Enter)
+        await act(async () => {
+            fireEvent.keyDown(row!, { key: 'Enter' })
+        })
+        expect(pushMock).toHaveBeenCalledWith('/123/crashes/app1/exception1/NullPointerException@MainActivity.java')
     })
 
     it('handles exceptions with empty file_name correctly in link and display', async () => {
@@ -267,9 +268,13 @@ describe('ExceptionsOverview Component - Crashes', () => {
         // Verify "unknown_file" is displayed when file_name is empty
         expect(screen.getByText('unknown_file: onCreate()')).toBeInTheDocument()
 
-        // Check that link href is correct with empty file_name
-        const link = screen.getByTestId('mock-link')
-        expect(link).toHaveAttribute('href', '/123/crashes/app1/exception1/NullPointerException')
+        // Find the row and simulate click
+        const row = screen.getByText('unknown_file: onCreate()').closest('tr')
+        expect(row).toBeTruthy()
+        await act(async () => {
+            fireEvent.click(row!)
+        })
+        expect(pushMock).toHaveBeenCalledWith('/123/crashes/app1/exception1/NullPointerException')
     })
 
     describe('Pagination key ID handling', () => {
@@ -412,19 +417,30 @@ describe('ExceptionsOverview Component - ANRs', () => {
             fireEvent.click(updateButton)
         })
 
-        expect(screen.getByText('ANR Name')).toBeInTheDocument()
-        expect(screen.queryByText('Crash Name')).not.toBeInTheDocument()
+        expect(screen.getByText('ANR')).toBeInTheDocument()
+        expect(screen.queryByText('Crash')).not.toBeInTheDocument()
     })
 
-    it('formats links correctly for ANRs', async () => {
+    it('links correctly for ANRs', async () => {
         render(<ExceptionsOverview exceptionsType={ExceptionsType.Anr} teamId="123" />)
         const updateButton = screen.getByTestId('update-filters')
         await act(async () => {
             fireEvent.click(updateButton)
         })
 
-        const link = screen.getByTestId('mock-link')
-        expect(link).toHaveAttribute('href', '/123/anrs/app1/exception1/NullPointerException@MainActivity.java')
+        // Find the row and simulate click
+        const row = screen.getByText('MainActivity.java: onCreate()').closest('tr')
+        expect(row).toBeTruthy()
+        await act(async () => {
+            fireEvent.click(row!)
+        })
+        expect(pushMock).toHaveBeenCalledWith('/123/anrs/app1/exception1/NullPointerException@MainActivity.java')
+
+        // Simulate keyboard navigation (Enter)
+        await act(async () => {
+            fireEvent.keyDown(row!, { key: 'Enter' })
+        })
+        expect(pushMock).toHaveBeenCalledWith('/123/anrs/app1/exception1/NullPointerException@MainActivity.java')
     })
 
     it('shows error message with ANR-specific text', async () => {
