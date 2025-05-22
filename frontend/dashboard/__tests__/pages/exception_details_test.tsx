@@ -204,12 +204,10 @@ jest.mock('@/app/components/loading_spinner', () => () => (
 // Mock Accordion component
 jest.mock('@/app/components/accordion', () => ({
     __esModule: true,
-    default: ({ title, children, active, id }: { title: string; children: React.ReactNode; active: boolean; id: string }) => (
-        <div data-testid={`accordion-${id}`} className={active ? 'active' : ''}>
-            <div data-testid={`accordion-title-${id}`}>{title}</div>
-            <div data-testid={`accordion-content-${id}`}>{children}</div>
-        </div>
-    ),
+    Accordion: (props: { children: React.ReactNode }) => <div data-testid="accordion-mock">{props.children}</div>,
+    AccordionItem: (props: { children: React.ReactNode; value: string }) => <div data-testid={`accordion-item-${props.value}`}>{props.children}</div>,
+    AccordionTrigger: (props: { children: React.ReactNode }) => <div data-testid="accordion-trigger">{props.children}</div>,
+    AccordionContent: (props: { children: React.ReactNode }) => <div data-testid="accordion-content">{props.children}</div>,
 }))
 
 // Mock Next.js Link component
@@ -337,17 +335,25 @@ describe('ExceptionsDetails Component - Crashes', () => {
         expect(screen.getByText('Network type: WiFi')).toBeInTheDocument()
 
         // Check that the accordion for the crash thread is rendered
-        expect(screen.getByTestId('accordion-crash')).toHaveClass('active')
-        expect(screen.getByTestId('accordion-title-crash')).toHaveTextContent('Thread: main')
-        expect(screen.getByTestId('accordion-content-crash')).toHaveTextContent(
+        const crashAccordion = screen.getByTestId('accordion-item-Thread: main')
+        expect(crashAccordion).toBeInTheDocument()
+        expect(crashAccordion).toHaveTextContent('Thread: main')
+        expect(crashAccordion).toHaveTextContent(
             'java.lang.NullPointerException: Attempt to invoke virtual method on a null object reference'
         )
 
         // Check that additional thread accordions are rendered
-        expect(screen.getByTestId('accordion-main-0')).not.toHaveClass('active')
-        expect(screen.getByTestId('accordion-title-main-0')).toHaveTextContent('Thread: main')
-        expect(screen.getByTestId('accordion-RenderThread-1')).not.toHaveClass('active')
-        expect(screen.getByTestId('accordion-title-RenderThread-1')).toHaveTextContent('Thread: RenderThread')
+        const mainThreadAccordion = screen.getByTestId('accordion-item-main-0')
+        expect(mainThreadAccordion).toBeInTheDocument()
+        expect(mainThreadAccordion).toHaveTextContent('Thread: main')
+        expect(mainThreadAccordion).toHaveTextContent('java.lang.Thread.sleep(Native Method)')
+        expect(mainThreadAccordion).toHaveTextContent('com.example.MainActivity$1.run(MainActivity.java:52)')
+
+        const renderThreadAccordion = screen.getByTestId('accordion-item-RenderThread-1')
+        expect(renderThreadAccordion).toBeInTheDocument()
+        expect(renderThreadAccordion).toHaveTextContent('Thread: RenderThread')
+        expect(renderThreadAccordion).toHaveTextContent('android.view.ThreadedRenderer.nativeSyncAndDrawFrame(Native Method)')
+        expect(renderThreadAccordion).toHaveTextContent('android.view.ThreadedRenderer.syncAndDrawFrame(ThreadedRenderer.java:144)')
     })
 
     it('shows error message when API returns error status', async () => {
@@ -620,11 +626,10 @@ describe('ExceptionsDetails Component - ANRs', () => {
         })
 
         // Check that the ANR accordion is rendered instead of crash accordion
-        expect(screen.getByTestId('accordion-anr')).toHaveClass('active')
-        expect(screen.getByTestId('accordion-title-anr')).toHaveTextContent('Thread: main')
-        expect(screen.getByTestId('accordion-content-anr')).toHaveTextContent(
-            'ANR in com.example.MainActivity'
-        )
+        const anrAccordion = screen.getByTestId('accordion-item-Thread: main')
+        expect(anrAccordion).toBeInTheDocument()
+        expect(anrAccordion).toHaveTextContent('Thread: main')
+        expect(anrAccordion).toHaveTextContent('ANR in com.example.MainActivity')
     })
 
     it('shows error message with ANR-specific text', async () => {

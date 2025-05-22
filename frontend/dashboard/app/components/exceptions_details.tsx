@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import Accordion from "@/app/components/accordion"
 import Link from "next/link"
 import { ExceptionsDetailsApiStatus, ExceptionsType, emptyCrashExceptionsDetailsResponse, emptyAnrExceptionsDetailsResponse, fetchExceptionsDetailsFromServer, FilterSource } from '@/app/api/api_calls'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -15,6 +14,7 @@ import LoadingSpinner from './loading_spinner'
 import ExceptionsDistributionPlot from './exceptions_distribution_plot'
 import { buttonVariants } from './button'
 import { cn } from '../utils/shadcn_utils'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './accordion'
 
 interface PageState {
   exceptionsDetailsApiStatus: ExceptionsDetailsApiStatus
@@ -229,24 +229,39 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                       exceptionsType={exceptionsType}
                       exceptionsDetails={pageState.exceptionsDetails} />
                   </div>
-                  <div className="py-2" />
-                  {exceptionsType === ExceptionsType.Crash &&
-                    <Accordion key='crash-thread' title={'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name} id='crash' active={true}>
-                      {(pageState.exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse).results[0].exception.stacktrace}
-                    </Accordion>
-                  }
-                  {exceptionsType === ExceptionsType.Anr &&
-                    <Accordion key='anr-thread' title={'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name} id='anr' active={true}>
-                      {(pageState.exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse).results[0].anr.stacktrace}
-                    </Accordion>
-                  }
-                  <div>
+                  <div className="py-4" />
+                  <Accordion type="single" collapsible defaultValue={
+                    exceptionsType === ExceptionsType.Crash
+                      ? 'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name
+                      : exceptionsType === ExceptionsType.Anr
+                        ? 'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name
+                        : undefined
+                  }>
+                    {exceptionsType === ExceptionsType.Crash &&
+                      <AccordionItem value={'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}>
+                        <AccordionTrigger className='font-display'>{'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}</AccordionTrigger>
+                        <AccordionContent className='whitespace-pre-wrap'>
+                          {(pageState.exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse).results[0].exception.stacktrace}
+                        </AccordionContent>
+                      </AccordionItem>
+                    }
+                    {exceptionsType === ExceptionsType.Anr &&
+                      <AccordionItem value={'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}>
+                        <AccordionTrigger className='font-display'>{'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}</AccordionTrigger>
+                        <AccordionContent className='whitespace-pre-wrap font-body'>
+                          {(pageState.exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse).results[0].anr.stacktrace}
+                        </AccordionContent>
+                      </AccordionItem>
+                    }
                     {pageState.exceptionsDetails.results[0].threads.map((e, index) => (
-                      <Accordion key={index} title={'Thread: ' + e.name} id={`${e.name}-${index}`} active={false}>
-                        {e.frames.join('\n')}
-                      </Accordion>
+                      <AccordionItem value={`${e.name}-${index}`} key={`${e.name}-${index}`}>
+                        <AccordionTrigger className='font-display'>{'Thread: ' + e.name}</AccordionTrigger>
+                        <AccordionContent className='whitespace-pre-wrap font-body'>
+                          {e.frames.join('\n')}
+                        </AccordionContent>
+                      </AccordionItem>
                     ))}
-                  </div>
+                  </Accordion>
                 </div>}
             </div>}
         </div>}
