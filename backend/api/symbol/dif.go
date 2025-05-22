@@ -252,6 +252,9 @@ func VerifyMachO(r *bytes.Reader) (err error) {
 
 	magic := hex.EncodeToString(buffer[:4])
 
+	// Mach-O magic numbers
+	// "cafebabe" is used by dSYMs generate by Dart/Flutter
+	// https://ilostmynotes.blogspot.com/2014/05/mach-o-filetype-identification.html
 	if n < 4 || magic != "cffaedfe" && magic != "cefaedfe" && magic != "cafebabe" {
 		return errors.New("failed to find valid Mach-O magic number")
 	}
