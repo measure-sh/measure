@@ -84,14 +84,13 @@ CURL_COMMAND="curl --request PUT \
   --header 'Authorization: Bearer $API_KEY' \
   --form version_name=$VERSION_NAME \
   --form version_code=$VERSION_CODE \
-  --form mapping_type=dsym \
   --form build_size=$BUILD_SIZE \
   --form build_type=$BUILD_TYPE \
   --form app_unique_id=$APP_UNIQUE_ID"
 
-# Add each dSYM .tgz file to the curl command
+# Add each dSYM .tgz file to the curl command with its own mapping_type parameter
 for DSYM_TGZ in "${DSYM_TGZ_FILES[@]}"; do
-  CURL_COMMAND="$CURL_COMMAND --form mapping_file=@$DSYM_TGZ"
+  CURL_COMMAND="$CURL_COMMAND --form mapping_type=dsym --form mapping_file=@$DSYM_TGZ"
 done
 
 # Execute the curl command and capture the HTTP response code

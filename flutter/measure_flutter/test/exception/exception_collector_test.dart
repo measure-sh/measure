@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/exception/exception_data.dart';
+import 'package:measure_flutter/src/exception/exception_framework.dart';
 
 import '../utils/fake_signal_processor.dart';
 import '../utils/noop_logger.dart';
@@ -53,7 +54,7 @@ void main() {
             frames: [
               MsrFrame(
                 className: "_MyAppState",
-                methodName: "_throwException",
+                methodName: "_MyAppState._throwException",
                 fileName: "main.dart",
                 lineNum: 84,
                 colNum: 5,
@@ -62,7 +63,7 @@ void main() {
               ),
               MsrFrame(
                 className: "_InkResponseState",
-                methodName: "handleTap",
+                methodName: "_InkResponseState.handleTap",
                 fileName: "ink_well.dart",
                 lineNum: 1176,
                 colNum: 21,
@@ -84,6 +85,8 @@ void main() {
         handled: false,
         threads: [],
         foreground: true,
+        binaryImages: [],
+        framework: exceptionFramework,
       );
 
       collector.register();
@@ -120,12 +123,10 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
             frames: [
               MsrFrame(
                 frameIndex: 0,
-                binaryAddress: '0x7af7026000',
                 instructionAddress: "0x7af71c4903",
               ),
               MsrFrame(
                 frameIndex: 1,
-                binaryAddress: '0x7af7026000',
                 instructionAddress: "0x7af71c48cf",
               ),
             ],
@@ -134,6 +135,14 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
         handled: false,
         threads: [],
         foreground: true,
+        binaryImages: [
+          BinaryImage(
+            baseAddr: "7af7026000",
+            uuid: "369f5a6f980ba1e36116077ffc3e28e0",
+            arch: "arm64",
+          )
+        ],
+        framework: exceptionFramework,
       );
 
       collector.register();

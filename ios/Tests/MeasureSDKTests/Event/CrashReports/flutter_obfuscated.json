@@ -2,6 +2,7 @@
   "foreground" : true,
   "handled": false,
   "threads" : [],
+  "framework": "ios",
   "exceptions": [
       {
         "thread_sequence" : 0,
@@ -9,16 +10,21 @@
             {
                 "frame_index": 0,
                 "in_app": false,
-                "binary_address": "0x7af7026000",
                 "instruction_address": "0x7af71c4903"
             },
             {
                 "frame_index": 1,
                 "in_app": false,
-                "binary_address": "0x7af7026000",
                 "instruction_address": "0x7af71c48cf"
             }
         ]
+      }
+  ],
+  "binary_images": [
+      {
+          "baseAddr": "7af7026000",
+          "uuid": "369f5a6f980ba1e36116077ffc3e28e0",
+          "arch": "arm64"
       }
   ]
 }

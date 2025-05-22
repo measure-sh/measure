@@ -27,11 +27,13 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({ appName, exceptionsType, 
 
     formatted = formatted + "Thread: " + exceptionsDetails.results[0].attribute.thread_name + "\nStacktrace:\n" + indentedStackTrace + "\n\n"
 
-    exceptionsDetails.results[0].threads.forEach((e) => {
-      formatted = formatted + "Thread: " + e.name + "\n"
-      formatted = formatted + "Stacktrace:\n    " + e.frames.join("\n    ")
-      formatted = formatted + "\n\n"
-    })
+    if (exceptionsDetails.results[0].threads) {
+      exceptionsDetails.results[0].threads.forEach((e) => {
+        formatted = formatted + "Thread: " + e.name + "\n"
+        formatted = formatted + "Stacktrace:\n    " + e.frames.join("\n    ")
+        formatted = formatted + "\n\n"
+      })
+    }
 
     return formatted
   }

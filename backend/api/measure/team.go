@@ -75,7 +75,7 @@ func (t *Team) getApps(ctx context.Context) ([]App, error) {
 		Select(`apps.app_name`, nil).
 		Select(`apps.team_id`, nil).
 		Select(`apps.unique_identifier`, nil).
-		Select(`apps.platform`, nil).
+		Select(`apps.os_name`, nil).
 		Select(`apps.first_version`, nil).
 		Select(`apps.onboarded`, nil).
 		Select(`apps.onboarded_at`, nil).
@@ -101,7 +101,7 @@ func (t *Team) getApps(ctx context.Context) ([]App, error) {
 	for rows.Next() {
 		var a App
 		var uniqueId pgtype.Text
-		var platform pgtype.Text
+		var osName pgtype.Text
 		var firstVersion pgtype.Text
 		var onboardedAt pgtype.Timestamptz
 		var apiKeyLastSeen pgtype.Timestamptz
@@ -109,7 +109,7 @@ func (t *Team) getApps(ctx context.Context) ([]App, error) {
 
 		apiKey := new(APIKey)
 
-		if err := rows.Scan(&a.ID, &a.AppName, &a.TeamId, &uniqueId, &platform, &firstVersion, &a.Onboarded, &onboardedAt, &apiKey.keyPrefix, &apiKey.keyValue, &apiKey.checksum, &apiKeyLastSeen, &apiKeyCreatedAt, &a.CreatedAt, &a.UpdatedAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.AppName, &a.TeamId, &uniqueId, &osName, &firstVersion, &a.Onboarded, &onboardedAt, &apiKey.keyPrefix, &apiKey.keyValue, &apiKey.checksum, &apiKeyLastSeen, &apiKeyCreatedAt, &a.CreatedAt, &a.UpdatedAt); err != nil {
 			return nil, err
 		}
 
@@ -119,10 +119,10 @@ func (t *Team) getApps(ctx context.Context) ([]App, error) {
 			a.UniqueId = ""
 		}
 
-		if platform.Valid {
-			a.Platform = platform.String
+		if osName.Valid {
+			a.OSName = osName.String
 		} else {
-			a.Platform = ""
+			a.OSName = ""
 		}
 
 		if firstVersion.Valid {

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"debug/elf"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
@@ -170,36 +171,75 @@ func BuildUnifiedLayout(id string) string {
 	return fmt.Sprintf("%s/%s", stripped[:2], stripped[2:])
 }
 
-// GetMappingKey fetches the mapping file key
-// from database.
-func GetMappingKey(
+// GetMappings fetches all mapping file keys
+// from database for a given app version and returns
+// a map of keys to their mapping types.
+func GetMappings(
 	ctx context.Context,
 	db *pgxpool.Pool,
 	appId uuid.UUID,
 	name, code string,
-	mType MappingType,
-) (key string, err error) {
+) (keyMap map[string]MappingType, err error) {
 	stmt := sqlf.PostgreSQL.
 		From("build_mappings").
-		Select("key").
+		Select("key, mapping_type").
 		Where("app_id = ?", appId).
 		Where("version_name = ?", name).
-		Where("version_code = ?", code).
-		Where("mapping_type = ?", mType)
+		Where("version_code = ?", code)
 
 	defer stmt.Close()
 
-	if err = db.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&key); err != nil {
-		return
+	rows, err := db.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	keyMap = make(map[string]MappingType)
+	for rows.Next() {
+		var key string
+		var mTypeStr string // Change to string to match database type
+		if err = rows.Scan(&key, &mTypeStr); err != nil {
+			return nil, err
+		}
+		// Convert string to MappingType
+		mType := ParseMappingType(mTypeStr)
+		keyMap[key] = mType
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return
+}
+
+// ParseMappingType converts a string mapping type to MappingType enum
+func ParseMappingType(s string) MappingType {
+	switch s {
+	case "proguard":
+		return TypeProguard
+	case "dsym":
+		return TypeDsym
+	case "elf_debug":
+		return TypeElfDebug
+	default:
+		return TypeUnknown
+	}
 }
 
 // MappingKeyToDebugId formats a mapping key
 // in Unified Layout to a valid UUID.
 func MappingKeyToDebugId(key string) string {
 	return fmt.Sprintf("%s%s-%s-%s-%s-%s", key[:2], key[3:9], key[9:13], key[13:17], key[17:21], key[21:33])
+}
+
+// MappingKeyToCodeId formats a mapping key
+// in Unified Layout to a valid CodeId.
+func MappingKeyToCodeId(key string) string {
+	noSlash := strings.Replace(key, "/", "", -1)
+	result := strings.Replace(noSlash, "debuginfo", "", -1)
+	return result
 }
 
 // VerifyMachO verifies Mach-O magic number.
@@ -212,7 +252,10 @@ func VerifyMachO(r *bytes.Reader) (err error) {
 
 	magic := hex.EncodeToString(buffer[:4])
 
-	if n < 4 || magic != "cffaedfe" && magic != "cefaedfe" {
+	// Mach-O magic numbers
+	// "cafebabe" is used by dSYMs generate by Dart/Flutter
+	// https://ilostmynotes.blogspot.com/2014/05/mach-o-filetype-identification.html
+	if n < 4 || magic != "cffaedfe" && magic != "cefaedfe" && magic != "cafebabe" {
 		return errors.New("failed to find valid Mach-O magic number")
 	}
 
@@ -250,4 +293,63 @@ func GetMachOUUID(r *bytes.Reader) (string, error) {
 // to hex string.
 func formatUUID(uuid []byte) string {
 	return fmt.Sprintf("%s-%s-%s-%s-%s", hex.EncodeToString(uuid[0:4]), hex.EncodeToString(uuid[4:6]), hex.EncodeToString(uuid[6:8]), hex.EncodeToString(uuid[8:10]), hex.EncodeToString(uuid[10:16]))
+}
+
+// extracts the architecture from an ELF file
+func GetArchFromELF(elfData []byte) (string, error) {
+	f, err := elf.NewFile(bytes.NewReader(elfData))
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	switch f.Machine {
+	case elf.EM_X86_64:
+		return "x86_64", nil
+	case elf.EM_386:
+		return "x86", nil
+	case elf.EM_ARM:
+		return "arm", nil
+	case elf.EM_AARCH64:
+		return "arm64", nil
+	default:
+		return "", fmt.Errorf("unknown architecture: %v", f.Machine)
+	}
+}
+
+// extracts the build ID from an ELF file
+func GetBuildIDFromELF(elfData []byte) (string, error) {
+	f, err := elf.NewFile(bytes.NewReader(elfData))
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	// Look for the .note.gnu.build-id section
+	section := f.Section(".note.gnu.build-id")
+	if section == nil {
+		return "", fmt.Errorf("build-id section not found")
+	}
+
+	data, err := section.Data()
+	if err != nil {
+		return "", err
+	}
+
+	// Parse the note section
+	// The build ID note has:
+	// - 4 bytes: name size (usually 4)
+	// - 4 bytes: desc size (usually 20 for SHA1)
+	// - 4 bytes: type (GNU_BUILD_ID = 3)
+	// - name_size bytes: name ("GNU\0")
+	// - desc_size bytes: the actual build ID
+
+	if len(data) < 16 {
+		return "", fmt.Errorf("build-id section too small")
+	}
+
+	// Skip the header and name to get to the build ID
+	// Header is 12 bytes, name is typically 4 bytes
+	buildID := data[16:]
+	return hex.EncodeToString(buildID), nil
 }

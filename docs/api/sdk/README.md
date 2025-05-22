@@ -240,6 +240,7 @@ List of all the fields of the multipart request.
 
 - `mapping_type` &amp; `mapping_file` are optional. Both need to be present for mapping file uploads to work.
 - `version_name`, `version_code`, `build_size` &amp; `build_type` are required and cannot be skipped.
+- There can be one or more `mapping_file` in the payload. Each mapping file must have a corresponding `mapping_type`. Mapping files are mapped to mapping types based on the order they appear.
 - Uploading a previously uploaded mapping file with exact contents for the same combination of `version_name`, `version_code`, `mapping_type` replaces the older mapping file(s).
 - Putting `build_size` for the same `version_name`, `version_code` and `build_type` combination replaces the last size with the latest size.
 - Depending on the platform, `mapping_type` can be `proguard` for Android or `dsym` for iOS.

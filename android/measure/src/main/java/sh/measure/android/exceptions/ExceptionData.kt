@@ -26,6 +26,13 @@ internal data class ExceptionData(
      * Whether the app was in the foreground or not when the exception occurred.
      */
     val foreground: Boolean,
+
+    /**
+     * The list of binary images loaded in the process.
+     */
+    val binary_images: List<BinaryImage> = listOf(),
+
+    val framework: String? = ExceptionFramework.JVM,
 )
 
 @Serializable
@@ -134,4 +141,11 @@ internal data class Frame(
      * `true` if the frame originates from the app module
      */
     val in_app: Boolean = false,
+)
+
+@Serializable
+internal data class BinaryImage(
+    val uuid: String,
+    val arch: String,
+    val base_addr: String,
 )

@@ -18,11 +18,19 @@ class ExceptionData implements JsonSerialized {
   /// Whether the app was in the foreground or not when the exception occurred.
   final bool foreground;
 
+  @JsonKey(name: "binary_images")
+  final List<BinaryImage> binaryImages;
+
+  /// The framework where the exception originated in.
+  final String framework;
+
   ExceptionData({
     required this.exceptions,
     required this.handled,
     required this.threads,
     required this.foreground,
+    required this.binaryImages,
+    required this.framework,
   });
 
   @override
@@ -39,14 +47,18 @@ class ExceptionData implements JsonSerialized {
           exceptions == other.exceptions &&
           handled == other.handled &&
           threads == other.threads &&
-          foreground == other.foreground;
+          foreground == other.foreground &&
+          binaryImages == other.binaryImages &&
+          framework == other.framework;
 
   @override
   int get hashCode =>
       exceptions.hashCode ^
       handled.hashCode ^
       threads.hashCode ^
-      foreground.hashCode;
+      foreground.hashCode ^
+      binaryImages.hashCode ^
+      framework.hashCode;
 }
 
 @JsonSerializable(explicitToJson: true)
@@ -175,6 +187,7 @@ class MsrFrame {
 
   /// `true` if the frame originates from the app module
   /// Defaults to false.
+  @JsonKey(name: "in_app")
   final bool inApp;
 
   MsrFrame({
@@ -226,4 +239,35 @@ class MsrFrame {
       symbolAddress.hashCode ^
       instructionAddress.hashCode ^
       inApp.hashCode;
+}
+
+@JsonSerializable()
+class BinaryImage {
+  @JsonKey(name: 'base_addr')
+  final String baseAddr;
+  final String uuid;
+  final String arch;
+
+  BinaryImage({
+    required this.baseAddr,
+    required this.uuid,
+    required this.arch,
+  });
+
+  Map<String, dynamic> toJson() => _$BinaryImageToJson(this);
+
+  factory BinaryImage.fromJson(Map<String, dynamic> json) =>
+      _$BinaryImageFromJson(json);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BinaryImage &&
+          runtimeType == other.runtimeType &&
+          baseAddr == other.baseAddr &&
+          uuid == other.uuid &&
+          arch == other.arch;
+
+  @override
+  int get hashCode => baseAddr.hashCode ^ uuid.hashCode ^ arch.hashCode;
 }

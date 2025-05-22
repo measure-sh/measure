@@ -241,7 +241,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                     </Accordion>
                   }
                   <div>
-                    {pageState.exceptionsDetails.results[0].threads.map((e, index) => (
+                    {pageState.exceptionsDetails.results[0].threads && pageState.exceptionsDetails.results[0].threads.map((e, index) => (
                       <Accordion key={index} title={'Thread: ' + e.name} id={`${e.name}-${index}`} active={false}>
                         {e.frames.join('\n')}
                       </Accordion>

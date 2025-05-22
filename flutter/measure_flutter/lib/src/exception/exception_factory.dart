@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:measure_flutter/src/exception/exception_data.dart';
+import 'package:measure_flutter/src/exception/exception_framework.dart';
 import 'package:stack_trace/stack_trace.dart';
 
 final class ExceptionFactory {
@@ -8,19 +9,23 @@ final class ExceptionFactory {
   static final _absRegex = RegExp(r'^\s*#[0-9]+ +abs +([A-Fa-f0-9]+)');
   static final _frameRegex = RegExp(r'^\s*#', multiLine: true);
   static final _baseAddrRegex = RegExp(r'isolate_dso_base[:=] *([A-Fa-f0-9]+)');
+  static final _buildIdRegex = RegExp(r"build_id: *'([A-Fa-f0-9]+)'");
+  static final _archRegex = RegExp(r'arch[:=] *([A-Za-z0-9]+)');
 
-  static ExceptionData from(FlutterErrorDetails details, bool handled) {
-    final result = _parseStackTrace(details.stack);
+  static ExceptionData? from(FlutterErrorDetails details, bool handled) {
+    var stackTrace = details.stack;
+    if (stackTrace == null) {
+      return null;
+    }
+    final result = _parseStackTrace(stackTrace);
     final List<Trace> traces = result.traces;
-    final String? binaryAddr = result.binaryAddr;
     final type = details.exception.runtimeType.toString();
-    final message = _getMessage(details);
+    final message = _getMessage(details, type);
     final List<ExceptionUnit> exceptions = [];
 
     if (traces.isNotEmpty) {
       final firstTrace = traces.first;
-      final List<MsrFrame> primaryFrames =
-          _createMsrFrames(firstTrace.frames, binaryAddr);
+      final List<MsrFrame> primaryFrames = _createMsrFrames(firstTrace.frames);
       exceptions.add(
           ExceptionUnit(frames: primaryFrames, type: type, message: message));
     } else {
@@ -37,17 +42,21 @@ final class ExceptionFactory {
     // We're not maintaining the application lifecycle state
     // in Flutter.
     return ExceptionData(
-        exceptions: exceptions,
-        handled: handled,
-        threads: [],
-        foreground: true);
+      exceptions: exceptions,
+      handled: handled,
+      threads: [],
+      foreground: true,
+      binaryImages: _createBinaryImage(stackTrace),
+      framework: exceptionFramework,
+    );
   }
 
   static TraceResult _parseStackTrace(dynamic stackTrace) {
     if (stackTrace is Chain) {
-      return TraceResult(stackTrace.traces, null);
+      final traces = stackTrace.traces.reversed.toList();
+      return TraceResult(traces);
     } else if (stackTrace is Trace) {
-      return TraceResult([stackTrace], null);
+      return TraceResult([stackTrace]);
     }
 
     if (stackTrace is StackTrace) {
@@ -56,21 +65,29 @@ final class ExceptionFactory {
 
     if (stackTrace is String) {
       final startOffset = _frameRegex.firstMatch(stackTrace)?.start ?? 0;
-      final binaryAddr = _baseAddrRegex.firstMatch(stackTrace)?.group(1);
       final chain = Chain.parse(
           startOffset == 0 ? stackTrace : stackTrace.substring(startOffset));
-      return TraceResult(chain.traces, binaryAddr);
+      return TraceResult(chain.traces);
     }
-    return TraceResult([], null);
+    return TraceResult([]);
   }
 
-  static List<MsrFrame> _createMsrFrames(List<Frame> frames,
-      [String? binaryAddr]) {
+  static List<MsrFrame> _createMsrFrames(List<Frame> frames) {
     var index = 0;
+    bool hasUnparsedFrame =
+        frames.any((frame) => frame.member != null && frame is UnparsedFrame);
     return frames
+        .where((frame) {
+          var member = frame.member;
+          return member != null;
+        })
         .map((frame) {
+          if (hasUnparsedFrame && frame is! UnparsedFrame) {
+            return null;
+          }
+
           if (frame is UnparsedFrame) {
-            return _createUnparsedMsrFrame(frame, binaryAddr, index++);
+            return _createUnparsedMsrFrame(frame, index++);
           } else {
             return _createParsedMsrFrame(frame, index++);
           }
@@ -79,14 +96,12 @@ final class ExceptionFactory {
         .toList();
   }
 
-  static MsrFrame? _createUnparsedMsrFrame(
-      UnparsedFrame frame, String? binaryAddr, int index) {
+  static MsrFrame? _createUnparsedMsrFrame(UnparsedFrame frame, int index) {
     final match = _absRegex.firstMatch(frame.member);
     if (match != null) {
       var symbolAddr = match.group(1)!;
       return MsrFrame(
           frameIndex: index,
-          binaryAddress: '0x$binaryAddr',
           instructionAddress: '0x${symbolAddr.replaceAll(RegExp(r'^0+'), '')}');
     }
     return null;
@@ -109,9 +124,7 @@ final class ExceptionFactory {
   }
 
   static String? _extractMethodName(Frame frame) {
-    return (frame.member != null && frame.member!.contains('.'))
-        ? frame.member!.substring(frame.member!.indexOf('.') + 1)
-        : frame.member;
+    return frame.member;
   }
 
   static String? _extractClassName(Frame frame) {
@@ -135,14 +148,37 @@ final class ExceptionFactory {
     return null;
   }
 
-  static String _getMessage(FlutterErrorDetails details) {
-    return details.exception.toString();
+  /// Remove the type from the message if it's present.
+  /// Example message — Format Exception: Invalid argument(s): This is an error
+  /// Resulting message — Invalid argument(s): This is an error
+  static String _getMessage(FlutterErrorDetails details, String type) {
+    final String exceptionStr = details.exception.toString();
+    if (exceptionStr.startsWith(type) && exceptionStr.length >= type.length) {
+      final removedType = exceptionStr.substring(type.length).trim();
+      if (removedType.startsWith(": ")) {
+        return removedType.substring(2).trim();
+      } else {
+        return removedType;
+      }
+    } else {
+      return exceptionStr;
+    }
+  }
+
+  static List<BinaryImage> _createBinaryImage(StackTrace stack) {
+    var stackStr = stack.toString();
+    final baseAddr = _baseAddrRegex.firstMatch(stackStr)?.group(1);
+    final buildId = _buildIdRegex.firstMatch(stackStr)?.group(1);
+    final arch = _archRegex.firstMatch(stackStr)?.group(1);
+    if (baseAddr != null && buildId != null && arch != null) {
+      return [BinaryImage(baseAddr: baseAddr, uuid: buildId, arch: arch)];
+    }
+    return [];
   }
 }
 
 class TraceResult {
   final List<Trace> traces;
-  final String? binaryAddr;
 
-  TraceResult(this.traces, this.binaryAddr);
+  TraceResult(this.traces);
 }

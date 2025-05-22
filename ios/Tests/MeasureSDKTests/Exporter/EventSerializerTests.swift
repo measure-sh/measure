@@ -189,6 +189,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         let binaryImage = BinaryImage(
             startAddress: "1081da000",
             endAddress: "1081fffff",
+            baseAddress: nil,
             system: false,
             name: "DemoApp",
             arch: "x86_64",
@@ -212,7 +213,8 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             exceptions: [exceptionDetail],
             foreground: true,
             threads: [ThreadDetail(name: "main", frames: [stackFrame], sequence: 1)],
-            binaryImages: [binaryImage]
+            binaryImages: [binaryImage],
+            framework: "ios"
         )
 
         // Event setup
