@@ -8,6 +8,7 @@ import Paginator from '@/app/components/paginator'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters'
 import ExceptionsOverviewPlot from './exceptions_overview_plot'
 import LoadingBar from './loading_bar'
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from './table'
 
 interface PageState {
   exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus
@@ -147,37 +148,77 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         <div className="flex flex-col items-center w-full">
           <ExceptionsOverviewPlot
             exceptionsType={exceptionsType}
-            filters={pageState.filters} />
-          <div className='self-end'>
-            <Paginator prevEnabled={pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : pageState.exceptionsOverview.meta.previous} nextEnabled={pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : pageState.exceptionsOverview.meta.next} displayText=''
+            filters={pageState.filters}
+          />
+          <div className="self-end">
+            <Paginator
+              prevEnabled={pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : pageState.exceptionsOverview.meta.previous}
+              nextEnabled={pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : pageState.exceptionsOverview.meta.next}
+              displayText=""
               onNext={handleNextPage}
-              onPrev={handlePrevPage} />
+              onPrev={handlePrevPage}
+            />
           </div>
           <div className={`py-1 w-full ${pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? 'visible' : 'invisible'}`}>
             <LoadingBar />
           </div>
-          <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
-            <div className="table-header-group bg-neutral-950">
-              <div className="table-row text-white font-display">
-                <div className="table-cell p-4 truncate" style={{ width: "40%" }}>{exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'} Name</div>
-                <div className="table-cell p-4 truncate text-center" style={{ width: "30%" }}>Instances</div>
-                <div className="table-cell p-4 truncate text-center" style={{ width: "30%" }}>Percentage contribution</div>
-              </div>
-            </div>
-            <div className="table-row-group font-body">
-              {pageState.exceptionsOverview.results?.map(({ id, type, message, method_name, file_name, line_number, count, percentage_contribution }) => (
-                <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${pageState.filters.app!.id}/${id}/${type + (file_name !== "" ? "@" + file_name : "")}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
-                  <div className="table-cell p-4" style={{ width: "40%" }}>
-                    <p className='truncate'>{(file_name !== "" ? file_name : "unknown_file") + ": " + (method_name !== "" ? method_name : "unknown_method") + "()"}</p>
-                    <div className='py-1' />
-                    <p className='text-xs truncate text-gray-500'>{`${type}${message ? `:${message}` : ''}`}</p>
-                  </div>
-                  <div className="table-cell p-4 text-center truncate" style={{ width: "30%" }}>{count}</div>
-                  <div className="table-cell p-4 text-center truncate" style={{ width: "30%" }}>{percentage_contribution}%</div>
-                </Link>
-              ))}
-            </div>
-          </div>
+          <div className='py-4' />
+          <Table className='font-display'>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[60%]">{exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'}</TableHead>
+                <TableHead className="w-[20%] text-center">Instances</TableHead>
+                <TableHead className="w-[20%] text-center">Percentage contribution</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pageState.exceptionsOverview.results?.map(
+                ({
+                  id,
+                  type,
+                  message,
+                  method_name,
+                  file_name,
+                  count,
+                  percentage_contribution
+                }) => (
+                  <TableRow
+                    key={id}
+                    className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 cursor-pointer"
+                    tabIndex={0}
+                    role="button"
+                    onClick={() =>
+                      router.push(
+                        `/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${pageState.filters.app!.id}/${id}/${type + (file_name !== '' ? '@' + file_name : '')}`
+                      )
+                    }
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        router.push(
+                          `/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${pageState.filters.app!.id}/${id}/${type + (file_name !== '' ? '@' + file_name : '')}`
+                        )
+                      }
+                    }}
+                  >
+                    <TableCell className="w-[60%]">
+                      <p className="truncate">
+                        {(file_name !== '' ? file_name : 'unknown_file') +
+                          ': ' +
+                          (method_name !== '' ? method_name : 'unknown_method') +
+                          '()'}
+                      </p>
+                      <div className="py-1" />
+                      <p className="text-xs truncate text-gray-500">
+                        {`${type}${message ? `:${message}` : ''}`}
+                      </p>
+                    </TableCell>
+                    <TableCell className="w-[20%] text-center truncate">{count}</TableCell>
+                    <TableCell className="w-[20%] text-center truncate">{percentage_contribution}%</TableCell>
+                  </TableRow>
+                )
+              )}
+            </TableBody>
+          </Table>
         </div>}
     </div >
   )

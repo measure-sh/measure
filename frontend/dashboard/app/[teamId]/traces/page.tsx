@@ -9,6 +9,7 @@ import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMil
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 
 interface PageState {
     spansApiStatus: SpansApiStatus
@@ -138,39 +139,52 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                             onPrev={handlePrevPage}
                         />
                     </div>
+
                     <div className={`py-1 w-full ${pageState.spansApiStatus === SpansApiStatus.Loading ? 'visible' : 'invisible'}`}>
                         <LoadingBar />
                     </div>
-                    <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
-                        <div className="table-header-group bg-neutral-950">
-                            <div className="table-row text-white font-display">
-                                <div className="table-cell p-4 truncate" style={{ width: "40%" }}>Trace</div>
-                                <div className="table-cell p-4 truncate text-center" style={{ width: "20%" }}>Start Time</div>
-                                <div className="table-cell p-4 truncate text-center" style={{ width: "20%" }}>Duration</div>
-                                <div className="table-cell p-4 truncate text-center" style={{ width: "20%" }}>Status</div>
-                            </div>
-                        </div>
-                        <div className="table-row-group font-body">
+                    <div className='py-4' />
+                    <Table className="font-display">
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[60%]">Trace</TableHead>
+                                <TableHead className="w-[20%] text-center">Start Time</TableHead>
+                                <TableHead className="w-[10%] text-center">Duration</TableHead>
+                                <TableHead className="w-[10%] text-center">Status</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody className="font-body">
                             {pageState.spans.results?.map(({ app_id, span_name, span_id, trace_id, status, start_time, duration, app_version, app_build, os_name, os_version, device_manufacturer, device_model }, idx) => (
-                                <Link key={`${idx}-${span_id}`} href={`/${params.teamId}/traces/${app_id}/${trace_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
-                                    <div className="table-cell p-4" style={{ width: "40%" }}>
+                                <TableRow
+                                    key={`${idx}-${span_id}`}
+                                    className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 cursor-pointer"
+                                    tabIndex={0}
+                                    role="button"
+                                    onClick={() => router.push(`/${params.teamId}/traces/${app_id}/${trace_id}`)}
+                                    onKeyDown={(e: React.KeyboardEvent<HTMLTableRowElement>) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            router.push(`/${params.teamId}/traces/${app_id}/${trace_id}`)
+                                        }
+                                    }}
+                                >
+                                    <TableCell className="w-[60%]">
+                                        <p className='text-xs truncate text-gray-500'>ID: {trace_id}</p>
+                                        <div className='py-1' />
                                         <p className='truncate'>{span_name}</p>
                                         <div className='py-1' />
-                                        <p className='text-xs truncate'>Trace ID: {trace_id}</p>
-                                        <div className='py-1' />
-                                        <p className='text-xs truncate text-gray-500'>{"v" + app_version + "(" + app_build + "), " + os_name + " " + os_version + ", " + device_manufacturer + " " + device_model}</p>
-                                    </div>
-                                    <div className="table-cell p-4 text-center" style={{ width: "20%" }}>
+                                        <p className='text-xs truncate text-gray-500'>{`v${app_version}(${app_build}), ${os_name} ${os_version}, ${device_manufacturer} ${device_model}`}</p>
+                                    </TableCell>
+                                    <TableCell className="w-[20%] text-center">
                                         <p className='truncate'>{formatDateToHumanReadableDate(start_time)}</p>
                                         <div className='py-1' />
                                         <p className='text-xs truncate'>{formatDateToHumanReadableTime(start_time)}</p>
-                                    </div>
-                                    <div className="table-cell p-4 text-center truncate" style={{ width: "20%" }}>{formatMillisToHumanReadable(duration)}</div>
-                                    <div className={`table-cell p-4 text-center truncate ${status === 1 ? "text-green-600" : status === 2 ? "text-red-600" : ""}`} style={{ width: "20%" }}>{status === 0 ? 'Unset' : status === 1 ? 'Okay' : 'Error'}</div>
-                                </Link>
+                                    </TableCell>
+                                    <TableCell className="w-[10%] text-center truncate">{formatMillisToHumanReadable(duration)}</TableCell>
+                                    <TableCell className={`w-[10%] text-center truncate ${status === 1 ? "text-green-600" : status === 2 ? "text-red-600" : ""}`}>{status === 0 ? 'Unset' : status === 1 ? 'Okay' : 'Error'}</TableCell>
+                                </TableRow>
                             ))}
-                        </div>
-                    </div>
+                        </TableBody>
+                    </Table>
                 </div>}
         </div>
     )
