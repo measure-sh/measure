@@ -1505,6 +1505,13 @@ func (e Exception) Stacktrace() string {
 			}
 		}
 	case framework.Dart:
+		// Dart Stacktrace syntax
+		//
+		// See more: https://dart.dev/guides/language/language-tour#stack-traces
+		//
+		// symbolicated
+		// #00      <method-name> (<module-name>/<file-name>:<line-number>)
+		// #01      <method-name> (<module-name>/<file-name>:<line-number>)
 		for i := len(e.Exceptions) - 1; i >= 0; i-- {
 			exception := e.Exceptions[i]
 			for j, frame := range exception.Frames {

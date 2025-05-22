@@ -4,6 +4,9 @@ import (
 	"slices"
 )
 
+// frameNative represents a native frame
+// for native symbolication, used for
+// Dart.
 type frameNative struct {
 	Status          string `json:"status"`
 	OriginalIndex   int    `json:"original_index"`
@@ -16,6 +19,38 @@ type frameNative struct {
 	LineNo          int    `json:"lineno"`
 }
 
+// stacktraceNative represents a stacktrace
+// for native symbolication, used for Dart.
+type stacktraceNative struct {
+	ThreadId     int           `json:"thread_id"`
+	IsRequesting bool          `json:"is_requesting"`
+	Frames       []frameNative `json:"frames"`
+}
+
+// moduleNative represents a module
+// for native symbolication, used for
+// Dart.
+type moduleNative struct {
+	DebugStatus string `json:"debug_status"`
+	DebugId     string `json:"debug_id"`
+	CodeId      string `json:"code_id"`
+	Arch        string `json:"arch"`
+	ImageAddr   string `json:"image_addr"`
+	Type        string `json:"type"`
+}
+
+// responseNative represents the payload received
+// from Sentry's Symbolicator for native
+// symbolication, used for Dart.
+type responseNative struct {
+	Status      string             `json:"status"`
+	Stacktraces []stacktraceNative `json:"stacktraces"`
+	Modules     []moduleNative     `json:"modules"`
+}
+
+// frameApple represents a native frame
+// for native symbolication, used for
+// iOS.
 type frameApple struct {
 	Status          string `json:"status"`
 	OriginalIndex   int    `json:"original_index"`
@@ -30,49 +65,40 @@ type frameApple struct {
 	LineNo          int    `json:"lineno"`
 }
 
-type stacktraceNative struct {
-	ThreadId     int           `json:"thread_id"`
-	IsRequesting bool          `json:"is_requesting"`
-	Frames       []frameNative `json:"frames"`
-}
-
+// stacktraceApple represents a stacktrace
+// for native symbolication, used for iOS.
 type stacktraceApple struct {
 	ThreadId     int          `json:"thread_id"`
 	IsRequesting bool         `json:"is_requesting"`
 	Frames       []frameApple `json:"frames"`
 }
 
-type moduleNative struct {
-	DebugStatus string `json:"debug_status"`
-	DebugId     string `json:"debug_id"`
-	CodeId      string `json:"code_id"`
-	Arch        string `json:"arch"`
-	ImageAddr   string `json:"image_addr"`
-	Type        string `json:"type"`
-}
-
+// moduleApple represents a module
+// for native symbolication, used for
+// iOS.
 type moduleApple struct {
 	DebugStatus string `json:"debug_status"`
 	DebugId     string `json:"debug_id"`
 }
 
-type responseNative struct {
-	Status      string             `json:"status"`
-	Stacktraces []stacktraceNative `json:"stacktraces"`
-	Modules     []moduleNative     `json:"modules"`
-}
-
+// responseApple represents the payload received
+// from Sentry's Symbolicator for native
+// symbolication, used for iOS.
 type responseApple struct {
 	Status      string            `json:"status"`
 	Stacktraces []stacktraceApple `json:"stacktraces"`
 	Modules     []moduleApple     `json:"modules"`
 }
 
+// exceptionJVM represents an exception
+// for JVM symbolication.
 type exceptionJVM struct {
 	Type   string `json:"type"`
 	Module string `json:"module"`
 }
 
+// frameJVM represents a frame
+// for JVM symbolication.
 type frameJVM struct {
 	Function string `json:"function"`
 	Filename string `json:"filename"`
@@ -83,10 +109,14 @@ type frameJVM struct {
 	Index    int    `json:"index"`
 }
 
+// stacktraceJVM represents a stacktrace
+// for JVM symbolication.
 type stacktraceJVM struct {
 	Frames []frameJVM `json:"frames"`
 }
 
+// moduleJVM represents a module
+// for JVM symbolication.
 type moduleJVM struct {
 	UUID string `json:"uuid"`
 	Type string `json:"type"`
