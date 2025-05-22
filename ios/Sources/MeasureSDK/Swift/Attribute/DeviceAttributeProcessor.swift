@@ -56,7 +56,7 @@ final class DeviceAttributeProcessor: BaseComputeOnceAttributeProcessor {
         deviceHeightPx = Number(UIScreen.main.bounds.height * UIScreen.main.scale)
         deviceDensity = Number(UIScreen.main.scale)
         deviceLocale = Locale.current.identifier
-        osName = UIDevice.current.systemName
+        osName = UIDevice.current.systemName.lowercased()
         osVersion = UIDevice.current.systemVersion
         deviceCpuArch = getCPUArchitecture()
     }
