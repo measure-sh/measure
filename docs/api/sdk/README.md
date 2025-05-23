@@ -471,11 +471,11 @@ Use the `anr` type for [Application Not Responding](https://developer.android.co
 
 Each exception object contains further fields.
 
-| Field     | Type   | Optional | Comment                     |
-| --------- | ------ | -------- | --------------------------- |
-| `type`    | string | No       | Type of the exception       |
-| `message` | string | No       | Error message text          |
-| `frames`  | array  | Yes      | Array of stackframe objects |
+| Field     | Type   | Optional | Comment                                                          |
+|-----------|--------|----------|------------------------------------------------------------------|
+| `type`    | string | No       | Type of the exception. Optional for nested exceptions from Dart. |
+| `message` | string | No       | Error message text. Optional for nested exceptions from Dart.    |
+| `frames`  | array  | Yes      | Array of stackframe objects                                      |
 
 `thread` objects
 
@@ -490,13 +490,14 @@ Each thread object contains further fields.
 
 Use the `exception` type for errors and crashes.
 
-| Field           | Type    | Optional | Comment                                                               |
-| --------------- | ------- | -------- | --------------------------------------------------------------------- |
-| `handled`       | boolean | No       | `false` for crashes, `true` if exceptions are handled                 |
-| `exceptions`    | array   | No       | Array of exception objects                                            |
-| `foreground`    | boolean | Yes      | `true` if the app was in the foreground at the time of the exception. |
-| `threads`       | array   | Yes      | Array of thread objects                                               |
-| `binary_images` | array   | Yes      | An optional array of all the `binary_image` needed for symbolication. |
+| Field           | Type    | Optional | Comment                                                                                      |
+|-----------------|---------|----------|----------------------------------------------------------------------------------------------|
+| `handled`       | boolean | No       | `false` for crashes, `true` if exceptions are handled                                        |
+| `exceptions`    | array   | No       | Array of exception objects                                                                   |
+| `foreground`    | boolean | Yes      | `true` if the app was in the foreground at the time of the exception.                        |
+| `threads`       | array   | Yes      | Array of thread objects                                                                      |
+| `binary_images` | array   | Yes      | An optional array of all the `binary_image` needed for symbolication.                        |
+| `framework`     | string  | No       | Specifies the framework where the exception originated from. One of: `dart`, `jvm`, `apple`. |
 
 `exception` objects
 
@@ -528,7 +529,7 @@ Note: Only non-crashed threads are to be send in thread object.
 Each frame object contains further fields.
 
 | Field                 | Type    | Optional | Comment                                                                                                                                                |
-| --------------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| --------------------- | ------- | -------- |--------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `line_num`            | number  | Yes      | Line number of the method                                                                                                                              |
 | `col_num`             | number  | Yes      | Column number of the method                                                                                                                            |
 | `module_name`         | string  | Yes      | Name of the originating module                                                                                                                         |
@@ -541,21 +542,22 @@ Each frame object contains further fields.
 | `binary_address`      | string  | Yes      | The binary load address, used along with `symbol_address` and `offset` for symbolication.                                                              |
 | `in_app`              | boolean | No       | `true` if the frame originates from the app module                                                                                                     |
 | `frame_index`         | number  | Yes      | The index of the frame in the stack trace                                                                                                              |
-| `instruction_address` | string  | Yes      | The =address of the instruction to symbolicate. This is a hexadecimal number prefixed with `0x`. Used for symbolication of Flutter/ELF format crashes. |
+| `instruction_address` | string  | Yes      | The address of the instruction to symbolicate. This is a hexadecimal number prefixed with `0x`. Used for symbolication of Dart/ELF format crashes.     |
 
 `binary_image` objects
 
-Each binary_image object contains further fields. Only applies to Apple/Darwin apps.
+Each binary_image object contains further fields.
 
-| Field        | Type    | Optional | Comment                                                        |
-| ------------ | ------- | -------- | -------------------------------------------------------------- |
-| `start_addr` | string  | No       | Start address - where the binary is loaded into virtual memory |
-| `end_addr`   | string  | No       | End address - upper memory boundary of the binary              |
-| `system`     | boolean | No       | Binary marker - indicates a system binary                      |
-| `name`       | string  | No       | Name of the app, framework or libary binary                    |
-| `arch`       | string  | No       | CPU architecture the binary is compiled for                    |
-| `uuid`       | string  | No       | Unique fingerprint for the binary's build                      |
-| `path`       | string  | No       | Full path to where the binary was located at runtime           |
+| Field        | Type    | Optional | Comment                                                                                           |
+|--------------|---------|----------|---------------------------------------------------------------------------------------------------|
+| `start_addr` | string  | Yes      | Start address - where the binary is loaded into virtual memory. Only applies to Apple/Darwin apps |
+| `end_addr`   | string  | Yes      | End address - upper memory boundary of the binary. Only applies to Apple/Darwin apps              |
+| `base_addr`  | string  | Yes      | Base address - base address of symbols, only applies to Dart exceptions                           |
+| `system`     | boolean | Yes      | Binary marker - indicates a system binary, only applies to Apple/Darwin apps                      |
+| `name`       | string  | Yes      | Name of the app, framework or libary binary, only applies to Apple/Darwin apps                    |
+| `arch`       | string  | No       | CPU architecture the binary is compiled for                                                       |
+| `uuid`       | string  | No       | Unique fingerprint for the binary's build                                                         |
+| `path`       | string  | Yes      | Full path to where the binary was located at runtime, only applies to Apple/Darwin apps           |
 
 #### **`string`**
 
