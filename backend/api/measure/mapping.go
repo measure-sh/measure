@@ -15,7 +15,7 @@ import (
 	"backend/api/chrono"
 	"backend/api/cipher"
 	"backend/api/codec"
-	"backend/api/os"
+	"backend/api/opsys"
 	"backend/api/server"
 	"backend/api/symbol"
 
@@ -116,16 +116,16 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 		// This is critical for maintaining backwards
 		// compatibility.
 		if bm.hasProguard() {
-			osName = os.Android
+			osName = opsys.Android
 		} else if bm.hasDSYM() {
-			osName = os.IOS
+			osName = opsys.IOS
 		} else {
 			err = errors.New("failed to determine app's platform")
 			return
 		}
 	}
 
-	if osName == os.IOS {
+	if osName == opsys.IOS {
 		// Since older iOS upload scripts(<=0.1.0) send a single mapping
 		// type `dsym` with one or more mapping files, we set the mapping type
 		// to `dsym` for all mapping files.
@@ -165,12 +165,12 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 	for index, mappingType := range bm.MappingTypes {
 		switch mappingType {
 		case symbol.TypeProguard.String():
-			if osName != os.Android {
+			if osName != opsys.Android {
 				err = platformMappingErr
 				return
 			}
 		case symbol.TypeDsym.String():
-			if osName != os.IOS {
+			if osName != opsys.IOS {
 				err = platformMappingErr
 				break
 			}
@@ -184,7 +184,7 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 				return http.StatusBadRequest, err
 			}
 		case symbol.TypeElfDebug.String():
-			if osName != os.Android {
+			if osName != opsys.Android {
 				err = platformMappingErr
 				return
 			}

@@ -3,7 +3,7 @@ package span
 import (
 	"backend/api/event"
 	"backend/api/filter"
-	"backend/api/os"
+	"backend/api/opsys"
 	"backend/api/server"
 	"context"
 	"fmt"
@@ -227,7 +227,7 @@ func (s *SpanField) Validate() error {
 	}
 
 	switch strings.ToLower(s.Attributes.OSName) {
-	case os.Android, os.IOS:
+	case opsys.Android, opsys.IOS:
 	default:
 		return fmt.Errorf(`%q does not contain a valid OS value`, `attribute.os_name`)
 	}
@@ -285,7 +285,7 @@ func (s SpanField) NeedsSymbolication() (result bool) {
 	}
 
 	switch s.Attributes.OSName {
-	case os.Android:
+	case opsys.Android:
 		matches := ttidClassRE.FindStringSubmatch(s.SpanName)
 
 		if len(matches) > 1 {

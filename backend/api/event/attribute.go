@@ -1,7 +1,7 @@
 package event
 
 import (
-	"backend/api/os"
+	"backend/api/opsys"
 	"fmt"
 	"slices"
 	"strings"
@@ -145,7 +145,7 @@ func (a Attribute) Validate() error {
 	)
 
 	switch strings.ToLower(a.OSName) {
-	case os.Android, os.IOS:
+	case opsys.Android, opsys.IOS:
 	default:
 		return fmt.Errorf(`%q does not contain a valid OS name value`, `attribute.os_name`)
 	}

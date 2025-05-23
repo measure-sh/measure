@@ -7,7 +7,7 @@ import (
 	"backend/api/group"
 	"backend/api/inet"
 	"backend/api/numeric"
-	"backend/api/os"
+	"backend/api/opsys"
 	"backend/api/server"
 	"backend/api/span"
 	"backend/api/symbolicator"
@@ -2261,9 +2261,9 @@ func PutEvents(c *gin.Context) {
 		// configure correct sources as per
 		// OS
 		switch osName {
-		case os.Android:
+		case opsys.Android:
 			sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-		case os.IOS:
+		case opsys.IOS:
 			// by default only symbolicate app's own symbols. to symbolicate iOS
 			// system framework symbols, append a GCSSourceApple source containing
 			// all iOS system framework symbol debug information files.

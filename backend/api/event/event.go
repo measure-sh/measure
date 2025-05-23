@@ -2,7 +2,7 @@ package event
 
 import (
 	"backend/api/framework"
-	"backend/api/os"
+	"backend/api/opsys"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
@@ -246,12 +246,12 @@ var ValidNetworkGenerations = []string{
 // to the OS.
 func getValidLifecycleAppTypes(osName string) (types []string) {
 	switch osName {
-	case os.Android:
+	case opsys.Android:
 		types = []string{
 			LifecycleAppTypeBackground,
 			LifecycleAppTypeForeground,
 		}
-	case os.IOS:
+	case opsys.IOS:
 		types = []string{
 			LifecycleAppTypeBackground,
 			LifecycleAppTypeForeground,
@@ -835,7 +835,7 @@ func (e EventField) NeedsSymbolication() (result bool) {
 	}
 
 	switch strings.ToLower(e.Attribute.OSName) {
-	case os.Android:
+	case opsys.Android:
 		if e.IsANR() {
 			result = true
 			return
@@ -890,11 +890,11 @@ func (e EventField) HasAttachments() bool {
 // integrity.
 func (e *EventField) Validate() error {
 	switch strings.ToLower(e.Attribute.OSName) {
-	case os.Android:
+	case opsys.Android:
 		if !slices.Contains(androidValidTypes, e.Type) {
 			return fmt.Errorf(`%q is not a valid event type for Android`, e.Type)
 		}
-	case os.IOS:
+	case opsys.IOS:
 		if !slices.Contains(iOSValidTypes, e.Type) {
 			return fmt.Errorf(`%q is not a valid event type for iOS`, e.Type)
 		}

@@ -1,4 +1,4 @@
-package os
+package opsys
 
 const (
 	IOS     = "ios"

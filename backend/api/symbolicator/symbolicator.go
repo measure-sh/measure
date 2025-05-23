@@ -4,7 +4,7 @@ import (
 	"backend/api/cache"
 	"backend/api/event"
 	"backend/api/framework"
-	osName "backend/api/os"
+	osName "backend/api/opsys"
 	"backend/api/span"
 	"backend/api/symbol"
 	"context"

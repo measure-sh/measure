@@ -18,7 +18,7 @@ import (
 	"backend/api/journey"
 	"backend/api/metrics"
 	"backend/api/numeric"
-	"backend/api/os"
+	"backend/api/opsys"
 	"backend/api/paginate"
 	"backend/api/server"
 	"backend/api/span"
@@ -705,7 +705,7 @@ func (a App) GetIssueFreeMetrics(
 	perceivedCrashFree = &metrics.PerceivedCrashFreeSession{}
 
 	switch a.OSName {
-	case os.Android:
+	case opsys.Android:
 		anrFree = &metrics.ANRFreeSession{}
 		perceivedANRFree = &metrics.PerceivedANRFreeSession{}
 	}
@@ -724,7 +724,7 @@ func (a App) GetIssueFreeMetrics(
 		Select("uniqMergeIf(perceived_crash_sessions, app_version not in (?)) as unselected_perceived_crash_sessions", selectedVersions.Parameterize())
 
 	switch a.OSName {
-	case os.Android:
+	case opsys.Android:
 		stmt.
 			Select("uniqMergeIf(anr_sessions, app_version in (?)) as selected_anr_sessions", selectedVersions.Parameterize()).
 			Select("uniqMergeIf(anr_sessions, app_version not in (?)) as unselected_anr_sessions", selectedVersions.Parameterize()).
@@ -760,7 +760,7 @@ func (a App) GetIssueFreeMetrics(
 	}
 
 	switch a.OSName {
-	case os.Android:
+	case opsys.Android:
 		dest = append(dest, &anrSelected, &anrUnselected, &perceivedANRSelected, &perceivedANRUnselected)
 	}
 
@@ -773,7 +773,7 @@ func (a App) GetIssueFreeMetrics(
 		perceivedCrashFree.CrashFreeSessions = math.NaN()
 
 		switch a.OSName {
-		case os.Android:
+		case opsys.Android:
 			anrFree.ANRFreeSessions = math.NaN()
 			perceivedANRFree.ANRFreeSessions = math.NaN()
 		}
@@ -782,7 +782,7 @@ func (a App) GetIssueFreeMetrics(
 		perceivedCrashFree.CrashFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedCrashSelected) / float64(selected))) * 100)
 
 		switch a.OSName {
-		case os.Android:
+		case opsys.Android:
 			anrFree.ANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrSelected) / float64(selected))) * 100)
 			perceivedANRFree.ANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRSelected) / float64(selected))) * 100)
 		}
@@ -793,7 +793,7 @@ func (a App) GetIssueFreeMetrics(
 		perceivedCrashFreeUnselected = math.NaN()
 
 		switch a.OSName {
-		case os.Android:
+		case opsys.Android:
 			anrFreeUnselected = math.NaN()
 			perceivedANRFreeUnselected = math.NaN()
 		}
@@ -802,7 +802,7 @@ func (a App) GetIssueFreeMetrics(
 		perceivedCrashFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedCrashUnselected) / float64(unselected))) * 100)
 
 		switch a.OSName {
-		case os.Android:
+		case opsys.Android:
 			anrFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrUnselected) / float64(unselected))) * 100)
 			perceivedANRFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRUnselected) / float64(unselected))) * 100)
 		}
@@ -825,7 +825,7 @@ func (a App) GetIssueFreeMetrics(
 		}
 
 		switch a.OSName {
-		case os.Android:
+		case opsys.Android:
 			if anrFreeUnselected != 0 {
 				anrFree.Delta = numeric.RoundTwoDecimalsFloat64(anrFree.ANRFreeSessions / anrFreeUnselected)
 			} else {
@@ -853,7 +853,7 @@ func (a App) GetIssueFreeMetrics(
 		}
 
 		switch a.OSName {
-		case os.Android:
+		case opsys.Android:
 			if anrFree.ANRFreeSessions != 0 {
 				anrFree.Delta = 1
 			}
@@ -868,7 +868,7 @@ func (a App) GetIssueFreeMetrics(
 	perceivedCrashFree.SetNaNs()
 
 	switch a.OSName {
-	case os.Android:
+	case opsys.Android:
 		anrFree.SetNaNs()
 		perceivedANRFree.SetNaNs()
 	}
@@ -957,7 +957,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	whereVals := []any{}
 
 	switch a.OSName {
-	case os.Android:
+	case opsys.Android:
 		whereVals = append(
 			whereVals,
 			event.TypeLifecycleActivity,
@@ -971,7 +971,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				event.LifecycleFragmentTypeResumed,
 			},
 		)
-	case os.IOS:
+	case opsys.IOS:
 		whereVals = append(
 			whereVals,
 			event.TypeLifecycleViewController,
@@ -988,16 +988,16 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 
 	if opts.All {
 		switch a.OSName {
-		case os.Android:
+		case opsys.Android:
 			whereVals = append(whereVals, event.TypeException, false, event.TypeANR)
-		case os.IOS:
+		case opsys.IOS:
 			whereVals = append(whereVals, event.TypeException, false)
 		}
 	} else if opts.Exceptions {
 		whereVals = append(whereVals, event.TypeException, false)
 	} else if opts.ANRs {
 		switch a.OSName {
-		case os.Android:
+		case opsys.Android:
 			whereVals = append(whereVals, event.TypeANR)
 		}
 	}
@@ -1012,7 +1012,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To)
 
 	switch a.OSName {
-	case os.Android:
+	case opsys.Android:
 		stmt.
 			Select(`toString(lifecycle_activity.type)`).
 			Select(`toString(lifecycle_activity.class_name)`).
@@ -1020,7 +1020,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			Select(`toString(lifecycle_fragment.class_name)`).
 			Select(`toString(lifecycle_fragment.parent_activity)`).
 			Select(`toString(lifecycle_fragment.parent_fragment)`)
-	case os.IOS:
+	case opsys.IOS:
 		stmt.
 			Select(`toString(lifecycle_view_controller.type)`).
 			Select(`toString(lifecycle_view_controller.class_name)`).
@@ -1038,16 +1038,16 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 
 	if opts.All {
 		switch a.OSName {
-		case os.Android:
+		case opsys.Android:
 			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
-		case os.IOS:
+		case opsys.IOS:
 			stmt.Where("((type = ? and `lifecycle_view_controller.type` in ?) or (type = ? and `lifecycle_swift_ui.type` in ?) or (type = ? and `exception.handled` = ?))", whereVals...)
 		}
 	} else if opts.Exceptions {
 		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ? and `exception.handled` = ?))", whereVals...)
 	} else if opts.ANRs {
 		switch a.OSName {
-		case os.Android:
+		case opsys.Android:
 			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?))", whereVals...)
 		}
 	}
@@ -1118,7 +1118,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		}
 
 		switch a.OSName {
-		case os.Android:
+		case opsys.Android:
 			dest = append(
 				dest,
 				&lifecycleActivityType,
@@ -1128,7 +1128,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				&lifecycleFragmentParentActivity,
 				&lifecycleFragmentParentFragment,
 			)
-		case os.IOS:
+		case opsys.IOS:
 			dest = append(
 				dest,
 				&lifecycleViewControllerType,
@@ -1512,7 +1512,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 	}
 
 	switch a.OSName {
-	case os.Android:
+	case opsys.Android:
 		cols = append(cols, []string{
 			`anr.fingerprint`,
 			`anr.foreground`,
@@ -1554,7 +1554,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			`toString(navigation.from)`,
 			`toString(navigation.source)`,
 		}...)
-	case os.IOS:
+	case opsys.IOS:
 		cols = append(cols, []string{
 			`toString(lifecycle_view_controller.type)`,
 			`toString(lifecycle_view_controller.class_name)`,
@@ -1781,7 +1781,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		}
 
 		switch a.OSName {
-		case os.Android:
+		case opsys.Android:
 			dest = append(dest, []any{
 				// anr
 				&anr.Fingerprint,
@@ -1840,7 +1840,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 				&navigation.From,
 				&navigation.Source,
 			}...)
-		case os.IOS:
+		case opsys.IOS:
 			dest = append(dest, []any{
 				&lifecycleViewController.Type,
 				&lifecycleViewController.ClassName,
@@ -2201,7 +2201,7 @@ func GetAppJourney(c *gin.Context) {
 		if journeyEvents[i].IsUnhandledException() {
 			issueEvents = append(issueEvents, journeyEvents[i])
 		}
-		if app.OSName == os.Android && journeyEvents[i].IsANR() {
+		if app.OSName == opsys.Android && journeyEvents[i].IsANR() {
 			issueEvents = append(issueEvents, journeyEvents[i])
 		}
 	}
@@ -2228,11 +2228,11 @@ func GetAppJourney(c *gin.Context) {
 	var links []Link
 
 	switch app.OSName {
-	case os.Android:
+	case opsys.Android:
 		journeyGraph = journey.NewJourneyAndroid(journeyEvents, &journey.Options{
 			BiGraph: af.BiGraph,
 		})
-	case os.IOS:
+	case opsys.IOS:
 		journeyGraph = journey.NewJourneyiOS(journeyEvents, &journey.Options{
 			BiGraph: af.BiGraph,
 		})
