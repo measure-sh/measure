@@ -25,14 +25,14 @@ import (
 // request payload.
 //
 // set to `true` for quick debugging.
-const logRequest = true
+const logRequest = false
 
 // logResponse determines if symbolicator
 // should log the relevant parts of the
 // response payload.
 //
 // set to `true` for quick debugging.
-const logResponse = true
+const logResponse = false
 
 var ErrJVMSymbolicationFailure = errors.New("symbolicator received JVM errors")
 
