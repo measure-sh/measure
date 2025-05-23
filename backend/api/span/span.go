@@ -226,7 +226,7 @@ func (s *SpanField) Validate() error {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `platform`, maxPlatformChars)
 	}
 
-	switch opsys.Normalize(s.Attributes.OSName) {
+	switch opsys.ToFamily(s.Attributes.OSName) {
 	case opsys.Android, opsys.AppleFamily:
 	default:
 		return fmt.Errorf(`%q does not contain a valid OS value`, `attribute.os_name`)

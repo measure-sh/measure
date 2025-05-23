@@ -245,7 +245,7 @@ var ValidNetworkGenerations = []string{
 // `lifecycle_app.type` values according
 // to the OS.
 func getValidLifecycleAppTypes(osName string) (types []string) {
-	switch opsys.Normalize(osName) {
+	switch opsys.ToFamily(osName) {
 	case opsys.Android:
 		types = []string{
 			LifecycleAppTypeBackground,
@@ -889,7 +889,7 @@ func (e EventField) HasAttachments() bool {
 // Validate validates the event for data
 // integrity.
 func (e *EventField) Validate() error {
-	switch opsys.Normalize(e.Attribute.OSName) {
+	switch opsys.ToFamily(e.Attribute.OSName) {
 	case opsys.Android:
 		if !slices.Contains(androidValidTypes, e.Type) {
 			return fmt.Errorf(`%q is not a valid event type for Android`, e.Type)

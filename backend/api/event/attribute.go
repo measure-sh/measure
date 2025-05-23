@@ -143,7 +143,7 @@ func (a Attribute) Validate() error {
 		maxDeviceCPUArchChars      = 16
 	)
 
-	switch opsys.Normalize(a.OSName) {
+	switch opsys.ToFamily(a.OSName) {
 	case opsys.Android, opsys.AppleFamily:
 	default:
 		return fmt.Errorf(`%q does not contain a valid OS name value`, `attribute.os_name`)

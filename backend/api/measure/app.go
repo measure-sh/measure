@@ -956,7 +956,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts filter.JourneyOpts) (events []event.EventField, err error) {
 	whereVals := []any{}
 
-	switch opsys.Normalize(a.OSName) {
+	switch opsys.ToFamily(a.OSName) {
 	case opsys.Android:
 		whereVals = append(
 			whereVals,
@@ -987,7 +987,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	}
 
 	if opts.All {
-		switch opsys.Normalize(a.OSName) {
+		switch opsys.ToFamily(a.OSName) {
 		case opsys.Android:
 			whereVals = append(whereVals, event.TypeException, false, event.TypeANR)
 		case opsys.AppleFamily:
@@ -1011,7 +1011,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		Where(`app_id = toUUID(?)`, a.ID).
 		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To)
 
-	switch opsys.Normalize(a.OSName) {
+	switch opsys.ToFamily(a.OSName) {
 	case opsys.Android:
 		stmt.
 			Select(`toString(lifecycle_activity.type)`).
@@ -1037,7 +1037,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	}
 
 	if opts.All {
-		switch opsys.Normalize(a.OSName) {
+		switch opsys.ToFamily(a.OSName) {
 		case opsys.Android:
 			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
 		case opsys.AppleFamily:
@@ -1117,7 +1117,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			&ev.SessionID,
 		}
 
-		switch opsys.Normalize(a.OSName) {
+		switch opsys.ToFamily(a.OSName) {
 		case opsys.Android:
 			dest = append(
 				dest,
@@ -1511,7 +1511,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`custom.name`,
 	}
 
-	switch opsys.Normalize(a.OSName) {
+	switch opsys.ToFamily(a.OSName) {
 	case opsys.Android:
 		cols = append(cols, []string{
 			`anr.fingerprint`,
@@ -1780,7 +1780,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&custom.Name,
 		}
 
-		switch opsys.Normalize(a.OSName) {
+		switch opsys.ToFamily(a.OSName) {
 		case opsys.Android:
 			dest = append(dest, []any{
 				// anr
@@ -2227,7 +2227,7 @@ func GetAppJourney(c *gin.Context) {
 	var nodes []Node
 	var links []Link
 
-	switch opsys.Normalize(app.OSName) {
+	switch opsys.ToFamily(app.OSName) {
 	case opsys.Android:
 		journeyGraph = journey.NewJourneyAndroid(journeyEvents, &journey.Options{
 			BiGraph: af.BiGraph,

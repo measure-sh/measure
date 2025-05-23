@@ -117,7 +117,7 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 		}
 	}
 
-	if opsys.Normalize(osName) == opsys.AppleFamily {
+	if opsys.ToFamily(osName) == opsys.AppleFamily {
 		// Since older iOS upload scripts(<=0.1.0) send a single mapping
 		// type `dsym` with one or more mapping files, we set the mapping type
 		// to `dsym` for all mapping files.
@@ -162,7 +162,7 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 				return
 			}
 		case symbol.TypeDsym.String():
-			if opsys.Normalize(osName) != opsys.AppleFamily {
+			if opsys.ToFamily(osName) != opsys.AppleFamily {
 				err = osMappingError
 				break
 			}

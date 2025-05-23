@@ -180,7 +180,7 @@ func New(origin, operatingSys string, sources []Source) (symbolicator *Symbolica
 	// to only initialize the symbolicators
 	// which are needed based on the events
 	// in the batch.
-	switch opsys.Normalize(operatingSys) {
+	switch opsys.ToFamily(operatingSys) {
 	case osName.Android:
 		symbolicator.jvmSymbolicator = &jvmSymbolicator{}
 		symbolicator.nativeSymbolicator = &nativeSymbolicator{}

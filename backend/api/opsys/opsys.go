@@ -18,10 +18,10 @@ const (
 	Unknown = "unknown"
 )
 
-// Normalize nomarlizes different apple
+// ToFamily nomarlizes different apple
 // operating systems to a single value
 // for ease of use in conditions.
-func Normalize(osName string) string {
+func ToFamily(osName string) string {
 	// Convert OS name to lowercase
 	// as older iOS SDK versions (<=0.1.0)
 	// send os name as "iOS".

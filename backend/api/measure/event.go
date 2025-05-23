@@ -2251,7 +2251,7 @@ func PutEvents(c *gin.Context) {
 
 		// configure correct sources as per
 		// OS
-		switch opsys.Normalize(osName) {
+		switch opsys.ToFamily(osName) {
 		case opsys.Android:
 			sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
 		case opsys.AppleFamily:
