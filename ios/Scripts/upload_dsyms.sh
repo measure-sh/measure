@@ -78,6 +78,8 @@ fi
 BUILD_SIZE=$(stat -f%z "$IPA_PATH")
 BUILD_TYPE="ipa"
 
+OS_NAME = "ios"
+
 # Construct the curl command
 CURL_COMMAND="curl --request PUT \
   --url $API_URL/builds \
@@ -86,7 +88,8 @@ CURL_COMMAND="curl --request PUT \
   --form version_code=$VERSION_CODE \
   --form build_size=$BUILD_SIZE \
   --form build_type=$BUILD_TYPE \
-  --form app_unique_id=$APP_UNIQUE_ID"
+  --form app_unique_id=$APP_UNIQUE_ID" \
+  --form os_name=$OS_NAME
 
 # Add each dSYM .tgz file to the curl command with its own mapping_type parameter
 for DSYM_TGZ in "${DSYM_TGZ_FILES[@]}"; do
