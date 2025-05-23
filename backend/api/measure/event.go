@@ -1413,7 +1413,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		Select("network_type").
 		Select("exceptions").
 		Select("threads").
-		Select("framework").
+		Select("toString(framework)").
 		Select("attachments").
 		From("").
 		SubQuery("(", ") as t", substmt).
@@ -1432,8 +1432,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		var exceptions string
 		var threads string
 		var attachments string
-		var f string
-		if err = rows.Scan(&e.ID, &e.Type, &e.Timestamp, &e.SessionID, &e.Attribute.AppVersion, &e.Attribute.AppBuild, &e.Attribute.DeviceManufacturer, &e.Attribute.DeviceModel, &e.Attribute.NetworkType, &exceptions, &threads, &f, &attachments); err != nil {
+		if err = rows.Scan(&e.ID, &e.Type, &e.Timestamp, &e.SessionID, &e.Attribute.AppVersion, &e.Attribute.AppBuild, &e.Attribute.DeviceManufacturer, &e.Attribute.DeviceModel, &e.Attribute.NetworkType, &exceptions, &threads, &e.Exception.Framework, &attachments); err != nil {
 			return
 		}
 
@@ -1446,15 +1445,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		if err = json.Unmarshal([]byte(attachments), &e.Attachments); err != nil {
 			return
 		}
-		// remove null characters from
-		// framework which are added
-		// by ClickHouse
-		index := strings.IndexByte(f, 0)
-		if index > 0 {
-			e.Exception.Framework = f[:index]
-		} else {
-			e.Exception.Framework = f
-		}
+
 		e.ComputeView()
 		events = append(events, e)
 	}
