@@ -391,19 +391,26 @@ func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.S
 // required by symbolicator for JVM
 // symbolication.
 func (js *jvmSymbolicator) configureModule(mappings map[string]symbol.MappingType) (err error) {
-	if len(mappings) > 0 && js.request != nil {
-		var debugId = ""
-		for key, mType := range mappings {
-			if mType == symbol.TypeProguard {
-				debugId = symbol.MappingKeyToDebugId(key)
-			}
-		}
-		if debugId == "" {
-			err = errors.New("no proguard mapping found")
-			return
-		}
-		js.request.AddModule(debugId, symbol.TypeProguard.String())
+	if js.request == nil {
+		// no JVM events to symbolicate
+		return
 	}
+	if len(mappings) < 1 {
+		// no mapping files, skip adding the modules
+		return
+	}
+
+	var debugId = ""
+	for key, mType := range mappings {
+		if mType == symbol.TypeProguard {
+			debugId = symbol.MappingKeyToDebugId(key)
+		}
+	}
+	if debugId == "" {
+		err = errors.New("no proguard mapping found")
+		return
+	}
+	js.request.AddModule(debugId, symbol.TypeProguard.String())
 
 	return
 }
