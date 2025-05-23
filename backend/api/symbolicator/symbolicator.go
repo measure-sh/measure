@@ -96,18 +96,12 @@ type lineNoEntry [6]int
 // n - result stacktrace's frame's index
 type stacktraceEntry [6]int
 
-// TODO: remove origin from all symbolicators
 // jvmSymbolicator represents a JVM symbolicator request.
 type jvmSymbolicator struct {
-	// Origin is the http origin of the
-	// symbolicator service.
-	origin           string
-	sources          []Source
-	request          *requestJVM
-	response         *responseJVM
-	lineNoLUT        []lineNoEntry
-	stacktraceLUT    []stacktraceEntry
-	lambdaWorkaround bool
+	request       *requestJVM
+	response      *responseJVM
+	lineNoLUT     []lineNoEntry
+	stacktraceLUT []stacktraceEntry
 	// ttidSpans stores the index of the TTID span
 	// that needs symbolication.
 	ttidSpans []int
@@ -115,8 +109,6 @@ type jvmSymbolicator struct {
 
 // nativeSymbolicator represents a native symbolicator request.
 type nativeSymbolicator struct {
-	origin        string
-	sources       []Source
 	request       *requestNative
 	response      *responseNative
 	stacktraceLUT []stacktraceEntry
@@ -124,8 +116,6 @@ type nativeSymbolicator struct {
 
 // appleSymbolicator represents an Apple symbolicator request.
 type appleSymbolicator struct {
-	origin           string
-	sources          []Source
 	appleCrashReport []byte
 	response         *responseApple
 }
@@ -189,24 +179,11 @@ func New(origin, operatingSys string, sources []Source) (symbolicator *Symbolica
 	// initialize symbolicators for each OS
 	switch opsys.Normalize(operatingSys) {
 	case osName.Android:
-		symbolicator.jvmSymbolicator = &jvmSymbolicator{
-			origin:           symbolicator.Origin,
-			sources:          symbolicator.Sources,
-			lambdaWorkaround: symbolicator.jvmLambdaWorkaround,
-		}
-		symbolicator.nativeSymbolicator = &nativeSymbolicator{
-			origin:  symbolicator.Origin,
-			sources: symbolicator.Sources,
-		}
+		symbolicator.jvmSymbolicator = &jvmSymbolicator{}
+		symbolicator.nativeSymbolicator = &nativeSymbolicator{}
 	case osName.AppleFamily:
-		symbolicator.appleSymbolicator = &appleSymbolicator{
-			origin:  symbolicator.Origin,
-			sources: symbolicator.Sources,
-		}
-		symbolicator.nativeSymbolicator = &nativeSymbolicator{
-			origin:  symbolicator.Origin,
-			sources: symbolicator.Sources,
-		}
+		symbolicator.appleSymbolicator = &appleSymbolicator{}
+		symbolicator.nativeSymbolicator = &nativeSymbolicator{}
 	}
 
 	return
@@ -225,7 +202,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 		// in place and do not need any
 		// further processing
 		if ev.Type == event.TypeException && ev.Exception.GetFramework() == framework.Apple {
-			s.appleSymbolicator.symbolicate(ev)
+			s.appleSymbolicator.symbolicate(ev, s.Origin, s.Sources)
 			continue
 		}
 
@@ -341,11 +318,11 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 	}
 
 	if s.jvmSymbolicator != nil {
-		s.jvmSymbolicator.symbolicate(events, spans)
+		s.jvmSymbolicator.symbolicate(events, spans, s.Origin, s.Sources, s.jvmLambdaWorkaround)
 	}
 
 	if s.nativeSymbolicator != nil {
-		s.nativeSymbolicator.symbolicate(events)
+		s.nativeSymbolicator.symbolicate(events, s.Origin, s.Sources)
 	}
 
 	return
@@ -353,10 +330,10 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 
 // symbolicate performs symbolication for
 // the JVM symbolicator.
-func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.SpanField) (err error) {
+func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.SpanField, origin string, sources []Source, lambdaWorkaround bool) (err error) {
 	if js.request != nil {
 		sr := &SymbolicatorRequest{}
-		if err = sr.prepareJvmRequest(js); err != nil {
+		if err = sr.prepareJvmRequest(js, origin, sources); err != nil {
 			return
 		}
 
@@ -382,7 +359,7 @@ func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.S
 			fmt.Println(string(bytes))
 		}
 
-		js.rewriteException(events, spans)
+		js.rewriteException(events, spans, lambdaWorkaround)
 	}
 	return
 }
@@ -477,7 +454,7 @@ func (s *jvmSymbolicator) parseExceptions(exceptions event.ExceptionUnits, threa
 
 // rewriteException partially updates the original
 // events with symbolicated data.
-func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.SpanField) {
+func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.SpanField, lambdaWorkaround bool) {
 	stacktraces := js.response.Stacktraces
 	classes := js.response.Classes
 	lambdaSubstr := "SyntheticLambda"
@@ -532,7 +509,7 @@ func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.Sp
 						frames := event.Frames{}
 						for _, frameJVM := range stacktraces[n].Frames {
 							className := frameJVM.Module
-							if js.lambdaWorkaround && strings.Contains(className, lambdaSubstr) {
+							if lambdaWorkaround && strings.Contains(className, lambdaSubstr) {
 								className = js.response.rewriteClass(origClass, className)
 							}
 							frame := event.Frame{
@@ -550,7 +527,7 @@ func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.Sp
 						exceptions[j].Frames[k].MethodName = stacktraces[n].Frames[k].Function
 						exceptions[j].Frames[k].FileName = stacktraces[n].Frames[k].Filename
 						className := stacktraces[n].Frames[k].Module
-						if js.lambdaWorkaround && strings.Contains(className, lambdaSubstr) {
+						if lambdaWorkaround && strings.Contains(className, lambdaSubstr) {
 							className = js.response.rewriteClass(origClass, className)
 						}
 						exceptions[j].Frames[k].ClassName = className
@@ -565,7 +542,7 @@ func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.Sp
 					frames := event.Frames{}
 					for _, frameJVM := range stacktraces[n].Frames {
 						className := frameJVM.Module
-						if js.lambdaWorkaround && strings.Contains(className, lambdaSubstr) {
+						if lambdaWorkaround && strings.Contains(className, lambdaSubstr) {
 							className = js.response.rewriteClass(origClass, className)
 						}
 						frame := event.Frame{
@@ -581,7 +558,7 @@ func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.Sp
 					threads[l].Frames[m].MethodName = stacktraces[n].Frames[m].Function
 					threads[l].Frames[m].FileName = stacktraces[n].Frames[m].Filename
 					className := stacktraces[n].Frames[m].Module
-					if js.lambdaWorkaround && strings.Contains(className, lambdaSubstr) {
+					if lambdaWorkaround && strings.Contains(className, lambdaSubstr) {
 						className = js.response.rewriteClass(origClass, className)
 					}
 					threads[l].Frames[m].ClassName = className
@@ -758,10 +735,10 @@ func (as *appleSymbolicator) makeAppleCrashReport(event event.EventField) {
 // symbolicate performs symbolication for
 // an apple crash report by using symbolicator
 // and rewrites the event.
-func (as *appleSymbolicator) symbolicate(ev event.EventField) (err error) {
+func (as *appleSymbolicator) symbolicate(ev event.EventField, origin string, sources []Source) (err error) {
 	as.makeAppleCrashReport(ev)
 	sr := &SymbolicatorRequest{}
-	if err = sr.prepareAppleRequest(as); err != nil {
+	if err = sr.prepareAppleRequest(as, origin, sources); err != nil {
 		return
 	}
 
@@ -805,10 +782,10 @@ func (as appleSymbolicator) rewriteAppleCrashReport(ev event.EventField) {
 // symbolicate performs symbolication for
 // native exceptions by using symbolicator
 // and rewrites the events.
-func (ns *nativeSymbolicator) symbolicate(events []event.EventField) (err error) {
+func (ns *nativeSymbolicator) symbolicate(events []event.EventField, origin string, sources []Source) (err error) {
 	if ns.request != nil {
 		sr := &SymbolicatorRequest{}
-		if err = sr.prepareNativeRequest(ns); err != nil {
+		if err = sr.prepareNativeRequest(ns, origin, sources); err != nil {
 			return
 		}
 

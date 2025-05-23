@@ -116,17 +116,17 @@ func (sr *SymbolicatorRequest) retry(d time.Duration) ([]byte, error) {
 
 // prepareAppleCrashReportRequest prepares the
 // apple crash report request payload.
-func (sr *SymbolicatorRequest) prepareAppleRequest(as *appleSymbolicator) (err error) {
+func (sr *SymbolicatorRequest) prepareAppleRequest(as *appleSymbolicator, origin string, sources []Source) (err error) {
 	var reqBody bytes.Buffer
-	var sources []byte
-	if len(as.sources) > 0 {
-		sources, err = json.Marshal(as.sources)
+	var sourcesBytes []byte
+	if len(sources) > 0 {
+		sourcesBytes, err = json.Marshal(sources)
 		if err != nil {
 			return
 		}
 	}
 
-	url := as.origin
+	url := origin
 	writer := multipart.NewWriter(&reqBody)
 	crashReport := as.appleCrashReport
 	url += "/applecrashreport"
@@ -143,7 +143,7 @@ func (sr *SymbolicatorRequest) prepareAppleRequest(as *appleSymbolicator) (err e
 			return errSources
 		}
 
-		_, err = jsonPart.Write(sources)
+		_, err = jsonPart.Write(sourcesBytes)
 		if err != nil {
 			return
 		}
@@ -182,12 +182,12 @@ func (sr *SymbolicatorRequest) prepareAppleRequest(as *appleSymbolicator) (err e
 
 // prepareJvmRequest prepares the jvm request
 // for symbolicator.
-func (sr *SymbolicatorRequest) prepareJvmRequest(js *jvmSymbolicator) (err error) {
+func (sr *SymbolicatorRequest) prepareJvmRequest(js *jvmSymbolicator, origin string, sources []Source) (err error) {
 	var reqBody bytes.Buffer
-	url := js.origin
+	url := origin
 
 	url += "/symbolicate-jvm"
-	js.request.Sources = js.sources
+	js.request.Sources = sources
 
 	reqBytes, errJSON := json.Marshal(js.request)
 	if errJSON != nil {
@@ -216,12 +216,12 @@ func (sr *SymbolicatorRequest) prepareJvmRequest(js *jvmSymbolicator) (err error
 
 // prepareNativeRequest prepares the native request
 // for symbolicator.
-func (sr *SymbolicatorRequest) prepareNativeRequest(ns *nativeSymbolicator) (err error) {
+func (sr *SymbolicatorRequest) prepareNativeRequest(ns *nativeSymbolicator, origin string, sources []Source) (err error) {
 	var reqBody bytes.Buffer
-	url := ns.origin
+	url := origin
 
 	url += "/symbolicate"
-	ns.request.Sources = ns.sources
+	ns.request.Sources = sources
 
 	reqBytes, errJSON := json.Marshal(ns.request)
 	if errJSON != nil {
