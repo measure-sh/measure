@@ -2255,15 +2255,15 @@ func PutEvents(c *gin.Context) {
 	if eventReq.needsSymbolication() {
 		config := server.Server.Config
 		origin := config.SymbolicatorOrigin
-		osName := strings.ToLower(eventReq.osName)
+		osName := eventReq.osName
 		sources := []symbolicator.Source{}
 
 		// configure correct sources as per
 		// OS
-		switch osName {
+		switch opsys.Normalize(osName) {
 		case opsys.Android:
 			sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-		case opsys.IOS:
+		case opsys.AppleFamily:
 			// by default only symbolicate app's own symbols. to symbolicate iOS
 			// system framework symbols, append a GCSSourceApple source containing
 			// all iOS system framework symbol debug information files.

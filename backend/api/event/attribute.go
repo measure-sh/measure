@@ -4,7 +4,6 @@ import (
 	"backend/api/opsys"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/google/uuid"
 )
@@ -144,8 +143,8 @@ func (a Attribute) Validate() error {
 		maxDeviceCPUArchChars      = 16
 	)
 
-	switch strings.ToLower(a.OSName) {
-	case opsys.Android, opsys.IOS:
+	switch opsys.Normalize(a.OSName) {
+	case opsys.Android, opsys.AppleFamily:
 	default:
 		return fmt.Errorf(`%q does not contain a valid OS name value`, `attribute.os_name`)
 	}

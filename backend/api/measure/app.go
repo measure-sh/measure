@@ -956,7 +956,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts filter.JourneyOpts) (events []event.EventField, err error) {
 	whereVals := []any{}
 
-	switch a.OSName {
+	switch opsys.Normalize(a.OSName) {
 	case opsys.Android:
 		whereVals = append(
 			whereVals,
@@ -971,7 +971,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				event.LifecycleFragmentTypeResumed,
 			},
 		)
-	case opsys.IOS:
+	case opsys.AppleFamily:
 		whereVals = append(
 			whereVals,
 			event.TypeLifecycleViewController,
@@ -987,10 +987,10 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	}
 
 	if opts.All {
-		switch a.OSName {
+		switch opsys.Normalize(a.OSName) {
 		case opsys.Android:
 			whereVals = append(whereVals, event.TypeException, false, event.TypeANR)
-		case opsys.IOS:
+		case opsys.AppleFamily:
 			whereVals = append(whereVals, event.TypeException, false)
 		}
 	} else if opts.Exceptions {
@@ -1011,7 +1011,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		Where(`app_id = toUUID(?)`, a.ID).
 		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To)
 
-	switch a.OSName {
+	switch opsys.Normalize(a.OSName) {
 	case opsys.Android:
 		stmt.
 			Select(`toString(lifecycle_activity.type)`).
@@ -1020,7 +1020,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			Select(`toString(lifecycle_fragment.class_name)`).
 			Select(`toString(lifecycle_fragment.parent_activity)`).
 			Select(`toString(lifecycle_fragment.parent_fragment)`)
-	case opsys.IOS:
+	case opsys.AppleFamily:
 		stmt.
 			Select(`toString(lifecycle_view_controller.type)`).
 			Select(`toString(lifecycle_view_controller.class_name)`).
@@ -1037,10 +1037,10 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	}
 
 	if opts.All {
-		switch a.OSName {
+		switch opsys.Normalize(a.OSName) {
 		case opsys.Android:
 			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
-		case opsys.IOS:
+		case opsys.AppleFamily:
 			stmt.Where("((type = ? and `lifecycle_view_controller.type` in ?) or (type = ? and `lifecycle_swift_ui.type` in ?) or (type = ? and `exception.handled` = ?))", whereVals...)
 		}
 	} else if opts.Exceptions {
@@ -1117,7 +1117,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			&ev.SessionID,
 		}
 
-		switch a.OSName {
+		switch opsys.Normalize(a.OSName) {
 		case opsys.Android:
 			dest = append(
 				dest,
@@ -1128,7 +1128,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				&lifecycleFragmentParentActivity,
 				&lifecycleFragmentParentFragment,
 			)
-		case opsys.IOS:
+		case opsys.AppleFamily:
 			dest = append(
 				dest,
 				&lifecycleViewControllerType,
@@ -1511,7 +1511,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`custom.name`,
 	}
 
-	switch a.OSName {
+	switch opsys.Normalize(a.OSName) {
 	case opsys.Android:
 		cols = append(cols, []string{
 			`anr.fingerprint`,
@@ -1554,7 +1554,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			`toString(navigation.from)`,
 			`toString(navigation.source)`,
 		}...)
-	case opsys.IOS:
+	case opsys.AppleFamily:
 		cols = append(cols, []string{
 			`toString(lifecycle_view_controller.type)`,
 			`toString(lifecycle_view_controller.class_name)`,
@@ -1780,7 +1780,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&custom.Name,
 		}
 
-		switch a.OSName {
+		switch opsys.Normalize(a.OSName) {
 		case opsys.Android:
 			dest = append(dest, []any{
 				// anr
@@ -1840,7 +1840,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 				&navigation.From,
 				&navigation.Source,
 			}...)
-		case opsys.IOS:
+		case opsys.AppleFamily:
 			dest = append(dest, []any{
 				&lifecycleViewController.Type,
 				&lifecycleViewController.ClassName,
@@ -2227,12 +2227,12 @@ func GetAppJourney(c *gin.Context) {
 	var nodes []Node
 	var links []Link
 
-	switch app.OSName {
+	switch opsys.Normalize(app.OSName) {
 	case opsys.Android:
 		journeyGraph = journey.NewJourneyAndroid(journeyEvents, &journey.Options{
 			BiGraph: af.BiGraph,
 		})
-	case opsys.IOS:
+	case opsys.AppleFamily:
 		journeyGraph = journey.NewJourneyiOS(journeyEvents, &journey.Options{
 			BiGraph: af.BiGraph,
 		})

@@ -4,6 +4,7 @@ import (
 	"backend/api/cache"
 	"backend/api/event"
 	"backend/api/framework"
+	"backend/api/opsys"
 	osName "backend/api/opsys"
 	"backend/api/span"
 	"backend/api/symbol"
@@ -186,7 +187,7 @@ func New(origin, operatingSys string, sources []Source) (symbolicator *Symbolica
 
 	// TODO: find a way to initialize only the symbolicators which are needed.
 	// initialize symbolicators for each OS
-	switch operatingSys {
+	switch opsys.Normalize(operatingSys) {
 	case osName.Android:
 		symbolicator.jvmSymbolicator = &jvmSymbolicator{
 			origin:           symbolicator.Origin,
@@ -197,7 +198,7 @@ func New(origin, operatingSys string, sources []Source) (symbolicator *Symbolica
 			origin:  symbolicator.Origin,
 			sources: symbolicator.Sources,
 		}
-	case osName.IOS:
+	case osName.AppleFamily:
 		symbolicator.appleSymbolicator = &appleSymbolicator{
 			origin:  symbolicator.Origin,
 			sources: symbolicator.Sources,

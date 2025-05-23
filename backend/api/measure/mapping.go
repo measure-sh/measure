@@ -22,6 +22,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
+	"slices"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
@@ -71,23 +73,13 @@ func (bm BuildMapping) hasMapping() bool {
 // hasProguard checks if the build mapping
 // contains proguard mapping type.
 func (bm BuildMapping) hasProguard() bool {
-	for _, mappingType := range bm.MappingTypes {
-		if mappingType == symbol.TypeProguard.String() {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(bm.MappingTypes, symbol.TypeProguard.String())
 }
 
 // hasDSYM checks if the build mapping
 // contains dsym mapping type.
 func (bm BuildMapping) hasDSYM() bool {
-	for _, mappingType := range bm.MappingTypes {
-		if mappingType == symbol.TypeDsym.String() {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(bm.MappingTypes, symbol.TypeDsym.String())
 }
 
 // validate validates build mapping details.
@@ -118,14 +110,14 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 		if bm.hasProguard() {
 			osName = opsys.Android
 		} else if bm.hasDSYM() {
-			osName = opsys.IOS
+			osName = opsys.AppleFamily
 		} else {
 			err = errors.New("failed to determine app's platform")
 			return
 		}
 	}
 
-	if osName == opsys.IOS {
+	if opsys.Normalize(osName) == opsys.AppleFamily {
 		// Since older iOS upload scripts(<=0.1.0) send a single mapping
 		// type `dsym` with one or more mapping files, we set the mapping type
 		// to `dsym` for all mapping files.
@@ -134,7 +126,7 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 		// compatibility.
 		missingTypesCount := len(bm.MappingFiles) - len(bm.MappingTypes)
 		if missingTypesCount > 0 {
-			for i := 0; i < missingTypesCount; i++ {
+			for range missingTypesCount {
 				bm.MappingTypes = append(bm.MappingTypes, symbol.TypeDsym.String())
 			}
 		}
@@ -160,18 +152,18 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 		}
 	}
 
-	// ensure mapping types are supported for the platform
-	platformMappingErr := fmt.Errorf("%q mapping type is not valid for %q platform", bm.MappingTypes, osName)
+	// ensure mapping types are supported for the OS
+	osMappingError := fmt.Errorf("%q mapping type is not valid for %q OS", bm.MappingTypes, osName)
 	for index, mappingType := range bm.MappingTypes {
 		switch mappingType {
 		case symbol.TypeProguard.String():
 			if osName != opsys.Android {
-				err = platformMappingErr
+				err = osMappingError
 				return
 			}
 		case symbol.TypeDsym.String():
-			if osName != opsys.IOS {
-				err = platformMappingErr
+			if opsys.Normalize(osName) != opsys.AppleFamily {
+				err = osMappingError
 				break
 			}
 			mf := bm.MappingFiles[index]
@@ -185,7 +177,7 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 			}
 		case symbol.TypeElfDebug.String():
 			if osName != opsys.Android {
-				err = platformMappingErr
+				err = osMappingError
 				return
 			}
 		default:
