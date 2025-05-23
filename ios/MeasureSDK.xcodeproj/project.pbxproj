@@ -228,6 +228,7 @@
 		52F377562CB41EDE006147E8 /* SwiftUIDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F377502CB41EDE006147E8 /* SwiftUIDetailViewController.swift */; };
 		52F377572CB41EDE006147E8 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F377512CB41EDE006147E8 /* ViewController.swift */; };
 		52F3775B2CB41F0B006147E8 /* ObjcDetailViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 52F3775A2CB41F0B006147E8 /* ObjcDetailViewController.m */; };
+		69694F0F2DE0461E008D1AF1 /* Framework.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69694F0E2DE04619008D1AF1 /* Framework.swift */; };
 		69C449692DA9266400E44CF4 /* InternalSignalCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69C449682DA9266400E44CF4 /* InternalSignalCollector.swift */; };
 		69C4496B2DACC7C700E44CF4 /* InternalSignalCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69C4496A2DACC7BE00E44CF4 /* InternalSignalCollectorTests.swift */; };
 		69E4B4D32DA7581A00361E25 /* MeasureInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69E4B4D22DA7581A00361E25 /* MeasureInitializer.swift */; };
@@ -614,6 +615,7 @@
 		52F377582CB41F0B006147E8 /* DemoApp-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DemoApp-Bridging-Header.h"; sourceTree = "<group>"; };
 		52F377592CB41F0B006147E8 /* ObjcDetailViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjcDetailViewController.h; sourceTree = "<group>"; };
 		52F3775A2CB41F0B006147E8 /* ObjcDetailViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjcDetailViewController.m; sourceTree = "<group>"; };
+		69694F0E2DE04619008D1AF1 /* Framework.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Framework.swift; sourceTree = "<group>"; };
 		69C449682DA9266400E44CF4 /* InternalSignalCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InternalSignalCollector.swift; sourceTree = "<group>"; };
 		69C4496A2DACC7BE00E44CF4 /* InternalSignalCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InternalSignalCollectorTests.swift; sourceTree = "<group>"; };
 		69E4B4D22DA7581A00361E25 /* MeasureInitializer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInitializer.swift; sourceTree = "<group>"; };
@@ -860,6 +862,7 @@
 		526D17CD2D5A1913009A2E90 /* Exception */ = {
 			isa = PBXGroup;
 			children = (
+				69694F0E2DE04619008D1AF1 /* Framework.swift */,
 				529B319A2D5B85FC007A8E45 /* BinaryImage.swift */,
 				526D17C92D5A1913009A2E90 /* Exception.swift */,
 				526D17CA2D5A1913009A2E90 /* ExceptionDetail.swift */,
@@ -1744,6 +1747,7 @@
 				526D18682D5A1913009A2E90 /* LifecycleCollector.swift in Sources */,
 				526D18762D5A1913009A2E90 /* MemoryUsageData.swift in Sources */,
 				526D18392D5A1913009A2E90 /* SessionEntity.swift in Sources */,
+				69694F0F2DE0461E008D1AF1 /* Framework.swift in Sources */,
 				526D18532D5A1913009A2E90 /* BatchCreator.swift in Sources */,
 				526D18512D5A1913009A2E90 /* StackFrame.swift in Sources */,
 				526D184C2D5A1913009A2E90 /* EventType.swift in Sources */,

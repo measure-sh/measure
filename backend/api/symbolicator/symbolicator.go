@@ -224,7 +224,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 		// apple exceptions are symbolicated
 		// in place and do not need any
 		// further processing
-		if ev.Type == event.TypeException && ev.Exception.GetFramework() == framework.IOS {
+		if ev.Type == event.TypeException && ev.Exception.GetFramework() == framework.Apple {
 			s.appleSymbolicator.symbolicate(ev)
 			continue
 		}

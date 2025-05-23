@@ -7,8 +7,9 @@ package framework
 // from different frameworks.
 const (
 	// Represents exceptions
-	// from iOS.
-	IOS = "ios"
+	// from Apple — ios, ipad
+	// and macos.
+	Apple = "apple"
 
 	// Represents exceptions
 	// from Android.

@@ -823,7 +823,7 @@ func (e EventField) NeedsSymbolication() (result bool) {
 		switch e.Exception.GetFramework() {
 		case framework.JVM:
 			result = true
-		case framework.IOS:
+		case framework.Apple:
 			result = true
 		case framework.Dart:
 			if e.Exception.Exceptions[0].Frames[0].InstructionAddr != "" {
@@ -931,7 +931,7 @@ func (e *EventField) Validate() error {
 
 		f := e.Exception.GetFramework()
 		switch f {
-		case framework.IOS:
+		case framework.Apple:
 			if len(e.Exception.Threads) < 1 {
 				return fmt.Errorf(`%q must contain at least one thread`, `exception.threads`)
 			}
@@ -1283,7 +1283,7 @@ func (e *EventField) Validate() error {
 func (e Exception) GetFramework() (f string) {
 	if e.Framework == "" {
 		if e.Exceptions[0].ExceptionUnitiOS != nil && e.Exceptions[0].Signal != "" {
-			return framework.IOS
+			return framework.Apple
 		}
 		return framework.JVM
 	}
@@ -1307,7 +1307,7 @@ func (e Exception) HasNoFrames() bool {
 	switch e.GetFramework() {
 	case framework.JVM:
 		return len(e.Exceptions[len(e.Exceptions)-1].Frames) == 0
-	case framework.IOS:
+	case framework.Apple:
 		return len(e.Exceptions[0].Frames) == 0
 	case framework.Dart:
 		return len(e.Exceptions[0].Frames) == 0
@@ -1362,7 +1362,7 @@ func (e Exception) GetType() string {
 		return "unknown type"
 	case framework.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Type
-	case framework.IOS:
+	case framework.Apple:
 		return e.Exceptions[0].Signal
 	case framework.Dart:
 		// We do not look for the deepest exception
@@ -1380,7 +1380,7 @@ func (e Exception) GetMessage() string {
 		return "unknown message"
 	case framework.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Message
-	case framework.IOS:
+	case framework.Apple:
 		// iOS doesn't have a typical message to
 		// use for an exception
 		return ""
@@ -1403,7 +1403,7 @@ func (e Exception) GetFileName() string {
 	switch e.GetFramework() {
 	case framework.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
-	case framework.IOS:
+	case framework.Apple:
 		return e.GetRelevantFrame().FileName
 	case framework.Dart:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
@@ -1425,7 +1425,7 @@ func (e Exception) GetLineNumber() int {
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
 	case framework.Dart:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
-	case framework.IOS:
+	case framework.Apple:
 		return e.GetRelevantFrame().LineNum
 	}
 
@@ -1443,7 +1443,7 @@ func (e Exception) GetMethodName() string {
 	switch e.GetFramework() {
 	case framework.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
-	case framework.IOS:
+	case framework.Apple:
 		return e.GetRelevantFrame().MethodName
 	case framework.Dart:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
@@ -1537,7 +1537,7 @@ func (e Exception) Stacktrace() string {
 			result = result[:len(result)-1]
 		}
 		return result
-	case framework.IOS:
+	case framework.Apple:
 		// iOS Stacktrace syntax
 		//
 		// See more: https://developer.apple.com/documentation/xcode/adding-identifiable-symbol-names-to-a-crash-report
@@ -1615,7 +1615,7 @@ func (e *Exception) ComputeFingerprint() (err error) {
 				input += sep + fileName
 			}
 		}
-	case framework.IOS:
+	case framework.Apple:
 		// initialize with the exception type
 		input = e.GetType()
 

@@ -94,7 +94,7 @@ func (e *EventException) ComputeView() {
 			switch f {
 			default:
 				tv.Frames = append(tv.Frames, frame.String(f))
-			case framework.IOS:
+			case framework.Apple:
 				t.Write(append([]byte(frame.String(f)), '\n'))
 
 				// flush on last frame

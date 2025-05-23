@@ -93,7 +93,7 @@ final class CrashDataFormatter {
                              foreground: true,
                              threads: nil,
                              binaryImages: nil,
-                             framework: "ios")
+                             framework: Framework.apple)
         }
 
         let binaryImages = getBinaryImageInfo([crashedThread] + threads)
@@ -103,7 +103,7 @@ final class CrashDataFormatter {
                          foreground: true,
                          threads: threads,
                          binaryImages: binaryImages,
-                         framework: "ios")
+                         framework: Framework.apple)
     }
 
     private func getCrashedThread() -> ThreadDetail? {

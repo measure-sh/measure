@@ -88,7 +88,7 @@ func (f Frame) String(frmwrk string) string {
 		}
 
 		return fmt.Sprintf(`%s%s`, codeInfo, fileInfo)
-	case framework.IOS:
+	case framework.Apple:
 		binaryName := f.BinaryName
 		methodName := f.MethodName
 		className := f.ClassName
