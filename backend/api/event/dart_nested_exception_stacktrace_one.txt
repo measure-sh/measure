@@ -1,0 +1,3 @@
+#00      MainScreen._noMethodChannel (package:measure_flutter_example/main.dart:151)
+===== asynchronous gap ===========================
+#00      MethodChannel._invokeMethod (package:flutter/src/services/platform_channel.dart:368)
