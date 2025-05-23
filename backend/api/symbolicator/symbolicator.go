@@ -175,8 +175,11 @@ func New(origin, operatingSys string, sources []Source) (symbolicator *Symbolica
 		symbolicator.jvmLambdaWorkaround = true
 	}
 
-	// TODO: find a way to initialize only the symbolicators which are needed.
 	// initialize symbolicators for each OS
+	// this can be improved in the future
+	// to only initialize the symbolicators
+	// which are needed based on the events
+	// in the batch.
 	switch opsys.Normalize(operatingSys) {
 	case osName.Android:
 		symbolicator.jvmSymbolicator = &jvmSymbolicator{}
