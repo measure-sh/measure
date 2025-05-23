@@ -1512,6 +1512,8 @@ func (e Exception) Stacktrace() string {
 		// symbolicated
 		// #00      <method-name> (<module-name>/<file-name>:<line-number>)
 		// #01      <method-name> (<module-name>/<file-name>:<line-number>)
+		var buf strings.Builder
+
 		for i := len(e.Exceptions) - 1; i >= 0; i-- {
 			exception := e.Exceptions[i]
 			for j, frame := range exception.Frames {
@@ -1522,13 +1524,19 @@ func (e Exception) Stacktrace() string {
 					fileLocation = fmt.Sprintf("(%s%s:%d)", frame.ModuleName, frame.FileName, frame.LineNum)
 				}
 
-				formattedFrame := fmt.Sprintf(" #%d      %s %s\n", j, frame.MethodName, fileLocation)
-				b.WriteString(formattedFrame)
+				frameNum := fmt.Sprintf("#%02d", j)
+				buf.WriteString(fmt.Sprintf("%s      %s %s\n", frameNum, frame.MethodName, fileLocation))
 			}
 			if i > 0 {
-				b.WriteString("===== asynchronous gap ===========================\n")
+				buf.WriteString("===== asynchronous gap ===========================\n")
 			}
 		}
+		// Remove the trailing newline if it exists
+		result := buf.String()
+		if len(result) > 0 && result[len(result)-1] == '\n' {
+			result = result[:len(result)-1]
+		}
+		return result
 	case framework.IOS:
 		// iOS Stacktrace syntax
 		//
