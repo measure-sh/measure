@@ -6,6 +6,7 @@ import { ResponsiveSankey } from '@nivo/sankey'
 import Link from 'next/link'
 import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'
+import { numberToKMB } from '../utils/number_utils'
 
 interface JourneyProps {
   teamId: string,
@@ -69,9 +70,9 @@ type JourneyData = {
   links: JourneyLink[]
 }
 
-const positiveNodeColour = 'hsl(0, 72%, 51%)'
-const negativeNodeColour = 'hsl(161, 94%, 30%)'
-const neutralLinkColour = `hsl(0, 0%, 81%)`
+const positiveNodeColour = 'oklch(57.7% 0.245 27.325)'
+const negativeNodeColour = 'oklch(62.7% 0.194 149.214)'
+const neutralLinkColour = `oklch(87.2% 0.01 258.338)`
 
 function getNodeColor(node: Node): string {
   const hasIssues = node.issues?.anrs?.length! > 0 || node.issues?.crashes?.length! > 0
@@ -195,8 +196,6 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
   const [selectedNode, setSelectedNode] = useState<JourneyNode>()
   const [showPanel, setShowPanel] = useState(false)
 
-  const formatter = Intl.NumberFormat('en', { notation: 'compact' })
-
   const getJourney = async () => {
     setJourneyApiStatus(JourneyApiStatus.Loading)
 
@@ -318,14 +317,14 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
                           {journeyType === JourneyType.Overview &&
                             <span className="font-body text-xs">
                               <Link href={`/${teamId}/crashes/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
-                                {title} - {formatter.format(count)}
+                                {title} - {numberToKMB(count)}
                               </Link>
                             </span>
                           }
                           {/* Show only title and count if crash or anr journey type */}
                           {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
                             <span className="font-body text-xs">
-                              {title} - {formatter.format(count)}
+                              {title} - {numberToKMB(count)}
                             </span>
                           }
                         </li>
@@ -343,14 +342,14 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
                           {journeyType === JourneyType.Overview &&
                             <span className="font-body text-xs">
                               <Link href={`/${teamId}/anrs/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
-                                {title} - {formatter.format(count)}
+                                {title} - {numberToKMB(count)}
                               </Link>
                             </span>
                           }
                           {/* Show only title and count if crash or anr journey type */}
                           {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
                             <span className="font-body text-xs">
-                              {title} - {formatter.format(count)}
+                              {title} - {numberToKMB(count)}
                             </span>
                           }
                         </li>
