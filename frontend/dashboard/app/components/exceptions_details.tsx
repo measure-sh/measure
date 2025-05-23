@@ -33,6 +33,8 @@ interface ExceptionsDetailsProps {
   exceptionsGroupName: string,
 }
 
+const stackTraceAccordionContentStyle = 'whitespace-pre-wrap font-body leading-5.5 bg-gray-50 p-4'
+
 export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptionsType, teamId, appId, exceptionsGroupId, exceptionsGroupName }) => {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -240,7 +242,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                     {exceptionsType === ExceptionsType.Crash &&
                       <AccordionItem value={'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}>
                         <AccordionTrigger className='font-display'>{'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}</AccordionTrigger>
-                        <AccordionContent className='whitespace-pre-wrap'>
+                        <AccordionContent className={stackTraceAccordionContentStyle}>
                           {(pageState.exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse).results[0].exception.stacktrace}
                         </AccordionContent>
                       </AccordionItem>
@@ -248,7 +250,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                     {exceptionsType === ExceptionsType.Anr &&
                       <AccordionItem value={'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}>
                         <AccordionTrigger className='font-display'>{'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}</AccordionTrigger>
-                        <AccordionContent className='whitespace-pre-wrap font-body'>
+                        <AccordionContent className={stackTraceAccordionContentStyle}>
                           {(pageState.exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse).results[0].anr.stacktrace}
                         </AccordionContent>
                       </AccordionItem>
@@ -256,7 +258,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                     {pageState.exceptionsDetails.results[0].threads.map((e, index) => (
                       <AccordionItem value={`${e.name}-${index}`} key={`${e.name}-${index}`}>
                         <AccordionTrigger className='font-display'>{'Thread: ' + e.name}</AccordionTrigger>
-                        <AccordionContent className='whitespace-pre-wrap font-body'>
+                        <AccordionContent className={stackTraceAccordionContentStyle}>
                           {e.frames.join('\n')}
                         </AccordionContent>
                       </AccordionItem>
