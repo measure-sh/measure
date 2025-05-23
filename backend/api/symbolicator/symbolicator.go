@@ -19,12 +19,19 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// logRequest determines if symbolicator
+// should log the relevent parts of the
+// request payload.
+//
+// set to `true` for quick debugging.
+const logRequest = true
+
 // logResponse determines if symbolicator
 // should log the relevant parts of the
 // response payload.
 //
 // set to `true` for quick debugging.
-const logResponse = false
+const logResponse = true
 
 var ErrJVMSymbolicationFailure = errors.New("symbolicator received JVM errors")
 
@@ -88,6 +95,7 @@ type lineNoEntry [6]int
 // n - result stacktrace's frame's index
 type stacktraceEntry [6]int
 
+// TODO: remove origin from all symbolicators
 // jvmSymbolicator represents a JVM symbolicator request.
 type jvmSymbolicator struct {
 	// Origin is the http origin of the
@@ -110,7 +118,6 @@ type nativeSymbolicator struct {
 	sources       []Source
 	request       *requestNative
 	response      *responseNative
-	lineNoLUT     []lineNoEntry
 	stacktraceLUT []stacktraceEntry
 }
 
@@ -177,6 +184,7 @@ func New(origin, operatingSys string, sources []Source) (symbolicator *Symbolica
 		symbolicator.jvmLambdaWorkaround = true
 	}
 
+	// TODO: find a way to initialize only the symbolicators which are needed.
 	// initialize symbolicators for each OS
 	switch operatingSys {
 	case osName.Android:
@@ -339,7 +347,6 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 		s.nativeSymbolicator.symbolicate(events)
 	}
 
-	s.reset()
 	return
 }
 
@@ -348,12 +355,12 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.SpanField) (err error) {
 	if js.request != nil {
 		sr := &SymbolicatorRequest{}
-		if err = sr.PrepareJvmRequest(js); err != nil {
+		if err = sr.prepareJvmRequest(js); err != nil {
 			return
 		}
 
 		var respBody []byte
-		if respBody, err = sr.MakeRequest(); err != nil {
+		if respBody, err = sr.makeRequest(); err != nil {
 			return
 		}
 
@@ -746,12 +753,12 @@ func (as *appleSymbolicator) makeAppleCrashReport(event event.EventField) {
 func (as *appleSymbolicator) symbolicate(ev event.EventField) (err error) {
 	as.makeAppleCrashReport(ev)
 	sr := &SymbolicatorRequest{}
-	if err = sr.PrepareAppleRequest(as); err != nil {
+	if err = sr.prepareAppleRequest(as); err != nil {
 		return
 	}
 
 	var respBody []byte
-	if respBody, err = sr.MakeRequest(); err != nil {
+	if respBody, err = sr.makeRequest(); err != nil {
 		return
 	}
 
@@ -793,12 +800,12 @@ func (as appleSymbolicator) rewriteAppleCrashReport(ev event.EventField) {
 func (ns *nativeSymbolicator) symbolicate(events []event.EventField) (err error) {
 	if ns.request != nil {
 		sr := &SymbolicatorRequest{}
-		if err = sr.PrepareNativeRequest(ns); err != nil {
+		if err = sr.prepareNativeRequest(ns); err != nil {
 			return
 		}
 
 		var respBody []byte
-		if respBody, err = sr.MakeRequest(); err != nil {
+		if respBody, err = sr.makeRequest(); err != nil {
 			return
 		}
 
@@ -825,11 +832,6 @@ func (ns *nativeSymbolicator) parseExceptions(exceptions []event.ExceptionUnit, 
 	for j, excep := range exceptions {
 		framesNative := []frameNative{}
 		for k, frame := range excep.Frames {
-			line := frame.LineNum
-			if line < 0 {
-				ns.lineNoLUT = append(ns.lineNoLUT, lineNoEntry{index, j, k, -1, -1, frame.LineNum})
-				line = 0
-			}
 			framesNative = append(framesNative, frameNative{
 				OriginalIndex:   k,
 				InstructionAddr: frame.InstructionAddr,
@@ -847,7 +849,7 @@ func (ns *nativeSymbolicator) parseExceptions(exceptions []event.ExceptionUnit, 
 // symbolication. This currently
 // assumes symbolication of Dart
 // exceptions.
-func (ns *nativeSymbolicator) configureModule(mappings map[string]symbol.MappingType, baseAddr string, uuid string, arch string) {
+func (ns *nativeSymbolicator) configureModule(mappings map[string]symbol.MappingType, baseAddr, uuid, arch string) {
 	if len(mappings) > 0 {
 		baseAddr := "0x" + baseAddr
 
@@ -955,12 +957,4 @@ func formatFunctionName(input string) string {
 		return strings.TrimSpace(match[1])
 	}
 	return input
-}
-
-// reset clears out the symbolicator
-// and prepares it for reuse.
-func (s *Symbolicator) reset() {
-	s.appleSymbolicator = nil
-	s.jvmSymbolicator = nil
-	s.nativeSymbolicator = nil
 }

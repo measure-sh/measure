@@ -13,13 +13,6 @@ import (
 	"time"
 )
 
-// logRequest determines if symbolicator
-// should log the relevent parts of the
-// request payload.
-//
-// set to `true` for quick debugging.
-const logRequest = false
-
 // maxRetryCount defines the maximum
 // number of times a failed symbolicator
 // request will be retried.
@@ -50,9 +43,9 @@ var httpClient = &http.Client{
 	},
 }
 
-// MakeRequest sends the symbolicator request
+// makeRequest sends the symbolicator request
 // and retries if necessary.
-func (sr *SymbolicatorRequest) MakeRequest() ([]byte, error) {
+func (sr *SymbolicatorRequest) makeRequest() ([]byte, error) {
 	var respBody []byte
 	var err error
 
@@ -118,12 +111,12 @@ func (sr *SymbolicatorRequest) retry(d time.Duration) ([]byte, error) {
 	fmt.Printf("retrying symbolicator request for %d time(s) in about %v\n", sr.retryCount, dur)
 	chrono.JitterySleep(dur)
 
-	return sr.MakeRequest()
+	return sr.makeRequest()
 }
 
 // prepareAppleCrashReportRequest prepares the
 // apple crash report request payload.
-func (sr *SymbolicatorRequest) PrepareAppleRequest(as *appleSymbolicator) (err error) {
+func (sr *SymbolicatorRequest) prepareAppleRequest(as *appleSymbolicator) (err error) {
 	var reqBody bytes.Buffer
 	var sources []byte
 	if len(as.sources) > 0 {
@@ -189,7 +182,7 @@ func (sr *SymbolicatorRequest) PrepareAppleRequest(as *appleSymbolicator) (err e
 
 // prepareJvmRequest prepares the jvm request
 // for symbolicator.
-func (sr *SymbolicatorRequest) PrepareJvmRequest(js *jvmSymbolicator) (err error) {
+func (sr *SymbolicatorRequest) prepareJvmRequest(js *jvmSymbolicator) (err error) {
 	var reqBody bytes.Buffer
 	url := js.origin
 
@@ -223,7 +216,7 @@ func (sr *SymbolicatorRequest) PrepareJvmRequest(js *jvmSymbolicator) (err error
 
 // prepareNativeRequest prepares the native request
 // for symbolicator.
-func (sr *SymbolicatorRequest) PrepareNativeRequest(ns *nativeSymbolicator) (err error) {
+func (sr *SymbolicatorRequest) prepareNativeRequest(ns *nativeSymbolicator) (err error) {
 	var reqBody bytes.Buffer
 	url := ns.origin
 
