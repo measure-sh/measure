@@ -471,11 +471,11 @@ Use the `anr` type for [Application Not Responding](https://developer.android.co
 
 Each exception object contains further fields.
 
-| Field     | Type   | Optional | Comment                                                          |
-|-----------|--------|----------|------------------------------------------------------------------|
-| `type`    | string | No       | Type of the exception. Optional for nested exceptions from Dart. |
-| `message` | string | No       | Error message text. Optional for nested exceptions from Dart.    |
-| `frames`  | array  | Yes      | Array of stackframe objects                                      |
+| Field     | Type   | Optional | Comment                                                               |
+|-----------|--------|----------|-----------------------------------------------------------------------|
+| `type`    | string | Yes      | Type of the exception. Optional only for nested exceptions from Dart. |
+| `message` | string | Yes      | Error message text. Optional only for nested exceptions from Dart.    |
+| `frames`  | array  | Yes      | Array of stackframe objects                                           |
 
 `thread` objects
 
