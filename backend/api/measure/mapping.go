@@ -79,29 +79,46 @@ func (bm BuildMapping) hasProguard() bool {
 	return false
 }
 
+// hasDSYM checks if the build mapping
+// contains dsym mapping type.
+func (bm BuildMapping) hasDSYM() bool {
+	for _, mappingType := range bm.MappingTypes {
+		if mappingType == symbol.TypeDsym.String() {
+			return true
+		}
+	}
+	return false
+}
+
 // validate validates build mapping details.
 func (bm *BuildMapping) validate(app *App) (code int, err error) {
 	code = http.StatusBadRequest
 
 	osName := app.OSName
 
-	// deduce OS name from app or
+	// Deduce OS name from app or
 	// from payload. ensure we have
 	// a platform or fail fast.
+	// The OS name in apps table
+	// is set after the first event
+	// is received, until which the
+	// OS name is empty.
 	if osName == "" && bm.OSName != "" {
 		osName = bm.OSName
 	}
 
 	if osName == "" {
-		// Since, older Android SDKs (<=android-gradle-plugn@0.7.0) were
-		// not sending `platform` parameter, we set the platform to Android
-		// when the payload lacks the `platform` parameter and the mapping
-		// type is `proguard`.
+		// Since, older Android (<=android-gradle-plugn@0.7.0) and
+		// iOS (<=0.1.0) SDKs were not sending `platform`
+		// or `os_name` parameter, we set the OS Name based
+		// on the mapping types received.
 		//
 		// This is critical for maintaining backwards
 		// compatibility.
 		if bm.hasProguard() {
 			osName = os.Android
+		} else if bm.hasDSYM() {
+			osName = os.IOS
 		} else {
 			err = errors.New("failed to determine app's platform")
 			return
