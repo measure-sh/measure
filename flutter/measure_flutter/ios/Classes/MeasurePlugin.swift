@@ -52,14 +52,11 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
     }
     
     private func trackEvent(data: inout [String: Any?], type: String, timestamp: Int64, userDefinedAttrs: [String: AttributeValue], userTriggered: Bool, sessionId: String?, threadName: String?) {
-        var attributes = [String: Any?]()
-        attributes[Attribute.platform] = Attribute.platformFlutter
-        
         Measure.shared.internalTrackEvent(
             data: &data,
             type: type,
             timestamp: timestamp,
-            attributes: attributes,
+            attributes: [:],
             userDefinedAttrs: userDefinedAttrs,
             userTriggered: userTriggered,
             sessionId: sessionId,
