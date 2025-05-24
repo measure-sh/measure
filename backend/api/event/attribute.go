@@ -143,6 +143,14 @@ func (a Attribute) Validate() error {
 		maxDeviceCPUArchChars      = 16
 	)
 
+	if len(a.OSName) > maxOSNameChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.os_name`, maxOSNameChars)
+	}
+
+	if opsys.ToFamily(a.OSName) == opsys.Unknown {
+		return fmt.Errorf(`%q does not contain a valid OS name value`, `attribute.os_name`)
+	}
+
 	switch opsys.ToFamily(a.OSName) {
 	case opsys.Android, opsys.AppleFamily:
 	default:
@@ -207,9 +215,6 @@ func (a Attribute) Validate() error {
 	}
 	if len(a.DeviceCPUArch) > maxDeviceCPUArchChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.device_cpu_arch`, maxDeviceCPUArchChars)
-	}
-	if len(a.OSName) > maxOSNameChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.os_name`, maxOSNameChars)
 	}
 	if len(a.OSVersion) > maxOSVersionChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.os_version`, maxOSVersionChars)
