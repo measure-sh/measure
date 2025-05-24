@@ -76,7 +76,7 @@ for TGZ in "${TGZ_FILES[@]}"; do
     echo "  - $TGZ"
 done
 
-OS_NAME = "ios"
+OS_NAME="ios"
 
 # Construct the curl command
 CURL_COMMAND="curl --request PUT \
@@ -88,7 +88,7 @@ CURL_COMMAND="curl --request PUT \
   --form build_size=$BUILD_SIZE \
   --form build_type=$BUILD_TYPE \
   --form app_unique_id=sh.measure.DemoApp" \
-  --form os_name=$OS_NAME
+  --form os_name=$OS_NAME"
 
 # Attach each dSYM .tgz file
 for TGZ in "${TGZ_FILES[@]}"; do
