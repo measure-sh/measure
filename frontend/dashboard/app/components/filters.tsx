@@ -908,7 +908,7 @@ const Filters: React.FC<FiltersProps> = ({
       startDate: selectedStartDate,
       endDate: selectedEndDate,
       dateRange: Object.values(DateRange).includes(selectedDateRange as DateRange) ? (selectedDateRange as DateRange) : undefined,
-      versions: selectedVersions.map(v => versions.findIndex(ver => ver.code === v.code)),
+      versions: selectedVersions.map(v => versions.findIndex(ver => ver.name === v.name && ver.code === v.code)),
       sessionType: selectedSessionType,
       spanStatuses: selectedSpanStatuses,
       bugReportStatuses: selectedBugReportStatuses,
