@@ -32,6 +32,10 @@ internal data class ExceptionData(
      */
     val binary_images: List<BinaryImage> = listOf(),
 
+    /**
+     * The framework in which the exception occurred.
+     * For Android this is always JVM.
+     */
     val framework: String? = ExceptionFramework.JVM,
 )
 
@@ -143,9 +147,22 @@ internal data class Frame(
     val in_app: Boolean = false,
 )
 
+/**
+ * Represents a binary image. Used for Dart exceptions and native crashes.
+ */
 @Serializable
 internal data class BinaryImage(
+    /**
+     * The unique identifier of the binary image.
+     * This is the `build_id` for Dart exceptions.
+     */
     val uuid: String,
+    /**
+     * The architecture of the platform where the crash occured.
+     */
     val arch: String,
+    /**
+     * The base address of the binary image for Dart exceptions.
+     */
     val base_addr: String,
 )
