@@ -216,6 +216,9 @@ func (a Attribute) Validate() error {
 	if len(a.DeviceCPUArch) > maxDeviceCPUArchChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.device_cpu_arch`, maxDeviceCPUArchChars)
 	}
+	if a.Platform != "android" && a.Platform != "ios" {
+		return fmt.Errorf(`%q does not contain a valid platform value`, `attribute.platform`)
+	}
 	if len(a.OSVersion) > maxOSVersionChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.os_version`, maxOSVersionChars)
 	}
