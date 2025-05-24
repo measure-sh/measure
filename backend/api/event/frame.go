@@ -1,7 +1,6 @@
 package event
 
 import (
-	"backend/api/framework"
 	"backend/api/text"
 	"fmt"
 	"strconv"
@@ -88,7 +87,7 @@ func (f Frame) String(frmwrk string) string {
 		}
 
 		return fmt.Sprintf(`%s%s`, codeInfo, fileInfo)
-	case framework.Apple:
+	case Framework.Apple:
 		binaryName := f.BinaryName
 		methodName := f.MethodName
 		className := f.ClassName

@@ -1,7 +1,6 @@
 package event
 
 import (
-	"backend/api/framework"
 	"backend/api/opsys"
 	"bytes"
 	"crypto/md5"
@@ -270,6 +269,16 @@ func makeTitle(t, m string) (typeMessage string) {
 		typeMessage += GenericPrefix + m
 	}
 	return
+}
+
+var Framework = struct {
+	Apple string
+	JVM   string
+	Dart  string
+}{
+	Apple: "apple",
+	JVM:   "jvm",
+	Dart:  "dart",
 }
 
 // ExceptionUnitiOS represents iOS specific
@@ -821,11 +830,11 @@ func (e EventField) NeedsSymbolication() (result bool) {
 
 	if e.Type == TypeException {
 		switch e.Exception.GetFramework() {
-		case framework.JVM:
+		case Framework.JVM:
 			result = true
-		case framework.Apple:
+		case Framework.Apple:
 			result = true
-		case framework.Dart:
+		case Framework.Dart:
 			if e.Exception.Exceptions[0].Frames[0].InstructionAddr != "" {
 				result = true
 			}
@@ -931,7 +940,7 @@ func (e *EventField) Validate() error {
 
 		f := e.Exception.GetFramework()
 		switch f {
-		case framework.Apple:
+		case Framework.Apple:
 			if len(e.Exception.Threads) < 1 {
 				return fmt.Errorf(`%q must contain at least one thread`, `exception.threads`)
 			}
@@ -953,11 +962,11 @@ func (e *EventField) Validate() error {
 				}
 			}
 
-		case framework.JVM:
+		case Framework.JVM:
 			if len(e.Exception.Threads) < 1 {
 				return fmt.Errorf(`%q must contain at least one thread`, `exception.threads`)
 			}
-		case framework.Dart:
+		case Framework.Dart:
 			if len(e.Exception.BinaryImages) > 1 {
 				return fmt.Errorf(`%q must contain at most one binary image`, `exception.binary_images`)
 			}
@@ -1283,9 +1292,9 @@ func (e *EventField) Validate() error {
 func (e Exception) GetFramework() (f string) {
 	if e.Framework == "" {
 		if e.Exceptions[0].ExceptionUnitiOS != nil && e.Exceptions[0].Signal != "" {
-			return framework.Apple
+			return Framework.Apple
 		}
-		return framework.JVM
+		return Framework.JVM
 	}
 
 	return e.Framework
@@ -1305,11 +1314,11 @@ func (e Exception) IsNested() bool {
 // Android.
 func (e Exception) HasNoFrames() bool {
 	switch e.GetFramework() {
-	case framework.JVM:
+	case Framework.JVM:
 		return len(e.Exceptions[len(e.Exceptions)-1].Frames) == 0
-	case framework.Apple:
+	case Framework.Apple:
 		return len(e.Exceptions[0].Frames) == 0
-	case framework.Dart:
+	case Framework.Dart:
 		return len(e.Exceptions[0].Frames) == 0
 	}
 
@@ -1360,11 +1369,11 @@ func (e Exception) GetType() string {
 	switch e.GetFramework() {
 	default:
 		return "unknown type"
-	case framework.JVM:
+	case Framework.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Type
-	case framework.Apple:
+	case Framework.Apple:
 		return e.Exceptions[0].Signal
-	case framework.Dart:
+	case Framework.Dart:
 		// We do not look for the deepest exception
 		// as only the top most exception unit
 		// contains the type.
@@ -1378,13 +1387,13 @@ func (e Exception) GetMessage() string {
 	switch e.GetFramework() {
 	default:
 		return "unknown message"
-	case framework.JVM:
+	case Framework.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Message
-	case framework.Apple:
+	case Framework.Apple:
 		// iOS doesn't have a typical message to
 		// use for an exception
 		return ""
-	case framework.Dart:
+	case Framework.Dart:
 		// We do not look for the deepest exception
 		// as only the top most exception unit
 		// contains the message.
@@ -1401,11 +1410,11 @@ func (e Exception) GetFileName() string {
 	}
 
 	switch e.GetFramework() {
-	case framework.JVM:
+	case Framework.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
-	case framework.Apple:
+	case Framework.Apple:
 		return e.GetRelevantFrame().FileName
-	case framework.Dart:
+	case Framework.Dart:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
 	}
 
@@ -1421,11 +1430,11 @@ func (e Exception) GetLineNumber() int {
 	}
 
 	switch e.GetFramework() {
-	case framework.JVM:
+	case Framework.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
-	case framework.Dart:
+	case Framework.Dart:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
-	case framework.Apple:
+	case Framework.Apple:
 		return e.GetRelevantFrame().LineNum
 	}
 
@@ -1441,11 +1450,11 @@ func (e Exception) GetMethodName() string {
 	}
 
 	switch e.GetFramework() {
-	case framework.JVM:
+	case Framework.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
-	case framework.Apple:
+	case Framework.Apple:
 		return e.GetRelevantFrame().MethodName
-	case framework.Dart:
+	case Framework.Dart:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
 	}
 
@@ -1472,7 +1481,7 @@ func (e Exception) Stacktrace() string {
 
 	f := e.GetFramework()
 	switch f {
-	case framework.JVM:
+	case Framework.JVM:
 		for i := len(e.Exceptions) - 1; i >= 0; i-- {
 			firstException := i == len(e.Exceptions)-1
 			lastException := i == 0
@@ -1504,7 +1513,7 @@ func (e Exception) Stacktrace() string {
 				}
 			}
 		}
-	case framework.Dart:
+	case Framework.Dart:
 		// Dart Stacktrace syntax
 		//
 		// See more: https://dart.dev/guides/language/language-tour#stack-traces
@@ -1537,7 +1546,7 @@ func (e Exception) Stacktrace() string {
 			result = result[:len(result)-1]
 		}
 		return result
-	case framework.Apple:
+	case Framework.Apple:
 		// iOS Stacktrace syntax
 		//
 		// See more: https://developer.apple.com/documentation/xcode/adding-identifiable-symbol-names-to-a-crash-report
@@ -1595,7 +1604,7 @@ func (e *Exception) ComputeFingerprint() (err error) {
 	sep := ":"
 
 	switch e.GetFramework() {
-	case framework.JVM:
+	case Framework.JVM:
 		// get the innermost exception
 		innermostException := e.Exceptions[len(e.Exceptions)-1]
 
@@ -1615,7 +1624,7 @@ func (e *Exception) ComputeFingerprint() (err error) {
 				input += sep + fileName
 			}
 		}
-	case framework.Apple:
+	case Framework.Apple:
 		// initialize with the exception type
 		input = e.GetType()
 
@@ -1630,7 +1639,7 @@ func (e *Exception) ComputeFingerprint() (err error) {
 		if frame.FileName != "" {
 			input += sep + frame.FileName
 		}
-	case framework.Dart:
+	case Framework.Dart:
 		// get the outermost exception
 		outermostException := e.Exceptions[0]
 
@@ -1758,7 +1767,7 @@ func (a ANR) Stacktrace() string {
 
 		for j := range a.Exceptions[i].Frames {
 			lastFrame := j == len(a.Exceptions[i].Frames)-1
-			frame := a.Exceptions[i].Frames[j].String(framework.JVM)
+			frame := a.Exceptions[i].Frames[j].String(Framework.JVM)
 			b.WriteString(FramePrefix + frame)
 			if !lastFrame || !lastException {
 				b.WriteString("\n")

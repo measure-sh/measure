@@ -3,9 +3,7 @@ package symbolicator
 import (
 	"backend/api/cache"
 	"backend/api/event"
-	"backend/api/framework"
 	"backend/api/opsys"
-	osName "backend/api/opsys"
 	"backend/api/span"
 	"backend/api/symbol"
 	"context"
@@ -181,10 +179,10 @@ func New(origin, operatingSys string, sources []Source) (symbolicator *Symbolica
 	// which are needed based on the events
 	// in the batch.
 	switch opsys.ToFamily(operatingSys) {
-	case osName.Android:
+	case opsys.Android:
 		symbolicator.jvmSymbolicator = &jvmSymbolicator{}
 		symbolicator.nativeSymbolicator = &nativeSymbolicator{}
-	case osName.AppleFamily:
+	case opsys.AppleFamily:
 		symbolicator.appleSymbolicator = &appleSymbolicator{}
 		symbolicator.nativeSymbolicator = &nativeSymbolicator{}
 	}
@@ -204,7 +202,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 		// apple exceptions are symbolicated
 		// in place and do not need any
 		// further processing
-		if ev.Type == event.TypeException && ev.Exception.GetFramework() == framework.Apple {
+		if ev.Type == event.TypeException && ev.Exception.GetFramework() == event.Framework.Apple {
 			s.appleSymbolicator.symbolicate(ev, s.Origin, s.Sources)
 			continue
 		}
@@ -242,7 +240,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 		case event.TypeException:
 			f := ev.Exception.GetFramework()
 			switch f {
-			case framework.JVM:
+			case event.Framework.JVM:
 				// initialize jvm symbolicator request
 				s.jvmSymbolicator.ensureRequestInitialized()
 
@@ -253,7 +251,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 				threads := ev.Exception.Threads
 				s.jvmSymbolicator.parseExceptions(exceptions, threads, i)
 
-			case framework.Dart:
+			case event.Framework.Dart:
 				// initialize native symbolicator request
 				s.nativeSymbolicator.ensureRequestInitialized()
 
