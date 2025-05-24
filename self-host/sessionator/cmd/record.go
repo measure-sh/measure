@@ -323,12 +323,6 @@ func writeBuild(c *gin.Context) {
 		return
 	}
 
-	// default to "proguard"
-	// mapping type
-	if len(mappingTypes) == 0 {
-		mappingTypes = []string{"proguard"}
-	}
-
 	for i := range mappingTypes {
 		if mappingTypes[i] != "proguard" && mappingTypes[i] != "dsym" && mappingTypes[i] != "elf_debug" {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -339,6 +333,14 @@ func writeBuild(c *gin.Context) {
 	}
 
 	files := c.Request.MultipartForm.File["mapping_file"]
+
+	if len(files) != len(mappingTypes) {
+		fmt.Printf("number of mapping files (%d) does not match number of mapping types (%d)\n", len(files), len(mappingTypes))
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("number of mapping files (%d) does not match number of mapping types (%d)", len(files), len(mappingTypes)),
+		})
+		return
+	}
 
 	for i, mappingType := range mappingTypes {
 		header := files[i]
