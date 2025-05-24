@@ -99,6 +99,15 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 		osName = bm.OSName
 	}
 
+	// Deduce OS name from platform.
+	// This is critical for maintaining
+	// backwards compatibility.
+	// Older Android (<=android-gradle-plugn@0.8.0)
+	// do not send os_name, but send platform instead.
+	if osName == "" && bm.Platform != "" {
+		osName = bm.Platform
+	}
+
 	if osName == "" {
 		// Since, older Android (<=android-gradle-plugn@0.7.0) and
 		// iOS (<=0.1.0) SDKs were not sending `platform`
