@@ -640,7 +640,7 @@ func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions 
 
 	avgSizeStmt := sqlf.PostgreSQL.
 		From("public.build_sizes").
-		Select("round(avg(build_size), 2) as average_size").
+		Select("round(coalesce(avg(build_size), 2), 0) as average_size").
 		Where("app_id = ?", af.AppID)
 
 	if versions.HasVersions() {

@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 
@@ -1114,10 +1113,28 @@ func (af *AppFilter) GetExcludedVersions(ctx context.Context) (versions Versions
 		return
 	}
 
-	for i := 0; i < count; i++ {
-		if !slices.Contains(af.Versions, allVersions[i]) && !slices.Contains(af.VersionCodes, allCodes[i]) {
-			versions.Add(allVersions[i], allCodes[i])
+	versions = exclude(allVersions, allCodes, af.Versions, af.VersionCodes)
+
+	return
+}
+
+// exclude figures out the set of excluded versions
+// from sets of all versions and sets of selected
+// versions.
+func exclude(allV, allC, selV, selC []string) (versions Versions) {
+	selCount := make(map[string]int)
+	for i := range selV {
+		key := selV[i] + "\x00" + selC[i]
+		selCount[key]++
+	}
+
+	for i := range allV {
+		key := allV[i] + "\x00" + allC[i]
+		if selCount[key] > 0 {
+			selCount[key]--
+			continue
 		}
+		versions.Add(allV[i], allC[i])
 	}
 
 	return
