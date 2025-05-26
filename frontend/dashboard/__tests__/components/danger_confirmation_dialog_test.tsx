@@ -1,9 +1,9 @@
 import '@testing-library/jest-dom'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { expect, describe, it } from '@jest/globals'
-import DangerConfirmationModal from '@/app/components/danger_confirmation_modal'
+import DangerConfirmationModal from '@/app/components/danger_confirmation_dialog'
 
-describe('Alert Dialog Modal', () => {
+describe('Danger Confirmation Dialog', () => {
     it('renders correctly in opened state', () => {
         const body = 'SOME BODY TEXT'
         const affirmativeText = 'SOME AFFIRMATIVE TEXT'

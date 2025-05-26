@@ -2,6 +2,7 @@ import { HighlightInit } from '@highlight-run/next/client'
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Josefin_Sans, Space_Mono } from 'next/font/google'
+import { Toaster } from './components/toaster'
 
 const josefin_sans = Josefin_Sans({
   subsets: ['latin'], display: 'swap', weight: ['100', '200', '300', '400', '500', '600', '700'],
@@ -77,7 +78,10 @@ export default function RootLayout({
         }}
       />
       <html lang="en">
-        <body className={`${josefin_sans.variable} ${space_mono.variable}`}>{children}</body>
+        <body className={`${josefin_sans.variable} ${space_mono.variable}`}>
+          {children}
+          <Toaster />
+        </body>
       </html>
     </>
   )
