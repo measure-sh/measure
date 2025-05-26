@@ -154,35 +154,77 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                             </TableRow>
                         </TableHeader>
                         <TableBody className="font-body">
-                            {pageState.spans.results?.map(({ app_id, span_name, span_id, trace_id, status, start_time, duration, app_version, app_build, os_name, os_version, device_manufacturer, device_model }, idx) => (
-                                <TableRow
-                                    key={`${idx}-${span_id}`}
-                                    className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 cursor-pointer"
-                                    tabIndex={0}
-                                    role="button"
-                                    onClick={() => router.push(`/${params.teamId}/traces/${app_id}/${trace_id}`)}
-                                    onKeyDown={(e: React.KeyboardEvent<HTMLTableRowElement>) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            router.push(`/${params.teamId}/traces/${app_id}/${trace_id}`)
-                                        }
-                                    }}
-                                >
-                                    <TableCell className="w-[60%]">
-                                        <p className='text-xs truncate text-gray-500'>ID: {trace_id}</p>
-                                        <div className='py-1' />
-                                        <p className='truncate'>{span_name}</p>
-                                        <div className='py-1' />
-                                        <p className='text-xs truncate text-gray-500'>{`v${app_version}(${app_build}), ${os_name} ${os_version}, ${device_manufacturer} ${device_model}`}</p>
-                                    </TableCell>
-                                    <TableCell className="w-[20%] text-center">
-                                        <p className='truncate'>{formatDateToHumanReadableDate(start_time)}</p>
-                                        <div className='py-1' />
-                                        <p className='text-xs truncate'>{formatDateToHumanReadableTime(start_time)}</p>
-                                    </TableCell>
-                                    <TableCell className="w-[10%] text-center truncate">{formatMillisToHumanReadable(duration)}</TableCell>
-                                    <TableCell className={`w-[10%] text-center truncate ${status === 1 ? "text-green-600" : status === 2 ? "text-red-600" : ""}`}>{status === 0 ? 'Unset' : status === 1 ? 'Okay' : 'Error'}</TableCell>
-                                </TableRow>
-                            ))}
+                            {pageState.spans.results?.map(({ app_id, span_name, span_id, trace_id, status, start_time, duration, app_version, app_build, os_name, os_version, device_manufacturer, device_model }, idx) => {
+                                const traceHref = `/${params.teamId}/traces/${app_id}/${trace_id}`
+                                return (
+                                    <TableRow
+                                        key={`${idx}-${span_id}`}
+                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault()
+                                                router.push(traceHref)
+                                            }
+                                        }}
+                                    >
+                                        <TableCell className="w-[60%] relative p-0">
+                                            <a
+                                                href={traceHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-label={`ID: ${trace_id}`}
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                <p className='text-xs truncate text-gray-500 select-none'>ID: {trace_id}</p>
+                                                <div className='py-1' />
+                                                <p className='truncate select-none'>{span_name}</p>
+                                                <div className='py-1' />
+                                                <p className='text-xs truncate text-gray-500 select-none'>{`v${app_version}(${app_build}), ${os_name} ${os_version}, ${device_manufacturer} ${device_model}`}</p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="w-[20%] text-center relative p-0">
+                                            <a
+                                                href={traceHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-hidden="true"
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                <p className='truncate select-none'>{formatDateToHumanReadableDate(start_time)}</p>
+                                                <div className='py-1' />
+                                                <p className='text-xs truncate select-none'>{formatDateToHumanReadableTime(start_time)}</p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="w-[10%] text-center truncate select-none relative p-0">
+                                            <a
+                                                href={traceHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-hidden="true"
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                {formatMillisToHumanReadable(duration)}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className={`w-[10%] text-center truncate select-none relative p-0 ${status === 1 ? "text-green-600" : status === 2 ? "text-red-600" : ""}`}>
+                                            <a
+                                                href={traceHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-hidden="true"
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                {status === 0 ? 'Unset' : status === 1 ? 'Okay' : 'Error'}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
                         </TableBody>
                     </Table>
                 </div>}

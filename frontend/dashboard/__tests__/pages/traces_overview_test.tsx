@@ -237,11 +237,24 @@ describe('TracesOverview Component', () => {
             fireEvent.click(updateButton)
         })
 
-        // Find the row and simulate click
-        const row = screen.getByText('ID: trace1').closest('tr')
-        expect(row).toBeTruthy()
+        // Check that the span link is rendered with the correct href and accessible name
+        const link = screen.getByRole('link', { name: /ID: trace1/i })
+        expect(link).toBeInTheDocument()
+        expect(link).toHaveAttribute('href', '/123/traces/app1/trace1')
+
+        // Find the table row that contains this link
+        const row = link.closest('tr')
+        expect(row).toBeInTheDocument()
+
+        // Simulate keyboard navigation (Enter) on the row
         await act(async () => {
-            fireEvent.click(row!)
+            fireEvent.keyDown(row!, { key: 'Enter' })
+        })
+        expect(pushMock).toHaveBeenCalledWith('/123/traces/app1/trace1')
+
+        // Simulate keyboard navigation (Space) on the row
+        await act(async () => {
+            fireEvent.keyDown(row!, { key: ' ' })
         })
         expect(pushMock).toHaveBeenCalledWith('/123/traces/app1/trace1')
     })

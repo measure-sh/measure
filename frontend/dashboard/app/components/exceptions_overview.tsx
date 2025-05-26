@@ -181,41 +181,74 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
                   file_name,
                   count,
                   percentage_contribution
-                }) => (
-                  <TableRow
-                    key={id}
-                    className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 cursor-pointer"
-                    tabIndex={0}
-                    role="button"
-                    onClick={() =>
-                      router.push(
-                        `/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${pageState.filters.app!.id}/${id}/${type + (file_name !== '' ? '@' + file_name : '')}`
-                      )
-                    }
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        router.push(
-                          `/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${pageState.filters.app!.id}/${id}/${type + (file_name !== '' ? '@' + file_name : '')}`
-                        )
-                      }
-                    }}
-                  >
-                    <TableCell className="w-[60%]">
-                      <p className="truncate">
-                        {(file_name !== '' ? file_name : 'unknown_file') +
-                          ': ' +
-                          (method_name !== '' ? method_name : 'unknown_method') +
-                          '()'}
-                      </p>
-                      <div className="py-1" />
-                      <p className="text-xs truncate text-gray-500">
-                        {`${type}${message ? `:${message}` : ''}`}
-                      </p>
-                    </TableCell>
-                    <TableCell className="w-[20%] text-center truncate">{count}</TableCell>
-                    <TableCell className="w-[20%] text-center truncate">{percentage_contribution}%</TableCell>
-                  </TableRow>
-                )
+                }, idx) => {
+                  // Get date range, start date and end date from searchParams
+                  const d = searchParams.get('d')
+                  const sd = searchParams.get('sd')
+                  const ed = searchParams.get('ed')
+                  // Build query string for timestamps if present
+                  const timestampQuery = [sd ? `sd=${encodeURIComponent(sd)}` : null, ed ? `ed=${encodeURIComponent(ed)}` : null, d ? `d=${encodeURIComponent(d)}` : null].filter(Boolean).join('&')
+                  // Build base path
+                  const basePath = `/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${pageState.filters.app!.id}/${id}/${type + (file_name !== '' ? '@' + file_name : '')}`
+                  // Final href with query params if any
+                  const href = timestampQuery ? `${basePath}?${timestampQuery}` : basePath
+                  return (
+                    <TableRow
+                      key={`${idx}-${id}`}
+                      className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                      tabIndex={0}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          router.push(href)
+                        }
+                      }}
+                    >
+                      <TableCell className="w-[60%] relative p-0">
+                        <a
+                          href={href}
+                          className="absolute inset-0 z-10 cursor-pointer"
+                          tabIndex={-1}
+                          aria-label={`${file_name !== '' ? file_name : 'unknown_file'}: ${method_name !== '' ? method_name : 'unknown_method'}()`}
+                          style={{ display: 'block' }}
+                        />
+                        <div className="pointer-events-none p-4">
+                          <p className="truncate select-none">
+                            {(file_name !== '' ? file_name : 'unknown_file') + ': ' + (method_name !== '' ? method_name : 'unknown_method') + '()'}
+                          </p>
+                          <div className="py-1" />
+                          <p className="text-xs truncate text-gray-500 select-none">
+                            {`${type}${message ? `:${message}` : ''}`}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-[20%] text-center truncate select-none relative p-0">
+                        <a
+                          href={href}
+                          className="absolute inset-0 z-10 cursor-pointer"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                          style={{ display: 'block' }}
+                        />
+                        <div className="pointer-events-none p-4">
+                          {count}
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-[20%] text-center truncate select-none relative p-0">
+                        <a
+                          href={href}
+                          className="absolute inset-0 z-10 cursor-pointer"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                          style={{ display: 'block' }}
+                        />
+                        <div className="pointer-events-none p-4">
+                          {percentage_contribution}%
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                }
               )}
             </TableBody>
           </Table>
