@@ -154,39 +154,66 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {pageState.bugReportsOverview.results?.map(({ event_id, description, status, app_id, timestamp, matched_free_text, attribute }, idx) => (
-                                <TableRow
-                                    key={`${idx}-${event_id}`}
-                                    className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 cursor-pointer"
-                                    tabIndex={0}
-                                    role="button"
-                                    onClick={() => router.push(`/${params.teamId}/bug_reports/${app_id}/${event_id}`)}
-                                    onKeyDown={(e: React.KeyboardEvent<HTMLTableRowElement>) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            router.push(`/${params.teamId}/bug_reports/${app_id}/${event_id}`)
-                                        }
-                                    }}
-                                >
-                                    <TableCell className="w-[60%]">
-                                        <p className="truncate text-xs text-gray-500">ID: {event_id}</p>
-                                        <div className='py-1' />
-                                        <p className='truncate'>{description ? description : "No Description"}</p>
-                                        <div className='py-1' />
-                                        <p className='text-xs truncate text-gray-500'>{"v" + attribute.app_version + "(" + attribute.app_build + "), " + attribute.os_name + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
-                                        {matched_free_text !== "" && <p className='p-1 mt-2 text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
-                                    </TableCell>
-                                    <TableCell className="w-[20%] text-center">
-                                        <p className='truncate'>{formatDateToHumanReadableDate(timestamp)}</p>
-                                        <div className='py-1' />
-                                        <p className='text-xs truncate'>{formatDateToHumanReadableTime(timestamp)}</p>
-                                    </TableCell>
-                                    <TableCell className="w-[20%] text-center">
-                                        <div className='items-center flex justify-center'>
-                                            <p className={`w-20 px-2 py-1 rounded-full border text-sm font-body ${status === 0 ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>{status === 0 ? 'Open' : 'Closed'}</p>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                            {pageState.bugReportsOverview.results?.map(({ event_id, description, status, app_id, timestamp, matched_free_text, attribute }, idx) => {
+                                const bugReportHref = `/${params.teamId}/bug_reports/${app_id}/${event_id}`
+                                return (
+                                    <TableRow
+                                        key={`${idx}-${event_id}`}
+                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault()
+                                                router.push(bugReportHref)
+                                            }
+                                        }}
+                                    >
+                                        <TableCell className="w-[60%] relative p-0">
+                                            <a
+                                                href={bugReportHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-label={`ID: ${event_id}`}
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                <p className="truncate text-xs text-gray-500 select-none">ID: {event_id}</p>
+                                                <div className='py-1' />
+                                                <p className='truncate select-none'>{description ? description : "No Description"}</p>
+                                                <div className='py-1' />
+                                                <p className='text-xs truncate text-gray-500 select-none'>{"v" + attribute.app_version + "(" + attribute.app_build + "), " + attribute.os_name + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
+                                                {matched_free_text !== "" && <p className='p-1 mt-2 text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="w-[20%] text-center relative p-0">
+                                            <a
+                                                href={bugReportHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-hidden="true"
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                <p className='truncate select-none'>{formatDateToHumanReadableDate(timestamp)}</p>
+                                                <div className='py-1' />
+                                                <p className='text-xs truncate select-none'>{formatDateToHumanReadableTime(timestamp)}</p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="w-[20%] text-center relative p-0">
+                                            <a
+                                                href={bugReportHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-hidden="true"
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4 items-center flex justify-center">
+                                                <p className={`w-20 px-2 py-1 rounded-full border text-sm font-body select-none ${status === 0 ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>{status === 0 ? 'Open' : 'Closed'}</p>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
                         </TableBody>
                     </Table>
                 </div>}

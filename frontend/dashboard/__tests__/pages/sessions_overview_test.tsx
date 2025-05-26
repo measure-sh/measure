@@ -213,14 +213,25 @@ describe('SessionsOverview Component', () => {
             fireEvent.click(updateButton)
         })
 
-        // Click the table row to trigger navigation
-        const row = screen.getByRole('button', { name: /ID: session1/i })
-        fireEvent.click(row)
-        expect(pushMock).toHaveBeenCalledWith('/123/sessions/app1/session1')
+        // Check that the session link is rendered with the correct href and accessible name
+        const link = screen.getByRole('link', { name: /ID: session1/i })
+        expect(link).toBeInTheDocument()
+        expect(link).toHaveAttribute('href', '/123/sessions/app1/session1')
 
-        // Simulate keyboard navigation (Enter)
+        // Find the table row that contains this link
+        // The link is now inside the first TableCell, so we find the row by traversing up from the link
+        const row = link.closest('tr')
+        expect(row).toBeInTheDocument()
+
+        // Simulate keyboard navigation (Enter) on the row
         await act(async () => {
             fireEvent.keyDown(row!, { key: 'Enter' })
+        })
+        expect(pushMock).toHaveBeenCalledWith('/123/sessions/app1/session1')
+
+        // Simulate keyboard navigation (Space) on the row
+        await act(async () => {
+            fireEvent.keyDown(row!, { key: ' ' })
         })
         expect(pushMock).toHaveBeenCalledWith('/123/sessions/app1/session1')
     })
