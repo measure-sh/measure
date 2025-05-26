@@ -2,13 +2,15 @@
 
 import { AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppNameFromServer, emptyAppSettings, FetchAppSettingsApiStatus, fetchAppSettingsFromServer, fetchAuthzAndMembersFromServer, FilterSource, UpdateAppSettingsApiStatus, updateAppSettingsFromServer } from "@/app/api/api_calls"
 import CreateApp from "@/app/components/create_app"
-import DangerConfirmationModal from "@/app/components/danger_confirmation_modal"
+import DangerConfirmationModal from "@/app/components/danger_confirmation_dialog"
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters"
 import { measureAuth } from "@/app/auth/measure_auth"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
 import React, { useState, useEffect } from 'react'
 import { Button } from "@/app/components/button"
+import { toast } from "@/app/utils/use_toast"
+import LoadingSpinner from "@/app/components/loading_spinner"
 
 export default function Apps({ params }: { params: { teamId: string } }) {
   const [filters, setFilters] = useState(defaultFilters)
@@ -19,7 +21,6 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const [updateAppSettingsApiStatus, setUpdateAppSettingsApiStatus] = useState(UpdateAppSettingsApiStatus.Init)
   const [appSettings, setAppSettings] = useState(emptyAppSettings)
   const [updatedAppSettings, setUpdatedAppSettings] = useState(emptyAppSettings)
-  const [updateAppSettingsMsg, setUpdateAppSettingsMsg] = useState('')
 
   const [saveAppNameButtonDisabled, setSaveAppNameButtonDisabled] = useState(true)
 
@@ -66,6 +67,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       case FetchAppSettingsApiStatus.Success:
         setFetchAppSettingsApiStatus(FetchAppSettingsApiStatus.Success)
         setAppSettings(result.data)
+        setUpdatedAppSettings(result.data)
         break
     }
   }
@@ -82,7 +84,6 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
   const saveAppSettings = async () => {
     setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Loading)
-    setUpdateAppSettingsMsg("Saving...")
 
     const result = await updateAppSettingsFromServer(filters.app!.id, updatedAppSettings)
 
@@ -90,12 +91,18 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
       case UpdateAppSettingsApiStatus.Error:
         setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Error)
-        setUpdateAppSettingsMsg(result.error)
+        toast({
+          title: "Error saving app settings",
+          description: result.error,
+          variant: "destructive"
+        })
         break
       case UpdateAppSettingsApiStatus.Success:
         setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Error)
-        setUpdateAppSettingsMsg("App settings saved!")
         setAppSettings(updatedAppSettings)
+        toast({
+          description: "Your app settings have been saved successfully!",
+        })
         break
     }
   }
@@ -120,7 +127,6 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
   const handleRetentionPeriodChange = (newRetentionPeriod: string) => {
     setUpdatedAppSettings({ retention_period: displayTextToRetentionPeriodMap.get(newRetentionPeriod)! })
-    setUpdateAppSettingsMsg('')
   }
 
   const changeAppName = async () => {
@@ -131,6 +137,11 @@ export default function Apps({ params }: { params: { teamId: string } }) {
     switch (result.status) {
       case AppNameChangeApiStatus.Error:
         setAppNameChangeApiStatus(AppNameChangeApiStatus.Error)
+        toast({
+          title: "Error changing app name",
+          description: "Please try again later",
+          variant: "destructive"
+        })
         break
       case AppNameChangeApiStatus.Success:
         setAppNameChangeApiStatus(AppNameChangeApiStatus.Success)
@@ -197,10 +208,17 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                   disabled={saveAppNameButtonDisabled || appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
                   className="m-4 font-display border border-black rounded-md select-none"
                   onClick={() => setAppNameConfirmationModalOpen(true)}>
-                  Save
+                  {appNameChangeApiStatus === AppNameChangeApiStatus.Loading ? (
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "100%", position: "relative" }}>
+                      <span style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <LoadingSpinner />
+                      </span>
+                      <span style={{ visibility: "hidden" }}>Save</span>
+                    </span>
+                  ) : (
+                    "Save"
+                  )}
                 </Button>
-                {appNameChangeApiStatus === AppNameChangeApiStatus.Loading && <p className="text-sm align-bottom font-display">Changing app name...</p>}
-                {appNameChangeApiStatus === AppNameChangeApiStatus.Error && <p className="text-sm align-bottom font-display">Error changing app name, please try again</p>}
               </div>
               <p>Package name: {filters.app!.unique_identifier}</p>
               <div className="py-1" />
@@ -211,7 +229,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             <div className="flex flex-row items-center">
               <p>Data retention period</p>
               <div className="px-2" />
-              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Loading && <p>: Loading...</p>}
+              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Loading && <LoadingSpinner />}
               {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Error && <p>: Unable to fetch retention period. Please refresh page to try again.</p>}
               {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success && <DropdownSelect type={DropdownSelectType.SingleString} title="Data Retention Period" items={Array.from(retentionPeriodToDisplayTextMap.values())} initialSelected={retentionPeriodToDisplayTextMap.get(appSettings.retention_period!)!} onChangeSelected={(item) => handleRetentionPeriodChange(item as string)} />}
               {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success &&
@@ -219,11 +237,11 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                   variant="outline"
                   className="m-4 font-display border border-black rounded-md select-none"
                   disabled={!currentUserCanChangeAppSettings || updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading || appSettings.retention_period === updatedAppSettings.retention_period}
+                  loading={updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading}
                   onClick={() => saveAppSettings()}>
                   Save
-                </Button>}
-              <div className="py-1" />
-              {updateAppSettingsApiStatus !== UpdateAppSettingsApiStatus.Init && <p className="text-sm font-body">{updateAppSettingsMsg}</p>}
+                </Button>
+              }
             </div>
             <div className="flex flex-row items-center">
               <p>Base URL</p>
@@ -232,7 +250,12 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               <Button
                 variant="outline"
                 className="m-4 font-display border border-black rounded-md select-none"
-                onClick={() => navigator.clipboard.writeText(process.env.NEXT_PUBLIC_API_BASE_URL!)}>
+                onClick={() => {
+                  navigator.clipboard.writeText(process.env.NEXT_PUBLIC_API_BASE_URL!)
+                  toast({
+                    description: "Base URL copied to clipboard",
+                  })
+                }}>
                 Copy
               </Button>
             </div>
@@ -243,7 +266,12 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               <Button
                 variant="outline"
                 className="m-4 font-display border border-black rounded-md select-none"
-                onClick={() => navigator.clipboard.writeText(filters.app!.api_key.key)}>
+                onClick={() => {
+                  navigator.clipboard.writeText(filters.app!.api_key.key)
+                  toast({
+                    description: "API key copied to clipboard",
+                  })
+                }}>
                 Copy
               </Button>
             </div>
