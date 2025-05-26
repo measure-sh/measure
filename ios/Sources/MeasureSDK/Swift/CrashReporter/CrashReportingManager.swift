@@ -81,7 +81,7 @@ final class CrashReportingManager: CrashReportManager {
         }
 
         let crashDataAttributes = crashDataPersistence.readCrashData()
-        if let attributes = crashDataAttributes.attribute, let sessionId = crashDataPersistence.sessionId {
+        if let attributes = crashDataAttributes.attribute, let sessionId = crashDataAttributes.sessionId {
             exception.foreground = crashDataPersistence.isForeground
             self.signalProcessor.track(data: exception,
                                        timestamp: Number(date.timeIntervalSince1970 * 1000),
