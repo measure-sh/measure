@@ -2,6 +2,7 @@ package filter
 
 import (
 	"backend/api/event"
+	"reflect"
 	"testing"
 )
 
@@ -82,6 +83,172 @@ func TestParseRawUDExpression(t *testing.T) {
 
 		if expectedValue != gotValue {
 			t.Errorf("Expected %v value, got %v", expectedValue, gotValue)
+		}
+	}
+}
+
+func TestExclude(t *testing.T) {
+	// no selected versions match
+	{
+		allVersions := []string{
+			"1.0.1",
+			"1.0.1",
+			"1.0.2",
+		}
+		allCodes := []string{
+			"0",
+			"1",
+			"2",
+		}
+
+		selVersions := []string{
+			"4.5.6",
+		}
+		selCodes := []string{
+			"7",
+		}
+
+		got := exclude(allVersions, allCodes, selVersions, selCodes)
+		expected := Versions{
+			names: []string{
+				"1.0.1",
+				"1.0.1",
+				"1.0.2",
+			},
+			codes: []string{
+				"0",
+				"1",
+				"2",
+			},
+		}
+
+		if !reflect.DeepEqual(expected.Versions(), got.Versions()) {
+			t.Errorf("Expected %v, but got %v", expected.Versions(), got.Versions())
+		}
+
+		if !reflect.DeepEqual(expected.Codes(), got.Codes()) {
+			t.Errorf("Expected %v, but got %v", expected.Codes(), got.Codes())
+		}
+	}
+
+	// at least 1 selected versions match
+	{
+		allVersions := []string{
+			"1.0.1",
+			"1.0.1",
+			"1.0.2",
+		}
+		allCodes := []string{
+			"0",
+			"1",
+			"2",
+		}
+
+		selVersions := []string{
+			"1.0.1",
+		}
+		selCodes := []string{
+			"1",
+		}
+
+		got := exclude(allVersions, allCodes, selVersions, selCodes)
+		expected := Versions{
+			names: []string{
+				"1.0.1",
+				"1.0.2",
+			},
+			codes: []string{
+				"0",
+				"2",
+			},
+		}
+
+		if !reflect.DeepEqual(expected.Versions(), got.Versions()) {
+			t.Errorf("Expected %v, but got %v", expected.Versions(), got.Versions())
+		}
+
+		if !reflect.DeepEqual(expected.Codes(), got.Codes()) {
+			t.Errorf("Expected %v, but got %v", expected.Codes(), got.Codes())
+		}
+	}
+
+	// more than 1 selected versions match
+	{
+		allVersions := []string{
+			"1.0.1",
+			"1.0.1",
+			"1.0.2",
+		}
+		allCodes := []string{
+			"0",
+			"1",
+			"2",
+		}
+
+		selVersions := []string{
+			"1.0.1",
+			"1.0.2",
+		}
+		selCodes := []string{
+			"1",
+			"2",
+		}
+
+		got := exclude(allVersions, allCodes, selVersions, selCodes)
+		expected := Versions{
+			names: []string{
+				"1.0.1",
+			},
+			codes: []string{
+				"0",
+			},
+		}
+
+		if !reflect.DeepEqual(expected.Versions(), got.Versions()) {
+			t.Errorf("Expected %v, but got %v", expected.Versions(), got.Versions())
+		}
+
+		if !reflect.DeepEqual(expected.Codes(), got.Codes()) {
+			t.Errorf("Expected %v, but got %v", expected.Codes(), got.Codes())
+		}
+	}
+
+	// all selected versions match
+	{
+		allVersions := []string{
+			"1.0.1",
+			"1.0.1",
+			"1.0.2",
+		}
+		allCodes := []string{
+			"0",
+			"1",
+			"2",
+		}
+
+		selVersions := []string{
+			"1.0.1",
+			"1.0.1",
+			"1.0.2",
+		}
+		selCodes := []string{
+			"0",
+			"1",
+			"2",
+		}
+
+		got := exclude(allVersions, allCodes, selVersions, selCodes)
+		expected := Versions{
+			names: []string{},
+			codes: []string{},
+		}
+
+		if len(got.Versions()) > 0 {
+			t.Errorf("Expected %d length, but got %d length", len(expected.Versions()), len(got.Versions()))
+		}
+
+		if len(got.Codes()) > 0 {
+			t.Errorf("Expected %d length, but got %d length", len(expected.Codes()), len(got.Codes()))
 		}
 	}
 }
