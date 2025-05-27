@@ -3,6 +3,7 @@ import { emptyAnrExceptionsDetailsResponse, emptyCrashExceptionsDetailsResponse,
 import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
 import { Button } from './button'
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip'
+import { toastPositive } from '../utils/use_toast'
 
 interface CopyAiContextProps {
   appName: string,
@@ -49,7 +50,10 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({ appName, exceptionsType, 
         <Button
           variant="outline"
           className="font-display border border-black rounded-md select-none"
-          onClick={() => navigator.clipboard.writeText(llmContext)}
+          onClick={() => {
+            navigator.clipboard.writeText(llmContext)
+            toastPositive("AI context copied to clipboard")
+          }}
         >Copy AI Context
         </Button>
       </TooltipTrigger>
