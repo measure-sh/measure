@@ -351,7 +351,7 @@ export type App = {
   onboarded: boolean
   created_at: string
   updated_at: string
-  platform: string | null
+  os_name: string | null
   onboarded_at: string | null
   unique_identifier: string | null
 }

@@ -3,7 +3,7 @@ package span
 import (
 	"backend/api/event"
 	"backend/api/filter"
-	"backend/api/platform"
+	"backend/api/opsys"
 	"backend/api/server"
 	"context"
 	"fmt"
@@ -226,10 +226,10 @@ func (s *SpanField) Validate() error {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `platform`, maxPlatformChars)
 	}
 
-	switch s.Attributes.Platform {
-	case platform.Android, platform.IOS:
+	switch opsys.ToFamily(s.Attributes.OSName) {
+	case opsys.Android, opsys.AppleFamily:
 	default:
-		return fmt.Errorf(`%q does not contain a valid platform value`, `attribute.platform`)
+		return fmt.Errorf(`%q does not contain a valid OS value`, `attribute.os_name`)
 	}
 
 	if len(s.Attributes.ThreadName) > maxThreadNameChars {
@@ -284,8 +284,8 @@ func (s SpanField) NeedsSymbolication() (result bool) {
 		return
 	}
 
-	switch s.Attributes.Platform {
-	case platform.Android:
+	switch s.Attributes.OSName {
+	case opsys.Android:
 		matches := ttidClassRE.FindStringSubmatch(s.SpanName)
 
 		if len(matches) > 1 {

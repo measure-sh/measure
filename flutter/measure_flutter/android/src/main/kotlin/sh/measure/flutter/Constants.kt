@@ -20,8 +20,3 @@ object ErrorCode {
     const val ERROR_INVALID_ATTRIBUTE = "invalid_attribute"
     const val ERROR_UNKNOWN = "unknown_error"
 }
-
-object Attribute {
-    const val PLATFORM = "platform"
-    const val PLATFORM_FLUTTER = "flutter"
-}

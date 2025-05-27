@@ -4,7 +4,54 @@ import (
 	"slices"
 )
 
+// frameNative represents a native frame
+// for native symbolication, used for
+// Dart.
 type frameNative struct {
+	Status          string `json:"status"`
+	OriginalIndex   int    `json:"original_index"`
+	InstructionAddr string `json:"instruction_addr"`
+	Symbol          string `json:"symbol"`
+	Package         string `json:"package"`
+	Function        string `json:"function"`
+	Filename        string `json:"filename"`
+	AbsPath         string `json:"abs_path"`
+	LineNo          int    `json:"lineno"`
+}
+
+// stacktraceNative represents a stacktrace
+// for native symbolication, used for Dart.
+type stacktraceNative struct {
+	ThreadId     int           `json:"thread_id"`
+	IsRequesting bool          `json:"is_requesting"`
+	Frames       []frameNative `json:"frames"`
+}
+
+// moduleNative represents a module
+// for native symbolication, used for
+// Dart.
+type moduleNative struct {
+	DebugStatus string `json:"debug_status"`
+	DebugId     string `json:"debug_id"`
+	CodeId      string `json:"code_id"`
+	Arch        string `json:"arch"`
+	ImageAddr   string `json:"image_addr"`
+	Type        string `json:"type"`
+}
+
+// responseNative represents the payload received
+// from Sentry's Symbolicator for native
+// symbolication, used for Dart.
+type responseNative struct {
+	Status      string             `json:"status"`
+	Stacktraces []stacktraceNative `json:"stacktraces"`
+	Modules     []moduleNative     `json:"modules"`
+}
+
+// frameApple represents a native frame
+// for native symbolication, used for
+// iOS.
+type frameApple struct {
 	Status          string `json:"status"`
 	OriginalIndex   int    `json:"original_index"`
 	InstructionAddr string `json:"instruction_addr"`
@@ -18,28 +65,40 @@ type frameNative struct {
 	LineNo          int    `json:"lineno"`
 }
 
-type stacktraceNative struct {
-	ThreadId     int           `json:"thread_id"`
-	IsRequesting bool          `json:"is_requesting"`
-	Frames       []frameNative `json:"frames"`
+// stacktraceApple represents a stacktrace
+// for native symbolication, used for iOS.
+type stacktraceApple struct {
+	ThreadId     int          `json:"thread_id"`
+	IsRequesting bool         `json:"is_requesting"`
+	Frames       []frameApple `json:"frames"`
 }
 
-type moduleNative struct {
+// moduleApple represents a module
+// for native symbolication, used for
+// iOS.
+type moduleApple struct {
 	DebugStatus string `json:"debug_status"`
 	DebugId     string `json:"debug_id"`
 }
 
-type responseNative struct {
-	Status      string             `json:"status"`
-	Stacktraces []stacktraceNative `json:"stacktraces"`
-	Modules     []moduleNative     `json:"modules"`
+// responseApple represents the payload received
+// from Sentry's Symbolicator for native
+// symbolication, used for iOS.
+type responseApple struct {
+	Status      string            `json:"status"`
+	Stacktraces []stacktraceApple `json:"stacktraces"`
+	Modules     []moduleApple     `json:"modules"`
 }
 
+// exceptionJVM represents an exception
+// for JVM symbolication.
 type exceptionJVM struct {
 	Type   string `json:"type"`
 	Module string `json:"module"`
 }
 
+// frameJVM represents a frame
+// for JVM symbolication.
 type frameJVM struct {
 	Function string `json:"function"`
 	Filename string `json:"filename"`
@@ -50,10 +109,14 @@ type frameJVM struct {
 	Index    int    `json:"index"`
 }
 
+// stacktraceJVM represents a stacktrace
+// for JVM symbolication.
 type stacktraceJVM struct {
 	Frames []frameJVM `json:"frames"`
 }
 
+// moduleJVM represents a module
+// for JVM symbolication.
 type moduleJVM struct {
 	UUID string `json:"uuid"`
 	Type string `json:"type"`
@@ -105,6 +168,25 @@ type requestJVM struct {
 	Modules []moduleJVM `json:"modules"`
 }
 
+// requestNative represents the payload sent
+// to Sentry's Symbolicator for native
+// symbolication.
+type requestNative struct {
+	// Platform defines the platform which
+	// should be 'native'.
+	Platform string `json:"platform"`
+	// Sources is the lists of symbol Sources
+	// as defined by Sentry Symbolicator.
+	// https://getsentry.github.io/symbolicator/api/
+	Sources []Source `json:"sources"`
+	// Classes form a list of all classes that
+	// needs symbolication.
+	Stacktraces []stacktraceNative `json:"stacktraces"`
+	// Modules form a list of Debug Information
+	// Files and their types.
+	Modules []moduleNative `json:"modules"`
+}
+
 // AddModule adds a module to the JVM request
 // payload only if not already present.
 func (r *requestJVM) AddModule(debugId string, mType string) {
@@ -154,5 +236,49 @@ func NewRequestJVM() *requestJVM {
 		Exceptions:  []exceptionJVM{},
 		Stacktraces: []stacktraceJVM{},
 		Modules:     []moduleJVM{},
+	}
+}
+
+// AddModule adds a module to the JVM request
+// payload only if not already present.
+func (r *requestNative) AddMachOModule(codeId string, arch string, imageAddr string) {
+	for _, m := range r.Modules {
+		if m.CodeId == codeId {
+			return
+		}
+	}
+
+	r.Modules = append(r.Modules, moduleNative{
+		CodeId:    codeId,
+		Type:      "macho",
+		Arch:      arch,
+		ImageAddr: imageAddr,
+	})
+}
+
+// AddModule adds a module to the JVM request
+// payload only if not already present.
+func (r *requestNative) AddElfModule(codeId string, arch string, imageAddr string) {
+	for _, m := range r.Modules {
+		if m.CodeId == codeId {
+			return
+		}
+	}
+
+	r.Modules = append(r.Modules, moduleNative{
+		CodeId:    codeId,
+		Type:      "elf",
+		Arch:      arch,
+		ImageAddr: imageAddr,
+	})
+}
+
+// NewRequestNative creates a new response payload
+// for symbolicating native events.
+func NewRequestNative() *requestNative {
+	return &requestNative{
+		Platform:    "native",
+		Stacktraces: []stacktraceNative{},
+		Modules:     []moduleNative{},
 	}
 }

@@ -72,14 +72,10 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         sessionId: String? = null,
         threadName: String? = null,
     ) {
-        val attributes = mutableMapOf<String, Any?>(
-            Attribute.PLATFORM to Attribute.PLATFORM_FLUTTER
-        )
         Measure.internalTrackEvent(
             data = data,
             type = type,
             timestamp = timestamp,
-            attributes = attributes,
             userDefinedAttrs = userDefinedAttrs,
             attachments = attachments,
             userTriggered = userTriggered,

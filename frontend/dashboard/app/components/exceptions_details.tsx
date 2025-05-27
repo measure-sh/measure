@@ -255,14 +255,14 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                         </AccordionContent>
                       </AccordionItem>
                     }
-                    {pageState.exceptionsDetails.results[0].threads.map((e, index) => (
+                    {pageState.exceptionsDetails.results[0].threads?.map((e, index) => (
                       <AccordionItem value={`${e.name}-${index}`} key={`${e.name}-${index}`}>
                         <AccordionTrigger className='font-display'>{'Thread: ' + e.name}</AccordionTrigger>
                         <AccordionContent className={stackTraceAccordionContentStyle}>
                           {e.frames.join('\n')}
                         </AccordionContent>
                       </AccordionItem>
-                    ))}
+                    )) || []}
                   </Accordion>
                 </div>}
             </div>}

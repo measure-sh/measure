@@ -52,12 +52,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
             return
         }
             
-        guard let platform = attributes["platform"] as? String else {
-            logger.log(level: .warning, message: "Platform not found in attributes, cannot process event", error: nil, data: nil)
-            return
-        }
-        
-        let evaluatedAttributes = Attributes(platform: platform)
+        let evaluatedAttributes = Attributes()
         let serializedUserDefinedAttributes = EventSerializer.serializeUserDefinedAttribute(userDefinedAttrs)
         
         do {

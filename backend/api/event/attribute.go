@@ -1,7 +1,7 @@
 package event
 
 import (
-	"backend/api/platform"
+	"backend/api/opsys"
 	"fmt"
 	"slices"
 
@@ -91,7 +91,7 @@ type Attribute struct {
 	DeviceCPUArch string `json:"device_cpu_arch"`
 
 	// OSName is the operating system's name
-	OSName string `json:"os_name"`
+	OSName string `json:"os_name" binding:"required"`
 
 	// OSVersion is the operating system's vesrion.
 	OSVersion string `json:"os_version"`
@@ -143,10 +143,18 @@ func (a Attribute) Validate() error {
 		maxDeviceCPUArchChars      = 16
 	)
 
-	switch a.Platform {
-	case platform.Android, platform.IOS:
+	if len(a.OSName) > maxOSNameChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.os_name`, maxOSNameChars)
+	}
+
+	if opsys.ToFamily(a.OSName) == opsys.Unknown {
+		return fmt.Errorf(`%q does not contain a valid OS name value`, `attribute.os_name`)
+	}
+
+	switch opsys.ToFamily(a.OSName) {
+	case opsys.Android, opsys.AppleFamily:
 	default:
-		return fmt.Errorf(`%q does not contain a valid platform value`, `attribute.platform`)
+		return fmt.Errorf(`%q does not contain a valid OS name value`, `attribute.os_name`)
 	}
 
 	if a.InstallationID == uuid.Nil {
@@ -208,8 +216,8 @@ func (a Attribute) Validate() error {
 	if len(a.DeviceCPUArch) > maxDeviceCPUArchChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.device_cpu_arch`, maxDeviceCPUArchChars)
 	}
-	if len(a.OSName) > maxOSNameChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.os_name`, maxOSNameChars)
+	if a.Platform != "android" && a.Platform != "ios" {
+		return fmt.Errorf(`%q does not contain a valid platform value`, `attribute.platform`)
 	}
 	if len(a.OSVersion) > maxOSVersionChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.os_version`, maxOSVersionChars)

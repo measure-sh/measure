@@ -26,27 +26,6 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
         )
     }
     
-    func testTrackEvent_withoutPlatformAttribute_logsWarning() {
-        eventCollector.enable()
-        var eventData: [String: Any?] = ["key": "value"]
-        let type = EventType.custom.rawValue
-        
-        
-        eventCollector.trackEvent(
-            data: &eventData,
-            type: type,
-            timestamp: 097654121,
-            attributes: [:],
-            userDefinedAttrs: [:],
-            userTriggered: true,
-            sessionId: nil,
-            threadName: nil
-        )
-        
-        XCTAssertNil(signalProcessor.data)
-        XCTAssertTrue(logger.logs[1].contains("Platform not found in attributes, cannot process event"))
-    }
-    
     func testTrackEvent_tracksCustomEvent() {
         eventCollector.enable()
         var eventData: [String: Any?] = ["name": "custom-event"]
@@ -56,7 +35,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             data: &eventData,
             type: type,
             timestamp: 097654121,
-            attributes: ["platform": "flutter"],
+            attributes: [:],
             userDefinedAttrs: [:],
             userTriggered: true,
             sessionId: nil,
@@ -103,7 +82,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
                     frames: [
                         StackFrame(
                             binaryName: nil,
-                            binaryAddress: "0x7af7026000",
+                            binaryAddress: nil,
                             offset: nil,
                             frameIndex: 0,
                             symbolAddress: nil,
@@ -118,7 +97,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
                         ),
                         StackFrame(
                             binaryName: nil,
-                            binaryAddress: "0x7af7026000",
+                            binaryAddress: nil,
                             offset: nil,
                             frameIndex: 1,
                             symbolAddress: nil,
@@ -140,7 +119,8 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             ],
             foreground: true,
             threads: [],
-            binaryImages: nil
+            binaryImages: nil,
+            framework: "ios"
         )
         
         eventCollector.trackEvent(
@@ -231,14 +211,15 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             ],
             foreground: true,
             threads: [],
-            binaryImages: nil
+            binaryImages: nil,
+            framework: "ios"
         )
         
         eventCollector.trackEvent(
             data: &eventData,
             type: type,
             timestamp: 097654121,
-            attributes: ["platform": "flutter"],
+            attributes: [:],
             userDefinedAttrs: [:],
             userTriggered: true,
             sessionId: nil,

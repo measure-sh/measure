@@ -26,7 +26,7 @@ func TestNewS3SourceAndroid(t *testing.T) {
 	{
 		bytes, _ := json.Marshal(source)
 
-		expected := `{"id":"my-id","type":"s3","bucket":"my-bucket","prefix":"","region":["my-region","my-origin"],"path_style":true,"access_key":"my-access-key","secret_key":"my-secret-key","filters":{"filetypes":["proguard"],"path_patterns":[]},"layout":{"type":"unified","casing":"lowercase"}}`
+		expected := `{"id":"my-id","type":"s3","bucket":"my-bucket","prefix":"","region":["my-region","my-origin"],"path_style":true,"access_key":"my-access-key","secret_key":"my-secret-key","filters":{"filetypes":["proguard","elf_debug"],"path_patterns":[]},"layout":{"type":"unified","casing":"lowercase"}}`
 		got := string(bytes)
 
 		if expected != got {

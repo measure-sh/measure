@@ -61,7 +61,7 @@ func NewS3SourceAndroid(id, bucket, region, origin, accessKey, secretKey string)
 	source.PathStyle = true
 	source.AccessKey = accessKey
 	source.SecretKey = secretKey
-	source.Filters.FileTypes = []string{"proguard"}
+	source.Filters.FileTypes = []string{"proguard", "elf_debug"}
 	source.Filters.PathPatterns = []string{}
 	source.Layout.Type = "unified"
 	source.Layout.Casing = "lowercase"
