@@ -255,7 +255,7 @@ export default function DashboardLayout({
         </header>
 
         <main className="md:overflow-auto flex justify-center">
-          <div className="w-full max-w-[1100px] px-8 md:px-0 pb-24">{children}</div>
+          <div className="w-full max-w-[1100px] px-4 pb-24">{children}</div>
         </main>
       </SidebarInset>
     </SidebarProvider>
