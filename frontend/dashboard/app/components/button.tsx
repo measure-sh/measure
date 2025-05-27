@@ -80,13 +80,15 @@ const Button = React.forwardRef<
         disabled={disabled || loading}
         {...props}
       >
-        <span className={cn("flex items-center justify-center", loading && "invisible")}>
-          {children}
-        </span>
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <LoadingSpinner className="size-4" />
-          </div>
+        {loading ? (
+          <>
+            <span className={cn("flex items-center justify-center", loading && "invisible")}>{children}</span>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <LoadingSpinner className="size-4" />
+            </div>
+          </>
+        ) : (
+          children
         )}
       </Comp>
     )
