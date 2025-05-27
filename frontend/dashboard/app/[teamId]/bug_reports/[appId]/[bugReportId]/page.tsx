@@ -7,6 +7,8 @@ import Link from "next/link"
 import { FormEventHandler, useEffect, useState } from "react"
 import { Button, buttonVariants } from "@/app/components/button"
 import { cn } from "@/app/utils/shadcn_utils"
+import { toastNegative, toastPositive } from "@/app/utils/use_toast"
+import LoadingSpinner from "@/app/components/loading_spinner"
 
 export default function BugReport({ params }: { params: { teamId: string, appId: string, bugReportId: string } }) {
   const [bugReport, setBugReport] = useState(emptyBugReport)
@@ -44,10 +46,12 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
     switch (result.status) {
       case UpdateBugReportStatusApiStatus.Error:
         setUpdateBugReportStatusApiStatus(UpdateBugReportStatusApiStatus.Error)
+        toastNegative("Error updating bug report status. Please try again.")
         break
       case UpdateBugReportStatusApiStatus.Success:
         setUpdateBugReportStatusApiStatus(UpdateBugReportStatusApiStatus.Success)
         setBugReport({ ...bugReport, status: bugReport.status === 0 ? 1 : 0 }) // Toggle status
+        toastPositive(bugReport.status === 0 ? "Bug report closed" : "Bug report re-opened")
         break
     }
   }
@@ -57,7 +61,7 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
       <p className="font-display text-4xl">Bug Report: {params.bugReportId}</p>
       <div className="py-2" />
 
-      {bugReportApiStatus === BugReportApiStatus.Loading && <p className="text-lg font-display">Fetching bug report...</p>}
+      {bugReportApiStatus === BugReportApiStatus.Loading && <LoadingSpinner />}
 
       {bugReportApiStatus === BugReportApiStatus.Error && <p className="text-lg font-display">Error fetching bug report, please refresh page try again</p>}
 
@@ -92,7 +96,6 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
               {bugReport.status === 0 ? "Close Bug Report" : "Re-Open Bug Report"}
             </Button>
           </div>
-          {updateBugReportStatusApiStatus === UpdateBugReportStatusApiStatus.Error && <p className="font-display text-xs mt-2">Error updating bug report status. Please try again.</p>}
 
           <div className="py-4" />
           {bugReport.attachments !== undefined && bugReport.attachments !== null && bugReport.attachments.length > 0 &&

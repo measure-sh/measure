@@ -4,6 +4,7 @@ import React, { useState, FormEventHandler } from 'react'
 import { CreateAppApiStatus, createAppFromServer, App } from '../api/api_calls'
 import Link from 'next/link'
 import { Button } from './button'
+import { toastPositive } from '../utils/use_toast'
 
 interface CreateAppProps {
   teamId: string,
@@ -91,7 +92,10 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
               variant="outline"
               type="submit"
               className="m-4 w-fit font-display border border-black rounded-md select-none"
-              onClick={() => navigator.clipboard.writeText(existingApiKey !== null ? existingApiKey : data!.api_key.key)}
+              onClick={() => {
+                navigator.clipboard.writeText(existingApiKey !== null ? existingApiKey : data!.api_key.key)
+                toastPositive("API key copied to clipboard")
+              }}
             >Copy
             </Button>
           </div>
