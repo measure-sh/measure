@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Add flutter exception symbolication (#2166) by @abhaysood in #2166
 - (**backend**): Implement email invites by @anupcowkur in #2091
 - (**frontend**): Update charts UIs by @anupcowkur in #2178
 - (**frontend**): Add collapsible sidebar with submenus by @anupcowkur in #2148
