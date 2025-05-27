@@ -9,7 +9,7 @@ import { measureAuth } from "@/app/auth/measure_auth"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
 import React, { useState, useEffect } from 'react'
 import { Button } from "@/app/components/button"
-import { toast } from "@/app/utils/use_toast"
+import { toastNegative, toastPositive } from "@/app/utils/use_toast"
 import LoadingSpinner from "@/app/components/loading_spinner"
 
 export default function Apps({ params }: { params: { teamId: string } }) {
@@ -91,18 +91,12 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
       case UpdateAppSettingsApiStatus.Error:
         setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Error)
-        toast({
-          title: "Error saving app settings",
-          description: result.error,
-          variant: "destructive"
-        })
+        toastNegative("Error saving app settings", result.error)
         break
       case UpdateAppSettingsApiStatus.Success:
         setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Error)
         setAppSettings(updatedAppSettings)
-        toast({
-          description: "Your app settings have been saved successfully!",
-        })
+        toastPositive("Your app settings have been saved successfully!")
         break
     }
   }
@@ -137,11 +131,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
     switch (result.status) {
       case AppNameChangeApiStatus.Error:
         setAppNameChangeApiStatus(AppNameChangeApiStatus.Error)
-        toast({
-          title: "Error changing app name",
-          description: "Please try again later",
-          variant: "destructive"
-        })
+        toastNegative("Error changing app name")
         break
       case AppNameChangeApiStatus.Success:
         setAppNameChangeApiStatus(AppNameChangeApiStatus.Success)
@@ -252,9 +242,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                 className="m-4 font-display border border-black rounded-md select-none"
                 onClick={() => {
                   navigator.clipboard.writeText(process.env.NEXT_PUBLIC_API_BASE_URL!)
-                  toast({
-                    description: "Base URL copied to clipboard",
-                  })
+                  toastPositive("Base URL copied to clipboard")
                 }}>
                 Copy
               </Button>
@@ -268,9 +256,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                 className="m-4 font-display border border-black rounded-md select-none"
                 onClick={() => {
                   navigator.clipboard.writeText(filters.app!.api_key.key)
-                  toast({
-                    description: "API key copied to clipboard",
-                  })
+                  toastPositive("API key copied to clipboard")
                 }}>
                 Copy
               </Button>

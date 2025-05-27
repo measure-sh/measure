@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { ToastActionElement, ToastProps } from "../components/toast"
+import { CheckCircle, XCircle } from "lucide-react"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
@@ -166,6 +167,29 @@ function toast({ ...props }: Toast) {
     }
 }
 
+function toastPositive(text: string) {
+    toast({
+        description: (
+            <span className="inline-flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <span>{text}</span>
+            </span>
+        ),
+    })
+}
+
+function toastNegative(text: string, error?: string) {
+    toast({
+        description: (
+            <span className="inline-flex items-center text-white gap-2">
+                <XCircle className="w-4 h-4" />
+                <span>{text}{error ? ": " + error : ""}</span>
+            </span>
+        ),
+        variant: "destructive",
+    })
+}
+
 function useToast() {
     const [state, setState] = React.useState<State>(memoryState)
 
@@ -186,4 +210,4 @@ function useToast() {
     }
 }
 
-export { useToast, toast }
+export { useToast, toast, toastPositive, toastNegative }
