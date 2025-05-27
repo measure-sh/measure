@@ -11,6 +11,8 @@ import { Button } from "@/app/components/button"
 import AlertDialog from "@/app/components/alert_dialog"
 import { toastNegative, toastPositive } from "@/app/utils/use_toast"
 import LoadingSpinner from "@/app/components/loading_spinner"
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/app/components/table"
+import { Separator } from "@/app/components/separator"
 
 export default function TeamOverview({ params }: { params: { teamId: string } }) {
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading)
@@ -272,7 +274,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start">
       <p className="font-display text-4xl max-w-6xl text-center">Team</p>
-      <div className="py-4" />
+      <div className="py-2" />
 
       {/* Loading message for team */}
       {teamsApiStatus === TeamsApiStatus.Loading && <p className="text-lg font-display">Loading team...</p>}
@@ -336,8 +338,6 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
             }}
           />
 
-          <p className="font-body max-w-6xl text-center">Team name</p>
-          <div className="py-1" />
           <div className="flex flex-row items-center">
             <input id="change-team-name-input" type="text" defaultValue={team!.name}
               onChange={(event) => {
@@ -357,7 +357,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
           </div>
 
           <div className="py-4" />
-          <p className="font-body max-w-6xl text-center">Invite team members</p>
+          <p className="font-display text-2xl max-w-6xl text-center">Invite team members</p>
           <div className="py-1" />
           <div className="flex flex-row items-center">
             <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} value={inviteMemberEmail} />
@@ -382,96 +382,120 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Error && <p className="font-display">Error fetching team members, please refresh page to try again</p>}
 
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success &&
-            <div className="table-row-group">
-              {authzAndMembers.members.map(({ id, email, role, authz }) => (
-                <div key={id} className="table-row font-body">
-                  <div className="table-cell p-4 pl-0 text-lg">{email}</div>
+            <Table className="font-display table-auto w-full">
+              <TableHeader>
+                <TableRow className="hover:bg-white">
+                  <TableHead className="min-w-96 select-none">Member</TableHead>
+                  <TableHead className="select-none">Role</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {authzAndMembers.members.map(({ id, email, role, authz }) => (
+                  <TableRow key={id} className="font-body hover:bg-white">
+                    <TableCell className="min-w-96 truncate">{email}</TableCell>
 
-                  {/* Show only if row is current user */}
-                  {id === currentUserId && <div className="table-cell p-4 pl-0 text-lg ">{formatToCamelCase(role)}</div>}
+                    {/* Show only if row is current user */}
+                    {id === currentUserId && (
+                      <TableCell className="select-none">{formatToCamelCase(role)}</TableCell>
+                    )}
 
-                  {/* Show roles dropdown if not current user */}
-                  {id !== currentUserId &&
-                    <div className="table-cell p-4 pl-0">
-                      {/* If roles can be changed for members, add roles to dropdown and set selected role to current role */}
-                      {authz.can_change_roles !== null && authz.can_change_roles.length > 0 && <DropdownSelect title="Roles" type={DropdownSelectType.SingleString} items={authz.can_change_roles.map((i) => formatToCamelCase(i))} initialSelected={formatToCamelCase(role)} onChangeSelected={(i) => {
-                        const newMap = new Map(selectedDropdownRolesMap)
-                        newMap.set(id, (i as string).toLocaleLowerCase())
-                        setSelectedDropdownRolesMap(newMap)
-                      }} />}
-                      {/* If roles cannot be changed for current member, just show current role as part of dropdown */}
-                      {authz.can_change_roles === null || authz.can_change_roles.length === 0 && <DropdownSelect title="Current Role" type={DropdownSelectType.SingleString} items={[formatToCamelCase(role)]} initialSelected={formatToCamelCase(role)} />}
-                    </div>
-                  }
+                    {/* Show roles dropdown if not current user */}
+                    {id !== currentUserId && (
+                      <TableCell className="select-none">
+                        {/* If roles can be changed for members, add roles to dropdown and set selected role to current role */}
+                        {authz.can_change_roles !== null && authz.can_change_roles.length > 0 && (
+                          <DropdownSelect
+                            title="Roles"
+                            type={DropdownSelectType.SingleString}
+                            items={authz.can_change_roles.map((i) => formatToCamelCase(i))}
+                            initialSelected={formatToCamelCase(role)}
+                            onChangeSelected={(i) => {
+                              const newMap = new Map(selectedDropdownRolesMap)
+                              newMap.set(id, (i as string).toLocaleLowerCase())
+                              setSelectedDropdownRolesMap(newMap)
+                            }}
+                          />
+                        )}
+                        {/* If roles cannot be changed for current member, just show current role as part of dropdown */}
+                        {(authz.can_change_roles === null || authz.can_change_roles.length === 0) && (
+                          <DropdownSelect
+                            title="Current Role"
+                            type={DropdownSelectType.SingleString}
+                            items={[formatToCamelCase(role)]}
+                            initialSelected={formatToCamelCase(role)}
+                          />
+                        )}
+                      </TableCell>
+                    )}
 
-                  {/* Show change role button if not current user */}
-                  {id !== currentUserId &&
-                    <div className="table-cell p-4 pl-0">
-                      <Button
-                        variant="outline"
-                        className="m-4 font-display border border-black rounded-md select-none"
-                        disabled={selectedDropdownRolesMap.get(id) === undefined || selectedDropdownRolesMap.get(id) === role}
-                        loading={roleChangeApiStatus === RoleChangeApiStatus.Loading && roleChangeMemberId === id}
-                        onClick={() => {
-                          setRoleChangeMemberId(id)
-                          setRoleChangeMemberEmail(authzAndMembers.members.filter((i) => i.id === id)[0].email)
-                          setRoleChangeOldRole(formatToCamelCase(authzAndMembers.members.filter((i) => i.id === id)[0].role))
-                          setRoleChangeNewRole(selectedDropdownRolesMap.get(id) as string)
-                          setChangeRoleConfirmationModalOpen(true)
-                        }}>
-                        Change Role
-                      </Button>
-                    </div>
-                  }
+                    {/* Show change role button if not current user */}
+                    {id !== currentUserId && (
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          className="font-display border border-black rounded-md select-none"
+                          disabled={selectedDropdownRolesMap.get(id) === undefined || selectedDropdownRolesMap.get(id) === role}
+                          loading={roleChangeApiStatus === RoleChangeApiStatus.Loading && roleChangeMemberId === id}
+                          onClick={() => {
+                            setRoleChangeMemberId(id)
+                            setRoleChangeMemberEmail(authzAndMembers.members.filter((i) => i.id === id)[0].email)
+                            setRoleChangeOldRole(formatToCamelCase(authzAndMembers.members.filter((i) => i.id === id)[0].role))
+                            setRoleChangeNewRole(selectedDropdownRolesMap.get(id) as string)
+                            setChangeRoleConfirmationModalOpen(true)
+                          }}
+                        >
+                          Change Role
+                        </Button>
+                      </TableCell>
+                    )}
 
-                  {/* Show remove member button if not current user */}
-                  {id !== currentUserId &&
-                    <div className="table-cell p-4 pl-0">
-                      <Button
-                        variant="outline"
-                        className="m-4 font-display border border-black rounded-md select-none"
-                        disabled={authz.can_remove === false || removeMemberApiStatus === RemoveMemberApiStatus.Loading}
-                        loading={removeMemberApiStatus === RemoveMemberApiStatus.Loading && removeMemberId === id}
-                        onClick={() => {
-                          setRemoveMemberId(id)
-                          setRemoveMemberEmail(authzAndMembers.members.filter((i) => i.id === id)[0].email)
-                          setRemoveMemberConfirmationModalOpen(true)
-                        }}>
-                        Remove
-                      </Button>
-                    </div>
-                  }
+                    {/* Show remove member button if not current user */}
+                    {id !== currentUserId && (
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          className="font-display border border-black rounded-md select-none"
+                          disabled={authz.can_remove === false || removeMemberApiStatus === RemoveMemberApiStatus.Loading}
+                          loading={removeMemberApiStatus === RemoveMemberApiStatus.Loading && removeMemberId === id}
+                          onClick={() => {
+                            setRemoveMemberId(id)
+                            setRemoveMemberEmail(authzAndMembers.members.filter((i) => i.id === id)[0].email)
+                            setRemoveMemberConfirmationModalOpen(true)
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>}
 
-                </div>
-              ))}
-            </div>}
-
-          {(pendingInvitesApiStatus !== PendingInvitesApiStatus.Success || (pendingInvitesApiStatus === PendingInvitesApiStatus.Success && pendingInvites?.length! > 0)) && <p className="mt-8 mb-2 font-display text-2xl max-w-6xl text-center">Pending Invites</p>}
+          {(pendingInvitesApiStatus !== PendingInvitesApiStatus.Success || (pendingInvitesApiStatus === PendingInvitesApiStatus.Success && pendingInvites?.length! > 0)) && <p className="mt-16 mb-6 font-display text-2xl max-w-6xl text-center">Pending Invites</p>}
           {/* Loading message for fetch pending invites */}
           {pendingInvitesApiStatus === PendingInvitesApiStatus.Loading && <LoadingSpinner />}
           {/* Error message for fetch pending invites */}
           {pendingInvitesApiStatus === PendingInvitesApiStatus.Error && <p className="font-display">Error fetching pending invites, please refresh page to try again</p>}
 
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success && pendingInvitesApiStatus === PendingInvitesApiStatus.Success && pendingInvites?.length! > 0 &&
-            <div className="table w-full" style={{ tableLayout: "fixed" }}>
-              <div className="table-header-group bg-neutral-950">
-                <div className="table-row text-white font-display">
-                  <div className="table-cell w-64 p-4">Invitee</div>
-                  <div className="table-cell w-64 p-4">Invited By</div>
-                  <div className="table-cell w-24 p-4 text-center">Invited As</div>
-                  <div className="table-cell w-48 p-4 text-center">Valid Until</div>
-                  <div className="table-cell w-24 p-4 text-center" />
-                  <div className="table-cell w-24 p-4 text-center" />
-                </div>
-              </div>
-              <div className="table-row-group">
+            <Table className="font-display table-auto w-full">
+              <TableHeader>
+                <TableRow className="hover:bg-white">
+                  <TableHead className="min-w-64 select-none">Invitee</TableHead>
+                  <TableHead className="min-w-64 select-none">Invited By</TableHead>
+                  <TableHead className="min-w-24 select-none text-center">Invited As</TableHead>
+                  <TableHead className="min-w-48 select-none text-center">Valid Until</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {pendingInvites!.map(({ id, email, invited_by_email, role, valid_until }) => (
-                  <div key={id} className="table-row font-body">
-                    <div className="table-cell p-4 truncate" title={email}>{email}</div>
-                    <div className="table-cell p-4 truncate" title={invited_by_email}>{invited_by_email}</div>
-                    <div className="table-cell p-4 text-center">{formatToCamelCase(role)}</div>
-                    <div className="table-cell p-4 text-center">{formatDateToHumanReadableDateTime(valid_until)}</div>
-                    <div className="table-cell p-4">
+                  <TableRow key={id} className="hover:bg-white font-body">
+                    <TableCell className="truncate" title={email}>{email}</TableCell>
+                    <TableCell className="truncate" title={invited_by_email}>{invited_by_email}</TableCell>
+                    <TableCell className="select-none text-center">{formatToCamelCase(role)}</TableCell>
+                    <TableCell className="select-none text-center">{formatDateToHumanReadableDateTime(valid_until)}</TableCell>
+                    <TableCell>
                       <Button
                         variant="outline"
                         className="m-4 font-display border border-black rounded-md select-none"
@@ -484,8 +508,8 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                         }}>
                         Resend
                       </Button>
-                    </div>
-                    <div className="table-cell p-4">
+                    </TableCell>
+                    <TableCell>
                       <Button
                         variant="outline"
                         className="m-4 font-display border border-black rounded-md select-none"
@@ -498,17 +522,17 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                         }}>
                         Revoke
                       </Button>
-                    </div>
-                  </div>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </div>
-            </div>}
+              </TableBody>
+            </Table>}
 
           {/* Create new team */}
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success &&
             <div className="w-full">
               <div className="py-8" />
-              <div className="w-full border border-black h-0" />
+              <Separator className="w-full" />
               <div className="py-4" />
               <form onSubmit={createTeam} className="flex flex-col">
                 <p className="font-display text-2xl">Create new team</p>
