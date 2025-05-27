@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump golang.org/x/net from 0.37.0 to 0.38.0 in /backend/api (#2127) by @dependabot[bot] in #2127
 - (**deps**): Bump golang.org/x/net in /backend/cleanup (#2126) by @dependabot[bot] in #2126
 - (**deps**): Bump golang.org/x/net in /self-host/sessionator (#2124) by @dependabot[bot] in #2124
+- (**frontend**): Add toasts by @anupcowkur in #2226
 - (**frontend**): Update positive & negative toast variants by @anupcowkur in #2225
 - (**frontend**): Use new alert dialogs and toasts by @anupcowkur in #2211
 - (**frontend**): Make table rows links by @anupcowkur in #2208
