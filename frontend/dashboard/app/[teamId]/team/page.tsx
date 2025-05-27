@@ -9,7 +9,7 @@ import { measureAuth } from "@/app/auth/measure_auth"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
 import { Button } from "@/app/components/button"
 import AlertDialog from "@/app/components/alert_dialog"
-import { toast } from "@/app/utils/use_toast"
+import { toastNegative, toastPositive } from "@/app/utils/use_toast"
 import LoadingSpinner from "@/app/components/loading_spinner"
 
 export default function TeamOverview({ params }: { params: { teamId: string } }) {
@@ -144,17 +144,11 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     switch (result.status) {
       case ResendPendingInviteApiStatus.Error:
         setResendPendingInviteApiStatus(ResendPendingInviteApiStatus.Error)
-        toast({
-          title: "Error resending invite",
-          description: result.error,
-          variant: "destructive"
-        })
+        toastNegative("Error resending invite", result.error)
         break
       case ResendPendingInviteApiStatus.Success:
         setResendPendingInviteApiStatus(ResendPendingInviteApiStatus.Success)
-        toast({
-          description: "Pending invite for " + resendPendingInviteEmail + " has been resent!",
-        })
+        toastPositive("Pending invite for " + resendPendingInviteEmail + " has been resent")
         getPendingInvites()
         break
     }
@@ -168,17 +162,11 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     switch (result.status) {
       case RemovePendingInviteApiStatus.Error:
         setRemovePendingInviteApiStatus(RemovePendingInviteApiStatus.Error)
-        toast({
-          title: "Error removing pending invite",
-          description: result.error,
-          variant: "destructive"
-        })
+        toastNegative("Error removing pending invite", result.error)
         break
       case RemovePendingInviteApiStatus.Success:
         setRemovePendingInviteApiStatus(RemovePendingInviteApiStatus.Success)
-        toast({
-          description: "Pending invite for " + removePendingInviteEmail + " has been removed!",
-        })
+        toastPositive("Pending invite for " + removePendingInviteEmail + " has been removed")
         getPendingInvites()
         break
     }
@@ -192,11 +180,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     switch (result.status) {
       case TeamNameChangeApiStatus.Error:
         setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Error)
-        toast({
-          title: "Error changing team name",
-          description: "Please try again later.",
-          variant: "destructive"
-        })
+        toastNegative("Error changing team name")
         break
       case TeamNameChangeApiStatus.Success:
         setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Success)
@@ -213,17 +197,11 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     switch (result.status) {
       case RoleChangeApiStatus.Error:
         setRoleChangeApiStatus(RoleChangeApiStatus.Error)
-        toast({
-          title: "Error changing role",
-          description: result.error,
-          variant: "destructive"
-        })
+        toastNegative("Error changing role", result.error)
         break
       case RoleChangeApiStatus.Success:
         setRoleChangeApiStatus(RoleChangeApiStatus.Success)
-        toast({
-          description: roleChangeMemberEmail + "'s role has been changed!",
-        })
+        toastPositive(roleChangeMemberEmail + "'s role changed",)
         getAuthzAndMembers()
         break
     }
@@ -237,17 +215,11 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     switch (result.status) {
       case InviteMemberApiStatus.Error:
         setInviteMemberApiStatus(InviteMemberApiStatus.Error)
-        toast({
-          title: "Error inviting member",
-          description: result.error,
-          variant: "destructive"
-        })
+        toastNegative("Error inviting member", result.error)
         break
       case InviteMemberApiStatus.Success:
         setInviteMemberApiStatus(InviteMemberApiStatus.Success)
-        toast({
-          description: inviteMemberEmail + " has been invited!",
-        })
+        toastPositive(inviteMemberEmail + " has been invited")
         setInviteMemberEmail("")
         getAuthzAndMembers()
         getPendingInvites()
@@ -263,17 +235,11 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     switch (result.status) {
       case RemoveMemberApiStatus.Error:
         setRemoveMemberApiStatus(RemoveMemberApiStatus.Error)
-        toast({
-          title: "Error removing member",
-          description: result.error,
-          variant: "destructive"
-        })
+        toastNegative("Error removing member", result.error)
         break
       case RemoveMemberApiStatus.Success:
         setRemoveMemberApiStatus(RemoveMemberApiStatus.Success)
-        toast({
-          description: removeMemberEmail + " has been removed!",
-        })
+        toastPositive(removeMemberEmail + " has been removed")
         getAuthzAndMembers()
         break
     }
