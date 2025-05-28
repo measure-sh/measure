@@ -10,7 +10,7 @@ const (
 	// Android operating system.
 	Android = "android"
 	// Represents the family
-	// of all apple operating
+	// of all Apple operating
 	// systems.
 	AppleFamily = "apple"
 	// Represents an unknown
