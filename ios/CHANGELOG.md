@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.3.0] - 2025-05-28
+
+### :books: Documentation
+
+
+- (**ios**): Update readme.md (#2132)
+
+### :bug: Bug fixes
+
+
+- (**ios**): Attach crash report to the correct session (#2196)
+
+### :sparkles: New features
+
+
+- (**ios**): Add bug report (#2203)
+
 ## [ios-v0.2.0] - 2025-04-29
 
 ### :bug: Bug fixes
@@ -17,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
+- (**ios**): Prepare sdk release 0.2.0 (#2099)
 - (**ios**): Update swizzling logic (#2079)
 - (**ios**): Update swiftlint config (#2027)
 - (**ios**): Update json encoding logic (#1959)
@@ -108,5 +126,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677)
 - (**ios**): Initial project setup  (#1034)
 
+[ios-v0.3.0]: https://github.com///compare/ios-v0.2.0..ios-v0.3.0
 [ios-v0.2.0]: https://github.com///compare/ios-v0.1.0..ios-v0.2.0
 
