@@ -25,12 +25,12 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             signalProcessor: signalProcessor
         )
     }
-    
-    func testTrackEvent_tracksCustomEvent() {
+
+    func testTrackEvent_withoutPlatformAttribute_logsWarning() {
         eventCollector.enable()
-        var eventData: [String: Any?] = ["name": "custom-event"]
+        var eventData: [String: Any?] = ["key": "value"]
         let type = EventType.custom.rawValue
-        
+
         eventCollector.trackEvent(
             data: &eventData,
             type: type,
@@ -41,15 +41,35 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             sessionId: nil,
             threadName: nil
         )
-        
+
+        XCTAssertNil(signalProcessor.data)
+        XCTAssertTrue(logger.logs[1].contains("Platform not found in attributes, cannot process event"))
+    }
+
+    func testTrackEvent_tracksCustomEvent() {
+        eventCollector.enable()
+        var eventData: [String: Any?] = ["name": "custom-event"]
+        let type = EventType.custom.rawValue
+
+        eventCollector.trackEvent(
+            data: &eventData,
+            type: type,
+            timestamp: 097654121,
+            attributes: [:],
+            userDefinedAttrs: [:],
+            userTriggered: true,
+            sessionId: nil,
+            threadName: nil
+        )
+
         XCTAssertNotNil(signalProcessor.data)
     }
-    
+
     func testTrackEvent_WithInvalidArgument_logsError() {
         eventCollector.enable()
         var eventData: [String: Any?] = [:]
         let type = EventType.custom.rawValue
-        
+
         eventCollector.trackEvent(
             data: &eventData,
             type: type,
@@ -60,15 +80,15 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             sessionId: nil,
             threadName: nil
         )
-        
+
         XCTAssertNil(signalProcessor.data)
         XCTAssertTrue(logger.logs[1].contains("Error processing event"))
     }
-    
-    func testTrackEvent_WithObfuscatedFlutterException_tracksExceptionEvent() {
+
+    func testTrackEvent_WithObfuscatedFlutterException_tracksExceptionEvent() { // swiftlint:disable:this function_body_length
         eventCollector.enable()
         let type = EventType.exception.rawValue
-        
+
         guard var eventData = fileManagerHelper.getExceptionDict(fileName: "flutter_obfuscated", fileExtension: "json") else {
             XCTFail("Failed to read JSON file from test bundle.")
             return
@@ -122,7 +142,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             binaryImages: nil,
             framework: "ios"
         )
-        
+
         eventCollector.trackEvent(
             data: &eventData,
             type: type,
@@ -133,7 +153,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             sessionId: nil,
             threadName: nil
         )
-        
+
         XCTAssertNotNil(signalProcessor.data)
         guard let data = signalProcessor.data as? Exception else {
             XCTFail("Data is not of type Exception")
@@ -214,7 +234,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             binaryImages: nil,
             framework: "ios"
         )
-        
+
         eventCollector.trackEvent(
             data: &eventData,
             type: type,
@@ -225,7 +245,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             sessionId: nil,
             threadName: nil
         )
-        
+
         XCTAssertNotNil(signalProcessor.data)
         guard let data = signalProcessor.data as? Exception else {
             XCTFail("Data is not of type Exception")
@@ -233,16 +253,16 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
         }
         XCTAssertEqual(data, expectedException)
     }
-    
+
     func testTrackEvent_WithExceptionEvent_updatesForgroundProperty() {
         eventCollector.enable()
         let type = EventType.exception.rawValue
-        
+
         guard var eventData = fileManagerHelper.getExceptionDict(fileName: "flutter_background", fileExtension: "json") else {
             XCTFail("Failed to read JSON file from test bundle.")
             return
         }
-        
+
         eventCollector.trackEvent(
             data: &eventData,
             type: type,
@@ -253,7 +273,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             sessionId: nil,
             threadName: nil
         )
-        
+
         XCTAssertNotNil(signalProcessor.data)
         guard let data = signalProcessor.data as? Exception else {
             XCTFail("Data is not of type Exception")

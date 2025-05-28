@@ -36,6 +36,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
     let http: Data?
     let customEvent: Data?
     var needsReporting: Bool
+    let bugReport: Data?
 
     init<T: Codable>(_ event: Event<T>, needsReporting: Bool) { // swiftlint:disable:this cyclomatic_complexity function_body_length
         self.id = event.id
@@ -246,6 +247,17 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         } else {
             self.attachments = nil
         }
+
+        if let bugReport = event.bugReport {
+            do {
+                let data = try JSONEncoder().encode(bugReport)
+                self.bugReport = data
+            } catch {
+                self.bugReport = nil
+            }
+        } else {
+            self.bugReport = nil
+        }
     }
 
     init(id: String,
@@ -275,6 +287,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
          networkChange: Data?,
          customEvent: Data?,
          screenView: Data?,
+         bugReport: Data?,
          needsReporting: Bool) {
         self.id = id
         self.sessionId = sessionId
@@ -304,6 +317,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.customEvent = customEvent
         self.screenView = screenView
         self.needsReporting = needsReporting
+        self.bugReport = bugReport
     }
 
     func getEvent<T: Codable>() -> Event<T> { // swiftlint:disable:this cyclomatic_complexity function_body_length
@@ -438,6 +452,14 @@ struct EventEntity { // swiftlint:disable:this type_body_length
                     decodedData = nil
                 }
             }
+        case .bugReport:
+            if let bugReportData = self.bugReport {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: bugReportData)
+                } catch {
+                    decodedData = nil
+                }
+            }
         case nil:
             decodedData = nil
         }
@@ -487,4 +509,4 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             return nil
         }
     }
-}
+} // swiftlint:disable:this file_length

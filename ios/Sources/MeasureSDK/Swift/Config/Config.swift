@@ -49,8 +49,15 @@ struct Config: InternalConfig, MeasureConfig {
     let maxCheckpointNameLength: Int
     let maxCheckpointsPerSpan: Int
     let trackViewControllerLoadTime: Bool
+    let maxAttachmentsInBugReport: Int
+    let maxDescriptionLengthInBugReport: Int
+    let shakeAccelerationThreshold: Float
+    let shakeMinTimeIntervalMs: Number
+    let accelerometerUpdateInterval: TimeInterval
+    let screenshotMaskLevel: ScreenshotMaskLevel
+    let enableShakeToLaunchBugReport: Bool
 
-    internal init(enableLogging: Bool = DefaultConfig.enableLogging,
+    internal init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
                   traceSamplingRate: Float = DefaultConfig.traceSamplingRate,
                   trackHttpHeaders: Bool = DefaultConfig.trackHttpHeaders,
@@ -59,7 +66,9 @@ struct Config: InternalConfig, MeasureConfig {
                   httpUrlBlocklist: [String] = DefaultConfig.httpUrlBlocklist,
                   httpUrlAllowlist: [String] = DefaultConfig.httpUrlAllowlist,
                   autoStart: Bool = DefaultConfig.autoStart,
-                  trackViewControllerLoadTime: Bool = DefaultConfig.trackViewControllerLoadTime) {
+                  trackViewControllerLoadTime: Bool = DefaultConfig.trackViewControllerLoadTime,
+                  screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel,
+                  enableShakeToLaunchBugReport: Bool = DefaultConfig.enableShakeToLaunchBugReport) {
         self.enableLogging = enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
         self.traceSamplingRate = traceSamplingRate
@@ -70,6 +79,8 @@ struct Config: InternalConfig, MeasureConfig {
         self.httpUrlAllowlist = httpUrlAllowlist
         self.autoStart = autoStart
         self.trackViewControllerLoadTime = trackViewControllerLoadTime
+        self.screenshotMaskLevel = screenshotMaskLevel
+        self.enableShakeToLaunchBugReport = enableShakeToLaunchBugReport
         self.eventsBatchingIntervalMs = 30000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndLastEventThresholdMs = 20 * 60 * 1000 // 20 minitues
@@ -104,5 +115,10 @@ struct Config: InternalConfig, MeasureConfig {
         self.maxSpanNameLength = 64
         self.maxCheckpointNameLength = 64
         self.maxCheckpointsPerSpan = 100
+        self.maxAttachmentsInBugReport = 5
+        self.maxDescriptionLengthInBugReport = 4000
+        self.shakeAccelerationThreshold = 2.5
+        self.shakeMinTimeIntervalMs = 1500
+        self.accelerometerUpdateInterval = 0.1
     }
 }

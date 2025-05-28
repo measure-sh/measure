@@ -12,7 +12,7 @@ import UIKit
 ///
 /// This class initializes the Measure SDK and hides the internal dependencies from the public API.
 ///
-final class MeasureInternal {
+final class MeasureInternal { // swiftlint:disable:this type_body_length
     var measureInitializer: MeasureInitializer
     var logger: Logger {
         return measureInitializer.logger
@@ -138,6 +138,21 @@ final class MeasureInternal {
             measureInitializer.internalSignalCollector = newValue
         }
     }
+    var bugReportCollector: BugReportCollector {
+        return measureInitializer.bugReportCollector
+    }
+    var shakeBugReportCollector: ShakeBugReportCollector {
+        return measureInitializer.shakeBugReportCollector
+    }
+    var shakeDetector: ShakeDetector {
+        return measureInitializer.shakeDetector
+    }
+    var screenshotGenerator: ScreenshotGenerator {
+        return measureInitializer.screenshotGenerator
+    }
+    var layoutSnapshotGenerator: LayoutSnapshotGenerator {
+        return measureInitializer.layoutSnapshotGenerator
+    }
     private let lifecycleObserver: LifecycleObserver
     private var isStarted: Bool = false
 
@@ -175,6 +190,16 @@ final class MeasureInternal {
         }
     }
 
+    func trackEvent(name: String, attributes: [String: AttributeValue], timestamp: Int64?) {
+        customEventCollector.trackEvent(name: name, attributes: attributes, timestamp: timestamp)
+    }
+
+    func trackEvent(_ name: String, attributes: [String: Any], timestamp: NSNumber?) {
+        let transformedAttributes = transformAttributes(attributes)
+
+        customEventCollector.trackEvent(name: name, attributes: transformedAttributes, timestamp: timestamp?.int64Value)
+    }
+
     func setUserId(_ userId: String) {
         userAttributeProcessor.setUserId(userId)
     }
@@ -182,7 +207,7 @@ final class MeasureInternal {
     func clearUserId() {
         userAttributeProcessor.clearUserId()
     }
-    
+
     func createSpan(name: String) -> SpanBuilder? {
         return spanCollector.createSpan(name: name)
     }
@@ -197,6 +222,56 @@ final class MeasureInternal {
 
     func getTraceParentHeaderKey() -> String {
         return spanCollector.getTraceParentHeaderKey()
+    }
+
+    func startBugReportFlow(takeScreenshot: Bool = true,
+                            bugReportConfig: BugReportConfig,
+                            attributes: [String: AttributeValue]? = nil) {
+        bugReportCollector.startBugReportFlow(takeScreenshot: takeScreenshot, bugReportConfig: bugReportConfig, attributes: attributes)
+    }
+
+    func enableShakeToLaunchBugReport(takeScreenshot: Bool) {
+        shakeBugReportCollector.enableAutoLaunch(takeScreenshot: takeScreenshot)
+    }
+
+    func disableShakeToLaunchBugReport() {
+        shakeBugReportCollector.disableAutoLaunch()
+    }
+
+    func setShakeListener(_ shakeListener: MsrShakeListener?) {
+        shakeBugReportCollector.setShakeListener(shakeListener)
+    }
+
+    func isShakeToLaunchBugReportEnabled() -> Bool {
+        return shakeBugReportCollector.isShakeToLaunchBugReportEnabled()
+    }
+
+    func trackBugReport(description: String,
+                        attachments: [MsrAttachment],
+                        attributes: [String: AttributeValue]?) {
+        bugReportCollector.trackBugReport(description: description, attachments: attachments.map { $0.toEventAttachment(id: idProvider.uuid()) }, attributes: attributes)
+    }
+
+    func captureScreenshot(for viewController: UIViewController) -> MsrAttachment? {
+        return screenshotGenerator.generate(viewController: viewController)?.toMsrAttachment()
+    }
+
+    func captureLayoutSnapshot(for viewController: UIViewController) -> MsrAttachment? {
+        return layoutSnapshotGenerator.generate(for: viewController)?.toMsrAttachment()
+    }
+
+    func startBugReportFlow(takeScreenshot: Bool = true,
+                            bugReportConfig: BugReportConfig,
+                            attributes: [String: Any]? = nil) {
+        let transformedAttributes = transformAttributes(attributes)
+        startBugReportFlow(takeScreenshot: takeScreenshot, bugReportConfig: bugReportConfig, attributes: transformedAttributes)
+    }
+
+    func trackBugReport(description: String,
+                        attachments: [MsrAttachment] = [],
+                        attributes: [String: Any]? = nil) {
+        let transformedAttributes = transformAttributes(attributes)
+        trackBugReport(description: description, attachments: attachments, attributes: transformedAttributes)
     }
 
     private func applicationDidEnterBackground() {
@@ -261,5 +336,33 @@ final class MeasureInternal {
 
     private func registerAlwaysOnCollectors() {
         self.appLaunchCollector.enable()
+    }
+
+    private func transformAttributes(_ attributes: [String: Any]?) -> [String: AttributeValue] {
+        guard let attributes = attributes else {
+            return [:]
+        }
+
+        var transformedAttributes: [String: AttributeValue] = [:]
+
+        for (key, value) in attributes {
+            if let stringVal = value as? String {
+                transformedAttributes[key] = .string(stringVal)
+            } else if let boolVal = value as? Bool {
+                transformedAttributes[key] = .boolean(boolVal)
+            } else if let intVal = value as? Int {
+                transformedAttributes[key] = .int(intVal)
+            } else if let longVal = value as? Int64 {
+                transformedAttributes[key] = .long(longVal)
+            } else if let floatVal = value as? Float {
+                transformedAttributes[key] = .float(floatVal)
+            } else if let doubleVal = value as? Double {
+                transformedAttributes[key] = .double(doubleVal)
+            } else {
+                logger.log(level: .fatal, message: "Attribute value can only be a string, boolean, integer, or double.", error: nil, data: nil)
+            }
+        }
+
+        return transformedAttributes
     }
 }

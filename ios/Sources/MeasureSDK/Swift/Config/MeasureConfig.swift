@@ -19,6 +19,8 @@ protocol MeasureConfig {
     var httpUrlAllowlist: [String] { get }
     var autoStart: Bool { get }
     var trackViewControllerLoadTime: Bool { get }
+    var screenshotMaskLevel: ScreenshotMaskLevel { get }
+    var enableShakeToLaunchBugReport: Bool { get }
 }
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -90,6 +92,15 @@ protocol MeasureConfig {
     /// Set to `false` to disable this tracking.
     let trackViewControllerLoadTime: Bool
 
+    /// Allows changing the masking level of screenshots to prevent sensitive information from leaking.
+    /// Defaults to [ScreenshotMaskLevel.allTextAndMedia].
+    let screenshotMaskLevel: ScreenshotMaskLevel
+
+    /// Enable or disable shake to automatically launch the bug report flow. Defaults to `false`.
+    ///
+    /// When enabled, users can shake their device to launch the bug report activity automatically.
+    let enableShakeToLaunchBugReport: Bool
+
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
     /// - Parameters:
     ///   - enableLogging: Enable or disable internal SDK logs. Defaults to `false`.
@@ -125,7 +136,9 @@ protocol MeasureConfig {
                 httpUrlBlocklist: [String]? = nil,
                 httpUrlAllowlist: [String]? = nil,
                 autoStart: Bool? = nil,
-                trackViewControllerLoadTime: Bool? = nil) {
+                trackViewControllerLoadTime: Bool? = nil,
+                screenshotMaskLevel: ScreenshotMaskLevel? = nil,
+                enableShakeToLaunchBugReport: Bool? = nil) {
         self.enableLogging = enableLogging ?? DefaultConfig.enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions ?? DefaultConfig.sessionSamplingRate
         self.traceSamplingRate = traceSamplingRate ?? DefaultConfig.traceSamplingRate
@@ -136,6 +149,8 @@ protocol MeasureConfig {
         self.httpUrlAllowlist = httpUrlAllowlist ?? DefaultConfig.httpUrlAllowlist
         self.autoStart = autoStart ?? DefaultConfig.autoStart
         self.trackViewControllerLoadTime = trackViewControllerLoadTime ?? DefaultConfig.trackViewControllerLoadTime
+        self.screenshotMaskLevel = screenshotMaskLevel ?? DefaultConfig.screenshotMaskLevel
+        self.enableShakeToLaunchBugReport = enableShakeToLaunchBugReport ?? DefaultConfig.enableShakeToLaunchBugReport
 
         if !(0.0...1.0).contains(self.samplingRateForErrorFreeSessions) {
             debugPrint("Session sampling rate must be between 0.0 and 1.0")

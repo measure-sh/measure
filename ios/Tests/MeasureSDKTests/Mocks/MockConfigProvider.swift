@@ -44,6 +44,13 @@ final class MockConfigProvider: ConfigProvider {
     var maxCheckpointNameLength: Int
     var maxCheckpointsPerSpan: Int
     var trackViewControllerLoadTime: Bool
+    var screenshotMaskLevel: ScreenshotMaskLevel
+    var maxAttachmentsInBugReport: Int
+    var maxDescriptionLengthInBugReport: Int
+    var shakeAccelerationThreshold: Float
+    var shakeMinTimeIntervalMs: Number
+    var accelerometerUpdateInterval: TimeInterval
+    var enableShakeToLaunchBugReport: Bool
 
     init(enableLogging: Bool = false,
          trackScreenshotOnCrash: Bool = true,
@@ -89,7 +96,14 @@ final class MockConfigProvider: ConfigProvider {
          maxSpanNameLength: Int = 64,
          maxCheckpointNameLength: Int = 64,
          maxCheckpointsPerSpan: Int = 100,
-         trackViewControllerLoadTime: Bool = true) {
+         trackViewControllerLoadTime: Bool = true,
+         screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia,
+         maxAttachmentsInBugReport: Int = 5,
+         maxDescriptionLengthInBugReport: Int = 4000,
+         shakeAccelerationThreshold: Float = 20,
+         shakeMinTimeIntervalMs: Number = 1500,
+         accelerometerUpdateInterval: TimeInterval = 0.1,
+         enableShakeToLaunchBugReport: Bool = false) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
@@ -125,6 +139,13 @@ final class MockConfigProvider: ConfigProvider {
         self.maxCheckpointNameLength = maxCheckpointNameLength
         self.maxCheckpointsPerSpan = maxCheckpointsPerSpan
         self.trackViewControllerLoadTime = trackViewControllerLoadTime
+        self.screenshotMaskLevel = screenshotMaskLevel
+        self.maxAttachmentsInBugReport = maxAttachmentsInBugReport
+        self.maxDescriptionLengthInBugReport = maxDescriptionLengthInBugReport
+        self.shakeAccelerationThreshold = shakeAccelerationThreshold
+        self.shakeMinTimeIntervalMs = shakeMinTimeIntervalMs
+        self.accelerometerUpdateInterval = accelerometerUpdateInterval
+        self.enableShakeToLaunchBugReport = enableShakeToLaunchBugReport
     }
 
     func loadNetworkConfig() {}

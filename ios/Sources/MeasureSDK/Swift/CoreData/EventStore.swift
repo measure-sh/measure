@@ -64,6 +64,7 @@ final class BaseEventStore: EventStore { // swiftlint:disable:this type_body_len
             eventOb.screenView = event.screenView
             eventOb.timestampInMillis = event.timestampInMillis
             eventOb.needsReporting = event.needsReporting
+            eventOb.bugReport = event.bugReport
 
             do {
                 try context.saveIfNeeded()
@@ -115,6 +116,7 @@ final class BaseEventStore: EventStore { // swiftlint:disable:this type_body_len
                                 networkChange: eventOb.networkChange,
                                 customEvent: eventOb.customEvent,
                                 screenView: eventOb.screenView,
+                                bugReport: eventOb.bugReport,
                                 needsReporting: eventOb.needsReporting)
                 }
             } catch {
@@ -165,6 +167,7 @@ final class BaseEventStore: EventStore { // swiftlint:disable:this type_body_len
                                 networkChange: eventOb.networkChange,
                                 customEvent: eventOb.customEvent,
                                 screenView: eventOb.screenView,
+                                bugReport: eventOb.bugReport,
                                 needsReporting: eventOb.needsReporting)
                 }
             } catch {
@@ -237,6 +240,7 @@ final class BaseEventStore: EventStore { // swiftlint:disable:this type_body_len
                                               networkChange: eventOb.networkChange,
                                               customEvent: eventOb.customEvent,
                                               screenView: eventOb.screenView,
+                                              bugReport: eventOb.bugReport,
                                               needsReporting: eventOb.needsReporting))
                 }
             } catch {

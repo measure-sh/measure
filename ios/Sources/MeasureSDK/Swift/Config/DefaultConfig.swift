@@ -19,4 +19,6 @@ struct DefaultConfig {
     static let httpUrlAllowlist: [String] = []
     static let autoStart = true
     static let trackViewControllerLoadTime = true
+    static let screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia
+    static let enableShakeToLaunchBugReport = false
 }

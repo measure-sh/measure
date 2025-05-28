@@ -49,6 +49,8 @@ struct EventSerializer {
             eventType = CustomEventData.self
         case .screenView:
             eventType = ScreenViewData.self
+        case .bugReport:
+            eventType = BugReportData.self
         }
 
         // Call the generic helper function

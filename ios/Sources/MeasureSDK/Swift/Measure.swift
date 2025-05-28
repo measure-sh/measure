@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UIKit
 
 /// `Measure` is a singleton class responsible for managing the initialization and configuration of the Measure SDK.
 ///
@@ -39,6 +40,7 @@ import Foundation
     private var measureLifecycleLock = NSLock()
     private var measureInternal: MeasureInternal?
     var meaureInitializerInternal: MeasureInitializer?
+//    private var floatingButtonController: FloatingButtonController?
 
     // Private initializer to ensure the singleton pattern
     private override init() {
@@ -158,9 +160,9 @@ import Foundation
     ///   - timestamp: Optional timestamp for the event, defaults to current time
     ///
     public func trackEvent(name: String, attributes: [String: AttributeValue], timestamp: Int64?) {
-        guard let customEventCollector = measureInternal?.customEventCollector else { return }
+        guard let measureInternal = measureInternal else { return }
 
-        customEventCollector.trackEvent(name: name, attributes: attributes, timestamp: timestamp)
+        measureInternal.trackEvent(name: name, attributes: attributes, timestamp: timestamp)
     }
 
     /// An internal method to track events from cross-platform frameworks
@@ -188,16 +190,30 @@ import Foundation
     ///     be associated with the current session ID.
     ///   - threadName: Optional thread name associated with the event. By default the event
     ///     will be associated with the thread on which this function is processed.
-    public func internalTrackEvent(data: inout [String: Any?], type: String, timestamp: Int64, attributes: [String: Any?], userDefinedAttrs: [String: AttributeValue], userTriggered: Bool, sessionId: String?, threadName: String?) {
+    public func internalTrackEvent(data: inout [String: Any?], // swiftlint:disable:this function_parameter_count
+                                   type: String,
+                                   timestamp: Int64,
+                                   attributes: [String: Any?],
+                                   userDefinedAttrs: [String: AttributeValue],
+                                   userTriggered: Bool,
+                                   sessionId: String?,
+                                   threadName: String?) {
         guard let internalEventCollector = measureInternal?.internalSignalCollector else { return }
-        internalEventCollector.trackEvent(data: &data, type: type, timestamp: timestamp, attributes: attributes, userDefinedAttrs: userDefinedAttrs, userTriggered: userTriggered, sessionId: sessionId, threadName: threadName)
+        internalEventCollector.trackEvent(data: &data,
+                                          type: type,
+                                          timestamp: timestamp,
+                                          attributes: attributes,
+                                          userDefinedAttrs: userDefinedAttrs,
+                                          userTriggered: userTriggered,
+                                          sessionId: sessionId,
+                                          threadName: threadName)
     }
 
     /// Tracks an event with optional timestamp.
     /// Event names should be clear and consistent to aid in dashboard searches
     ///
     /// Note:
-    /// This method is primarily intended for Objective-C use..
+    /// This method is primarily intended for Objective-C use.
     ///
     ///   ```objc
     ///   [[Measure shared] trackEvent:@"event-name" attributes:@{@"user_name": @"Alice"} timestamp:nil];
@@ -207,29 +223,9 @@ import Foundation
     ///   - attributes: Key-value pairs providing additional context
     ///   - timestamp: Optional timestamp for the event, defaults to current time
     @objc public func trackEvent(_ name: String, attributes: [String: Any], timestamp: NSNumber?) {
-        guard let customEventCollector = measureInternal?.customEventCollector,
-              let logger = measureInternal?.logger else { return }
-        var transformedAttributes: [String: AttributeValue] = [:]
+        guard let measureInternal = measureInternal else { return }
 
-        for (key, value) in attributes {
-            if let stringVal = value as? String {
-                transformedAttributes[key] = .string(stringVal)
-            } else if let boolVal = value as? Bool {
-                transformedAttributes[key] = .boolean(boolVal)
-            } else if let intVal = value as? Int {
-                transformedAttributes[key] = .int(intVal)
-            } else if let longVal = value as? Int64 {
-                transformedAttributes[key] = .long(longVal)
-            } else if let floatVal = value as? Float {
-                transformedAttributes[key] = .float(floatVal)
-            } else if let doubleVal = value as? Double {
-                transformedAttributes[key] = .double(doubleVal)
-            } else {
-                logger.log(level: .fatal, message: "Attribute value can only be a string, boolean, integer, or double.", error: nil, data: nil)
-            }
-        }
-
-        customEventCollector.trackEvent(name: name, attributes: transformedAttributes, timestamp: timestamp?.int64Value)
+        measureInternal.trackEvent(name, attributes: attributes, timestamp: timestamp)
     }
 
     /// Call when a screen is viewed by the user.
@@ -347,5 +343,138 @@ import Foundation
     public func getTraceParentHeaderKey() -> String {
         guard let measureInternal = self.measureInternal else { return "" }
         return measureInternal.getTraceParentHeaderKey()
+    }
+
+    /// Takes a screenshot and launches the bug report flow.
+    /// - Parameters:
+    ///   - takeScreenshot: Set to `false` to disable the screenshot. Defaults to `true`.
+    ///   - bugReportConfig: A configuration object used to customize the appearance and behavior of the bug report UI.
+    ///   - attributes: Optional key-value pairs for additional metadata about the bug report.
+    public func launchBugReport(takeScreenshot: Bool = true,
+                                bugReportConfig: BugReportConfig = .default,
+                                attributes: [String: AttributeValue]? = nil) {
+        guard let measureInternal = self.measureInternal else { return }
+        measureInternal.startBugReportFlow(takeScreenshot: takeScreenshot, bugReportConfig: bugReportConfig, attributes: attributes)
+    }
+
+    /// Takes a screenshot and launches the bug report flow.
+    ///
+    /// Note:
+    /// This method is primarily intended for Objective-C use.
+    ///
+    /// - Parameters:
+    ///   - takeScreenshot: Set to `false` to disable the screenshot. Defaults to `true`.
+    ///   - bugReportConfig: A configuration object used to customize the appearance and behavior of the bug report UI.
+    ///   - attributes: Optional key-value pairs for additional metadata about the bug report.
+    @objc public func launchBugReport(takeScreenshot: Bool = true,
+                                      bugReportConfig: BugReportConfig = .default,
+                                      attributes: [String: Any]? = nil) {
+        guard let measureInternal = self.measureInternal else { return }
+        measureInternal.startBugReportFlow(takeScreenshot: takeScreenshot, bugReportConfig: bugReportConfig, attributes: attributes)
+    }
+
+    /// Enables automatic bug reporting using shake detection.
+    /// When the device is shaken, this will automatically launch the built-in bug report UI.
+    ///
+    /// - Parameter takeScreenshot: Set to `true` to include a screenshot with the report (default is `true`).
+    /// - SeeAlso: `disableShakeToLaunchBugReport()`
+    @objc public func enableShakeToLaunchBugReport(takeScreenshot: Bool = true) {
+        guard let measureInternal = self.measureInternal else { return }
+        measureInternal.enableShakeToLaunchBugReport(takeScreenshot: takeScreenshot)
+    }
+
+    /// Disables automatic bug reporting triggered by shaking the device.
+    /// After calling this method, shake gestures will no longer open the bug report screen.
+    ///
+    /// - SeeAlso: `enableShakeToLaunchBugReport(takeScreenshot:)`
+    @objc public func disableShakeToLaunchBugReport() {
+        guard let measureInternal = self.measureInternal else { return }
+        measureInternal.disableShakeToLaunchBugReport()
+    }
+
+    /// Checks whether the shake-to-launch bug report feature is currently enabled.
+    ///
+    /// - Returns: `true` if shake detection is active and will launch the bug report UI, otherwise `false`.
+    @objc public func isShakeToLaunchBugReportEnabled() -> Bool {
+        guard let measureInternal = self.measureInternal else { return false }
+        return measureInternal.isShakeToLaunchBugReportEnabled()
+    }
+
+    /// Sets a custom shake listener for manually handling shake gestures.
+    /// This is useful for showing a confirmation UI or triggering a custom bug reporting flow instead of
+    /// launching the built-in experience.
+    ///
+    /// Key behavior:
+    /// - Setting a non-`nil` listener enables shake detection.
+    /// - Setting `nil` disables shake detection.
+    /// - The listener is throttled and will only fire once every 5 seconds.
+    /// - Has no effect if automatic shake reporting is already enabled.
+    ///
+    /// - Parameter listener: A custom `MsrShakeListener` to receive shake callbacks, or `nil` to disable.
+    @objc public func setShakeListener(_ listener: MsrShakeListener?) {
+        guard let measureInternal = self.measureInternal else { return }
+        measureInternal.setShakeListener(listener)
+    }
+
+    /// Tracks a custom bug report.
+    ///
+    /// For a pre-built UI experience to collect bug reports, see `launchBugReportActivity()`.
+    /// Attachments can contain screenshots, layout snapshots or images from the gallery.
+    ///
+    /// - Parameters:
+    ///   - description: Description of the bug. Max characters: 4000.
+    ///   - attachments: Optional list of attachments. Max: 5.
+    ///   - attributes: Optional key-value pairs for additional metadata about the bug report.
+    public func trackBugReport(description: String,
+                               attachments: [MsrAttachment] = [],
+                               attributes: [String: AttributeValue]? = nil) {
+        guard let measureInternal = self.measureInternal else { return }
+        measureInternal.trackBugReport(description: description, attachments: attachments, attributes: attributes)
+    }
+
+    /// Tracks a custom bug report
+    ///
+    /// For a pre-built UI experience to collect bug reports, see `launchBugReportActivity()`.
+    /// Attachments can contain screenshots, layout snapshots or images from the gallery.
+    ///
+    /// Note:
+    /// This method is primarily intended for Objective-C use.
+    ///
+    /// - Parameters:
+    ///   - description: Description of the bug. Max characters: 4000.
+    ///   - attachments: Optional list of attachments. Max: 5.
+    ///   - attributes: Optional key-value pairs for additional metadata about the bug report.
+    @objc public func trackBugReport(description: String,
+                                     attachments: [MsrAttachment] = [],
+                                     attributes: [String: Any]? = nil) {
+        guard let measureInternal = self.measureInternal else { return }
+        measureInternal.trackBugReport(description: description, attachments: attachments, attributes: attributes)
+    }
+
+    /// Takes a screenshot of the current activity window. This method must be called from the main thread.
+    /// 
+    /// The screenshot will be masked for privacy based on the configuration provided during
+    /// initialization using `MeasureConfig.screenshotMaskLevel`, by default all text and media are masked.
+    /// 
+    /// - Parameters:
+    ///   - viewController: The view controller to capture.
+    ///   
+    /// - Returns: `MsrAttachment` object containing the screenshot data.
+    @objc public func captureScreenshot(for viewController: UIViewController) -> MsrAttachment? {
+        guard let measureInternal = self.measureInternal else { return nil }
+        return measureInternal.captureScreenshot(for: viewController)
+    }
+
+    /// Takes a snapshot of the current view hierarchy layout. This method must be called from the main thread.
+    /// 
+    /// The snapshot captures information about visible elements including their position and
+    /// dimensions. These are cheaper to capture and take less storage than screenshots.
+    /// 
+    /// - Parameters:
+    ///   - viewController: The view controller to capture.
+    /// - Returns: `MsrAttachment` object containing the layout snapshot data.
+    @objc func captureLayoutSnapshot(from viewController: UIViewController) -> MsrAttachment? {
+        guard let measureInternal = self.measureInternal else { return nil }
+        return measureInternal.captureLayoutSnapshot(for: viewController)
     }
 }

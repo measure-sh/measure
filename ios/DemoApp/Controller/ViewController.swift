@@ -35,6 +35,7 @@ import Measure
         tableView.accessibilityIdentifier = "HomeTableView"
         tableView.delegate = self
         tableView.dataSource = self
+        tableView.translatesAutoresizingMaskIntoConstraints = false
 
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
 
@@ -42,6 +43,13 @@ import Measure
         tableView.tableHeaderView = headerView
 
         view.addSubview(tableView)
+
+        NSLayoutConstraint.activate([
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
     }
 
     override func viewDidDisappear(_ animated: Bool) {
@@ -61,11 +69,13 @@ import Measure
     // MARK: - Table Header View with Buttons
 
     func createTableHeaderView() -> UIView {
-        let headerView = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 150))
+        let headerView = UIView()
+        // Do NOT set translatesAutoresizingMaskIntoConstraints = false for headerView
+        // headerView.translatesAutoresizingMaskIntoConstraints = false
 
-        let buttonTitles = ["SwiftUI Controller", "Objc Controller", "Collection Controller", "System Controls"]
+        let buttonTitles = ["SwiftUI Controller", "Objc Controller", "Collection Controller", "System Controls", "Bug Reporter"]
 
-        // Create vertical stack views to hold two buttons each
+        // Create two vertical stack views
         let verticalStackView1 = UIStackView()
         verticalStackView1.axis = .vertical
         verticalStackView1.distribution = .fillEqually
@@ -84,8 +94,11 @@ import Measure
             button.setTitle(title, for: .normal)
             button.tag = index
             button.addTarget(self, action: #selector(headerButtonTapped(_:)), for: .touchUpInside)
+            button.translatesAutoresizingMaskIntoConstraints = false
+            button.heightAnchor.constraint(equalToConstant: 44).isActive = true
 
-            if index < 2 {
+            // Distribute buttons: 0,2,4 in first column; 1,3 in second
+            if index == 0 || index == 2 || index == 4 {
                 verticalStackView1.addArrangedSubview(button)
             } else {
                 verticalStackView2.addArrangedSubview(button)
@@ -96,18 +109,37 @@ import Measure
         horizontalStackView.axis = .horizontal
         horizontalStackView.distribution = .fillEqually
         horizontalStackView.spacing = 16
-
         horizontalStackView.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(horizontalStackView)
 
+        // Pin horizontalStackView to headerView's safe area
         NSLayoutConstraint.activate([
-            horizontalStackView.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 20),
-            horizontalStackView.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -20),
+            horizontalStackView.leadingAnchor.constraint(equalTo: headerView.safeAreaLayoutGuide.leadingAnchor, constant: 16),
+            horizontalStackView.trailingAnchor.constraint(equalTo: headerView.safeAreaLayoutGuide.trailingAnchor, constant: -16),
             horizontalStackView.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 8),
             horizontalStackView.bottomAnchor.constraint(equalTo: headerView.bottomAnchor, constant: -8)
         ])
 
+        // Remove headerView.heightAnchor constraint. Instead, set frame height below.
+        // headerView.heightAnchor.constraint(equalToConstant: 150).isActive = true
+        headerView.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 150)
+
         return headerView
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // Update header view frame when orientation or safe area changes
+        if let tableView = view.subviews.first(where: { $0 is UITableView }) as? UITableView,
+           let headerView = tableView.tableHeaderView {
+            let targetWidth = tableView.bounds.width
+            let targetHeight = headerView.systemLayoutSizeFitting(CGSize(width: targetWidth, height: 0)).height
+            if headerView.frame.width != targetWidth || headerView.frame.height != targetHeight {
+                headerView.frame.size.width = targetWidth
+                headerView.frame.size.height = targetHeight
+                tableView.tableHeaderView = headerView
+            }
+        }
     }
 
     @objc func headerButtonTapped(_ sender: UIButton) {
@@ -126,6 +158,13 @@ import Measure
             if let controller = self.storyboard?.instantiateViewController(withIdentifier: "ControlsViewController") {
                 self.navigationController?.pushViewController(controller, animated: true)
             }
+        case 4:
+            let color = BugReportConfig.default.colors.update(badgeColor: .red, isDarkMode: true)
+            let dimensions = MsrDimensions(
+                topPadding: 20
+            )
+            let config = BugReportConfig(colors: color, dimensions: dimensions)
+            Measure.shared.launchBugReport(takeScreenshot: true, bugReportConfig: config)
         default:
             let controller = ControlsViewController()
             self.navigationController?.pushViewController(controller, animated: true)
