@@ -32,7 +32,7 @@ export default function GitHubSignIn() {
   return <Button
     variant="outline"
     size={"lg"}
-    className="justify-center w-full font-display border border-black rounded-md select-none"
+    className="justify-center w-full font-display border border-black select-none"
     onClick={() => doGitHubLogin()}>
     <GitHubLogo />
     <span> Sign in with GitHub</span>

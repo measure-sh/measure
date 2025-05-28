@@ -196,7 +196,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                 <Button
                   variant="outline"
                   disabled={saveAppNameButtonDisabled || appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
-                  className="m-4 font-display border border-black rounded-md select-none"
+                  className="m-4 font-display border border-black select-none"
                   onClick={() => setAppNameConfirmationModalOpen(true)}>
                   {appNameChangeApiStatus === AppNameChangeApiStatus.Loading ? (
                     <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "100%", position: "relative" }}>
@@ -225,7 +225,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success &&
                 <Button
                   variant="outline"
-                  className="m-4 font-display border border-black rounded-md select-none"
+                  className="m-4 font-display border border-black select-none"
                   disabled={!currentUserCanChangeAppSettings || updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading || appSettings.retention_period === updatedAppSettings.retention_period}
                   loading={updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading}
                   onClick={() => saveAppSettings()}>
@@ -239,7 +239,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               <input type="text" readOnly={true} value={process.env.NEXT_PUBLIC_API_BASE_URL} className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
               <Button
                 variant="outline"
-                className="m-4 font-display border border-black rounded-md select-none"
+                className="m-4 font-display border border-black select-none"
                 onClick={() => {
                   navigator.clipboard.writeText(process.env.NEXT_PUBLIC_API_BASE_URL!)
                   toastPositive("Base URL copied to clipboard")
@@ -253,7 +253,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               <input type="text" readOnly={true} value={filters.app!.api_key.key} className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
               <Button
                 variant="outline"
-                className="m-4 font-display border border-black rounded-md select-none"
+                className="m-4 font-display border border-black select-none"
                 onClick={() => {
                   navigator.clipboard.writeText(filters.app!.api_key.key)
                   toastPositive("API key copied to clipboard")

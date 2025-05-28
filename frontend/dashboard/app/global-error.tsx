@@ -31,7 +31,7 @@ export default function Error({
             <div className="py-2" />
             <Button
               variant="outline"
-              className="font-display border border-black rounded-md select-none"
+              className="font-display border border-black select-none"
               onClick={() => navigator.clipboard.writeText(error.message)}
             >Copy
             </Button>

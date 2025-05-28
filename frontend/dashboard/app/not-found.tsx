@@ -19,7 +19,7 @@ export default function NotFound() {
       <div className="py-4" />
       <Button
         variant="outline"
-        className="font-display border border-black rounded-md select-none"
+        className="font-display border border-black select-none"
         onClick={() => goBack()}>
         Go Back
       </Button>

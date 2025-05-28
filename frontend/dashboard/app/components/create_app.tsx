@@ -69,7 +69,7 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
             <Button
               variant="outline"
               type="submit"
-              className="w-fit font-display border border-black rounded-md select-none"
+              className="w-fit font-display border border-black select-none"
               disabled={createAppApiStatus === CreateAppApiStatus.Loading || appName.length === 0}
             >Create App
             </Button>
@@ -91,7 +91,7 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
             <Button
               variant="outline"
               type="submit"
-              className="m-4 w-fit font-display border border-black rounded-md select-none"
+              className="m-4 w-fit font-display border border-black select-none"
               onClick={() => {
                 navigator.clipboard.writeText(existingApiKey !== null ? existingApiKey : data!.api_key.key)
                 toastPositive("API key copied to clipboard")
