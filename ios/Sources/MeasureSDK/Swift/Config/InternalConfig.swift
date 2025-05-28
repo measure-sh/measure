@@ -80,4 +80,19 @@ protocol InternalConfig {
 
     /// Max checkpoints per span. Defaults to 100.
     var maxCheckpointsPerSpan: Int { get }
+
+    /// The maximum number of attachments allowed in a bug report. Defaults to 5.
+    var maxAttachmentsInBugReport: Int { get }
+
+    /// The maximum number of characters allowed in the bug report description. Defaults to 4000.
+    var maxDescriptionLengthInBugReport: Int { get }
+
+    /// The force threshold to trigger a shake (higher = less sensitive). Defaults to 2.5.
+    var shakeAccelerationThreshold: Float { get }
+
+    /// Minimum time between shake detections in milliseconds. Defaults to 1500 ms.
+    var shakeMinTimeIntervalMs: Number { get }
+
+    /// The interval, in seconds, for providing accelerometer updates to the block handler. Defaults to 0.1 seconds.
+    var accelerometerUpdateInterval: TimeInterval { get }
 }

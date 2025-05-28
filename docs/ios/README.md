@@ -15,6 +15,7 @@
   * [ViewController Lifecycle](#viewcontroller-lifecycle)
   * [Network Monitoring](#network-monitoring)
   * [Performance Tracing](#performance-tracing)
+  * [Bug Reports](#bug-reports)
 * [Session](#session)
 
 # Minimum requirements
@@ -372,6 +373,24 @@ let span: Span = Measure.shared.startSpan(name: "operation-name", timestamp: Mea
 
 ### Learn More
 For detailed documentation, including advanced usage and distributed tracing, refer to the [Performance Tracing Documentation](/docs/ios/features/feature_performance_tracing.md).
+
+## Bug Reports
+
+Bug reports enable users to report issues directly from the app. To launch the bug reporting flow:
+
+```swift
+Measure.shared.launchBugReport(takeScreenshot: true)
+```
+
+You can also capture a bug report by building your own UI using:
+
+```swift
+Measure.shared.trackBugReport(description: "Items from cart disappear after reopening the app")
+```
+
+Bug reports can be captured with screenshots and attributes. Read more details about 
+bug reports [here](features/feature_bug_reports.md).
+
 
 # Session
 

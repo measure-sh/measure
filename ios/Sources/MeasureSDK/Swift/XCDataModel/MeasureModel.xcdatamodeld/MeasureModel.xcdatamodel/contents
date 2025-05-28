@@ -11,6 +11,7 @@
         <attribute name="attachmentSize" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="attributes" optional="YES" attributeType="Binary"/>
         <attribute name="batchId" optional="YES" attributeType="String"/>
+        <attribute name="bugReport" optional="YES" attributeType="Binary"/>
         <attribute name="coldLaunch" optional="YES" attributeType="Binary"/>
         <attribute name="cpuUsage" optional="YES" attributeType="Binary"/>
         <attribute name="customEvent" optional="YES" attributeType="Binary"/>

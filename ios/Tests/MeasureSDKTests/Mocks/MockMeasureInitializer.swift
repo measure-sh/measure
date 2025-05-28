@@ -64,6 +64,11 @@ final class MockMeasureInitializer: MeasureInitializer {
     let spanCollector: SpanCollector
     let tracer: Tracer
     var internalSignalCollector: InternalSignalCollector
+    let bugReportManager: BugReportManager
+    let bugReportCollector: BugReportCollector
+    let shakeBugReportCollector: ShakeBugReportCollector
+    let shakeDetector: ShakeDetector
+    let screenshotGenerator: ScreenshotGenerator
 
     init(client: Client? = nil, // swiftlint:disable:this function_body_length
          configProvider: ConfigProvider? = nil,
@@ -287,5 +292,22 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                httpEventValidator: self.httpEventValidator)
         self.internalSignalCollector = internalSignalCollector ?? BaseInternalSignalCollector(logger: self.logger,
                                                                                              signalProcessor: self.signalProcessor)
+        self.screenshotGenerator = BaseScreenshotGenerator(configProvider: self.configProvider,
+                                                           logger: self.logger,
+                                                           attachmentProcessor: self.attachmentProcessor,
+                                                           userPermissionManager: self.userPermissionManager)
+        self.bugReportManager = BaseBugReportManager(screenshotGenerator: self.screenshotGenerator,
+                                                     configProvider: self.configProvider,
+                                                     idProvider: self.idProvider)
+        self.bugReportCollector = BaseBugReportCollector(bugReportManager: self.bugReportManager,
+                                                         signalProcessor: self.signalProcessor,
+                                                         timeProvider: self.timeProvider,
+                                                         sessionManager: self.sessionManager,
+                                                         idProvider: self.idProvider)
+        self.shakeDetector = AccelerometerShakeDetector(configProvider: self.configProvider)
+        self.shakeBugReportCollector = ShakeBugReportCollector(autoLaunchEnabled: true,
+                                                               bugReportManager: self.bugReportManager,
+                                                               shakeDetector: self.shakeDetector,
+                                                               screenshotGenerator: self.screenshotGenerator)
     }
 }

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="32700.99.1234" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="9qv-xN-U23">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="9qv-xN-U23">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22684"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
@@ -98,14 +98,21 @@
                                     <action selector="showDatePickerAction:" destination="Sgd-Oh-O6w" eventType="touchUpInside" id="bfy-Sp-2bb"/>
                                 </connections>
                             </button>
+                            <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="fill" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Password" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="atc-fO-ap3">
+                                <rect key="frame" x="151.33333333333334" y="300" width="90.333333333333343" height="34"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <textInputTraits key="textInputTraits" secureTextEntry="YES"/>
+                            </textField>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="4ue-j2-hUd"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
                             <constraint firstItem="DkC-ov-Saf" firstAttribute="centerX" secondItem="SQM-41-hSs" secondAttribute="centerX" id="2By-cs-Qby"/>
+                            <constraint firstItem="atc-fO-ap3" firstAttribute="top" secondItem="DkC-ov-Saf" secondAttribute="bottom" constant="8" symbolic="YES" id="33c-bO-dQw"/>
                             <constraint firstItem="7w3-ig-xB9" firstAttribute="centerX" secondItem="bM8-Vs-ax5" secondAttribute="centerX" id="9Gt-SZ-mSL"/>
                             <constraint firstItem="DkC-ov-Saf" firstAttribute="top" secondItem="bM8-Vs-ax5" secondAttribute="bottom" constant="16" id="IIm-lW-0wO"/>
                             <constraint firstItem="bNn-As-9Bn" firstAttribute="centerX" secondItem="SQM-41-hSs" secondAttribute="centerX" id="J4V-Jd-Xid"/>
+                            <constraint firstItem="atc-fO-ap3" firstAttribute="centerX" secondItem="SQM-41-hSs" secondAttribute="centerX" id="M3l-oG-Bm3"/>
                             <constraint firstItem="bM8-Vs-ax5" firstAttribute="centerX" secondItem="SQM-41-hSs" secondAttribute="centerX" id="NZu-ij-7Z3"/>
                             <constraint firstItem="7w3-ig-xB9" firstAttribute="top" secondItem="Up7-rQ-RRI" secondAttribute="bottom" constant="16" id="RBE-C5-Gub"/>
                             <constraint firstItem="Up7-rQ-RRI" firstAttribute="top" secondItem="bNn-As-9Bn" secondAttribute="bottom" constant="16" id="TvJ-fb-qaD"/>

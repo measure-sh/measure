@@ -11,12 +11,12 @@ import UIKit
 
 final class MockSvgGenerator: SvgGenerator {
     var generatedData: Data?
-    var capturedWindow: UIWindow?
+    var capturedView: UIView?
     var capturedFrames: [CGRect] = []
     var capturedTargetView: UIView?
 
-    func generate(for window: UIWindow, frames: [CGRect], targetView: UIView?) -> Data? {
-        self.capturedWindow = window
+    func generate(for view: UIView, frames: [CGRect], targetView: UIView?) -> Data? {
+        self.capturedView = view
         self.capturedFrames = frames
         self.capturedTargetView = targetView
         return generatedData

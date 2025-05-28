@@ -268,7 +268,6 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
                         XCTAssertEqual(firstFrame["col_num"] as? Number, 12)
                         XCTAssertEqual(firstFrame["module_name"] as? String, "measure")
                         XCTAssertEqual(firstFrame["instruction_address"] as? String, "0x0000000000000000")
-                        
                     } else {
                         XCTFail("Stack frames are not present in the exception details.")
                     }

@@ -28,7 +28,7 @@ final class LifecycleCollectorTests: XCTestCase {
         mockConfigProvider = MockConfigProvider()
         mockLogger = MockLogger()
         mockViewController = MockViewController()
-        
+
         lifecycleCollector = BaseLifecycleCollector(
             signalProcessor: mockSignalProcessor,
             timeProvider: mockTimeProvider,
@@ -62,7 +62,7 @@ final class LifecycleCollectorTests: XCTestCase {
 
     func testApplicationDidEnterBackground() {
         lifecycleCollector.applicationDidEnterBackground()
-        
+
         XCTAssertNotNil(mockSignalProcessor.data)
         if let lifecycleData = mockSignalProcessor.data as? ApplicationLifecycleData {
             XCTAssertEqual(lifecycleData.type, .background)
@@ -74,7 +74,7 @@ final class LifecycleCollectorTests: XCTestCase {
 
     func testApplicationWillEnterForeground() {
         lifecycleCollector.applicationWillEnterForeground()
-        
+
         XCTAssertNotNil(mockSignalProcessor.data)
         if let lifecycleData = mockSignalProcessor.data as? ApplicationLifecycleData {
             XCTAssertEqual(lifecycleData.type, .foreground)
@@ -86,7 +86,7 @@ final class LifecycleCollectorTests: XCTestCase {
 
     func testApplicationWillTerminate() {
         lifecycleCollector.applicationWillTerminate()
-        
+
         XCTAssertNotNil(mockSignalProcessor.data)
         if let lifecycleData = mockSignalProcessor.data as? ApplicationLifecycleData {
             XCTAssertEqual(lifecycleData.type, .terminated)
@@ -99,7 +99,7 @@ final class LifecycleCollectorTests: XCTestCase {
     func testProcessControllerLifecycleEvent_LoadView() {
         lifecycleCollector.enable()
         lifecycleCollector.processControllerLifecycleEvent(.loadView, for: mockViewController)
-        
+
         XCTAssertNotNil(mockSignalProcessor.data)
         if let lifecycleData = mockSignalProcessor.data as? VCLifecycleData {
             XCTAssertEqual(lifecycleData.type, "loadView")
@@ -113,7 +113,7 @@ final class LifecycleCollectorTests: XCTestCase {
     func testProcessControllerLifecycleEvent_ViewDidLoad() {
         lifecycleCollector.enable()
         lifecycleCollector.processControllerLifecycleEvent(.viewDidLoad, for: mockViewController)
-        
+
         XCTAssertNotNil(mockSignalProcessor.data)
         if let lifecycleData = mockSignalProcessor.data as? VCLifecycleData {
             XCTAssertEqual(lifecycleData.type, "viewDidLoad")
@@ -127,7 +127,7 @@ final class LifecycleCollectorTests: XCTestCase {
     func testProcessControllerLifecycleEvent_ViewWillAppear() {
         lifecycleCollector.enable()
         lifecycleCollector.processControllerLifecycleEvent(.viewWillAppear, for: mockViewController)
-        
+
         XCTAssertNotNil(mockSignalProcessor.data)
         if let lifecycleData = mockSignalProcessor.data as? VCLifecycleData {
             XCTAssertEqual(lifecycleData.type, "viewWillAppear")
@@ -141,7 +141,7 @@ final class LifecycleCollectorTests: XCTestCase {
     func testProcessControllerLifecycleEvent_ViewDidAppear() {
         lifecycleCollector.enable()
         lifecycleCollector.processControllerLifecycleEvent(.viewDidAppear, for: mockViewController)
-        
+
         XCTAssertNotNil(mockSignalProcessor.data)
         if let lifecycleData = mockSignalProcessor.data as? VCLifecycleData {
             XCTAssertEqual(lifecycleData.type, "viewDidAppear")
@@ -155,7 +155,7 @@ final class LifecycleCollectorTests: XCTestCase {
     func testProcessSwiftUILifecycleEvent() {
         let className = "TestView"
         lifecycleCollector.processSwiftUILifecycleEvent(.onAppear, for: className)
-        
+
         XCTAssertNotNil(mockSignalProcessor.data)
         if let lifecycleData = mockSignalProcessor.data as? SwiftUILifecycleData {
             XCTAssertEqual(lifecycleData.type, .onAppear)
@@ -169,27 +169,27 @@ final class LifecycleCollectorTests: XCTestCase {
     func testViewControllerTTIDSpanTracking() {
         mockConfigProvider.trackViewControllerLoadTime = true
         lifecycleCollector.enable()
-        
+
         // Start span in loadView
         lifecycleCollector.processControllerLifecycleEvent(.loadView, for: mockViewController)
         XCTAssertNotNil(mockTracer.lastSpan)
-        
+
         // Add checkpoint in viewDidLoad
         lifecycleCollector.processControllerLifecycleEvent(.viewDidLoad, for: mockViewController)
-        
+
         // Add checkpoint in viewWillAppear
         lifecycleCollector.processControllerLifecycleEvent(.viewWillAppear, for: mockViewController)
-        
+
         // End span in viewDidAppear
         lifecycleCollector.processControllerLifecycleEvent(.viewDidAppear, for: mockViewController)
-        
+
         // Wait for the async operation to complete
         let expectation = XCTestExpectation(description: "Wait for span status update")
         DispatchQueue.main.async {
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: 0.5)
-        
+
         // Verify span was ended with OK status
         XCTAssertEqual(mockTracer.lastSpan?.status, .ok)
     }

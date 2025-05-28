@@ -25,25 +25,25 @@ struct StackFrame: Codable {
 
     /// `true` if the frame originates from the app module
     let inApp: Bool
-    
+
     /// The  class name where the frame originated from.
     let className: String?
-    
+
     /// The  method name where the frame originated from.
     let methodName: String?
-    
+
     /// The  file name where the frame originated from.
     let fileName: String?
-    
+
     /// The  line number where the frame originated from.
     let lineNumber: Number?
-    
+
     /// The  column number where the frame originated from.
     let columnNumber: Number?
-    
+
     /// The library or module where the crash occurred.
     let moduleName: String?
-    
+
     /// The instruction address of the frame.
     let instructionAddress: String?
 
