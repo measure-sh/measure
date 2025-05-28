@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump golang.org/x/net from 0.37.0 to 0.38.0 in /backend/api (#2127) by @dependabot[bot] in #2127
 - (**deps**): Bump golang.org/x/net in /backend/cleanup (#2126) by @dependabot[bot] in #2126
 - (**deps**): Bump golang.org/x/net in /self-host/sessionator (#2124) by @dependabot[bot] in #2124
+- (**frontend**): Avoid table reload during members, roles & invites updates in team page by @anupcowkur in #2236
 - (**frontend**): Remove redundant 'rounded-md' in buttons by @anupcowkur in #2233
 - (**frontend**): Update teams page UI by @anupcowkur in #2227
 - (**frontend**): Add toasts by @anupcowkur in #2226
