@@ -1,19 +1,19 @@
 # Getting Started
 
-* [1. Create an app](#1-create-an-app)
-* [2. Set up the SDK](#2-set-up-the-sdk)
+* [Create an app](#1-create-an-app)
+* [Set up the SDK](#2-set-up-the-sdk)
     * [Android](#android)
         * [Add the API Key & API URL](#add-the-api-key--api-url)
-        * [Add the gradle plugin](#add-the-gradle-plugin)
-        * [Add the SDK](#add-the-sdk)
+        * [Add the Measure gradle plugin](#add-the-measure-gradle-plugin)
+        * [Add Measure SDK](#add-measure-sdk)
         * [Initialize the SDK](#initialize-the-sdk)
     * [iOS](#ios)
-        * [Install the SDK](#install-the-sdk)
+        * [Install Measure SDK](#install-measure-sdk)
         * [Initialize the SDK](#initialize-the-sdk-1)
-* [3. Verify installation](#3-verify-installation)
+* [Verify installation](#3-verify-installation)
 * [Troubleshoot](#troubleshoot)
 
-> [!IMPORTANT]
+> [!NOTE]
 >
 > Make sure the measure-sh server is running. For setup instructions on your local machine or in the cloud, refer to the
 > [hosting guide](../hosting/README.md).
@@ -123,7 +123,7 @@ Then add the following in the `AndroidManifest.xml` file:
 
 </details>
 
-### Add the gradle plugin
+### Add the Measure gradle plugin
 
 Add the following plugin to your project.
 
@@ -181,7 +181,7 @@ measure {
 
 </details>
 
-### Add the SDK
+### Add Measure SDK
 
 Add the following to your app's `build.gradle.kts` file.
 
@@ -237,7 +237,7 @@ See the [troubleshooting](#troubleshoot) section if you face any issues.
 
 </details>
 
-### Install the SDK
+### Install Measure SDK
 
 Measure SDK supports **CocoaPods** and **Swift Package Manager (SPM)** for installation.
 
@@ -272,6 +272,9 @@ launch time metrics.
 > To detect early crashes and ensure accurate launch time metrics, initialize the SDK as soon as possible
 > in `application(_:didFinishLaunchingWithOptions:)`.
 
+<details>
+    <summary>Swift</summary>
+
 ```swift
 import MeasureSDK
 
@@ -288,6 +291,11 @@ func application(_ application: UIApplication,
 }
 ```
 
+</details>
+
+<details>
+    <summary>ObjC</summary>
+
 ```objc
 
 #import <MeasureSDK/MeasureSDK.h>
@@ -301,17 +309,27 @@ func application(_ application: UIApplication,
 
 ```
 
+</details>
+
+> Replace `apiKey` with the API key provided in the web dashboard upon app creation, and set `apiUrl`
+> to `https://measure-api.<your-domain>.com`, replacing `<your-domain>` with your own domain.
+
 ## 3. Verify installation
 
 The SDK automatically collects data. You can verify if the SDK is working by using the app for a while and checking the
-sessions or usage tab on the dashboard.
+Measure dashboard.
 
 🎉 Congratulations! You have successfully integrated Measure into your app!
-_______
 
-### Troubleshoot
+<!-- Add this HTML snippet where you want the button to appear -->
+<div style="text-align: right;">
+    <a href="crash-reporting.html" style="display: inline-block; padding: 10px 20px; font-size: 16px; color: #ddd; border: 2px solid #888; background-color: transparent; text-align: center; text-decoration: none; border-radius: 5px;">Next: Crash Reporting</a>
+</div>
 
-#### Verify sampling rate
+
+## Troubleshoot
+
+### Verify sampling rate
 
 Try setting `samplingRateForErrorFreeSessions` to `1`, which would enforce all sessions to be sent to the server. It's
 typically a good idea to set this to `1` for debug builds.
@@ -342,7 +360,7 @@ Measure.shared.initialize(with: clientInfo, config: config)
 
 </details>
 
-#### Verify API URL and API key
+### Verify API URL and API key
 
 If you are not seeing any data in the dashboard, verify that the API URL and API key are set correctly in your app.
 
@@ -372,7 +390,7 @@ Measure.shared.initialize(with: clientInfo, config: config)
 
 </details>
 
-#### Connecting to locally-hosted server
+### Connecting to locally hosted server
 
 **iOS**
 
@@ -383,7 +401,6 @@ To resolve this, you can use [ngrok](https://ngrok.com/) or a similar service to
 server. This allows your physical device to connect to the server.
 
 **Android**
-
 For Android, if your device is on the same network as your computer, you can use your computer's local IP address (e.g.,
 192.168.1.X:8080) as the API_URL. Alternatively, you can set up ADB port forwarding with the command `adb reverse tcp:
 8080 tcp:8080` to allow the device to connect to the server.
@@ -394,7 +411,7 @@ machine.
 Alternatively, you can use [ngrok](https://ngrok.com/) or a similar service to provide a public URL to your local
 server. This allows your Android emulator or physical device to connect to the server.
 
-#### Enable logs
+### Enable logs
 
 <details>
     <summary>Android</summary>
@@ -420,12 +437,7 @@ Measure.shared.initialize(with: clientInfo, config: config)
 
 </details>
 
-#### Connecting to a self-hosted server
-
-If you are hosting the server in cloud. Make sure the API URL is set to the public URL of your server.
-For example: set the API URL to `https://measure-api.<your-domain>.com`, replacing <your-domain> with your own domain.
-
-#### Contact support
+### Contact support
 
 If none of the above steps resolve the issue, reach out to us on [Discord](https://discord.gg/f6zGkBCt42) for further
 assistance.
