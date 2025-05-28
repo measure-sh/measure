@@ -98,8 +98,10 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     getCurrentUserId()
   }, [])
 
-  const getAuthzAndMembers = async () => {
-    setAuthzAndMembersApiStatus(AuthzAndMembersApiStatus.Loading)
+  const getAuthzAndMembers = async (showLoading: boolean) => {
+    if (showLoading) {
+      setAuthzAndMembersApiStatus(AuthzAndMembersApiStatus.Loading)
+    }
 
     const result = await fetchAuthzAndMembersFromServer(params.teamId)
 
@@ -115,11 +117,13 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   }
 
   useEffect(() => {
-    getAuthzAndMembers()
+    getAuthzAndMembers(true)
   }, [])
 
-  const getPendingInvites = async () => {
-    setPendingInvitesApiStatus(PendingInvitesApiStatus.Loading)
+  const getPendingInvites = async (showLoading: boolean) => {
+    if (showLoading) {
+      setPendingInvitesApiStatus(PendingInvitesApiStatus.Loading)
+    }
 
     const result = await fetchPendingInvitesFromServer(params.teamId)
 
@@ -135,7 +139,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   }
 
   useEffect(() => {
-    getPendingInvites()
+    getPendingInvites(true)
   }, [])
 
   const resendPendingInvite = async () => {
@@ -151,7 +155,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
       case ResendPendingInviteApiStatus.Success:
         setResendPendingInviteApiStatus(ResendPendingInviteApiStatus.Success)
         toastPositive("Pending invite for " + resendPendingInviteEmail + " has been resent")
-        getPendingInvites()
+        getPendingInvites(false)
         break
     }
   }
@@ -169,7 +173,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
       case RemovePendingInviteApiStatus.Success:
         setRemovePendingInviteApiStatus(RemovePendingInviteApiStatus.Success)
         toastPositive("Pending invite for " + removePendingInviteEmail + " has been removed")
-        getPendingInvites()
+        getPendingInvites(false)
         break
     }
   }
@@ -204,7 +208,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
       case RoleChangeApiStatus.Success:
         setRoleChangeApiStatus(RoleChangeApiStatus.Success)
         toastPositive(roleChangeMemberEmail + "'s role changed",)
-        getAuthzAndMembers()
+        getAuthzAndMembers(false)
         break
     }
   }
@@ -223,8 +227,8 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
         setInviteMemberApiStatus(InviteMemberApiStatus.Success)
         toastPositive(inviteMemberEmail + " has been invited")
         setInviteMemberEmail("")
-        getAuthzAndMembers()
-        getPendingInvites()
+        getAuthzAndMembers(false)
+        getPendingInvites(false)
         break
     }
   }
@@ -242,7 +246,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
       case RemoveMemberApiStatus.Success:
         setRemoveMemberApiStatus(RemoveMemberApiStatus.Success)
         toastPositive(removeMemberEmail + " has been removed")
-        getAuthzAndMembers()
+        getAuthzAndMembers(false)
         break
     }
   }
