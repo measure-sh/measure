@@ -7,9 +7,9 @@ import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_se
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters"
 import { measureAuth } from "@/app/auth/measure_auth"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Button } from "@/app/components/button"
-import { toastNegative, toastPositive } from "@/app/utils/use_toast"
+import { toast, toastNegative, toastPositive } from "@/app/utils/use_toast"
 import LoadingSpinner from "@/app/components/loading_spinner"
 
 export default function Apps({ params }: { params: { teamId: string } }) {
@@ -27,6 +27,9 @@ export default function Apps({ params }: { params: { teamId: string } }) {
   const [appNameConfirmationModalOpen, setAppNameConfirmationModalOpen] = useState(false)
   const [appNameChangeApiStatus, setAppNameChangeApiStatus] = useState(AppNameChangeApiStatus.Init)
   const [appName, setAppName] = useState('')
+
+
+  const filtersRef = useRef<any>(null)
 
   const getCurrentUserCanChangeAppSettings = async () => {
     const result = await fetchAuthzAndMembersFromServer(params.teamId)
@@ -135,7 +138,10 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         break
       case AppNameChangeApiStatus.Success:
         setAppNameChangeApiStatus(AppNameChangeApiStatus.Success)
-        location.reload()
+        toastPositive("App name changed successfully")
+        if (filtersRef.current?.refresh) {
+          filtersRef.current.refresh()
+        }
         break
     }
   }
@@ -145,6 +151,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       <p className="font-display text-4xl max-w-6xl text-center">Apps</p>
       <div className="py-4" />
       <Filters
+        ref={filtersRef}
         teamId={params.teamId}
         filterSource={FilterSource.Events}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
@@ -197,17 +204,9 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                   variant="outline"
                   disabled={saveAppNameButtonDisabled || appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
                   className="m-4 font-display border border-black select-none"
+                  loading={appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
                   onClick={() => setAppNameConfirmationModalOpen(true)}>
-                  {appNameChangeApiStatus === AppNameChangeApiStatus.Loading ? (
-                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "100%", position: "relative" }}>
-                      <span style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <LoadingSpinner />
-                      </span>
-                      <span style={{ visibility: "hidden" }}>Save</span>
-                    </span>
-                  ) : (
-                    "Save"
-                  )}
+                  Save
                 </Button>
               </div>
               <p>Package name: {filters.app!.unique_identifier}</p>

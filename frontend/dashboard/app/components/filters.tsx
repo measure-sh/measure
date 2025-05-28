@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation"
 import { formatDateToHumanReadableDateTime, formatIsoDateForDateTimeInputField, isValidTimestamp } from "../utils/time_utils"
-import { useEffect, useState } from "react"
+import React, { useEffect, useState, useImperativeHandle, forwardRef } from "react"
 import { AppVersion, AppsApiStatus, FiltersApiStatus, FilterSource, OsVersion, SessionType, RootSpanNamesApiStatus, App, fetchAppsFromServer, fetchFiltersFromServer, fetchRootSpanNamesFromServer, SpanStatus, UserDefAttr, BugReportStatus } from "../api/api_calls"
 import { DateTime } from "luxon"
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select"
@@ -18,6 +18,7 @@ export enum AppVersionsInitialSelectionType {
 }
 
 interface FiltersProps {
+  ref?: React.RefObject<HTMLDivElement>
   teamId: string,
   appId?: string,
   filterSource: FilterSource,
@@ -138,7 +139,10 @@ export const defaultFilters: Filters = {
   serialisedFilters: null
 }
 
-const Filters: React.FC<FiltersProps> = ({
+const Filters = forwardRef<
+  { refresh: () => void },
+  FiltersProps
+>(({
   teamId,
   appId,
   filterSource,
@@ -162,7 +166,8 @@ const Filters: React.FC<FiltersProps> = ({
   showUdAttrs,
   showFreeText,
   freeTextPlaceholder,
-  onFiltersChanged }) => {
+  onFiltersChanged
+}, ref) => {
 
   const urlFiltersKeyMap = {
     appId: 'a',
@@ -597,6 +602,14 @@ const Filters: React.FC<FiltersProps> = ({
   useEffect(() => {
     getApps()
   }, [])
+
+  function refresh() {
+    getApps()
+  }
+
+  useImperativeHandle(ref, () => ({
+    refresh
+  }))
 
   const getRootSpanNames = async () => {
     setRootSpanNamesApiStatus(RootSpanNamesApiStatus.Loading)
@@ -1090,6 +1103,7 @@ const Filters: React.FC<FiltersProps> = ({
       }
     </div>
   )
-}
+})
 
+Filters.displayName = "Filters"
 export default Filters
