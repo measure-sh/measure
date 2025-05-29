@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Remove unwanted warning on sessionator record (#2231) by @detj in #2231
 - (**backend**): Metrics fetch would fail sometimes (#2191) by @detj in #2191
 - (**backend**): Auto rotate compose logs (#2112) by @detj in #2112
 - (**backend**): Check user & member role in team member removal, role change, invite resend & invite revoke by @anupcowkur in #2103
