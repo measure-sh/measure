@@ -2,7 +2,7 @@
 
 ## Table of Contents
 
-* [**Integrate the SDK**](#getting-started) — Set up measure-sh in your mobile app
+* [**Integrate the SDK**](#integrate-the-sdk) — Set up measure-sh SDK in your mobile app
 * [**Explore Features**](#explore-features) — Explore all available features
 * [**Configuration Options**](#configuration-options) — Customize SDK behavior
 * [**Identify Users**](#identify-users) — Correlate sessions with a user ID
@@ -10,7 +10,7 @@
 * [**Control costs**](#cost-control) — Techniques to control data collection and storage costs
 * [**Performance impact**](#performance-impact) — Measure the SDK's impact on app performance
 
-#### Additional Resources
+## Further Reading
 
 * [**Self Hosting Guide**](hosting/README.md) - Host Measure on your own
 * [**API Documentation**](api/README.md) - APIs that various Measure SDKs use
@@ -23,16 +23,13 @@ _______
 # Integrate the SDK
 
 Check out the [SDK integration guide](sdk-integration-guide.md) to learn how to set up measure-sh for your app. Then
-refer to the documentation below for more details on features and how to make the best use of measure-sh for your app.
+refer to the documentation below for details on features and how to make the best use of measure-sh for your app.
 
 # Explore Features
 
-For detailed information on each feature, refer to the individual documentation pages linked below. These pages include
-setup instructions, configuration options, to help you understand how to leverage measure-sh in your mobile
-applications.
-
-Also, look for the "how it works" section in each feature documentation to understand the underlying mechanism of
-each feature to become better equipped to use it effectively.
+The following pages include instructions, configuration options, to help you understand how to leverage different
+features in your mobile applications. Also review the 'How It Works' section in each feature's documentation to
+understand its underlying mechanism and enhance your ability to use it effectively.
 
 * [**Session Monitoring**](features/feature-session-monitoring.md) — Find and view complete user sessions
 * [**Crash reporting**](features/feature-crash-reporting.md) — Analyze app crashes

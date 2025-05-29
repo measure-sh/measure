@@ -1,21 +1,48 @@
 # Session Monitoring
 
-* [**Get Current Session**](#get-current-session)
+* [**What is a session?**](#what-is-a-session)
 * [**Session Search**](#session-search)
 * [**Session Timeline**](#session-timeline)
+* [**Get Current Session**](#get-current-session)
 
-A session represents a continuous period of activity in the app. A new session begins when an app is launched for the
-first time, or when there's been no activity for a 20-minute period. A single session can continue across multiple app
-background and foreground events; brief interruptions will not cause a new session to be created.
+## What is a session?
 
-The ability to find and view individual user sessions is one of the most effective ways to build an understanding
-of how your app is used and to debug issues. Measure allows you to search of any session by various
-attributes like device type, OS version, app version, user ID, and more. You can also view a timeline of events
-for each session, including app launches, crashes, ANRs, errors, and custom events.
+A session is a continuous period of activity in the app. A new session begins when the app is launched for the first
+time, or after 20 minutes of inactivity. Sessions can span across app background and foreground events, so short
+interruptions won’t start a new session.
+
+Being able to view individual user sessions is one of the most powerful ways to understand how your app is being used
+and to troubleshoot issues.
+
+## Session Search
+
+You can easily find sessions using attributes like user ID, session ID, device model, app version, OS version, country,
+and more. You can also search based on specific events, such as when a view was clicked or a screen was visited. This is
+particularly useful for investigating user- or device-specific issues.
+
+The session search supports all custom events and attributes defined in your app, allowing you to filter sessions based
+on custom data like feature flags or user actions.
+
+> [!TIP]
+>
+> A complex query can be constructed simply by using the filters UI and search box on the "sessions" page. For example,
+> "find all sessions for 'premium' users in the 'US' using 'Android 16 or above', with 'latest app version' that have a
+> 'click' event on a view with id 'btn_order_now'.
+
+## Session Timeline
+
+The session timeline shows you a detailed, chronological view of all events during a session.
+
+You can see the exact order of actions leading up to an issue, making it easier to spot problems. The timeline also
+includes memory and CPU usage graphs to help you understand how the app was performing at different moments.
+
+Additionally, screenshots and layout snapshots give you a window into what the user saw at the time. This visual context
+helps you catch UI issues, performance bottlenecks, or anything else that might not be obvious just from logs.
 
 ## Get Current Session
 
-The current session can be retrieved by using `getSessionId` method.
+The current session can be retrieved by using `getSessionId` method. This is useful in cases where you want to send
+the session ID to a different service or log it for debugging purposes.
 
 ### Android
 
@@ -36,11 +63,3 @@ or, in Objective-C:
 ```objc
 NSString *sessionId = [[Measure shared] getSessionId];
 ```
-
-## Session Search
-
-
-
-## Session Timeline
-
-// TODO: add content
