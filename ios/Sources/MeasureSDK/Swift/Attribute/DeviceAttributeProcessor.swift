@@ -50,7 +50,11 @@ final class DeviceAttributeProcessor: BaseComputeOnceAttributeProcessor {
         deviceManufacturer = AttributeConstants.deviceManufacturer
         deviceType = UIDevice.current.userInterfaceIdiom == .phone ? .phone : .tablet
         deviceIsFoldable = false
-        deviceIsPhysical = TARGET_OS_SIMULATOR == 0
+        #if targetEnvironment(simulator)
+        deviceIsPhysical = false
+        #else
+        deviceIsPhysical = true
+        #endif
         deviceDensityDpi = Number(UIScreen.main.scale * 160)
         deviceWidthPx = Number(UIScreen.main.bounds.width * UIScreen.main.scale)
         deviceHeightPx = Number(UIScreen.main.bounds.height * UIScreen.main.scale)
