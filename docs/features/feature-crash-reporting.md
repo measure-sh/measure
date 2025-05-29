@@ -1,11 +1,12 @@
 # Crash Reporting
+
 Crashes are automatically tracked, optionally with a snapshot of the app's UI at the time of the crash.
 
+* [Symbolicate stacktrace](#symbolicate-stacktrace)
+* [Get a UI snapshot](#get-a-ui-snapshot)
 * [Metrics](#metrics)
     * [Crash-free rate](#crash-free-rate)
     * [Perceived crash rate](#perceived-crash-rate)
-* [Symbolicate stacktrace](#symbolicate-stacktrace)
-* [Get a UI snapshot](#get-a-ui-snapshot)
 * [Crash grouping](#crash-grouping)
 * [Data collected](#data-collected)
 * [How it works](#how-it-works)
@@ -14,45 +15,6 @@ Crashes are automatically tracked, optionally with a snapshot of the app's UI at
 > Crash reporting for native crashes (from C/C++/etc.) are not yet supported, track the
 > progress [here](https://github.com/measure-sh/measure/issues/103). Upvote and comment
 > on the issue if you are looking forward for this feature.
-
-## Metrics
-
-Metrics related to crashes are automatically computed and shown on the dashboard.
-
-![Crash metrics](assets/crash-metrics.png)
-
-### Crash-free rate
-
-Crash-free rate indicates the percentage of sessions that did not experience any crashes. It is
-calculated as follows:
-
-```
-Crash-free rate = (Total sessions - Crashed sessions) / Total sessions * 100
-```
-
-Where:
-
-- **Total sessions**: The total number of sessions recorded.
-- **Crashed sessions**: The number of sessions that experienced a crash.
-- **Crash-free rate**: The percentage of sessions that did not crash.
-
-The crash-free rate is a key metric to monitor the stability of your app. A higher crash-free rate indicates a more
-stable app, while a lower rate suggests that users are experiencing issues that need to be addressed.
-
-### Perceived Crash rate
-
-Perceived crash rate indicates the percentage of sessions that experienced a crash when the user was
-actively using the app. It is calculated as follows:
-
-```
-Perceived crash rate = Crashed sessions when app is in foreground / Total sessions * 100
-```
-
-Where:
-
-- **Crashed sessions when app is in foreground**: The number of sessions that experienced a crash while the app was
-  actively being used by the user.
-- **Total sessions**: The total number of sessions recorded.
 
 ## Symbolicate stacktrace
 
@@ -63,11 +25,12 @@ human-readable format, you need to upload the mapping or symbol files based on t
 
 If you are using ProGuard or R8 to obfuscate your code, you need to upload the mapping files in order to de-obfuscate
 the stack traces. Measure's Android Gradle Plugin automatically uploads the ProGuard/R8 mapping file to the Measure
-server when you build your app.
+server when you run a `assemble` gradle task.
 
 ### iOS
 
-To symbolicate stack traces for iOS, you need to upload the dSYM files to the Measure server.
+To symbolicate stack traces for iOS, you need to upload the dSYM files to map the memory addresses to a human-readable
+format. There are two ways to upload dSYM files:
 
 #### Using Shell Script
 
@@ -103,25 +66,60 @@ configured using the following options at the time of SDK initialization:
 
 #### iOS
 
-A layout snapshot of the app is captured when an app crashes on iOS. This feature is disabled by default and can be
-configured using the following options at the time of SDK initialization:
+A layout snapshot of the app is captured when an app crashes on iOS. This feature is always enabled.
 
-- `trackLayoutSnapshotOnCrash` — Enables or disables the automatic layout snapshot capture on crash. It is disabled by
-  default. // TODO: this is not implemented yet
+## Metrics
+
+Metrics related to crashes are automatically computed and shown on the dashboard.
+
+![Crash metrics](assets/crash-metrics.png)
+
+### Crash-free rate
+
+Crash-free rate indicates the percentage of sessions that did not experience any crashes. It is
+calculated as follows:
+
+```
+Crash-free rate = (Total sessions - Crashed sessions) / Total sessions * 100
+```
+
+Where:
+
+- **Total sessions**: The total number of sessions recorded.
+- **Crashed sessions**: The number of sessions that experienced a crash.
+- **Crash-free rate**: The percentage of sessions that did not crash.
+
+The crash-free rate is a key metric to monitor the stability of your app. A higher crash-free rate indicates a more
+stable app, while a lower rate suggests that users are experiencing issues that need to be addressed.
+
+### Perceived crash rate
+
+Perceived crash rate indicates the percentage of sessions that experienced a crash when the user was
+actively using the app. It is calculated as follows:
+
+```
+Perceived crash rate = Crashed sessions when app is in foreground / Total sessions * 100
+```
+
+Where:
+
+- **Crashed sessions when app is in foreground**: The number of sessions that experienced a crash while the app was
+  actively being used by the user.
+- **Total sessions**: The total number of sessions recorded.
 
 ## Crash grouping
 
-Crashes are grouped to help you identify the most common issues in your app. Each group represents a unique crash
-type, identified by the exception type and the stack trace.
+Crashes are grouped to help you identify the most common issues in your app. Each group represents a unique crash,
+identified by the exception type and the stack trace. A percentage contribution of each crash group is also shown
+on the dashboard to get a quick idea about the impact of the issue.
 
 ### Android
 
-Exceptions in Android (JVM) are grouped based on the exception type and the stack trace. Crashes with the same type, for
-example, `java.lang.NullPointerException`, and the same method name and file name from the _first frame_ of the stack
-trace are grouped together.
+Exceptions in Android (JVM) are grouped based on the exception type and the stack trace. Crashes with the same type and
+the same method name and file name from the _first frame_ of the stack trace are grouped together.
 
 For example, for the following crash, the exception type is `java.lang.NullPointerException`, the method name of
-the first frame is `com.example.app.MainActivity.onCreate`, and the file name is `MainActivity.kt`:
+the first frame is `onCreate`, and the file name is `MainActivity.kt`:
 
 ```
 java.lang.NullPointerException: Attempt to invoke virtual method 'void com.example.app.MainActivity.onCreate(android.os.Bundle)' on a null object reference
@@ -133,11 +131,11 @@ java.lang.NullPointerException: Attempt to invoke virtual method 'void com.examp
 ### iOS
 
 Exceptions in iOS (Objective-C/Swift) are grouped based on the exception signal and the stack trace. Crashes with the
-same signal, for example, `SIGABRT`, and the same method name and file name from the first frame belonging to the
-application binary are grouped together.
+same signal, for example, `SIGABRT`, the same method name and file name from the _first frame belonging to the
+application binary_ are grouped together.
 
-For example, for the following crash, the exception signal is `SIGABRT`, the method name of the first relevant frame is
-`-[MainViewController viewDidLoad]`, and the file name is `MainViewController.m`:
+For example, for the following crash, the signal is `SIGABRT`, the method name of the first relevant frame is
+`-viewDidLoad`, and the file name is `MainViewController.m`:
 
 ```
 Exception Type: EXC_CRASH (SIGABRT)
@@ -177,5 +175,5 @@ server.
 
 ### Symbolication
 
-Read about [symbolication](../android/features/symbolication.md) to understand how we symbolicate stack traces and
+Read about [symbolication](symbolication.md) to understand how we symbolicate stack traces and
 make them human-readable.

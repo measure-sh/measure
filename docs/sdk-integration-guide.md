@@ -3,31 +3,25 @@
 * [1. Create an app](#1-create-an-app)
 * [2. Set up the SDK](#2-set-up-the-sdk)
     * [Android](#android)
-        * [Add the API Key & API URL](#add-the-api-key--api-url)
-        * [Add the gradle plugin](#add-the-gradle-plugin)
-        * [Add the SDK](#add-the-sdk)
-        * [Initialize the SDK](#initialize-the-sdk)
     * [iOS](#ios)
-        * [Install the SDK](#install-the-sdk)
-        * [Initialize the SDK](#initialize-the-sdk-1)
 * [3. Verify installation](#3-verify-installation)
 * [Troubleshoot](#troubleshoot)
 
 > [!IMPORTANT]
 >
 > Make sure the measure-sh server is running. For setup instructions on your local machine or in the cloud, refer to the
-> [hosting guide](../hosting/README.md).
+> [hosting guide](hosting/README.md).
 
 ## 1. Create an app
 
 Create a new app by visiting the _Apps_ section on the dashboard.
 
-![Create new app](assets/create-app.png)
+![Create new app](features/assets/create-app.png)
 
 Once the app is created, note the `API URL` & `API key` for your app. This will be used in the SDK configuration
 in later steps.
 
-![Get API Key and URL](assets/get-api-key.png)
+![Get API Key and URL](features/assets/get-api-key.png)
 
 ## 2. Set up the SDK
 

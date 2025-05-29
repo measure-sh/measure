@@ -2,8 +2,8 @@
 
 ## Table of Contents
 
-* [**Getting Started**](features/getting-started.md) — Set up measure-sh in your mobile app
-* [**Features**](#features) — Explore all available features
+* [**Integrate the SDK**](#getting-started) — Set up measure-sh in your mobile app
+* [**Explore Features**](#explore-features) — Explore all available features
 * [**Configuration Options**](#configuration-options) — Customize SDK behavior
 * [**Identify Users**](#identify-users) — Correlate sessions with a user ID
 * [**Manually start/stop the SDK**](#manually-start-or-stop-the-sdk) — Control when data collection happens
@@ -20,33 +20,32 @@
 
 _______
 
-# Getting Started
+# Integrate the SDK
 
-If you haven't already, check out the [getting started](features/getting-started.md) guide to learn how to set up measure-sh for
-your app. Then refer to the documentation below for more details on features and how to best use them in your
-application.
+Check out the [SDK integration guide](sdk-integration-guide.md) to learn how to set up measure-sh for your app. Then
+refer to the documentation below for more details on features and how to make the best use of measure-sh for your app.
 
-If you wish to self-host Measure, refer to the [self-hosting guide](hosting/README.md) for instructions on how to set
-up before integrating the SDK into your app.
-
-# Features
+# Explore Features
 
 For detailed information on each feature, refer to the individual documentation pages linked below. These pages include
-setup instructions, configuration options, and even internal implementation details to help you understand how to
-leverage measure-sh in your mobile applications.
+setup instructions, configuration options, to help you understand how to leverage measure-sh in your mobile
+applications.
 
-* [**Session Monitoring**](#session-monitoring) — Understand sessions for better debugging
+Also, look for the "how it works" section in each feature documentation to understand the underlying mechanism of
+each feature to become better equipped to use it effectively.
+
+* [**Session Monitoring**](features/feature-session-monitoring.md) — Find and view complete user sessions
 * [**Crash reporting**](features/feature-crash-reporting.md) — Analyze app crashes
 * [**ANR reporting**](features/feature-anr-reporting.md) — Analyze Application Not Responding (ANR) issues
-* [**Error tracking**](features/feature-error-tracking.md) — Track and analyze errors in your app
 * [**Performance tracing**](features/feature-performance-tracing.md) — Monitor app performance with traces
 * [**Track custom events**](features/feature-track-custom-events.md) — Capture custom events in your app
 * [**Bug reports**](features/feature-bug-report.md) — Capture detailed bug reports with screenshots and logs
 * [**App launch metrics**](features/feature-app-launch-metrics.md) — Measure app launch performance
 * [**Network monitoring**](features/feature-network-monitoring.md) — Monitor HTTP requests and responses
-* [**Navigation & lifecycle tracking**](features/feature-navigation-lifecycle-tracking.md) — Track app navigation and lifecycle events
+* [**Navigation & lifecycle tracking**](features/feature-navigation-lifecycle-tracking.md) — Track app navigation and
+  lifecycle events
 * [**CPU monitoring**](features/feature-cpu-monitoring.md) — Monitor CPU usage for every session
-* [**Memory monitoring**](features/feature-memory-monitoring.md) — Monitor memory usage for every session 
+* [**Memory monitoring**](features/feature-memory-monitoring.md) — Monitor memory usage for every session
 * [**App size monitoring**](features/feature-app-size-monitoring.md) — Monitor app size changes
 
 # Configuration options
@@ -54,11 +53,6 @@ leverage measure-sh in your mobile applications.
 Each feature section above contains the configuration options available for that feature. These options allow you to
 customize the behavior of the SDK to suit your application's needs. You can also find a comprehensive list of all
 configuration options in the [configuration options](features/configuration-options.md) documentation.
-
-# Session monitoring
-
-// TODO: add content
-Read more about [sessions](features/session-monitoring.md) to understand how to leverage them for debugging and monitoring.
 
 # Identify users
 
@@ -154,5 +148,6 @@ information.
 
 # Performance Impact
 
-Read [performance impact](features/performance-impact.md) for details on how adding measure-sh impacts your app and how to
+Read [performance impact](features/performance-impact.md) for details on how adding measure-sh impacts your app and how
+to
 benchmark it for your application.
