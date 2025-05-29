@@ -190,9 +190,16 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
           <div className="font-body">
             <div className="flex flex-col">
+              <p className="font-display text-gray-500">Unique Identifier</p>
+              <p className="text-sm mt-0.5">{filters.app!.unique_identifier ? filters.app!.unique_identifier : "No Data"}</p>
+              <p className="font-display text-gray-500 mt-6">Operating System</p>
+              <p className="text-sm mt-0.5">{filters.app!.os_name ? filters.app!.os_name : "No Data"}</p>
+              <p className="font-display text-gray-500 mt-6">Created at</p>
+              <p className="text-sm mt-0.5">{formatDateToHumanReadableDateTime(filters.app!.created_at)}</p>
+
+              <div className="py-8" />
+              <p className="font-display text-2xl max-w-6xl">Change App Name</p>
               <div className="flex flex-row items-center">
-                <p>App name:</p>
-                <div className="px-1" />
                 <input id="change-app-name-input" type="text" value={appName}
                   onChange={(event) => {
                     event.target.value === filters.app!.name ? setSaveAppNameButtonDisabled(true) : setSaveAppNameButtonDisabled(false)
@@ -209,29 +216,26 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                   Save
                 </Button>
               </div>
-              <p>Package name: {filters.app!.unique_identifier}</p>
-              <div className="py-1" />
-              <p>Platform: {filters.app!.os_name}</p>
-              <div className="py-1" />
-              <p>Created at: {formatDateToHumanReadableDateTime(filters.app!.created_at)}</p>
+              <div className="py-6" />
+              <p className="font-display text-2xl max-w-6xl">Configure Data Rentention</p>
+              <div className="flex flex-row items-center">
+                {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Loading && <LoadingSpinner />}
+                {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Error && <p>: Unable to fetch retention period. Please refresh page to try again.</p>}
+                {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success && <DropdownSelect type={DropdownSelectType.SingleString} title="Data Retention Period" items={Array.from(retentionPeriodToDisplayTextMap.values())} initialSelected={retentionPeriodToDisplayTextMap.get(appSettings.retention_period!)!} onChangeSelected={(item) => handleRetentionPeriodChange(item as string)} />}
+                {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success &&
+                  <Button
+                    variant="outline"
+                    className="m-4 font-display border border-black select-none"
+                    disabled={!currentUserCanChangeAppSettings || updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading || appSettings.retention_period === updatedAppSettings.retention_period}
+                    loading={updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading}
+                    onClick={() => saveAppSettings()}>
+                    Save
+                  </Button>
+                }
+              </div>
             </div>
-            <div className="flex flex-row items-center">
-              <p>Data retention period</p>
-              <div className="px-2" />
-              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Loading && <LoadingSpinner />}
-              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Error && <p>: Unable to fetch retention period. Please refresh page to try again.</p>}
-              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success && <DropdownSelect type={DropdownSelectType.SingleString} title="Data Retention Period" items={Array.from(retentionPeriodToDisplayTextMap.values())} initialSelected={retentionPeriodToDisplayTextMap.get(appSettings.retention_period!)!} onChangeSelected={(item) => handleRetentionPeriodChange(item as string)} />}
-              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success &&
-                <Button
-                  variant="outline"
-                  className="m-4 font-display border border-black select-none"
-                  disabled={!currentUserCanChangeAppSettings || updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading || appSettings.retention_period === updatedAppSettings.retention_period}
-                  loading={updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading}
-                  onClick={() => saveAppSettings()}>
-                  Save
-                </Button>
-              }
-            </div>
+            <div className="py-6" />
+            <p className="font-display text-2xl max-w-6xl">SDK Variables</p>
             <div className="flex flex-row items-center">
               <p>Base URL</p>
               <div className="px-2" />
