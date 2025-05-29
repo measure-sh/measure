@@ -1,0 +1,181 @@
+# Crash Reporting
+Crashes are automatically tracked, optionally with a snapshot of the app's UI at the time of the crash.
+
+* [Metrics](#metrics)
+    * [Crash-free rate](#crash-free-rate)
+    * [Perceived crash rate](#perceived-crash-rate)
+* [Symbolicate stacktrace](#symbolicate-stacktrace)
+* [Get a UI snapshot](#get-a-ui-snapshot)
+* [Crash grouping](#crash-grouping)
+* [Data collected](#data-collected)
+* [How it works](#how-it-works)
+
+> [!NOTE]  
+> Crash reporting for native crashes (from C/C++/etc.) are not yet supported, track the
+> progress [here](https://github.com/measure-sh/measure/issues/103). Upvote and comment
+> on the issue if you are looking forward for this feature.
+
+## Metrics
+
+Metrics related to crashes are automatically computed and shown on the dashboard.
+
+![Crash metrics](assets/crash-metrics.png)
+
+### Crash-free rate
+
+Crash-free rate indicates the percentage of sessions that did not experience any crashes. It is
+calculated as follows:
+
+```
+Crash-free rate = (Total sessions - Crashed sessions) / Total sessions * 100
+```
+
+Where:
+
+- **Total sessions**: The total number of sessions recorded.
+- **Crashed sessions**: The number of sessions that experienced a crash.
+- **Crash-free rate**: The percentage of sessions that did not crash.
+
+The crash-free rate is a key metric to monitor the stability of your app. A higher crash-free rate indicates a more
+stable app, while a lower rate suggests that users are experiencing issues that need to be addressed.
+
+### Perceived Crash rate
+
+Perceived crash rate indicates the percentage of sessions that experienced a crash when the user was
+actively using the app. It is calculated as follows:
+
+```
+Perceived crash rate = Crashed sessions when app is in foreground / Total sessions * 100
+```
+
+Where:
+
+- **Crashed sessions when app is in foreground**: The number of sessions that experienced a crash while the app was
+  actively being used by the user.
+- **Total sessions**: The total number of sessions recorded.
+
+## Symbolicate stacktrace
+
+Stack trace from crashes may be obfuscated or contain memory addresses. To convert the stack traces to a
+human-readable format, you need to upload the mapping or symbol files based on the platform.
+
+### Android
+
+If you are using ProGuard or R8 to obfuscate your code, you need to upload the mapping files in order to de-obfuscate
+the stack traces. Measure's Android Gradle Plugin automatically uploads the ProGuard/R8 mapping file to the Measure
+server when you build your app.
+
+### iOS
+
+To symbolicate stack traces for iOS, you need to upload the dSYM files to the Measure server.
+
+#### Using Shell Script
+
+Run the [`upload_dsyms.sh`](../../ios/Scripts/upload_dsyms.sh) script to manually upload DSYM files after building
+your app.
+
+```sh
+sh upload_dsyms.sh <path_to_ipa> <path_to_dsym_folder> <api_url> <api_key>
+```
+
+#### Using Build Phases
+
+Add the [`upload_dsym_build_phases.sh`](../../ios/Scripts/upload_dsym_build_phases.sh) script as a **New Run Script
+Phase** in Xcode to upload DSYM files automatically.
+
+```sh
+sh "${SRCROOT}/path/to/upload_dsym_build_phases.sh" <api_url> <api_key>
+```
+
+> [!CAUTION]  
+> If you are using Build Phases to upload DSYMs make sure to **upload DSYMs only for release builds**.
+
+## Get a UI Snapshot
+
+#### Android
+
+A screenshot of the app is captured when an app crashes on Android. This feature is disabled by default and can be
+configured using the following options at the time of SDK initialization:
+
+- `trackScreenshotOnCrash` — Enables or disables the automatic screenshot capture on crash. It is disabled by default.
+- `screenshotMaskLevel` — To hide sensitive information in the screenshot, you can configure the masking level. See
+  the [options](../android/configuration-options.md#screenshotmasklevel) available.
+
+#### iOS
+
+A layout snapshot of the app is captured when an app crashes on iOS. This feature is disabled by default and can be
+configured using the following options at the time of SDK initialization:
+
+- `trackLayoutSnapshotOnCrash` — Enables or disables the automatic layout snapshot capture on crash. It is disabled by
+  default. // TODO: this is not implemented yet
+
+## Crash grouping
+
+Crashes are grouped to help you identify the most common issues in your app. Each group represents a unique crash
+type, identified by the exception type and the stack trace.
+
+### Android
+
+Exceptions in Android (JVM) are grouped based on the exception type and the stack trace. Crashes with the same type, for
+example, `java.lang.NullPointerException`, and the same method name and file name from the _first frame_ of the stack
+trace are grouped together.
+
+For example, for the following crash, the exception type is `java.lang.NullPointerException`, the method name of
+the first frame is `com.example.app.MainActivity.onCreate`, and the file name is `MainActivity.kt`:
+
+```
+java.lang.NullPointerException: Attempt to invoke virtual method 'void com.example.app.MainActivity.onCreate(android.os.Bundle)' on a null object reference
+    at com.example.app.MainActivity.onCreate(MainActivity.kt:10)
+    at android.app.Activity.performCreate(Activity.java:8000)
+    ...
+```
+
+### iOS
+
+Exceptions in iOS (Objective-C/Swift) are grouped based on the exception signal and the stack trace. Crashes with the
+same signal, for example, `SIGABRT`, and the same method name and file name from the first frame belonging to the
+application binary are grouped together.
+
+For example, for the following crash, the exception signal is `SIGABRT`, the method name of the first relevant frame is
+`-[MainViewController viewDidLoad]`, and the file name is `MainViewController.m`:
+
+```
+Exception Type: EXC_CRASH (SIGABRT)
+Exception Codes: 0x0000000000000000, 0x0000000000000000
+Crashed Thread: 0
+
+Application Specific Information:
+*** Terminating app due to uncaught exception 'NSInvalidArgumentException', reason: '-[MainViewController viewDidLoad]: unrecognized selector sent to instance 0x600000e2c0c0'
+
+First Throw Call Stack:
+(
+    0   CoreFoundation                      0x000000010a2f3b6c __exceptionPreprocess + 220
+    1   libobjc.A.dylib                     0x0000000109d8e5e1 objc_exception_throw + 48
+    2   MainViewController.m                0x000000010a2f3b6c -[MainViewController viewDidLoad] + 0
+    ...
+)
+```
+
+## Data collected
+
+Checkout the data collected by Measure for each crash in the [Exception Event](../api/sdk/README.md#exception)
+section.
+
+## How it works
+
+### Android
+
+When an unhandled exception occurs, it is intercepted by Measure using an `UncaughtExceptionHandler`. The exception is
+then parsed and sent as an `exception` event. Crashes are attempted to be sent immediately, but if the app is
+terminated before the event is sent, it is stored locally and sent on the next app launch.
+
+### iOS
+
+We rely on [PLCrashReporter](https://github.com/microsoft/plcrashreporter) to detect crashes. When a crash occurs, a
+crash report is generated and stored locally on the device. On next launch, the crash report is prepared and send to the
+server.
+
+### Symbolication
+
+Read about [symbolication](../android/features/symbolication.md) to understand how we symbolicate stack traces and
+make them human-readable.
