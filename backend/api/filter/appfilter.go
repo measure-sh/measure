@@ -2,6 +2,7 @@ package filter
 
 import (
 	"backend/api/event"
+	"backend/api/opsys"
 	"backend/api/pairs"
 	"backend/api/server"
 	"backend/api/text"
@@ -9,9 +10,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
@@ -50,6 +53,9 @@ type AppFilter struct {
 
 	// ID is the unique id of the app.
 	AppID uuid.UUID
+
+	// AppOSName is the OSName vaue of the app.
+	AppOSName string
 
 	// From represents the lower time bound of
 	// the filter time range.
@@ -650,15 +656,27 @@ func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes
 		return
 	}
 
+	v := &Versions{}
+
 	for rows.Next() {
 		var version string
 		var code string
 		if err = rows.Scan(&version, &code); err != nil {
 			return
 		}
-		versions = append(versions, version)
-		versionCodes = append(versionCodes, code)
+
+		v.Add(version, code)
 	}
+
+	switch opsys.ToFamily(af.AppOSName) {
+	case opsys.AppleFamily:
+		if err = v.SemverSortByVersionDesc(); err != nil {
+			return
+		}
+	}
+
+	versions = v.Versions()
+	versionCodes = v.Codes()
 
 	err = rows.Err()
 
@@ -1145,6 +1163,45 @@ func exclude(allV, allC, selV, selC []string) (versions Versions) {
 func (v *Versions) Add(name, code string) {
 	v.names = append(v.names, name)
 	v.codes = append(v.codes, code)
+}
+
+// SemverSortByVersionDesc sorts version names in
+// descending semver order keeping version code in
+// lock-step with version name.
+// Assumes version name is valid semver.
+func (v *Versions) SemverSortByVersionDesc() (err error) {
+	type pair struct {
+		ver  semver.Version
+		name string
+		code string
+	}
+
+	pairs := make([]pair, len(v.names))
+
+	for i, name := range v.names {
+		semver, err := semver.Parse(name)
+		if err != nil {
+			return err
+		}
+		pairs[i] = pair{ver: semver, name: name, code: v.codes[i]}
+	}
+
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i].ver.GT(pairs[j].ver)
+	})
+
+	sortedNames := make([]string, len(pairs))
+	sortedCodes := make([]string, len(pairs))
+
+	for i, p := range pairs {
+		sortedNames[i] = p.name
+		sortedCodes[i] = p.code
+	}
+
+	v.names = sortedNames
+	v.codes = sortedCodes
+
+	return
 }
 
 // HasVersions returns true if at least
