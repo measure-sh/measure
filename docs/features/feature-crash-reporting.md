@@ -2,14 +2,14 @@
 
 Crashes are automatically tracked, optionally with a snapshot of the app's UI at the time of the crash.
 
-* [Symbolicate stacktrace](#symbolicate-stacktrace)
-* [Get a UI snapshot](#get-a-ui-snapshot)
-* [Metrics](#metrics)
+* [**Symbolicate stacktrace**](#symbolicate-stacktrace)
+* [**Get a UI snapshot**](#get-a-ui-snapshot)
+* [**Metrics**](#metrics)
     * [Crash-free rate](#crash-free-rate)
     * [Perceived crash rate](#perceived-crash-rate)
-* [Crash grouping](#crash-grouping)
-* [Data collected](#data-collected)
-* [How it works](#how-it-works)
+* [**Crash grouping**](#crash-grouping)
+* [**Data collected**](#data-collected)
+* [**How it works**](#how-it-works)
 
 > [!NOTE]  
 > Crash reporting for native crashes (from C/C++/etc.) are not yet supported, track the
