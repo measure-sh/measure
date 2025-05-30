@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Members were not ordered in a predictable manner (#2246) by @detj in #2246
 - (**backend**): Validate & sort by os specific versioning (#2240) by @detj in #2240
 - (**backend**): Remove unwanted warning on sessionator record (#2231) by @detj in #2231
 - (**backend**): Metrics fetch would fail sometimes (#2191) by @detj in #2191
