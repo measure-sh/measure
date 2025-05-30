@@ -162,7 +162,8 @@ func (t *Team) getMembers(ctx context.Context) ([]*Member, error) {
 		Select("public.users.last_sign_in_at").
 		Select("public.users.created_at").
 		LeftJoin("public.users", "tm.user_id = public.users.id").
-		Where("tm.team_id = $1")
+		Where("tm.team_id = $1").
+		OrderBy("tm.created_at")
 
 	defer stmt.Close()
 
@@ -1315,6 +1316,7 @@ func RenameTeam(c *gin.Context) {
 }
 
 func GetAuthzRoles(c *gin.Context) {
+	ctx := c.Request.Context()
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -1360,11 +1362,15 @@ func GetAuthzRoles(c *gin.Context) {
 		ID: &teamId,
 	}
 
-	members, err := team.getMembers(c.Request.Context())
+	members, err := team.getMembers(ctx)
 	if err != nil {
 		msg := `failed to retrieve team members`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
 		return
 	}
 
@@ -1387,7 +1393,10 @@ func GetAuthzRoles(c *gin.Context) {
 
 	inviteeRoles := ScopeTeamInviteSameOrLower.getRolesSameOrLower(userRole)
 
-	c.JSON(http.StatusOK, gin.H{"can_invite": inviteeRoles, "members": membersWithAuthz})
+	c.JSON(http.StatusOK, gin.H{
+		"can_invite": inviteeRoles,
+		"members":    membersWithAuthz,
+	})
 }
 
 func GetTeamMembers(c *gin.Context) {

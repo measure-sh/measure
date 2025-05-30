@@ -4,16 +4,16 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 
 ## Contents <!-- omit in toc -->
 
-- [Auth](#apps)
+- [Auth](#auth)
   - [POST `/auth/github`](#post-authgithub)
     - [Usage Notes](#usage-notes)
-    - [Request body](#request-body)
+    - [Request Body](#request-body)
     - [Content Type](#content-type)
     - [Response Body](#response-body)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting)
   - [POST `/auth/google`](#post-authgoogle)
     - [Usage Notes](#usage-notes-1)
-    - [Request body](#request-body-1)
+    - [Request Body](#request-body-1)
     - [Content Type](#content-type-1)
     - [Response Body](#response-body-1)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-1)
@@ -32,7 +32,6 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-2)
     - [Response Body](#response-body-4)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-4)
-
 - [Apps](#apps)
   - [GET `/apps/:id/journey`](#get-appsidjourney)
     - [Usage Notes](#usage-notes-5)
@@ -116,13 +115,13 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-20)
   - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
     - [Usage Notes](#usage-notes-21)
-    - [Request body](-3)
+    - [Request body](#request-body-2)
     - [Authorization \& Content Type](#authorization--content-type-19)
     - [Response Body](#response-body-21)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-21)
   - [PATCH `/apps/:id/rename`](#patch-appsidrename)
     - [Usage Notes](#usage-notes-22)
-    - [Request body](#request-body-2)
+    - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-20)
     - [Response Body](#response-body-22)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-22)
@@ -133,13 +132,13 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-23)
   - [PATCH `/apps/:id/settings`](#patch-appsidsettings)
     - [Usage Notes](#usage-notes-24)
-    - [Request body](#request-body-3)
+    - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-24)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-24)
   - [POST `/apps/:id/shortFilters`](#post-appsidshortfilters)
     - [Usage Notes](#usage-notes-25)
-    - [Request body](#request-body-4)
+    - [Request body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-23)
     - [Response Body](#response-body-25)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-25)
@@ -180,14 +179,14 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-32)
   - [PATCH `/apps/:id/bugReports/:bugReportId`](#patch-appsidbugreportsbugreportid)
     - [Usage Notes](#usage-notes-33)
-    - [Request body](#request-body-5)
+    - [Request body](#request-body-6)
     - [Authorization \& Content Type](#authorization--content-type-31)
     - [Response Body](#response-body-33)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-33)
 - [Teams](#teams)
   - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-32)
-    - [Request Body](#request-body-6)
+    - [Request Body](#request-body-7)
     - [Usage Notes](#usage-notes-34)
     - [Response Body](#response-body-34)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-34)
@@ -207,7 +206,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-37)
   - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-37)
-    - [Request body](#request-body-7)
+    - [Request body](#request-body-8)
     - [Authorization \& Content Type](#authorization--content-type-36)
     - [Response Body](#response-body-38)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-38)
@@ -218,23 +217,23 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-39)
   - [POST `/teams/:id/invite`](#post-teamsidinvite)
     - [Usage Notes](#usage-notes-39)
-    - [Request body](#request-body-8)
+    - [Request body](#request-body-9)
     - [Authorization \& Content Type](#authorization--content-type-38)
     - [Response Body](#response-body-40)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-40)
-  - [PATCH `/teams/:id/invite/:inviteId`](#patch-teamsidinviteid)
+  - [PATCH `/teams/:id/invite/:id`](#patch-teamsidinviteid)
     - [Usage Notes](#usage-notes-40)
     - [Authorization \& Content Type](#authorization--content-type-39)
     - [Response Body](#response-body-41)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-41)
-  - [DELETE `/teams/:id/invite/:inviteId`](#delete-teamsidinviteid)
+  - [DELETE `/teams/:id/invite/:id`](#delete-teamsidinviteid)
     - [Usage Notes](#usage-notes-41)
     - [Authorization \& Content Type](#authorization--content-type-40)
     - [Response Body](#response-body-42)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-42)
   - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-42)
-    - [Request body](#request-body-9)
+    - [Request body](#request-body-10)
     - [Authorization \& Content Type](#authorization--content-type-41)
     - [Response Body](#response-body-43)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-43)
@@ -250,7 +249,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-45)
   - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-45)
-    - [Request body](#request-body-10)
+    - [Request body](#request-body-11)
     - [Authorization \& Content Type](#authorization--content-type-44)
     - [Response Body](#response-body-46)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-46)
@@ -294,9 +293,9 @@ The required headers must be present in each request.
 <details>
   <summary>Request Headers - Click to expand</summary>
 
-| **Name**        | **Value**                        |
-| --------------- | -------------------------------- |
-| `Content-Type`  | application/json; charset=utf-8  |
+| **Name**       | **Value**                       |
+| -------------- | ------------------------------- |
+| `Content-Type` | application/json; charset=utf-8 |
 </details>
 
 #### Response Body
@@ -337,7 +336,7 @@ List of HTTP status codes for success and failures.
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `200 Ok`                    | Successful response, no errors.                                                                                        |
-| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |                                                                  |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |  |
 | `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
 
@@ -368,9 +367,9 @@ The required headers must be present in each request.
 <details>
   <summary>Request Headers - Click to expand</summary>
 
-| **Name**        | **Value**                        |
-| --------------- | -------------------------------- |
-| `Content-Type`  | application/json; charset=utf-8  |
+| **Name**       | **Value**                       |
+| -------------- | ------------------------------- |
+| `Content-Type` | application/json; charset=utf-8 |
 </details>
 
 #### Response Body
@@ -411,7 +410,7 @@ List of HTTP status codes for success and failures.
 | **Status**                  | **Meaning**                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `200 Ok`                    | Successful response, no errors.                                                                                        |
-| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |                                                                  |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |  |
 | `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
 
@@ -478,7 +477,7 @@ List of HTTP status codes for success and failures.
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `200 Ok`                    | Successful response, no errors.                                                                                        |
 | `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
-| `401 Unauthorized`          | Either the user's refresh token is invalid or has expired.                                                              |
+| `401 Unauthorized`          | Either the user's refresh token is invalid or has expired.                                                             |
 | `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
 | `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
@@ -619,7 +618,7 @@ List of HTTP status codes for success and failures.
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `200 Ok`                    | Successful response, no errors.                                                                                        |
 | `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
-| `401 Unauthorized`          | Either the user's refresh token is invalid or has expired.                                                              |
+| `401 Unauthorized`          | Either the user's refresh token is invalid or has expired.                                                             |
 | `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
 | `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
@@ -6021,7 +6020,7 @@ List of HTTP status codes for success and failures.
 
 ### GET `/teams/:id/authz`
 
-Fetch authorization details of access token holder for a team.
+Fetch authorization details of members for a team. Oldest members appear first in the list of members.
 
 #### Usage Notes
 
