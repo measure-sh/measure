@@ -12,6 +12,10 @@
     * [**Add checkpoint**](#add-checkpoint)
     * [**Deferred span start**](#deferred-span-start)
 * [**Distributed Tracing**](#distributed-tracing)
+  * [**Get a trace parent header**](#get-a-trace-parent-header)
+* [**Recipes**](#recipes)
+  * [**Distributed Tracing with OkHttp interceptor**](#distributed-tracing-with-okhttp-interceptor)
+  * [**Distributed Tracing with URLSession interceptor**](#distributed-tracing-with-urlsession-interceptor)
 
 ## Introduction
 
@@ -141,18 +145,43 @@ operation has already started but there wasn't any way to access the Measure API
 > Passing in `System.currentTimeInMillis` can lead to issues with corrupted span timings due to
 > clock skew issues.
 
+<details>
+  <summary>Android</summary>
+
 ```kotlin
 val span: Span = Measure.startSpan("span-name", timestamp = Measure.getTimestamp())
 ```
+</details>
+
+<details>
+  <summary>iOS</summary>
+
+```swift
+let span: Span = Measure.shared.startSpan(name: "operation-name", timestamp: Measure.shared.getCurrentTime())
+```
+</details>
 
 ### End a span
 
 A span can be ended using `end` function. Status is mandatory to set when ending a span.
 
+<details>
+  <summary>Android</summary>
+
 ```kotlin
 val span: Span = Measure.startSpan("span-name")
 span.end(Status.Ok)
 ```
+</details>
+
+<details>
+  <summary>iOS</summary>
+
+```swift
+let span: Span = Measure.shared.startSpan(name: "span-name")
+span.setStatus(.ok).end()
+```
+</details>
 
 A span can also be ended by providing the end time, this is useful in cases where a certain
 operation has already ended
@@ -164,10 +193,24 @@ but there wasn't any way to access the Measure APIs in that part of the code.
 > Passing in `System.currentTimeInMillis` can lead to issues with corrupted span timings due to
 > clock skew issues.
 
+<details>
+  <summary>Android</summary>
+
 ```kotlin
 val span: Span = Measure.startSpan("span-name")
 span.end(Status.Ok, timestamp = Measure.getTimestamp())
 ```
+</details>
+
+
+<details>
+  <summary>iOS</summary>
+
+```swift
+let span: Span = Measure.shared.startSpan(name: "span-name")
+span.setStatus(.ok).end(timestamp: Measure.shared.getCurrentTime())
+```
+</details>
 
 ### Set parent span
 
@@ -183,51 +226,132 @@ context to a span.
 
 To add attributes to a span use `setAttribute`.
 
+<details>
+  <summary>Android</summary>
+
 ```kotlin
 val span: Span = Measure.startSpan("span-name")
 span.setAttribute("key", "value")
 ```
+</details>
+
+<details>
+  <summary>iOS</summary>
+
+```swift
+let span: Span = Measure.shared.startSpan(name: "span-name")
+span.setAttribute("key", value: "value")
+```
+</details>
 
 To add multiple attributes at once use `setAttributes`.
+
+<details>
+  <summary>Android</summary>
 
 ```kotlin
 val span: Span = Measure.startSpan("span-name")
 val attributes = AttributesBuilder().put("key", "value").put("key2", "value2").build()
 span.setAttributes(attributes)
 ```
+</details>
+
+<details>
+  <summary>iOS</summary>
+
+```swift
+let span: Span = Measure.shared.startSpan(name: "span-name")
+let attributes: [String: AttributeValue] = ["key": "value", "key2": 42]
+span.setAttributes(attributes)
+```
+</details>
 
 ### Remove attribute
 
 To remove an attribute use `removeAttribute`.
 
+<details>
+  <summary>Android</summary>
+
 ```kotlin
 val span: Span = Measure.startSpan("span-name")
 span.removeAttribute("key")
 ```
+</details>
+
+<details>
+  <summary>iOS</summary>
+
+```swift
+let span: Span = Measure.shared.startSpan(name: "span-name")
+span.removeAttribute("key")
+```
+</details>
 
 ### Update span name
 
 To update the name of the span after it is started use `setName`.
 
+<details>
+  <summary>Android</summary>
+
 ```kotlin
 val span: Span = Measure.startSpan("span-name")
 span.setName("updated-name").end()
 ```
+</details>
+
+<details>
+  <summary>iOS</summary>
+
+```swift
+let span: Span = Measure.shared.startSpan(name: "span-name")
+span.setName("updated-name").end()
+```
+</details>
 
 ### Add checkpoint
+
+To add a checkpoint use `setCheckpoint`.
+
+<details>
+  <summary>Android</summary>
 
 ```kotlin
 val span: Span = Measure.startSpan("span-name").setCheckpoint("checkpoint-name")
 ```
+</details>
+
+<details>
+  <summary>iOS</summary>
+
+```swift
+let span: Span = Measure.shared.startSpan(name: "span-name").setCheckpoint("checkpoint-name")
+```
+</details>
 
 ### Deferred span start
 
 The span builder API allows pre-configuring a span without starting it immediately.
 
+<details>
+  <summary>Android</summary>
+
 ```kotlin
 val spanBuilder: SpanBuilder = Measure.createSpan("span-name")
 val span: Span = spanBuilder.startSpan()
 ```
+</details>
+
+
+<details>
+  <summary>iOS</summary>
+
+```swift
+let spanBuilder: SpanBuilder = Measure.shared.createSpanBuilder(name: "span-name")!
+let span: Span = spanBuilder.startSpan()
+```
+</details>
 
 The span builder also allows setting parent using the builder:
 
@@ -262,49 +386,86 @@ When your mobile app makes API calls, including this header allows you to correl
 operations with
 server-side processing, giving you end-to-end visibility of your request flow.
 
-To get a trace parent header:
+### Get a trace parent header
+
+<details>
+    <summary>Android</summary>
 
 ```kotlin
 val span = Measure.startSpan("http")
 val key = Measure.getTraceParentHeaderKey()
 val value = Measure.getTraceParentHeaderValue(span)
 ```
+</details>
 
-#### Example with OkHttp interceptor
+<details>
+    <summary>iOS</summary>
+
+```swift
+let span = Measure.shared.startSpan(name: "http")
+let key = Measure.shared.getTraceParentHeaderKey()
+let value = Measure.shared.getTraceParentHeaderValue(span: span)
+```
+</details>
+
+## Recipes
+
+### Distributed Tracing with OkHttp interceptor
 
 ```kotlin
 // First, create a interceptor to handle tracing
 class TracingInterceptor : Interceptor {
-    override fun intercept(chain: Interceptor.Chain): Response {
-        val span = Measure.startSpan("http")
-        try {
-            // Add traceparent header to the request
-            val originalRequest = chain.request()
-            val tracedRequest = originalRequest.newBuilder()
-                .header(
-                    Measure.getTraceParentHeaderKey(),
-                    Measure.getTraceParentHeaderValue(span)
-                )
-                .build()
+  override fun intercept(chain: Interceptor.Chain): Response {
+    val span = Measure.startSpan("http")
+    try {
+      // Add traceparent header to the request
+      val originalRequest = chain.request()
+      val tracedRequest = originalRequest.newBuilder()
+        .header(
+          Measure.getTraceParentHeaderKey(),
+          Measure.getTraceParentHeaderValue(span)
+        )
+        .build()
 
-            // Execute the request
-            val response = chain.proceed(tracedRequest)
+      // Execute the request
+      val response = chain.proceed(tracedRequest)
 
-            // Set span status based on response
-            if (response.isSuccessful) {
-                span.setStatus(SpanStatus.Ok)
-            } else {
-                span.setStatus(SpanStatus.Error)
-            }
-            return response
-        } finally {
-            span.end()
-        }
+      // Set span status based on response
+      if (response.isSuccessful) {
+        span.setStatus(SpanStatus.Ok)
+      } else {
+        span.setStatus(SpanStatus.Error)
+      }
+      return response
+    } finally {
+      span.end()
     }
+  }
 }
 
 // Set up OkHttp client with the interceptor
 val okHttpClient = OkHttpClient.Builder()
-    .addInterceptor(TracingInterceptor())
-    .build()
+  .addInterceptor(TracingInterceptor())
+  .build()
+```
+
+### Distributed Tracing with URLSession interceptor
+
+```swift
+// Create a URLSession interceptor to handle tracing
+class TracingInterceptor: NSObject, URLSessionTaskDelegate {
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+        let span = Measure.shared.startSpan(name: "http")
+        var tracedRequest = request
+        tracedRequest.addValue(
+            Measure.shared.getTraceParentHeaderValue(span: span),
+            forHTTPHeaderField: Measure.shared.getTraceParentHeaderKey()
+        )
+        completionHandler(tracedRequest)
+        span.setStatus(.ok).end()
+    }
+}
+
+// Set up URLSession with the interceptor
+let session = URLSession(configuration: .default, delegate: TracingInterceptor(), delegateQueue: nil)
 ```
