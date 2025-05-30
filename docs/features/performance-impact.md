@@ -50,11 +50,11 @@ Firebase initializes in multiple phases. The total median time to initialize whe
 benchmark for an app with Firebase crashlytics, performance and analytics SDK
 was observed as `77.6ms`. While Measure took `35.0ms` in the same macro-benchmark test.
 
-![Firebase Comparison](images/firebaseComparisonBarChart.png)
+![Firebase Comparison](assets/android-firebase-bar-chart.png)
 
 Perfetto screenshot from one of the runs:
 
-![Screenshot](images/firebaseComparison.png)
+![Screenshot](assets/android-firebase-comparison.png)
 
 # iOS
 
