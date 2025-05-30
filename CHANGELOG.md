@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Improve workflow security (#2255) by @detj in #2255
 - (**backend**): Remove unused ios session data (#2254) by @detj in #2254
 - (**backend**): Upgrade go dependencies (#2252) by @detj in #2252
 - (**backend**): Remove "Own Team Id" from access token by @anupcowkur in #2121
