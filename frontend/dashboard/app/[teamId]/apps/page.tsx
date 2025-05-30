@@ -11,6 +11,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Button } from "@/app/components/button"
 import { toast, toastNegative, toastPositive } from "@/app/utils/use_toast"
 import LoadingSpinner from "@/app/components/loading_spinner"
+import Link from "next/link"
+import { Separator } from "@/app/components/separator"
 
 export default function Apps({ params }: { params: { teamId: string } }) {
   const [filters, setFilters] = useState(defaultFilters)
@@ -190,59 +192,24 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
           <div className="font-body">
             <div className="flex flex-col">
-              <p className="font-display text-gray-500">Unique Identifier</p>
-              <p className="text-sm mt-0.5">{filters.app!.unique_identifier ? filters.app!.unique_identifier : "No Data"}</p>
-              <p className="font-display text-gray-500 mt-6">Operating System</p>
-              <p className="text-sm mt-0.5">{filters.app!.os_name ? filters.app!.os_name : "No Data"}</p>
-              <p className="font-display text-gray-500 mt-6">Created at</p>
-              <p className="text-sm mt-0.5">{formatDateToHumanReadableDateTime(filters.app!.created_at)}</p>
-
-              <div className="py-8" />
-              <p className="font-display text-2xl max-w-6xl">Change App Name</p>
-              <div className="flex flex-row items-center">
-                <input id="change-app-name-input" type="text" value={appName}
-                  onChange={(event) => {
-                    event.target.value === filters.app!.name ? setSaveAppNameButtonDisabled(true) : setSaveAppNameButtonDisabled(false)
-                    setAppName(event.target.value)
-                    setAppNameChangeApiStatus(AppNameChangeApiStatus.Init)
-                  }}
-                  className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
-                <Button
-                  variant="outline"
-                  disabled={saveAppNameButtonDisabled || appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
-                  className="m-4 font-display border border-black select-none"
-                  loading={appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
-                  onClick={() => setAppNameConfirmationModalOpen(true)}>
-                  Save
-                </Button>
-              </div>
-              <div className="py-6" />
-              <p className="font-display text-2xl max-w-6xl">Configure Data Rentention</p>
-              <div className="flex flex-row items-center">
-                {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Loading && <LoadingSpinner />}
-                {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Error && <p>: Unable to fetch retention period. Please refresh page to try again.</p>}
-                {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success && <DropdownSelect type={DropdownSelectType.SingleString} title="Data Retention Period" items={Array.from(retentionPeriodToDisplayTextMap.values())} initialSelected={retentionPeriodToDisplayTextMap.get(appSettings.retention_period!)!} onChangeSelected={(item) => handleRetentionPeriodChange(item as string)} />}
-                {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success &&
-                  <Button
-                    variant="outline"
-                    className="m-4 font-display border border-black select-none"
-                    disabled={!currentUserCanChangeAppSettings || updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading || appSettings.retention_period === updatedAppSettings.retention_period}
-                    loading={updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading}
-                    onClick={() => saveAppSettings()}>
-                    Save
-                  </Button>
-                }
-              </div>
+              {filters.app!.unique_identifier && filters.app!.os_name && <p className="font-display text-gray-500">Unique Identifier</p>}
+              {filters.app!.unique_identifier && filters.app!.os_name && <p className="text-sm mt-0.5">{filters.app!.unique_identifier}</p>}
+              {filters.app!.unique_identifier && filters.app!.os_name && <p className="font-display text-gray-500 mt-6">Operating System</p>}
+              {filters.app!.unique_identifier && filters.app!.os_name && <p className="text-sm mt-0.5">{filters.app!.os_name}</p>}
+              {filters.app!.unique_identifier && filters.app!.os_name && <p className="font-display text-gray-500 mt-6">Created at</p>}
+              {filters.app!.unique_identifier && filters.app!.os_name && <p className="text-sm mt-0.5">{formatDateToHumanReadableDateTime(filters.app!.created_at)}</p>}
+              {(!filters.app!.unique_identifier || !filters.app!.os_name) &&
+                <p className="font-body text-sm">Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure/blob/main/docs/android/README.md#getting-started'>integration guide</Link> to finish setting up your app.</p>}
             </div>
-            <div className="py-6" />
+            <div className="py-8" />
             <p className="font-display text-2xl max-w-6xl">SDK Variables</p>
-            <div className="flex flex-row items-center">
-              <p>Base URL</p>
-              <div className="px-2" />
+            <div className="flex flex-row items-center mt-2">
+              <p className="text-sm">API URL</p>
+              <div className="px-3" />
               <input type="text" readOnly={true} value={process.env.NEXT_PUBLIC_API_BASE_URL} className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
               <Button
                 variant="outline"
-                className="m-4 font-display border border-black select-none"
+                className="mx-4 my-3 font-display border border-black select-none"
                 onClick={() => {
                   navigator.clipboard.writeText(process.env.NEXT_PUBLIC_API_BASE_URL!)
                   toastPositive("Base URL copied to clipboard")
@@ -251,12 +218,12 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               </Button>
             </div>
             <div className="flex flex-row items-center">
-              <p>API key</p>
+              <p className="text-sm">API key</p>
               <div className="px-3" />
               <input type="text" readOnly={true} value={filters.app!.api_key.key} className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
               <Button
                 variant="outline"
-                className="m-4 font-display border border-black select-none"
+                className="mx-4 my-3 font-display border border-black select-none"
                 onClick={() => {
                   navigator.clipboard.writeText(filters.app!.api_key.key)
                   toastPositive("API key copied to clipboard")
@@ -264,11 +231,47 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                 Copy
               </Button>
             </div>
+            <div className="py-8" />
+            <p className="font-display text-2xl max-w-6xl">Configure Data Rentention</p>
+            <div className="flex flex-row items-center mt-2">
+              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Loading && <LoadingSpinner />}
+              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Error && <p>: Unable to fetch retention period. Please refresh page to try again.</p>}
+              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success && <DropdownSelect type={DropdownSelectType.SingleString} title="Data Retention Period" items={Array.from(retentionPeriodToDisplayTextMap.values())} initialSelected={retentionPeriodToDisplayTextMap.get(appSettings.retention_period!)!} onChangeSelected={(item) => handleRetentionPeriodChange(item as string)} />}
+              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success &&
+                <Button
+                  variant="outline"
+                  className="m-4 font-display border border-black select-none"
+                  disabled={!currentUserCanChangeAppSettings || updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading || appSettings.retention_period === updatedAppSettings.retention_period}
+                  loading={updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading}
+                  onClick={() => saveAppSettings()}>
+                  Save
+                </Button>
+              }
+            </div>
+            <div className="py-8" />
+            <p className="font-display text-2xl max-w-6xl">Change App Name</p>
+            <div className="flex flex-row items-center mt-2">
+              <input id="change-app-name-input" type="text" value={appName}
+                onChange={(event) => {
+                  event.target.value === filters.app!.name ? setSaveAppNameButtonDisabled(true) : setSaveAppNameButtonDisabled(false)
+                  setAppName(event.target.value)
+                  setAppNameChangeApiStatus(AppNameChangeApiStatus.Init)
+                }}
+                className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
+              <Button
+                variant="outline"
+                disabled={saveAppNameButtonDisabled || appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
+                className="m-4 font-display border border-black select-none"
+                loading={appNameChangeApiStatus === AppNameChangeApiStatus.Loading}
+                onClick={() => setAppNameConfirmationModalOpen(true)}>
+                Save
+              </Button>
+            </div>
           </div>
         </div>
       }
       <div className="py-8" />
-      <div className="w-full border border-black h-0" />
+      <Separator className="w-full" />
       <div className="py-4" />
       <CreateApp teamId={params.teamId} />
     </div>
