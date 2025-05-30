@@ -668,8 +668,14 @@ func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes
 		v.Add(version, code)
 	}
 
+	// attempt to sort versions depending on
+	// app os requirements and conventions
 	switch opsys.ToFamily(af.AppOSName) {
 	case opsys.AppleFamily:
+		if !v.IsValidSemver() {
+			break
+		}
+
 		if err = v.SemverSortByVersionDesc(); err != nil {
 			return
 		}
@@ -1165,11 +1171,30 @@ func (v *Versions) Add(name, code string) {
 	v.codes = append(v.codes, code)
 }
 
+// IsValidSemver determines if all version names
+// adhere to semver specification.
+func (v Versions) IsValidSemver() bool {
+	if len(v.names) < 1 {
+		return false
+	}
+
+	for _, name := range v.names {
+		if _, err := semver.Parse(name); err != nil {
+			return false
+		}
+	}
+	return true
+}
+
 // SemverSortByVersionDesc sorts version names in
 // descending semver order keeping version code in
 // lock-step with version name.
 // Assumes version name is valid semver.
 func (v *Versions) SemverSortByVersionDesc() (err error) {
+	if len(v.names) < 1 {
+		return
+	}
+
 	type pair struct {
 		ver  semver.Version
 		name string
@@ -1183,7 +1208,11 @@ func (v *Versions) SemverSortByVersionDesc() (err error) {
 		if err != nil {
 			return err
 		}
-		pairs[i] = pair{ver: semver, name: name, code: v.codes[i]}
+		pairs[i] = pair{
+			ver:  semver,
+			name: name,
+			code: v.codes[i],
+		}
 	}
 
 	sort.Slice(pairs, func(i, j int) bool {
