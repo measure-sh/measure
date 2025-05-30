@@ -52,7 +52,7 @@ val sessionId = Measure.getSessionId()
 
 ### iOS
 
-Using swift:
+Using Swift:
 
 ```swift
 let sessionId = Measure.shared.getSessionId()
