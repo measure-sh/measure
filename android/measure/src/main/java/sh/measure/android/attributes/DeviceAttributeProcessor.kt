@@ -35,7 +35,6 @@ internal class DeviceAttributeProcessor(
             Attribute.OS_NAME_KEY to "android",
             Attribute.OS_VERSION_KEY to Build.VERSION.SDK_INT.toString(),
             Attribute.OS_PAGE_SIZE to getPageSizeKB(),
-            Attribute.PLATFORM_KEY to "android",
         )
     }
 

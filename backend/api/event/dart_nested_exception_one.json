@@ -1,0 +1,38 @@
+{
+    "handled": false,
+    "framework": "dart",
+    "exceptions": [
+        {
+            "frames": [
+                {
+                    "method_name": "MethodChannel._invokeMethod",
+                    "in_app": false,
+                    "file_name": "platform_channel.dart",
+                    "module_name": "package:flutter/src/services/",
+                    "line_num": 368,
+                    "class_name": "MethodChannel",
+                    "frame_index": 0,
+                    "col_num": 7
+                }
+            ],
+            "type": "MissingPluginException",
+            "thread_sequence": 0,
+            "message": "(No implementation found for method non_existent_method on channel non_existent_channel)"
+        },
+        {
+            "thread_sequence": 0,
+            "frames": [
+                {
+                    "method_name": "MainScreen._noMethodChannel",
+                    "in_app": false,
+                    "file_name": "main.dart",
+                    "module_name": "package:measure_flutter_example/",
+                    "line_num": 151,
+                    "class_name": "MainScreen",
+                    "frame_index": 0,
+                    "col_num": 5
+                }
+            ]
+        }
+    ]
+}

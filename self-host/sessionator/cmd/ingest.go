@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"backend/api/codec"
-	"backend/api/platform"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -326,21 +325,25 @@ func UploadBuilds(url, apiKey string, app app.App) (string, error) {
 		}
 		fw.Write([]byte(code))
 
-		mappingType := "proguard"
-
-		for _, mappingFile := range build.MappingFiles {
+		for index, mappingType := range build.MappingTypes {
+			mappingFile := build.MappingFiles[index]
 			f, err := os.Open(mappingFile)
 			if err != nil {
 				return "", err
 			}
 
-			switch attribute.Platform {
-			case platform.IOS:
+			switch mappingType {
+			case "dsym":
 				if err := codec.IsTarGz(f); err != nil {
 					return "", err
 				}
-				mappingType = "dsym"
 			}
+
+			fw, err = w.CreateFormField("mapping_type")
+			if err != nil {
+				return "", err
+			}
+			fw.Write([]byte(mappingType))
 
 			fw, err = w.CreateFormFile("mapping_file", filepath.Base(mappingFile))
 			if err != nil {
@@ -353,12 +356,6 @@ func UploadBuilds(url, apiKey string, app app.App) (string, error) {
 
 			f.Close()
 		}
-
-		fw, err = w.CreateFormField("mapping_type")
-		if err != nil {
-			return "", err
-		}
-		fw.Write([]byte(mappingType))
 
 		fw, err = w.CreateFormField("platform")
 		if err != nil {
@@ -627,17 +624,27 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 
 		for i, app := range apps.Items {
 			mapping := "not found"
-			count := 0
+			mappingCount := 0
 			for _, build := range app.Builds {
-				count += len(build.MappingFiles)
+				mappingCount += len(build.MappingFiles)
 			}
-			if count > 0 {
-				mapping = fmt.Sprintf("found %d", count)
+			if mappingCount > 0 {
+				mapping = fmt.Sprintf("found %d", mappingCount)
+			}
+
+			types := "not found"
+			typesCount := 0
+			for _, build := range app.Builds {
+				typesCount += len(build.MappingTypes)
+			}
+			if typesCount > 0 {
+				types = fmt.Sprintf("found %d", mappingCount)
 			}
 			fmt.Printf("app (%d): %s\n", i+1, app.FullName())
 			fmt.Printf("event and span files count: %d\n", len(app.EventAndSpanFiles))
 			fmt.Printf("blob files count: %d\n", len(app.BlobFiles))
-			fmt.Printf("mapping file: %s\n\n", mapping)
+			fmt.Printf("mapping file: %s\n", mapping)
+			fmt.Printf("mapping type: %s\n\n", types)
 		}
 
 		if clean || cleanAll {

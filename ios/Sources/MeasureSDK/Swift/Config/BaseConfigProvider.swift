@@ -33,6 +33,54 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var enableShakeToLaunchBugReport: Bool {
+        return getMergedConfig(\.enableShakeToLaunchBugReport)
+    }
+
+    var screenshotMaskLevel: ScreenshotMaskLevel {
+        return getMergedConfig(\.screenshotMaskLevel)
+    }
+
+    var accelerometerUpdateInterval: TimeInterval {
+        return getMergedConfig(\.accelerometerUpdateInterval)
+    }
+
+    var shakeAccelerationThreshold: Float {
+        return getMergedConfig(\.shakeAccelerationThreshold)
+    }
+
+    var shakeMinTimeIntervalMs: Number {
+        return getMergedConfig(\.shakeMinTimeIntervalMs)
+    }
+
+    var maxAttachmentsInBugReport: Int {
+        return getMergedConfig(\.maxAttachmentsInBugReport)
+    }
+
+    var maxDescriptionLengthInBugReport: Int {
+        return getMergedConfig(\.maxDescriptionLengthInBugReport)
+    }
+
+    var trackViewControllerLoadTime: Bool {
+        return getMergedConfig(\.trackViewControllerLoadTime)
+    }
+
+    var maxSpanNameLength: Int {
+        return getMergedConfig(\.maxSpanNameLength)
+    }
+
+    var maxCheckpointNameLength: Int {
+        return getMergedConfig(\.maxCheckpointNameLength)
+    }
+
+    var maxCheckpointsPerSpan: Int {
+        return getMergedConfig(\.maxCheckpointsPerSpan)
+    }
+
+    var traceSamplingRate: Float {
+        return getMergedConfig(\.traceSamplingRate)
+    }
+
     var trackHttpHeaders: Bool {
         return getMergedConfig(\.trackHttpHeaders)
     }

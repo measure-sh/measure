@@ -92,7 +92,8 @@ final class CrashDataFormatter {
                              exceptions: [exceptionDetails],
                              foreground: true,
                              threads: nil,
-                             binaryImages: nil)
+                             binaryImages: nil,
+                             framework: Framework.apple)
         }
 
         let binaryImages = getBinaryImageInfo([crashedThread] + threads)
@@ -101,7 +102,8 @@ final class CrashDataFormatter {
                          exceptions: [exceptionDetails],
                          foreground: true,
                          threads: threads,
-                         binaryImages: binaryImages)
+                         binaryImages: binaryImages,
+                         framework: Framework.apple)
     }
 
     private func getCrashedThread() -> ThreadDetail? {
@@ -184,7 +186,14 @@ final class CrashDataFormatter {
                                     offset: Int(offset) ?? 0,
                                     frameIndex: Number(frameIndex),
                                     symbolAddress: formattedInstructionPointer,
-                                    inApp: (self.executableName == imageName) || (imageName.contains(self.executableName ?? "")))
+                                    inApp: (self.executableName == imageName) || (imageName.contains(self.executableName ?? "")),
+                                    className: nil,
+                                    methodName: nil,
+                                    fileName: nil,
+                                    lineNumber: nil,
+                                    columnNumber: nil,
+                                    moduleName: nil,
+                                    instructionAddress: nil)
         return stackFrame
     }
 
@@ -198,7 +207,7 @@ final class CrashDataFormatter {
 
         // Collect all binary addresses from StackFrames in threads
         let relevantBinaryAddresses: Set<String> = Set(
-            threads.flatMap { $0.frames.map { $0.binaryAddress } }
+            threads.flatMap { $0.frames.compactMap { $0.binaryAddress } }
         )
 
         for imageInfo in images {
@@ -252,6 +261,7 @@ final class CrashDataFormatter {
 
             let binaryImage = BinaryImage(startAddress: startAddress,
                                           endAddress: endAddress,
+                                          baseAddress: nil,
                                           system: !(self.executableName == imageName),
                                           name: imageName,
                                           arch: arch,

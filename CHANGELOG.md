@@ -5,6 +5,93 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### :sparkles: New features
+
+- (**backend**): Add flutter exception symbolication (#2166) by @abhaysood in #2166
+- (**backend**): Implement email invites by @anupcowkur in #2091
+- (**frontend**): Update charts UIs by @anupcowkur in #2178
+- (**frontend**): Add collapsible sidebar with submenus by @anupcowkur in #2148
+- (**frontend**): Show profile pic of logged in user by @anupcowkur in #2115
+- (**frontend**): Show logged in user avatar by @anupcowkur in #2110
+
+### :bug: Bug fixes
+
+- (**backend**): Members were not ordered in a predictable manner (#2246) by @detj in #2246
+- (**backend**): Validate & sort by os specific versioning (#2240) by @detj in #2240
+- (**backend**): Remove unwanted warning on sessionator record (#2231) by @detj in #2231
+- (**backend**): Metrics fetch would fail sometimes (#2191) by @detj in #2191
+- (**backend**): Auto rotate compose logs (#2112) by @detj in #2112
+- (**backend**): Check user & member role in team member removal, role change, invite resend & invite revoke by @anupcowkur in #2103
+- (**backend**): Prevent removal or role change of member in their default team by @anupcowkur in #2071
+- (**backend**): Get own team correctly when user is owner of multiple teams by @anupcowkur in #2069
+- (**frontend**): Fix sidebar inset padding by @anupcowkur in #2224
+- (**frontend**): Fix misaligned chevron in dropdown select by @anupcowkur in #2222
+- (**frontend**): Fixes selected app version not updating correctly by @anupcowkur in #2190
+- (**frontend**): Update member roles after role change by @anupcowkur in #2176
+- (**frontend**): Fix tooltip chevron colour by @anupcowkur in #2174
+- (**frontend**): Fix sidebar colour by @anupcowkur in #2172
+- (**frontend**): Allow concurrent GET requests by @anupcowkur in #2168
+- (**frontend**): Fix infinite loop in dropdown select by @anupcowkur in #2163
+- (**frontend**): Fix incorrect parsing of url filters by @anupcowkur in #2150
+- (**frontend**): Fix error on app name change by @anupcowkur in #2149
+- (**frontend**): Add missing css semicolons by @anupcowkur in #2129
+- (**frontend**): Fix metadata for social preview links by @anupcowkur in #2122
+- (**frontend**): Select first root span available if url span invalid by @anupcowkur in #2119
+- (**frontend**): Update filters on ready state change by @anupcowkur in #2116
+- (**frontend**): Relaxes cookie restricitions in dev by @anupcowkur in #2096
+- (**frontend**): Improve teams error UI on change role & remove member errors by @anupcowkur in #2072
+- (**frontend**): Filters not updating on no data/not onboarded states by @anupcowkur in #2066
+
+### :hammer: Misc
+
+- (**backend**): Improve workflow security (#2255) by @detj in #2255
+- (**backend**): Remove unused ios session data (#2254) by @detj in #2254
+- (**backend**): Upgrade go dependencies (#2252) by @detj in #2252
+- (**backend**): Remove "Own Team Id" from access token by @anupcowkur in #2121
+- (**backend**): Delete stale auth sessions in cleanup by @anupcowkur in #2120
+- (**backend**): Use cookies to store access + refresh tokens by @anupcowkur in #2064
+- (**deps**): Bump golang.org/x/net from 0.37.0 to 0.38.0 in /backend/api (#2127) by @dependabot[bot] in #2127
+- (**deps**): Bump golang.org/x/net in /backend/cleanup (#2126) by @dependabot[bot] in #2126
+- (**deps**): Bump golang.org/x/net in /self-host/sessionator (#2124) by @dependabot[bot] in #2124
+- (**frontend**): Update integration guide link by @anupcowkur in #2251
+- (**frontend**): Update apps page UI by @anupcowkur in #2248
+- (**frontend**): Update session mem & cpu graphs by @anupcowkur in #2245
+- (**frontend**): Update apps page ui with better section differentiation by @anupcowkur in #2243
+- (**frontend**): Reduce loading spinner size by @anupcowkur in #2239
+- (**frontend**): Avoid page reload on app name change by @anupcowkur in #2237
+- (**frontend**): Avoid table reload during members, roles & invites updates in team page by @anupcowkur in #2236
+- (**frontend**): Remove redundant 'rounded-md' in buttons by @anupcowkur in #2233
+- (**frontend**): Update teams page UI by @anupcowkur in #2227
+- (**frontend**): Add toasts by @anupcowkur in #2226
+- (**frontend**): Update positive & negative toast variants by @anupcowkur in #2225
+- (**frontend**): Use new alert dialogs and toasts by @anupcowkur in #2211
+- (**frontend**): Make table rows links by @anupcowkur in #2208
+- (**frontend**): Make metrics card larger in small screens by @anupcowkur in #2206
+- (**frontend**): Update metrics UI by @anupcowkur in #2192
+- (**frontend**): Update stacktrace bg + line height by @anupcowkur in #2185
+- (**frontend**): Update table UIs by @anupcowkur in #2182
+- (**frontend**): Update stack trace UI by @anupcowkur in #2180
+- (**frontend**): Standardise buttons, links, inputs using Button component and standard styles by @anupcowkur in #2165
+- (**frontend**): Update filter pills ui by @anupcowkur in #2162
+- (**frontend**): Show filters focus ring only on keyboard nav by @anupcowkur in #2160
+- (**frontend**): Update filters ui by @anupcowkur in #2159
+- (**frontend**): Use Button component in sidebar by @anupcowkur in #2158
+- (**frontend**): Update social preview links metadata by @anupcowkur in #2125
+- (**frontend**): Move gsi client script inside google-sign-in component by @anupcowkur in #2123
+
+### :books: Documentation
+
+- (**backend**): Add low memory note for podman on macos (#2169) by @detj in #2169
+- (**backend**): Add faq for nginx conf in self host guide (#2146) by @detj in #2146
+- (**backend**): Update self host guide (#2139) by @detj in #2139
+- (**backend**): Add banner in contributing (#2101) by @detj in #2101
+- Format sdk api docs (#2144) by @detj in #2144
+- Add a faqs page in docs (#2141) by @detj in #2141
+- Remove defunct command from contribution guide (#2137) by @detj in #2137
+- Update github-oauth.md (#2131) by @DominatorVbN in #2131
+
 ## [0.7.0] - 2025-04-15
 
 ### :sparkles: New features
@@ -1962,6 +2049,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Replace team/:id/invite docs with /auth/invite docs by @anupcowkur in #367
 - (**webapp**): Add API docs for crash & ANR groups APIs by @anupcowkur in #350
 
+[unreleased]: https://github.com/measure-sh/measure/compare/v0.7.0..HEAD
 [0.7.0]: https://github.com/measure-sh/measure/compare/v0.6.1..v0.7.0
 [0.6.1]: https://github.com/measure-sh/measure/compare/v0.6.0..v0.6.1
 [0.6.0]: https://github.com/measure-sh/measure/compare/v0.5.0..v0.6.0

@@ -4,6 +4,7 @@ import (
 	"backend/api/authsession"
 	"backend/api/cipher"
 	"backend/api/server"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,15 +18,21 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
-// extractToken extracts the bearer token
-// from authorization header.
+// extractToken extracts the access token
+// from the cookie or Authorization header.
 func extractToken(c *gin.Context) (token string) {
-	authHeader := c.GetHeader(("Authorization"))
+	// Try cookie first
+	token, err := c.Cookie("access_token")
+	if err == nil && token != "" {
+		return token
+	}
+
+	// Fallback to Authorization header for API clients
+	authHeader := c.GetHeader("Authorization")
 	splitToken := strings.Split(authHeader, "Bearer ")
 
 	if len(splitToken) != 2 {
-		// Authorization header is not in the correct format
-		c.AbortWithStatus((http.StatusUnauthorized))
+		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
@@ -39,9 +46,17 @@ func extractToken(c *gin.Context) (token string) {
 	return
 }
 
-// logNewUserFirstLogin logs new user's first login to stdout
-func logNewUserFirstLogin() {
-	fmt.Println("New user logged in")
+// extractRefreshToken extracts the refresh token
+// from the cookie or Authorization header
+func extractRefreshToken(c *gin.Context) (token string) {
+	// Try cookie first
+	token, err := c.Cookie("refresh_token")
+	if err == nil && token != "" {
+		return token
+	}
+
+	// Fallback to Authorization header
+	return extractToken(c)
 }
 
 // ValidateAPIKey validates the Measure API key.
@@ -93,7 +108,8 @@ func ValidateAccessToken() gin.HandlerFunc {
 				return
 			}
 
-			fmt.Println("unknown token error", err)
+			fmt.Println("unknown access token error: ", err)
+
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "invalid or malformed access token",
 			})
@@ -101,6 +117,9 @@ func ValidateAccessToken() gin.HandlerFunc {
 		}
 
 		if claims, ok := accessToken.Claims.(jwt.MapClaims); ok {
+			sessionId := claims["jti"]
+			c.Set("sessionId", sessionId)
+
 			userId := claims["sub"]
 			c.Set("userId", userId)
 		} else {
@@ -119,7 +138,7 @@ func ValidateAccessToken() gin.HandlerFunc {
 // ValidateRefreshToken validates the Measure refresh token.
 func ValidateRefreshToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := extractToken(c)
+		token := extractRefreshToken(c)
 
 		refreshToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -140,7 +159,8 @@ func ValidateRefreshToken() gin.HandlerFunc {
 				return
 			}
 
-			fmt.Println("unknown token error:", err)
+			fmt.Println("unknown refresh token error: ", err)
+
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "invalid or malformed refresh token",
 			})
@@ -161,6 +181,40 @@ func ValidateRefreshToken() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+// addNewUserToInvitedTeams adds a new user to the teams
+// they were invited to and removes the invites after the addition.
+//
+// This is called when a new user is created via OAuth flow.
+func addNewUserToInvitedTeams(ctx context.Context, userId string, email string) error {
+	invites, err := GetValidInvitesForEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+
+	// Add user to invited teams
+	for _, invite := range invites {
+		invitedToTeam := &Team{
+			ID: &invite.InvitedToTeamId,
+		}
+
+		invitee := &Invitee{
+			ID:    uuid.MustParse(userId),
+			Email: invite.Email,
+			Role:  invite.InvitedAsRole,
+		}
+		invitees := []Invitee{*invitee}
+		if err := invitedToTeam.addMembers(ctx, invitees); err != nil {
+			return err
+		}
+		// remove the invite after adding the user
+		if err := invitedToTeam.removeInvite(ctx, invite.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // SigninGitHub handles OAuth flow via GitHub.
@@ -324,8 +378,12 @@ func SigninGitHub(c *gin.Context) {
 				return
 			}
 
-			// Once new user creation is done, track email
-			logNewUserFirstLogin()
+			if err := addNewUserToInvitedTeams(ctx, *msrUser.ID, ghUser.Email); err != nil {
+				// If there is an error while adding user to invited team,
+				// log and continue. We don't want to fail sign in process
+				// because of this.
+				fmt.Println(msg, err)
+			}
 		} else {
 			// update user's last sign in at value
 			if err := msrUser.touchLastSignInAt(ctx); err != nil {
@@ -351,7 +409,7 @@ func SigninGitHub(c *gin.Context) {
 			return
 		}
 
-		authSess, err := authsession.NewAuthSession(userId, *team.ID, "github", userMeta)
+		authSess, err := authsession.NewAuthSession(userId, "github", userMeta)
 		if err != nil {
 			return
 		}
@@ -363,12 +421,10 @@ func SigninGitHub(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"access_token":  authSess.AccessToken,
 			"refresh_token": authSess.RefreshToken,
-			"state":         authCode.State,
+			"session_id":    authSess.ID,
+			"user_id":       userId,
+			"own_team_id":   team.ID,
 		})
-
-		// deliberately ignore the error, because
-		// expired sessions may get cleared eventually
-		authsession.Cleanup(ctx)
 
 		return
 	default:
@@ -462,9 +518,10 @@ func SigninGoogle(c *gin.Context) {
 	}
 
 	googUser := authsession.GoogleUser{
-		ID:    payload.Subject,
-		Name:  payload.Claims["name"].(string),
-		Email: payload.Claims["email"].(string),
+		ID:      payload.Subject,
+		Name:    payload.Claims["name"].(string),
+		Email:   payload.Claims["email"].(string),
+		Picture: payload.Claims["picture"].(string),
 	}
 
 	userMeta, err := json.Marshal(googUser)
@@ -529,8 +586,13 @@ func SigninGoogle(c *gin.Context) {
 			return
 		}
 
-		// Once new user creation is done, track email
-		logNewUserFirstLogin()
+		if err := addNewUserToInvitedTeams(ctx, *msrUser.ID, googUser.Email); err != nil {
+			// If there is an error while adding user to invited team,
+			// log and continue. We don't want to fail sign in process
+			// because of this.
+			fmt.Println(msg, err)
+		}
+
 	} else {
 		// update user's last sign in at value
 		if err := msrUser.touchLastSignInAt(ctx); err != nil {
@@ -556,7 +618,7 @@ func SigninGoogle(c *gin.Context) {
 		return
 	}
 
-	authSess, err := authsession.NewAuthSession(userId, *team.ID, "google", userMeta)
+	authSess, err := authsession.NewAuthSession(userId, "google", userMeta)
 	if err != nil {
 		return
 	}
@@ -568,12 +630,10 @@ func SigninGoogle(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"access_token":  authSess.AccessToken,
 		"refresh_token": authSess.RefreshToken,
-		"state":         authState.State,
+		"session_id":    authSess.ID,
+		"user_id":       userId,
+		"own_team_id":   team.ID,
 	})
-
-	// deliberately ignore the error, because
-	// expired sessions may get cleared eventually
-	authsession.Cleanup(ctx)
 }
 
 // RefreshToken refreshes a previous session from
@@ -615,20 +675,7 @@ func RefreshToken(c *gin.Context) {
 
 	defer tx.Rollback(ctx)
 
-	userId := oldSession.UserID.String()
-
-	user := User{ID: &userId}
-	team, err := user.getOwnTeam(ctx)
-	if err != nil {
-		msg := "failed to lookup user's team"
-		fmt.Println(msg, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	newSession, err := authsession.NewAuthSession(oldSession.UserID, *team.ID, oldSession.OAuthProvider, oldSession.UserMeta)
+	newSession, err := authsession.NewAuthSession(oldSession.UserID, oldSession.OAuthProvider, oldSession.UserMeta)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -667,6 +714,106 @@ func RefreshToken(c *gin.Context) {
 	})
 }
 
+// GetSession returns the current session information
+func GetAuthSession(c *gin.Context) {
+	userId := c.GetString("userId")
+	sessionId := c.GetString("sessionId")
+
+	ctx := c.Request.Context()
+
+	if userId == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Not authenticated",
+		})
+		return
+	}
+
+	user := &User{
+		ID: &userId,
+	}
+
+	ownTeam, err := user.getOwnTeam(ctx)
+	if err != nil {
+		msg := "Unable to get user's team"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	err = user.getUserDetails(ctx)
+
+	if err != nil {
+		msg := "Unable to get user details"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	jti, err := uuid.Parse(sessionId)
+	if err != nil {
+		msg := "failed to parse session id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	session, err := authsession.GetAuthSession(ctx, jti)
+	if errors.Is(err, pgx.ErrNoRows) {
+		msg := "could not fetch session"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	// parse avatar url from user meta
+	// depending on the oauth provider
+	var userMeta map[string]interface{}
+	if err := json.Unmarshal(session.UserMeta, &userMeta); err != nil {
+		msg := "failed to parse user meta data"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	var avatarUrl string
+	if session.OAuthProvider == "github" {
+		avatarUrl = userMeta["avatar_url"].(string)
+	} else if session.OAuthProvider == "google" {
+		avatarUrl = userMeta["picture"].(string)
+	} else {
+		msg := "invalid oauth provider: " + session.OAuthProvider
+		fmt.Println(msg, err)
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user": gin.H{
+			"id":              userId,
+			"own_team_id":     ownTeam.ID,
+			"name":            user.Name,
+			"email":           user.Email,
+			"avatar_url":      avatarUrl,
+			"confirmed_at":    user.ConfirmedAt,
+			"last_sign_in_at": user.LastSignInAt,
+			"created_at":      user.CreatedAt,
+			"updated_at":      user.UpdatedAt,
+		},
+	})
+}
+
 // Signout removes the active session associated to
 // the refresh token.
 func Signout(c *gin.Context) {
@@ -693,5 +840,7 @@ func Signout(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, gin.H{
+		"ok": true,
+	})
 }

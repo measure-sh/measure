@@ -48,6 +48,10 @@ final class BaseConfigProviderTests: XCTestCase {
     func testMergedConfigUsesDefaultConfigIfNoNetworkOrCachedConfig() {
         XCTAssertEqual(baseConfigProvider.samplingRateForErrorFreeSessions, DefaultConfig.sessionSamplingRate)
         XCTAssertEqual(baseConfigProvider.enableLogging, DefaultConfig.enableLogging)
+        XCTAssertEqual(baseConfigProvider.traceSamplingRate, DefaultConfig.traceSamplingRate)
+        XCTAssertEqual(baseConfigProvider.trackHttpHeaders, DefaultConfig.trackHttpHeaders)
+        XCTAssertEqual(baseConfigProvider.httpHeadersBlocklist, DefaultConfig.httpHeadersBlocklist)
+        XCTAssertEqual(baseConfigProvider.httpUrlAllowlist, DefaultConfig.httpUrlAllowlist)
         XCTAssertEqual(baseConfigProvider.sessionEndLastEventThresholdMs, 20 * 60 * 1000) // 20 minutes
         XCTAssertEqual(baseConfigProvider.eventsBatchingIntervalMs, 30000) // 30 seconds
         XCTAssertEqual(baseConfigProvider.maxEventsInBatch, 500)
@@ -61,6 +65,32 @@ final class BaseConfigProviderTests: XCTestCase {
         XCTAssertEqual(baseConfigProvider.screenshotMaskHexColor, "#222222")
         XCTAssertEqual(baseConfigProvider.screenshotCompressionQuality, 25)
         XCTAssertEqual(baseConfigProvider.layoutSnapshotDebounceInterval, 750)
+        XCTAssertEqual(baseConfigProvider.httpContentTypeAllowlist, ["application/json"])
+        XCTAssertEqual(baseConfigProvider.defaultHttpHeadersBlocklist, [
+                "Authorization",
+                "Cookie",
+                "Set-Cookie",
+                "Proxy-Authorization",
+                "WWW-Authenticate",
+                "X-Api-Key"
+            ])
+        XCTAssertEqual(baseConfigProvider.customEventNameRegex, "^[a-zA-Z0-9_-]+$")
+        XCTAssertEqual(baseConfigProvider.maxEventNameLength, 64)
+        XCTAssertEqual(baseConfigProvider.maxUserDefinedAttributeKeyLength, 256)
+        XCTAssertEqual(baseConfigProvider.maxUserDefinedAttributeValueLength, 256)
+        XCTAssertEqual(baseConfigProvider.maxUserDefinedAttributesPerEvent, 100)
+        XCTAssertEqual(baseConfigProvider.eventTypeExportAllowList, [
+                .coldLaunch,
+                .hotLaunch,
+                .warmLaunch,
+                .lifecycleSwiftUI,
+                .lifecycleViewController,
+                .screenView
+            ])
+        XCTAssertTrue(baseConfigProvider.autoStart)
+        XCTAssertEqual(baseConfigProvider.maxSpanNameLength, 64)
+        XCTAssertEqual(baseConfigProvider.maxCheckpointNameLength, 64)
+        XCTAssertEqual(baseConfigProvider.maxCheckpointsPerSpan, 100)
     }
 
     func testLoadNetworkConfigUpdatesNetworkConfig() {

@@ -1,6 +1,7 @@
 "use client"
 
 import { measureAuth } from "@/app/auth/measure_auth"
+import Script from "next/script"
 import { useEffect, useState } from "react"
 
 const origin = process?.env?.NEXT_PUBLIC_SITE_URL
@@ -19,9 +20,9 @@ async function genNonce() {
 }
 
 export default function GoogleSignIn() {
-  const [nonce, setNonce] = useState("");
-  const [hashedNonce, setHashedNonce] = useState("");
-  const [state, setState] = useState("");
+  const [nonce, setNonce] = useState("")
+  const [hashedNonce, setHashedNonce] = useState("")
+  const [state, setState] = useState("")
 
   useEffect(() => {
     genNonce().then(({ nonce, hashedNonce }) => {
@@ -35,18 +36,21 @@ export default function GoogleSignIn() {
 
   return (
     <>
+      <Script src="https://accounts.google.com/gsi/client" />
+
       <div id="g_id_onload"
         data-client_id={googleClientID}
         data-context="signin"
         data-ux_mode="popup"
         data-nonce={hashedNonce}
         data-login_uri={`${origin}/auth/callback/google?nonce=${encodeURIComponent(nonce)}&state=${encodeURIComponent(state)}`}
+        data-scope="openid email profile"
         data-auto_prompt="false"
         data-itp_support="true"
         data-use_fedcm_for_prompt="true">
       </div>
 
-      <div className="g_id_signin"
+      <div className="g_id_signin rounded-md"
         data-type="standard"
         data-shape="rectangular"
         data-theme="outline"

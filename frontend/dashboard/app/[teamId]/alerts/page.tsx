@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import CreateApp from '@/app/components/create_app'
 import { App, AppsApiStatus, FetchAlertPrefsApiStatus, UpdateAlertPrefsApiStatus, emptyAlertPrefs, fetchAlertPrefsFromServer, fetchAppsFromServer, updateAlertPrefsFromServer } from '@/app/api/api_calls'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
+import { Button } from '@/app/components/button'
 
 export default function Overview({ params }: { params: { teamId: string } }) {
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading)
@@ -147,8 +148,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   }
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-      <div className="py-4" />
+    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
       <p className="font-display text-4xl max-w-6xl text-center">Alerts</p>
       <div className="py-4" />
 
@@ -195,7 +195,13 @@ export default function Overview({ params }: { params: { teamId: string } }) {
                 />
               </div>
               <div className="py-4" />
-              <button disabled={areAlertPrefsSame(alertPrefs, updatedAlertPrefs) || updateAlertPrefsApiStatus === UpdateAlertPrefsApiStatus.Loading} className="outline-hidden flex justify-center hover:enabled:bg-yellow-200 active:enabled:bg-yellow-300 focus-visible:enabled:bg-yellow-200 border border-black disabled:border-gray-400 rounded-md font-display disabled:text-gray-400 transition-colors duration-100 py-2 px-4" onClick={saveAlertPrefs}>Save</button>
+              <Button
+                variant="outline"
+                disabled={areAlertPrefsSame(alertPrefs, updatedAlertPrefs) || updateAlertPrefsApiStatus === UpdateAlertPrefsApiStatus.Loading}
+                className="flex justify-center font-display border border-black select-none"
+                onClick={saveAlertPrefs}>
+                Save
+              </Button>
               <div className="py-1" />
               {updateAlertPrefsApiStatus !== UpdateAlertPrefsApiStatus.Init && <p className="text-sm font-body">{updatePrefsMsg}</p>}
             </div>}

@@ -14,6 +14,8 @@
   * [SwiftUI Lifecycle](#swiftui-lifecycle)
   * [ViewController Lifecycle](#viewcontroller-lifecycle)
   * [Network Monitoring](#network-monitoring)
+  * [Performance Tracing](#performance-tracing)
+  * [Bug Reports](#bug-reports)
 * [Session](#session)
 
 # Minimum requirements
@@ -56,7 +58,7 @@ Add Measure as a dependency by adding `dependencies` value to your `Package.swif
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.1.0")
+    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.3.0")
 ]
 ```
 
@@ -91,6 +93,7 @@ func application(_ application: UIApplication,
 }
 
 ```
+> Replace `apiKey` with the API key provided in the web dashboard upon app creation, and set `apiUrl` to `https://measure-api.<your-domain>.com`, replacing `<your-domain>` with your own domain.
 
 ### 3. Verify
 
@@ -140,15 +143,17 @@ Measure SDK operates on an event-based architecture, automatically collecting ke
 
 The following data is automatically collected by Measure. Read the individual docs for more details.
 
-* [App launch](../docs/ios/features/feature_app_launch.md)
-* [Crash tracking](../docs/ios/features/feature_crash_tracking.md)
-* [Network monitoring](../docs/ios/features/feature_network_monitoring.md)
-* [Network changes](../docs/ios/features/feature_network_changes.md)
-* [Gesture tracking](../docs/ios/features/feature_gesture_tracking.md)
-* [Layout Snapshots](../docs/ios/features/feature_layout_snapshots.md)
-* [Navigation & Lifecycle](../docs/ios/features/feature_navigation_and_lifecycle.md)
-* [CPU monitoring](../docs/ios/features/feature_cpu_monitoring.md)
-* [Memory monitoring](../docs/ios/features/feature_memory_monitoring.md)
+* [App launch](/docs/ios/features/feature_app_launch.md)
+* [Crash tracking](/docs/ios/features/feature_crash_tracking.md)
+* [Network monitoring](/docs/ios/features/feature_network_monitoring.md)
+* [Network changes](/docs/ios/features/feature_network_changes.md)
+* [Gesture tracking](/docs/ios/features/feature_gesture_tracking.md)
+* [Layout Snapshots](/docs/ios/features/feature_layout_snapshots.md)
+* [Navigation & Lifecycle](/docs/ios/features/feature_navigation_and_lifecycle.md)
+* [CPU monitoring](/docs/ios/features/feature_cpu_monitoring.md)
+* [Memory monitoring](/docs/ios/features/feature_memory_monitoring.md)
+* [Performance Tracing](/docs/ios/features/feature_performance_tracing.md)
+* [Screen Load Time](/docs/ios/features/feature_screen_load_time.md)
 
 ## Crash Reporting  
 
@@ -334,6 +339,58 @@ If the interceptor is already enabled, subsequent calls to this method will have
 
 > [!Note]
 > Ensure you call this method before creating a `URLSession` instance with the given configuration.
+
+## Performance Tracing
+
+Performance tracing allows you to measure the time taken by specific operations in your app, providing insights into performance bottlenecks. It uses **traces** and **spans** to track operations and their relationships.
+
+### Key Concepts
+- **Trace**: Represents an entire operation, such as a user journey, identified by a `traceId`.
+- **Span**: Represents a single unit of work within a trace, such as an HTTP request or database query, identified by a `spanId`.
+
+### Example Usage
+
+#### Start a Span
+You can start a span using the `startSpan` API:
+
+```swift
+let span: Span = Measure.shared.startSpan(name: "operation-name")
+```
+
+#### End a Span
+End the span and set its status:
+
+```swift
+span.setStatus(.ok).end()
+```
+
+#### Start a Span with a Custom Timestamp
+If the operation has already started, you can provide a custom start time:
+
+```swift
+let span: Span = Measure.shared.startSpan(name: "operation-name", timestamp: Measure.shared.getCurrentTime())
+```
+
+### Learn More
+For detailed documentation, including advanced usage and distributed tracing, refer to the [Performance Tracing Documentation](/docs/ios/features/feature_performance_tracing.md).
+
+## Bug Reports
+
+Bug reports enable users to report issues directly from the app. To launch the bug reporting flow:
+
+```swift
+Measure.shared.launchBugReport(takeScreenshot: true)
+```
+
+You can also capture a bug report by building your own UI using:
+
+```swift
+Measure.shared.trackBugReport(description: "Items from cart disappear after reopening the app")
+```
+
+Bug reports can be captured with screenshots and attributes. Read more details about 
+bug reports [here](features/feature_bug_reports.md).
+
 
 # Session
 

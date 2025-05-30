@@ -1,6 +1,9 @@
 import React from 'react'
 import { emptyAnrExceptionsDetailsResponse, emptyCrashExceptionsDetailsResponse, ExceptionsType } from '../api/api_calls'
 import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
+import { Button } from './button'
+import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip'
+import { toastPositive } from '../utils/use_toast'
 
 interface CopyAiContextProps {
   appName: string,
@@ -25,11 +28,13 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({ appName, exceptionsType, 
 
     formatted = formatted + "Thread: " + exceptionsDetails.results[0].attribute.thread_name + "\nStacktrace:\n" + indentedStackTrace + "\n\n"
 
-    exceptionsDetails.results[0].threads.forEach((e) => {
-      formatted = formatted + "Thread: " + e.name + "\n"
-      formatted = formatted + "Stacktrace:\n    " + e.frames.join("\n    ")
-      formatted = formatted + "\n\n"
-    })
+    if (exceptionsDetails.results[0].threads) {
+      exceptionsDetails.results[0].threads.forEach((e) => {
+        formatted = formatted + "Thread: " + e.name + "\n"
+        formatted = formatted + "Stacktrace:\n    " + e.frames.join("\n    ")
+        formatted = formatted + "\n\n"
+      })
+    }
 
     return formatted
   }
@@ -40,12 +45,22 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({ appName, exceptionsType, 
     + "Please help me debug this."
 
   return (
-    <button className="flex group relative outline-hidden justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(llmContext)}>
-      Copy AI Context
-      <span className="pointer-events-none z-50 max-w-xl absolute font-body text-sm text-white rounded-md p-2 bg-neutral-800 -bottom-12 left-0 w-max opacity-0 transition-opacity group-hover:opacity-100">
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="outline"
+          className="font-display border border-black select-none"
+          onClick={() => {
+            navigator.clipboard.writeText(llmContext)
+            toastPositive("AI context copied to clipboard")
+          }}
+        >Copy AI Context
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" align="start" className="font-display text-sm text-white fill-bg-neutral-800 bg-neutral-800">
         Copy full exception context for easy pasting in your favorite LLM
-      </span>
-    </button>
+      </TooltipContent>
+    </Tooltip>
   )
 }
 

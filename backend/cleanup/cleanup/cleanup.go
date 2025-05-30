@@ -30,8 +30,14 @@ type AppRetention struct {
 }
 
 func DeleteStaleData(ctx context.Context) {
+	// delete stale auth sessions
+	deleteStaleAuthSessions(ctx)
+
 	// delete shortened filters
 	deleteStaleShortenedFilters(ctx)
+
+	// delete stale invites
+	deleteStaleInvites(ctx)
 
 	// fetch each app's retention thresholds
 	appRetentions, err := fetchAppRetentions(ctx)
@@ -73,6 +79,22 @@ func DeleteStaleData(ctx context.Context) {
 	fmt.Println("Finished cleaning up stale data")
 }
 
+// deleteStaleAuthSessions deletes stale auth sessions that
+// have passed the expiry time
+func deleteStaleAuthSessions(ctx context.Context) {
+	threshold := time.Now()
+	stmt := sqlf.PostgreSQL.DeleteFrom("public.auth_sessions").
+		Where("rt_expiry_at < ?", threshold)
+
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		fmt.Printf("Failed to delete stale auth sessions: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Succesfully deleted stale auth sessions\n")
+}
+
 // deleteStaleShortenedFilters deletes stale shortened filters that
 // have passed the expiry threshold
 func deleteStaleShortenedFilters(ctx context.Context) {
@@ -87,6 +109,22 @@ func deleteStaleShortenedFilters(ctx context.Context) {
 	}
 
 	fmt.Printf("Succesfully deleted stale short filters\n")
+}
+
+// deleteStaleInvites deletes stale invites that
+// have passed the expiry threshold
+func deleteStaleInvites(ctx context.Context) {
+	threshold := time.Now().Add(-48 * time.Hour) // 48 hour expiry
+	stmt := sqlf.PostgreSQL.DeleteFrom("public.invites").
+		Where("updated_at < ?", threshold)
+
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		fmt.Printf("Failed to delete stale invites: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Succesfully deleted stale invites\n")
 }
 
 // deleteEventFilters deletes stale event filters for each

@@ -1,0 +1,50 @@
+{
+  "foreground" : true,
+  "handled": true,
+  "threads" : [],
+  "exceptions": [
+      {
+        "thread_sequence" : 0,
+        "frames" : [
+            {
+                "class_name": "_MyAppState",
+                "method_name": "_throwException",
+                "file_name": "main.dart",
+                "line_num": 84,
+                "col_num": 5,
+                "in_app": false,
+                "module_name": "package:measure_flutter_example/",
+                "frame_index": 0
+            },
+            {
+                "class_name": "_InkResponseState",
+                "method_name": "handleTap",
+                "file_name": "ink_well.dart",
+                "line_num": 1176,
+                "col_num": 21,
+                "in_app": false,
+                "module_name": "package:flutter/src/material/",
+                "frame_index": 1
+            },
+            {
+                "class_name": null,
+                "method_name": "_invoke1",
+                "file_name": "hooks.dart",
+                "line_num": 330,
+                "col_num": 10,
+                "in_app": false,
+                "module_name": "dart:ui/",
+                "frame_index": 2
+            }
+        ]
+      }
+  ],
+  "binary_images": [
+      {
+          "baseAddr": "7af7026000",
+          "uuid": "369f5a6f980ba1e36116077ffc3e28e0",
+          "arch": "arm64"
+      }
+  ]
+}
+

@@ -18,9 +18,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                                     apiUrl: "http://localhost:8080")
         let config = BaseMeasureConfig(enableLogging: true,
                                        samplingRateForErrorFreeSessions: 1.0,
-                                       autoStart: true)
+                                       traceSamplingRate: 1.0,
+                                       autoStart: true,
+                                       trackViewControllerLoadTime: true,
+                                       screenshotMaskLevel: .sensitiveFieldsOnly)
         measureInstance.initialize(with: clientInfo, config: config)
         measureInstance.setUserId("test_user_ios")
+        measureInstance.enableShakeToLaunchBugReport(takeScreenshot: true)
 
         return true
     }

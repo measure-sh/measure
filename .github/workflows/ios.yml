@@ -12,7 +12,7 @@ on:
 
 jobs:
   ios_lint_and_tests:
-    runs-on: macos-latest
+    runs-on: macos-15
     permissions:
       contents: read
       pull-requests: read

@@ -1,5 +1,5 @@
-import { measureAuth } from '@/app/auth/measure_auth'
 import { NextResponse } from 'next/server'
+import { setCookiesFromJWT } from '../../cookie'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const state = searchParams.get("state")
   const errRedirectUrl = `${origin}/auth/login?error=Could not sign in with GitHub`
   if (!code) {
-    console.log("github login failure: no nonce")
+    console.log("Github login failure: no nonce")
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
@@ -31,18 +31,23 @@ export async function GET(request: Request) {
       state,
       code
     })
-  });
+  })
 
   if (!res.ok) {
-    console.log(`github login failure: post /auth/github returned ${res.status}`)
-    return NextResponse.redirect(errRedirectUrl, { status: 302 });
+    console.log(`Github login failure: post /auth/github returned ${res.status}`)
+    return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
-  const session = await res.json();
-  const { payload } = measureAuth.decodeJWT(session.access_token)
+  const data = await res.json()
 
-  const redirectURL = new URL(`${origin}/${payload["team"]}/overview`);
-  redirectURL.hash = `access_token=${session.access_token}&refresh_token=${session.refresh_token}&state=${session.state}`;
+  // Create a response with redirect
+  let response = NextResponse.redirect(
+    // Redirect to overview page with own team Id
+    new URL(`${origin}/${data.own_team_id}/overview`),
+    { status: 303 }
+  )
 
-  return NextResponse.redirect(redirectURL, { status: 302 });
+  response = setCookiesFromJWT(data.access_token, data.refresh_token, response)
+
+  return response
 }

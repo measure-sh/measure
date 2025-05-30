@@ -28,7 +28,7 @@ protocol CrashReportManager {
 final class CrashReportingManager: CrashReportManager {
     private var crashReporter: SystemCrashReporter
     private let logger: Logger
-    private let eventProcessor: EventProcessor
+    private let signalProcessor: SignalProcessor
     private let crashDataPersistence: CrashDataPersistence
     private let systemFileManager: SystemFileManager
     private let idProvider: IdProvider
@@ -37,14 +37,14 @@ final class CrashReportingManager: CrashReportManager {
     let hasPendingCrashReport: Bool
 
     init(logger: Logger,
-         eventProcessor: EventProcessor,
+         signalProcessor: SignalProcessor,
          crashDataPersistence: CrashDataPersistence,
          crashReporter: SystemCrashReporter,
          systemFileManager: SystemFileManager,
          idProvider: IdProvider,
          configProvider: ConfigProvider) {
         self.logger = logger
-        self.eventProcessor = eventProcessor
+        self.signalProcessor = signalProcessor
         self.crashDataPersistence = crashDataPersistence
         self.crashReporter = crashReporter
         self.crashReporter.setCrashCallback(measureCrashCallback)
@@ -81,15 +81,16 @@ final class CrashReportingManager: CrashReportManager {
         }
 
         let crashDataAttributes = crashDataPersistence.readCrashData()
-        if let attributes = crashDataAttributes.attribute, let sessionId = crashDataPersistence.sessionId {
+        if let attributes = crashDataAttributes.attribute, let sessionId = crashDataAttributes.sessionId {
             exception.foreground = crashDataPersistence.isForeground
-            self.eventProcessor.track(data: exception,
-                                      timestamp: Number(date.timeIntervalSince1970 * 1000),
-                                      type: .exception,
-                                      attributes: attributes,
-                                      sessionId: sessionId,
-                                      attachments: nil,
-                                      userDefinedAttributes: nil)
+            self.signalProcessor.track(data: exception,
+                                       timestamp: Number(date.timeIntervalSince1970 * 1000),
+                                       type: .exception,
+                                       attributes: attributes,
+                                       sessionId: sessionId,
+                                       attachments: nil,
+                                       userDefinedAttributes: nil,
+                                       threadName: nil)
         }
 
         crashReporter.clearCrashData()

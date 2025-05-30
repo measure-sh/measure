@@ -6,9 +6,9 @@ import LoadingBar from '@/app/components/loading_bar'
 import Paginator from '@/app/components/paginator'
 import SessionsOverviewPlot from '@/app/components/sessions_overview_plot'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils'
-import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 
 interface PageState {
     sessionsOverviewApiStatus: SessionsOverviewApiStatus
@@ -61,7 +61,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
 
     const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
         // update filters only if they have changed
-        if (updatedFilters.ready && pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
+        if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
             updatePageState({
                 filters: updatedFilters,
                 // Reset pagination on filters change if previous filters were not default filters
@@ -90,8 +90,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
     }, [pageState.paginationOffset, pageState.filters])
 
     return (
-        <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-            <div className="py-4" />
+        <div className="flex flex-col selection:bg-yellow-200/75 items-start">
             <p className="font-display text-4xl max-w-6xl text-center">Sessions</p>
             <div className="py-4" />
 
@@ -130,9 +129,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
             {pageState.filters.ready
                 && (pageState.sessionsOverviewApiStatus === SessionsOverviewApiStatus.Success || pageState.sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading) &&
                 <div className="flex flex-col items-center w-full">
-                    <div className="py-4" />
                     <SessionsOverviewPlot filters={pageState.filters} />
-                    <div className="py-4" />
                     <div className='self-end'>
                         <Paginator
                             prevEnabled={pageState.sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? false : pageState.sessionsOverview.meta.previous}
@@ -145,33 +142,76 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                     <div className={`py-1 w-full ${pageState.sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? 'visible' : 'invisible'}`}>
                         <LoadingBar />
                     </div>
-                    <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
-                        <div className="table-header-group bg-neutral-950">
-                            <div className="table-row text-white font-display">
-                                <div className="table-cell w-96 p-4">Session Id</div>
-                                <div className="table-cell w-48 p-4 text-center">Start Time</div>
-                                <div className="table-cell w-48 p-4 text-center">Duration</div>
-                            </div>
-                        </div>
-                        <div className="table-row-group font-body">
-                            {pageState.sessionsOverview.results?.map(({ session_id, app_id, first_event_time, duration, matched_free_text, attribute }, idx) => (
-                                <Link key={`${idx}-${session_id}`} href={`/${params.teamId}/sessions/${app_id}/${session_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
-                                    <div className="table-cell p-4">
-                                        <p className='truncate'>{session_id}</p>
-                                        <div className='py-1' />
-                                        <p className='text-xs truncate text-gray-500'>{"v" + attribute.app_version + "(" + attribute.app_build + "), " + attribute.os_name + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
-                                        {matched_free_text !== "" && <p className='p-1 mt-2 text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
-                                    </div>
-                                    <div className="table-cell p-4 text-center">
-                                        <p className='truncate'>{formatDateToHumanReadableDate(first_event_time)}</p>
-                                        <div className='py-1' />
-                                        <p className='text-xs truncate'>{formatDateToHumanReadableTime(first_event_time)}</p>
-                                    </div>
-                                    <div className="table-cell p-4 text-center truncate">{(duration as unknown as number) === 0 ? 'N/A' : formatMillisToHumanReadable(duration as unknown as number)}</div>
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
+                    <div className="py-4" />
+                    <Table className="font-display">
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[60%]">Session</TableHead>
+                                <TableHead className="w-[20%] text-center">Start Time</TableHead>
+                                <TableHead className="w-[20%] text-center">Duration</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {pageState.sessionsOverview.results?.map(({ session_id, app_id, first_event_time, duration, matched_free_text, attribute }, idx) => {
+                                const sessionHref = `/${params.teamId}/sessions/${app_id}/${session_id}`
+                                return (
+                                    <TableRow
+                                        key={`${idx}-${session_id}`}
+                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault()
+                                                router.push(sessionHref)
+                                            }
+                                        }}
+                                    >
+                                        <TableCell className="w-[60%] relative p-0">
+                                            <a
+                                                href={sessionHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-label={`ID: ${session_id}`}
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                <p className='truncate select-none'>ID: {session_id}</p>
+                                                <div className='py-1' />
+                                                <p className='text-xs truncate text-gray-500 select-none'>{"v" + attribute.app_version + "(" + attribute.app_build + "), " + attribute.os_name + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
+                                                {matched_free_text !== "" && <p className='p-1 mt-2 text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="w-[20%] text-center relative p-0">
+                                            <a
+                                                href={sessionHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-hidden="true"
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                <p className='truncate select-none'>{formatDateToHumanReadableDate(first_event_time)}</p>
+                                                <div className='py-1' />
+                                                <p className='text-xs truncate select-none'>{formatDateToHumanReadableTime(first_event_time)}</p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="w-[20%] text-center truncate select-none relative p-0">
+                                            <a
+                                                href={sessionHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-hidden="true"
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                {(duration as unknown as number) === 0 ? 'N/A' : formatMillisToHumanReadable(duration as unknown as number)}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
+                        </TableBody>
+                    </Table>
                 </div>}
         </div>
     )

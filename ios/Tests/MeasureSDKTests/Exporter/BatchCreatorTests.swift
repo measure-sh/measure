@@ -16,6 +16,7 @@ final class BatchCreatorTests: XCTestCase {
     var timeProvider: MockTimeProvider!
     var eventStore: MockEventStore!
     var batchStore: MockBatchStore!
+    var spanStore: MockSpanStore!
 
     override func setUp() {
         super.setUp()
@@ -25,6 +26,7 @@ final class BatchCreatorTests: XCTestCase {
         timeProvider = MockTimeProvider()
         eventStore = MockEventStore()
         batchStore = MockBatchStore()
+        spanStore = MockSpanStore()
 
         batchCreator = BaseBatchCreator(
             logger: logger,
@@ -32,7 +34,8 @@ final class BatchCreatorTests: XCTestCase {
             configProvider: configProvider,
             timeProvider: timeProvider,
             eventStore: eventStore,
-            batchStore: batchStore
+            batchStore: batchStore,
+            spanStore: spanStore
         )
     }
 
@@ -75,7 +78,7 @@ final class BatchCreatorTests: XCTestCase {
         eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200))
         configProvider.maxAttachmentSizeInEventsBatchInBytes = 300
         configProvider.maxEventsInBatch = 2
-        idProvider.idString = "batch1"
+        idProvider.uuId = "batch1"
         timeProvider.current = 1727272496000
 
         let result = batchCreator.create(sessionId: nil)

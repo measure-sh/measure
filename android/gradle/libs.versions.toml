@@ -1,5 +1,5 @@
 [versions]
-agp = "8.9.0"
+agp = "8.9.3"
 # This is the lowest version of AGP supported by the measure gradle plugin
 agp741 = "7.4.1"
 bundletool = "1.17.0"
@@ -39,7 +39,7 @@ kotlinx-serialization-json = "1.6.2"
 google-material = "1.11.0"
 mockito-kotlin = "5.1.0"
 nhaarman-mockito-kotlin = "2.2.0"
-orchestrator = "1.5.0"
+orchestrator = "1.5.1"
 semver = "1.1.2"
 squareup-curtains = "1.2.5"
 squareup-okhttp = "4.12.0"

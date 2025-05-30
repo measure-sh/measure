@@ -17,6 +17,7 @@ protocol SessionManager {
     func applicationWillTerminate()
     func onEventTracked(_ event: EventEntity)
     func setPreviousSessionCrashed(_ crashed: Bool)
+    func markCurrentSessionAsCrashed()
 }
 
 /// `BaseSessionManager`  is responsible for creating and managing sessions within the Measure SDK.
@@ -74,8 +75,8 @@ final class BaseSessionManager: SessionManager {
     }
 
     private func createNewSession() {
-        currentSessionId = idProvider.createId()
-        logger.log(level: .info, message: "New session created", error: nil, data: nil)
+        currentSessionId = idProvider.uuid()
+        logger.log(level: .info, message: "New session created: \(currentSessionId ?? "nil")", error: nil, data: nil)
         shouldReportSession = shouldMarkSessionForExport()
         let session = SessionEntity(sessionId: sessionId,
                                     pid: ProcessInfo.processInfo.processIdentifier,
@@ -96,7 +97,7 @@ final class BaseSessionManager: SessionManager {
 
         if let recentSession = userDefaultStorage.getRecentSession(), recentSession.lastEventTime != 0 {
             let elapsedTime = timeProvider.now() - recentSession.lastEventTime
-            if elapsedTime <= configProvider.sessionEndLastEventThresholdMs {
+            if elapsedTime <= configProvider.sessionEndLastEventThresholdMs && !recentSession.crashed {
                 return recentSession.id
             }
         }
@@ -206,6 +207,22 @@ final class BaseSessionManager: SessionManager {
             sessionStore.markCrashedSession(sessionId: recentSession.id)
             sessionStore.updateNeedsReporting(sessionId: recentSession.id, needsReporting: true)
             eventStore.updateNeedsReportingForAllEvents(sessionId: recentSession.id, needsReporting: true)
+        }
+    }
+
+    func markCurrentSessionAsCrashed() {
+        sessionStore.markCrashedSession(sessionId: sessionId)
+        if let session = sessionStore.getSession(byId: sessionId) {
+            let recentSession = RecentSession(id: session.sessionId,
+                                              createdAt: session.createdAt,
+                                              crashed: true,
+                                              versionCode: versionCode)
+            userDefaultStorage.setRecentSession(recentSession)
+        }
+        if !shouldReportSession {
+            sessionStore.updateNeedsReporting(sessionId: sessionId, needsReporting: true)
+            eventStore.updateNeedsReportingForAllEvents(sessionId: sessionId, needsReporting: true)
+            shouldReportSession = true
         }
     }
 

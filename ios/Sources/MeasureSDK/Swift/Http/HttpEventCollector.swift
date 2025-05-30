@@ -14,7 +14,7 @@ protocol HttpEventCollector {
 
 final class BaseHttpEventCollector: HttpEventCollector {
     private let logger: Logger
-    private let eventProcessor: EventProcessor
+    private let signalProcessor: SignalProcessor
     private let timeProvider: TimeProvider
     private let urlSessionTaskSwizzler: URLSessionTaskSwizzler
     private let httpInterceptorCallbacks: HttpInterceptorCallbacks
@@ -24,7 +24,7 @@ final class BaseHttpEventCollector: HttpEventCollector {
     private var isEnabled = AtomicBool(false)
 
     init(logger: Logger,
-         eventProcessor: EventProcessor,
+         signalProcessor: SignalProcessor,
          timeProvider: TimeProvider,
          urlSessionTaskSwizzler: URLSessionTaskSwizzler,
          httpInterceptorCallbacks: HttpInterceptorCallbacks,
@@ -32,7 +32,7 @@ final class BaseHttpEventCollector: HttpEventCollector {
          configProvider: ConfigProvider,
          httpEventValidator: HttpEventValidator) {
         self.logger = logger
-        self.eventProcessor = eventProcessor
+        self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.urlSessionTaskSwizzler = urlSessionTaskSwizzler
         self.httpInterceptorCallbacks = httpInterceptorCallbacks
@@ -73,13 +73,14 @@ final class BaseHttpEventCollector: HttpEventCollector {
 
     func onHttpCompletion(data: HttpData) {
         if isEnabled.get() {
-            eventProcessor.track(data: data,
-                                 timestamp: timeProvider.now(),
-                                 type: .http,
-                                 attributes: nil,
-                                 sessionId: nil,
-                                 attachments: nil,
-                                 userDefinedAttributes: nil)
+            signalProcessor.track(data: data,
+                                  timestamp: timeProvider.now(),
+                                  type: .http,
+                                  attributes: nil,
+                                  sessionId: nil,
+                                  attachments: nil,
+                                  userDefinedAttributes: nil,
+                                  threadName: nil)
         }
     }
 }

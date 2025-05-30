@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Check if required parameters are provided
 if [ "$#" -ne 4 ]; then
   echo "Usage: $0 <path_to_ipa> <path_to_dsym_folder> <api_url> <api_key>"
@@ -10,7 +9,6 @@ IPA_PATH=$1
 DSYM_FOLDER=$2
 API_URL=$3
 API_KEY=$4
-
 SCRIPT_DIR=$(pwd) # Get the directory where the script is running
 
 # Validate the IPA file
@@ -28,13 +26,11 @@ fi
 # Unzip IPA file
 TMP_DIR=$(mktemp -d)
 unzip -q "$IPA_PATH" -d "$TMP_DIR"
-
 echo "Contents of unzipped IPA:"
 ls "$TMP_DIR"
 
 # Locate the main app's Info.plist
 INFO_PLIST=$(find "$TMP_DIR" -path "*/Payload/*.app/Info.plist" -type f | head -n 1)
-
 if [ -z "$INFO_PLIST" ]; then
   echo "Error: Info.plist not found in the IPA"
   rm -rf "$TMP_DIR"
@@ -77,6 +73,7 @@ fi
 # Calculate build size
 BUILD_SIZE=$(stat -f%z "$IPA_PATH")
 BUILD_TYPE="ipa"
+OS_NAME="ios"
 
 # Construct the curl command
 CURL_COMMAND="curl --request PUT \
@@ -84,14 +81,14 @@ CURL_COMMAND="curl --request PUT \
   --header 'Authorization: Bearer $API_KEY' \
   --form version_name=$VERSION_NAME \
   --form version_code=$VERSION_CODE \
-  --form mapping_type=dsym \
   --form build_size=$BUILD_SIZE \
   --form build_type=$BUILD_TYPE \
-  --form app_unique_id=$APP_UNIQUE_ID"
+  --form app_unique_id=$APP_UNIQUE_ID \
+  --form os_name=$OS_NAME"
 
-# Add each dSYM .tgz file to the curl command
+# Add each dSYM .tgz file to the curl command with its own mapping_type parameter
 for DSYM_TGZ in "${DSYM_TGZ_FILES[@]}"; do
-  CURL_COMMAND="$CURL_COMMAND --form mapping_file=@$DSYM_TGZ"
+  CURL_COMMAND="$CURL_COMMAND --form mapping_type=dsym --form mapping_file=@$DSYM_TGZ"
 done
 
 # Execute the curl command and capture the HTTP response code
@@ -101,7 +98,7 @@ HTTP_RESPONSE=$(eval "$CURL_COMMAND --write-out '%{http_code}' --silent --output
 # Handle HTTP response codes
 case "$HTTP_RESPONSE" in
   401)
-    echo "[ERROR]: Failed to upload mapping file to Measure, please check that corrent api_key is provided. Stack traces will not be symbolicated."
+    echo "[ERROR]: Failed to upload mapping file to Measure, please check that correct api_key is provided. Stack traces will not be symbolicated."
     ;;
   413)
     echo "[ERROR]: Failed to upload mapping file to Measure, mapping file size exceeded the maximum allowed limit. Stack traces will not be symbolicated."

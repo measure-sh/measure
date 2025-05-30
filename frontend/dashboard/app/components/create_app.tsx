@@ -3,6 +3,8 @@
 import React, { useState, FormEventHandler } from 'react'
 import { CreateAppApiStatus, createAppFromServer, App } from '../api/api_calls'
 import Link from 'next/link'
+import { Button } from './button'
+import { toastPositive } from '../utils/use_toast'
 
 interface CreateAppProps {
   teamId: string,
@@ -64,7 +66,13 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
             <div className="py-2" />
             <input id="app-name" type="string" placeholder="Enter app name" className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400" onChange={(event) => setAppName(event.target.value)} />
             <div className="py-2" />
-            <button type="submit" disabled={createAppApiStatus === CreateAppApiStatus.Loading || appName.length === 0} className={`w-fit outline-hidden hover:enabled:bg-yellow-200 focus-visible:enabled:bg-yellow-200 active:enabled:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4 ${(createAppApiStatus === CreateAppApiStatus.Loading) ? 'pointer-events-none' : 'pointer-events-auto'}`}>Create App</button>
+            <Button
+              variant="outline"
+              type="submit"
+              className="w-fit font-display border border-black select-none"
+              disabled={createAppApiStatus === CreateAppApiStatus.Loading || appName.length === 0}
+            >Create App
+            </Button>
             <div className="py-2" />
           </form>
           {createAppApiStatus === CreateAppApiStatus.Loading && <p className="font-display">Creating app...</p>}
@@ -75,12 +83,21 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
       {/* UI after app creation */}
       {createAppStatus === CreateAppStatus.PostCreation &&
         <div className="flex flex-col">
-          <p className="text-lg">Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure/blob/main/docs/android/README.md#getting-started'>integration guide</Link> to finish setting up your app.</p>
+          <p className="font-body text-sm">Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure?tab=readme-ov-file#docs'>docs</Link> to finish setting up your app.</p>
           <div className="py-4" />
           <p className="font-display text-xl max-w-6xl">API key</p>
           <div className="flex flex-row items-center">
-            <input id="api-key-input" readOnly={true} type="text" value={existingApiKey !== null ? existingApiKey : data!.api_key.key} className="w-96 border border-black rounded-md outline-hidden focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400" />
-            <button className="m-4 outline-hidden flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => navigator.clipboard.writeText(existingApiKey !== null ? existingApiKey : data!.api_key.key)}>Copy</button>
+            <input id="api-key-input" readOnly={true} type="text" value={existingApiKey !== null ? existingApiKey : data!.api_key.key} className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
+            <Button
+              variant="outline"
+              type="submit"
+              className="m-4 w-fit font-display border border-black select-none"
+              onClick={() => {
+                navigator.clipboard.writeText(existingApiKey !== null ? existingApiKey : data!.api_key.key)
+                toastPositive("API key copied to clipboard")
+              }}
+            >Copy
+            </Button>
           </div>
         </div>
       }

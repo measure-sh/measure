@@ -6,11 +6,13 @@ import BugReportsOverview from '@/app/[teamId]/bug_reports/page'
 
 // Global replace mock for router.replace
 const replaceMock = jest.fn()
+const pushMock = jest.fn()
 
 // Mock next/navigation hooks
 jest.mock('next/navigation', () => ({
     useRouter: () => ({
         replace: replaceMock,
+        push: pushMock,
     }),
     // By default, return empty search params.
     useSearchParams: () => new URLSearchParams(),
@@ -138,19 +140,10 @@ jest.mock('@/app/utils/time_utils', () => ({
     formatDateToHumanReadableTime: jest.fn(() => '12:00 AM')
 }))
 
-// Mock Next.js Link component
-jest.mock('next/link', () => ({
-    __esModule: true,
-    default: ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => (
-        <a href={href} className={className} data-testid="mock-link">
-            {children}
-        </a>
-    ),
-}))
-
 describe('BugReportsOverview Component', () => {
     beforeEach(() => {
         replaceMock.mockClear()
+        pushMock.mockClear()
     })
 
     it('renders the Bug Reports heading and Filters component', () => {
@@ -181,7 +174,7 @@ describe('BugReportsOverview Component', () => {
         expect(await screen.findByTestId('bug-reports-overview-plot-mock')).toBeInTheDocument()
         expect(await screen.findByTestId('paginator-mock')).toBeInTheDocument()
         // Check that the table header cells are rendered.
-        expect(screen.getByText('Bug Report Id')).toBeInTheDocument()
+        expect(screen.getByText('Bug Report')).toBeInTheDocument()
         expect(screen.getByText('Time')).toBeInTheDocument()
         expect(screen.getByText('Status')).toBeInTheDocument()
     })
@@ -198,7 +191,7 @@ describe('BugReportsOverview Component', () => {
         expect(screen.getByText('Jan 1, 2020')).toBeInTheDocument()
         expect(screen.getByText('12:00 AM')).toBeInTheDocument()
         expect(screen.getByText('Open')).toBeInTheDocument()
-        expect(screen.getByText('bug1')).toBeInTheDocument()
+        expect(screen.getByText('ID: bug1')).toBeInTheDocument()
         expect(screen.getByText('Matched error')).toBeInTheDocument()
         expect(screen.getByText('v1.0(1), iOS 15.0, Apple iPhone 12')).toBeInTheDocument()
     })
@@ -242,9 +235,26 @@ describe('BugReportsOverview Component', () => {
             fireEvent.click(updateButton)
         })
 
-        // Check that the link includes the correct path
-        const link = screen.getByTestId('mock-link')
+        // Check that the bug report link is rendered with the correct href and accessible name
+        const link = screen.getByRole('link', { name: /ID: bug1/i })
+        expect(link).toBeInTheDocument()
         expect(link).toHaveAttribute('href', '/123/bug_reports/app1/bug1')
+
+        // Find the table row that contains this link
+        const row = link.closest('tr')
+        expect(row).toBeInTheDocument()
+
+        // Simulate keyboard navigation (Enter) on the row
+        await act(async () => {
+            fireEvent.keyDown(row!, { key: 'Enter' })
+        })
+        expect(pushMock).toHaveBeenCalledWith('/123/bug_reports/app1/bug1')
+
+        // Simulate keyboard navigation (Space) on the row
+        await act(async () => {
+            fireEvent.keyDown(row!, { key: ' ' })
+        })
+        expect(pushMock).toHaveBeenCalledWith('/123/bug_reports/app1/bug1')
     })
 
     it('handles bug reports with no description properly', async () => {

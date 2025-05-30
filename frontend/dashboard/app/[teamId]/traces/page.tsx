@@ -9,6 +9,7 @@ import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMil
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 
 interface PageState {
     spansApiStatus: SpansApiStatus
@@ -60,7 +61,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
 
     const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
         // update filters only if they have changed
-        if (updatedFilters.ready && pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
+        if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
             updatePageState({
                 filters: updatedFilters,
                 // Reset pagination on filters change if previous filters were not default filters
@@ -89,8 +90,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
     }, [pageState.paginationOffset, pageState.filters])
 
     return (
-        <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-            <div className="py-4" />
+        <div className="flex flex-col selection:bg-yellow-200/75 items-start">
             <p className="font-display text-4xl max-w-6xl text-center">Traces</p>
             <div className="py-4" />
 
@@ -128,10 +128,8 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
             {pageState.filters.ready
                 && (pageState.spansApiStatus === SpansApiStatus.Success || pageState.spansApiStatus === SpansApiStatus.Loading) &&
                 <div className="flex flex-col items-center w-full">
-                    <div className="py-4" />
                     <SpanMetricsPlot
                         filters={pageState.filters} />
-                    <div className="py-4" />
                     <div className='self-end'>
                         <Paginator
                             prevEnabled={pageState.spansApiStatus === SpansApiStatus.Loading ? false : pageState.spans.meta.previous}
@@ -141,39 +139,94 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                             onPrev={handlePrevPage}
                         />
                     </div>
+
                     <div className={`py-1 w-full ${pageState.spansApiStatus === SpansApiStatus.Loading ? 'visible' : 'invisible'}`}>
                         <LoadingBar />
                     </div>
-                    <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
-                        <div className="table-header-group bg-neutral-950">
-                            <div className="table-row text-white font-display">
-                                <div className="table-cell w-96 p-4">Trace</div>
-                                <div className="table-cell w-48 p-4 text-center">Start Time</div>
-                                <div className="table-cell w-48 p-4 text-center">Duration</div>
-                                <div className="table-cell w-48 p-4 text-center">Status</div>
-                            </div>
-                        </div>
-                        <div className="table-row-group font-body">
-                            {pageState.spans.results?.map(({ app_id, span_name, span_id, trace_id, status, start_time, duration, app_version, app_build, os_name, os_version, device_manufacturer, device_model }, idx) => (
-                                <Link key={`${idx}-${span_id}`} href={`/${params.teamId}/traces/${app_id}/${trace_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
-                                    <div className="table-cell p-4">
-                                        <p className='truncate'>{span_name}</p>
-                                        <div className='py-1' />
-                                        <p className='text-xs truncate'>Trace ID: {trace_id}</p>
-                                        <div className='py-1' />
-                                        <p className='text-xs truncate text-gray-500'>{"v" + app_version + "(" + app_build + "), " + os_name + " " + os_version + ", " + device_manufacturer + " " + device_model}</p>
-                                    </div>
-                                    <div className="table-cell p-4 text-center">
-                                        <p className='truncate'>{formatDateToHumanReadableDate(start_time)}</p>
-                                        <div className='py-1' />
-                                        <p className='text-xs truncate'>{formatDateToHumanReadableTime(start_time)}</p>
-                                    </div>
-                                    <div className="table-cell p-4 text-center truncate">{formatMillisToHumanReadable(duration)}</div>
-                                    <div className={`table-cell p-4 text-center truncate ${status === 1 ? "text-green-600" : status === 2 ? "text-red-600" : ""}`}>{status === 0 ? 'Unset' : status === 1 ? 'Okay' : 'Error'}</div>
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
+                    <div className='py-4' />
+                    <Table className="font-display">
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[60%]">Trace</TableHead>
+                                <TableHead className="w-[20%] text-center">Start Time</TableHead>
+                                <TableHead className="w-[10%] text-center">Duration</TableHead>
+                                <TableHead className="w-[10%] text-center">Status</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody className="font-body">
+                            {pageState.spans.results?.map(({ app_id, span_name, span_id, trace_id, status, start_time, duration, app_version, app_build, os_name, os_version, device_manufacturer, device_model }, idx) => {
+                                const traceHref = `/${params.teamId}/traces/${app_id}/${trace_id}`
+                                return (
+                                    <TableRow
+                                        key={`${idx}-${span_id}`}
+                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault()
+                                                router.push(traceHref)
+                                            }
+                                        }}
+                                    >
+                                        <TableCell className="w-[60%] relative p-0">
+                                            <a
+                                                href={traceHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-label={`ID: ${trace_id}`}
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                <p className='text-xs truncate text-gray-500 select-none'>ID: {trace_id}</p>
+                                                <div className='py-1' />
+                                                <p className='truncate select-none'>{span_name}</p>
+                                                <div className='py-1' />
+                                                <p className='text-xs truncate text-gray-500 select-none'>{`v${app_version}(${app_build}), ${os_name} ${os_version}, ${device_manufacturer} ${device_model}`}</p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="w-[20%] text-center relative p-0">
+                                            <a
+                                                href={traceHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-hidden="true"
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                <p className='truncate select-none'>{formatDateToHumanReadableDate(start_time)}</p>
+                                                <div className='py-1' />
+                                                <p className='text-xs truncate select-none'>{formatDateToHumanReadableTime(start_time)}</p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="w-[10%] text-center truncate select-none relative p-0">
+                                            <a
+                                                href={traceHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-hidden="true"
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                {formatMillisToHumanReadable(duration)}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className={`w-[10%] text-center truncate select-none relative p-0 ${status === 1 ? "text-green-600" : status === 2 ? "text-red-600" : ""}`}>
+                                            <a
+                                                href={traceHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-hidden="true"
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                {status === 0 ? 'Unset' : status === 1 ? 'Okay' : 'Error'}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
+                        </TableBody>
+                    </Table>
                 </div>}
         </div>
     )

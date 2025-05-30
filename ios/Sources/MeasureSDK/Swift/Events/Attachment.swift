@@ -42,4 +42,9 @@ struct Attachment: Codable {
         self.size = size
         self.id = id
     }
+
+    func toMsrAttachment() -> MsrAttachment? {
+        guard let bytes else { return nil }
+        return MsrAttachment(name: name, bytes: bytes, type: type)
+    }
 }

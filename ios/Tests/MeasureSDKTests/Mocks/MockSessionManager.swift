@@ -13,8 +13,9 @@ final class MockSessionManager: SessionManager {
     var sessionId: String = ""
     var isPreviousSessionCrashed = false
     var trackedEvent: EventEntity?
+    var isCrashed: Bool = false
 
-    init(sessionId: String) {
+    init(sessionId: String = "session-id") {
         self.sessionId = sessionId
     }
 
@@ -28,5 +29,9 @@ final class MockSessionManager: SessionManager {
 
     func setPreviousSessionCrashed(_ crashed: Bool) {
         isPreviousSessionCrashed = crashed
+    }
+
+    func markCurrentSessionAsCrashed() {
+        isCrashed = true
     }
 }

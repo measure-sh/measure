@@ -21,6 +21,7 @@ import sh.measure.android.Measure.setUserId
 import sh.measure.android.Measure.start
 import sh.measure.android.Measure.stop
 import sh.measure.android.Measure.trackBugReport
+import sh.measure.android.Measure.trackEvent
 import sh.measure.android.applaunch.LaunchState
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.attributes.AttributesBuilder
@@ -517,6 +518,58 @@ object Measure {
     ) {
         if (isInitialized.get()) {
             return measure.imageUriToAttachment(context, uri, onComplete, onError)
+        }
+    }
+
+    /**
+     * An internal method to track events from cross-platform frameworks
+     * like Flutter and React Native.
+     *
+     * This method is not intended for public usage and can change in future versions. To
+     * track events use [trackEvent].
+     *
+     * Usage Notes:
+     * * [data] is a "mutable" map as certain data may be added by the native SDK. For
+     * example, for and exception event the foreground property is set by the native SDK.
+     * * [attributes] set from cross-platform frameworks may be overridden by the native SDK. To
+     * prevent this modification is required in the [sh.measure.android.events.SignalProcessor].
+     *
+     * @param data the event data compatible for the given event [type].
+     * @param type the event type, must be one of [EventType].
+     * @param timestamp the event timestamp in milliseconds since epoch.
+     * @param attributes key-value pairs providing additional context to the event. Must be one of
+     *  [sh.measure.android.attributes.Attribute].
+     * @param userDefinedAttrs custom key-value pairs providing additional context to the event.
+     * @param attachments list of attachments to be sent with the event.
+     * @param userTriggered whether the event was triggered by the user.
+     * @param sessionId optional session ID associated with the event. By default the the event will
+     * be associated with the current session ID.
+     * @param threadName optional thread name associated with the event. By default the the event
+     * will be associated with the thread on which this function is processed.
+     */
+    fun internalTrackEvent(
+        data: MutableMap<String, Any?>,
+        type: String,
+        timestamp: Long,
+        attributes: MutableMap<String, Any?> = mutableMapOf<String, Any?>(),
+        userDefinedAttrs: MutableMap<String, AttributeValue> = mutableMapOf<String, AttributeValue>(),
+        attachments: MutableList<MsrAttachment> = mutableListOf<MsrAttachment>(),
+        userTriggered: Boolean,
+        sessionId: String?,
+        threadName: String?,
+    ) {
+        if (isInitialized.get()) {
+            measure.internalTrackEvent(
+                data = data,
+                type = type,
+                timestamp = timestamp,
+                attributes = attributes,
+                userDefinedAttrs = userDefinedAttrs,
+                attachments = attachments,
+                userTriggerEvent = userTriggered,
+                sessionId = sessionId,
+                threadName = threadName,
+            )
         }
     }
 

@@ -1,11 +1,15 @@
 class MethodConstants {
   // Function names
-  static const String functionTrackCustomEvent = 'trackCustomEvent';
+  static const String functionTrackEvent = 'trackEvent';
+  static const String functionTriggerNativeCrash = 'triggerNativeCrash';
 
   // Argument keys
-  static const String argName = 'name';
+  static const String argEventData = 'event_data';
+  static const String argEventType = 'event_type';
   static const String argTimestamp = 'timestamp';
-  static const String argAttributes = 'attributes';
+  static const String argUserDefinedAttrs = 'user_defined_attrs';
+  static const String argUserTriggered = 'user_triggered';
+  static const String argThreadName = 'thread_name';
 
   // Error codes
   static const String errorInvalidArgument = 'invalid_argument';

@@ -75,7 +75,7 @@ const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({
   }, [exceptionsType, exceptionsGroupId, filters])
 
   return (
-    <div className="flex border border-black font-body items-center justify-center w-full h-[32rem]">
+    <div className="flex font-body items-center justify-center w-full h-[32rem]">
       {exceptionsDistributionPlotApiStatus === ExceptionsDistributionPlotApiStatus.Loading && <LoadingSpinner />}
       {exceptionsDistributionPlotApiStatus === ExceptionsDistributionPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {exceptionsDistributionPlotApiStatus === ExceptionsDistributionPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
@@ -85,13 +85,13 @@ const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({
           keys={plotKeys}
           indexBy="attribute"
           colors={{ scheme: 'nivo' }}
-          margin={{ top: 40, right: 60, bottom: 140, left: 60 }}
+          margin={{ top: 40, right: 0, bottom: 180, left: 60 }}
           axisTop={null}
           axisRight={null}
           axisBottom={{
             legend: 'Attributes',
             tickPadding: 10,
-            legendOffset: 120,
+            legendOffset: 100,
             tickRotation: 60,
             legendPosition: 'middle'
           }}
@@ -99,7 +99,7 @@ const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({
             tickSize: 1,
             tickPadding: 5,
             legend: exceptionsType === ExceptionsType.Crash ? 'Crash instances' : 'ANR instances',
-            legendOffset: -40,
+            legendOffset: -50,
             legendPosition: 'middle'
           }}
           tooltip={({
@@ -108,7 +108,7 @@ const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({
             color
           }) => {
             return (
-              <div className="bg-neutral-950 text-white flex flex-col p-2 text-xs">
+              <div className="bg-neutral-800 text-white flex flex-col p-2 text-xs rounded-md">
                 <div className="flex flex-row items-center p-2">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
                   <div className="px-2" />

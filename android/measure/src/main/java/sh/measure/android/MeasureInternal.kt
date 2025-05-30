@@ -54,6 +54,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private val periodicSignalStoreScheduler by lazy { measureInitializer.periodicSignalStoreScheduler }
     private val executorServiceRegistry by lazy { measureInitializer.executorServiceRegistry }
     private val shakeBugReportCollector by lazy { measureInitializer.shakeBugReportCollector }
+    private val internalSignalCollector by lazy { measureInitializer.internalSignalCollector }
     private var isStarted: Boolean = false
     private var startLock = Any()
 
@@ -288,6 +289,32 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
 
     fun isShakeToLaunchBugReportEnabled(): Boolean {
         return shakeBugReportCollector.isShakeToLaunchBugReportEnabled()
+    }
+
+    fun internalTrackEvent(
+        data: MutableMap<String, Any?>,
+        type: String,
+        timestamp: Long,
+        attributes: MutableMap<String, Any?>,
+        userDefinedAttrs: MutableMap<String, AttributeValue>,
+        attachments: MutableList<MsrAttachment>,
+        userTriggerEvent: Boolean,
+        sessionId: String?,
+        threadName: String?,
+    ) {
+        if (isStarted) {
+            internalSignalCollector.trackEvent(
+                data = data,
+                type = type,
+                timestamp = timestamp,
+                attributes = attributes,
+                userDefinedAttrs = userDefinedAttrs,
+                attachments = attachments,
+                userTriggered = userTriggerEvent,
+                sessionId = sessionId,
+                threadName = threadName,
+            )
+        }
     }
 
     private fun unregisterCollectors() {

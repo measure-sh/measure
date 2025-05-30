@@ -46,17 +46,18 @@ android {
 
     defaultConfig {
         minSdk = 21
+        consumerProguardFiles "consumer-rules.pro"
     }
 
     dependencies {
-        api("sh.measure:measure-android:0.11.0-SNAPSHOT")
+        implementation("sh.measure:measure-android:0.11.0-SNAPSHOT")
         testImplementation("org.jetbrains.kotlin:kotlin-test")
     }
 
     testOptions {
+        unitTests.returnDefaultValues = true
         unitTests.all {
             useJUnitPlatform()
-
             testLogging {
                events "passed", "skipped", "failed", "standardOut", "standardError"
                outputs.upToDateWhen {false}

@@ -110,8 +110,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-      <div className="py-4" />
+    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
       <p className="font-display text-4xl max-w-6xl text-center">Usage</p>
       <div className="py-4" />
 
@@ -127,10 +126,10 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       {/* Main UI */}
       {fetchUsageApiStatus === FetchUsageApiStatus.Loading && <p className='font-body'> Fetching usage data...</p>}
       {fetchUsageApiStatus === FetchUsageApiStatus.Success &&
-        <div className="flex flex-col items-start">
+        <div className="flex flex-col items-start w-full">
           <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={months!} initialSelected={selectedMonth!} onChangeSelected={(item) => setSelectedMonth(item as string)} />
           <div className="py-4" />
-          <div className='w-[56rem] h-[36rem] border border-black'>
+          <div className='w-full h-[36rem]'>
             <ResponsivePie
               data={selectedMonthUsage!}
               animate
@@ -147,7 +146,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
               arcLinkLabelsColor={{ from: 'color' }}
               tooltip={({ datum: { id, label, value, color } }) => {
                 return (
-                  <div className="bg-neutral-950 text-white flex flex-col py-2 px-4 font-display">
+                  <div className="bg-neutral-800 text-white flex flex-col py-2 px-4 font-display rounded-md">
                     <p className='text-sm font-semibold' style={{ color: color }}>{label}</p>
                     <div className='py-0.5' />
                     <p className='text-xs'>Sessions: {value}</p>

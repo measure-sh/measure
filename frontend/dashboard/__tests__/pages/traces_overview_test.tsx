@@ -6,11 +6,13 @@ import TracesOverview from '@/app/[teamId]/traces/page'
 
 // Global replace mock for router.replace
 const replaceMock = jest.fn()
+const pushMock = jest.fn()
 
 // Mock next/navigation hooks
 jest.mock('next/navigation', () => ({
     useRouter: () => ({
         replace: replaceMock,
+        push: pushMock,
     }),
     // By default, return empty search params.
     useSearchParams: () => new URLSearchParams(),
@@ -114,19 +116,10 @@ jest.mock('@/app/utils/time_utils', () => ({
     formatMillisToHumanReadable: jest.fn(() => '5s')
 }))
 
-// Mock Next.js Link component
-jest.mock('next/link', () => ({
-    __esModule: true,
-    default: ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => (
-        <a href={href} className={className} data-testid="mock-link">
-            {children}
-        </a>
-    ),
-}))
-
 describe('TracesOverview Component', () => {
     beforeEach(() => {
         replaceMock.mockClear()
+        pushMock.mockClear()
     })
 
     it('renders the Traces heading and Filters component', () => {
@@ -244,9 +237,26 @@ describe('TracesOverview Component', () => {
             fireEvent.click(updateButton)
         })
 
-        // Check that the link includes the correct path
-        const link = screen.getByTestId('mock-link')
+        // Check that the span link is rendered with the correct href and accessible name
+        const link = screen.getByRole('link', { name: /ID: trace1/i })
+        expect(link).toBeInTheDocument()
         expect(link).toHaveAttribute('href', '/123/traces/app1/trace1')
+
+        // Find the table row that contains this link
+        const row = link.closest('tr')
+        expect(row).toBeInTheDocument()
+
+        // Simulate keyboard navigation (Enter) on the row
+        await act(async () => {
+            fireEvent.keyDown(row!, { key: 'Enter' })
+        })
+        expect(pushMock).toHaveBeenCalledWith('/123/traces/app1/trace1')
+
+        // Simulate keyboard navigation (Space) on the row
+        await act(async () => {
+            fireEvent.keyDown(row!, { key: ' ' })
+        })
+        expect(pushMock).toHaveBeenCalledWith('/123/traces/app1/trace1')
     })
 
     describe('Pagination offset handling', () => {

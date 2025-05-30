@@ -100,6 +100,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
   const memoryData = sessionTimeline.memory_usage != null ? [
     {
       id: 'Java Free Heap',
+      serieColor: '#e8c1a0',
       data: sessionTimeline.memory_usage
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
@@ -109,6 +110,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
     },
     {
       id: 'Java Max Heap',
+      serieColor: '#f47560',
       data: sessionTimeline.memory_usage
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
@@ -118,6 +120,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
     },
     {
       id: 'Java Total Heap',
+      serieColor: '#f1e15b',
       data: sessionTimeline.memory_usage
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
@@ -127,6 +130,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
     },
     {
       id: 'Native Free Heap',
+      serieColor: '#e8a838',
       data: sessionTimeline.memory_usage
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
@@ -136,6 +140,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
     },
     {
       id: 'Native Total Heap',
+      serieColor: '#61cdbb',
       data: sessionTimeline.memory_usage
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
@@ -145,6 +150,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
     },
     {
       id: 'RSS',
+      serieColor: '#97e3d5',
       data: sessionTimeline.memory_usage
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
@@ -154,6 +160,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
     },
     {
       id: 'Total PSS',
+      serieColor: '#f7c6c7',
       data: sessionTimeline.memory_usage
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
@@ -166,6 +173,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
   const memoryAbsData = sessionTimeline.memory_usage_absolute != null ? [
     {
       id: 'Max Memory',
+      serieColor: '#e8c1a0',
       data: sessionTimeline.memory_usage_absolute
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
@@ -175,6 +183,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
     },
     {
       id: 'Used Memory',
+      serieColor: '#f47560',
       data: sessionTimeline.memory_usage_absolute
         .filter(item => isWithinEventTimeRange(item.timestamp))
         .map(item => ({
@@ -183,6 +192,87 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
         }))
     },
   ] : null
+
+  function roundUpToNiceMemoryValue(memory: number): number {
+    if (memory < 1000) {
+      return Math.ceil(memory / 100) * 100
+    } else if (memory < 1_000_000) {
+      return Math.ceil(memory / 1000) * 1000
+    } else if (memory < 1_000_000_000) {
+      return Math.ceil(memory / 1_000_000) * 1_000_000
+    } else {
+      return Math.ceil(memory / 1_000_000_000) * 1_000_000_000
+    }
+  }
+
+  let maxMemoryDataValue = 0
+  const createMemoryDataLookup = () => {
+    if (!memoryData) return null
+
+    const lookup = new Map()
+    maxMemoryDataValue = 0 // Reset before calculation
+
+    const filteredMemoryUsage = sessionTimeline.memory_usage.filter(item => isWithinEventTimeRange(item.timestamp))
+    filteredMemoryUsage.forEach((item) => {
+      const formattedTimestamp = formatTimestampToChartFormat(item.timestamp)
+      const values = {
+        'Java Free Heap': kilobytesToMegabytes(item.java_free_heap).toFixed(2),
+        'Java Max Heap': kilobytesToMegabytes(item.java_max_heap).toFixed(2),
+        'Java Total Heap': kilobytesToMegabytes(item.java_total_heap).toFixed(2),
+        'Native Free Heap': kilobytesToMegabytes(item.native_free_heap).toFixed(2),
+        'Native Total Heap': kilobytesToMegabytes(item.native_total_heap).toFixed(2),
+        'RSS': kilobytesToMegabytes(item.rss).toFixed(2),
+        'Total PSS': kilobytesToMegabytes(item.total_pss).toFixed(2)
+      }
+
+      for (const val of Object.values(values)) {
+        const numVal = parseFloat(val)
+        if (numVal > maxMemoryDataValue) {
+          maxMemoryDataValue = numVal
+        }
+      }
+
+      lookup.set(formattedTimestamp, values)
+    })
+
+    maxMemoryDataValue = roundUpToNiceMemoryValue(maxMemoryDataValue)
+
+    return lookup
+  }
+
+  const memoryDataLookup = createMemoryDataLookup()
+
+  let maxMemoryAbsDataValue = 0
+  const createMemoryAbsDataLookup = () => {
+    if (!memoryAbsData) return null
+
+    const lookup = new Map()
+    maxMemoryAbsDataValue = 0 // Reset before calculation
+
+    const filteredMemoryUsage = sessionTimeline.memory_usage_absolute.filter(item => isWithinEventTimeRange(item.timestamp))
+    filteredMemoryUsage.forEach((item) => {
+      const formattedTimestamp = formatTimestampToChartFormat(item.timestamp)
+      const values = {
+        'Max Memory': kilobytesToMegabytes(item.max_memory).toFixed(2),
+        'Used Memory': kilobytesToMegabytes(item.used_memory).toFixed(2)
+      }
+
+      for (const val of Object.values(values)) {
+        const numVal = parseFloat(val)
+        if (numVal > maxMemoryAbsDataValue) {
+          maxMemoryAbsDataValue = numVal
+        }
+      }
+
+      lookup.set(formattedTimestamp, values)
+    })
+
+    maxMemoryAbsDataValue = roundUpToNiceMemoryValue(maxMemoryAbsDataValue)
+
+    return lookup
+  }
+
+  const memoryAbsDataLookup = createMemoryAbsDataLookup()
 
   const seekBarIndicatorOffset = 90
   const [seekBarValue, setSeekBarValue] = useState(0)
@@ -243,6 +333,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
     const percentage = elapsedTime.toMillis() / duration.toMillis()
     const scrollPercentage = Math.max(0, Math.min(percentage, 1))
 
+    console.log("scrollPercentage", scrollPercentage)
     setSeekBarValue(scrollPercentage * 100)
     setSelectedEventIndex(eventIndex)
   }
@@ -307,7 +398,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                 xFormat='time:%Y-%m-%d %H:%M:%S:%L %p'
                 xScale={{
                   format: '%Y-%m-%d %I:%M:%S:%L %p',
-                  precision: 'second',
+                  precision: 'millisecond',
                   type: 'time',
                   min: events.length > 0 ? DateTime.fromISO(events[0].timestamp).toLocal().toJSDate() : "auto",
                   max: events.length > 0 ? DateTime.fromISO(events[events.length - 1].timestamp).toLocal().toJSDate() : "auto",
@@ -316,7 +407,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                 yScale={{
                   type: 'linear',
                   min: 0,
-                  max: 'auto'
+                  max: maxMemoryDataValue
                 }}
                 axisTop={null}
                 axisRight={null}
@@ -333,16 +424,35 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                   legendOffset: -80,
                   legendPosition: 'middle'
                 }}
-                colors={{ scheme: 'nivo' }}
+                colors={{ datum: 'serieColor' }}
+                pointSize={6}
+                pointBorderWidth={1.5}
+                pointColor={"rgba(255, 255, 255, 255)"}
+                pointBorderColor={{
+                  from: 'serieColor',
+                  modifiers: [
+                    [
+                      'darker',
+                      0.3
+                    ]
+                  ]
+                }}
                 tooltip={({ point }) => {
+                  if (!memoryDataLookup) return null
+
+                  const formattedTimestamp = point.data.xFormatted
+                  const allMemoryData = memoryDataLookup.get(formattedTimestamp) || {}
+
                   return (
-                    <div className='bg-neutral-950 text-white flex flex-row items-center p-2 text-xs'>
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
-                      <div className="flex flex-col items-left px-4 py-1" key={point.id}>
-                        <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
-                        <div className="py-0.5" />
-                        <p>{point.serieId}: {point.data.y.toString()} MB</p>
-                      </div>
+                    <div className='bg-neutral-800 text-white flex flex-col p-4 text-xs rounded-md'>
+                      <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
+                      <div className="py-1" />
+                      {Object.entries(allMemoryData).map(([seriesName, value]) => (
+                        <div key={seriesName} className="flex flex-row items-center gap-2 mt-2">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: memoryData.find((it) => it.id === seriesName)!.serieColor }} />
+                          <p>{seriesName}: {value as string} MB</p>
+                        </div>
+                      ))}
                     </div>
                   )
                 }}
@@ -362,7 +472,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                 xFormat='time:%Y-%m-%d %H:%M:%S:%L %p'
                 xScale={{
                   format: '%Y-%m-%d %I:%M:%S:%L %p',
-                  precision: 'second',
+                  precision: 'millisecond',
                   type: 'time',
                   min: events.length > 0 ? DateTime.fromISO(events[0].timestamp).toLocal().toJSDate() : "auto",
                   max: events.length > 0 ? DateTime.fromISO(events[events.length - 1].timestamp).toLocal().toJSDate() : "auto",
@@ -371,7 +481,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                 yScale={{
                   type: 'linear',
                   min: 0,
-                  max: 'auto'
+                  max: maxMemoryAbsDataValue
                 }}
                 axisTop={null}
                 axisRight={null}
@@ -388,16 +498,35 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                   legendOffset: -80,
                   legendPosition: 'middle'
                 }}
-                colors={{ scheme: 'nivo' }}
+                colors={{ datum: 'serieColor' }}
+                pointSize={6}
+                pointBorderWidth={1.5}
+                pointColor={"rgba(255, 255, 255, 255)"}
+                pointBorderColor={{
+                  from: 'serieColor',
+                  modifiers: [
+                    [
+                      'darker',
+                      0.3
+                    ]
+                  ]
+                }}
                 tooltip={({ point }) => {
+                  if (!memoryAbsDataLookup) return null
+
+                  const formattedTimestamp = point.data.xFormatted
+                  const allMemoryData = memoryAbsDataLookup.get(formattedTimestamp) || {}
+
                   return (
-                    <div className='bg-neutral-950 text-white flex flex-row items-center p-2 text-xs'>
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
-                      <div className="flex flex-col items-left px-4 py-1" key={point.id}>
-                        <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
-                        <div className="py-0.5" />
-                        <p>{point.serieId}: {point.data.y.toString()} MB</p>
-                      </div>
+                    <div className='bg-neutral-800 text-white flex flex-col p-4 text-xs rounded-md'>
+                      <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
+                      <div className="py-1" />
+                      {Object.entries(allMemoryData).map(([seriesName, value]) => (
+                        <div key={seriesName} className="flex flex-row items-center gap-2 mt-2">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: memoryAbsData.find((it) => it.id === seriesName)!.serieColor }} />
+                          <p>{seriesName}: {value as string} MB</p>
+                        </div>
+                      ))}
                     </div>
                   )
                 }}
@@ -417,7 +546,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                 xFormat='time:%Y-%m-%d %I:%M:%S:%L %p'
                 xScale={{
                   format: '%Y-%m-%d %I:%M:%S:%L %p',
-                  precision: 'second',
+                  precision: 'millisecond',
                   type: 'time',
                   min: events.length > 0 ? DateTime.fromISO(events[0].timestamp).toLocal().toJSDate() : "auto",
                   max: events.length > 0 ? DateTime.fromISO(events[events.length - 1].timestamp).toLocal().toJSDate() : "auto",
@@ -445,12 +574,11 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                   legendPosition: 'middle'
                 }}
                 colors={{ scheme: 'nivo' }}
-                enableArea
-                enableCrosshair
-                pointSize={5}
-                pointBorderWidth={2}
+                pointSize={6}
+                pointBorderWidth={1.5}
+                pointColor={"rgba(255, 255, 255, 255)"}
                 pointBorderColor={{
-                  from: 'color',
+                  from: 'serieColor',
                   modifiers: [
                     [
                       'darker',
@@ -460,9 +588,12 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                 }}
                 tooltip={({ point }) => {
                   return (
-                    <div className='bg-neutral-950 text-white flex flex-col p-2 text-xs'>
+                    <div className='bg-neutral-800 text-white flex flex-col p-2 text-xs rounded-md'>
                       <p>Time: {formatChartFormatTimestampToHumanReadable(point.data.xFormatted.toString())}</p>
-                      <p>Cpu Usage: {point.data.yFormatted.toString()}%</p>
+                      <div className="flex flex-row items-center gap-2 mt-2">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
+                        <p>Cpu Usage: {point.data.yFormatted.toString()}%</p>
+                      </div>
                     </div>
                   )
                 }}

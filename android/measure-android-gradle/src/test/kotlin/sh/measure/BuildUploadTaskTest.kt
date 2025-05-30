@@ -14,6 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.time.Duration
+import java.io.File
 
 class BuildUploadTaskTest {
 
@@ -40,6 +41,9 @@ class BuildUploadTaskTest {
         val appSizeFile = temporaryFolder.newFile("appSize.txt").apply {
             writeText(appSize)
         }
+        // Create an empty directory for Flutter symbols
+        val flutterSymbolsDir = temporaryFolder.newFolder("flutter_symbols")
+        
         val buildServiceRegistry =
             (project as ProjectInternal).services.get(BuildServiceRegistry::class.java)
         val httpClient = buildServiceRegistry.registerIfAbsent(
@@ -53,6 +57,7 @@ class BuildUploadTaskTest {
         task.manifestDataProperty.set(manifestDataFile)
         task.mappingFileProperty.set(mappingFile)
         task.appSizeFileProperty.set(appSizeFile)
+        task.flutterSymbolsDirProperty.set(project.file(flutterSymbolsDir))
     }
 
     @After
@@ -84,6 +89,30 @@ class BuildUploadTaskTest {
         assertTrue(requestBody.contains("proguard"))
         assertTrue(requestBody.contains("name=\"platform\""))
         assertTrue(requestBody.contains("android"))
+    }
+    
+    @Test
+    fun `BuildUploadTaskTest sends request with Flutter symbols when available`() {
+        // Create a Flutter symbols file in the Flutter symbols directory
+        val flutterSymbolsDir = temporaryFolder.root.resolve("flutter_symbols")
+        val symbolsFile = File(flutterSymbolsDir, "app.android-arm64.symbols")
+        symbolsFile.writeText("flutter symbols data")
+        
+        mockWebServer.enqueue(MockResponse().setResponseCode(200))
+        task.upload()
+        val recordedRequest = mockWebServer.takeRequest()
+        assertEquals("PUT", recordedRequest.method)
+        val requestBody = recordedRequest.body.readUtf8()
+        
+        // Verify basic request parts
+        assertTrue(requestBody.contains("name=\"app_unique_id\""))
+        assertTrue(requestBody.contains("sh.measure.sample"))
+        
+        // Verify Flutter symbols are included
+        assertTrue(requestBody.contains("name=\"mapping_type\""))
+        assertTrue(requestBody.contains("flutter_symbols"))
+        assertTrue(requestBody.contains("app.android-arm64.symbols"))
+        assertTrue(requestBody.contains("flutter symbols data"))
     }
 
     private val appSize = """

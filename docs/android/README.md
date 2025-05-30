@@ -244,6 +244,17 @@ If logs contain `Failed to send batch` or `Request failed with unknown error`:
 * Verify the API_URL in the AndroidManifest is correct
 * Check server status to ensure it is reachable
 
+#### Connecting to locally hosted server
+
+If you have the measure-sh server running locally, setting the `sh.measure.android.API_URL` to `localhost:8080` would
+not work. This is because the app running on the device/emulator cannot access `localhost` of your computer.
+Instead, you need to use a public URL or the local IP address of your computer.
+
+You can use [ngrok](https://ngrok.com/) or a similar service which provides a public URL to your 
+local server. Alternatively, if your device is on the same network, you can use your computer's 
+local IP address (e.g., 192.168.1.X:8080), or set up ADB port forwarding with `adb reverse tcp:8080 tcp:8080`.
+
+When running the app on an Android emulator, you can use `http://10.0.2.2:8080` as the `sh.measure.android.API_URL`. 
 
 In case you face any issue, feel free to reach out to us on [Discord](https://discord.gg/f6zGkBCt42).
 

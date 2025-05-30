@@ -23,7 +23,7 @@ protocol MeasureInitializer {
     var networkStateAttributeProcessor: NetworkStateAttributeProcessor { get }
     var userAttributeProcessor: UserAttributeProcessor { get }
     var attributeProcessors: [AttributeProcessor] { get }
-    var eventProcessor: EventProcessor { get }
+    var signalProcessor: SignalProcessor { get }
     var crashReportManager: CrashReportManager { get }
     var crashDataPersistence: CrashDataPersistence { get set }
     var systemFileManager: SystemFileManager { get }
@@ -35,9 +35,9 @@ protocol MeasureInitializer {
     var gestureTargetFinder: GestureTargetFinder { get }
     var networkClient: NetworkClient { get }
     var httpClient: HttpClient { get }
-    var periodicEventExporter: PeriodicEventExporter { get }
+    var periodicExporter: PeriodicExporter { get }
     var heartbeat: Heartbeat { get }
-    var eventExporter: EventExporter { get }
+    var exporter: Exporter { get }
     var batchStore: BatchStore { get }
     var batchCreator: BatchCreator { get }
     var lifecycleCollector: LifecycleCollector { get }
@@ -58,6 +58,18 @@ protocol MeasureInitializer {
     var svgGenerator: SvgGenerator { get }
     var appVersionInfo: AppVersionInfo { get }
     var httpEventValidator: HttpEventValidator { get }
+    var traceSampler: TraceSampler { get }
+    var randomizer: Randomizer { get }
+    var spanProcessor: SpanProcessor { get }
+    var tracer: Tracer { get }
+    var spanCollector: SpanCollector { get }
+    var spanStore: SpanStore { get }
+    var internalSignalCollector: InternalSignalCollector { get set }
+    var bugReportManager: BugReportManager { get }
+    var bugReportCollector: BugReportCollector { get }
+    var shakeBugReportCollector: ShakeBugReportCollector { get }
+    var shakeDetector: ShakeDetector { get }
+    var screenshotGenerator: ScreenshotGenerator { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -76,7 +88,7 @@ protocol MeasureInitializer {
 /// - `networkStateAttributeProcessor`: `NetworkStateAttributeProcessor` object used to process network info.
 /// - `userAttributeProcessor`: `UserAttributeProcessor` object used to process user_id.
 /// - `attributeProcessors`: An array containing all the `AttributeProcessor`.
-/// - `eventProcessor`: `EventProcessor` object used to track events
+/// - `signalProcessor`: `SignalProcessor` object used to track events, traces and spans.
 /// - `crashReportManager`: `CrashReportManager` object used to manage crash reports.
 /// - `crashDataPersistence`: `CrashDataPersistence` object used to manage crash `Attributes` and metadata.
 /// - `systemFileManager`: `SystemFileManager` object used to manage files in local file system.
@@ -84,6 +96,7 @@ protocol MeasureInitializer {
 /// - `coreDataManager`: `CoreDataManager` object that generates and manages core data persistance and contexts
 /// - `sessionStore`: `SessionStore` object that manages `Session` related operations
 /// - `eventStore`: `EventStore` object that manages `Event` related operations
+/// - `spanStore`: `SpanStore` object that manages `Span` related operations
 /// - `gestureCollector`: `GestureCollector` object which is responsible for detecting and saving gesture related data.
 /// - `lifecycleCollector`: `LifecycleCollector` object which is responsible for detecting and saving ViewController lifecycle events.
 /// - `cpuUsageCollector`: `CpuUsageCollector` object which is responsible for detecting and saving CPU usage data.
@@ -95,12 +108,15 @@ protocol MeasureInitializer {
 /// - `cpuUsageCalculator`: `CpuUsageCalculator` object that generates CPU usage data.
 /// - `memoryUsageCalculator`: `MemoryUsageCalculator` object that generates memory usage data.
 /// - `customEventCollector`: `CustomEventCollector` object that triggers custom events.
+/// - `spanCollector`: `SpanCollector`object that generates span data.
+/// - `bugReportCollector`: `BugReportCollector` object which is responsible to managing bug report collection.
+/// - `shakeBugReportCollector`: `ShakeBugReportCollector` object which is responsible to managing bug report collection when shake gesture in enabled.
 /// - `sysCtl`: `SysCtl` object which provides sysctl functionalities.
 /// - `httpClient`: `HttpClient` object that handles HTTP requests.
 /// - `networkClient`: `NetworkClient` object is responsible for initializing the network configuration and executing API requests.
 /// - `heartbeat`: `Heartbeat` object that emits a pulse every 30 seconds.
-/// - `periodicEventExporter`: `PeriodicEventExporter` object that exports events periodically to server.
-/// - `eventExporter`: `EventExporter` object that exports a single batch.
+/// - `periodicExporter`: `PeriodicExporter` object that exports events periodically to server.
+/// - `exporter`: `Exporter` object that exports a single batch.
 /// - `batchStore`: `BatchStore` object that manages `Batch` related operations
 /// - `batchCreator`: `BatchCreator` object used to create a batch.
 /// - `dataCleanupService`: `DataCleanupService` object responsible for clearing stale data
@@ -110,6 +126,14 @@ protocol MeasureInitializer {
 /// - `userPermissionManager`: `UserPermissionManager` object managing user permissions.
 /// - `appVersionInfo`: `AppVersionInfo` object that returns app information like app version and build number
 /// - `httpEventValidator`: `HttpEventValidator` object that lets you check if a http event should be tracked or not.
+/// - `traceSampler`: `TraceSampler` object that manages trace sampling.
+/// - `randomizer`: `Randomizer` object that generates random numbers.
+/// - `spanProcessor`: `SpanProcessor` object that processes spans at different stages of their lifecycle.
+/// - `tracer`: `Tracer` object to create and manage tracing spans.
+/// - `internalSignalCollector`: `InternalEventCollector` object that collects events from cross plafrom frameworks.
+/// - `bugReportingManager`: `BugReportingManager` object that manages the BugReportingViewController.
+/// - `shakeDetector`: `ShakeDetector` object responsible detecting shake gesture.
+/// - `screenshotGenerator`: `ScreenshotGenerator` object responsible for generating a screenshot.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -125,7 +149,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let networkStateAttributeProcessor: NetworkStateAttributeProcessor
     let userAttributeProcessor: UserAttributeProcessor
     let attributeProcessors: [AttributeProcessor]
-    let eventProcessor: EventProcessor
+    let signalProcessor: SignalProcessor
     let crashReportManager: CrashReportManager
     var crashDataPersistence: CrashDataPersistence
     let systemFileManager: SystemFileManager
@@ -138,8 +162,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let networkClient: NetworkClient
     let httpClient: HttpClient
     let heartbeat: Heartbeat
-    let periodicEventExporter: PeriodicEventExporter
-    let eventExporter: EventExporter
+    let periodicExporter: PeriodicExporter
+    let exporter: Exporter
     let batchStore: BatchStore
     let batchCreator: BatchCreator
     let lifecycleCollector: LifecycleCollector
@@ -160,17 +184,33 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let svgGenerator: SvgGenerator
     let appVersionInfo: AppVersionInfo
     let httpEventValidator: HttpEventValidator
+    let traceSampler: TraceSampler
+    let randomizer: Randomizer
+    let spanProcessor: SpanProcessor
+    let spanCollector: SpanCollector
+    let tracer: Tracer
+    let spanStore: SpanStore
+    var internalSignalCollector: InternalSignalCollector
+    let bugReportManager: BugReportManager
+    let bugReportCollector: BugReportCollector
+    let shakeBugReportCollector: ShakeBugReportCollector
+    let shakeDetector: ShakeDetector
+    let screenshotGenerator: ScreenshotGenerator
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
         let defaultConfig = Config(enableLogging: config.enableLogging,
                                    samplingRateForErrorFreeSessions: config.samplingRateForErrorFreeSessions,
+                                   traceSamplingRate: config.traceSamplingRate,
                                    trackHttpHeaders: config.trackHttpHeaders,
                                    trackHttpBody: config.trackHttpBody,
                                    httpHeadersBlocklist: config.httpHeadersBlocklist,
                                    httpUrlBlocklist: config.httpUrlBlocklist,
                                    httpUrlAllowlist: config.httpUrlAllowlist,
-                                   autoStart: config.autoStart)
+                                   autoStart: config.autoStart,
+                                   trackViewControllerLoadTime: config.trackViewControllerLoadTime,
+                                   screenshotMaskLevel: config.screenshotMaskLevel,
+                                   enableShakeToLaunchBugReport: config.enableShakeToLaunchBugReport)
 
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
@@ -218,17 +258,20 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                                    timeProvider: timeProvider,
                                                                    attachmentProcessor: attachmentProcessor,
                                                                    svgGenerator: svgGenerator)
-        self.eventProcessor = BaseEventProcessor(logger: logger,
-                                                 idProvider: idProvider,
-                                                 sessionManager: sessionManager,
-                                                 attributeProcessors: attributeProcessors,
-                                                 configProvider: configProvider,
-                                                 timeProvider: timeProvider,
-                                                 crashDataPersistence: crashDataPersistence,
-                                                 eventStore: eventStore)
+        self.spanStore = BaseSpanStore(coreDataManager: coreDataManager,
+                                       logger: logger)
+        self.signalProcessor = BaseSignalProcessor(logger: logger,
+                                                   idProvider: idProvider,
+                                                   sessionManager: sessionManager,
+                                                   attributeProcessors: attributeProcessors,
+                                                   configProvider: configProvider,
+                                                   timeProvider: timeProvider,
+                                                   crashDataPersistence: crashDataPersistence,
+                                                   eventStore: eventStore,
+                                                   spanStore: spanStore)
         self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
         self.crashReportManager = CrashReportingManager(logger: logger,
-                                                        eventProcessor: eventProcessor,
+                                                        signalProcessor: signalProcessor,
                                                         crashDataPersistence: crashDataPersistence,
                                                         crashReporter: systemCrashReporter,
                                                         systemFileManager: systemFileManager,
@@ -236,7 +279,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                         configProvider: configProvider)
         self.gestureTargetFinder = BaseGestureTargetFinder()
         self.gestureCollector = BaseGestureCollector(logger: logger,
-                                                     eventProcessor: eventProcessor,
+                                                     signalProcessor: signalProcessor,
                                                      timeProvider: timeProvider,
                                                      configProvider: configProvider,
                                                      gestureTargetFinder: gestureTargetFinder,
@@ -255,66 +298,103 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                              configProvider: configProvider,
                                              timeProvider: timeProvider,
                                              eventStore: eventStore,
-                                             batchStore: batchStore)
-        self.eventExporter = BaseEventExporter(logger: logger,
-                                               networkClient: networkClient,
-                                               batchCreator: batchCreator,
-                                               batchStore: batchStore,
-                                               eventStore: eventStore)
-        self.periodicEventExporter = BasePeriodicEventExporter(logger: logger,
-                                                               configProvider: configProvider,
-                                                               timeProvider: timeProvider,
-                                                               heartbeat: heartbeat,
-                                                               eventExporter: eventExporter,
-                                                               dispatchQueue: MeasureQueue.periodicEventExporter)
-        self.lifecycleCollector = BaseLifecycleCollector(eventProcessor: eventProcessor,
+                                             batchStore: batchStore,
+                                             spanStore: spanStore)
+        self.exporter = BaseExporter(logger: logger,
+                                     networkClient: networkClient,
+                                     batchCreator: batchCreator,
+                                     batchStore: batchStore,
+                                     eventStore: eventStore,
+                                     spanStore: spanStore)
+        self.periodicExporter = BasePeriodicExporter(logger: logger,
+                                                     configProvider: configProvider,
+                                                     timeProvider: timeProvider,
+                                                     heartbeat: heartbeat,
+                                                     exporter: exporter,
+                                                     dispatchQueue: MeasureQueue.periodicEventExporter)
+        self.randomizer = BaseRandomizer()
+        self.traceSampler = BaseTraceSampler(configProvider: configProvider, randomizer: randomizer)
+        self.spanProcessor = BaseSpanProcessor(logger: logger,
+                                               signalProcessor: signalProcessor,
+                                               attributeProcessors: attributeProcessors,
+                                               configProvider: configProvider)
+        self.tracer = MsrTracer(logger: logger,
+                                idProvider: idProvider,
+                                timeProvider: timeProvider,
+                                spanProcessor: spanProcessor,
+                                sessionManager: sessionManager,
+                                traceSampler: traceSampler)
+        self.spanCollector = BaseSpanCollector(tracer: tracer)
+        self.lifecycleCollector = BaseLifecycleCollector(signalProcessor: signalProcessor,
                                                          timeProvider: timeProvider,
+                                                         tracer: tracer,
+                                                         configProvider: configProvider,
                                                          logger: logger)
         self.cpuUsageCalculator = BaseCpuUsageCalculator()
         self.memoryUsageCalculator = BaseMemoryUsageCalculator()
         self.sysCtl = BaseSysCtl()
         self.cpuUsageCollector = BaseCpuUsageCollector(logger: logger,
                                                        configProvider: configProvider,
-                                                       eventProcessor: eventProcessor,
+                                                       signalProcessor: signalProcessor,
                                                        timeProvider: timeProvider,
                                                        cpuUsageCalculator: cpuUsageCalculator,
                                                        sysCtl: sysCtl)
         self.memoryUsageCollector = BaseMemoryUsageCollector(logger: logger,
                                                              configProvider: configProvider,
-                                                             eventProcessor: eventProcessor,
+                                                             signalProcessor: signalProcessor,
                                                              timeProvider: timeProvider,
                                                              memoryUsageCalculator: memoryUsageCalculator,
                                                              sysCtl: sysCtl)
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? AttributeConstants.unknown
         self.appLaunchCollector = BaseAppLaunchCollector(logger: logger,
                                                          timeProvider: timeProvider,
-                                                         eventProcessor: eventProcessor,
+                                                         signalProcessor: signalProcessor,
                                                          sysCtl: sysCtl,
                                                          userDefaultStorage: userDefaultStorage,
                                                          currentAppVersion: appVersion)
         self.networkChangeCollector = BaseNetworkChangeCollector(logger: logger,
-                                                                 eventProcessor: eventProcessor,
+                                                                 signalProcessor: signalProcessor,
                                                                  timeProvider: timeProvider)
         self.customEventCollector = BaseCustomEventCollector(logger: logger,
-                                                             eventProcessor: eventProcessor,
+                                                             signalProcessor: signalProcessor,
                                                              timeProvider: timeProvider,
                                                              configProvider: configProvider)
-        self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(eventProcessor: eventProcessor,
+        self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(signalProcessor: signalProcessor,
                                                                            timeProvider: timeProvider,
                                                                            logger: logger)
         self.dataCleanupService = BaseDataCleanupService(eventStore: eventStore,
+                                                         spanStore: spanStore,
                                                          sessionStore: sessionStore,
                                                          logger: logger,
                                                          sessionManager: sessionManager)
         self.client = client
         self.httpEventValidator = BaseHttpEventValidator()
         self.httpEventCollector = BaseHttpEventCollector(logger: logger,
-                                                         eventProcessor: eventProcessor,
+                                                         signalProcessor: signalProcessor,
                                                          timeProvider: timeProvider,
                                                          urlSessionTaskSwizzler: URLSessionTaskSwizzler(),
                                                          httpInterceptorCallbacks: HttpInterceptorCallbacks(),
                                                          client: client,
                                                          configProvider: configProvider,
                                                          httpEventValidator: httpEventValidator)
+        self.internalSignalCollector = BaseInternalSignalCollector(logger: self.logger,
+                                                                   signalProcessor: self.signalProcessor)
+        self.screenshotGenerator = BaseScreenshotGenerator(configProvider: configProvider,
+                                                           logger: logger,
+                                                           attachmentProcessor: attachmentProcessor,
+                                                           userPermissionManager: userPermissionManager)
+        self.bugReportManager = BaseBugReportManager(screenshotGenerator: screenshotGenerator,
+                                                     configProvider: configProvider,
+                                                     idProvider: idProvider)
+        self.bugReportCollector = BaseBugReportCollector(bugReportManager: bugReportManager,
+                                                         signalProcessor: signalProcessor,
+                                                         timeProvider: timeProvider,
+                                                         sessionManager: sessionManager,
+                                                         idProvider: idProvider)
+        self.shakeDetector = AccelerometerShakeDetector(configProvider: configProvider)
+        self.shakeBugReportCollector = ShakeBugReportCollector(autoLaunchEnabled: configProvider.enableShakeToLaunchBugReport,
+                                                               bugReportManager: bugReportManager,
+                                                               shakeDetector: shakeDetector,
+                                                               screenshotGenerator: screenshotGenerator)
     }
 }

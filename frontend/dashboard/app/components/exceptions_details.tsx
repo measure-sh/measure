@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import Accordion from "@/app/components/accordion"
 import Link from "next/link"
 import { ExceptionsDetailsApiStatus, ExceptionsType, emptyCrashExceptionsDetailsResponse, emptyAnrExceptionsDetailsResponse, fetchExceptionsDetailsFromServer, FilterSource } from '@/app/api/api_calls'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -13,6 +12,9 @@ import Image from 'next/image'
 import CopyAiContext from './copy_ai_context'
 import LoadingSpinner from './loading_spinner'
 import ExceptionsDistributionPlot from './exceptions_distribution_plot'
+import { buttonVariants } from './button'
+import { cn } from '../utils/shadcn_utils'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './accordion'
 
 interface PageState {
   exceptionsDetailsApiStatus: ExceptionsDetailsApiStatus
@@ -30,6 +32,8 @@ interface ExceptionsDetailsProps {
   exceptionsGroupId: string,
   exceptionsGroupName: string,
 }
+
+const stackTraceAccordionContentStyle = 'whitespace-pre-wrap font-body leading-5.5 bg-gray-50 p-4'
 
 export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptionsType, teamId, appId, exceptionsGroupId, exceptionsGroupName }) => {
   const router = useRouter()
@@ -74,7 +78,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   }
 
   const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
-    if (updatedFilters.ready && pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
+    if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
       updatePageState({
         filters: updatedFilters,
         keyId: pageState.filters.serialisedFilters && searchParams.get(keyIdUrlKey) ? searchParams.get(keyIdUrlKey) : pageState.keyId,
@@ -125,8 +129,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   }, [pageState.filters, pageState.keyId, pageState.keyTimestamp, pageState.limit])
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-      <div className="py-4" />
+    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
       {pageState.filters.ready && <p className="font-display font-normal text-4xl max-w-6xl text-center">{pageState.filters.app!.name}</p>}
       <div className="py-1" />
       <p className="font-display font-light text-3xl max-w-6xl text-center">{decodeURIComponent(exceptionsGroupName)}</p>
@@ -161,7 +164,6 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
 
       {pageState.filters.ready &&
         <div className='w-full'>
-          <div className="py-6" />
           <div className="flex flex-col md:flex-row w-full">
             <ExceptionspDetailsPlot
               exceptionsType={exceptionsType}
@@ -173,7 +175,6 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
               exceptionsGroupId={exceptionsGroupId}
               filters={pageState.filters} />
           </div>
-          <div className="py-4" />
 
           {pageState.exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Error &&
             <p className="text-lg font-display">Error fetching list of {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
@@ -221,7 +222,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                     <Link
                       key={pageState.exceptionsDetails.results[0].id}
                       href={`/${teamId}/sessions/${appId}/${pageState.exceptionsDetails.results[0].session_id}`}
-                      className="outline-hidden justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">
+                      className={cn(buttonVariants({ variant: "outline" }), "justify-center w-fit font-display border border-black rounded-md select-none")}>
                       View Session
                     </Link>
                     <div className='px-2' />
@@ -230,24 +231,39 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                       exceptionsType={exceptionsType}
                       exceptionsDetails={pageState.exceptionsDetails} />
                   </div>
-                  <div className="py-2" />
-                  {exceptionsType === ExceptionsType.Crash &&
-                    <Accordion key='crash-thread' title={'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name} id='crash' active={true}>
-                      {(pageState.exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse).results[0].exception.stacktrace}
-                    </Accordion>
-                  }
-                  {exceptionsType === ExceptionsType.Anr &&
-                    <Accordion key='anr-thread' title={'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name} id='anr' active={true}>
-                      {(pageState.exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse).results[0].anr.stacktrace}
-                    </Accordion>
-                  }
-                  <div>
-                    {pageState.exceptionsDetails.results[0].threads.map((e, index) => (
-                      <Accordion key={index} title={'Thread: ' + e.name} id={`${e.name}-${index}`} active={false}>
-                        {e.frames.join('\n')}
-                      </Accordion>
-                    ))}
-                  </div>
+                  <div className="py-4" />
+                  <Accordion type="single" collapsible defaultValue={
+                    exceptionsType === ExceptionsType.Crash
+                      ? 'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name
+                      : exceptionsType === ExceptionsType.Anr
+                        ? 'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name
+                        : undefined
+                  }>
+                    {exceptionsType === ExceptionsType.Crash &&
+                      <AccordionItem value={'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}>
+                        <AccordionTrigger className='font-display'>{'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}</AccordionTrigger>
+                        <AccordionContent className={stackTraceAccordionContentStyle}>
+                          {(pageState.exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse).results[0].exception.stacktrace}
+                        </AccordionContent>
+                      </AccordionItem>
+                    }
+                    {exceptionsType === ExceptionsType.Anr &&
+                      <AccordionItem value={'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}>
+                        <AccordionTrigger className='font-display'>{'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name}</AccordionTrigger>
+                        <AccordionContent className={stackTraceAccordionContentStyle}>
+                          {(pageState.exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse).results[0].anr.stacktrace}
+                        </AccordionContent>
+                      </AccordionItem>
+                    }
+                    {pageState.exceptionsDetails.results[0].threads?.map((e, index) => (
+                      <AccordionItem value={`${e.name}-${index}`} key={`${e.name}-${index}`}>
+                        <AccordionTrigger className='font-display'>{'Thread: ' + e.name}</AccordionTrigger>
+                        <AccordionContent className={stackTraceAccordionContentStyle}>
+                          {e.frames.join('\n')}
+                        </AccordionContent>
+                      </AccordionItem>
+                    )) || []}
+                  </Accordion>
                 </div>}
             </div>}
         </div>}

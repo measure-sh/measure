@@ -218,6 +218,15 @@ OAUTH_GITHUB_SECRET=$OAUTH_GITHUB_SECRET
 SESSION_ACCESS_SECRET=super-secret-for-jwt-token-with-at-least-32-characters
 SESSION_REFRESH_SECRET=super-secret-for-jwt-token-with-at-least-32-characters
 
+#########
+# Email #
+#########
+
+SMTP_HOST=$SMTP_HOST
+SMTP_PORT=$SMTP_PORT
+SMTP_USER=$SMTP_USER
+SMTP_PASSWORD=$SMTP_PASSWORD
+
 ########
 # OTEL #
 ########
@@ -330,6 +339,15 @@ OAUTH_GITHUB_KEY=$OAUTH_GITHUB_KEY
 OAUTH_GITHUB_SECRET=$OAUTH_GITHUB_SECRET
 SESSION_ACCESS_SECRET=$SESSION_ACCESS_SECRET
 SESSION_REFRESH_SECRET=$SESSION_REFRESH_SECRET
+
+#########
+# Email #
+#########
+
+SMTP_HOST=$SMTP_HOST
+SMTP_PORT=$SMTP_PORT
+SMTP_USER=$SMTP_USER
+SMTP_PASSWORD=$SMTP_PASSWORD
 
 ########
 # OTEL #
@@ -503,6 +521,13 @@ END
   OAUTH_GITHUB_SECRET=$(prompt_password_manual "Enter GitHub OAuth app secret: ")
   SESSION_ACCESS_SECRET=$(generate_password 44)
   SESSION_REFRESH_SECRET=$(generate_password 44)
+
+  echo -e "\nSet Email SMTP credentials"
+  echo -e "Set up an email provider to get SMTP credentials. We recommend https://ethereal.email for local development/testing and https://resend.com, https://sendgrid.com or https://aws.amazon.com/ses for production."
+  SMTP_HOST=$(prompt_value_manual "Enter SMTP host: ")
+  SMTP_PORT=$(prompt_value_manual "Enter SMTP port: ")
+  SMTP_USER=$(prompt_value_manual "Enter SMTP username: ")
+  SMTP_PASSWORD=$(prompt_value_manual "Enter SMTP password: ")
 
   write_prod_env
   write_web_prod_env

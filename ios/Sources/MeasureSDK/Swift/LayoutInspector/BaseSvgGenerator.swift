@@ -8,13 +8,13 @@
 import UIKit
 
 protocol SvgGenerator {
-    func generate(for window: UIWindow, frames: [CGRect], targetView: UIView?) -> Data?
+    func generate(for view: UIView, frames: [CGRect], targetView: UIView?) -> Data?
 }
 
 final class BaseSvgGenerator: SvgGenerator {
-    func generate(for window: UIWindow, frames: [CGRect], targetView: UIView?) -> Data? {
-        let windowWidth = Int(window.bounds.width)
-        let windowHeight = Int(window.bounds.height)
+    func generate(for view: UIView, frames: [CGRect], targetView: UIView?) -> Data? {
+        let windowWidth = Int(view.bounds.width)
+        let windowHeight = Int(view.bounds.height)
 
         var svg = """
         <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 \(windowWidth) \(windowHeight)\">
@@ -45,7 +45,7 @@ final class BaseSvgGenerator: SvgGenerator {
             guard !uniqueSet.contains(frameKey) else { continue }
             uniqueSet.insert(frameKey)
 
-            let isTarget = targetView != nil && frame == targetView!.convert(targetView!.bounds, to: window)
+            let isTarget = targetView != nil && frame == targetView!.convert(targetView!.bounds, to: view)
 
             svg += svgRect(frame: frame, isTarget: isTarget)
         }
@@ -56,10 +56,10 @@ final class BaseSvgGenerator: SvgGenerator {
     }
 
     private func svgRect(frame: CGRect, isTarget: Bool) -> String {
-        let x = Int(frame.origin.x) // swiftlint:disable:this identifier_name
-        let y = Int(frame.origin.y) // swiftlint:disable:this identifier_name
-        let width = Int(frame.width)
-        let height = Int(frame.height)
+        let x = frame.origin.x.safeInt // swiftlint:disable:this identifier_name
+        let y = frame.origin.x.safeInt // swiftlint:disable:this identifier_name
+        let width = frame.width.safeInt
+        let height = frame.height.safeInt
         let targetClass = isTarget ? " class=\"target-rect\"" : ""
 
         return "<rect x=\"\(x)\" y=\"\(y)\" width=\"\(width)\" height=\"\(height)\"\(targetClass)/>"

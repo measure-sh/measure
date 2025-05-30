@@ -12,8 +12,10 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         do {
             switch call.method {
-            case MethodConstants.functionTrackCustomEvent:
-                try handleTrackCustomEvent(call, result: result)
+            case MethodConstants.functionTrackEvent:
+                try handleTrackEvent(call, result: result)
+            case MethodConstants.functionTriggerNativeCrash:
+                triggerNativeCrash()
             default:
                 result(FlutterMethodNotImplemented)
             }
@@ -21,24 +23,49 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
             result(FlutterError(code: error.code, message: error.message, details: error.details))
         } catch {
             result(FlutterError(
-                code: MethodConstants.errorUnknown,
+                code: ErrorCode.errorUnknown,
                 message: "Unexpected method channel error when calling \(call.method)",
                 details: error.localizedDescription
             ))
         }
     }
     
-    private func handleTrackCustomEvent(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
+    private func handleTrackEvent(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         let reader = MethodCallReader(call)
-        let name: String = try reader.requireArg(MethodConstants.argName)
+        var eventData: [String: Any?] = try reader.requireArg(MethodConstants.argEventData)
+        let eventType: String = try reader.requireArg(MethodConstants.argEventType)
         let timestamp: Int64 = try reader.requireArg(MethodConstants.argTimestamp)
-        let rawAttributes: [String: Any] = try reader.requireArg(MethodConstants.argAttributes)
+        let rawAttributes: [String: Any] = try reader.requireArg(MethodConstants.argUserDefinedAttrs)
         let convertedAttributes = try AttributeConverter.convertAttributes(rawAttributes)
-        processCustomEvent(name: name, timestamp: timestamp, attributes: convertedAttributes)
+        let userTriggered: Bool = try reader.requireArg(MethodConstants.argUserTriggered)
+        let threadName: String? = reader.optionalArg(MethodConstants.argThreadName)
+        trackEvent(
+            data: &eventData,
+            type: eventType,
+            timestamp: timestamp,
+            userDefinedAttrs: convertedAttributes,
+            userTriggered: userTriggered,
+            sessionId: nil,
+            threadName: threadName
+        )
         result(nil)
     }
     
-    private func processCustomEvent(name: String, timestamp: Int64, attributes: [String: AttributeValue]) {
-        Measure.shared.trackEvent(name: name, attributes: attributes, timestamp: timestamp)
+    private func trackEvent(data: inout [String: Any?], type: String, timestamp: Int64, userDefinedAttrs: [String: AttributeValue], userTriggered: Bool, sessionId: String?, threadName: String?) {
+        Measure.shared.internalTrackEvent(
+            data: &data,
+            type: type,
+            timestamp: timestamp,
+            attributes: [:],
+            userDefinedAttrs: userDefinedAttrs,
+            userTriggered: userTriggered,
+            sessionId: sessionId,
+            threadName: threadName
+        )
+    }
+    
+    private func triggerNativeCrash() {
+        let optionalString: String? = nil
+        let crashString = optionalString!
     }
 }

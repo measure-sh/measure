@@ -2,7 +2,9 @@
 // swift-compiler-version: Apple Swift version 6.0.3 effective-5.10 (swiftlang-6.0.3.1.10 clang-1600.0.30.1)
 // swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -Onone -enable-experimental-feature OpaqueTypeErasure -enable-bare-slash-regex -module-name Measure
 // swift-module-flags-ignorable: -no-verify-emitted-module-interface
+import AVKit
 import CoreData
+import CoreMotion
 import CoreTelephony
 import CrashReporter
 import Foundation
@@ -13,6 +15,7 @@ import Swift
 import SwiftUI
 import SystemConfiguration
 import UIKit
+import WebKit
 import _Concurrency
 import _StringProcessing
 import _SwiftConcurrencyShims
@@ -27,12 +30,171 @@ public enum AttributeValue {
   case float(Swift.Float)
   case double(Swift.Double)
 }
+extension Measure.AttributeValue : Swift.Codable {
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
 @objc final public class BaseMeasureConfig : ObjectiveC.NSObject {
-  public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil, trackHttpHeaders: Swift.Bool? = nil, trackHttpBody: Swift.Bool? = nil, httpHeadersBlocklist: [Swift.String]? = nil, httpUrlBlocklist: [Swift.String]? = nil, httpUrlAllowlist: [Swift.String]? = nil, autoStart: Swift.Bool? = nil)
+  public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil, traceSamplingRate: Swift.Float? = nil, trackHttpHeaders: Swift.Bool? = nil, trackHttpBody: Swift.Bool? = nil, httpHeadersBlocklist: [Swift.String]? = nil, httpUrlBlocklist: [Swift.String]? = nil, httpUrlAllowlist: [Swift.String]? = nil, autoStart: Swift.Bool? = nil, trackViewControllerLoadTime: Swift.Bool? = nil, screenshotMaskLevel: Measure.ScreenshotMaskLevel? = nil, enableShakeToLaunchBugReport: Swift.Bool? = nil)
+  @objc deinit
+}
+public protocol Span {
+  var traceId: Swift.String { get }
+  var spanId: Swift.String { get }
+  var parentId: Swift.String? { get }
+  var isSampled: Swift.Bool { get }
+  @discardableResult
+  func setStatus(_ status: Measure.SpanStatus) -> any Measure.Span
+  @discardableResult
+  func setParent(_ parentSpan: any Measure.Span) -> any Measure.Span
+  @discardableResult
+  func setCheckpoint(_ name: Swift.String) -> any Measure.Span
+  @discardableResult
+  func setName(_ name: Swift.String) -> any Measure.Span
+  @discardableResult
+  func setAttribute(_ key: Swift.String, value: Swift.String) -> any Measure.Span
+  @discardableResult
+  func setAttribute(_ key: Swift.String, value: Swift.Int) -> any Measure.Span
+  @discardableResult
+  func setAttribute(_ key: Swift.String, value: Swift.Double) -> any Measure.Span
+  @discardableResult
+  func setAttribute(_ key: Swift.String, value: Swift.Bool) -> any Measure.Span
+  @discardableResult
+  func setAttributes(_ attributes: [Swift.String : Measure.AttributeValue]) -> any Measure.Span
+  @discardableResult
+  func removeAttribute(_ key: Swift.String) -> any Measure.Span
+  @discardableResult
+  func end() -> any Measure.Span
+  @discardableResult
+  func end(timestamp: Swift.Int64) -> any Measure.Span
+  func hasEnded() -> Swift.Bool
+  func getDuration() -> Swift.Int64
+}
+public enum SpanStatus : Swift.Int64, Swift.Codable {
+  case unset
+  case ok
+  case error
+  public init?(rawValue: Swift.Int64)
+  public typealias RawValue = Swift.Int64
+  public var rawValue: Swift.Int64 {
+    get
+  }
+}
+public protocol SpanBuilder {
+  func setParent(_ span: any Measure.Span) -> any Measure.SpanBuilder
+  func startSpan() -> any Measure.Span
+  func startSpan(_ timestamp: Swift.Int64) -> any Measure.Span
+}
+@_inheritsConvenienceInitializers @objc(BatchOb) public class BatchOb : CoreData.NSManagedObject {
+  @objc override dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
+  @objc deinit
+}
+extension Measure.BatchOb {
+  @nonobjc public class func fetchRequest() -> CoreData.NSFetchRequest<Measure.BatchOb>
+  @objc @NSManaged dynamic public var batchId: Swift.String? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var createdAt: Swift.Int64 {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var eventId: Swift.String? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var spanIds: Swift.String? {
+    @objc get
+    @objc set
+  }
+}
+@objc public class MsrText : ObjectiveC.NSObject {
+  final public let reportBugTitle: Swift.String
+  final public let descriptionPlaceholder: Swift.String
+  final public let sendButton: Swift.String
+  final public let screenshotButton: Swift.String
+  final public let galleryButton: Swift.String
+  final public let exitScreenshotMode: Swift.String
+  public init(reportBugTitle: Swift.String, descriptionPlaceholder: Swift.String, sendButton: Swift.String, screenshotButton: Swift.String, galleryButton: Swift.String, exitScreenshotMode: Swift.String)
+  public func update(reportBugTitle: Swift.String? = nil, descriptionPlaceholder: Swift.String? = nil, sendButton: Swift.String? = nil, screenshotButton: Swift.String? = nil, galleryButton: Swift.String? = nil, exitScreenshotMode: Swift.String? = nil) -> Measure.MsrText
   @objc deinit
 }
 @objc final public class ClientInfo : ObjectiveC.NSObject {
   @objc public init(apiKey: Swift.String, apiUrl: Swift.String)
+  @objc deinit
+}
+@objc public class MsrFonts : ObjectiveC.NSObject {
+  final public let title: UIKit.UIFont
+  final public let button: UIKit.UIFont
+  final public let placeholder: UIKit.UIFont
+  public init(title: UIKit.UIFont, button: UIKit.UIFont, placeholder: UIKit.UIFont)
+  public func update(title: UIKit.UIFont? = nil, button: UIKit.UIFont? = nil, placeholder: UIKit.UIFont? = nil) -> Measure.MsrFonts
+  @objc deinit
+}
+public enum ScreenshotMaskLevel {
+  case allTextAndMedia
+  case allText
+  case allTextExceptClickable
+  case sensitiveFieldsOnly
+  public static func == (a: Measure.ScreenshotMaskLevel, b: Measure.ScreenshotMaskLevel) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+@objc @_hasMissingDesignatedInitializers public class MsrAttachment : ObjectiveC.NSObject {
+  @objc deinit
+}
+@objc public class BugReportConfig : ObjectiveC.NSObject {
+  final public let colors: Measure.MsrColors
+  final public let text: Measure.MsrText
+  final public let dimensions: Measure.MsrDimensions
+  final public let fonts: Measure.MsrFonts
+  public init(colors: Measure.MsrColors = BugReportConfig.default.colors, text: Measure.MsrText = BugReportConfig.default.text, dimensions: Measure.MsrDimensions = BugReportConfig.default.dimensions, fonts: Measure.MsrFonts = BugReportConfig.default.fonts)
+  public static let `default`: Measure.BugReportConfig
+  @objc deinit
+}
+@objc public class MsrColors : ObjectiveC.NSObject {
+  final public let darkBackground: UIKit.UIColor
+  final public let lightBackground: UIKit.UIColor
+  final public let darkButtonBackground: UIKit.UIColor
+  final public let lightButtonBackground: UIKit.UIColor
+  final public let darkText: UIKit.UIColor
+  final public let lightText: UIKit.UIColor
+  final public let darkPlaceholder: UIKit.UIColor
+  final public let lightPlaceholder: UIKit.UIColor
+  final public let darkFloatingButtonBackground: UIKit.UIColor
+  final public let lightFloatingButtonBackground: UIKit.UIColor
+  final public let darkFloatingButtonIcon: UIKit.UIColor
+  final public let lightFloatingButtonIcon: UIKit.UIColor
+  final public let darkfloatingExitButtonText: UIKit.UIColor
+  final public let lightfloatingExitButtonText: UIKit.UIColor
+  final public let badgeColor: UIKit.UIColor
+  final public let badgeTextColor: UIKit.UIColor
+  final public let isDarkMode: Swift.Bool
+  public var background: UIKit.UIColor {
+    get
+  }
+  public var buttonBackground: UIKit.UIColor {
+    get
+  }
+  public var text: UIKit.UIColor {
+    get
+  }
+  public var placeholder: UIKit.UIColor {
+    get
+  }
+  public var floatingButtonBackground: UIKit.UIColor {
+    get
+  }
+  public var floatingButtonIcon: UIKit.UIColor {
+    get
+  }
+  public var floatingExitButtonText: UIKit.UIColor {
+    get
+  }
+  public init(darkBackground: UIKit.UIColor, lightBackground: UIKit.UIColor, darkButtonBackground: UIKit.UIColor, lightButtonBackground: UIKit.UIColor, darkText: UIKit.UIColor, lightText: UIKit.UIColor, darkPlaceholder: UIKit.UIColor, lightPlaceholder: UIKit.UIColor, darkFloatingButtonBackground: UIKit.UIColor, lightFloatingButtonBackground: UIKit.UIColor, darkFloatingButtonIcon: UIKit.UIColor, lightFloatingButtonIcon: UIKit.UIColor, darkfloatingExitButtonText: UIKit.UIColor, lightfloatingExitButtonText: UIKit.UIColor, badgeColor: UIKit.UIColor, badgeTextColor: UIKit.UIColor, isDarkMode: Swift.Bool)
+  public func update(darkBackground: UIKit.UIColor? = nil, lightBackground: UIKit.UIColor? = nil, darkButtonBackground: UIKit.UIColor? = nil, lightButtonBackground: UIKit.UIColor? = nil, darkText: UIKit.UIColor? = nil, lightText: UIKit.UIColor? = nil, darkPlaceholder: UIKit.UIColor? = nil, lightPlaceholder: UIKit.UIColor? = nil, darkFloatingButtonBackground: UIKit.UIColor? = nil, lightFloatingButtonBackground: UIKit.UIColor? = nil, darkFloatingButtonIcon: UIKit.UIColor? = nil, lightFloatingButtonIcon: UIKit.UIColor? = nil, darkfloatingExitButtonText: UIKit.UIColor? = nil, lightfloatingExitButtonText: UIKit.UIColor? = nil, badgeColor: UIKit.UIColor? = nil, badgeTextColor: UIKit.UIColor? = nil, isDarkMode: Swift.Bool? = nil) -> Measure.MsrColors
   @objc deinit
 }
 @objc public enum VCLifecycleEventType : Swift.Int, Swift.Codable {
@@ -51,6 +213,15 @@ public enum AttributeValue {
   public var rawValue: Swift.Int {
     get
   }
+}
+@objc public protocol MsrShakeListener {
+  @objc func onShake()
+}
+@objc public class MsrDimensions : ObjectiveC.NSObject {
+  final public let topPadding: CoreFoundation.CGFloat
+  public init(topPadding: CoreFoundation.CGFloat)
+  public func update(topPadding: CoreFoundation.CGFloat? = nil) -> Measure.MsrDimensions
+  @objc deinit
 }
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 @_Concurrency.MainActor @preconcurrency public struct MsrMoniterView<Content> : SwiftUICore.View where Content : SwiftUICore.View {
@@ -72,11 +243,102 @@ extension SwiftUICore.View {
   @objc final public func start()
   @objc final public func stop()
   final public func trackEvent(name: Swift.String, attributes: [Swift.String : Measure.AttributeValue], timestamp: Swift.Int64?)
+  final public func internalTrackEvent(data: inout [Swift.String : Any?], type: Swift.String, timestamp: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], userTriggered: Swift.Bool, sessionId: Swift.String?, threadName: Swift.String?)
   @objc final public func trackEvent(_ name: Swift.String, attributes: [Swift.String : Any], timestamp: Foundation.NSNumber?)
   @objc final public func trackScreenView(_ screenName: Swift.String)
   @objc final public func setUserId(_ userId: Swift.String)
   @objc final public func clearUserId()
+  @objc final public func getCurrentTime() -> Swift.Int64
+  final public func startSpan(name: Swift.String) -> any Measure.Span
+  final public func startSpan(name: Swift.String, timestamp: Swift.Int64) -> any Measure.Span
+  final public func createSpanBuilder(name: Swift.String) -> (any Measure.SpanBuilder)?
+  final public func getTraceParentHeaderValue(span: any Measure.Span) -> Swift.String
+  final public func getTraceParentHeaderKey() -> Swift.String
+  final public func launchBugReport(takeScreenshot: Swift.Bool = true, bugReportConfig: Measure.BugReportConfig = .default, attributes: [Swift.String : Measure.AttributeValue]? = nil)
+  @objc final public func launchBugReport(takeScreenshot: Swift.Bool = true, bugReportConfig: Measure.BugReportConfig = .default, attributes: [Swift.String : Any]? = nil)
+  @objc final public func enableShakeToLaunchBugReport(takeScreenshot: Swift.Bool = true)
+  @objc final public func disableShakeToLaunchBugReport()
+  @objc final public func isShakeToLaunchBugReportEnabled() -> Swift.Bool
+  @objc final public func setShakeListener(_ listener: (any Measure.MsrShakeListener)?)
+  final public func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Measure.AttributeValue]? = nil)
+  @objc final public func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Any]? = nil)
+  @objc final public func captureScreenshot(for viewController: UIKit.UIViewController) -> Measure.MsrAttachment?
   @objc deinit
+}
+@_inheritsConvenienceInitializers @objc(SpanOb) public class SpanOb : CoreData.NSManagedObject {
+  @objc override dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
+  @objc deinit
+}
+extension Measure.SpanOb {
+  @nonobjc public class func fetchRequest() -> CoreData.NSFetchRequest<Measure.SpanOb>
+  @objc @NSManaged dynamic public var attributes: Foundation.Data? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var batchId: Swift.String? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var checkpoints: Foundation.Data? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var duration: Swift.Int64 {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var endTime: Swift.Int64 {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var hasEnded: Swift.Bool {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var isSampled: Swift.Bool {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var name: Swift.String? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var parentId: Swift.String? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var sessionId: Swift.String? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var spanId: Swift.String {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var startTime: Swift.Int64 {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var status: Swift.Int64 {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var traceId: Swift.String? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var userDefinedAttrs: Foundation.Data? {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var startTimeString: Swift.String {
+    @objc get
+    @objc set
+  }
+  @objc @NSManaged dynamic public var endTimeString: Swift.String {
+    @objc get
+    @objc set
+  }
 }
 public struct MSRNetworkInterceptor {
   public static func enable(on sessionConfiguration: Foundation.URLSessionConfiguration)
@@ -87,6 +349,11 @@ public struct MSRNetworkInterceptor {
   @_Concurrency.MainActor @preconcurrency @objc override dynamic public init(nibName nibNameOrNil: Swift.String?, bundle nibBundleOrNil: Foundation.Bundle?)
   @_Concurrency.MainActor @preconcurrency @objc required dynamic public init?(coder: Foundation.NSCoder)
 }
+extension Measure.SpanStatus : Swift.Equatable {}
+extension Measure.SpanStatus : Swift.Hashable {}
+extension Measure.SpanStatus : Swift.RawRepresentable {}
+extension Measure.ScreenshotMaskLevel : Swift.Equatable {}
+extension Measure.ScreenshotMaskLevel : Swift.Hashable {}
 extension Measure.VCLifecycleEventType : Swift.Equatable {}
 extension Measure.VCLifecycleEventType : Swift.Hashable {}
 extension Measure.VCLifecycleEventType : Swift.RawRepresentable {}

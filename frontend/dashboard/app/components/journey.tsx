@@ -6,6 +6,7 @@ import { ResponsiveSankey } from '@nivo/sankey'
 import Link from 'next/link'
 import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'
+import { numberToKMB } from '../utils/number_utils'
 
 interface JourneyProps {
   teamId: string,
@@ -69,9 +70,9 @@ type JourneyData = {
   links: JourneyLink[]
 }
 
-const positiveNodeColour = 'hsl(0, 72%, 51%)'
-const negativeNodeColour = 'hsl(161, 94%, 30%)'
-const neutralLinkColour = `hsl(0, 0%, 81%)`
+const positiveNodeColour = 'oklch(57.7% 0.245 27.325)'
+const negativeNodeColour = 'oklch(62.7% 0.194 149.214)'
+const neutralLinkColour = `oklch(87.2% 0.01 258.338)`
 
 function getNodeColor(node: Node): string {
   const hasIssues = node.issues?.anrs?.length! > 0 || node.issues?.crashes?.length! > 0
@@ -195,8 +196,6 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
   const [selectedNode, setSelectedNode] = useState<JourneyNode>()
   const [showPanel, setShowPanel] = useState(false)
 
-  const formatter = Intl.NumberFormat('en', { notation: 'compact' })
-
   const getJourney = async () => {
     setJourneyApiStatus(JourneyApiStatus.Loading)
 
@@ -234,10 +233,10 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
   }, [selectedNode])
 
   return (
-    <div className="flex items-center justify-center border border-black text-black font-body text-sm w-full h-full overflow-hidden">
+    <div className="flex items-center justify-center text-black font-body text-sm w-full h-full overflow-hidden">
       {journeyApiStatus === JourneyApiStatus.Loading && <LoadingSpinner />}
       {journeyApiStatus === JourneyApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
-      {journeyApiStatus === JourneyApiStatus.NoData && <p className="text-lg font-display text-center p-4">No data</p>}
+      {journeyApiStatus === JourneyApiStatus.NoData && <p className="text-lg font-display text-center p-4">No journey data</p>}
       {journeyApiStatus === JourneyApiStatus.Success
         &&
         <div className='relative w-full h-full'>
@@ -275,13 +274,13 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
             linkTooltip={({
               link
             }) =>
-              <div className={`flex flex-col p-2 text-xs font-body rounded-sm bg-neutral-800 text-white max-w-72 break-words`}>
+              <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-neutral-800 text-white max-w-72 break-words`}>
                 <p className='p-2'>{link.source.id.split(".").pop()} → {link.target.id.split(".").pop()}: {link.value > 1 ? link.value + ' sessions' : link.value + ' session'}</p>
               </div>}
             nodeTooltip={({
               node
             }) =>
-              <div className={`flex flex-col p-2 text-xs font-body rounded-sm bg-neutral-800 text-white max-w-72 break-words`}>
+              <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-neutral-800 text-white max-w-72 break-words`}>
                 <p className='p-2'>{node.id}</p>
 
                 {node.issues?.crashes?.length! > 0 &&
@@ -306,7 +305,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
           >
             {selectedNode !== undefined &&
               <div>
-                <button className="outline-hidden flex justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black active:border-black focus-visible:border-black hover:text-black active:text-black focus-visible:text-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => setSelectedNode(undefined)}>Close</button>
+                <button className="outline-hidden flex justify-center hover:bg-yellow-200 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-white hover:border-black focus-visible:border-black hover:text-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => setSelectedNode(undefined)}>Close</button>
                 <p className='mt-6 text-lg'>{selectedNode!.id}</p>
                 {selectedNode.issues?.crashes?.length! > 0 && (
                   <div>
@@ -318,14 +317,14 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
                           {journeyType === JourneyType.Overview &&
                             <span className="font-body text-xs">
                               <Link href={`/${teamId}/crashes/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
-                                {title} - {formatter.format(count)}
+                                {title} - {numberToKMB(count)}
                               </Link>
                             </span>
                           }
                           {/* Show only title and count if crash or anr journey type */}
                           {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
                             <span className="font-body text-xs">
-                              {title} - {formatter.format(count)}
+                              {title} - {numberToKMB(count)}
                             </span>
                           }
                         </li>
@@ -343,14 +342,14 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
                           {journeyType === JourneyType.Overview &&
                             <span className="font-body text-xs">
                               <Link href={`/${teamId}/anrs/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
-                                {title} - {formatter.format(count)}
+                                {title} - {numberToKMB(count)}
                               </Link>
                             </span>
                           }
                           {/* Show only title and count if crash or anr journey type */}
                           {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
                             <span className="font-body text-xs">
-                              {title} - {formatter.format(count)}
+                              {title} - {numberToKMB(count)}
                             </span>
                           }
                         </li>

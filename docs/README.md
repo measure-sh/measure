@@ -9,3 +9,4 @@ Welcome to Measure's documentation. You'll find all the relevant information for
 4. [**API Documentation**](./api/README.md) - APIs that various Measure SDKs use
 5. [**Versioning Guide**](./versioning/README.md) - Understand how versions are tagged
 6. [**Contribution Guide**](./CONTRIBUTING.md) - Contribute to Measure
+7. [**FAQs**](./faqs.md) - Explore frequently asked quetsions

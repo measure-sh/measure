@@ -3,6 +3,7 @@ package measure
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -14,12 +15,14 @@ import (
 	"backend/api/chrono"
 	"backend/api/cipher"
 	"backend/api/codec"
-	"backend/api/platform"
+	"backend/api/opsys"
 	"backend/api/server"
 	"backend/api/symbol"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+
+	"slices"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -51,7 +54,8 @@ type BuildMapping struct {
 	VersionName  string                  `form:"version_name" binding:"required"`
 	VersionCode  string                  `form:"version_code" binding:"required"`
 	Platform     string                  `form:"platform"`
-	MappingType  string                  `form:"mapping_type" binding:"required_with=File"`
+	OSName       string                  `form:"os_name"`
+	MappingTypes []string                `form:"mapping_type" binding:"required_with=File"`
 	Files        []*multipart.FileHeader `form:"mapping_file" binding:"required_with=MappingType"`
 	MappingFiles []*MappingFile
 	Timestamp    time.Time
@@ -60,17 +64,91 @@ type BuildMapping struct {
 // hasMapping checks if necessary details are
 // valid for mapping build info.
 func (bm BuildMapping) hasMapping() bool {
-	if bm.MappingType != "" && len(bm.MappingFiles) > 0 {
+	if len(bm.MappingTypes) > 0 && len(bm.MappingFiles) > 0 {
 		return true
 	}
 	return false
 }
 
+// hasProguard checks if the build mapping
+// contains proguard mapping type.
+func (bm BuildMapping) hasProguard() bool {
+	return slices.Contains(bm.MappingTypes, symbol.TypeProguard.String())
+}
+
+// hasDSYM checks if the build mapping
+// contains dsym mapping type.
+func (bm BuildMapping) hasDSYM() bool {
+	return slices.Contains(bm.MappingTypes, symbol.TypeDsym.String())
+}
+
 // validate validates build mapping details.
-func (bm BuildMapping) validate(app *App) (code int, err error) {
+func (bm *BuildMapping) validate(app *App) (code int, err error) {
 	code = http.StatusBadRequest
 
-	for i, mf := range bm.MappingFiles {
+	osName := app.OSName
+
+	// Deduce OS name from app or
+	// from payload. ensure we have
+	// a platform or fail fast.
+	// The OS name in apps table
+	// is set after the first event
+	// is received, until which the
+	// OS name is empty.
+	if osName == "" && bm.OSName != "" {
+		osName = bm.OSName
+	}
+
+	// Deduce OS name from platform.
+	// This is critical for maintaining
+	// backwards compatibility.
+	// Older Android (<=android-gradle-plugn@0.8.0)
+	// do not send os_name, but send platform instead.
+	if osName == "" && bm.Platform != "" {
+		osName = bm.Platform
+	}
+
+	if osName == "" {
+		// Since, older Android (<=android-gradle-plugn@0.7.0) and
+		// iOS (<=0.1.0) SDKs were not sending `platform`
+		// or `os_name` parameter, we set the OS Name based
+		// on the mapping types received.
+		//
+		// This is critical for maintaining backwards
+		// compatibility.
+		if bm.hasProguard() {
+			osName = opsys.Android
+		} else if bm.hasDSYM() {
+			osName = opsys.AppleFamily
+		} else {
+			err = errors.New("failed to determine app's platform")
+			return
+		}
+	}
+
+	if opsys.ToFamily(osName) == opsys.AppleFamily {
+		// Since older iOS upload scripts(<=0.1.0) send a single mapping
+		// type `dsym` with one or more mapping files, we set the mapping type
+		// to `dsym` for all mapping files.
+		//
+		// This is critical for maintaining backwards
+		// compatibility.
+		missingTypesCount := len(bm.MappingFiles) - len(bm.MappingTypes)
+		if missingTypesCount > 0 {
+			for range missingTypesCount {
+				bm.MappingTypes = append(bm.MappingTypes, symbol.TypeDsym.String())
+			}
+		}
+	}
+
+	// mapping types and mapping files must same length
+	if len(bm.MappingTypes) != len(bm.MappingFiles) {
+		err = fmt.Errorf("mismatch: %d mapping types found for %d files", len(bm.MappingTypes), len(bm.MappingFiles))
+		return
+	}
+
+	for i := range bm.MappingTypes {
+		mf := bm.MappingFiles[i]
 		// none of the mapping files
 		// should be non-existent
 		if mf.Header == nil {
@@ -83,44 +161,21 @@ func (bm BuildMapping) validate(app *App) (code int, err error) {
 		}
 	}
 
-	pltfrm := app.Platform
-
-	// deduce platform from app or
-	// from payload. ensure we have
-	// a platform or fail fast.
-	if pltfrm == "" && bm.Platform != "" {
-		pltfrm = bm.Platform
-	}
-
-	if pltfrm == "" {
-		// Since, older Android SDKs (<=android-gradle-plugn@0.7.0) were
-		// not sending `platform` parameter, we set the platform to Android
-		// when the payload lacks the `platform` parameter and the mapping
-		// type is `proguard`.
-		//
-		// This is critical for maintaining backwards
-		// compatibility.
-		if bm.MappingType == symbol.TypeProguard.String() {
-			pltfrm = platform.Android
-		} else {
-			err = errors.New("failed to determine app's platform")
-			return
-		}
-	}
-
-	platformMappingErr := fmt.Errorf("%q mapping type is not valid for %q platform", bm.MappingType, pltfrm)
-
-	switch bm.MappingType {
-	case symbol.TypeProguard.String():
-		if pltfrm != platform.Android {
-			err = platformMappingErr
-		}
-	case symbol.TypeDsym.String():
-		if pltfrm != platform.IOS {
-			err = platformMappingErr
-			break
-		}
-		for _, mf := range bm.MappingFiles {
+	// ensure mapping types are supported for the OS
+	osMappingError := fmt.Errorf("%q mapping type is not valid for %q OS", bm.MappingTypes, osName)
+	for index, mappingType := range bm.MappingTypes {
+		switch mappingType {
+		case symbol.TypeProguard.String():
+			if osName != opsys.Android {
+				err = osMappingError
+				return
+			}
+		case symbol.TypeDsym.String():
+			if opsys.ToFamily(osName) != opsys.AppleFamily {
+				err = osMappingError
+				break
+			}
+			mf := bm.MappingFiles[index]
 			f, err := mf.Header.Open()
 			if err != nil {
 				return http.StatusInternalServerError, err
@@ -129,10 +184,15 @@ func (bm BuildMapping) validate(app *App) (code int, err error) {
 			if err := codec.IsTarGz(f); err != nil {
 				return http.StatusBadRequest, err
 			}
+		case symbol.TypeElfDebug.String():
+			if osName != opsys.Android {
+				err = osMappingError
+				return
+			}
+		default:
+			err = fmt.Errorf("unknown mapping type %q", mappingType)
+			return
 		}
-	default:
-		err = fmt.Errorf("unknown mapping type %q", bm.MappingType)
-		return
 	}
 
 	return
@@ -187,8 +247,7 @@ func (bm *BuildMapping) mark(ctx context.Context, tx *pgx.Tx) (err error) {
 		From("build_mappings").
 		Where("app_id = ?", bm.AppID).
 		Where("version_name = ?", bm.VersionName).
-		Where("version_code = ?", bm.VersionCode).
-		Where("mapping_type = ?", bm.MappingType)
+		Where("version_code = ?", bm.VersionCode)
 
 	defer stmt.Close()
 
@@ -210,7 +269,7 @@ func (bm *BuildMapping) mark(ctx context.Context, tx *pgx.Tx) (err error) {
 	// if no match found, mark all for
 	// upload.
 	if len(entries) == 0 {
-		for i := range bm.MappingFiles {
+		for i := range bm.MappingTypes {
 			bm.MappingFiles[i].ShouldUpload = true
 		}
 		return
@@ -267,7 +326,8 @@ func (bm *BuildMapping) mark(ctx context.Context, tx *pgx.Tx) (err error) {
 // shouldUpload returns true if any of the mapping
 // files has changed and hence should be uploaded.
 func (bm BuildMapping) shouldUpload() (should bool) {
-	for _, mf := range bm.MappingFiles {
+	for i := range bm.MappingTypes {
+		mf := bm.MappingFiles[i]
 		if mf.ShouldUpload {
 			return true
 		}
@@ -279,7 +339,8 @@ func (bm BuildMapping) shouldUpload() (should bool) {
 // files was updated on object store and hence needs
 // to be updated in the database.
 func (bm BuildMapping) shouldUpsert() (should bool) {
-	for _, mf := range bm.MappingFiles {
+	for i := range bm.MappingTypes {
+		mf := bm.MappingFiles[i]
 		if mf.ID != uuid.Nil && mf.Key != "" && mf.Location != "" {
 			return true
 		}
@@ -293,7 +354,8 @@ func (bm BuildMapping) insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.InsertInto(`build_mappings`)
 	defer stmt.Close()
 
-	for _, mf := range bm.MappingFiles {
+	for index, mappingType := range bm.MappingTypes {
+		mf := bm.MappingFiles[index]
 		// ignore old mapping files
 		if mf.ID != uuid.Nil {
 			continue
@@ -307,7 +369,7 @@ func (bm BuildMapping) insert(ctx context.Context, tx *pgx.Tx) (err error) {
 			Set(`app_id`, bm.AppID).
 			Set(`version_name`, bm.VersionName).
 			Set(`version_code`, bm.VersionCode).
-			Set(`mapping_type`, bm.MappingType).
+			Set(`mapping_type`, mappingType).
 			Set(`key`, mf.Key).
 			Set(`location`, mf.Location).
 			Set(`fnv1_hash`, mf.Checksum).
@@ -332,7 +394,8 @@ func (bm BuildMapping) insert(ctx context.Context, tx *pgx.Tx) (err error) {
 func (bm BuildMapping) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
 	now := time.Now()
 
-	for _, mf := range bm.MappingFiles {
+	for index := range bm.MappingTypes {
+		mf := bm.MappingFiles[index]
 		if mf.ID == uuid.Nil {
 			continue
 		}
@@ -367,51 +430,51 @@ func (bm BuildMapping) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
 // file(s) from build mapping respecting the
 // mapping type.
 func (bm *BuildMapping) extractDif() (err error) {
-	switch bm.MappingType {
-	case symbol.TypeProguard.String():
-		mf := bm.MappingFiles[0]
-		f, errHeader := mf.Header.Open()
-		if errHeader != nil {
-			return errHeader
-		}
-
-		defer func() {
-			if err := f.Close(); err != nil {
-				fmt.Println("failed to close proguard mapping file")
-			}
-		}()
-
-		bytes, errRead := io.ReadAll(f)
-		if errRead != nil {
-			return errRead
-		}
-
-		// compress bytes using zstd, if not
-		// already compressed
-		if !codec.IsZstdCompressed(bytes) {
-			bytes, err = codec.CompressZstd(bytes)
-			if err != nil {
-				return
-			}
-		}
-
-		ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("guardsquare.com"))
-		debugId := uuid.NewSHA1(ns, bytes)
-
-		mf.Difs = append(mf.Difs, &symbol.Dif{
-			Data: bytes,
-			Key:  symbol.BuildUnifiedLayout(debugId.String()) + "/proguard",
-		})
-	case symbol.TypeDsym.String():
-		for i := range bm.MappingFiles {
-			f, errHeader := bm.MappingFiles[i].Header.Open()
+	for index, mappingType := range bm.MappingTypes {
+		switch mappingType {
+		case symbol.TypeProguard.String():
+			mf := bm.MappingFiles[index]
+			f, errHeader := mf.Header.Open()
 			if errHeader != nil {
 				return errHeader
 			}
 
 			defer func() {
 				if err := f.Close(); err != nil {
-					fmt.Printf("failed to close dSYM mapping file with index %d\n", i)
+					fmt.Println("failed to close proguard mapping file")
+				}
+			}()
+
+			bytes, errRead := io.ReadAll(f)
+			if errRead != nil {
+				return errRead
+			}
+
+			// compress bytes using zstd, if not
+			// already compressed
+			if !codec.IsZstdCompressed(bytes) {
+				bytes, err = codec.CompressZstd(bytes)
+				if err != nil {
+					return
+				}
+			}
+
+			ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("guardsquare.com"))
+			debugId := uuid.NewSHA1(ns, bytes)
+
+			mf.Difs = append(mf.Difs, &symbol.Dif{
+				Data: bytes,
+				Key:  symbol.BuildUnifiedLayout(debugId.String()) + "/proguard",
+			})
+		case symbol.TypeDsym.String():
+			f, errHeader := bm.MappingFiles[index].Header.Open()
+			if errHeader != nil {
+				return errHeader
+			}
+
+			defer func() {
+				if err := f.Close(); err != nil {
+					fmt.Printf("failed to close dSYM mapping file with index %d\n", index)
 				}
 			}()
 
@@ -435,13 +498,69 @@ func (bm *BuildMapping) extractDif() (err error) {
 			}
 
 			for _, entity := range entities {
-				for _, difs := range entity {
-					bm.MappingFiles[i].Difs = append(bm.MappingFiles[i].Difs, difs)
-				}
+				bm.MappingFiles[index].Difs = append(bm.MappingFiles[index].Difs, entity...)
 			}
+		case symbol.TypeElfDebug.String():
+			mf := bm.MappingFiles[index]
+			f, errHeader := mf.Header.Open()
+			if errHeader != nil {
+				return errHeader
+			}
+
+			defer func() {
+				if err := f.Close(); err != nil {
+					fmt.Println("failed to close ELF mapping file")
+				}
+			}()
+
+			bytes, errRead := io.ReadAll(f)
+			if errRead != nil {
+				return errRead
+			}
+
+			debugID, errBuildID := symbol.GetBuildIDFromELF(bytes)
+			if errBuildID != nil {
+				return errBuildID
+			}
+
+			arch, errArch := symbol.GetArchFromELF(bytes)
+			if errArch != nil {
+				return errArch
+			}
+
+			type meta struct {
+				Name       string `json:"name"`
+				Arch       string `json:"arch"`
+				FileFormat string `json:"file_format"`
+			}
+
+			m := meta{
+				Name:       mf.Header.Filename,
+				Arch:       arch,
+				FileFormat: "elf",
+			}
+
+			metaJson, jsonErr := json.Marshal(m)
+			if jsonErr != nil {
+				err = jsonErr
+				return
+			}
+
+			mf.Difs = append(mf.Difs, &symbol.Dif{
+				Data: metaJson,
+				Key:  symbol.BuildUnifiedLayout(debugID) + "/meta",
+				Meta: true,
+			})
+
+			mf.Difs = append(mf.Difs, &symbol.Dif{
+				Data: bytes,
+				Key:  symbol.BuildUnifiedLayout(debugID) + "/debuginfo",
+				Meta: false,
+			})
+
+		default:
+			err = fmt.Errorf("failed to recognize mapping type %q", mappingType)
 		}
-	default:
-		err = fmt.Errorf("failed to recognize mapping type %q", bm.MappingType)
 	}
 
 	return
@@ -475,15 +594,16 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 		"app_id":       bm.AppID.String(),
 		"version_name": bm.VersionName,
 		"version_code": bm.VersionCode,
-		"mapping_type": bm.MappingType,
 	}
 
-	switch bm.MappingType {
-	case symbol.TypeProguard.String():
-		for i, mf := range bm.MappingFiles {
+	for index, mappingType := range bm.MappingTypes {
+		switch mappingType {
+		case symbol.TypeProguard.String():
+			mf := bm.MappingFiles[index]
 			if !mf.ShouldUpload {
 				continue
 			}
+			metadata["mapping_type"] = symbol.TypeProguard.String()
 			metadata["original_file_name"] = mf.Header.Filename
 			for _, dif := range mf.Difs {
 				putObjectInput := &s3.PutObjectInput{
@@ -497,16 +617,16 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 					return
 				}
 
-				bm.MappingFiles[i].Key = dif.Key
-				bm.MappingFiles[i].Location = buildLocation(dif.Key)
-				bm.MappingFiles[i].UploadComplete = true
+				bm.MappingFiles[index].Key = dif.Key
+				bm.MappingFiles[index].Location = buildLocation(dif.Key)
+				bm.MappingFiles[index].UploadComplete = true
 			}
-		}
-	case symbol.TypeDsym.String():
-		for i, mf := range bm.MappingFiles {
+		case symbol.TypeDsym.String():
+			mf := bm.MappingFiles[index]
 			if !mf.ShouldUpload {
 				continue
 			}
+			metadata["mapping_type"] = symbol.TypeDsym.String()
 			metadata["original_file_name"] = mf.Header.Filename
 			for _, dif := range mf.Difs {
 				if !dif.Meta {
@@ -520,9 +640,46 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 					if err != nil {
 						return
 					}
-					bm.MappingFiles[i].Key = dif.Key
-					bm.MappingFiles[i].Location = buildLocation(dif.Key)
-					bm.MappingFiles[i].UploadComplete = true
+					bm.MappingFiles[index].Key = dif.Key
+					bm.MappingFiles[index].Location = buildLocation(dif.Key)
+					bm.MappingFiles[index].UploadComplete = true
+				}
+
+				if dif.Meta {
+					putObjectInput := &s3.PutObjectInput{
+						Bucket:   aws.String(config.SymbolsBucket),
+						Key:      aws.String(dif.Key),
+						Body:     bytes.NewReader(dif.Data),
+						Metadata: metadata,
+					}
+					_, err = client.PutObject(ctx, putObjectInput)
+					if err != nil {
+						return
+					}
+				}
+			}
+		case symbol.TypeElfDebug.String():
+			mf := bm.MappingFiles[index]
+			if !mf.ShouldUpload {
+				continue
+			}
+			metadata["mapping_type"] = symbol.TypeElfDebug.String()
+			metadata["original_file_name"] = mf.Header.Filename
+			for _, dif := range mf.Difs {
+				if !dif.Meta {
+					putObjectInput := &s3.PutObjectInput{
+						Bucket:   aws.String(config.SymbolsBucket),
+						Key:      aws.String(dif.Key),
+						Body:     bytes.NewReader(dif.Data),
+						Metadata: metadata,
+					}
+					_, err = client.PutObject(ctx, putObjectInput)
+					if err != nil {
+						return
+					}
+					bm.MappingFiles[index].Key = dif.Key
+					bm.MappingFiles[index].Location = buildLocation(dif.Key)
+					bm.MappingFiles[index].UploadComplete = true
 				}
 
 				if dif.Meta {

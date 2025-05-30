@@ -14,27 +14,21 @@ import (
 )
 
 type User struct {
-	ID              *string    `json:"id"`
-	Name            *string    `json:"name"`
-	Email           *string    `json:"email"`
-	InvitedByUserId *string    `json:"invited_by_user_id"`
-	InvitedToTeamId *string    `json:"invited_to_team_id"`
-	InvitedAsRole   *string    `json:"invited_as_role"`
-	ConfirmedAt     *time.Time `json:"confirmed_at"`
-	LastSignInAt    *time.Time `json:"last_sign_in_at"`
-	CreatedAt       *time.Time `json:"created_at"`
-	UpdatedAt       *time.Time `json:"updated_at"`
+	ID           *string    `json:"id"`
+	Name         *string    `json:"name"`
+	Email        *string    `json:"email"`
+	ConfirmedAt  *time.Time `json:"confirmed_at"`
+	LastSignInAt *time.Time `json:"last_sign_in_at"`
+	CreatedAt    *time.Time `json:"created_at"`
+	UpdatedAt    *time.Time `json:"updated_at"`
 }
 
 func (u User) String() string {
 	return fmt.Sprintf(
-		"ID: %s, Name: %s, Email: %s,Email: %s,InvitedByUserId: %s,InvitedToTeamId: %s InvitedAsRole: %v, LastSignInAt: %v, CreatedAt: %v, UpdatedAt: %v",
+		"ID: %s, Name: %s, Email: %s, ConfirmedAt: %s, LastSignInAt: %v, CreatedAt: %v, UpdatedAt: %v",
 		stringOrNil(u.ID),
 		stringOrNil(u.Name),
 		stringOrNil(u.Email),
-		stringOrNil(u.InvitedByUserId),
-		stringOrNil(u.InvitedToTeamId),
-		stringOrNil(u.InvitedAsRole),
 		timeOrNil(u.ConfirmedAt),
 		timeOrNil(u.LastSignInAt),
 		timeOrNil(u.CreatedAt),
@@ -99,7 +93,9 @@ func (u *User) getOwnTeam(ctx context.Context) (team *Team, err error) {
 		Select("teams.id, teams.name").
 		From("public.teams").
 		LeftJoin("public.team_membership", "public.teams.id = public.team_membership.team_id and public.team_membership.role = 'owner'").
-		Where("public.team_membership.user_id = ?", u.ID)
+		Where("public.team_membership.user_id = ?", u.ID).
+		OrderBy("public.team_membership.created_at").
+		Limit(1)
 
 	defer stmt.Close()
 
@@ -183,14 +179,60 @@ func (u *User) touchLastSignInAt(ctx context.Context) (err error) {
 	return
 }
 
-// GetUsersByInvitees provides existing & new invitees by matching
+// getEmail retrieves the email address of the user.
+func (u *User) getEmail(ctx context.Context) (err error) {
+	stmt := sqlf.PostgreSQL.
+		From("public.users").
+		Select("email").
+		Where("id = ?", nil)
+
+	defer stmt.Close()
+
+	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), u.ID).Scan(&u.Email)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("user not found")
+		}
+		return fmt.Errorf("failed to retrieve email: %w", err)
+	}
+
+	return
+}
+
+// getUser retrieves the user details from the database.
+func (u *User) getUserDetails(ctx context.Context) (err error) {
+	stmt := sqlf.PostgreSQL.
+		From("public.users").
+		Select("id").
+		Select("name").
+		Select("email").
+		Select("confirmed_at").
+		Select("last_sign_in_at").
+		Select("created_at").
+		Select("updated_at").
+		Where("id = ?", nil)
+
+	defer stmt.Close()
+
+	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), u.ID).Scan(&u.ID, &u.Name, &u.Email, &u.ConfirmedAt, &u.LastSignInAt, &u.CreatedAt, &u.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("user not found")
+		}
+		return fmt.Errorf("failed to retrieve user: %w", err)
+	}
+
+	return
+}
+
+// GetExistingAndNewInvitees provides existing & new invitees by matching
 // each user's and invitee's email.
 //
 // Only confirmed users are considered as viable candidates for
 // team invitation.
-func GetUsersByInvitees(invitees []Invitee) ([]Invitee, []Invitee, error) {
-	var oldUsers []Invitee
-	var newUsers []Invitee
+func GetExistingAndNewInvitees(invitees []Invitee) ([]Invitee, []Invitee, error) {
+	var existingInvitees []Invitee
+	var newInvitees []Invitee
 	var emailList string
 
 	var emails []string
@@ -225,7 +267,7 @@ func GetUsersByInvitees(invitees []Invitee) ([]Invitee, []Invitee, error) {
 					return nil, nil, err
 				}
 				invitee.ID = uuid
-				oldUsers = append(oldUsers, invitee)
+				existingInvitees = append(existingInvitees, invitee)
 			}
 		}
 		newInvitee := true
@@ -236,11 +278,11 @@ func GetUsersByInvitees(invitees []Invitee) ([]Invitee, []Invitee, error) {
 		}
 
 		if newInvitee {
-			newUsers = append(newUsers, invitee)
+			newInvitees = append(newInvitees, invitee)
 		}
 	}
 
-	return oldUsers, newUsers, nil
+	return existingInvitees, newInvitees, nil
 }
 
 // FindUserByEmail finds a user from their email.

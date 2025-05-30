@@ -25,7 +25,6 @@ final class DeviceAttributeProcessor: BaseComputeOnceAttributeProcessor {
     private var deviceLocale: String?
     private var osName: String?
     private var osVersion: String?
-    private var platform: String?
     private var deviceCpuArch: String?
 
     override func updateAttribute(_ attribute: inout Attributes) {
@@ -42,7 +41,6 @@ final class DeviceAttributeProcessor: BaseComputeOnceAttributeProcessor {
         attribute.deviceLocale = deviceLocale
         attribute.osName = osName
         attribute.osVersion = osVersion
-        attribute.platform = platform ?? AttributeConstants.platform
         attribute.deviceCpuArch = deviceCpuArch
     }
 
@@ -52,15 +50,18 @@ final class DeviceAttributeProcessor: BaseComputeOnceAttributeProcessor {
         deviceManufacturer = AttributeConstants.deviceManufacturer
         deviceType = UIDevice.current.userInterfaceIdiom == .phone ? .phone : .tablet
         deviceIsFoldable = false
-        deviceIsPhysical = TARGET_OS_SIMULATOR == 0
+        #if targetEnvironment(simulator)
+        deviceIsPhysical = false
+        #else
+        deviceIsPhysical = true
+        #endif
         deviceDensityDpi = Number(UIScreen.main.scale * 160)
         deviceWidthPx = Number(UIScreen.main.bounds.width * UIScreen.main.scale)
         deviceHeightPx = Number(UIScreen.main.bounds.height * UIScreen.main.scale)
         deviceDensity = Number(UIScreen.main.scale)
         deviceLocale = Locale.current.identifier
-        osName = UIDevice.current.systemName
+        osName = UIDevice.current.systemName.lowercased()
         osVersion = UIDevice.current.systemVersion
-        platform = AttributeConstants.platform
         deviceCpuArch = getCPUArchitecture()
     }
 

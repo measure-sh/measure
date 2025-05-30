@@ -29,7 +29,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
   const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
     // update filters only if they have changed
-    if (updatedFilters.ready && pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
+    if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
       updatePageState({
         filters: updatedFilters
       })
@@ -46,8 +46,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   }, [pageState.filters])
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-      <div className="py-4" />
+    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
       <p className="font-display text-4xl max-w-6xl text-center">Overview</p>
       <div className="py-4" />
 
@@ -75,10 +74,10 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         showUdAttrs={false}
         onFiltersChanged={handleFiltersChanged} />
 
-      <div className="py-4" />
+      <div className="py-2" />
 
       {pageState.filters.ready &&
-        <div className='w-5/6 h-[700px]'>
+        <div className='w-full h-[600px]'>
           <Journey
             teamId={params.teamId}
             bidirectional={false}

@@ -8,6 +8,7 @@ import Paginator from '@/app/components/paginator'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters'
 import ExceptionsOverviewPlot from './exceptions_overview_plot'
 import LoadingBar from './loading_bar'
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from './table'
 
 interface PageState {
   exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus
@@ -66,7 +67,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
 
   const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
     // update filters only if they have changed
-    if (updatedFilters.ready && pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
+    if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
       updatePageState({
         filters: updatedFilters,
         // Reset pagination on filters change if previous filters were not default filters
@@ -107,8 +108,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
   }, [pageState.keyId, pageState.filters])
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-      <div className="py-4" />
+    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
       <p className="font-display text-4xl max-w-6xl text-center">{exceptionsType === ExceptionsType.Crash ? 'Crashes' : 'ANRs'}</p>
       <div className="py-4" />
 
@@ -146,41 +146,112 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
       {pageState.filters.ready
         && (pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Success || pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading) &&
         <div className="flex flex-col items-center w-full">
-          <div className="py-4" />
           <ExceptionsOverviewPlot
             exceptionsType={exceptionsType}
-            filters={pageState.filters} />
-          <div className="py-4" />
-          <div className='self-end'>
-            <Paginator prevEnabled={pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : pageState.exceptionsOverview.meta.previous} nextEnabled={pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : pageState.exceptionsOverview.meta.next} displayText=''
+            filters={pageState.filters}
+          />
+          <div className="self-end">
+            <Paginator
+              prevEnabled={pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : pageState.exceptionsOverview.meta.previous}
+              nextEnabled={pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? false : pageState.exceptionsOverview.meta.next}
+              displayText=""
               onNext={handleNextPage}
-              onPrev={handlePrevPage} />
+              onPrev={handlePrevPage}
+            />
           </div>
           <div className={`py-1 w-full ${pageState.exceptionsOverviewApiStatus === ExceptionsOverviewApiStatus.Loading ? 'visible' : 'invisible'}`}>
             <LoadingBar />
           </div>
-          <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
-            <div className="table-header-group bg-neutral-950">
-              <div className="table-row text-white font-display">
-                <div className="table-cell w-96 p-4">{exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'} Name</div>
-                <div className="table-cell w-48 p-4 text-center">Instances</div>
-                <div className="table-cell w-48 p-4 text-center">Percentage contribution</div>
-              </div>
-            </div>
-            <div className="table-row-group font-body">
-              {pageState.exceptionsOverview.results?.map(({ id, type, message, method_name, file_name, line_number, count, percentage_contribution }) => (
-                <Link key={id} href={`/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${pageState.filters.app!.id}/${id}/${type + (file_name !== "" ? "@" + file_name : "")}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
-                  <div className="table-cell p-4">
-                    <p className='truncate'>{(file_name !== "" ? file_name : "unknown_file") + ": " + (method_name !== "" ? method_name : "unknown_method") + "()"}</p>
-                    <div className='py-1' />
-                    <p className='text-xs truncate text-gray-500'>{`${type}${message ? `:${message}` : ''}`}</p>
-                  </div>
-                  <div className="table-cell p-4 text-center">{count}</div>
-                  <div className="table-cell p-4 text-center">{percentage_contribution}%</div>
-                </Link>
-              ))}
-            </div>
-          </div>
+          <div className='py-4' />
+          <Table className='font-display'>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[60%]">{exceptionsType === ExceptionsType.Crash ? 'Crash' : 'ANR'}</TableHead>
+                <TableHead className="w-[20%] text-center">Instances</TableHead>
+                <TableHead className="w-[20%] text-center">Percentage contribution</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pageState.exceptionsOverview.results?.map(
+                ({
+                  id,
+                  type,
+                  message,
+                  method_name,
+                  file_name,
+                  count,
+                  percentage_contribution
+                }, idx) => {
+                  // Get date range, start date and end date from searchParams
+                  const d = searchParams.get('d')
+                  const sd = searchParams.get('sd')
+                  const ed = searchParams.get('ed')
+                  // Build query string for timestamps if present
+                  const timestampQuery = [sd ? `sd=${encodeURIComponent(sd)}` : null, ed ? `ed=${encodeURIComponent(ed)}` : null, d ? `d=${encodeURIComponent(d)}` : null].filter(Boolean).join('&')
+                  // Build base path
+                  const basePath = `/${teamId}/${exceptionsType === ExceptionsType.Crash ? 'crashes' : 'anrs'}/${pageState.filters.app!.id}/${id}/${type + (file_name !== '' ? '@' + file_name : '')}`
+                  // Final href with query params if any
+                  const href = timestampQuery ? `${basePath}?${timestampQuery}` : basePath
+                  return (
+                    <TableRow
+                      key={`${idx}-${id}`}
+                      className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                      tabIndex={0}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          router.push(href)
+                        }
+                      }}
+                    >
+                      <TableCell className="w-[60%] relative p-0">
+                        <a
+                          href={href}
+                          className="absolute inset-0 z-10 cursor-pointer"
+                          tabIndex={-1}
+                          aria-label={`${file_name !== '' ? file_name : 'unknown_file'}: ${method_name !== '' ? method_name : 'unknown_method'}()`}
+                          style={{ display: 'block' }}
+                        />
+                        <div className="pointer-events-none p-4">
+                          <p className="truncate select-none">
+                            {(file_name !== '' ? file_name : 'unknown_file') + ': ' + (method_name !== '' ? method_name : 'unknown_method') + '()'}
+                          </p>
+                          <div className="py-1" />
+                          <p className="text-xs truncate text-gray-500 select-none">
+                            {`${type}${message ? `:${message}` : ''}`}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-[20%] text-center truncate select-none relative p-0">
+                        <a
+                          href={href}
+                          className="absolute inset-0 z-10 cursor-pointer"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                          style={{ display: 'block' }}
+                        />
+                        <div className="pointer-events-none p-4">
+                          {count}
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-[20%] text-center truncate select-none relative p-0">
+                        <a
+                          href={href}
+                          className="absolute inset-0 z-10 cursor-pointer"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                          style={{ display: 'block' }}
+                        />
+                        <div className="pointer-events-none p-4">
+                          {percentage_contribution}%
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                }
+              )}
+            </TableBody>
+          </Table>
         </div>}
     </div >
   )

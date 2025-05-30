@@ -170,6 +170,7 @@ func main() {
 		auth.POST("github", measure.SigninGitHub)
 		auth.POST("google", measure.SigninGoogle)
 		auth.POST("refresh", measure.ValidateRefreshToken(), measure.RefreshToken)
+		auth.GET("session", measure.ValidateAccessToken(), measure.GetAuthSession)
 		auth.DELETE("signout", measure.ValidateRefreshToken(), measure.Signout)
 	}
 
@@ -217,7 +218,10 @@ func main() {
 		teams.GET(":id/usage", measure.GetUsage)
 		teams.GET(":id/apps/:appId", measure.GetTeamApp)
 		teams.POST(":id/apps", measure.CreateApp)
+		teams.GET(":id/invites", measure.GetValidTeamInvites)
 		teams.POST(":id/invite", measure.InviteMembers)
+		teams.PATCH(":id/invite/:inviteId", measure.ResendInvite)
+		teams.DELETE(":id/invite/:inviteId", measure.RemoveInvite)
 		teams.PATCH(":id/rename", measure.RenameTeam)
 		teams.PATCH(":id/members/:memberId/role", measure.ChangeMemberRole)
 		teams.GET(":id/authz", measure.GetAuthzRoles)

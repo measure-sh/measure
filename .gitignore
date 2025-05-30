@@ -15,3 +15,6 @@ node_modules
 .build/
 .swiftpm/
 Package.resolved
+
+# flutter
+.index-build/

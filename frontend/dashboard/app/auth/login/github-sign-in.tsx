@@ -1,9 +1,10 @@
-"use client";
+"use client"
 
-import { measureAuth } from "@/app/auth/measure_auth";
+import { measureAuth } from "@/app/auth/measure_auth"
+import { Button } from "@/app/components/button"
 
 async function doGitHubLogin() {
-  const { origin } = new URL(window.location.href);
+  const { origin } = new URL(window.location.href)
   const { url, error } = await measureAuth.oAuthSignin({
     provider: 'github',
     clientId: process?.env?.NEXT_PUBLIC_OAUTH_GITHUB_KEY,
@@ -11,7 +12,7 @@ async function doGitHubLogin() {
       redirectTo: `${origin}/auth/callback/github`,
       next: ''
     }
-  });
+  })
 
   if (error) {
     console.error(`failed to login using GitHub`, error)
@@ -19,7 +20,7 @@ async function doGitHubLogin() {
   }
 
   if (url) {
-    window.location.assign(url);
+    window.location.assign(url)
   }
 }
 
@@ -28,5 +29,12 @@ function GitHubLogo() {
 }
 
 export default function GitHubSignIn() {
-  return <button className="justify-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display text-black transition-colors duration-100 py-2 px-4 w-full" onClick={() => doGitHubLogin()}><GitHubLogo /><span> Sign in with GitHub</span></button>
+  return <Button
+    variant="outline"
+    size={"lg"}
+    className="justify-center w-full font-display border border-black select-none"
+    onClick={() => doGitHubLogin()}>
+    <GitHubLogo />
+    <span> Sign in with GitHub</span>
+  </Button>
 }

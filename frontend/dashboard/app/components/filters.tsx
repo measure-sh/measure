@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation"
 import { formatDateToHumanReadableDateTime, formatIsoDateForDateTimeInputField, isValidTimestamp } from "../utils/time_utils"
-import { useEffect, useState } from "react"
+import React, { useEffect, useState, useImperativeHandle, forwardRef } from "react"
 import { AppVersion, AppsApiStatus, FiltersApiStatus, FilterSource, OsVersion, SessionType, RootSpanNamesApiStatus, App, fetchAppsFromServer, fetchFiltersFromServer, fetchRootSpanNamesFromServer, SpanStatus, UserDefAttr, BugReportStatus } from "../api/api_calls"
 import { DateTime } from "luxon"
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select"
@@ -18,6 +18,7 @@ export enum AppVersionsInitialSelectionType {
 }
 
 interface FiltersProps {
+  ref?: React.RefObject<HTMLDivElement>
   teamId: string,
   appId?: string,
   filterSource: FilterSource,
@@ -138,7 +139,10 @@ export const defaultFilters: Filters = {
   serialisedFilters: null
 }
 
-const Filters: React.FC<FiltersProps> = ({
+const Filters = forwardRef<
+  { refresh: () => void },
+  FiltersProps
+>(({
   teamId,
   appId,
   filterSource,
@@ -162,7 +166,8 @@ const Filters: React.FC<FiltersProps> = ({
   showUdAttrs,
   showFreeText,
   freeTextPlaceholder,
-  onFiltersChanged }) => {
+  onFiltersChanged
+}, ref) => {
 
   const urlFiltersKeyMap = {
     appId: 'a',
@@ -474,6 +479,8 @@ const Filters: React.FC<FiltersProps> = ({
     }
   }
 
+  const customDateInputStyle = "font-display border border-black rounded-md p-1.5 text-sm transition-all outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+
   const searchParams = useSearchParams()
 
   const urlFilters = deserializeUrlFilters(searchParams.toString())
@@ -488,16 +495,16 @@ const Filters: React.FC<FiltersProps> = ({
   const [selectedApp, setSelectedApp] = useState<App | null>(null)
 
   const [rootSpanNames, setRootSpanNames] = useState([] as string[])
-  const [selectedRootSpanName, setSelectedRootSpanName] = useState(urlFilters.rootSpanName ? urlFilters.rootSpanName : '')
+  const [selectedRootSpanName, setSelectedRootSpanName] = useState('')
 
-  const [selectedSpanStatuses, setSelectedSpanStatuses] = useState(urlFilters.spanStatuses ? urlFilters.spanStatuses : filterSource === FilterSource.Spans ? [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error] : [])
+  const [selectedSpanStatuses, setSelectedSpanStatuses] = useState(filterSource === FilterSource.Spans ? [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error] : [])
 
-  const [selectedBugReportStatuses, setSelectedBugReportStatuses] = useState(urlFilters.bugReportStatuses ? urlFilters.bugReportStatuses : [BugReportStatus.Open])
+  const [selectedBugReportStatuses, setSelectedBugReportStatuses] = useState([BugReportStatus.Open])
 
   const [versions, setVersions] = useState([] as AppVersion[])
   const [selectedVersions, setSelectedVersions] = useState([] as AppVersion[])
 
-  const [selectedSessionType, setSelectedSessionType] = useState(urlFilters.sessionType ? urlFilters.sessionType : SessionType.All)
+  const [selectedSessionType, setSelectedSessionType] = useState(SessionType.All)
 
   const [osVersions, setOsVersions] = useState([] as OsVersion[])
   const [selectedOsVersions, setSelectedOsVersions] = useState([] as OsVersion[])
@@ -525,9 +532,9 @@ const Filters: React.FC<FiltersProps> = ({
 
   const [userDefAttrs, setUserDefAttrs] = useState([] as UserDefAttr[])
   const [userDefAttrOps, setUserDefAttrOps] = useState<Map<string, string[]>>(new Map())
-  const [selectedUdAttrMatchers, setSelectedUdAttrMatchers] = useState<UdAttrMatcher[]>(urlFilters.udAttrMatchers ? urlFilters.udAttrMatchers : [])
+  const [selectedUdAttrMatchers, setSelectedUdAttrMatchers] = useState<UdAttrMatcher[]>([])
 
-  const [selectedFreeText, setSelectedFreeText] = useState(urlFilters.freeText ? urlFilters.freeText : '')
+  const [selectedFreeText, setSelectedFreeText] = useState('')
 
   const initDateRange = urlFilters.dateRange ? urlFilters.dateRange : sessionPersistedFilters ? sessionPersistedFilters.dateRange : DateRange.Last6Hours
   const [selectedDateRange, setSelectedDateRange] = useState(initDateRange)
@@ -579,7 +586,12 @@ const Filters: React.FC<FiltersProps> = ({
             setSelectedApp(appFromGivenId)
           }
         } else if (sessionPersistedFilters) {
-          setSelectedApp(sessionPersistedFilters.app)
+          let appFromSessionPersistedFilters = result.data.find((e: App) => e.id === sessionPersistedFilters.app.id)
+          if (appFromSessionPersistedFilters === undefined) {
+            setSelectedApp(result.data[0])
+          } else {
+            setSelectedApp(appFromSessionPersistedFilters)
+          }
         } else {
           setSelectedApp(result.data[0])
         }
@@ -590,6 +602,14 @@ const Filters: React.FC<FiltersProps> = ({
   useEffect(() => {
     getApps()
   }, [])
+
+  function refresh() {
+    getApps()
+  }
+
+  useImperativeHandle(ref, () => ({
+    refresh
+  }))
 
   const getRootSpanNames = async () => {
     setRootSpanNamesApiStatus(RootSpanNamesApiStatus.Loading)
@@ -615,10 +635,10 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedRootSpanNames = result.data.results
           setRootSpanNames(parsedRootSpanNames)
 
-          if (urlFilters.rootSpanName) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.rootSpanName) {
             const selectedRootSpanName = parsedRootSpanNames.find((name: string) => name === urlFilters.rootSpanName)
             if (selectedRootSpanName === undefined) {
-              throw Error("Invalid root span name: " + urlFilters.rootSpanName + " provided in URL")
+              setSelectedRootSpanName(parsedRootSpanNames[0])
             } else {
               setSelectedRootSpanName(selectedRootSpanName)
             }
@@ -630,6 +650,25 @@ const Filters: React.FC<FiltersProps> = ({
     }
   }
 
+  const clearFiltersOnFilterApiFail = () => {
+    console.log("Filters API failed, clearing filters")
+    setSelectedVersions(defaultFilters.versions)
+    setSelectedSessionType(defaultFilters.sessionType)
+    setSelectedOsVersions(defaultFilters.osVersions)
+    setSelectedCountries(defaultFilters.countries)
+    setSelectedNetworkProviders(defaultFilters.networkProviders)
+    setSelectedNetworkTypes(defaultFilters.networkTypes)
+    setSelectedNetworkGenerations(defaultFilters.networkGenerations)
+    setSelectedLocales(defaultFilters.locales)
+    setSelectedDeviceManufacturers(defaultFilters.deviceManufacturers)
+    setSelectedDeviceNames(defaultFilters.deviceNames)
+    setSelectedFreeText(defaultFilters.freeText)
+    setSelectedSpanStatuses(defaultFilters.spanStatuses)
+    setSelectedRootSpanName(defaultFilters.rootSpanName)
+    setSelectedBugReportStatuses(defaultFilters.bugReportStatuses)
+    setSelectedUdAttrMatchers(defaultFilters.udAttrMatchers)
+  }
+
   const getFilters = async () => {
     setFiltersApiStatus(FiltersApiStatus.Loading)
 
@@ -638,12 +677,15 @@ const Filters: React.FC<FiltersProps> = ({
     switch (result.status) {
       case FiltersApiStatus.NotOnboarded:
         setFiltersApiStatus(FiltersApiStatus.NotOnboarded)
+        clearFiltersOnFilterApiFail()
         break
       case FiltersApiStatus.NoData:
         setFiltersApiStatus(FiltersApiStatus.NoData)
+        clearFiltersOnFilterApiFail()
         break
       case FiltersApiStatus.Error:
         setFiltersApiStatus(FiltersApiStatus.Error)
+        clearFiltersOnFilterApiFail()
         break
       case FiltersApiStatus.Success:
         setFiltersApiStatus(FiltersApiStatus.Success)
@@ -653,7 +695,7 @@ const Filters: React.FC<FiltersProps> = ({
 
           setVersions(parsedVersions)
 
-          if (urlFilters.versions) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.versions) {
             const selectedVersions = urlFilters.versions
               .filter((index) => index >= 0 && index < parsedVersions.length)
               .map((index) => parsedVersions[index])
@@ -671,7 +713,7 @@ const Filters: React.FC<FiltersProps> = ({
 
           setOsVersions(parsedOsVersions)
 
-          if (urlFilters.osVersions) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.osVersions) {
             const selectedOsVersions = urlFilters.osVersions
               .filter((index) => index >= 0 && index < parsedOsVersions.length)
               .map((index) => parsedOsVersions[index])
@@ -685,7 +727,7 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedCountries = result.data.countries
           setCountries(parsedCountries)
 
-          if (urlFilters.countries) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.countries) {
             const selectedCountries = urlFilters.countries
               .filter((index) => index >= 0 && index < parsedCountries.length)
               .map((index) => parsedCountries[index])
@@ -699,7 +741,7 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedNetworkProviders = result.data.network_providers
           setNetworkProviders(parsedNetworkProviders)
 
-          if (urlFilters.networkProviders) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.networkProviders) {
             const selectedNetworkProviders = urlFilters.networkProviders
               .filter((index) => index >= 0 && index < parsedNetworkProviders.length)
               .map((index) => parsedNetworkProviders[index])
@@ -713,7 +755,7 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedNetworkTypes = result.data.network_types
           setNetworkTypes(parsedNetworkTypes)
 
-          if (urlFilters.networkTypes) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.networkTypes) {
             const selectedNetworkTypes = urlFilters.networkTypes
               .filter((index) => index >= 0 && index < parsedNetworkTypes.length)
               .map((index) => parsedNetworkTypes[index])
@@ -727,7 +769,7 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedNetworkGenerations = result.data.network_generations
           setNetworkGenerations(parsedNetworkGenerations)
 
-          if (urlFilters.networkGenerations) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.networkGenerations) {
             const selectedNetworkGenerations = urlFilters.networkGenerations
               .filter((index) => index >= 0 && index < parsedNetworkGenerations.length)
               .map((index) => parsedNetworkGenerations[index])
@@ -742,7 +784,7 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedLocales = result.data.locales
           setLocales(parsedLocales)
 
-          if (urlFilters.locales) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.locales) {
             const selectedLocales = urlFilters.locales
               .filter((index) => index >= 0 && index < parsedLocales.length)
               .map((index) => parsedLocales[index])
@@ -756,7 +798,7 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedDeviceManufacturers = result.data.device_manufacturers
           setDeviceManufacturers(parsedDeviceManufacturers)
 
-          if (urlFilters.deviceManufacturers) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.deviceManufacturers) {
             const selectedDeviceManufacturers = urlFilters.deviceManufacturers
               .filter((index) => index >= 0 && index < parsedDeviceManufacturers.length)
               .map((index) => parsedDeviceManufacturers[index])
@@ -770,7 +812,7 @@ const Filters: React.FC<FiltersProps> = ({
           const parsedDeviceNames = result.data.device_names
           setDeviceNames(parsedDeviceNames)
 
-          if (urlFilters.deviceNames) {
+          if (urlFilters.appId === selectedApp!.id && urlFilters.deviceNames) {
             const selectedDeviceNames = urlFilters.deviceNames
               .filter((index) => index >= 0 && index < parsedDeviceNames.length)
               .map((index) => parsedDeviceNames[index])
@@ -786,6 +828,58 @@ const Filters: React.FC<FiltersProps> = ({
 
           setUserDefAttrs(parsedUserDefAttrs)
           setUserDefAttrOps(parsedUserDefAttrOps)
+
+          if (urlFilters.appId === selectedApp!.id && urlFilters.udAttrMatchers) {
+            const selectedUdAttrMatchers = urlFilters.udAttrMatchers
+              .filter((m: UdAttrMatcher) => {
+                // Find the attribute definition for this matcher
+                const attr = parsedUserDefAttrs.find((attr: UserDefAttr) => attr.key === m.key)
+                if (!attr) return false
+                // Use the type from the attribute definition and check if the op is valid for this type
+                const ops = parsedUserDefAttrOps.get(attr.type)
+                const opExists = ops ? ops.includes(m.op) : false
+                // Accept if key exists, op exists for the type, and value is not undefined
+                return opExists && m.value !== undefined
+              })
+            setSelectedUdAttrMatchers(selectedUdAttrMatchers)
+          } else {
+            setSelectedUdAttrMatchers([])
+          }
+        } else {
+          setUserDefAttrs([])
+          setUserDefAttrOps(new Map<string, string[]>())
+          setSelectedUdAttrMatchers([])
+        }
+
+
+        if (urlFilters.appId === selectedApp!.id && urlFilters.spanStatuses) {
+          const selectedSpanStatuses = urlFilters.spanStatuses
+            .filter((s: string) => Object.values(SpanStatus).includes(s as SpanStatus))
+            .map((s: string) => s as SpanStatus)
+          setSelectedSpanStatuses(selectedSpanStatuses)
+        } else {
+          setSelectedSpanStatuses(filterSource === FilterSource.Spans ? [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error] : [])
+        }
+
+        if (urlFilters.appId === selectedApp!.id && urlFilters.bugReportStatuses) {
+          const selectedBugReportStatuses = urlFilters.bugReportStatuses
+            .filter((s: string) => Object.values(BugReportStatus).includes(s as BugReportStatus))
+            .map((s: string) => s as BugReportStatus)
+          setSelectedBugReportStatuses(selectedBugReportStatuses)
+        } else {
+          setSelectedBugReportStatuses([BugReportStatus.Open])
+        }
+
+        if (urlFilters.appId === selectedApp!.id && urlFilters.sessionType) {
+          setSelectedSessionType(urlFilters.sessionType)
+        } else {
+          setSelectedSessionType(SessionType.All)
+        }
+
+        if (urlFilters.appId === selectedApp!.id && urlFilters.freeText) {
+          setSelectedFreeText(urlFilters.freeText)
+        } else {
+          setSelectedFreeText('')
         }
 
         break
@@ -827,7 +921,7 @@ const Filters: React.FC<FiltersProps> = ({
       startDate: selectedStartDate,
       endDate: selectedEndDate,
       dateRange: Object.values(DateRange).includes(selectedDateRange as DateRange) ? (selectedDateRange as DateRange) : undefined,
-      versions: selectedVersions.map(v => versions.findIndex(ver => ver.code === v.code)),
+      versions: selectedVersions.map(v => versions.findIndex(ver => ver.name === v.name && ver.code === v.code)),
       sessionType: selectedSessionType,
       spanStatuses: selectedSpanStatuses,
       bugReportStatuses: selectedBugReportStatuses,
@@ -888,7 +982,7 @@ const Filters: React.FC<FiltersProps> = ({
       {appsApiStatus === AppsApiStatus.Error && <p className="text-lg font-display">Error fetching apps, please check if Team ID is valid or refresh page to try again</p>}
       {appsApiStatus === AppsApiStatus.NoApps &&
         <div>
-          <p className="text-lg font-display">Looks like you don&apost have any apps yet. Get started by creating your first app!</p>
+          <p className="text-lg font-display">Looks like you don&apos;t have any apps yet. Get started by creating your first app!</p>
           {showCreateApp && <div className="py-4" />}
           {showCreateApp && <CreateApp teamId={teamId} />}
         </div>}
@@ -953,13 +1047,13 @@ const Filters: React.FC<FiltersProps> = ({
               }
               } />}
               {showDates && selectedDateRange === DateRange.Custom && <p className="font-display px-2">:</p>}
-              {showDates && selectedDateRange === DateRange.Custom && <input type="datetime-local" defaultValue={formatIsoDateForDateTimeInputField(selectedStartDate)} max={formatIsoDateForDateTimeInputField(selectedEndDate)} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+              {showDates && selectedDateRange === DateRange.Custom && <input type="datetime-local" defaultValue={formatIsoDateForDateTimeInputField(selectedStartDate)} max={formatIsoDateForDateTimeInputField(selectedEndDate)} className={customDateInputStyle} onChange={(e) => {
                 if (isValidTimestamp(e.target.value)) {
                   setSelectedStartDate(DateTime.fromISO(e.target.value).toISO()!)
                 }
               }} />}
               {showDates && selectedDateRange === DateRange.Custom && <p className="font-display px-2">to</p>}
-              {showDates && selectedDateRange === DateRange.Custom && <input type="datetime-local" defaultValue={formatIsoDateForDateTimeInputField(selectedEndDate)} min={formatIsoDateForDateTimeInputField(selectedStartDate)} max={formatIsoDateForDateTimeInputField(DateTime.now().toISO())} className="font-display border border-black rounded-md p-2" onChange={(e) => {
+              {showDates && selectedDateRange === DateRange.Custom && <input type="datetime-local" defaultValue={formatIsoDateForDateTimeInputField(selectedEndDate)} min={formatIsoDateForDateTimeInputField(selectedStartDate)} max={formatIsoDateForDateTimeInputField(DateTime.now().toISO())} className={customDateInputStyle} onChange={(e) => {
                 if (isValidTimestamp(e.target.value)) {
                   // If "To" date is greater than now, ignore the change and reset to current end date.
                   // We need to do this since setting "max" isn't enough in some browsers
@@ -1009,6 +1103,7 @@ const Filters: React.FC<FiltersProps> = ({
       }
     </div>
   )
-}
+})
 
+Filters.displayName = "Filters"
 export default Filters

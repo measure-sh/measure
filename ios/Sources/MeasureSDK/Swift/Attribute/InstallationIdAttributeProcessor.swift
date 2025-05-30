@@ -26,7 +26,7 @@ final class InstallationIdAttributeProcessor: BaseComputeOnceAttributeProcessor 
         if let installationId = userDefaultStorage.getInstallationId() {
             self.installationId = installationId
         } else {
-            let newInstallationId = idProvider.createId()
+            let newInstallationId = idProvider.uuid()
             userDefaultStorage.setInstallationId(newInstallationId)
             self.installationId = newInstallationId
         }
