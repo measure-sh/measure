@@ -3,7 +3,8 @@
 * [**What is a session?**](#what-is-a-session)
 * [**Session Search**](#session-search)
 * [**Session Timeline**](#session-timeline)
-* [**Get Current Session**](#get-current-session)
+* [**API Reference**](#api-reference)
+  * [**Get Current Session**](#get-current-session)
 
 ## What is a session?
 
@@ -39,18 +40,21 @@ includes memory and CPU usage graphs to help you understand how the app was perf
 Additionally, screenshots and layout snapshots give you a window into what the user saw at the time. This visual context
 helps you catch UI issues, performance bottlenecks, or anything else that might not be obvious just from logs.
 
-## Get Current Session
+
+## API Reference
+
+### Get Current Session
 
 The current session can be retrieved by using `getSessionId` method. This is useful in cases where you want to send
 the session ID to a different service or log it for debugging purposes.
 
-### Android
+#### Android
 
 ```kotlin
 val sessionId = Measure.getSessionId()
 ```
 
-### iOS
+#### iOS
 
 Using Swift:
 

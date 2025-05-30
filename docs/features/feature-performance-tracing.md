@@ -3,8 +3,20 @@
 * [**Introduction**](#introduction)
 * [**Concepts**](#concepts)
 * [**API Reference**](#api-reference)
-* [**Distributed Tracing**](#distributed-tracing)
+  * [Limits](#limits)
+  * [Start a span](#start-a-span)
+  * [End a span](#end-a-span)
+  * [Set parent span](#set-parent-span)
+  * [Set attributes](#set-attributes)
+  * [Remove attribute](#remove-attribute)
+  * [Update span name](#update-span-name)
+  * [Add checkpoint](#add-checkpoint)
+  * [Deferred span start](#deferred-span-start)
+  * [Distributed Tracing](#distributed-tracing)
+    * [Get a trace parent header](#get-a-trace-parent-header) 
 * [**Recipes**](#recipes)
+  * [Distributed Tracing with OkHttp interceptor](#distributed-tracing-with-okhttp-interceptor)
+  * [Distributed Tracing with URLSession interceptor](#distributed-tracing-with-urlsession-interceptor)
 
 ## Introduction
 
@@ -89,17 +101,6 @@ whose value is the `span_id` of its parent.
 ![Trace view](assets/trace-view.png)
 
 ## API Reference
-
-* [Limits](#limits)
-* [Start a span](#start-a-span)
-* [End a span](#end-a-span)
-* [Set parent span](#set-parent-span)
-* [Set attributes](#set-attributes)
-* [Remove attribute](#remove-attribute)
-* [Update span name](#update-span-name)
-* [Add checkpoint](#add-checkpoint)
-* [Deferred span start](#deferred-span-start)
-* [Distributed Tracing](#distributed-tracing)
 
 ### Limits
 

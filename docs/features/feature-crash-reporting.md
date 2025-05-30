@@ -2,12 +2,13 @@
 
 Crashes are automatically tracked, optionally with a snapshot of the app's UI at the time of the crash.
 
-* [**Symbolicate stacktrace**](#symbolicate-stacktrace)
-* [**Get a UI snapshot**](#get-a-ui-snapshot)
 * [**Metrics**](#metrics)
     * [Crash-free rate](#crash-free-rate)
     * [Perceived crash rate](#perceived-crash-rate)
 * [**Crash grouping**](#crash-grouping)
+* [**API Reference**](#api-reference)
+  * [**Symbolicate stacktrace**](#symbolicate-stacktrace)
+  * [**Get a UI snapshot**](#get-a-ui-snapshot)
 * [**Data collected**](#data-collected)
 * [**How it works**](#how-it-works)
 
@@ -52,21 +53,6 @@ sh "${SRCROOT}/path/to/upload_dsym_build_phases.sh" <api_url> <api_key>
 
 > [!CAUTION]  
 > If you are using Build Phases to upload DSYMs make sure to **upload DSYMs only for release builds**.
-
-## Get a UI Snapshot
-
-#### Android
-
-A screenshot of the app is captured when an app crashes on Android. This feature is disabled by default and can be
-configured using the following options at the time of SDK initialization:
-
-- `trackScreenshotOnCrash` — Enables or disables the automatic screenshot capture on crash. It is disabled by default.
-- `screenshotMaskLevel` — To hide sensitive information in the screenshot, you can configure the masking level. See
-  the [options](../android/configuration-options.md#screenshotmasklevel) available.
-
-#### iOS
-
-A layout snapshot of the app is captured when an app crashes on iOS. This feature is always enabled.
 
 ## Metrics
 
@@ -153,6 +139,23 @@ First Throw Call Stack:
     ...
 )
 ```
+
+## API Reference
+
+### Get a UI Snapshot
+
+#### Android
+
+A screenshot of the app is captured when an app crashes on Android. This feature is disabled by default and can be
+configured using the following options at the time of SDK initialization:
+
+- `trackScreenshotOnCrash` — Enables or disables the automatic screenshot capture on crash. It is disabled by default.
+- `screenshotMaskLevel` — To hide sensitive information in the screenshot, you can configure the masking level. See
+  the [options](../android/configuration-options.md#screenshotmasklevel) available.
+
+#### iOS
+
+A layout snapshot of the app is captured when an app crashes on iOS. This feature is always enabled.
 
 ## Data collected
 
