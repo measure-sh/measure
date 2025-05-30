@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump golang.org/x/net from 0.37.0 to 0.38.0 in /backend/api (#2127) by @dependabot[bot] in #2127
 - (**deps**): Bump golang.org/x/net in /backend/cleanup (#2126) by @dependabot[bot] in #2126
 - (**deps**): Bump golang.org/x/net in /self-host/sessionator (#2124) by @dependabot[bot] in #2124
+- (**frontend**): Update apps page UI by @anupcowkur in #2248
 - (**frontend**): Update session mem & cpu graphs by @anupcowkur in #2245
 - (**frontend**): Update apps page ui with better section differentiation by @anupcowkur in #2243
 - (**frontend**): Reduce loading spinner size by @anupcowkur in #2239
