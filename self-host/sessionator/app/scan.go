@@ -32,12 +32,15 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 		if err != nil {
 			return err
 		}
-		name := d.Name()
+
 		rel, err := filepath.Rel(rootPath, path)
 		if err != nil {
 			return err
 		}
 
+		// app name and version
+		// parts[0] is app unique id
+		// parts[1] is app version name
 		parts := strings.Split(rel, "/")
 
 		// don't process apps marked
@@ -46,9 +49,11 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 			return fs.SkipDir
 		}
 
+		entryName := d.Name()
+
 		if d.IsDir() {
 			// not top-level directory
-			if name != rootbase && !hidden(name) {
+			if entryName != rootbase && !hidden(entryName) {
 				appMatch, err := filepath.Match("*/*", rel)
 				if err != nil {
 					return err
@@ -57,7 +62,7 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 					apps.Add(parts[0], parts[1])
 				}
 			}
-		} else if d.Type().IsRegular() && !hidden(name) {
+		} else if d.Type().IsRegular() && !hidden(entryName) {
 			jsonMatch, err := filepath.Match("*/*/*.json", rel)
 			if err != nil {
 				return err

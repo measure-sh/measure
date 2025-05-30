@@ -1348,6 +1348,8 @@ func (a *App) getTeam(ctx context.Context) (*Team, error) {
 	return team, nil
 }
 
+// Populate fills in all app values
+// for the app.
 func (a *App) Populate(ctx context.Context) (err error) {
 	stmt := sqlf.PostgreSQL.From("apps").
 		Select("team_id::UUID").
@@ -2496,6 +2498,8 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
+	af.AppOSName = app.OSName
+
 	team := &Team{
 		ID: &app.TeamId,
 	}
@@ -2639,9 +2643,18 @@ func GetAppFilters(c *gin.Context) {
 		return
 	}
 
-	app := App{
-		ID: &id,
+	app, err := SelectApp(ctx, id)
+	if err != nil {
+		msg := "failed to select app"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
 	}
+
+	af.AppOSName = app.OSName
 
 	team, err := app.getTeam(ctx)
 	if err != nil {
