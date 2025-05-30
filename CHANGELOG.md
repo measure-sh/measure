@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Remove unused ios session data (#2254) by @detj in #2254
 - (**backend**): Upgrade go dependencies (#2252) by @detj in #2252
 - (**backend**): Remove "Own Team Id" from access token by @anupcowkur in #2121
 - (**backend**): Delete stale auth sessions in cleanup by @anupcowkur in #2120
