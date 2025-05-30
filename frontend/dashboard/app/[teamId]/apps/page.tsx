@@ -199,7 +199,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               {filters.app!.unique_identifier && filters.app!.os_name && <p className="font-display text-gray-500 mt-6">Created at</p>}
               {filters.app!.unique_identifier && filters.app!.os_name && <p className="text-sm mt-0.5">{formatDateToHumanReadableDateTime(filters.app!.created_at)}</p>}
               {(!filters.app!.unique_identifier || !filters.app!.os_name) &&
-                <p className="font-body text-sm">Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure/blob/main/docs/android/README.md#getting-started'>integration guide</Link> to finish setting up your app.</p>}
+                <p className="font-body text-sm">Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure?tab=readme-ov-file#docs'>docs</Link> to finish setting up your app.</p>}
             </div>
             <div className="py-8" />
             <p className="font-display text-2xl max-w-6xl">SDK Variables</p>

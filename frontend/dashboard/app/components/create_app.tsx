@@ -83,7 +83,7 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, existingAppName = null, e
       {/* UI after app creation */}
       {createAppStatus === CreateAppStatus.PostCreation &&
         <div className="flex flex-col">
-          <p className="font-body">Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure/blob/main/docs/android/README.md#getting-started'>integration guide</Link> to finish setting up your app.</p>
+          <p className="font-body text-sm">Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure?tab=readme-ov-file#docs'>docs</Link> to finish setting up your app.</p>
           <div className="py-4" />
           <p className="font-display text-xl max-w-6xl">API key</p>
           <div className="flex flex-row items-center">
