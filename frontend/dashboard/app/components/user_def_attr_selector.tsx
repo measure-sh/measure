@@ -153,7 +153,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, i
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="flex justify-between font-display border border-black rounded-md"
+          className="flex justify-between font-display border border-black"
           style={{ width: 'fit-content', minWidth: '150px' }}
         >
           <span className="truncate">User Defined Attrs</span>

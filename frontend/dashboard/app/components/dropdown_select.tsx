@@ -222,7 +222,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="flex justify-between font-display border border-black rounded-md w-fit min-w-[150px] select-none"
+          className="flex justify-between font-display border border-black w-fit min-w-[150px] select-none"
         >
           <span className="truncate">{getDisplayText()}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

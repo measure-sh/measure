@@ -21,7 +21,7 @@ const Paginator: React.FC<PaginatorProps> = ({ displayText, prevEnabled, nextEna
     <div className="flex flex-row items-center">
       <Button
         variant="outline"
-        className="font-display border border-black rounded-md select-none"
+        className="font-display border border-black select-none"
         disabled={!prevEnabled}
         onClick={onPrev}
       >
@@ -30,7 +30,7 @@ const Paginator: React.FC<PaginatorProps> = ({ displayText, prevEnabled, nextEna
       <p className="font-display mx-4">{displayText}</p>
       <Button
         variant="outline"
-        className="font-display border border-black rounded-md select-none"
+        className="font-display border border-black select-none"
         disabled={!nextEnabled}
         onClick={onNext}
       >

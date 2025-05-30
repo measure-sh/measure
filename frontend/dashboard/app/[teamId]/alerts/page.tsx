@@ -198,7 +198,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
               <Button
                 variant="outline"
                 disabled={areAlertPrefsSame(alertPrefs, updatedAlertPrefs) || updateAlertPrefsApiStatus === UpdateAlertPrefsApiStatus.Loading}
-                className="flex justify-center font-display border border-black rounded-md select-none"
+                className="flex justify-center font-display border border-black select-none"
                 onClick={saveAlertPrefs}>
                 Save
               </Button>

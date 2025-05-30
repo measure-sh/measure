@@ -90,7 +90,7 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
             <div className="px-2" />
             <Button
               variant="outline"
-              className="w-fit font-display border border-black rounded-md select-none"
+              className="w-fit font-display border border-black select-none"
               disabled={updateBugReportStatusApiStatus === UpdateBugReportStatusApiStatus.Loading}
               onClick={updateBugReportStatus}>
               {bugReport.status === 0 ? "Close Bug Report" : "Re-Open Bug Report"}

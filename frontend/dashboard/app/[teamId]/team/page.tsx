@@ -98,8 +98,10 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     getCurrentUserId()
   }, [])
 
-  const getAuthzAndMembers = async () => {
-    setAuthzAndMembersApiStatus(AuthzAndMembersApiStatus.Loading)
+  const getAuthzAndMembers = async (showLoading: boolean) => {
+    if (showLoading) {
+      setAuthzAndMembersApiStatus(AuthzAndMembersApiStatus.Loading)
+    }
 
     const result = await fetchAuthzAndMembersFromServer(params.teamId)
 
@@ -115,11 +117,13 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   }
 
   useEffect(() => {
-    getAuthzAndMembers()
+    getAuthzAndMembers(true)
   }, [])
 
-  const getPendingInvites = async () => {
-    setPendingInvitesApiStatus(PendingInvitesApiStatus.Loading)
+  const getPendingInvites = async (showLoading: boolean) => {
+    if (showLoading) {
+      setPendingInvitesApiStatus(PendingInvitesApiStatus.Loading)
+    }
 
     const result = await fetchPendingInvitesFromServer(params.teamId)
 
@@ -135,7 +139,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   }
 
   useEffect(() => {
-    getPendingInvites()
+    getPendingInvites(true)
   }, [])
 
   const resendPendingInvite = async () => {
@@ -151,7 +155,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
       case ResendPendingInviteApiStatus.Success:
         setResendPendingInviteApiStatus(ResendPendingInviteApiStatus.Success)
         toastPositive("Pending invite for " + resendPendingInviteEmail + " has been resent")
-        getPendingInvites()
+        getPendingInvites(false)
         break
     }
   }
@@ -169,7 +173,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
       case RemovePendingInviteApiStatus.Success:
         setRemovePendingInviteApiStatus(RemovePendingInviteApiStatus.Success)
         toastPositive("Pending invite for " + removePendingInviteEmail + " has been removed")
-        getPendingInvites()
+        getPendingInvites(false)
         break
     }
   }
@@ -204,7 +208,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
       case RoleChangeApiStatus.Success:
         setRoleChangeApiStatus(RoleChangeApiStatus.Success)
         toastPositive(roleChangeMemberEmail + "'s role changed",)
-        getAuthzAndMembers()
+        getAuthzAndMembers(false)
         break
     }
   }
@@ -223,8 +227,8 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
         setInviteMemberApiStatus(InviteMemberApiStatus.Success)
         toastPositive(inviteMemberEmail + " has been invited")
         setInviteMemberEmail("")
-        getAuthzAndMembers()
-        getPendingInvites()
+        getAuthzAndMembers(false)
+        getPendingInvites(false)
         break
     }
   }
@@ -242,7 +246,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
       case RemoveMemberApiStatus.Success:
         setRemoveMemberApiStatus(RemoveMemberApiStatus.Success)
         toastPositive(removeMemberEmail + " has been removed")
-        getAuthzAndMembers()
+        getAuthzAndMembers(false)
         break
     }
   }
@@ -348,7 +352,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
               className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
             <Button
               variant="outline"
-              className="m-4 font-display border border-black rounded-md select-none"
+              className="m-4 font-display border border-black select-none"
               disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
               loading={teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
               onClick={() => setTeamNameConfirmationModalOpen(true)}>
@@ -365,7 +369,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
             <DropdownSelect title="Roles" type={DropdownSelectType.SingleString} items={authzAndMembers.can_invite.map((i) => formatToCamelCase(i))} initialSelected={formatToCamelCase(authzAndMembers.can_invite[0])} onChangeSelected={(item) => setInviteMemberRole(item as string)} />
             <Button
               variant="outline"
-              className="m-4 font-display border border-black rounded-md select-none"
+              className="m-4 font-display border border-black select-none"
               disabled={inviteMemberApiStatus === InviteMemberApiStatus.Loading || inviteMemberEmail === ""}
               loading={inviteMemberApiStatus === InviteMemberApiStatus.Loading}
               onClick={inviteMember}>
@@ -433,7 +437,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                       <TableCell>
                         <Button
                           variant="outline"
-                          className="font-display border border-black rounded-md select-none"
+                          className="font-display border border-black select-none"
                           disabled={selectedDropdownRolesMap.get(id) === undefined || selectedDropdownRolesMap.get(id) === role}
                           loading={roleChangeApiStatus === RoleChangeApiStatus.Loading && roleChangeMemberId === id}
                           onClick={() => {
@@ -454,7 +458,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                       <TableCell>
                         <Button
                           variant="outline"
-                          className="font-display border border-black rounded-md select-none"
+                          className="font-display border border-black select-none"
                           disabled={authz.can_remove === false || removeMemberApiStatus === RemoveMemberApiStatus.Loading}
                           loading={removeMemberApiStatus === RemoveMemberApiStatus.Loading && removeMemberId === id}
                           onClick={() => {
@@ -498,7 +502,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                     <TableCell>
                       <Button
                         variant="outline"
-                        className="m-4 font-display border border-black rounded-md select-none"
+                        className="m-4 font-display border border-black select-none"
                         disabled={!authzAndMembers.can_invite.includes(role) || resendPendingInviteApiStatus === ResendPendingInviteApiStatus.Loading}
                         loading={resendPendingInviteApiStatus === ResendPendingInviteApiStatus.Loading && resendPendingInviteId === id}
                         onClick={() => {
@@ -512,7 +516,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                     <TableCell>
                       <Button
                         variant="outline"
-                        className="m-4 font-display border border-black rounded-md select-none"
+                        className="m-4 font-display border border-black select-none"
                         disabled={!authzAndMembers.can_invite.includes(role) || removePendingInviteApiStatus === RemovePendingInviteApiStatus.Loading}
                         loading={removePendingInviteApiStatus === RemovePendingInviteApiStatus.Loading && removePendingInviteId === id}
                         onClick={() => {
@@ -542,7 +546,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                 <Button
                   variant="outline"
                   type="submit"
-                  className="w-fit font-display border border-black rounded-md select-none"
+                  className="w-fit font-display border border-black select-none"
                   disabled={createTeamApiStatus === CreateTeamApiStatus.Loading || createTeamName.length === 0}>
                   Create Team
                 </Button>
