@@ -1,6 +1,6 @@
 # Documentation
 
-## Table of Contents
+### Table of Contents
 
 * [**Integrate the SDK**](#integrate-the-sdk) — Set up measure-sh SDK in your mobile app
 * [**Explore Features**](#explore-features) — Explore all available features
@@ -8,14 +8,13 @@
 * [**Control costs**](#cost-control) — Techniques to control data collection and storage costs
 * [**Performance impact**](#performance-impact) — Measure the SDK's impact on app performance
 
-## Further Reading
+**Further Reading**
 
 * [**Self Hosting Guide**](hosting/README.md) - Host Measure on your own
 * [**API Documentation**](api/README.md) - APIs that various Measure SDKs use
 * [**Versioning Guide**](versioning/README.md) - Understand how versions are tagged
 * [**Contribution Guide**](CONTRIBUTING.md) - Contribute to Measure
 
-_______
 
 # Integrate the SDK
 
