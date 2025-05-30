@@ -32,7 +32,7 @@ understand its underlying mechanism and enhance your ability to use it effective
 * [**Crash reporting**](features/feature-crash-reporting.md) — Analyze app crashes
 * [**ANR reporting**](features/feature-anr-reporting.md) — Analyze Application Not Responding (ANR) issues
 * [**Performance tracing**](features/feature-performance-tracing.md) — Monitor app performance with traces
-* [**Track custom events**](features/feature-track-custom-events.md) — Capture custom events in your app
+* [**Custom events**](features/feature-custom-events.md) — Capture custom events in your app
 * [**Bug reports**](features/feature-bug-report.md) — Capture detailed bug reports with screenshots and logs
 * [**App launch metrics**](features/feature-app-launch-metrics.md) — Measure app launch performance
 * [**Network monitoring**](features/feature-network-monitoring.md) — Monitor HTTP requests and responses
