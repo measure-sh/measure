@@ -23,6 +23,9 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: measure-sh/migrator
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build
