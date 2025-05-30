@@ -10,7 +10,7 @@
 
 **Further Reading**
 
-* [**Self Hosting Guide**](hosting/README.md) - Host Measure on your own
+* [**Self Hosting Guide**](hosting/README.md) - Host measure-sh on your own
 * [**API Documentation**](api/README.md) - APIs that various Measure SDKs use
 * [**Versioning Guide**](versioning/README.md) - Understand how versions are tagged
 * [**Contribution Guide**](CONTRIBUTING.md) - Contribute to Measure
