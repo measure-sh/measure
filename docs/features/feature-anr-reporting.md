@@ -89,11 +89,7 @@ Checkout the data collected by Measure for each ANR in the [ANR Event](../../api
 Measure SDK detects ANRs by tracking the `SIGQUIT` signal. When an ANR occurs, this signal is sent to the app process.
 The SDK picks up on this signal and reports the ANR to the server.
 
-To dig deeper into how it all works, check out the [implementation details](#implementation-details).
-
-______
-
-# Implementation details
+#### Implementation details
 
 * [Signal](#signal)
 * [Signal delivery](#signal-delivery)
