@@ -33,4 +33,23 @@ extension SpanOb {
     @NSManaged public var startTimeString: String
     @NSManaged public var endTimeString: String
 
+    func toSpanEntity() -> SpanEntity {
+        return SpanEntity(name: self.name,
+                          traceId: self.traceId,
+                          spanId: self.spanId,
+                          parentId: self.parentId,
+                          sessionId: self.sessionId,
+                          startTime: self.startTime,
+                          startTimeString: self.startTimeString,
+                          endTime: self.endTime,
+                          endTimeString: self.endTimeString,
+                          duration: self.duration,
+                          status: self.status,
+                          attributes: self.attributes,
+                          userDefinedAttrs: self.userDefinedAttrs,
+                          checkpoints: self.checkpoints,
+                          hasEnded: self.hasEnded,
+                          isSampled: self.isSampled,
+                          batchId: self.batchId)
+    }
 }
