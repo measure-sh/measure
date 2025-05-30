@@ -5,7 +5,7 @@
 * [**Integrate the SDK**](#integrate-the-sdk) — Set up measure-sh SDK in your mobile app
 * [**Explore Features**](#explore-features) — Explore all available features
 * [**Configuration Options**](#configuration-options) — Customize SDK behavior
-* [**Control costs**](#cost-control) — Techniques to control data collection and storage costs
+* [**Data Control**](#data-control) — Techniques to control data collection and storage costs
 * [**Performance impact**](#performance-impact) — Measure the SDK's impact on app performance
 
 **Further Reading**
@@ -50,7 +50,7 @@ Each feature section above contains the configuration options available for that
 customize the behavior of the SDK to suit your application's needs. You can also find a comprehensive list of all
 configuration options in the [configuration options](features/configuration-options.md) documentation.
 
-# Cost control
+# Data Control
 
 To control costs, measure-sh provides sampling options to limit the amount of data collected and the time for which
 it is retained on the server. This helps balance data quality with storage costs. Read the following pages for more
