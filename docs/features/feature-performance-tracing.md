@@ -3,19 +3,8 @@
 * [**Introduction**](#introduction)
 * [**Concepts**](#concepts)
 * [**API Reference**](#api-reference)
-    * [**Limits**](#limits)
-    * [**Start a span**](#start-a-span)
-    * [**End a span**](#end-a-span)
-    * [**Set span parent**](#set-parent-span)
-    * [**Set attributes**](#set-attributes)
-    * [**Remove attribute**](#remove-attribute)
-    * [**Add checkpoint**](#add-checkpoint)
-    * [**Deferred span start**](#deferred-span-start)
 * [**Distributed Tracing**](#distributed-tracing)
-  * [**Get a trace parent header**](#get-a-trace-parent-header)
 * [**Recipes**](#recipes)
-  * [**Distributed Tracing with OkHttp interceptor**](#distributed-tracing-with-okhttp-interceptor)
-  * [**Distributed Tracing with URLSession interceptor**](#distributed-tracing-with-urlsession-interceptor)
 
 ## Introduction
 
@@ -101,6 +90,17 @@ whose value is the `span_id` of its parent.
 
 ## API Reference
 
+* [Limits](#limits)
+* [Start a span](#start-a-span)
+* [End a span](#end-a-span)
+* [Set parent span](#set-parent-span)
+* [Set attributes](#set-attributes)
+* [Remove attribute](#remove-attribute)
+* [Update span name](#update-span-name)
+* [Add checkpoint](#add-checkpoint)
+* [Deferred span start](#deferred-span-start)
+* [Distributed Tracing](#distributed-tracing)
+
 ### Limits
 
 The following limits apply to spans. Spans violating the limits will be either be discarded or have
@@ -140,7 +140,7 @@ A span can also be started by providing the start time, this is useful in cases 
 operation has already started but there wasn't any way to access the Measure APIs in that part of the code.
 
 > [!IMPORTANT]
-> To set the start time use `Measure.getTimestamp`, which returns epoch time calculated using a
+> To set the start time, use `Measure.getTimestamp`, which returns epoch time calculated using a
 > monotonic clock.
 > Passing in `System.currentTimeInMillis` can lead to issues with corrupted span timings due to
 > clock skew issues.
@@ -188,7 +188,7 @@ operation has already ended
 but there wasn't any way to access the Measure APIs in that part of the code.
 
 > [!IMPORTANT]
-> To set the start time use `Measure.getTimestamp`, which returns epoch time calculated using a
+> To set the end time, use `Measure.getTimestamp`, which returns epoch time calculated using a
 > monotonic clock.
 > Passing in `System.currentTimeInMillis` can lead to issues with corrupted span timings due to
 > clock skew issues.
@@ -214,10 +214,25 @@ span.setStatus(.ok).end(timestamp: Measure.shared.getCurrentTime())
 
 ### Set parent span
 
+To set a parent span for a span, use `setParent` method.
+
+<details>
+  <summary>Android</summary>
+
 ```kotlin
 val parentSpan: Span = Measure.startSpan("parent-span")
 val childSpan: Span = Measure.startSpan("child-span").setParent(parentSpan)
 ```
+</details>
+
+<details>
+  <summary>iOS</summary>
+
+```swift
+let parentSpan: Span = Measure.shared.startSpan(name: "parent-span")
+let childSpan: Span = Measure.shared.startSpan(name: "child-span").setParent(parentSpan)
+```
+</details>
 
 ### Set attributes
 
