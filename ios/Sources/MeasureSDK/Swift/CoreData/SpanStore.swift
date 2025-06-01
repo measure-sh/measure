@@ -9,13 +9,13 @@ import Foundation
 import CoreData
 
 protocol SpanStore {
-    func insertSpan(span: SpanEntity)
-    func getSpans(spanIds: [String]) -> [SpanEntity]?
-    func deleteSpans(spanIds: [String])
-    func getAllSpans() -> [SpanEntity]?
-    func getUnBatchedSpans(spanCount: Int64, ascending: Bool) -> [String]
-    func updateBatchId(_ batchId: String, for spans: [String])
-    func deleteSpans(sessionIds: [String])
+    func insertSpan(span: SpanEntity) async
+    func getSpans(spanIds: [String]) async -> [SpanEntity]?
+    func deleteSpans(spanIds: [String]) async
+    func getAllSpans() async -> [SpanEntity]?
+    func getUnBatchedSpans(spanCount: Int64, ascending: Bool) async -> [String]
+    func updateBatchId(_ batchId: String, for spans: [String]) async
+    func deleteSpans(sessionIds: [String]) async
 }
 
 final class BaseSpanStore: SpanStore {
@@ -27,13 +27,8 @@ final class BaseSpanStore: SpanStore {
         self.logger = logger
     }
 
-    func insertSpan(span: SpanEntity) {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return
-        }
-
-        context.performAndWait { [weak self] in
+    func insertSpan(span: SpanEntity) async {
+        await coreDataManager.performBackgroundTask { context in
             let spanOb = SpanOb(context: context)
             spanOb.name = span.name
             spanOb.traceId = span.traceId
@@ -56,40 +51,28 @@ final class BaseSpanStore: SpanStore {
             do {
                 try context.saveIfNeeded()
             } catch {
-                guard let self = self else { return }
                 self.logger.internalLog(level: .error, message: "Failed to save span: \(span.spanId)", error: error, data: nil)
             }
         }
     }
 
-    func getSpans(spanIds: [String]) -> [SpanEntity]? {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return nil
-        }
-
-        var results: [SpanEntity]?
-        context.performAndWait {
+    func getSpans(spanIds: [String]) async -> [SpanEntity]? {
+        await coreDataManager.performBackgroundTask { context in
             let fetchRequest: NSFetchRequest<SpanOb> = SpanOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "spanId IN %@", spanIds)
 
             do {
                 let spans = try context.fetch(fetchRequest)
-                results = spans.map { $0.toSpanEntity() }
+                return spans.map { $0.toSpanEntity() }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch spans for IDs", error: error, data: nil)
+                self.logger.internalLog(level: .error, message: "Failed to fetch spans for IDs", error: error, data: nil)
+                return nil
             }
         }
-        return results
     }
 
-    func deleteSpans(spanIds: [String]) {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return
-        }
-
-        context.performAndWait { [weak self] in
+    func deleteSpans(spanIds: [String]) async {
+        await coreDataManager.performBackgroundTask { context in
             let fetchRequest: NSFetchRequest<NSFetchRequestResult> = SpanOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "spanId IN %@", spanIds)
 
@@ -99,26 +82,19 @@ final class BaseSpanStore: SpanStore {
                 try context.execute(deleteRequest)
                 try context.saveIfNeeded()
             } catch {
-                guard let self = self else { return }
                 self.logger.internalLog(level: .error, message: "Failed to delete spans", error: error, data: nil)
             }
         }
     }
 
-    func getAllSpans() -> [SpanEntity]? {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return nil
-        }
+    func getAllSpans() async -> [SpanEntity]? {
+        await coreDataManager.performBackgroundTask { context in
+            let fetchRequest: NSFetchRequest<SpanOb> = SpanOb.fetchRequest()
 
-        let fetchRequest: NSFetchRequest<SpanOb> = SpanOb.fetchRequest()
-        var spans: [SpanEntity] = []
-
-        context.performAndWait { [weak self] in
             do {
-                let result = try context.fetch(fetchRequest)
-                for spanOb in result {
-                    spans.append(SpanEntity(
+                let results = try context.fetch(fetchRequest)
+                let spans = results.map { spanOb in
+                    SpanEntity(
                         name: spanOb.name,
                         traceId: spanOb.traceId,
                         spanId: spanOb.spanId,
@@ -136,25 +112,18 @@ final class BaseSpanStore: SpanStore {
                         hasEnded: spanOb.hasEnded,
                         isSampled: spanOb.isSampled,
                         batchId: spanOb.batchId
-                    ))
+                    )
                 }
+                return spans.isEmpty ? nil : spans
             } catch {
-                guard let self = self else { return }
                 self.logger.internalLog(level: .error, message: "Failed to fetch spans.", error: error, data: nil)
+                return nil
             }
         }
-
-        return spans.isEmpty ? nil : spans
     }
 
-    func getUnBatchedSpans(spanCount: Int64, ascending: Bool) -> [String] {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return []
-        }
-
-        var results: [String] = []
-        context.performAndWait {
+    func getUnBatchedSpans(spanCount: Int64, ascending: Bool) async -> [String] {
+        await coreDataManager.performBackgroundTask { context in
             let fetchRequest: NSFetchRequest<SpanOb> = SpanOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "batchId == nil")
             fetchRequest.fetchLimit = Int(spanCount)
@@ -162,21 +131,16 @@ final class BaseSpanStore: SpanStore {
 
             do {
                 let spans = try context.fetch(fetchRequest)
-                results = spans.compactMap { $0.spanId }
+                return spans.compactMap { $0.spanId }
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch unbatched spans", error: error, data: nil)
+                self.logger.internalLog(level: .error, message: "Failed to fetch unbatched spans", error: error, data: nil)
+                return []
             }
-        }
-        return results
+        } ?? []
     }
 
-    func updateBatchId(_ batchId: String, for spans: [String]) {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return
-        }
-
-        context.performAndWait { [weak self] in
+    func updateBatchId(_ batchId: String, for spans: [String]) async {
+        await coreDataManager.performBackgroundTask { context in
             let fetchRequest: NSFetchRequest<SpanOb> = SpanOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "spanId IN %@", spans)
 
@@ -187,22 +151,16 @@ final class BaseSpanStore: SpanStore {
                 }
                 try context.saveIfNeeded()
             } catch {
-                guard let self = self else { return }
                 self.logger.internalLog(level: .error, message: "Failed to update batchId for spans: \(spans)", error: error, data: nil)
             }
         }
     }
 
-    func deleteSpans(sessionIds: [String]) {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return
-        }
+    func deleteSpans(sessionIds: [String]) async {
+        await coreDataManager.performBackgroundTask { context in
+            let fetchRequest: NSFetchRequest<SpanOb> = SpanOb.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
 
-        let fetchRequest: NSFetchRequest<SpanOb> = SpanOb.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
-
-        context.performAndWait { [weak self] in
             do {
                 let spans = try context.fetch(fetchRequest)
                 for span in spans {
@@ -210,13 +168,7 @@ final class BaseSpanStore: SpanStore {
                 }
                 try context.saveIfNeeded()
             } catch {
-                guard let self = self else { return }
-                self.logger.internalLog(
-                    level: .error,
-                    message: "Failed to delete spans by session IDs: \(sessionIds.joined(separator: ","))",
-                    error: error,
-                    data: nil
-                )
+                self.logger.internalLog(level: .error, message: "Failed to delete spans by session IDs: \(sessionIds.joined(separator: ","))", error: error, data: nil)
             }
         }
     }

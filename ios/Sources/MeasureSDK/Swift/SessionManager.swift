@@ -16,8 +16,8 @@ protocol SessionManager {
     func applicationWillEnterForeground()
     func applicationWillTerminate()
     func onEventTracked(_ event: EventEntity)
-    func setPreviousSessionCrashed(_ crashed: Bool)
-    func markCurrentSessionAsCrashed()
+    func setPreviousSessionCrashed(_ crashed: Bool) async
+    func markCurrentSessionAsCrashed() async
 }
 
 /// `BaseSessionManager`  is responsible for creating and managing sessions within the Measure SDK.
@@ -83,7 +83,9 @@ final class BaseSessionManager: SessionManager {
                                     createdAt: Number(timeProvider.now()),
                                     needsReporting: shouldReportSession,
                                     crashed: false)
-        sessionStore.insertSession(session)
+        Task {
+            await sessionStore.insertSession(session)
+        }
         let recentSession = RecentSession(id: session.sessionId,
                                           createdAt: session.createdAt,
                                           versionCode: versionCode)
@@ -201,18 +203,18 @@ final class BaseSessionManager: SessionManager {
         userDefaultStorage.setRecentSessionEventTime(event.timestampInMillis)
     }
 
-    func setPreviousSessionCrashed(_ crashed: Bool) {
+    func setPreviousSessionCrashed(_ crashed: Bool) async {
         self.previousSessionCrashed = crashed
         if let recentSession = userDefaultStorage.getRecentSession(), previousSessionCrashed {
-            sessionStore.markCrashedSession(sessionId: recentSession.id)
-            sessionStore.updateNeedsReporting(sessionId: recentSession.id, needsReporting: true)
-            eventStore.updateNeedsReportingForAllEvents(sessionId: recentSession.id, needsReporting: true)
+            await sessionStore.markCrashedSession(sessionId: recentSession.id)
+            await sessionStore.updateNeedsReporting(sessionId: recentSession.id, needsReporting: true)
+            await eventStore.updateNeedsReportingForAllEvents(sessionId: recentSession.id, needsReporting: true)
         }
     }
 
-    func markCurrentSessionAsCrashed() {
-        sessionStore.markCrashedSession(sessionId: sessionId)
-        if let session = sessionStore.getSession(byId: sessionId) {
+    func markCurrentSessionAsCrashed() async {
+        await sessionStore.markCrashedSession(sessionId: sessionId)
+        if let session = await sessionStore.getSession(byId: sessionId) {
             let recentSession = RecentSession(id: session.sessionId,
                                               createdAt: session.createdAt,
                                               crashed: true,
@@ -220,8 +222,8 @@ final class BaseSessionManager: SessionManager {
             userDefaultStorage.setRecentSession(recentSession)
         }
         if !shouldReportSession {
-            sessionStore.updateNeedsReporting(sessionId: sessionId, needsReporting: true)
-            eventStore.updateNeedsReportingForAllEvents(sessionId: sessionId, needsReporting: true)
+            await sessionStore.updateNeedsReporting(sessionId: sessionId, needsReporting: true)
+            await eventStore.updateNeedsReportingForAllEvents(sessionId: sessionId, needsReporting: true)
             shouldReportSession = true
         }
     }
