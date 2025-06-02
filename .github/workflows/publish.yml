@@ -63,6 +63,7 @@ jobs:
   trigger-cloud-deploy:
     name: Triggle Cloud Deploy
     runs-on: ubuntu-latest
+    needs: [build-api, test-api]
     steps:
       - name: Dispatch Cloud Deploy
         uses: peter-evans/repository-dispatch@v3
