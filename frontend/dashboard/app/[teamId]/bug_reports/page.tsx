@@ -99,7 +99,6 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                 teamId={params.teamId}
                 filterSource={FilterSource.Events}
                 appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-                showCreateApp={true}
                 showNoData={true}
                 showNotOnboarded={true}
                 showAppSelector={true}

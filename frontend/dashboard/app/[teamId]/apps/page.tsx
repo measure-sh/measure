@@ -152,30 +152,36 @@ export default function Apps({ params }: { params: { teamId: string } }) {
     <div className="flex flex-col selection:bg-yellow-200/75 items-start">
       <p className="font-display text-4xl max-w-6xl text-center">Apps</p>
       <div className="py-4" />
-      <Filters
-        ref={filtersRef}
-        teamId={params.teamId}
-        filterSource={FilterSource.Events}
-        appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-        showCreateApp={false}
-        showNoData={false}
-        showNotOnboarded={false}
-        showAppSelector={true}
-        showAppVersions={false}
-        showDates={false}
-        showSessionType={false}
-        showOsVersions={false}
-        showCountries={false}
-        showNetworkTypes={false}
-        showNetworkProviders={false}
-        showNetworkGenerations={false}
-        showLocales={false}
-        showDeviceManufacturers={false}
-        showDeviceNames={false}
-        showBugReportStatus={false}
-        showUdAttrs={false}
-        showFreeText={false}
-        onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
+      <div className="flex flex-row items-start justify-between gap-2 w-full">
+        <Filters
+          ref={filtersRef}
+          teamId={params.teamId}
+          filterSource={FilterSource.Events}
+          appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
+          showNoData={false}
+          showNotOnboarded={false}
+          showAppSelector={true}
+          showAppVersions={false}
+          showDates={false}
+          showSessionType={false}
+          showOsVersions={false}
+          showCountries={false}
+          showNetworkTypes={false}
+          showNetworkProviders={false}
+          showNetworkGenerations={false}
+          showLocales={false}
+          showDeviceManufacturers={false}
+          showDeviceNames={false}
+          showBugReportStatus={false}
+          showUdAttrs={false}
+          showFreeText={false}
+          onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
+        <CreateApp
+          teamId={params.teamId}
+          onSuccess={(app) => {
+            filtersRef.current?.refresh(app.id)
+          }} />
+      </div>
 
 
       {/* Main UI*/}
@@ -270,10 +276,6 @@ export default function Apps({ params }: { params: { teamId: string } }) {
           </div>
         </div>
       }
-      <div className="py-8" />
-      <Separator className="w-full" />
-      <div className="py-4" />
-      <CreateApp teamId={params.teamId} />
     </div>
   )
 }

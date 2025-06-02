@@ -54,7 +54,6 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         teamId={params.teamId}
         filterSource={FilterSource.Events}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
-        showCreateApp={true}
         showNoData={true}
         showNotOnboarded={true}
         showAppSelector={true}

@@ -1,16 +1,16 @@
 "use client"
 
-import { useSearchParams } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { formatDateToHumanReadableDateTime, formatIsoDateForDateTimeInputField, isValidTimestamp } from "../utils/time_utils"
 import React, { useEffect, useState, useImperativeHandle, forwardRef } from "react"
 import { AppVersion, AppsApiStatus, FiltersApiStatus, FilterSource, OsVersion, SessionType, RootSpanNamesApiStatus, App, fetchAppsFromServer, fetchFiltersFromServer, fetchRootSpanNamesFromServer, SpanStatus, UserDefAttr, BugReportStatus } from "../api/api_calls"
 import { DateTime } from "luxon"
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select"
 import FilterPill from "./filter_pill"
-import CreateApp from "./create_app"
 import DebounceTextInput from "./debounce_text_input"
 import LoadingSpinner from "./loading_spinner"
 import UserDefAttrSelector, { UdAttrMatcher } from "./user_def_attr_selector"
+import Link from "next/link"
 
 export enum AppVersionsInitialSelectionType {
   Latest,
@@ -23,7 +23,6 @@ interface FiltersProps {
   appId?: string,
   filterSource: FilterSource,
   appVersionsInitialSelectionType: AppVersionsInitialSelectionType,
-  showCreateApp: boolean
   showNoData: boolean
   showNotOnboarded: boolean
   showAppSelector: boolean
@@ -147,7 +146,6 @@ const Filters = forwardRef<
   appId,
   filterSource,
   appVersionsInitialSelectionType,
-  showCreateApp,
   showNoData,
   showNotOnboarded,
   showAppSelector,
@@ -482,6 +480,7 @@ const Filters = forwardRef<
   const customDateInputStyle = "font-display border border-black rounded-md p-1.5 text-sm transition-all outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
 
   const searchParams = useSearchParams()
+  const pathName = usePathname()
 
   const urlFilters = deserializeUrlFilters(searchParams.toString())
   const sessionPersistedFiltersKey = "sessionPersistedFilters"
@@ -553,7 +552,7 @@ const Filters = forwardRef<
         : DateTime.now().toISO()
       : DateTime.now().toISO())
 
-  const getApps = async () => {
+  const getApps = async (appIdToSelect?: string) => {
 
     setAppsApiStatus(AppsApiStatus.Loading)
 
@@ -569,8 +568,17 @@ const Filters = forwardRef<
       case AppsApiStatus.Success:
         setAppsApiStatus(AppsApiStatus.Success)
         setApps(result.data)
-        // Prefer app from url filters, then provided appId, then global persisted filters and finally first one in list
-        if (urlFilters.appId) {
+        console.log(1)
+        // Prefer app from function call, then url filters, then provided appId from props, then global persisted filters and finally first one in list
+        if (appIdToSelect !== undefined) {
+          let appFromGivenId = result.data.find((e: App) => e.id === appIdToSelect)
+          if (appFromGivenId === undefined) {
+            throw Error("Invalid app Id: " + appIdToSelect + " provided to getApps function")
+          } else {
+            setSelectedApp(appFromGivenId)
+          }
+        }
+        else if (urlFilters.appId) {
           let appFromUrlFilters = result.data.find((e: App) => e.id === urlFilters.appId)
           if (appFromUrlFilters === undefined) {
             throw Error("Invalid app Id: " + urlFilters.appId + " provided in URL")
@@ -603,8 +611,8 @@ const Filters = forwardRef<
     getApps()
   }, [])
 
-  function refresh() {
-    getApps()
+  function refresh(appIdToSelect?: string) {
+    getApps(appIdToSelect)
   }
 
   useImperativeHandle(ref, () => ({
@@ -979,13 +987,8 @@ const Filters = forwardRef<
       {appsApiStatus === AppsApiStatus.Loading && <LoadingSpinner />}
 
       {/* Error states for apps fetch */}
-      {appsApiStatus === AppsApiStatus.Error && <p className="text-lg font-display">Error fetching apps, please check if Team ID is valid or refresh page to try again</p>}
-      {appsApiStatus === AppsApiStatus.NoApps &&
-        <div>
-          <p className="text-lg font-display">Looks like you don&apos;t have any apps yet. Get started by creating your first app!</p>
-          {showCreateApp && <div className="py-4" />}
-          {showCreateApp && <CreateApp teamId={teamId} />}
-        </div>}
+      {appsApiStatus === AppsApiStatus.Error && <p className="font-body text-sm">Error fetching apps, please check if Team ID is valid or refresh page to try again</p>}
+      {appsApiStatus === AppsApiStatus.NoApps && <p className='font-body text-sm'>Looks like you don&apos;t have any apps yet. Get started by {pathName.includes("apps") ? "creating your first app!" : <Link className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href={`apps`}>creating your first app!</Link>}</p>}
 
       {/* Error states for app success but filters fetch loading or failure */}
       {appsApiStatus === AppsApiStatus.Success && filtersApiStatus !== FiltersApiStatus.Success &&
@@ -998,7 +1001,7 @@ const Filters = forwardRef<
           <div className="py-4" />
           {filtersApiStatus === FiltersApiStatus.Error && <p className="text-lg font-display">Error fetching filters, please refresh page or select a different app to try again</p>}
           {showNoData && filtersApiStatus === FiltersApiStatus.NoData && <p className="text-lg font-display">No {filterSource === FilterSource.Crashes ? 'crashes' : filterSource === FilterSource.Anrs ? 'ANRs' : 'data'} received for this app yet</p>}
-          {showNotOnboarded && filtersApiStatus === FiltersApiStatus.NotOnboarded && <CreateApp teamId={teamId} existingAppName={selectedApp!.name} existingApiKey={selectedApp!.api_key.key} />}
+          {showNotOnboarded && filtersApiStatus === FiltersApiStatus.NotOnboarded && <p className="font-body text-sm">Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure?tab=readme-ov-file#docs'>docs</Link> to finish setting up your app.</p>}
         </div>
       }
 

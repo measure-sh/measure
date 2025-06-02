@@ -1,10 +1,10 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import CreateApp from '@/app/components/create_app'
 import { FetchUsageApiStatus, emptyUsage, fetchUsageFromServer } from '@/app/api/api_calls'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import { ResponsivePie } from '@nivo/pie'
+import Link from 'next/link'
 
 export default function Overview({ params }: { params: { teamId: string } }) {
   type AppMonthlyUsage = {
@@ -115,19 +115,14 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       <div className="py-4" />
 
       {/* Error states */}
-      {fetchUsageApiStatus === FetchUsageApiStatus.Error && <p className="text-lg font-display">Error fetching usage data, please check if Team ID is valid or refresh page to try again</p>}
-      {fetchUsageApiStatus === FetchUsageApiStatus.NoApps &&
-        <div>
-          <p className="text-lg font-display">Looks like you don&apost have any apps yet. Get started by creating your first app!</p>
-          <div className="py-4" />
-          <CreateApp teamId={params.teamId} />
-        </div>}
+      {fetchUsageApiStatus === FetchUsageApiStatus.Error && <p className="font-body text-sm">Error fetching usage data, please check if Team ID is valid or refresh page to try again</p>}
+      {fetchUsageApiStatus === FetchUsageApiStatus.NoApps && <p className='font-body text-sm'>Looks like you don&apos;t have any apps yet. Get started by <Link className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href={`apps`}>creating your first app!</Link></p>}
 
       {/* Main UI */}
       {fetchUsageApiStatus === FetchUsageApiStatus.Loading && <p className='font-body'> Fetching usage data...</p>}
       {fetchUsageApiStatus === FetchUsageApiStatus.Success &&
         <div className="flex flex-col items-start w-full">
-          <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={months!} initialSelected={selectedMonth!} onChangeSelected={(item) => setSelectedMonth(item as string)} />
+          <DropdownSelect title="Month" type={DropdownSelectType.SingleString} items={months!} initialSelected={selectedMonth!} onChangeSelected={(item) => setSelectedMonth(item as string)} />
           <div className="py-4" />
           <div className='w-full h-[36rem]'>
             <ResponsivePie
