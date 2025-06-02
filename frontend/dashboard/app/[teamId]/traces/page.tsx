@@ -98,7 +98,6 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                 teamId={params.teamId}
                 filterSource={FilterSource.Spans}
                 appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-                showCreateApp={true}
                 showNoData={true}
                 showNotOnboarded={true}
                 showAppSelector={true}
