@@ -999,8 +999,8 @@ const Filters = forwardRef<
               {filtersApiStatus === FiltersApiStatus.Loading && <LoadingSpinner />}
             </div>}
           <div className="py-4" />
-          {filtersApiStatus === FiltersApiStatus.Error && <p className="text-lg font-display">Error fetching filters, please refresh page or select a different app to try again</p>}
-          {showNoData && filtersApiStatus === FiltersApiStatus.NoData && <p className="text-lg font-display">No {filterSource === FilterSource.Crashes ? 'crashes' : filterSource === FilterSource.Anrs ? 'ANRs' : 'data'} received for this app yet</p>}
+          {filtersApiStatus === FiltersApiStatus.Error && <p className="font-body text-sm">Error fetching filters, please refresh page or select a different app to try again</p>}
+          {showNoData && filtersApiStatus === FiltersApiStatus.NoData && <p className="font-body text-sm">No {filterSource === FilterSource.Crashes ? 'crashes' : filterSource === FilterSource.Anrs ? 'ANRs' : 'data'} received for this app yet</p>}
           {showNotOnboarded && filtersApiStatus === FiltersApiStatus.NotOnboarded && <p className="font-body text-sm">Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure?tab=readme-ov-file#docs'>docs</Link> to finish setting up your app.</p>}
         </div>
       }
@@ -1014,8 +1014,8 @@ const Filters = forwardRef<
               {rootSpanNamesApiStatus === RootSpanNamesApiStatus.Loading && <LoadingSpinner />}
             </div>}
           <div className="py-4" />
-          {rootSpanNamesApiStatus === RootSpanNamesApiStatus.Error && <p className="text-lg font-display">Error fetching traces list, please refresh page or select a different app to try again</p>}
-          {rootSpanNamesApiStatus === RootSpanNamesApiStatus.NoData && <p className="text-lg font-display">No traces received for this app yet</p>}
+          {rootSpanNamesApiStatus === RootSpanNamesApiStatus.Error && <p className="font-body text-sm">Error fetching traces list, please refresh page or select a different app to try again</p>}
+          {rootSpanNamesApiStatus === RootSpanNamesApiStatus.NoData && <p className="font-body text-sm">No traces received for this app yet</p>}
         </div>
       }
 

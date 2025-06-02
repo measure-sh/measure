@@ -284,7 +284,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
       {teamsApiStatus === TeamsApiStatus.Loading && <LoadingSpinner />}
 
       {/* Error message for team fetch error */}
-      {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg font-display">Error fetching team, please refresh page to try again</p>}
+      {teamsApiStatus === TeamsApiStatus.Error && <p className="font-body text-sm">Error fetching team, please refresh page to try again</p>}
 
       {teamsApiStatus === TeamsApiStatus.Success &&
         <div className="flex flex-col items-start">
@@ -383,7 +383,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
           {/* Loading message for fetch members */}
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Loading && <LoadingSpinner />}
           {/* Error message for fetch members */}
-          {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Error && <p className="font-display">Error fetching team members, please refresh page to try again</p>}
+          {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Error && <p className="font-body text-sm">Error fetching team members, please refresh page to try again</p>}
 
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success &&
             <Table className="font-display table-auto w-full">
@@ -480,7 +480,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
           {/* Loading message for fetch pending invites */}
           {pendingInvitesApiStatus === PendingInvitesApiStatus.Loading && <LoadingSpinner />}
           {/* Error message for fetch pending invites */}
-          {pendingInvitesApiStatus === PendingInvitesApiStatus.Error && <p className="font-display">Error fetching pending invites, please refresh page to try again</p>}
+          {pendingInvitesApiStatus === PendingInvitesApiStatus.Error && <p className="font-body text-sm">Error fetching pending invites, please refresh page to try again</p>}
 
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success && pendingInvitesApiStatus === PendingInvitesApiStatus.Success && pendingInvites?.length! > 0 &&
             <Table className="font-display table-auto w-full">
@@ -552,8 +552,8 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                 </Button>
                 <div className="py-2" />
               </form>
-              {createTeamApiStatus === CreateTeamApiStatus.Loading && <p className="font-display">Creating team...</p>}
-              {createTeamApiStatus === CreateTeamApiStatus.Error && <p className="font-display">{createTeamErrorMsg}</p>}
+              {createTeamApiStatus === CreateTeamApiStatus.Loading && <LoadingSpinner />}
+              {createTeamApiStatus === CreateTeamApiStatus.Error && <p className="font-body text-sm">{createTeamErrorMsg}</p>}
             </div>}
         </div>}
     </div>

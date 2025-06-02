@@ -241,7 +241,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             <p className="font-display text-2xl max-w-6xl">Configure Data Rentention</p>
             <div className="flex flex-row items-center mt-2">
               {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Loading && <LoadingSpinner />}
-              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Error && <p>: Unable to fetch retention period. Please refresh page to try again.</p>}
+              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Error && <p className="font-body text-sm">: Unable to fetch retention period. Please refresh page to try again.</p>}
               {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success && <DropdownSelect type={DropdownSelectType.SingleString} title="Data Retention Period" items={Array.from(retentionPeriodToDisplayTextMap.values())} initialSelected={retentionPeriodToDisplayTextMap.get(appSettings.retention_period!)!} onChangeSelected={(item) => handleRetentionPeriodChange(item as string)} />}
               {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success &&
                 <Button

@@ -1,6 +1,7 @@
 "use client"
 
 import { SessionTimelineApiStatus, emptySessionTimeline, fetchSessionTimelineFromServer } from "@/app/api/api_calls"
+import LoadingSpinner from "@/app/components/loading_spinner"
 import SessionTimeline from "@/app/components/session_timeline"
 import { formatMillisToHumanReadable } from "@/app/utils/time_utils"
 import { useEffect, useState } from "react"
@@ -34,9 +35,9 @@ export default function Session({ params }: { params: { teamId: string, appId: s
       <p className="font-display text-4xl">Session: {params.sessionId}</p>
       <div className="py-2" />
 
-      {sessionTimelineApiStatus === SessionTimelineApiStatus.Loading && <p className="text-lg font-display">Fetching session timeline...</p>}
+      {sessionTimelineApiStatus === SessionTimelineApiStatus.Loading && <LoadingSpinner />}
 
-      {sessionTimelineApiStatus === SessionTimelineApiStatus.Error && <p className="text-lg font-display">Error fetching session timeline, please refresh page try again</p>}
+      {sessionTimelineApiStatus === SessionTimelineApiStatus.Error && <p className="font-body text-sm">Error fetching session timeline, please refresh page try again</p>}
 
       {sessionTimelineApiStatus === SessionTimelineApiStatus.Success &&
         <div>

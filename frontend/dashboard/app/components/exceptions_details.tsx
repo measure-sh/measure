@@ -176,7 +176,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
           </div>
 
           {pageState.exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Error &&
-            <p className="text-lg font-display">Error fetching list of {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
+            <p className="font-body text-sm">Error fetching list of {exceptionsType === ExceptionsType.Crash ? 'crashes' : 'ANRs'}, please change filters, refresh page or select a different app to try again</p>}
 
           {(pageState.exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Success || pageState.exceptionsDetailsApiStatus === ExceptionsDetailsApiStatus.Loading) &&
             <div className='flex flex-col'>

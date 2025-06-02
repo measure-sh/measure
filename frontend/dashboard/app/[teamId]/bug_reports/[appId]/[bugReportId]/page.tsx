@@ -63,7 +63,7 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
 
       {bugReportApiStatus === BugReportApiStatus.Loading && <LoadingSpinner />}
 
-      {bugReportApiStatus === BugReportApiStatus.Error && <p className="text-lg font-display">Error fetching bug report, please refresh page try again</p>}
+      {bugReportApiStatus === BugReportApiStatus.Error && <p className="font-body text-sm">Error fetching bug report, please refresh page try again</p>}
 
       {bugReportApiStatus === BugReportApiStatus.Success &&
         <div>

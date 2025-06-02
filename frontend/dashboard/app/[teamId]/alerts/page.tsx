@@ -164,7 +164,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
           <div className="py-4" />
 
           {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Loading && <LoadingSpinner />}
-          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Error && <p className='font-body'> Failed to fetch alert preferences. Please change selected app or refresh page to try again</p>}
+          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Error && <p className='font-body text-sm'> Failed to fetch alert preferences. Please change selected app or refresh page to try again</p>}
           {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Success &&
             <div>
               <div className="table font-body">
