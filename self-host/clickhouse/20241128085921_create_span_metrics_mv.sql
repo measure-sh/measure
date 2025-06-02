@@ -22,7 +22,7 @@ select app_id,
        quantileState(0.99)(date_diff('ms', start_time, end_time))   as p99
 from spans
 group by app_id, span_name, span_id, status, timestamp, app_version, os_version, country_code, network_provider, network_type, network_generation, device_locale, device_manufacturer, device_name, device_low_power_mode, device_thermal_throttling_enabled
-order by app_id, span_name, span_id, status, timestamp, app_version, os_version, country_code, network_provider, network_type, network_generation, device_locale, device_manufacturer, device_name, device_low_power_mode, device_thermal_throttling_enabled
+order by app_id, span_name, span_id, status, timestamp, app_version, os_version, country_code, network_provider, network_type, network_generation, device_locale, device_manufacturer, device_name, device_low_power_mode, device_thermal_throttling_enabled;
 
 
 -- migrate:down

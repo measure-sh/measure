@@ -1,7 +1,6 @@
 -- migrate:up
 alter table events
-    add column if not exists `exception.binary_images` String after `exception.foreground`,
-    comment column `exception.binary_images` 'list of apple crash binary images';
+    add column if not exists `exception.binary_images` String after `exception.foreground`;
 
 
 -- migrate:down
