@@ -130,7 +130,7 @@ docker compose run --rm dbmate-clickhouse new <migration-name>
 
 # Example
 docker compose run --rm dbmate-clickhouse new create_users_table
-docker compose run --rm dbmate-clickhouse new allter_events_table
+docker compose run --rm dbmate-clickhouse new alter_events_table
 ```
 
 ### Running ClickHouse Migrations
