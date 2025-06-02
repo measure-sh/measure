@@ -5,6 +5,7 @@ import { App, AppsApiStatus, FetchAlertPrefsApiStatus, UpdateAlertPrefsApiStatus
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import { Button } from '@/app/components/button'
 import Link from 'next/link'
+import LoadingSpinner from '@/app/components/loading_spinner'
 
 export default function Overview({ params }: { params: { teamId: string } }) {
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading)
@@ -162,7 +163,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
           <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={apps[0].name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
           <div className="py-4" />
 
-          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Loading && <p className='font-body'> Fetching alert preferences...</p>}
+          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Loading && <LoadingSpinner />}
           {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Error && <p className='font-body'> Failed to fetch alert preferences. Please change selected app or refresh page to try again</p>}
           {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Success &&
             <div>
