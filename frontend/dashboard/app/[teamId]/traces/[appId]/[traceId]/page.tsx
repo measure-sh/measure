@@ -2,6 +2,7 @@
 
 import { TraceApiStatus, emptyTrace, fetchTraceFromServer } from "@/app/api/api_calls"
 import { buttonVariants } from "@/app/components/button"
+import LoadingSpinner from "@/app/components/loading_spinner"
 import TraceViz from "@/app/components/trace_viz"
 import { cn } from "@/app/utils/shadcn_utils"
 import { formatDateToHumanReadableDateTime, formatMillisToHumanReadable } from "@/app/utils/time_utils"
@@ -37,9 +38,9 @@ export default function TraceDetails({ params }: { params: { teamId: string, app
       <p className="font-display text-4xl">Trace: {params.traceId}</p>
       <div className="py-2" />
 
-      {traceApiStatus === TraceApiStatus.Loading && <p className="text-lg font-display">Fetching trace...</p>}
+      {traceApiStatus === TraceApiStatus.Loading && <LoadingSpinner />}
 
-      {traceApiStatus === TraceApiStatus.Error && <p className="text-lg font-display">Error fetching trace, please refresh page try again</p>}
+      {traceApiStatus === TraceApiStatus.Error && <p className="font-body text-sm">Error fetching trace, please refresh page try again</p>}
 
       {traceApiStatus === TraceApiStatus.Success &&
         <div>
