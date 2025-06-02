@@ -12,6 +12,7 @@ import Foundation
 final class MockCoreDataManager: CoreDataManager {
     var backgroundContext: NSManagedObjectContext?
     var mainContext: NSManagedObjectContext?
+    private let persistentContainer: NSPersistentContainer
 
     init() {
         guard let modelURL = Bundle(for: type(of: self)).url(forResource: "MeasureModel", withExtension: "momd") else {
@@ -19,20 +20,35 @@ final class MockCoreDataManager: CoreDataManager {
         }
 
         guard let managedObjectModel = NSManagedObjectModel(contentsOf: modelURL) else {
-            fatalError("Error initializing mom from: \(modelURL)")
+            fatalError("Error initializing NSManagedObjectModel from: \(modelURL)")
         }
 
-        let persistentContainer = NSPersistentContainer(name: "MeasureModel", managedObjectModel: managedObjectModel)
-
+        persistentContainer = NSPersistentContainer(name: "MeasureModel", managedObjectModel: managedObjectModel)
         let description = NSPersistentStoreDescription()
         description.type = NSInMemoryStoreType
         persistentContainer.persistentStoreDescriptions = [description]
+
         persistentContainer.loadPersistentStores { _, error in
             if let error = error {
                 fatalError("Failed to load in-memory store: \(error)")
             }
         }
+
         mainContext = persistentContainer.viewContext
         backgroundContext = persistentContainer.newBackgroundContext()
+    }
+
+    func performBackgroundTask(_ block: @escaping (NSManagedObjectContext) -> Void) {
+        guard let context = backgroundContext else { return }
+        context.perform {
+            block(context)
+        }
+    }
+
+    func performMainTask(_ block: @escaping (NSManagedObjectContext) -> Void) {
+        guard let context = mainContext else { return }
+        context.perform {
+            block(context)
+        }
     }
 }

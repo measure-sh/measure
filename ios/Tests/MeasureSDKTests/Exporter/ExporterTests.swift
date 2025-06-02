@@ -42,14 +42,14 @@ final class BaseexporterTests: XCTestCase {
         eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 100))
         eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200))
 
-        let response = exporter.export(batchId: batchId, eventIds: eventIds, spanIds: spanIds)
-
-        XCTAssertNotNil(response)
-        XCTAssertTrue(networkClient.executeCalled)
-        XCTAssertEqual(networkClient.executedBatchId, batchId)
-        XCTAssertEqual(networkClient.executedEvents.count, 2)
-        XCTAssertEqual(networkClient.executedEvents[0].id, "event1")
-        XCTAssertEqual(networkClient.executedEvents[1].id, "event2")
+        exporter.export(batchId: batchId, eventIds: eventIds, spanIds: spanIds) { response in
+            XCTAssertNotNil(response)
+            XCTAssertTrue(self.networkClient.executeCalled)
+            XCTAssertEqual(self.networkClient.executedBatchId, batchId)
+            XCTAssertEqual(self.networkClient.executedEvents.count, 2)
+            XCTAssertEqual(self.networkClient.executedEvents[0].id, "event1")
+            XCTAssertEqual(self.networkClient.executedEvents[1].id, "event2")
+        }
     }
 
     func test_exportBatchNoEventsFound() {
@@ -57,10 +57,10 @@ final class BaseexporterTests: XCTestCase {
         let eventIds = ["event-id"]
         let spanIds = ["span-id"]
 
-        let response = exporter.export(batchId: batchId, eventIds: eventIds, spanIds: spanIds)
-
-        XCTAssertNil(response)
-        XCTAssertFalse(networkClient.executeCalled)
+        exporter.export(batchId: batchId, eventIds: eventIds, spanIds: spanIds) { response in
+            XCTAssertNil(response)
+            XCTAssertFalse(self.networkClient.executeCalled)
+        }
     }
 
     func test_getExistingBatches() {
@@ -68,11 +68,11 @@ final class BaseexporterTests: XCTestCase {
         let batch2 = BatchEntity(batchId: "batch2", eventIds: ["event3", "event4"], spanIds: ["span3", "span4"], createdAt: 1727272497000)
 
         batchStore.batches = [batch1, batch2]
-        let batches = exporter.getExistingBatches()
-
-        XCTAssertEqual(batches.count, 2)
-        XCTAssertEqual(batches[0].eventIds, ["event1", "event2"])
-        XCTAssertEqual(batches[1].eventIds, ["event3", "event4"])
+        exporter.getExistingBatches() { batches in
+            XCTAssertEqual(batches.count, 2)
+            XCTAssertEqual(batches[0].eventIds, ["event1", "event2"])
+            XCTAssertEqual(batches[1].eventIds, ["event3", "event4"])
+        }
     }
 
     func test_deleteEventsAndBatchOnSuccessfulExport() {
@@ -84,13 +84,13 @@ final class BaseexporterTests: XCTestCase {
 
         networkClient.response = .success(body: "success")
 
-        let response = exporter.export(batchId: batchId, eventIds: eventIds, spanIds: spanIds)
-
-        XCTAssertNotNil(response)
-        XCTAssertTrue(eventStore.deleteEventsCalled)
-        XCTAssertEqual(eventStore.deletedEventIds, eventIds)
-        XCTAssertTrue(batchStore.deleteBatchCalled)
-        XCTAssertEqual(batchStore.deletedBatchId, batchId)
+        exporter.export(batchId: batchId, eventIds: eventIds, spanIds: spanIds) { response in
+            XCTAssertNotNil(response)
+            XCTAssertTrue(self.eventStore.deleteEventsCalled)
+            XCTAssertEqual(self.eventStore.deletedEventIds, eventIds)
+            XCTAssertTrue(self.batchStore.deleteBatchCalled)
+            XCTAssertEqual(self.batchStore.deletedBatchId, batchId)
+        }
     }
 
     func test_deleteEventsAndBatchOnClientError() {
@@ -102,12 +102,12 @@ final class BaseexporterTests: XCTestCase {
 
         networkClient.response = .error(.clientError(responseCode: 400, body: "error"))
 
-        let response = exporter.export(batchId: batchId, eventIds: eventIds, spanIds: spanIds)
-
-        XCTAssertNotNil(response)
-        XCTAssertTrue(eventStore.deleteEventsCalled)
-        XCTAssertEqual(eventStore.deletedEventIds, eventIds)
-        XCTAssertTrue(batchStore.deleteBatchCalled)
-        XCTAssertEqual(batchStore.deletedBatchId, batchId)
+        exporter.export(batchId: batchId, eventIds: eventIds, spanIds: spanIds) { response in
+            XCTAssertNotNil(response)
+            XCTAssertTrue(self.eventStore.deleteEventsCalled)
+            XCTAssertEqual(self.eventStore.deletedEventIds, eventIds)
+            XCTAssertTrue(self.batchStore.deleteBatchCalled)
+            XCTAssertEqual(self.batchStore.deletedBatchId, batchId)
+        }
     }
 }

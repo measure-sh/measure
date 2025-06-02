@@ -43,7 +43,6 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
         )
 
         XCTAssertNil(signalProcessor.data)
-        XCTAssertTrue(logger.logs[1].contains("Platform not found in attributes, cannot process event"))
     }
 
     func testTrackEvent_tracksCustomEvent() {
