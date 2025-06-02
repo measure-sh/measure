@@ -38,7 +38,7 @@
 
 ## Quick start
 
-Measure is available as a self hosted platform that comes with a simple one line install script. Check out our [Self hosting](./docs/hosting/README.md), [Android SDK](./docs/android/README.md) and [iOS SDK](./docs/ios/README.md) guides.
+Measure is available as a self-hosted platform that comes with a simple one line install script. Check out our [Self hosting](./docs/hosting/README.md) and [SDK integration](./docs/sdk-integration-guide.md) guides.
 
 ## Features
 
@@ -53,7 +53,7 @@ Debug issues easily with full session timelines. Get the complete context with a
 Capture bug reports with a device shake or SDK call. Get full history of user actions leading to the bug.
 
 [Bug Reports demo](https://github.com/user-attachments/assets/a832f669-a794-40ee-af67-9d12e256b696)
-
+2
 ### Performance Traces
 
 Analyze app performance with traces and spans. Break down complex issues and intelligently smoothen out bottlenecks. 
@@ -101,10 +101,11 @@ If you want to support the project and get updates on new features and releases,
 ## Docs
 
 1. [**Self Hosting Guide**](./docs/hosting/README.md) - Get started with hosting Measure
-2. [**Android SDK Guide**](./android/README.md) - Integrate our Android SDK and start measuring in no time
-3. [**REST API Docs**](./docs/api/README.md) - REST APIs used by the dashboard app and SDKs
-4. [**Versioning Guide**](./docs/versioning/README.md) - Understand how versions are tagged
-5. [**Contribution Guide**](./docs/CONTRIBUTING.md) - Contribute to Measure
+2. [**SDK Integration Guide**](./docs/sdk-integration-guide.md) - Integrate Android or iOS SDK and start measuring in no time
+3. [**Explore Features**](./docs/README.md#explore-features) - Learn about the features available in Measure and how to use them
+4. [**REST API Docs**](./docs/api/README.md) - REST APIs used by the dashboard app and SDKs
+5. [**Versioning Guide**](./docs/versioning/README.md) - Understand how versions are tagged
+6. [**Contribution Guide**](./docs/CONTRIBUTING.md) - Contribute to Measure
 
 
 ## Platforms
