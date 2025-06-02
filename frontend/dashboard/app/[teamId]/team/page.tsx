@@ -281,7 +281,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
       <div className="py-2" />
 
       {/* Loading message for team */}
-      {teamsApiStatus === TeamsApiStatus.Loading && <p className="text-lg font-display">Loading team...</p>}
+      {teamsApiStatus === TeamsApiStatus.Loading && <LoadingSpinner />}
 
       {/* Error message for team fetch error */}
       {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg font-display">Error fetching team, please refresh page to try again</p>}

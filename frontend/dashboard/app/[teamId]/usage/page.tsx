@@ -5,6 +5,7 @@ import { FetchUsageApiStatus, emptyUsage, fetchUsageFromServer } from '@/app/api
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import { ResponsivePie } from '@nivo/pie'
 import Link from 'next/link'
+import LoadingSpinner from '@/app/components/loading_spinner'
 
 export default function Overview({ params }: { params: { teamId: string } }) {
   type AppMonthlyUsage = {
@@ -119,7 +120,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       {fetchUsageApiStatus === FetchUsageApiStatus.NoApps && <p className='font-body text-sm'>Looks like you don&apos;t have any apps yet. Get started by <Link className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href={`apps`}>creating your first app!</Link></p>}
 
       {/* Main UI */}
-      {fetchUsageApiStatus === FetchUsageApiStatus.Loading && <p className='font-body'> Fetching usage data...</p>}
+      {fetchUsageApiStatus === FetchUsageApiStatus.Loading && <LoadingSpinner />}
       {fetchUsageApiStatus === FetchUsageApiStatus.Success &&
         <div className="flex flex-col items-start w-full">
           <DropdownSelect title="Month" type={DropdownSelectType.SingleString} items={months!} initialSelected={selectedMonth!} onChangeSelected={(item) => setSelectedMonth(item as string)} />
