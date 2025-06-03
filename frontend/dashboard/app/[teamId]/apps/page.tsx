@@ -150,39 +150,38 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start">
-      <p className="font-display text-4xl max-w-6xl text-center">Apps</p>
-      <div className="py-4" />
-      <div className="flex flex-row items-start justify-between gap-2 w-full">
-        <Filters
-          ref={filtersRef}
-          teamId={params.teamId}
-          filterSource={FilterSource.Events}
-          appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-          showNoData={false}
-          showNotOnboarded={false}
-          showAppSelector={true}
-          showAppVersions={false}
-          showDates={false}
-          showSessionType={false}
-          showOsVersions={false}
-          showCountries={false}
-          showNetworkTypes={false}
-          showNetworkProviders={false}
-          showNetworkGenerations={false}
-          showLocales={false}
-          showDeviceManufacturers={false}
-          showDeviceNames={false}
-          showBugReportStatus={false}
-          showUdAttrs={false}
-          showFreeText={false}
-          onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
+      <div className="flex flex-row items-center gap-2 justify-between w-full">
+        <p className="font-display text-4xl max-w-6xl text-center">Apps</p>
         <CreateApp
           teamId={params.teamId}
           onSuccess={(app) => {
             filtersRef.current?.refresh(app.id)
           }} />
       </div>
-
+      <div className="py-4" />
+      <Filters
+        ref={filtersRef}
+        teamId={params.teamId}
+        filterSource={FilterSource.Events}
+        appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
+        showNoData={false}
+        showNotOnboarded={false}
+        showAppSelector={true}
+        showAppVersions={false}
+        showDates={false}
+        showSessionType={false}
+        showOsVersions={false}
+        showCountries={false}
+        showNetworkTypes={false}
+        showNetworkProviders={false}
+        showNetworkGenerations={false}
+        showLocales={false}
+        showDeviceManufacturers={false}
+        showDeviceNames={false}
+        showBugReportStatus={false}
+        showUdAttrs={false}
+        showFreeText={false}
+        onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
 
       {/* Main UI*/}
       {filters.ready &&
@@ -207,8 +206,8 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               {(!filters.app!.unique_identifier || !filters.app!.os_name) &&
                 <p className="font-body text-sm">Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure?tab=readme-ov-file#docs'>docs</Link> to finish setting up your app.</p>}
             </div>
-            <div className="py-8" />
-            <p className="font-display text-2xl max-w-6xl">SDK Variables</p>
+            <div className="py-10" />
+            <p className="font-display text-xl max-w-6xl">Copy SDK variables</p>
             <div className="flex flex-row items-center mt-2">
               <p className="text-sm">API URL</p>
               <div className="px-3" />
@@ -238,7 +237,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               </Button>
             </div>
             <div className="py-8" />
-            <p className="font-display text-2xl max-w-6xl">Configure Data Rentention</p>
+            <p className="font-display text-xl max-w-6xl">Configure data rentention</p>
             <div className="flex flex-row items-center mt-2">
               {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Loading && <LoadingSpinner />}
               {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Error && <p className="font-body text-sm">: Unable to fetch retention period. Please refresh page to try again.</p>}
@@ -255,7 +254,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               }
             </div>
             <div className="py-8" />
-            <p className="font-display text-2xl max-w-6xl">Change App Name</p>
+            <p className="font-display text-xl max-w-6xl">Change App Name</p>
             <div className="flex flex-row items-center mt-2">
               <input id="change-app-name-input" type="text" value={appName}
                 onChange={(event) => {
