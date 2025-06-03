@@ -249,9 +249,10 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start">
-      <p className="font-display text-4xl max-w-6xl text-center">Team</p>
-      <div className="py-2" />
-      <CreateTeam onSuccess={() => location.reload()} />
+      <div className="flex flex-row items-center gap-2 justify-between w-full">
+        <p className="font-display text-4xl max-w-6xl text-center">Team</p>
+        <CreateTeam onSuccess={() => location.reload()} />
+      </div>
 
       {/* Loading message for team */}
       {teamsApiStatus === TeamsApiStatus.Loading && <LoadingSpinner />}
@@ -307,28 +308,8 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
             onCancelAction={() => setRemoveMemberConfirmationModalOpen(false)}
           />
 
-          <div className="py-8" />
-          <p className="font-display text-2xl max-w-6xl text-center">Change team name</p>
-          <div className="flex flex-row items-center">
-            <input id="change-team-name-input" type="text" defaultValue={team!.name}
-              onChange={(event) => {
-                event.target.value === team!.name ? setSaveTeamNameButtonDisabled(true) : setSaveTeamNameButtonDisabled(false)
-                setNewTeamName(event.target.value)
-                setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Init)
-              }}
-              className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
-            <Button
-              variant="outline"
-              className="m-4 font-display border border-black select-none"
-              disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
-              loading={teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
-              onClick={() => setTeamNameConfirmationModalOpen(true)}>
-              Save
-            </Button>
-          </div>
-
-          <div className="py-8" />
-          <p className="font-display text-2xl max-w-6xl text-center">Invite team members</p>
+          <div className="py-6" />
+          <p className="font-display text-xl max-w-6xl text-center">Invite team members</p>
           <div className="flex flex-row items-center">
             <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} value={inviteMemberEmail} />
             <div className="px-2" />
@@ -344,7 +325,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
           </div>
 
           <div className="py-8" />
-          <p className="font-display text-2xl max-w-6xl text-center">Members</p>
+          <p className="font-display text-xl max-w-6xl text-center">Members</p>
           <div className="py-2" />
           {/* Loading message for fetch members */}
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Loading && <LoadingSpinner />}
@@ -442,7 +423,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
               </TableBody>
             </Table>}
 
-          {(pendingInvitesApiStatus !== PendingInvitesApiStatus.Success || (pendingInvitesApiStatus === PendingInvitesApiStatus.Success && pendingInvites?.length! > 0)) && <p className="mt-16 mb-6 font-display text-2xl max-w-6xl text-center">Pending Invites</p>}
+          {(pendingInvitesApiStatus !== PendingInvitesApiStatus.Success || (pendingInvitesApiStatus === PendingInvitesApiStatus.Success && pendingInvites?.length! > 0)) && <p className="mt-16 mb-6 font-display text-xl max-w-6xl text-center">Pending Invites</p>}
           {/* Loading message for fetch pending invites */}
           {pendingInvitesApiStatus === PendingInvitesApiStatus.Loading && <LoadingSpinner />}
           {/* Error message for fetch pending invites */}
@@ -497,6 +478,26 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                 ))}
               </TableBody>
             </Table>}
+
+          <div className="py-8" />
+          <p className="font-display text-xl max-w-6xl text-center">Change team name</p>
+          <div className="flex flex-row items-center">
+            <input id="change-team-name-input" type="text" defaultValue={team!.name}
+              onChange={(event) => {
+                event.target.value === team!.name ? setSaveTeamNameButtonDisabled(true) : setSaveTeamNameButtonDisabled(false)
+                setNewTeamName(event.target.value)
+                setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Init)
+              }}
+              className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
+            <Button
+              variant="outline"
+              className="m-4 font-display border border-black select-none"
+              disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
+              loading={teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
+              onClick={() => setTeamNameConfirmationModalOpen(true)}>
+              Save
+            </Button>
+          </div>
         </div>}
     </div>
   )
