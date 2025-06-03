@@ -13,6 +13,7 @@ import { toastNegative, toastPositive } from "@/app/utils/use_toast"
 import LoadingSpinner from "@/app/components/loading_spinner"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/app/components/table"
 import { Separator } from "@/app/components/separator"
+import CreateTeam from "@/app/components/create_team"
 
 export default function TeamOverview({ params }: { params: { teamId: string } }) {
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading)
@@ -34,11 +35,6 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   const [removeMemberConfirmationModalOpen, setRemoveMemberConfirmationModalOpen] = useState(false)
   const [removeMemberId, setRemoveMemberId] = useState("")
   const [removeMemberEmail, setRemoveMemberEmail] = useState("")
-
-  const [createTeamApiStatus, setCreateTeamApiStatus] = useState(CreateTeamApiStatus.Init)
-  const [createTeamName, setCreateTeamName] = useState("")
-  const [createTeamErrorMsg, setCreateTeamErrorMsg] = useState("")
-  const [createTeamAlertModalOpen, setCreateTeamAlertModalOpen] = useState(false)
 
   const [getAuthzAndMembersApiStatus, setAuthzAndMembersApiStatus] = useState(AuthzAndMembersApiStatus.Loading)
   const [authzAndMembers, setAuthzAndMembers] = useState(defaultAuthzAndMembers)
@@ -251,34 +247,11 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     }
   }
 
-  const createTeam: FormEventHandler = async (event) => {
-    event.preventDefault()
-
-    if (createTeamName === "") {
-      return
-    }
-
-    setCreateTeamErrorMsg("")
-    setCreateTeamApiStatus(CreateTeamApiStatus.Loading)
-
-    const result = await createTeamFromServer(createTeamName)
-
-    switch (result.status) {
-      case CreateTeamApiStatus.Error:
-        setCreateTeamApiStatus(CreateTeamApiStatus.Error)
-        setCreateTeamErrorMsg(result.error)
-        break
-      case CreateTeamApiStatus.Success:
-        setCreateTeamApiStatus(CreateTeamApiStatus.Success)
-        setCreateTeamAlertModalOpen(true)
-        break
-    }
-  }
-
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start">
       <p className="font-display text-4xl max-w-6xl text-center">Team</p>
       <div className="py-2" />
+      <CreateTeam onSuccess={() => location.reload()} />
 
       {/* Loading message for team */}
       {teamsApiStatus === TeamsApiStatus.Loading && <LoadingSpinner />}
@@ -334,14 +307,8 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
             onCancelAction={() => setRemoveMemberConfirmationModalOpen(false)}
           />
 
-          {/* Dialog for acknowledging new team creation */}
-          <AlertDialog title="Team Created" body={<p className="font-body">Team <span className="font-display font-bold">{createTeamName}</span> has been succesfully created!</p>} open={createTeamAlertModalOpen} affirmativeText="Okay"
-            onAffirmativeAction={() => {
-              setCreateTeamAlertModalOpen(false)
-              location.reload()
-            }}
-          />
-
+          <div className="py-8" />
+          <p className="font-display text-2xl max-w-6xl text-center">Change team name</p>
           <div className="flex flex-row items-center">
             <input id="change-team-name-input" type="text" defaultValue={team!.name}
               onChange={(event) => {
@@ -360,9 +327,8 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
             </Button>
           </div>
 
-          <div className="py-4" />
+          <div className="py-8" />
           <p className="font-display text-2xl max-w-6xl text-center">Invite team members</p>
-          <div className="py-1" />
           <div className="flex flex-row items-center">
             <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} value={inviteMemberEmail} />
             <div className="px-2" />
@@ -531,30 +497,6 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
                 ))}
               </TableBody>
             </Table>}
-
-          {/* Create new team */}
-          {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success &&
-            <div className="w-full">
-              <div className="py-8" />
-              <Separator className="w-full" />
-              <div className="py-4" />
-              <form onSubmit={createTeam} className="flex flex-col">
-                <p className="font-display text-2xl">Create new team</p>
-                <div className="py-4" />
-                <input id="app-name" type="string" placeholder="Enter team name" className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" onChange={(event) => setCreateTeamName(event.target.value)} />
-                <div className="py-2" />
-                <Button
-                  variant="outline"
-                  type="submit"
-                  className="w-fit font-display border border-black select-none"
-                  disabled={createTeamApiStatus === CreateTeamApiStatus.Loading || createTeamName.length === 0}>
-                  Create Team
-                </Button>
-                <div className="py-2" />
-              </form>
-              {createTeamApiStatus === CreateTeamApiStatus.Loading && <LoadingSpinner />}
-              {createTeamApiStatus === CreateTeamApiStatus.Error && <p className="font-body text-sm">{createTeamErrorMsg}</p>}
-            </div>}
         </div>}
     </div>
   )
