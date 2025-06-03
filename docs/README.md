@@ -29,7 +29,8 @@ feature's documentation to understand its underlying mechanism and enhance your 
 * [**Session Monitoring**](features/feature-session-monitoring.md) — Find and view complete user sessions
 * [**Crash Reporting**](features/feature-crash-reporting.md) — Analyze app crashes
 * [**ANR Reporting**](features/feature-anr-reporting.md) — Analyze Application Not Responding (ANR) issues
-* [**Error tracking**](features/feature-error-tracking.md) — Track and analyze handled errors in your app
+* [**Error Tracking**](features/feature-error-tracking.md) — Track and analyze handled errors in your app
+* [**Gesture Tracking**](features/feature-gesture-tracking.md) — Automatically track user gestures in your app
 * [**Performance Tracing**](features/feature-performance-tracing.md) — Monitor app performance with traces
 * [**Custom Events**](features/feature-custom-events.md) — Capture custom events in your app
 * **Bug Reporting** — Let users report bugs directly from your app
