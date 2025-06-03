@@ -6,6 +6,7 @@ See the platform-specific sections below for details on the performance impact o
   * [Benchmarks](#benchmarks)
   * [Profiling](#profiling)
   * [Comparison to Firebase initialization](#comparison-to-firebase-initialization)
+* [**iOS**](#ios)
 
 ## Android
 
@@ -58,3 +59,33 @@ Perfetto screenshot from one of the runs:
 
 ![Screenshot](assets/android-firebase-comparison.png)
 
+## iOS
+
+## Benchmarks
+
+We benchmarked the iOS SDKs performance impact using a baseline app on an iPhone 14 Plus
+running iOS 18.5. Each scenario was executed _5 times_ and instrumented with `os_signpost` for
+precise time tracking. Metrics were collected via Instruments (Time Profiler and Logging with
+Signposts).
+
+> [!IMPORTANT]
+> Performance impact varies based on device and application complexity.
+> We recommend measuring impact in your specific app.
+> The following numbers serve as a reference baseline and are used internally to monitor regressions.
+
+### Benchmark Results (v0.3.1)
+
+Measure adds **21.9–27.8 ms (avg ~23.8 ms)** to app startup time (Time to Initial Display). Other
+key operations performed by the SDK can be found below:
+
+| Operation                 | p95       | Description                                                   |
+|---------------------------|-----------|---------------------------------------------------------------|
+| `trackEvent`              | 928.35 µs | Includes event collection, attribute enrichment, and queueing |
+| `appendAttributes`        | 144.33 µs | Dynamic attribute gathering (e.g., network, device state)     |
+| `trackBugReport`          | 23 ms     | Complete flow including screenshot, layout, and metadata      |
+| `trackEventUserTriggered` | 23 ms     | User-triggered event tracking                                 |
+| `trackSpanTriggered`      | 144.33 µs | When a trace event is emitted                                 |
+| `spanProcessorOnStarted`  | 52.79 µs  | Span construction                                             |
+| `spanProcessorOnEnded`    | 412.25 µs | Span serialization and buffering                              |
+| `generateScreenshot`      | 78.302 ms | Snapshotting and compression of UI                            |
+| `generateLayoutSnapshot`  | 15.06 ms  | Layout hierarchy capture                                      |

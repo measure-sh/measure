@@ -227,7 +227,7 @@ See the [troubleshooting](#troubleshoot) section if you face any issues.
 
 | SDK Version | Minimum Required Self-host Version |
 |-------------|------------------------------------|
-| 0.1.0       | 0.6.0                              |
+| >=0.1.0     | 0.6.0                              |
 
 </details>
 
@@ -253,7 +253,7 @@ Add Measure as a dependency by adding `dependencies` value to your `Package.swif
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.2.0")
+    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.3.1")
 ]
 ```
 
