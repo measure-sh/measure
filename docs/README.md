@@ -38,6 +38,7 @@ feature's documentation to understand its underlying mechanism and enhance your 
     * [**iOS**](features/feature-bug-report-ios.md)
 * [**App Launch Metrics**](features/feature-app-launch-metrics.md) — Measure app launch performance
 * [**Network Monitoring**](features/feature-network-monitoring.md) — Monitor HTTP requests and responses
+* [**Network Connectivity Changes**](features/feature-network-connectivity-changes.md) — Track when network connectivity changes
 * [**Navigation & Lifecycle Tracking**](features/feature-navigation-lifecycle-tracking.md) — Track app navigation and
   lifecycle events
 * [**CPU Monitoring**](features/feature-cpu-monitoring.md) — Monitor CPU usage for every session
