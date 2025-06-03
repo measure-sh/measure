@@ -1,4 +1,5 @@
 # Measure Android
 
-The documentation for the Android SDK at [docs/android](../docs/android) contains all information about integration and
-usage of the Measure Android SDK.
+To integrate Measure in your project, please follow the instructions [here](../docs/sdk-integration-guide.md) and
+for detailed features documentation, refer to the [Measure documentation](../docs/README.md). 
+
