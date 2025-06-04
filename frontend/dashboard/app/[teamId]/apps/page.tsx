@@ -101,7 +101,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       case UpdateAppSettingsApiStatus.Success:
         setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Error)
         setAppSettings(updatedAppSettings)
-        toastPositive("Your app settings have been saved successfully!")
+        toastPositive("Your app settings have been saved")
         break
     }
   }
@@ -140,7 +140,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         break
       case AppNameChangeApiStatus.Success:
         setAppNameChangeApiStatus(AppNameChangeApiStatus.Success)
-        toastPositive("App name changed successfully")
+        toastPositive("App name changed")
         if (filtersRef.current?.refresh) {
           filtersRef.current.refresh()
         }
