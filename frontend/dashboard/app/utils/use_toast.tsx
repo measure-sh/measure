@@ -1,8 +1,8 @@
 "use client"
 
+import { CheckCircle, XCircle } from "lucide-react"
 import * as React from "react"
 import { ToastActionElement, ToastProps } from "../components/toast"
-import { CheckCircle, XCircle } from "lucide-react"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
@@ -210,4 +210,4 @@ function useToast() {
     }
 }
 
-export { useToast, toast, toastPositive, toastNegative }
+export { toast, toastNegative, toastPositive, useToast }

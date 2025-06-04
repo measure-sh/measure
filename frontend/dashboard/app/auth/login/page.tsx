@@ -1,11 +1,11 @@
 'use client'
 
-import { useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
-import Messages from "./messages"
-import GoogleSignIn from "./google-sign-in"
-import GitHubSignIn from "./github-sign-in"
 import { measureAuth, MeasureAuthSession } from "@/app/auth/measure_auth"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import GitHubSignIn from "./github-sign-in"
+import GoogleSignIn from "./google-sign-in"
+import Messages from "./messages"
 
 export default function Login({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   const error = searchParams["error"]

@@ -1,9 +1,9 @@
 import React from 'react'
 import { emptyAnrExceptionsDetailsResponse, emptyCrashExceptionsDetailsResponse, ExceptionsType } from '../api/api_calls'
 import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
+import { toastPositive } from '../utils/use_toast'
 import { Button } from './button'
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip'
-import { toastPositive } from '../utils/use_toast'
 
 interface CopyAiContextProps {
   appName: string,

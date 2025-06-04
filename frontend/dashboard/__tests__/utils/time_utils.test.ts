@@ -1,6 +1,6 @@
 import { formatChartFormatTimestampToHumanReadable, formatDateToHumanReadableDate, formatDateToHumanReadableDateTime, formatDateToHumanReadableTime, formatIsoDateForDateTimeInputField, formatMillisToHumanReadable, formatTimestampToChartFormat, formatUserInputDateToServerFormat, isValidTimestamp } from '@/app/utils/time_utils'
-import { expect, it, describe, beforeEach, afterEach } from '@jest/globals'
-import { Settings, DateTime } from "luxon"
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals'
+import { DateTime, Settings } from "luxon"
 
 describe('formatMillisToHumanReadable', () => {
     it('should return milliseconds for values less than a second', () => {

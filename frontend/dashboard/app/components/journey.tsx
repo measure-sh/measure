@@ -1,12 +1,12 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
-import { JourneyApiStatus, emptyJourney, fetchJourneyFromServer } from '../api/api_calls'
 import { ResponsiveSankey } from '@nivo/sankey'
 import Link from 'next/link'
+import React, { useEffect, useState } from 'react'
+import { JourneyApiStatus, emptyJourney, fetchJourneyFromServer } from '../api/api_calls'
+import { numberToKMB } from '../utils/number_utils'
 import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'
-import { numberToKMB } from '../utils/number_utils'
 
 interface JourneyProps {
   teamId: string,

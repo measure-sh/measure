@@ -1,7 +1,7 @@
+import { measureAuth } from "../auth/measure_auth"
 import { Filters } from "../components/filters"
 import { JourneyType } from "../components/journey"
 import { formatUserInputDateToServerFormat, getTimeZoneForServer } from "../utils/time_utils"
-import { measureAuth } from "../auth/measure_auth"
 
 export enum TeamsApiStatus {
   Loading,

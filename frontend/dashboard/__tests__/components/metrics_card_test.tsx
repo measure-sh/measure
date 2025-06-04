@@ -1,17 +1,16 @@
-import React from 'react'
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
-import '@testing-library/jest-dom'
 import { MetricsApiStatus } from '@/app/api/api_calls'
-import MetricsCard from '@/app/components/metrics_card'
-import {
-    CrashFreeSessionsProps,
-    PerceivedCrashFreeSessionsProps,
+import MetricsCard, {
     AnrFreeSessionsProps,
-    PerceivedAnrFreeSessionsProps,
-    AppStartTimeProps,
+    AppAdoptionProps,
     AppSizeProps,
-    AppAdoptionProps
+    AppStartTimeProps,
+    CrashFreeSessionsProps,
+    PerceivedAnrFreeSessionsProps,
+    PerceivedCrashFreeSessionsProps
 } from '@/app/components/metrics_card'
+import '@testing-library/jest-dom'
+import { render, screen, within } from '@testing-library/react'
+import React from 'react'
 
 
 // Mock the dependencies

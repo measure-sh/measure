@@ -1,8 +1,8 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
 import { ResponsiveLine } from '@nivo/line'
-import { ExceptionsType, ExceptionsOverviewPlotApiStatus, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls'
+import React, { useEffect, useState } from 'react'
+import { ExceptionsOverviewPlotApiStatus, ExceptionsType, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls'
 import { formatDateToHumanReadableDate } from '../utils/time_utils'
 import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'

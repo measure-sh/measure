@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { clearCookies, setCookiesFromJWT } from '../cookie'
+import { setCookiesFromJWT } from '../cookie'
 
 export const dynamic = 'force-dynamic'
 

@@ -1,6 +1,6 @@
 
 import { formatToCamelCase } from '@/app/utils/string_utils';
-import { expect, it, describe } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 
 describe('formatToCamelCase', () => {
     it('should convert the first character of a string to uppercase', () => {

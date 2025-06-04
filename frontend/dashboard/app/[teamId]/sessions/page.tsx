@@ -1,14 +1,14 @@
 "use client"
 
-import { emptySessionsOverviewResponse, SessionsOverviewApiStatus, fetchSessionsOverviewFromServer, FilterSource } from '@/app/api/api_calls'
+import { emptySessionsOverviewResponse, fetchSessionsOverviewFromServer, FilterSource, SessionsOverviewApiStatus } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
 import Paginator from '@/app/components/paginator'
 import SessionsOverviewPlot from '@/app/components/sessions_overview_plot'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils'
 import { useRouter, useSearchParams } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
+import { useEffect, useState } from 'react'
 
 interface PageState {
     sessionsOverviewApiStatus: SessionsOverviewApiStatus

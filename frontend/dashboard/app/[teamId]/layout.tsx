@@ -1,25 +1,25 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
-import { useRouter, usePathname } from "next/navigation"
-import { Team, TeamsApiStatus, fetchTeamsFromServer } from "../api/api_calls"
-import { measureAuth } from "../auth/measure_auth"
+import { Separator } from "@/app/components/separator"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarHeader,
+  SidebarInset,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/app/components/sidebar"
-import { Separator } from "@/app/components/separator"
+import { usePathname, useRouter } from "next/navigation"
+import React, { useEffect, useState } from 'react'
+import { Team, TeamsApiStatus, fetchTeamsFromServer } from "../api/api_calls"
+import { measureAuth } from "../auth/measure_auth"
 import TeamSwitcher, { TeamsSwitcherStatus } from '../components/team_switcher'
 import UserAvatar from '../components/user_avatar'
 

@@ -1,11 +1,11 @@
 'use client'
 
-import { ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { ReactNode } from 'react'
+import { cn } from '../utils/shadcn_utils'
 import { formatDateToHumanReadableDateTime, formatMillisToHumanReadable } from '../utils/time_utils'
 import { buttonVariants } from './button'
-import { cn } from '../utils/shadcn_utils'
 
 type SessionTimelineEventDetailsProps = {
   teamId: string

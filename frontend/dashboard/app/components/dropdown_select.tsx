@@ -1,19 +1,19 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
 import { Check, ChevronsUpDown } from "lucide-react"
+import React, { useEffect, useState } from 'react'
 import { AppVersion, OsVersion } from '../api/api_calls'
 
-import { Button } from './button'
 import { cn } from '../utils/shadcn_utils'
-import { Popover, PopoverContent, PopoverTrigger } from './popover'
+import { Button } from './button'
 import {
   Command,
-  CommandInput,
   CommandEmpty,
   CommandGroup,
+  CommandInput,
   CommandItem,
 } from './command'
+import { Popover, PopoverContent, PopoverTrigger } from './popover'
 
 export enum DropdownSelectType {
   SingleString,
