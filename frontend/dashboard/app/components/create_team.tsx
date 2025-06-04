@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog"
 import { Plus } from 'lucide-react'
 
 interface CreateTeamProps {
-    onSuccess?: () => void
+    onSuccess?: (teamId: string) => void
 }
 
 const CreateTeam: React.FC<CreateTeamProps> = ({ onSuccess }) => {
@@ -34,7 +34,7 @@ const CreateTeam: React.FC<CreateTeamProps> = ({ onSuccess }) => {
                 toastPositive(`Team ${teamName} created successfully!`)
                 setTeamName("")
                 if (onSuccess) {
-                    onSuccess()
+                    onSuccess(result.data.id)
                 }
                 break
         }

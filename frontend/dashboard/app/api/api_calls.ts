@@ -1640,7 +1640,7 @@ export const createTeamFromServer = async (teamName: string) => {
       return { status: CreateTeamApiStatus.Error, error: data.error }
     }
 
-    return { status: CreateTeamApiStatus.Success }
+    return { status: CreateTeamApiStatus.Success, data: data }
   } catch {
     return { status: CreateTeamApiStatus.Cancelled }
   }
