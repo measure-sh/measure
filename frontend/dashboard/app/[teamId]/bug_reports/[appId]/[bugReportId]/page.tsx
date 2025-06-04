@@ -1,14 +1,14 @@
 "use client"
 
 import { BugReportApiStatus, emptyBugReport, fetchBugReportFromServer, UpdateBugReportStatusApiStatus, updateBugReportStatusFromServer } from "@/app/api/api_calls"
-import Image from 'next/image'
+import { Button, buttonVariants } from "@/app/components/button"
+import LoadingSpinner from "@/app/components/loading_spinner"
+import { cn } from "@/app/utils/shadcn_utils"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
+import { toastNegative, toastPositive } from "@/app/utils/use_toast"
+import Image from 'next/image'
 import Link from "next/link"
 import { FormEventHandler, useEffect, useState } from "react"
-import { Button, buttonVariants } from "@/app/components/button"
-import { cn } from "@/app/utils/shadcn_utils"
-import { toastNegative, toastPositive } from "@/app/utils/use_toast"
-import LoadingSpinner from "@/app/components/loading_spinner"
 
 export default function BugReport({ params }: { params: { teamId: string, appId: string, bugReportId: string } }) {
   const [bugReport, setBugReport] = useState(emptyBugReport)

@@ -1,7 +1,7 @@
+import FilterPill from '@/app/components/filter_pill'
+import { describe, expect, it } from '@jest/globals'
 import '@testing-library/jest-dom'
 import { render } from '@testing-library/react'
-import { expect, describe, it } from '@jest/globals'
-import FilterPill from '@/app/components/filter_pill'
 
 describe('FilterPill', () => {
     it('renders correctly', () => {

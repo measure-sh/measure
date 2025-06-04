@@ -1,7 +1,7 @@
 'use client'
 
-import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
 import { formatToCamelCase } from '../utils/string_utils'
+import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
 
 type SessionTimelineEventCellProps = {
   eventType: string

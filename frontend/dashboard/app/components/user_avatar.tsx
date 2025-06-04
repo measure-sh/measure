@@ -1,10 +1,10 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from 'react'
-import { measureAuth, MeasureAuthSession } from '../auth/measure_auth'
 import Image from 'next/image'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './dropdown_menu'
+import React, { useEffect, useState } from 'react'
+import { measureAuth, MeasureAuthSession } from '../auth/measure_auth'
 import { Button } from './button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './dropdown_menu'
 
 interface UserAvatarProps {
   onLogoutClick?: () => void

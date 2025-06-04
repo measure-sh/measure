@@ -1,11 +1,11 @@
 "use client"
 
-import React, { useState } from 'react'
-import { Team } from '../api/api_calls'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from './dropdown_menu'
 import { DropdownMenuSeparator } from '@radix-ui/react-dropdown-menu'
 import { ChevronsUpDown } from 'lucide-react'
+import React, { useState } from 'react'
+import { Team } from '../api/api_calls'
 import { Button } from './button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from './dropdown_menu'
 import LoadingSpinner from './loading_spinner'
 
 export enum TeamsSwitcherStatus {

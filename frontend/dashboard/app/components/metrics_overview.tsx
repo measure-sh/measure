@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
-import MetricsCard from './metrics_card'
+import React, { useEffect, useState } from 'react'
 import { MetricsApiStatus, emptyMetrics, fetchMetricsFromServer } from '../api/api_calls'
 import { Filters } from './filters'
+import MetricsCard from './metrics_card'
 
 interface MetricsOverviewProps {
   filters: Filters

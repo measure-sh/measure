@@ -1,20 +1,20 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
-import Link from "next/link"
-import { ExceptionsDetailsApiStatus, ExceptionsType, emptyCrashExceptionsDetailsResponse, emptyAnrExceptionsDetailsResponse, fetchExceptionsDetailsFromServer, FilterSource } from '@/app/api/api_calls'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { emptyAnrExceptionsDetailsResponse, emptyCrashExceptionsDetailsResponse, ExceptionsDetailsApiStatus, ExceptionsType, fetchExceptionsDetailsFromServer, FilterSource } from '@/app/api/api_calls'
 import Paginator from '@/app/components/paginator'
-import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
-import ExceptionspDetailsPlot from './exceptions_details_plot'
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters'
 import Image from 'next/image'
-import CopyAiContext from './copy_ai_context'
-import LoadingSpinner from './loading_spinner'
-import ExceptionsDistributionPlot from './exceptions_distribution_plot'
-import { buttonVariants } from './button'
+import Link from "next/link"
+import { useRouter, useSearchParams } from 'next/navigation'
+import React, { useEffect, useState } from 'react'
 import { cn } from '../utils/shadcn_utils'
+import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './accordion'
+import { buttonVariants } from './button'
+import CopyAiContext from './copy_ai_context'
+import ExceptionspDetailsPlot from './exceptions_details_plot'
+import ExceptionsDistributionPlot from './exceptions_distribution_plot'
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters'
+import LoadingSpinner from './loading_spinner'
 
 interface PageState {
   exceptionsDetailsApiStatus: ExceptionsDetailsApiStatus

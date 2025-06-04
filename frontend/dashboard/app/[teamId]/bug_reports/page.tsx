@@ -1,6 +1,6 @@
 "use client"
 
-import { emptyBugReportsOverviewResponse, BugReportsOverviewApiStatus, fetchBugReportsOverviewFromServer, FilterSource } from '@/app/api/api_calls'
+import { BugReportsOverviewApiStatus, emptyBugReportsOverviewResponse, fetchBugReportsOverviewFromServer, FilterSource } from '@/app/api/api_calls'
 import BugReportsOverviewPlot from '@/app/components/bug_reports_overview_plot'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
@@ -8,9 +8,8 @@ import Paginator from '@/app/components/paginator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils'
-import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface PageState {
     bugReportsOverviewApiStatus: BugReportsOverviewApiStatus

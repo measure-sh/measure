@@ -1,7 +1,7 @@
 'use client'
 
-import { useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 
 export default function Messages() {
   const searchParams = useSearchParams()

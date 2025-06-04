@@ -1,8 +1,7 @@
-import React from 'react'
-import { render, screen, fireEvent, act } from '@testing-library/react'
-import { describe, it, beforeEach, expect } from '@jest/globals'
-import '@testing-library/jest-dom'
 import Overview from '@/app/[teamId]/overview/page'
+import { beforeEach, describe, expect, it } from '@jest/globals'
+import '@testing-library/jest-dom'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 
 const replaceMock = jest.fn()
 
