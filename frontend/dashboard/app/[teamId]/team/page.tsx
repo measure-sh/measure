@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import DangerConfirmationModal from "@/app/components/danger_confirmation_dialog"
 import { Team, TeamsApiStatus, fetchTeamsFromServer, AuthzAndMembersApiStatus, InviteMemberApiStatus, RemoveMemberApiStatus, RoleChangeApiStatus, TeamNameChangeApiStatus, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, changeTeamNameFromServer, changeRoleFromServer, inviteMemberFromServer, removeMemberFromServer, CreateTeamApiStatus, createTeamFromServer, PendingInvitesApiStatus, PendingInvite, fetchPendingInvitesFromServer, RemovePendingInviteApiStatus, removePendingInviteFromServer, resendPendingInviteFromServer, ResendPendingInviteApiStatus } from "@/app/api/api_calls"
 import { formatToCamelCase } from "@/app/utils/string_utils"
@@ -57,6 +58,8 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   const [roleChangeMemberEmail, setRoleChangeMemberEmail] = useState("")
   const [roleChangeOldRole, setRoleChangeOldRole] = useState("")
   const [roleChangeNewRole, setRoleChangeNewRole] = useState("")
+
+  const router = useRouter()
 
   const teamNameChangeSessionKey = "teamNameChanged"
 
@@ -261,7 +264,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     <div className="flex flex-col selection:bg-yellow-200/75 items-start">
       <div className="flex flex-row items-center gap-2 justify-between w-full">
         <p className="font-display text-4xl max-w-6xl text-center">Team</p>
-        <CreateTeam onSuccess={() => location.reload()} />
+        <CreateTeam onSuccess={(teamId) => router.push(`/${teamId}/team`)} />
       </div>
 
       {/* Loading message for team */}
