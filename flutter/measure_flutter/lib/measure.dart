@@ -10,6 +10,8 @@ import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/measure_interface.dart';
 import 'package:measure_flutter/src/measure_internal.dart';
 
+export 'src/navigation/navigator_observer.dart';
+
 class Measure implements MeasureApi {
   Measure._();
 
@@ -74,6 +76,13 @@ class Measure implements MeasureApi {
   void triggerNativeCrash() {
     if (_isInitialized) {
       _measure.triggerNativeCrash();
+    }
+  }
+
+  @override
+  void trackScreenViewEvent({required String name, bool userTriggered = true}) {
+    if (_isInitialized) {
+      _measure.trackScreenViewEvent(name: name, userTriggered: userTriggered);
     }
   }
 

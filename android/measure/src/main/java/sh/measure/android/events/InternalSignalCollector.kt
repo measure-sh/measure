@@ -6,6 +6,7 @@ import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.toEventAttachment
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.toJsonElement
@@ -95,6 +96,17 @@ internal class InternalSignalCollector(
                     }
                 }
 
+                EventType.SCREEN_VIEW -> {
+                    val data = extractScreenViewData(data)
+                    signalProcessor.track(
+                        data = data,
+                        timestamp = timestamp,
+                        type = eventType,
+                        attributes = attributes,
+                        userDefinedAttributes = userDefinedAttrs,
+                    )
+                }
+
                 else -> {
                     logger.log(LogLevel.Error, "Unknown event type: $type")
                 }
@@ -102,6 +114,10 @@ internal class InternalSignalCollector(
         } catch (e: Exception) {
             logger.log(LogLevel.Error, "Failed to decode event $type", e)
         }
+    }
+
+    private fun extractScreenViewData(map: MutableMap<String, Any?>): ScreenViewData {
+        return Json.decodeFromJsonElement(ScreenViewData.serializer(), map.toJsonElement())
     }
 
     private fun extractExceptionEventData(map: Map<String, Any?>): ExceptionData {

@@ -13,7 +13,12 @@ final class FlutterLogger implements Logger {
   void log(LogLevel level, String message,
       [dynamic error, StackTrace? stackTrace]) {
     if (!enabled) return;
-    developer.log(message,
-        level: level.level, error: error, stackTrace: stackTrace);
+    developer.log(
+      message,
+      level: level.level,
+      error: error,
+      stackTrace: stackTrace,
+      name: "Measure",
+    );
   }
 }

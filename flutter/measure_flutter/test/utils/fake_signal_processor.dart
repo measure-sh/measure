@@ -2,11 +2,13 @@ import 'package:measure_flutter/attribute_value.dart';
 import 'package:measure_flutter/src/events/custom_event_data.dart';
 import 'package:measure_flutter/src/exception/exception_data.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
+import 'package:measure_flutter/src/navigation/screen_view_data.dart';
 import 'package:measure_flutter/src/serialization/json_serializable.dart';
 
 class FakeSignalProcessor implements SignalProcessor {
   final trackedExceptions = <ExceptionData>[];
   final trackedCustomEvents = <CustomEventData>[];
+  final trackedScreenViewEvents = <ScreenViewData>[];
 
   @override
   Future<void> trackEvent<T extends JsonSerialized>({
@@ -22,6 +24,9 @@ class FakeSignalProcessor implements SignalProcessor {
     }
     if (data is CustomEventData) {
       trackedCustomEvents.add(data);
+    }
+    if (data is ScreenViewData) {
+      trackedScreenViewEvents.add(data);
     }
     return Future<void>.value();
   }

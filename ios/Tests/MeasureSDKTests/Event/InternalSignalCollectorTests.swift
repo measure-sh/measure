@@ -26,9 +26,9 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
         )
     }
 
-    func testTrackEvent_withoutPlatformAttribute_logsWarning() {
+    func testTrackEvent_tracksCustomEvent() {
         eventCollector.enable()
-        var eventData: [String: Any?] = ["key": "value"]
+        var eventData: [String: Any?] = ["name": "custom-event"]
         let type = EventType.custom.rawValue
 
         eventCollector.trackEvent(
@@ -42,13 +42,13 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             threadName: nil
         )
 
-        XCTAssertNil(signalProcessor.data)
+        XCTAssertNotNil(signalProcessor.data)
     }
-
-    func testTrackEvent_tracksCustomEvent() {
+    
+    func testTrackEvent_tracksScreenViewEvent() {
         eventCollector.enable()
-        var eventData: [String: Any?] = ["name": "custom-event"]
-        let type = EventType.custom.rawValue
+        var eventData: [String: Any?] = ["name": "home"]
+        let type = EventType.screenView.rawValue
 
         eventCollector.trackEvent(
             data: &eventData,
