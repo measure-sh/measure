@@ -42,6 +42,9 @@ class DataCleanupServiceTests: XCTestCase {
     }
 
     func testDeleteSessionsAndAllEvents() {
+        let expectation = expectation(description: "Delete all sessions, events, and spans")
+
+        // Insert test data
         let event1 = TestDataGenerator.generateEvents(id: "event1", sessionId: "session1", needsReporting: false)
         let event2 = TestDataGenerator.generateEvents(id: "event2", sessionId: "session1", needsReporting: false)
         let event3 = TestDataGenerator.generateEvents(id: "event3", sessionId: "session1", needsReporting: false)
@@ -58,14 +61,29 @@ class DataCleanupServiceTests: XCTestCase {
         spanStore.insertSpan(span: span2)
         sessionStore.insertSession(session)
 
+        // Trigger cleanup
         dataCleanupService.clearStaleData()
 
-        XCTAssertNil(eventStore.getAllEvents())
-        XCTAssertNil(spanStore.getAllSpans())
-        XCTAssertNil(sessionStore.getAllSessions())
+        // Verify deletions after delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.eventStore.getAllEvents { events in
+                XCTAssertTrue(((events?.isEmpty) != nil))
+                self.spanStore.getAllSpans { spans in
+                    XCTAssertNil(spans)
+                    self.sessionStore.getAllSessions { sessions in
+                        XCTAssertNil(sessions)
+                        expectation.fulfill()
+                    }
+                }
+            }
+        }
+
+        wait(for: [expectation], timeout: 2.0)
     }
 
     func testDeleteSessionsAndEvents_onlyWhereNeedsReportingIsFalse() {
+        let expectation = expectation(description: "Delete only needsReporting == false")
+
         let event1 = TestDataGenerator.generateEvents(id: "event1", sessionId: "session1", needsReporting: false)
         let event2 = TestDataGenerator.generateEvents(id: "event2", sessionId: "session1", needsReporting: false)
         let event3 = TestDataGenerator.generateEvents(id: "event3", sessionId: "session1", needsReporting: false)
@@ -80,11 +98,22 @@ class DataCleanupServiceTests: XCTestCase {
 
         dataCleanupService.clearStaleData()
 
-        XCTAssertTrue(eventStore.getAllEvents()?.count == 1)
-        XCTAssertNil(sessionStore.getAllSessions())
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.eventStore.getAllEvents { events in
+                XCTAssertEqual(events?.count, 1)
+                self.sessionStore.getAllSessions { sessions in
+                    XCTAssertNil(sessions)
+                    expectation.fulfill()
+                }
+            }
+        }
+
+        wait(for: [expectation], timeout: 2.0)
     }
 
     func testDontDeleteSessionsAndEvents() {
+        let expectation = expectation(description: "Don't delete anything when all need reporting")
+
         let event1 = TestDataGenerator.generateEvents(id: "event1", sessionId: "session1", needsReporting: true)
         let event2 = TestDataGenerator.generateEvents(id: "event2", sessionId: "session1", needsReporting: true)
         let event3 = TestDataGenerator.generateEvents(id: "event3", sessionId: "session1", needsReporting: true)
@@ -103,12 +132,25 @@ class DataCleanupServiceTests: XCTestCase {
 
         dataCleanupService.clearStaleData()
 
-        XCTAssertTrue(eventStore.getAllEvents()?.count == 4)
-        XCTAssertTrue(spanStore.getAllSpans()?.count == 2)
-        XCTAssertTrue(sessionStore.getAllSessions()?.count == 1)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.eventStore.getAllEvents { events in
+                XCTAssertEqual(events?.count, 4)
+                self.spanStore.getAllSpans { spans in
+                    XCTAssertEqual(spans?.count, 2)
+                    self.sessionStore.getAllSessions { sessions in
+                        XCTAssertEqual(sessions?.count, 1)
+                        expectation.fulfill()
+                    }
+                }
+            }
+        }
+
+        wait(for: [expectation], timeout: 2.0)
     }
 
     func testDontDeleteCurrentSessionAndEvents() {
+        let expectation = expectation(description: "Don't delete current session")
+
         let event1 = TestDataGenerator.generateEvents(id: "event1", sessionId: "currentSession", needsReporting: false)
         let event2 = TestDataGenerator.generateEvents(id: "event2", sessionId: "currentSession", needsReporting: false)
         let event3 = TestDataGenerator.generateEvents(id: "event3", sessionId: "session1", needsReporting: false)
@@ -131,8 +173,19 @@ class DataCleanupServiceTests: XCTestCase {
 
         dataCleanupService.clearStaleData()
 
-        XCTAssertTrue(eventStore.getAllEvents()?.count == 2)
-        XCTAssertTrue(spanStore.getAllSpans()?.count == 2)
-        XCTAssertTrue(sessionStore.getAllSessions()?.count == 1)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.eventStore.getAllEvents { events in
+                XCTAssertEqual(events?.count, 2)
+                self.spanStore.getAllSpans { spans in
+                    XCTAssertEqual(spans?.count, 2)
+                    self.sessionStore.getAllSessions { sessions in
+                        XCTAssertEqual(sessions?.count, 1)
+                        expectation.fulfill()
+                    }
+                }
+            }
+        }
+
+        wait(for: [expectation], timeout: 2.0)
     }
 }

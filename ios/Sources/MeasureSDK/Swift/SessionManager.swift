@@ -212,17 +212,23 @@ final class BaseSessionManager: SessionManager {
 
     func markCurrentSessionAsCrashed() {
         sessionStore.markCrashedSession(sessionId: sessionId)
-        if let session = sessionStore.getSession(byId: sessionId) {
-            let recentSession = RecentSession(id: session.sessionId,
-                                              createdAt: session.createdAt,
-                                              crashed: true,
-                                              versionCode: versionCode)
-            userDefaultStorage.setRecentSession(recentSession)
-        }
-        if !shouldReportSession {
-            sessionStore.updateNeedsReporting(sessionId: sessionId, needsReporting: true)
-            eventStore.updateNeedsReportingForAllEvents(sessionId: sessionId, needsReporting: true)
-            shouldReportSession = true
+
+        sessionStore.getSession(byId: sessionId) { [weak self] session in
+            guard let self, let session else { return }
+
+            let recentSession = RecentSession(
+                id: session.sessionId,
+                createdAt: session.createdAt,
+                crashed: true,
+                versionCode: versionCode
+            )
+            self.userDefaultStorage.setRecentSession(recentSession)
+
+            if !self.shouldReportSession {
+                self.sessionStore.updateNeedsReporting(sessionId: self.sessionId, needsReporting: true)
+                self.eventStore.updateNeedsReportingForAllEvents(sessionId: self.sessionId, needsReporting: true)
+                self.shouldReportSession = true
+            }
         }
     }
 

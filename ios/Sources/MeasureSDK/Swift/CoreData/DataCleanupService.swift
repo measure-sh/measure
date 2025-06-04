@@ -27,23 +27,23 @@ final class BaseDataCleanupService: DataCleanupService {
     }
 
     func clearStaleData() {
-        guard let sessionsToDelete = getSessionsToDelete() else {
-            logger.internalLog(level: .info, message: "No session data to clear.", error: nil, data: nil)
-            return
+        sessionStore.getSessionsToDelete { [weak self] sessionsToDelete in
+            guard let self = self, var sessionsToDelete = sessionsToDelete else {
+                return
+            }
+
+            sessionsToDelete.removeAll { $0 == self.sessionManager.sessionId }
+
+            guard !sessionsToDelete.isEmpty else {
+                self.logger.internalLog(level: .info, message: "No stale session data to clear after filtering current session.", error: nil, data: nil)
+                return
+            }
+
+            sessionStore.deleteSessions(sessionsToDelete)
+            eventStore.deleteEvents(sessionIds: sessionsToDelete)
+            spanStore.deleteSpans(sessionIds: sessionsToDelete)
+
+            logger.internalLog(level: .info, message: "Cleared stale session data for \(sessionsToDelete.count) sessions.", error: nil, data: ["sessionIds": sessionsToDelete])
         }
-
-        sessionStore.deleteSessions(sessionsToDelete)
-        eventStore.deleteEvents(sessionIds: sessionsToDelete)
-        spanStore.deleteSpans(sessionIds: sessionsToDelete)
-    }
-
-    private func getSessionsToDelete() -> [String]? {
-        guard var sessionsToDelete = sessionStore.getSessionsToDelete() else {
-            return nil
-        }
-
-        sessionsToDelete.removeAll { $0 == sessionManager.sessionId }
-
-        return sessionsToDelete
     }
 }

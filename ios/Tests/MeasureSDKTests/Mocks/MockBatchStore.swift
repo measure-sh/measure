@@ -15,15 +15,15 @@ final class MockBatchStore: BatchStore {
     var deleteBatchCalled = false
     var deletedBatchId = ""
 
-    func insertBatch(_ batch: BatchEntity) -> Bool {
+    func insertBatch(_ batch: BatchEntity, completion: @escaping (Bool) -> Void) {
         batches.append(batch)
         insertBatchCalled = true
-        return true
+        completion(insertBatchCalled)
     }
 
-    func getBatches(_ maxNumberOfBatches: Int) -> [BatchEntity] {
+    func getBatches(_ maxNumberOfBatches: Int, completion: @escaping ([BatchEntity]) -> Void) {
         getBatchesCalled = true
-        return Array(batches.prefix(maxNumberOfBatches))
+        completion(Array(batches.prefix(maxNumberOfBatches)))
     }
 
     func deleteBatch(_ batchId: String) {

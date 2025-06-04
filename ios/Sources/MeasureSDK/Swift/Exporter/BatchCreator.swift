@@ -8,7 +8,7 @@
 import Foundation
 
 protocol BatchCreator {
-    func create(sessionId: String?) -> BatchCreationResult?
+    func create(sessionId: String?, completion: @escaping ((BatchCreationResult?) -> Void))
 }
 
 typealias BatchCreationResult = (batchId: String, eventIds: [String], spanIds: [String])
@@ -32,29 +32,58 @@ final class BaseBatchCreator: BatchCreator {
         self.spanStore = spanStore
     }
 
-    func create(sessionId: String? = nil) -> BatchCreationResult? {
-        let eventToAttachmentSizeMap = eventStore.getUnBatchedEventsWithAttachmentSize(eventCount: configProvider.maxEventsInBatch, ascending: true, sessionId: nil)
+    func create(sessionId: String? = nil, completion: @escaping (BatchCreationResult?) -> Void) {
+        eventStore.getUnBatchedEventsWithAttachmentSize(
+            eventCount: configProvider.maxEventsInBatch,
+            ascending: true,
+            sessionId: sessionId
+        ) { [weak self] eventToAttachmentSizeMap in
+            guard let self else { return }
 
-        let eventIds = filterEventsForMaxAttachmentSize(eventToAttachmentSizeMap)
-        let spanIds = spanStore.getUnBatchedSpans(spanCount: configProvider.maxEventsInBatch, ascending: true)
+            let eventIds = filterEventsForMaxAttachmentSize(eventToAttachmentSizeMap)
 
-        if eventIds.isEmpty && spanIds.isEmpty {
-            logger.log(level: .debug, message: "No events or spans to batch.", error: nil, data: nil)
-            return nil
+            spanStore.getUnBatchedSpans(
+                spanCount: configProvider.maxEventsInBatch,
+                ascending: true
+            ) { [weak self] spanIds in
+                guard let self else { return }
+
+                if eventIds.isEmpty && spanIds.isEmpty {
+                    logger.log(level: .debug, message: "No events or spans to batch.", error: nil, data: nil)
+                    completion(nil)
+                    return
+                }
+
+                let batchId = idProvider.uuid()
+                let batch = BatchEntity(
+                    batchId: batchId,
+                    eventIds: eventIds,
+                    spanIds: spanIds,
+                    createdAt: timeProvider.now()
+                )
+
+                batchStore.insertBatch(batch) { [weak self] isBatchInsertionSuccessful in
+                    guard let self else { return }
+
+                    if !isBatchInsertionSuccessful {
+                        logger.log(level: .error, message: "Failed to insert batched event IDs", error: nil, data: nil)
+                        completion(nil)
+                        return
+                    }
+
+                    // Fire-and-forget updates
+                    eventStore.updateBatchId(batchId, for: eventIds)
+                    spanStore.updateBatchId(batchId, for: spanIds)
+
+                    let result = BatchCreationResult(
+                        batchId: batchId,
+                        eventIds: eventIds,
+                        spanIds: spanIds
+                    )
+                    completion(result)
+                }
+            }
         }
-
-        let batchId = idProvider.uuid()
-        let batch = BatchEntity(batchId: batchId, eventIds: eventIds, spanIds: spanIds, createdAt: timeProvider.now())
-        let isBatchInsertionSuccessful = batchStore.insertBatch(batch)
-
-        if !isBatchInsertionSuccessful {
-            logger.log(level: .error, message: "Failed to insert batched event IDs", error: nil, data: nil)
-            return nil
-        }
-
-        eventStore.updateBatchId(batchId, for: eventIds)
-        spanStore.updateBatchId(batchId, for: spanIds)
-        return BatchCreationResult(batchId: batchId, eventIds: eventIds, spanIds: spanIds)
     }
 
     /// Filters events to ensure the total size of attachments does not exceed the maximum limit.
