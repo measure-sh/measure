@@ -1,7 +1,7 @@
 Pod::Spec.new do |spec|
   spec.name         = "measure-sh"
   spec.module_name  = "Measure"
-  spec.version      = "0.3.0"
+  spec.version      = "0.3.1"
   spec.summary      = "Open source tool to monitor mobile apps"
   spec.homepage     = "https://github.com/measure-sh/measure.git"
   spec.license      = { :type => "MIT", :file => "LICENSE" }

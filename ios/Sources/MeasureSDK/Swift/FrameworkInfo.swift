@@ -8,5 +8,5 @@
 import Foundation
 
 struct FrameworkInfo {
-    static let version = "0.3.0"
+    static let version = "0.3.1"
 }

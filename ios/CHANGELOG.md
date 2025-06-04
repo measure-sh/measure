@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.3.1] - 2025-06-04
+
+### :bug: Bug fixes
+
+
+- (**ios**): Swizzle UIApplication.sendEvent to avoid breaking keyboard input (#2267)
+- (**ios**): Update core data Initialization logic (#2257)
+- (**ios**): Replaces uses of TARGET_OS_SIMULATOR (#2244)
+
 ## [ios-v0.3.0] - 2025-05-28
 
 ### :books: Documentation
@@ -16,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 - (**ios**): Attach crash report to the correct session (#2196)
+
+### :hammer: Misc
+
+
+- (**ios**): Prepare sdk release 0.3.0 (#2229)
 
 ### :sparkles: New features
 
@@ -126,6 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677)
 - (**ios**): Initial project setup  (#1034)
 
+[ios-v0.3.1]: https://github.com///compare/ios-v0.3.0..ios-v0.3.1
 [ios-v0.3.0]: https://github.com///compare/ios-v0.2.0..ios-v0.3.0
 [ios-v0.2.0]: https://github.com///compare/ios-v0.1.0..ios-v0.2.0
 
