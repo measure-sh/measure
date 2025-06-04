@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Check user & member role in team member removal, role change, invite resend & invite revoke by @anupcowkur in #2103
 - (**backend**): Prevent removal or role change of member in their default team by @anupcowkur in #2071
 - (**backend**): Get own team correctly when user is owner of multiple teams by @anupcowkur in #2069
+- (**frontend**): Show google login after nonce calculation by @anupcowkur in #2283
 - (**frontend**): Fix sidebar inset padding by @anupcowkur in #2224
 - (**frontend**): Fix misaligned chevron in dropdown select by @anupcowkur in #2222
 - (**frontend**): Fixes selected app version not updating correctly by @anupcowkur in #2190
