@@ -31,7 +31,7 @@ const CreateTeam: React.FC<CreateTeamProps> = ({ onSuccess }) => {
             case CreateTeamApiStatus.Success:
                 setCreateTeamApiStatus(CreateTeamApiStatus.Success)
                 setDialogOpen(false)
-                toastPositive(`Team ${teamName} created successfully!`)
+                toastPositive(`Team ${teamName} has been created`)
                 setTeamName("")
                 if (onSuccess) {
                     onSuccess(result.data.id)

@@ -65,7 +65,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
 
   function showToastForTeamNameChangeIfNeeded() {
     if (typeof window !== 'undefined' && window.sessionStorage.getItem(teamNameChangeSessionKey) === "true") {
-      toastPositive(`Team name changed successfully`)
+      toastPositive(`Team name changed`)
       window.sessionStorage.removeItem(teamNameChangeSessionKey)
     }
   }

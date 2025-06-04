@@ -36,7 +36,7 @@ const CreateApp: React.FC<CreateAppProps> = ({ teamId, onSuccess }) => {
       case CreateAppApiStatus.Success:
         setCreateAppApiStatus(CreateAppApiStatus.Success)
         setDialogOpen(false)
-        toastPositive(`App ${result.data.name} created successfully!`)
+        toastPositive(`App ${result.data.name} has been created`)
         if (onSuccess) {
           onSuccess(result.data)
         }
