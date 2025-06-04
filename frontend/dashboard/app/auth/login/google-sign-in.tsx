@@ -34,6 +34,12 @@ export default function GoogleSignIn() {
     setState(state)
   }, [])
 
+  const ready = nonce && hashedNonce
+
+  if (!ready) {
+    return null
+  }
+
   return (
     <>
       <Script src="https://accounts.google.com/gsi/client" />
