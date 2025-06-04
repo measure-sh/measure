@@ -1,6 +1,6 @@
 "use client"
 
-import { FormEventHandler, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import DangerConfirmationModal from "@/app/components/danger_confirmation_dialog"
 import { Team, TeamsApiStatus, fetchTeamsFromServer, AuthzAndMembersApiStatus, InviteMemberApiStatus, RemoveMemberApiStatus, RoleChangeApiStatus, TeamNameChangeApiStatus, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, changeTeamNameFromServer, changeRoleFromServer, inviteMemberFromServer, removeMemberFromServer, CreateTeamApiStatus, createTeamFromServer, PendingInvitesApiStatus, PendingInvite, fetchPendingInvitesFromServer, RemovePendingInviteApiStatus, removePendingInviteFromServer, resendPendingInviteFromServer, ResendPendingInviteApiStatus } from "@/app/api/api_calls"
 import { formatToCamelCase } from "@/app/utils/string_utils"
@@ -8,11 +8,9 @@ import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_se
 import { measureAuth } from "@/app/auth/measure_auth"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
 import { Button } from "@/app/components/button"
-import AlertDialog from "@/app/components/alert_dialog"
 import { toastNegative, toastPositive } from "@/app/utils/use_toast"
 import LoadingSpinner from "@/app/components/loading_spinner"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/app/components/table"
-import { Separator } from "@/app/components/separator"
 import CreateTeam from "@/app/components/create_team"
 
 export default function TeamOverview({ params }: { params: { teamId: string } }) {
@@ -60,6 +58,15 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   const [roleChangeOldRole, setRoleChangeOldRole] = useState("")
   const [roleChangeNewRole, setRoleChangeNewRole] = useState("")
 
+  const teamNameChangeSessionKey = "teamNameChanged"
+
+  function showToastForTeamNameChangeIfNeeded() {
+    if (typeof window !== 'undefined' && window.sessionStorage.getItem(teamNameChangeSessionKey) === "true") {
+      toastPositive(`Team name changed successfully`)
+      window.sessionStorage.removeItem(teamNameChangeSessionKey)
+    }
+  }
+
   const getTeams = async () => {
     setTeamsApiStatus(TeamsApiStatus.Loading)
 
@@ -72,6 +79,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
       case TeamsApiStatus.Success:
         setTeamsApiStatus(TeamsApiStatus.Success)
         setTeam(result.data!.filter((i) => i.id === params.teamId)[0])
+        showToastForTeamNameChangeIfNeeded()
         break
     }
   }
@@ -186,6 +194,8 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
         break
       case TeamNameChangeApiStatus.Success:
         setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Success)
+        // Set flag and new name before reload
+        window.sessionStorage.setItem(teamNameChangeSessionKey, "true")
         location.reload()
         break
     }
