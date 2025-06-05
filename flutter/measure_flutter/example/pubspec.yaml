@@ -9,7 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  http: ^1.4.0
+  dio: ^5.8.0+1
   measure_flutter:
     path: ../
   cupertino_icons: ^1.0.8

@@ -1,9 +1,13 @@
 import 'dart:isolate';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:measure_flutter/attribute_builder.dart';
 import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter_example/src/example_dio_interceptor.dart';
+import 'package:measure_flutter_example/src/example_http_client.dart';
 import 'package:measure_flutter_example/src/screen_navigation.dart';
 import 'package:stack_trace/stack_trace.dart';
 
@@ -79,6 +83,9 @@ class MainScreen extends StatelessWidget {
               );
             },
           ),
+          ListSection(title: "http"),
+          ListItem(title: "Custom HTTP Client", onPressed: _makeHttpRequest),
+          ListItem(title: "Dio", onPressed: _makeDioHttpRequest)
         ],
       ),
     );
@@ -142,6 +149,36 @@ class MainScreen extends StatelessWidget {
   void _noMethodChannel() async {
     await MethodChannel('non_existent_channel')
         .invokeMethod('non_existent_method');
+  }
+
+  void _makeHttpRequest() async {
+    final client = ExampleHttpClient(http.Client());
+    final url = Uri.https('example.com', 'whatsit/create');
+    try {
+      final response =
+          await client.post(url, body: {'name': 'doodle', 'color': 'blue'});
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+    } catch (e) {
+      // ignore-errors
+    }
+
+    try {
+      print(await client.read(Uri.https('example.com', 'foobar.txt')));
+    } catch(e) {
+      // ignore-errors
+    }
+  }
+
+  void _makeDioHttpRequest() async {
+    final dio = Dio();
+    dio.interceptors.add(ExampleDioInterceptor());
+    try {
+      final response = await dio.get('https://dart.dev');
+      print(response.data);
+    } catch (e) {
+      // ignore-errors
+    }
   }
 }
 

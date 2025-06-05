@@ -13,30 +13,39 @@ class HttpData implements JsonSerialized {
   final String method;
 
   /// HTTP response code. Example: 200, 401, 500, etc.
+  @JsonKey(name: "status_code")
   final int? statusCode;
 
   /// The uptime at which the http call started, in milliseconds.
+  @JsonKey(name: "start_time")
   final int? startTime;
 
   /// The uptime at which the http call ended, in milliseconds.
+  @JsonKey(name: "end_time")
   final int? endTime;
 
   /// The reason for the failure. Typically the IOException class name.
+  @JsonKey(name: "failure_reason")
   final String? failureReason;
 
   /// The description of the failure. Typically the IOException message.
+  @JsonKey(name: "failure_description")
   final String? failureDescription;
 
   /// The request headers.
+  @JsonKey(name: "request_headers")
   final Map<String, String>? requestHeaders;
 
   /// The response headers.
+  @JsonKey(name: "response_headers")
   final Map<String, String>? responseHeaders;
 
   /// The request body.
+  @JsonKey(name: "request_body")
   final String? requestBody;
 
   /// The response body.
+  @JsonKey(name: "response_body")
   final String? responseBody;
 
   /// The name of the client that sent the request.
