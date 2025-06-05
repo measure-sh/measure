@@ -5,6 +5,7 @@ import 'package:measure_flutter/src/measure_interface.dart';
 
 class FakeMeasure implements MeasureApi {
   final List<ScreenViewCall> trackedScreenViews = [];
+  final List<HttpCall> trackedHttp = [];
 
   @override
   Future<void> start(FutureOr<void> Function() action,
@@ -32,6 +33,37 @@ class FakeMeasure implements MeasureApi {
   void clear() {
     trackedScreenViews.clear();
   }
+
+  @override
+  void trackHttpEvent(
+      {required String url,
+      required String method,
+      int? statusCode,
+      int? startTime,
+      int? endTime,
+      String? failureReason,
+      String? failureDescription,
+      Map<String, String>? requestHeaders,
+      Map<String, String>? responseHeaders,
+      String? requestBody,
+      String? responseBody,
+      String? client}) {
+    final call = HttpCall(
+      url,
+      method,
+      statusCode,
+      startTime,
+      endTime,
+      failureReason,
+      failureDescription,
+      requestHeaders,
+      responseHeaders,
+      requestBody,
+      responseBody,
+      client,
+    );
+    trackedHttp.add(call);
+  }
 }
 
 class ScreenViewCall {
@@ -39,4 +71,34 @@ class ScreenViewCall {
   final bool userTriggered;
 
   ScreenViewCall(this.name, this.userTriggered);
+}
+
+class HttpCall {
+  final String url;
+  final String method;
+  final int? statusCode;
+  final int? startTime;
+  final int? endTime;
+  final String? failureReason;
+  final String? failureDescription;
+  final Map<String, String>? requestHeaders;
+  final Map<String, String>? responseHeaders;
+  final String? requestBody;
+  final String? responseBody;
+  final String? client;
+
+  HttpCall(
+    this.url,
+    this.method,
+    this.statusCode,
+    this.startTime,
+    this.endTime,
+    this.failureReason,
+    this.failureDescription,
+    this.requestHeaders,
+    this.responseHeaders,
+    this.requestBody,
+    this.responseBody,
+    this.client,
+  );
 }

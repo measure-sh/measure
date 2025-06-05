@@ -86,6 +86,39 @@ class Measure implements MeasureApi {
     }
   }
 
+  @override
+  void trackHttpEvent({
+    required String url,
+    required String method,
+    int? statusCode,
+    int? startTime,
+    int? endTime,
+    String? failureReason,
+    String? failureDescription,
+    Map<String, String>? requestHeaders,
+    Map<String, String>? responseHeaders,
+    String? requestBody,
+    String? responseBody,
+    String? client,
+  }) {
+    if (_isInitialized) {
+      _measure.trackHttpEvent(
+        url: url,
+        method: method,
+        statusCode: statusCode,
+        startTime: startTime,
+        endTime: endTime,
+        failureReason: failureReason,
+        failureDescription: failureDescription,
+        requestHeaders: requestHeaders,
+        responseHeaders: responseHeaders,
+        requestBody: requestBody,
+        responseBody: responseBody,
+        client: client,
+      );
+    }
+  }
+
   Future<void> _initializeInternal(bool enableLogging) async {
     MeasureInitializer initializer =
         MeasureInitializer(MeasureConfig(enableLogging: enableLogging));

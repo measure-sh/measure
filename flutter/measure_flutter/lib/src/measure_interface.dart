@@ -19,4 +19,19 @@ abstract class MeasureApi {
     required String name,
     bool userTriggered = true,
   });
+
+  void trackHttpEvent({
+    required String url,
+    required String method,
+    int? statusCode,
+    int? startTime,
+    int? endTime,
+    String? failureReason,
+    String? failureDescription,
+    Map<String, String>? requestHeaders,
+    Map<String, String>? responseHeaders,
+    String? requestBody,
+    String? responseBody,
+    String? client,
+  });
 }

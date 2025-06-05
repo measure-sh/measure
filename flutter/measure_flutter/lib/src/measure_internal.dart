@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:measure_flutter/attribute_value.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
+import 'package:measure_flutter/src/http/http_collector.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
@@ -13,6 +14,7 @@ final class MeasureInternal {
   final CustomEventCollector _customEventCollector;
   final ExceptionCollector _exceptionCollector;
   final NavigationCollector _navigationCollector;
+  final HttpCollector _httpCollector;
   final MsrMethodChannel _methodChannel;
 
   MeasureInternal({
@@ -21,6 +23,7 @@ final class MeasureInternal {
         _customEventCollector = initializer.customEventCollector,
         _methodChannel = initializer.methodChannel,
         _exceptionCollector = initializer.exceptionCollector,
+        _httpCollector = initializer.httpCollector,
         _navigationCollector = initializer.navigationCollector;
 
   Future<void> init() async {
@@ -54,5 +57,35 @@ final class MeasureInternal {
   }) {
     _navigationCollector.trackScreenViewEvent(
         name: name, userTriggered: userTriggered);
+  }
+
+  void trackHttpEvent({
+    required String url,
+    required String method,
+    int? statusCode,
+    int? startTime,
+    int? endTime,
+    String? failureReason,
+    String? failureDescription,
+    Map<String, String>? requestHeaders,
+    Map<String, String>? responseHeaders,
+    String? requestBody,
+    String? responseBody,
+    String? client,
+  }) {
+    _httpCollector.trackHttpEvent(
+      url: url,
+      method: method,
+      statusCode: statusCode,
+      startTime: startTime,
+      endTime: endTime,
+      failureReason: failureReason,
+      failureDescription: failureDescription,
+      requestHeaders: requestHeaders,
+      responseHeaders: responseHeaders,
+      requestBody: requestBody,
+      responseBody: responseBody,
+      client: client,
+    );
   }
 }

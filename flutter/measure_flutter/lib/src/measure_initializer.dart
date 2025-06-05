@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:measure_flutter/src/config/measure_config.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
+import 'package:measure_flutter/src/http/http_collector.dart';
 import 'package:measure_flutter/src/logger/flutter_logger.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
@@ -15,6 +16,7 @@ final class MeasureInitializer {
   late final CustomEventCollector _customEventCollector;
   late final ExceptionCollector _exceptionCollector;
   late final NavigationCollector _navigationCollector;
+  late final HttpCollector _httpCollector;
   late final SignalProcessor _signalProcessor;
 
   Logger get logger => _logger;
@@ -26,6 +28,8 @@ final class MeasureInitializer {
   ExceptionCollector get exceptionCollector => _exceptionCollector;
 
   NavigationCollector get navigationCollector => _navigationCollector;
+
+  HttpCollector get httpCollector => _httpCollector;
 
   SignalProcessor get signalProcessor => _signalProcessor;
 
@@ -48,6 +52,7 @@ final class MeasureInitializer {
     );
     _navigationCollector =
         NavigationCollector(signalProcessor: signalProcessor);
+    _httpCollector = HttpCollector(signalProcessor: signalProcessor);
   }
 
   @visibleForTesting
@@ -71,5 +76,6 @@ final class MeasureInitializer {
     );
     _navigationCollector =
         NavigationCollector(signalProcessor: signalProcessor);
+    _httpCollector = HttpCollector(signalProcessor: signalProcessor);
   }
 }
