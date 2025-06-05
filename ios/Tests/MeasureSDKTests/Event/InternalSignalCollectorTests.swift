@@ -63,6 +63,38 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
 
         XCTAssertNotNil(signalProcessor.data)
     }
+    
+    func testTrackEvent_tracksHttpEvent() {
+        eventCollector.enable()
+        var eventData: [String: Any?] = [
+            "url": "https://dart.dev",
+            "method": "get",
+            "status_code": 200,
+            "start_time": 1749126214299,
+            "end_time": 1749126214863,
+            "failure_reason": nil,
+            "failure_description": nil,
+            "request_headers": nil,
+            "response_headers": nil,
+            "request_body": nil,
+            "response_body": nil,
+            "client": "dio"
+        ]
+        let type = EventType.http.rawValue
+
+        eventCollector.trackEvent(
+            data: &eventData,
+            type: type,
+            timestamp: 097654121,
+            attributes: [:],
+            userDefinedAttrs: [:],
+            userTriggered: true,
+            sessionId: nil,
+            threadName: nil
+        )
+
+        XCTAssertNotNil(signalProcessor.data)
+    }
 
     func testTrackEvent_WithInvalidArgument_logsError() {
         eventCollector.enable()

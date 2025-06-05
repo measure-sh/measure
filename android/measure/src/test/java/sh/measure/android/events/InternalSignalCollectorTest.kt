@@ -25,6 +25,7 @@ import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
+import sh.measure.android.okhttp.HttpData
 
 class InternalSignalCollectorTest {
     private val signalProcessor = mock<SignalProcessor>()
@@ -90,6 +91,65 @@ class InternalSignalCollectorTest {
             attachments = mutableListOf(),
             threadName = threadName,
             sessionId = sessionId,
+            userTriggered = userTriggered,
+        )
+    }
+
+    @Test
+    fun `trackEvent tracks http event`() {
+        val data = mutableMapOf<String, Any?>(
+            "url" to "https://dart.dev",
+            "method" to "GET",
+            "status_code" to 200,
+            "start_time" to 1749126214299,
+            "end_time" to 1749126214863,
+            "failure_reason" to null,
+            "failure_description" to null,
+            "request_headers" to null,
+            "response_headers" to null,
+            "request_body" to null,
+            "response_body" to null,
+            "client" to "unknown"
+        )
+        val type = EventType.HTTP
+        val timestamp = 1234567890L
+        val attributes = mutableMapOf<String, Any?>()
+        val userDefinedAttrs = mutableMapOf<String, AttributeValue>()
+        val attachments = mutableListOf<MsrAttachment>()
+        val userTriggered = true
+
+        internalSignalCollector.trackEvent(
+            data = data,
+            type = type.value,
+            timestamp = timestamp,
+            attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
+            attachments = attachments,
+            userTriggered = userTriggered,
+            sessionId = null,
+            threadName = null,
+        )
+
+        verify(signalProcessor).track(
+            data = HttpData(
+                url = "https://dart.dev",
+                method = "GET",
+                status_code = 200,
+                start_time = 1749126214299,
+                end_time = 1749126214863,
+                failure_reason = null,
+                failure_description = null,
+                request_headers = null,
+                response_headers = null,
+                request_body = null,
+                response_body = null,
+                client = "unknown"
+            ),
+            timestamp = timestamp,
+            type = type,
+            attributes = attributes,
+            userDefinedAttributes = userDefinedAttrs,
+            attachments = mutableListOf(),
             userTriggered = userTriggered,
         )
     }
