@@ -63,7 +63,7 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_ARTIFACT_SIGNING_PASSWORD }}
       - name: Run all checks
-        run: ./example/android/gradlew --project-dir ./example/android :measure_flutter:check
+        run: ../example/android/gradlew --project-dir ../example/android :measure_flutter:check
       - name: Run SwiftLint
         uses: cirruslabs/swiftlint-action@fdc2695c66b8807e7b1571d08097a99cf1fde41b
         with:
