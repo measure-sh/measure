@@ -5,12 +5,14 @@ import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
+import 'package:measure_flutter/src/navigation/navigation_collector.dart';
 
 final class MeasureInternal {
   final MeasureInitializer initializer;
   final Logger logger;
   final CustomEventCollector _customEventCollector;
   final ExceptionCollector _exceptionCollector;
+  final NavigationCollector _navigationCollector;
   final MsrMethodChannel _methodChannel;
 
   MeasureInternal({
@@ -18,7 +20,8 @@ final class MeasureInternal {
   })  : logger = initializer.logger,
         _customEventCollector = initializer.customEventCollector,
         _methodChannel = initializer.methodChannel,
-        _exceptionCollector = initializer.exceptionCollector;
+        _exceptionCollector = initializer.exceptionCollector,
+        _navigationCollector = initializer.navigationCollector;
 
   Future<void> init() async {
     registerCollectors();
@@ -43,5 +46,13 @@ final class MeasureInternal {
 
   void triggerNativeCrash() {
     _methodChannel.triggerNativeCrash();
+  }
+
+  void trackScreenViewEvent({
+    required String name,
+    bool userTriggered = true,
+  }) {
+    _navigationCollector.trackScreenViewEvent(
+        name: name, userTriggered: userTriggered);
   }
 }

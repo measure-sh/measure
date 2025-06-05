@@ -1,4 +1,5 @@
 import 'package:measure_flutter/attribute_value.dart';
+import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/serialization/json_serializable.dart';
@@ -30,6 +31,7 @@ final class DefaultSignalProcessor extends SignalProcessor {
     String? threadName,
   }) {
     var json = data.toJson();
+    logger.log(LogLevel.debug, "$type: $json");
     return channel.trackEvent(json, type, timestamp.millisecondsSinceEpoch,
         userDefinedAttrs, userTriggered, threadName);
   }

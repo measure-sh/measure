@@ -14,4 +14,9 @@ abstract class MeasureApi {
   void trackHandledError(Object error, StackTrace stack);
 
   void triggerNativeCrash();
+
+  void trackScreenViewEvent({
+    required String name,
+    bool userTriggered = true,
+  });
 }
