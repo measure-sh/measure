@@ -1,0 +1,6 @@
+# melos_managed_dependency_overrides: measure_dio,measure_flutter
+dependency_overrides:
+  measure_dio:
+    path: ../packages/measure_dio
+  measure_flutter:
+    path: ../packages/measure_flutter

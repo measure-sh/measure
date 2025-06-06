@@ -1,0 +1,6 @@
+name: measure-flutter
+repository: https://github.com/measure-sh/measure
+
+packages:
+  - packages/*
+  - example
