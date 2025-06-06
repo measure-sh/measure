@@ -102,6 +102,8 @@ const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({
             legendOffset: -50,
             legendPosition: 'middle'
           }}
+          enableGridX={false}
+          enableGridY={false}
           tooltip={({
             id,
             value,

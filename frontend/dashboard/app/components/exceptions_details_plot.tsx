@@ -119,6 +119,8 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
           }}
           pointLabelYOffset={-12}
           useMesh={true}
+          enableGridX={false}
+          enableGridY={false}
           enableSlices="x"
           sliceTooltip={({ slice }) => {
             return (

@@ -123,7 +123,7 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
             enableArea={true}
             areaOpacity={0.1}
             colors={{ scheme: 'nivo' }}
-            margin={{ top: 20, right: 20, bottom: 140, left: 100 }}
+            margin={{ top: 20, right: 40, bottom: 140, left: 100 }}
             xFormat="time:%Y-%m-%d"
             xScale={{
               format: '%Y-%m-%d',
@@ -168,6 +168,8 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
             }}
             pointLabelYOffset={-12}
             useMesh={true}
+            enableGridX={false}
+            enableGridY={false}
             enableSlices="x"
             sliceTooltip={({ slice }) => {
               return (
