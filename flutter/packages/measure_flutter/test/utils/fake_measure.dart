@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:measure_flutter/attribute_value.dart';
-import 'package:measure_flutter/src/measure_interface.dart';
+import 'package:measure_flutter/measure_api.dart';
 
 class FakeMeasure implements MeasureApi {
   final List<ScreenViewCall> trackedScreenViews = [];
@@ -31,6 +31,24 @@ class FakeMeasure implements MeasureApi {
 
   void clear() {
     trackedScreenViews.clear();
+  }
+
+  @override
+  void trackHttpEvent({
+    required String url,
+    required String method,
+    int? statusCode,
+    int? startTime,
+    int? endTime,
+    String? failureReason,
+    String? failureDescription,
+    Map<String, String>? requestHeaders,
+    Map<String, String>? responseHeaders,
+    String? requestBody,
+    String? responseBody,
+    String? client,
+  }) {
+    throw UnimplementedError();
   }
 }
 

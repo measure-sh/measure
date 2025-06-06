@@ -1,7 +1,9 @@
 import 'dart:isolate';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:measure_dio/measure_dio.dart';
 import 'package:measure_flutter/attribute_builder.dart';
 import 'package:measure_flutter/measure.dart';
 import 'package:measure_flutter_example/src/screen_navigation.dart';
@@ -79,6 +81,10 @@ class MainScreen extends StatelessWidget {
               );
             },
           ),
+          ListSection(title: "http"),
+          ListItem(title: "Dio GET", onPressed: _makeDioGetHttpRequest),
+          ListItem(title: "Dio POST", onPressed: _makeDioPostHttpRequest),
+          ListItem(title: "Dio Failure", onPressed: _makeDioFailedHttpRequest),
         ],
       ),
     );
@@ -142,6 +148,50 @@ class MainScreen extends StatelessWidget {
   void _noMethodChannel() async {
     await MethodChannel('non_existent_channel')
         .invokeMethod('non_existent_method');
+  }
+
+  void _makeDioGetHttpRequest() async {
+    final dio = Dio();
+    dio.interceptors.add(MsrInterceptor());
+    try {
+      await dio.get('https://fakestoreapi.com/products/1');
+    } catch (e) {
+      // ignore-errors
+    }
+  }
+
+  void _makeDioPostHttpRequest() async {
+    final dio = Dio();
+    dio.interceptors.add(MsrInterceptor());
+
+    try {
+      await dio.post(
+        'https://fakestoreapi.com/users',
+        data: {
+          "id": 0,
+          "username": "string",
+          "email": "string",
+          "password": "string"
+        },
+        options: Options(
+          headers: {
+            'X-Custom-Header': 'custom_value',
+          },
+        ),
+      );
+    } catch (e) {
+      // ignore-errors
+    }
+  }
+
+  void _makeDioFailedHttpRequest() async {
+    final dio = Dio();
+    dio.interceptors.add(MsrInterceptor());
+    try {
+      await dio.get('https://fakestoreapi.com/login');
+    } catch (e) {
+      // ignore-errors
+    }
   }
 }
 

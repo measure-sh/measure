@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:measure_flutter/src/measure_interface.dart';
+import 'package:measure_flutter/measure_api.dart';
 
 import '../../measure.dart';
 

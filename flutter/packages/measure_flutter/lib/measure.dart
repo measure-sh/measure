@@ -7,7 +7,7 @@ import 'package:measure_flutter/attribute_value.dart';
 import 'package:measure_flutter/src/config/measure_config.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
-import 'package:measure_flutter/src/measure_interface.dart';
+import 'package:measure_flutter/measure_api.dart';
 import 'package:measure_flutter/src/measure_internal.dart';
 
 export 'src/navigation/navigator_observer.dart';
@@ -83,6 +83,39 @@ class Measure implements MeasureApi {
   void trackScreenViewEvent({required String name, bool userTriggered = true}) {
     if (_isInitialized) {
       _measure.trackScreenViewEvent(name: name, userTriggered: userTriggered);
+    }
+  }
+
+  @override
+  void trackHttpEvent({
+    required String url,
+    required String method,
+    int? statusCode,
+    int? startTime,
+    int? endTime,
+    String? failureReason,
+    String? failureDescription,
+    Map<String, String>? requestHeaders,
+    Map<String, String>? responseHeaders,
+    String? requestBody,
+    String? responseBody,
+    String? client,
+  }) {
+    if (_isInitialized) {
+      _measure.trackHttpEvent(
+        url: url,
+        method: method,
+        statusCode: statusCode,
+        startTime: startTime,
+        endTime: endTime,
+        failureReason: failureReason,
+        failureDescription: failureDescription,
+        requestHeaders: requestHeaders,
+        responseHeaders: responseHeaders,
+        requestBody: requestBody,
+        responseBody: responseBody,
+        client: client,
+      );
     }
   }
 
