@@ -70,6 +70,14 @@ export enum FilterSource {
   Spans
 }
 
+export enum SessionsVsExceptionsPlotApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled
+}
+
 export enum JourneyApiStatus {
   Loading,
   Success,
@@ -1313,6 +1321,93 @@ export const fetchFiltersFromServer = async (selectedApp: App, filterSource: Fil
   } catch {
     return { status: FiltersApiStatus.Cancelled, data: null }
   }
+}
+
+export const fetchSessionsVsExceptionsPlotFromServer = async (filters: Filters) => {
+  // Fetch all three datasets in parallel
+  const [sessionsRes, crashesRes, anrsRes] = await Promise.all([
+    fetchSessionsOverviewPlotFromServer(filters),
+    fetchExceptionsOverviewPlotFromServer(ExceptionsType.Crash, filters),
+    fetchExceptionsOverviewPlotFromServer(ExceptionsType.Anr, filters),
+  ])
+
+  // Handle error/no data
+  if (
+    sessionsRes.status !== SessionsOverviewPlotApiStatus.Success &&
+    sessionsRes.status !== SessionsOverviewPlotApiStatus.NoData
+  ) {
+    return { status: SessionsVsExceptionsPlotApiStatus.Error, data: null }
+  }
+  if (
+    crashesRes.status !== ExceptionsOverviewPlotApiStatus.Success &&
+    crashesRes.status !== ExceptionsOverviewPlotApiStatus.NoData
+  ) {
+    return { status: SessionsVsExceptionsPlotApiStatus.Error, data: null }
+  }
+  if (
+    anrsRes.status !== ExceptionsOverviewPlotApiStatus.Success &&
+    anrsRes.status !== ExceptionsOverviewPlotApiStatus.NoData
+  ) {
+    return { status: SessionsVsExceptionsPlotApiStatus.Error, data: null }
+  }
+
+  // Helper to flatten and merge all series of a type into a map of date -> count
+  function mergeSeries(seriesArr: any[], valueKey: string = 'instances') {
+    const dateMap: Record<string, number> = {}
+    for (const series of seriesArr || []) {
+      for (const point of series.data || []) {
+        const date = point.datetime || point.x
+        const value = point[valueKey] ?? point.y ?? 0
+        dateMap[date] = (dateMap[date] || 0) + value
+      }
+    }
+    return dateMap
+  }
+
+  // Merge all series for each type
+  const sessionsMap = mergeSeries(sessionsRes.data || [])
+  const crashesMap = mergeSeries(crashesRes.data || [])
+  const anrsMap = mergeSeries(anrsRes.data || [])
+
+  // Get all unique dates
+  const allDates = Array.from(new Set([
+    ...Object.keys(sessionsMap),
+    ...Object.keys(crashesMap),
+    ...Object.keys(anrsMap),
+  ])).sort()
+
+  // Build the final series arrays
+  function buildSeries(id: string, map: Record<string, number>) {
+    return {
+      id,
+      data: allDates.map((date, idx) => ({
+        id: id + '.' + idx,
+        x: date,
+        y: map[date] || 0,
+      })),
+    }
+  }
+
+  const result = [
+    buildSeries('Sessions', sessionsMap),
+    buildSeries('Crashes', crashesMap),
+    buildSeries('ANRs', anrsMap),
+  ]
+
+  // If all are empty, return NoData
+  if (result.every(series => series.data.every(point => point.y === 0))) {
+    return { status: SessionsVsExceptionsPlotApiStatus.NoData, data: null }
+  }
+
+  // Remove ANRs if all y values are 0
+  const filteredResult = result.filter(series => {
+    if (series.id === 'ANRs') {
+      return series.data.some(point => point.y !== 0)
+    }
+    return true
+  })
+
+  return { status: SessionsVsExceptionsPlotApiStatus.Success, data: filteredResult }
 }
 
 export const fetchJourneyFromServer = async (journeyType: JourneyType, exceptionsGroupdId: string | null, bidirectional: boolean, filters: Filters) => {

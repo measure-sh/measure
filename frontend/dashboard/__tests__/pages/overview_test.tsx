@@ -36,13 +36,12 @@ jest.mock('@/app/components/filters', () => ({
     defaultFilters: { ready: false, serialisedFilters: '' }, // Mock defaultFilters
 }))
 
-// Mock Journey component
-jest.mock('@/app/components/journey', () => ({
+// Mock SessionsVsExceptionsOverviewPlot component
+jest.mock('@/app/components/sessions_vs_exceptions_overview_plot', () => ({
     __esModule: true, // Ensures the mock behaves like an ES module
     default: () => (
-        <div data-testid="journey-mock">Journey Component Rendered</div>
+        <div data-testid="sessions-vs-exceptions-overview-plot-mock">SessionsVsExceptionsOverviewPlot Component Rendered</div>
     ),
-    JourneyType: { Overview: 'overview' }, // Mock the JourneyType enum
 }))
 
 // Mock MetricsOverview component
@@ -75,7 +74,7 @@ describe('Overview Component', () => {
             fireEvent.click(updateButton)
         })
 
-        expect(await screen.findByTestId('journey-mock')).toBeInTheDocument()
+        expect(await screen.findByTestId('sessions-vs-exceptions-overview-plot-mock')).toBeInTheDocument()
         expect(await screen.findByTestId('metrics-overview-mock')).toBeInTheDocument()
         expect(replaceMock).toHaveBeenCalledWith('?updated', { scroll: false })
     })

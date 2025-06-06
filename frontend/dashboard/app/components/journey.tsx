@@ -13,11 +13,13 @@ interface JourneyProps {
   bidirectional: boolean,
   journeyType: JourneyType,
   exceptionsGroupId: string | null,
-  filters: Filters
+  filters: Filters,
+  searchText?: string
 }
 
 export enum JourneyType {
-  Overview,
+  Paths,
+  Exceptions,
   CrashDetails,
   AnrDetails
 }
@@ -61,8 +63,8 @@ type JourneyLink = {
   source: string
   target: string
   value: number
-  startColor: string,
-  endColor: string
+  startColor?: string,
+  endColor?: string
 }
 
 type JourneyData = {
@@ -70,8 +72,8 @@ type JourneyData = {
   links: JourneyLink[]
 }
 
-const positiveNodeColour = 'oklch(57.7% 0.245 27.325)'
-const negativeNodeColour = 'oklch(62.7% 0.194 149.214)'
+const positiveNodeColour = 'oklch(63.7% 0.237 25.331)'
+const negativeNodeColour = 'oklch(69.6% 0.17 162.48)'
 const neutralLinkColour = `oklch(87.2% 0.01 258.338)`
 
 function getNodeColor(node: Node): string {
@@ -107,7 +109,7 @@ function hasCycle(node: string, graph: Map<string, string[]>, visited: Set<strin
 
 const NODE_LIMIT = 100 // Use constant for the node limit
 
-function transformData(input: InputJourneyData): JourneyData {
+function transformData(journeyType: JourneyType, input: InputJourneyData): JourneyData {
   const nodes = input.nodes || []
   const links = input.links || []
 
@@ -135,8 +137,9 @@ function transformData(input: InputJourneyData): JourneyData {
           source,
           target,
           value,
-          startColor: neutralLinkColour,
-          endColor: neutralLinkColour,
+          // Leave startColor and endColor undefined for path journeys so they use default colors
+          startColor: journeyType === JourneyType.Paths ? undefined : neutralLinkColour,
+          endColor: journeyType === JourneyType.Paths ? undefined : neutralLinkColour,
         })
       } else {
         // Remove the edge that would cause a cycle from the graph
@@ -188,10 +191,10 @@ function transformData(input: InputJourneyData): JourneyData {
   }
 }
 
-const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, exceptionsGroupId, filters }) => {
+const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, exceptionsGroupId, filters, searchText = '' }) => {
 
   const [journeyApiStatus, setJourneyApiStatus] = useState(JourneyApiStatus.Loading)
-  const [journey, setJourney] = useState<JourneyData>(transformData(emptyJourney))
+  const [journey, setJourney] = useState<JourneyData>(transformData(journeyType, emptyJourney))
 
   const [selectedNode, setSelectedNode] = useState<JourneyNode>()
   const [showPanel, setShowPanel] = useState(false)
@@ -208,7 +211,7 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
       case JourneyApiStatus.Success:
         setJourneyApiStatus(JourneyApiStatus.Success)
 
-        let journey = transformData(result.data)
+        let journey = transformData(journeyType, result.data)
 
         if (journey.nodes.length === 0) {
           setJourneyApiStatus(JourneyApiStatus.NoData)
@@ -225,142 +228,159 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
   }, [teamId, bidirectional, journeyType, exceptionsGroupId, filters])
 
   useEffect(() => {
-    if (journeyType === JourneyType.Overview && selectedNode !== undefined && (selectedNode.issues?.crashes?.length! > 0 || selectedNode.issues?.anrs?.length! > 0)) {
+    if (journeyType === JourneyType.Exceptions && selectedNode !== undefined && (selectedNode.issues?.crashes?.length! > 0 || selectedNode.issues?.anrs?.length! > 0)) {
       setShowPanel(true)
     } else {
       setShowPanel(false)
     }
   }, [selectedNode])
 
+  const getSearchFilteredJourney = () => {
+    if (!searchText.trim()) return journey
+    const lowerSearch = searchText.toLowerCase()
+
+    // Find nodes that match the search text
+    const matchingNodeIds = new Set(
+      journey.nodes.filter(node => node.id.toLowerCase().includes(lowerSearch)).map(node => node.id)
+    )
+
+    // Find all nodes connected to matching nodes (directly via links)
+    const connectedNodeIds = new Set([...matchingNodeIds])
+    journey.links.forEach(link => {
+      if (matchingNodeIds.has(link.source) || matchingNodeIds.has(link.target)) {
+        connectedNodeIds.add(link.source)
+        connectedNodeIds.add(link.target)
+      }
+    })
+
+    // Filter nodes and links
+    const filteredNodes = journey.nodes.filter(node => connectedNodeIds.has(node.id))
+    const filteredLinks = journey.links.filter(link => connectedNodeIds.has(link.source) && connectedNodeIds.has(link.target))
+    return { nodes: filteredNodes, links: filteredLinks }
+  }
+
   return (
-    <div className="flex items-center justify-center text-black font-body text-sm w-full h-full overflow-hidden">
-      {journeyApiStatus === JourneyApiStatus.Loading && <LoadingSpinner />}
-      {journeyApiStatus === JourneyApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
-      {journeyApiStatus === JourneyApiStatus.NoData && <p className="text-lg font-display text-center p-4">No journey data</p>}
-      {journeyApiStatus === JourneyApiStatus.Success
-        &&
-        <div className='relative w-full h-full'>
-          <ResponsiveSankey
-            data={journey}
-            margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-            align="justify"
-            sort="input"
-            colors={node => node.nodeColor}
-            nodeBorderColor={{
-              from: 'color',
-              modifiers: [
-                [
-                  'darker',
-                  0.8
+    <div className="flex flex-col items-center justify-center text-black font-body text-sm w-full h-full overflow-hidden">
+      <div className="flex-1 flex items-center justify-center w-full h-full">
+        {journeyApiStatus === JourneyApiStatus.Loading && <LoadingSpinner />}
+        {journeyApiStatus === JourneyApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching journey. Please refresh page or change filters to try again.</p>}
+        {journeyApiStatus === JourneyApiStatus.NoData && <p className="text-lg font-display text-center p-4">No journey data</p>}
+        {journeyApiStatus === JourneyApiStatus.Success &&
+          <div className='relative w-full h-full'>
+            <ResponsiveSankey
+              data={getSearchFilteredJourney()}
+              align="justify"
+              sort="input"
+              margin={{ top: 10, right: 10, bottom: 40, left: 10 }}
+              colors={journeyType === JourneyType.Exceptions ? node => node.nodeColor : { scheme: 'nivo' }}
+              nodeBorderColor={'oklch(26.9% 0 0)'}
+              nodeBorderRadius={3}
+              enableLinkGradient={true}
+              label={node => `${node.id.split(".").pop()?.substring(0, 4)}...`}
+              labelPosition="inside"
+              labelOrientation="horizontal"
+              labelPadding={8}
+              labelTextColor={{
+                from: 'color',
+                modifiers: [
+                  [
+                    'darker',
+                    1
+                  ]
                 ]
-              ]
-            }}
-            nodeBorderRadius={3}
-            enableLinkGradient={true}
-            label={node => `${node.id.split(".").pop()?.substring(0, 4)}...`}
-            labelPosition="inside"
-            labelOrientation="horizontal"
-            labelPadding={8}
-            labelTextColor={{
-              from: 'color',
-              modifiers: [
-                [
-                  'darker',
-                  1
-                ]
-              ]
-            }}
-            onClick={(nodeOrLink) => setSelectedNode(nodeOrLink as JourneyNode)}
-            linkTooltip={({
-              link
-            }) =>
-              <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-neutral-800 text-white max-w-72 break-words`}>
-                <p className='p-2'>{link.source.id.split(".").pop()} → {link.target.id.split(".").pop()}: {link.value > 1 ? link.value + ' sessions' : link.value + ' session'}</p>
-              </div>}
-            nodeTooltip={({
-              node
-            }) =>
-              <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-neutral-800 text-white max-w-72 break-words`}>
-                <p className='p-2'>{node.id}</p>
+              }}
+              onClick={(nodeOrLink) => setSelectedNode(nodeOrLink as JourneyNode)}
+              linkTooltip={({
+                link
+              }) =>
+                <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-neutral-800 text-white break-words`}>
+                  <p className='p-2'>{link.source.id.split(".").pop()} → {link.target.id.split(".").pop()}: {link.value > 1 ? link.value + ' sessions' : link.value + ' session'}</p>
+                </div>}
+              nodeTooltip={({
+                node
+              }) =>
+                <div className={`flex flex-col p-2 text-xs font-body rounded-md bg-neutral-800 text-white break-words`}>
+                  <p className='p-2'>{node.id}</p>
 
-                {node.issues?.crashes?.length! > 0 &&
-                  <p className='px-2 py-0.5'>Crashes: {node.issues?.crashes?.reduce((sum, issue) => sum + issue.count, 0)}</p>
-                }
+                  {journeyType === JourneyType.Exceptions && node.issues?.crashes?.length! > 0 &&
+                    <p className='px-2 py-1 text-red-400'>Crashes: {node.issues?.crashes?.reduce((sum, issue) => sum + issue.count, 0)}</p>
+                  }
 
-                {node.issues?.anrs?.length! > 0 &&
-                  <p className='px-2 py-0.5'>ANRs: {node.issues?.anrs?.reduce((sum, issue) => sum + issue.count, 0)}</p>
-                }
+                  {journeyType === JourneyType.Exceptions && node.issues?.anrs?.length! > 0 &&
+                    <p className='px-2 py-1 text-yellow-400'>ANRs: {node.issues?.anrs?.reduce((sum, issue) => sum + issue.count, 0)}</p>
+                  }
 
-                {journeyType === JourneyType.Overview && (node.issues?.crashes?.length! > 0 || node.issues?.anrs?.length! > 0) &&
-                  <p className='px-2 pt-4 pb-2'>click for details</p>
-                }
+                  {journeyType === JourneyType.Exceptions && (node.issues?.crashes?.length! > 0 || node.issues?.anrs?.length! > 0) &&
+                    <p className='px-2 pt-4 pb-2'>Click for details</p>
+                  }
 
-              </div>
-            }
-          />
-          {/* Panel */}
-          <div
-            className={`absolute overflow-auto top-0 right-0 h-full w-3/4 bg-neutral-800 p-4 text-white break-words transform transition-transform duration-300 ease-in-out ${showPanel ? 'translate-x-0' : 'translate-x-full'
-              }`}
-          >
-            {selectedNode !== undefined &&
-              <div>
-                <button className="outline-hidden flex justify-center hover:bg-yellow-200 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-white hover:border-black focus-visible:border-black hover:text-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => setSelectedNode(undefined)}>Close</button>
-                <p className='mt-6 text-lg'>{selectedNode!.id}</p>
-                {selectedNode.issues?.crashes?.length! > 0 && (
-                  <div>
-                    <p className="font-body text-white mt-4">Crashes:</p>
-                    <ul className="list-disc list-inside text-white pt-2 pb-4 pl-2 pr-2">
-                      {selectedNode.issues?.crashes?.map(({ id, title, count }) => (
-                        <li key={title}>
-                          {/* Show clickable link if overview journey type */}
-                          {journeyType === JourneyType.Overview &&
-                            <span className="font-body text-xs">
-                              <Link href={`/${teamId}/crashes/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
+                </div>
+              }
+            />
+            {/* Panel */}
+            <div
+              className={`absolute overflow-auto top-0 right-0 h-full w-3/4 bg-neutral-800 p-4 text-white break-words transform transition-transform duration-300 ease-in-out ${showPanel ? 'translate-x-0' : 'translate-x-full'
+                }`}
+            >
+              {selectedNode !== undefined &&
+                <div>
+                  <button className="outline-hidden flex justify-center hover:bg-yellow-200 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border border-white hover:border-black focus-visible:border-black hover:text-black rounded-md font-display transition-colors duration-100 py-2 px-4" onClick={() => setSelectedNode(undefined)}>Close</button>
+                  <p className='mt-6 text-lg'>{selectedNode!.id}</p>
+                  {selectedNode.issues?.crashes?.length! > 0 && (
+                    <div>
+                      <p className="font-body text-white mt-4">Crashes:</p>
+                      <ul className="list-disc list-inside text-white pt-2 pb-4 pl-2 pr-2">
+                        {selectedNode.issues?.crashes?.map(({ id, title, count }) => (
+                          <li key={title}>
+                            {/* Show clickable link if Exceptions journey type */}
+                            {journeyType === JourneyType.Exceptions &&
+                              <span className="font-body text-xs">
+                                <Link href={`/${teamId}/crashes/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
+                                  {title} - {numberToKMB(count)}
+                                </Link>
+                              </span>
+                            }
+                            {/* Show only title and count if crash or anr journey type */}
+                            {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
+                              <span className="font-body text-xs">
                                 {title} - {numberToKMB(count)}
-                              </Link>
-                            </span>
-                          }
-                          {/* Show only title and count if crash or anr journey type */}
-                          {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
-                            <span className="font-body text-xs">
-                              {title} - {numberToKMB(count)}
-                            </span>
-                          }
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {selectedNode.issues?.anrs?.length! > 0 && (
-                  <div>
-                    <p className="font-body text-white pt-2">ANRs:</p>
-                    <ul className="list-disc list-inside text-white pt-2 pb-4 pl-2 pr-2">
-                      {selectedNode.issues?.anrs?.map(({ id, title, count }) => (
-                        <li key={title}>
-                          {/* Show clickable link if overview journey type */}
-                          {journeyType === JourneyType.Overview &&
-                            <span className="font-body text-xs">
-                              <Link href={`/${teamId}/anrs/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
+                              </span>
+                            }
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {selectedNode.issues?.anrs?.length! > 0 && (
+                    <div>
+                      <p className="font-body text-white pt-2">ANRs:</p>
+                      <ul className="list-disc list-inside text-white pt-2 pb-4 pl-2 pr-2">
+                        {selectedNode.issues?.anrs?.map(({ id, title, count }) => (
+                          <li key={title}>
+                            {/* Show clickable link if Exceptions journey type */}
+                            {journeyType === JourneyType.Exceptions &&
+                              <span className="font-body text-xs">
+                                <Link href={`/${teamId}/anrs/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`} className="underline decoration-yellow-200 hover:decoration-yellow-500">
+                                  {title} - {numberToKMB(count)}
+                                </Link>
+                              </span>
+                            }
+                            {/* Show only title and count if crash or anr journey type */}
+                            {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
+                              <span className="font-body text-xs">
                                 {title} - {numberToKMB(count)}
-                              </Link>
-                            </span>
-                          }
-                          {/* Show only title and count if crash or anr journey type */}
-                          {(journeyType === JourneyType.CrashDetails || journeyType === JourneyType.AnrDetails) &&
-                            <span className="font-body text-xs">
-                              {title} - {numberToKMB(count)}
-                            </span>
-                          }
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            }
-          </div>
-        </div>}
+                              </span>
+                            }
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              }
+            </div>
+          </div>}
+      </div>
     </div >
   )
 }

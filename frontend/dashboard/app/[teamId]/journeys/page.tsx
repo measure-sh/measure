@@ -1,21 +1,31 @@
 "use client"
 
 import { FilterSource } from '@/app/api/api_calls'
+import DebounceTextInput from '@/app/components/debounce_text_input'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
-import MetricsOverview from '@/app/components/metrics_overview'
-import SessionsVsExceptionsPlot from '@/app/components/sessions_vs_exceptions_overview_plot'
+import Journey, { JourneyType } from '@/app/components/journey'
+import TabSelect from '@/app/components/tab_select'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-interface PageState {
-  filters: typeof defaultFilters
+enum PlotType {
+  Paths = "Paths",
+  Exceptions = "Exceptions",
 }
 
-export default function Overview({ params }: { params: { teamId: string } }) {
+interface PageState {
+  filters: typeof defaultFilters
+  plotType: PlotType
+  searchText: string
+}
+
+export default function UserJourneys({ params }: { params: { teamId: string } }) {
   const router = useRouter()
 
   const initialState: PageState = {
     filters: defaultFilters,
+    plotType: PlotType.Paths,
+    searchText: ''
   }
 
   const [pageState, setPageState] = useState<PageState>(initialState)
@@ -47,7 +57,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start">
-      <p className="font-display text-4xl max-w-6xl text-center">Overview</p>
+      <p className="font-display text-4xl max-w-6xl text-center">User Journeys</p>
       <div className="py-4" />
 
       <Filters
@@ -73,15 +83,44 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         showUdAttrs={false}
         onFiltersChanged={handleFiltersChanged} />
 
-      <div className="py-2" />
-
       {pageState.filters.ready && (
         <>
-          <SessionsVsExceptionsPlot filters={pageState.filters} />
-          <div className="py-8" />
-          {pageState.filters.ready &&
-            <MetricsOverview
-              filters={pageState.filters} />}
+          {/* TabSelect for plot type */}
+          <div className="w-full flex justify-end pb-2 pr-2">
+            <TabSelect
+              items={Object.values(PlotType)}
+              selected={pageState.plotType}
+              onChangeSelected={item => {
+                setPageState(prev => ({ ...prev, plotType: item as PlotType }))
+              }}
+            />
+          </div>
+
+          {/* Main content area */}
+          <div className='w-full h-[800px]'>
+            <div className="py-2" />
+            <DebounceTextInput className="w-full" id="free-text" placeholder="Search nodes..." initialValue={''} onChange={(it) => setPageState(prev => ({ ...prev, searchText: it }))} />
+            <div className="py-4" />
+
+            {pageState.plotType === PlotType.Paths &&
+              <Journey
+                teamId={params.teamId}
+                bidirectional={false}
+                journeyType={JourneyType.Paths}
+                exceptionsGroupId={null}
+                filters={pageState.filters}
+                searchText={pageState.searchText}
+              />}
+            {pageState.plotType === PlotType.Exceptions &&
+              <Journey
+                teamId={params.teamId}
+                bidirectional={false}
+                journeyType={JourneyType.Exceptions}
+                exceptionsGroupId={null}
+                filters={pageState.filters}
+                searchText={pageState.searchText}
+              />}
+          </div>
         </>
       )}
     </div>

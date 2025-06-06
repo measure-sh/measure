@@ -39,6 +39,12 @@ const initNavData = {
           url: "sessions",
           isActive: false,
           external: false,
+        },
+        {
+          title: "Journeys",
+          url: "journeys",
+          isActive: false,
+          external: false,
         }
       ],
     },

@@ -437,6 +437,8 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                     ]
                   ]
                 }}
+                enableGridX={false}
+                enableGridY={false}
                 tooltip={({ point }) => {
                   if (!memoryDataLookup) return null
 
@@ -511,6 +513,8 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                     ]
                   ]
                 }}
+                enableGridX={false}
+                enableGridY={false}
                 tooltip={({ point }) => {
                   if (!memoryAbsDataLookup) return null
 
@@ -586,6 +590,8 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                     ]
                   ]
                 }}
+                enableGridX={false}
+                enableGridY={false}
                 tooltip={({ point }) => {
                   return (
                     <div className='bg-neutral-800 text-white flex flex-col p-2 text-xs rounded-md'>
