@@ -104,6 +104,17 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName)
+            case EventType.http.rawValue:
+                let httpData = try extractHttpData(data: data)
+                signalProcessor.track(
+                    data: httpData,
+                    timestamp: timestamp,
+                    type: EventType.http,
+                    attributes: evaluatedAttributes,
+                    sessionId: sessionId,
+                    attachments: nil,
+                    userDefinedAttributes: serializedUserDefinedAttributes,
+                    threadName: threadName)
             default:
                 logger.log(
                     level: .debug,
@@ -136,5 +147,10 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
     func extractScreenViewData(data: [String: Any?]) throws -> ScreenViewData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(ScreenViewData.self, from: jsonData)
+    }
+
+    func extractHttpData(data: [String: Any?]) throws -> HttpData {
+        let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
+        return try JSONDecoder().decode(HttpData.self, from: jsonData)
     }
 }

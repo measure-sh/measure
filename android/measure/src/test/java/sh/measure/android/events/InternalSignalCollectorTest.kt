@@ -25,6 +25,8 @@ import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
+import sh.measure.android.navigation.ScreenViewData
+import sh.measure.android.okhttp.HttpData
 
 class InternalSignalCollectorTest {
     private val signalProcessor = mock<SignalProcessor>()
@@ -118,6 +120,159 @@ class InternalSignalCollectorTest {
         )
 
         verifyNoInteractions(signalProcessor)
+    }
+
+    @Test
+    fun `trackEvent tracks screen view event`() {
+        val data = mutableMapOf<String, Any?>("name" to "screen_name")
+        val type = EventType.SCREEN_VIEW
+        val timestamp = 1234567890L
+        val attributes = mutableMapOf<String, Any?>()
+        val userDefinedAttrs = mutableMapOf<String, AttributeValue>()
+        val attachments = mutableListOf<MsrAttachment>()
+        val userTriggered = false
+
+        internalSignalCollector.trackEvent(
+            data = data,
+            type = type.value,
+            timestamp = timestamp,
+            attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
+            attachments = attachments,
+            userTriggered = userTriggered,
+            sessionId = null,
+            threadName = null,
+        )
+
+        verify(signalProcessor).track(
+            data = ScreenViewData("screen_name"),
+            timestamp = timestamp,
+            type = type,
+            attributes = attributes,
+            userDefinedAttributes = userDefinedAttrs,
+            attachments = mutableListOf(),
+            threadName = null,
+            sessionId = null,
+            userTriggered = userTriggered,
+        )
+    }
+
+    @Test
+    fun `trackEvent tracks successful http event`() {
+        val data = mutableMapOf<String, Any?>(
+            "url" to "https://example.com",
+            "method" to "POST",
+            "status_code" to 200,
+            "start_time" to 1234567890L,
+            "end_time" to 1234569990L,
+            "request_headers" to mapOf("key" to "value"),
+            "response_headers" to mapOf("key" to "value"),
+            "request_body" to "{\"key\":\"value\"}",
+            "response_body" to "{\"key\":\"value\"}",
+            "client" to "dio",
+            "failure_reason" to null,
+            "failure_description" to null,
+        )
+        val type = EventType.HTTP
+        val timestamp = 1234567890L
+        val attributes = mutableMapOf<String, Any?>()
+        val userDefinedAttrs = mutableMapOf<String, AttributeValue>()
+        val attachments = mutableListOf<MsrAttachment>()
+        val userTriggered = false
+
+        internalSignalCollector.trackEvent(
+            data = data,
+            type = type.value,
+            timestamp = timestamp,
+            attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
+            attachments = attachments,
+            userTriggered = userTriggered,
+            sessionId = null,
+            threadName = null,
+        )
+
+        verify(signalProcessor).track(
+            data = HttpData(
+                url = "https://example.com",
+                method = "POST",
+                status_code = 200,
+                start_time = 1234567890L,
+                end_time = 1234569990L,
+                request_headers = mapOf("key" to "value"),
+                response_headers = mapOf("key" to "value"),
+                request_body = "{\"key\":\"value\"}",
+                response_body = "{\"key\":\"value\"}",
+                client = "dio",
+                failure_reason = null,
+                failure_description = null,
+            ),
+            timestamp = timestamp,
+            type = type,
+            attributes = attributes,
+            userDefinedAttributes = userDefinedAttrs,
+            attachments = mutableListOf(),
+            userTriggered = userTriggered,
+        )
+    }
+
+    @Test
+    fun `trackEvent tracks failed http event`() {
+        val data = mutableMapOf<String, Any?>(
+            "url" to "https://example.com",
+            "method" to "GET",
+            "status_code" to null,
+            "start_time" to 1234567890L,
+            "end_time" to 1234569990L,
+            "request_headers" to null,
+            "response_headers" to null,
+            "request_body" to null,
+            "response_body" to null,
+            "client" to "dio",
+            "failure_reason" to "failed to connect",
+            "failure_description" to "no internet",
+        )
+        val type = EventType.HTTP
+        val timestamp = 1234567890L
+        val attributes = mutableMapOf<String, Any?>()
+        val userDefinedAttrs = mutableMapOf<String, AttributeValue>()
+        val attachments = mutableListOf<MsrAttachment>()
+        val userTriggered = false
+
+        internalSignalCollector.trackEvent(
+            data = data,
+            type = type.value,
+            timestamp = timestamp,
+            attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
+            attachments = attachments,
+            userTriggered = userTriggered,
+            sessionId = null,
+            threadName = null,
+        )
+
+        verify(signalProcessor).track(
+            data = HttpData(
+                url = "https://example.com",
+                method = "GET",
+                status_code = null,
+                start_time = 1234567890L,
+                end_time = 1234569990L,
+                request_headers = null,
+                response_headers = null,
+                request_body = null,
+                response_body = null,
+                client = "dio",
+                failure_reason = "failed to connect",
+                failure_description = "no internet",
+            ),
+            timestamp = timestamp,
+            type = type,
+            attributes = attributes,
+            userDefinedAttributes = userDefinedAttrs,
+            attachments = mutableListOf(),
+            userTriggered = userTriggered,
+        )
     }
 
     @Test

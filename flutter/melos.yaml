@@ -1,0 +1,56 @@
+name: measure-flutter
+repository: https://github.com/measure-sh/measure
+
+packages:
+  - packages/*
+  - example
+
+scripts:
+  lint:all:
+    run: melos run analyze && melos run format
+    description: Run all static analysis checks.
+
+  analyze:
+    run: |
+      melos exec -c 1 -- \
+        dart analyze . --fatal-infos
+    description: |
+      Run `dart analyze` in all packages.
+
+  format:
+    run: |
+      melos exec -- \
+        dart format --output=none --set-exit-if-changed .
+    description: Check if formatting is correct across all packages.
+
+  build:example_android:
+    run: |
+      melos exec -c 6 --fail-fast -- \
+        "flutter build apk"
+    description: Build example app for Android.
+    packageFilters:
+      dirExists:
+        - android
+      scope: '*example*'
+
+  build:example_ios:
+    run: |
+      melos exec -c 6 --fail-fast -- \
+        "flutter build ios --no-codesign"
+    description: Build a specific example app for iOS.
+    packageFilters:
+      dirExists:
+        - ios
+      scope: '*example*'
+
+  test:all:
+    run: |
+      melos run test --no-select
+    description: |
+      Run all tests available.
+
+  test:
+    run: |
+      melos exec --dir-exists=test -- \
+        flutter test
+    description: Run `flutter test` in packages that have a test directory.

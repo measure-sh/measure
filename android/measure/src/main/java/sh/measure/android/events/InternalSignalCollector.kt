@@ -7,6 +7,7 @@ import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.navigation.ScreenViewData
+import sh.measure.android.okhttp.HttpData
 import sh.measure.android.toEventAttachment
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.toJsonElement
@@ -107,6 +108,17 @@ internal class InternalSignalCollector(
                     )
                 }
 
+                EventType.HTTP -> {
+                    val data = extractHttpData(data)
+                    signalProcessor.track(
+                        data = data,
+                        timestamp = timestamp,
+                        type = eventType,
+                        attributes = attributes,
+                        userDefinedAttributes = userDefinedAttrs,
+                    )
+                }
+
                 else -> {
                     logger.log(LogLevel.Error, "Unknown event type: $type")
                 }
@@ -114,6 +126,10 @@ internal class InternalSignalCollector(
         } catch (e: Exception) {
             logger.log(LogLevel.Error, "Failed to decode event $type", e)
         }
+    }
+
+    private fun extractHttpData(map: MutableMap<String, Any?>): HttpData {
+        return Json.decodeFromJsonElement(HttpData.serializer(), map.toJsonElement())
     }
 
     private fun extractScreenViewData(map: MutableMap<String, Any?>): ScreenViewData {
