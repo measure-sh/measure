@@ -85,18 +85,20 @@ final class BaseGestureCollector: GestureCollector {
                                  y: FloatNumber32(y),
                                  touchDownTime: touchDownTime,
                                  touchUpTime: touchUpTime)
-            var attachments: [Attachment]?
-            if let attachment = collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) {
-                attachments = [attachment]
+//            var attachments: [Attachment]?
+//            if let attachment = collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) {
+//                attachments = [attachment]
+//            }
+            collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) { attachment in
+                self.signalProcessor.track(data: data,
+                                      timestamp: self.timeProvider.now(),
+                                      type: .gestureClick,
+                                      attributes: nil,
+                                      sessionId: nil,
+                                      attachments: attachment == nil ? nil : [attachment!],
+                                      userDefinedAttributes: nil,
+                                      threadName: nil)
             }
-            signalProcessor.track(data: data,
-                                  timestamp: timeProvider.now(),
-                                  type: .gestureClick,
-                                  attributes: nil,
-                                  sessionId: nil,
-                                  attachments: attachments,
-                                  userDefinedAttributes: nil,
-                                  threadName: nil)
         case .longClick(let x, let y, let touchDownTime, let touchUpTime, let target, let targetId, let targetFrame):
             let gestureTargetFinderData = gestureTargetFinder.findClickable(x: x, y: y, window: window)
             let width = UInt16((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0)
@@ -110,18 +112,20 @@ final class BaseGestureCollector: GestureCollector {
                                      y: FloatNumber32(y),
                                      touchDownTime: touchDownTime,
                                      touchUpTime: touchUpTime)
-            var attachments: [Attachment]?
-            if let attachment = collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) {
-                attachments = [attachment]
+//            var attachments: [Attachment]?
+//            if let attachment = collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) {
+//                attachments = [attachment]
+//            }
+            collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) { attachment in
+                self.signalProcessor.track(data: data,
+                                           timestamp: self.timeProvider.now(),
+                                      type: .gestureLongClick,
+                                      attributes: nil,
+                                      sessionId: nil,
+                                      attachments: attachment == nil ? nil : [attachment!],
+                                      userDefinedAttributes: nil,
+                                      threadName: nil)
             }
-            signalProcessor.track(data: data,
-                                  timestamp: timeProvider.now(),
-                                  type: .gestureLongClick,
-                                  attributes: nil,
-                                  sessionId: nil,
-                                  attachments: attachments,
-                                  userDefinedAttributes: nil,
-                                  threadName: nil)
         case .scroll(let startX, let startY, let endX, let endY, let direction, let touchDownTime, let touchUpTime, let target, let targetId):
             let startScrollPoint = CGPoint(x: startX, y: startY)
             let endScrollPoint = CGPoint(x: endX, y: endY)
@@ -135,31 +139,33 @@ final class BaseGestureCollector: GestureCollector {
                                       direction: direction,
                                       touchDownTime: touchDownTime,
                                       touchUpTime: touchUpTime)
-                var attachments: [Attachment]?
-                if let attachment = collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: startX, y: startY)) {
-                    attachments = [attachment]
+//                var attachments: [Attachment]?
+//                if let attachment = collectLayoutSnapshot(gesture, touchPoint: ) {
+//                    attachments = [attachment]
+//                }
+                collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: startX, y: startY)) { attachment in
+                    self.signalProcessor.track(data: data,
+                                               timestamp: self.timeProvider.now(),
+                                          type: .gestureScroll,
+                                          attributes: nil,
+                                          sessionId: nil,
+                                          attachments: attachment == nil ? nil : [attachment!],
+                                          userDefinedAttributes: nil,
+                                          threadName: nil)
                 }
-                signalProcessor.track(data: data,
-                                      timestamp: timeProvider.now(),
-                                      type: .gestureScroll,
-                                      attributes: nil,
-                                      sessionId: nil,
-                                      attachments: attachments,
-                                      userDefinedAttributes: nil,
-                                      threadName: nil)
             }
         }
         // swiftlint:enable identifier_name
     }
 
-    private func collectLayoutSnapshot(_ gesture: DetectedGesture, touchPoint: CGPoint) -> Attachment? {
-        SignPost.trace(label: "msr-take-layout-snapshot") {
-            if let window = self.window,
-               let attachment = layoutSnapshotGenerator.generate(window: window, touchPoint: touchPoint) {
-                return attachment
+    private func collectLayoutSnapshot(_ gesture: DetectedGesture, touchPoint: CGPoint, completion: @escaping (Attachment?) -> Void) {
+        if let window = self.window {
+            layoutSnapshotGenerator.generate(window: window, touchPoint: touchPoint) { attachment in
+                completion(attachment)
             }
-
-            return nil
+        } else {
+            completion(nil)
+            return
         }
     }
 }

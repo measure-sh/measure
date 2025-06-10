@@ -76,7 +76,7 @@ final class BaseSignalProcessor: SignalProcessor {
         attachments: [Attachment]?,
         userDefinedAttributes: String?,
         threadName: String?) {
-        SignPost.trace(label: "track-event") {
+        SignPost.trace(subcategory: "Event", label: "trackEvent") {
             track(data: data,
                   timestamp: timestamp,
                   type: type,
@@ -98,7 +98,7 @@ final class BaseSignalProcessor: SignalProcessor {
                                         attachments: [Attachment]?,
                                         userDefinedAttributes: String?,
                                         threadName: String?) {
-        SignPost.trace(label: "track-event-user-triggered") {
+        SignPost.trace(subcategory: "Event", label: "trackEventUserTriggered") {
             track(data: data,
                   timestamp: timestamp,
                   type: type,
@@ -112,7 +112,7 @@ final class BaseSignalProcessor: SignalProcessor {
     }
 
     func trackSpan(_ spanData: SpanData) {
-        SignPost.trace(label: "track-span-triggered") {
+        SignPost.trace(subcategory: "Span", label: "trackSpanTriggered") {
             trackSpanData(spanData)
         }
     }
@@ -140,7 +140,6 @@ final class BaseSignalProcessor: SignalProcessor {
         userDefinedAttributes: String?,
         threadName: String?
     ) {
-        let threadName = threadName ?? OperationQueue.current?.underlyingQueue?.label ?? "unknown"
         let event = createEvent(
             data: data,
             timestamp: timestamp,
@@ -151,12 +150,7 @@ final class BaseSignalProcessor: SignalProcessor {
             sessionId: sessionId,
             userDefinedAttributes: userDefinedAttributes
         )
-        event.attributes?.threadName = threadName
-        event.attributes?.deviceLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
-        event.appendAttributes(self.attributeProcessors)
-        if let attributes = event.attributes {
-            self.crashDataPersistence.attribute = attributes
-        }
+        appendAttributes(event: event, threadName: threadName)
         let needsReporting = sessionManager.shouldReportSession ? true : configProvider.eventTypeExportAllowList.contains(event.type)
         let eventEntity = EventEntity(event, needsReporting: needsReporting)
         eventStore.insertEvent(event: eventEntity)
@@ -164,6 +158,17 @@ final class BaseSignalProcessor: SignalProcessor {
         logger.log(level: .debug, message: "Event processed: \(type), \(event.id)", error: nil, data: data)
     }
 
+    private func appendAttributes<T: Codable>(event: Event<T>, threadName: String?) {
+        SignPost.trace(subcategory: "Event", label: "appendAttributes") {
+            let threadName = threadName ?? OperationQueue.current?.underlyingQueue?.label ?? "unknown"
+            event.attributes?.threadName = threadName
+            event.attributes?.deviceLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
+            event.appendAttributes(self.attributeProcessors)
+            if let attributes = event.attributes {
+                self.crashDataPersistence.attribute = attributes
+            }
+        }
+    }
     private func createEvent<T: Codable>( // swiftlint:disable:this function_parameter_count
         data: T,
         timestamp: Number,

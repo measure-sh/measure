@@ -252,12 +252,16 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         bugReportCollector.trackBugReport(description: description, attachments: attachments.map { $0.toEventAttachment(id: idProvider.uuid()) }, attributes: attributes)
     }
 
-    func captureScreenshot(for viewController: UIViewController) -> MsrAttachment? {
-        return screenshotGenerator.generate(viewController: viewController)?.toMsrAttachment()
+    func captureScreenshot(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
+        screenshotGenerator.generate(viewController: viewController) { attachment in
+            completion(attachment?.toMsrAttachment())
+        }
     }
 
-    func captureLayoutSnapshot(for viewController: UIViewController) -> MsrAttachment? {
-        return layoutSnapshotGenerator.generate(for: viewController)?.toMsrAttachment()
+    func captureLayoutSnapshot(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
+        layoutSnapshotGenerator.generate(for: viewController) { attachment in
+            completion(attachment?.toMsrAttachment())
+        }
     }
 
     func startBugReportFlow(takeScreenshot: Bool = true,

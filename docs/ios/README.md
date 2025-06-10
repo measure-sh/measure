@@ -17,6 +17,9 @@
   * [Performance Tracing](#performance-tracing)
   * [Bug Reports](#bug-reports)
 * [Session](#session)
+* [Performance impact](#performance-impact)
+  * [Benchmarks](#benchmarks)
+  * [Profiling](#profiling)
 
 # Minimum requirements
 
@@ -407,3 +410,46 @@ let sessionId = Measure.shared.getSessionId()
 ```objc
 NSString *sessionId = [[Measure shared] getSessionId];
 ```
+
+# Performance Impact
+
+## Benchmarks
+
+We evaluated the Measure iOS SDK’s performance impact using a baseline app on an iPhone 14 Plus running iOS 18.5. Each scenario was executed multiple times and instrumented with os_signpost for precise time tracking. Metrics were collected via Instruments (Time Profiler and Logging with Signposts).
+
+> [!IMPORTANT]
+> Performance impact varies based on device and application complexity.
+> We recommend measuring impact in your specific app.
+> The following numbers serve as a reference baseline and are used internally to monitor regressions.
+
+### Benchmark Results (v0.3.1)
+
+Measure adds **21.9–27.8 ms (avg ~23.8 ms)** to app startup time (Time to Initial Display).
+
+
+| Operation                  | p95         |
+|----------------------------|-------------|
+| `trackEvent`               | 928.35 µs   |
+| `appendAttributes`         | 144.33 µs   |
+| `trackBugReport`           | 23 ms       |
+| `trackEventUserTriggered`  | 23 ms       |
+| `trackSpanTriggered`       | 144.33 µs   |
+| `spanProcessorOnStarted`   | 52.79 µs    |
+| `spanProcessorOnEnded`     | 412.25 µs   |
+| `generateScreenshot`       | 78.302 ms   |
+| `generateLayoutSnapshot`   | 15.06 ms    |
+
+> [!Note]
+> All values are based on 5 run averages.
+
+The SDK uses signposts via `os_signpost` to help you profile performance using Xcode Instruments.
+
+- `measureInitialisation` — time spent setting up Measure SDK.
+- `trackEvent` — includes event collection, attribute enrichment, and queueing.
+- `appendAttributes` — dynamic attribute gathering (e.g., network, device state).
+- `generateLayoutSnapshot` — layout hierarchy capture.
+- `generateScreenshot` — snapshotting and compression of UI.
+- `trackBugReport` — complete flow including screenshot, layout, and metadata.
+- `spanProcessorOnStarted` — span construction.
+- `spanProcessorOnEnded` — span serialization and buffering.
+- `trackSpanTriggered` — when a trace event is emitted.

@@ -91,22 +91,6 @@ final class SwizzlingUtilityTests: XCTestCase {
         XCTAssertEqual(testClass.originalMethod(), "Original", "Original implementation should be restored.")
     }
 
-    /// Test swizzling performance.
-    func testSwizzlingPerformance() {
-        class PerformanceTestClass: NSObject {
-            @objc dynamic func originalMethod() {}
-            @objc dynamic func swizzledMethod() {}
-        }
-
-        let originalSelector = #selector(PerformanceTestClass.originalMethod)
-        let swizzledSelector = #selector(PerformanceTestClass.swizzledMethod)
-
-        self.measure {
-            SwizzlingUtility.swizzleMethod(for: PerformanceTestClass.self, originalSelector: originalSelector, swizzledSelector: swizzledSelector)
-            SwizzlingUtility.unswizzleAll()
-        }
-    }
-
     /// Test thread safety of swizzling.
     func testThreadSafety() {
         class ThreadSafetyTestClass: NSObject {

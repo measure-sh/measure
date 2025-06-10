@@ -77,7 +77,7 @@ import UIKit
         // Ensure initialization is done only once
         guard measureInternal == nil else { return }
 
-        SignPost.trace(label: "Measure Initialisation") {
+        SignPost.trace(subcategory: "MeasureLifecycle", label: "measureInitialisation") {
             if let meaureInitializer = self.meaureInitializerInternal {
                 measureInternal = MeasureInternal(meaureInitializer)
                 meaureInitializer.logger.log(level: .info, message: "SDK enabled in testing mode.", error: nil, data: nil)
@@ -119,11 +119,13 @@ import UIKit
     ///   [[Measure shared] start];
     ///   ```
     @objc public func start() {
-        measureLifecycleLock.lock()
-        defer { measureLifecycleLock.unlock() }
-
-        guard let measureInternal = self.measureInternal else { return }
-        measureInternal.start()
+        SignPost.trace(subcategory: "MeasureLifecycle", label: "measureStart") {
+            measureLifecycleLock.lock()
+            defer { measureLifecycleLock.unlock() }
+            
+            guard let measureInternal = self.measureInternal else { return }
+            measureInternal.start()
+        }
     }
 
     /// Stops tracking.
@@ -141,11 +143,13 @@ import UIKit
     ///   [[Measure shared] stop];
     ///   ```
     @objc public func stop() {
-        measureLifecycleLock.lock()
-        defer { measureLifecycleLock.unlock() }
-
-        guard let measureInternal = self.measureInternal else { return }
-        measureInternal.stop()
+        SignPost.trace(subcategory: "MeasureLifecycle", label: "measureStop") {
+            measureLifecycleLock.lock()
+            defer { measureLifecycleLock.unlock() }
+            
+            guard let measureInternal = self.measureInternal else { return }
+            measureInternal.stop()
+        }
     }
 
     /// Tracks an event with optional timestamp.
@@ -451,30 +455,46 @@ import UIKit
         measureInternal.trackBugReport(description: description, attachments: attachments, attributes: attributes)
     }
 
-    /// Takes a screenshot of the current activity window. This method must be called from the main thread.
-    /// 
-    /// The screenshot will be masked for privacy based on the configuration provided during
-    /// initialization using `MeasureConfig.screenshotMaskLevel`, by default all text and media are masked.
-    /// 
+    /// Captures a screenshot of the specified view controller's window.
+    ///
+    /// This method **must** be called from the main thread. The screenshot is redacted based on the privacy level
+    /// specified in the `MeasureConfig.screenshotMaskLevel`. By default, all text and media are masked to protect sensitive content.
+    ///
+    /// The screenshot is captured asynchronously and returned via the completion handler.
+    ///
     /// - Parameters:
-    ///   - viewController: The view controller to capture.
-    ///   
-    /// - Returns: `MsrAttachment` object containing the screenshot data.
-    @objc public func captureScreenshot(for viewController: UIViewController) -> MsrAttachment? {
-        guard let measureInternal = self.measureInternal else { return nil }
-        return measureInternal.captureScreenshot(for: viewController)
+    ///   - viewController: The view controller whose view hierarchy will be captured.
+    ///   - completion: A closure that returns an optional `MsrAttachment` containing the redacted screenshot data. Returns `nil` if the capture fails.
+    @objc public func captureScreenshot(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
+        guard let measureInternal = self.measureInternal else {
+            completion(nil)
+            return
+        }
+        measureInternal.captureScreenshot(for: viewController) { msrAttachment in
+            completion(msrAttachment)
+        }
     }
 
-    /// Takes a snapshot of the current view hierarchy layout. This method must be called from the main thread.
-    /// 
-    /// The snapshot captures information about visible elements including their position and
-    /// dimensions. These are cheaper to capture and take less storage than screenshots.
-    /// 
+    /// Asynchronously captures a layout snapshot of the given view controller's view hierarchy.
+    /// This method must be called on the main thread.
+    ///
+    /// The snapshot includes information about the visible UI elements such as their position,
+    /// size, and hierarchy. Unlike full screenshots, layout snapshots are lightweight and more
+    /// storage-efficient, making them ideal for debugging and UI analysis.
+    ///
+    /// - Important: This method must be invoked from the main thread to avoid UI inconsistencies.
+    ///
     /// - Parameters:
-    ///   - viewController: The view controller to capture.
-    /// - Returns: `MsrAttachment` object containing the layout snapshot data.
-    @objc func captureLayoutSnapshot(from viewController: UIViewController) -> MsrAttachment? {
-        guard let measureInternal = self.measureInternal else { return nil }
-        return measureInternal.captureLayoutSnapshot(for: viewController)
+    ///   - viewController: The `UIViewController` whose layout should be captured.
+    ///   - completion: A closure called with an optional `MsrAttachment` containing the layout snapshot data.
+    @objc public func captureLayoutSnapshot(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
+        guard let measureInternal = self.measureInternal else {
+            completion(nil)
+            return
+        }
+
+        measureInternal.captureLayoutSnapshot(for: viewController) { msrAttachment in
+            completion(msrAttachment)
+        }
     }
 }

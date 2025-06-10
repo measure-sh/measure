@@ -7,24 +7,34 @@
 
 import UIKit
 
+struct SvgFrame {
+    let frame: CGRect
+    let isTarget: Bool
+}
+
 protocol SvgGenerator {
-    func generate(for view: UIView, frames: [CGRect], targetView: UIView?) -> Data?
+    func generate(for frames: [SvgFrame]) -> Data?
 }
 
 final class BaseSvgGenerator: SvgGenerator {
-    func generate(for view: UIView, frames: [CGRect], targetView: UIView?) -> Data? {
-        let windowWidth = Int(view.bounds.width)
-        let windowHeight = Int(view.bounds.height)
+    func generate(for frames: [SvgFrame]) -> Data? {
+        guard let maxWidth = frames.map({ $0.frame.maxX }).max(),
+              let maxHeight = frames.map({ $0.frame.maxY }).max() else {
+            return nil
+        }
+
+        let windowWidth = Int(maxWidth)
+        let windowHeight = Int(maxHeight)
 
         var svg = """
-        <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 \(windowWidth) \(windowHeight)\">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 \(windowWidth) \(windowHeight)">
             <defs>
-                <pattern id=\"d\" width=\"24\" height=\"24\" patternTransform=\"rotate(45)\" patternUnits=\"userSpaceOnUse\">
-                    <line y1=\"0\" y2=\"24\" stroke=\"#fef08a\" stroke-width=\"3\"/>
+                <pattern id="d" width="24" height="24" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+                    <line y1="0" y2="24" stroke="#fef08a" stroke-width="3"/>
                 </pattern>
-                <linearGradient id=\"text-gradient\" x1=\"0%\" y1=\"0%\" x2=\"0%\" y2=\"100%\">
-                    <stop offset=\"0%\" style=\"stop-color:#fef08a;stop-opacity:0.1\"/>
-                    <stop offset=\"100%\" style=\"stop-color:#fef08a;stop-opacity:0.05\"/>
+                <linearGradient id="text-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#fef08a;stop-opacity:0.1"/>
+                    <stop offset="100%" style="stop-color:#fef08a;stop-opacity:0.05"/>
                 </linearGradient>
                 <style>
                     .base-rect { fill: none; }
@@ -34,30 +44,33 @@ final class BaseSvgGenerator: SvgGenerator {
                 </style>
             </defs>
             <g>
-                <rect width=\"100%\" height=\"100%\" fill=\"#262626\"/>
+                <rect width="100%" height="100%" fill="#262626"/>
+                <g class="base-rect grey-rect">
         """
 
         var uniqueSet = Set<String>()
 
-        svg += "<g class=\"base-rect grey-rect\">"
-        for frame in frames {
-            let frameKey = "\(frame.origin.x),\(frame.origin.y),\(frame.width),\(frame.height)"
+        for svgFrame in frames {
+            let rect = svgFrame.frame
+            let frameKey = "\(rect.origin.x),\(rect.origin.y),\(rect.width),\(rect.height)"
             guard !uniqueSet.contains(frameKey) else { continue }
             uniqueSet.insert(frameKey)
 
-            let isTarget = targetView != nil && frame == targetView!.convert(targetView!.bounds, to: view)
-
-            svg += svgRect(frame: frame, isTarget: isTarget)
+            svg += svgRect(frame: rect, isTarget: svgFrame.isTarget)
         }
-        svg += "</g>"
 
-        svg += "</g></svg>"
+        svg += """
+                </g>
+            </g>
+        </svg>
+        """
+
         return svg.data(using: .utf8)
     }
 
     private func svgRect(frame: CGRect, isTarget: Bool) -> String {
-        let x = frame.origin.x.safeInt // swiftlint:disable:this identifier_name
-        let y = frame.origin.x.safeInt // swiftlint:disable:this identifier_name
+        let x = frame.origin.x.safeInt
+        let y = frame.origin.y.safeInt
         let width = frame.width.safeInt
         let height = frame.height.safeInt
         let targetClass = isTarget ? " class=\"target-rect\"" : ""

@@ -36,7 +36,7 @@ final class BaseSpanProcessor: SpanProcessor {
     }
 
     func onStart(_ span: InternalSpan) {
-        SignPost.trace(label: "msr-spanProcessor-onStart") {
+        SignPost.trace(subcategory: "Span", label: "spanProcessorOnStart") {
             logger.log(level: .debug, message: "Span started: \(span.name)", error: nil, data: nil)
             let threadName = OperationQueue.current?.underlyingQueue?.label ?? "unknown"
             var attributes = Attributes()
@@ -54,9 +54,11 @@ final class BaseSpanProcessor: SpanProcessor {
     }
 
     func onEnded(_ span: InternalSpan) {
-        if let validSpanData = sanitize(span.toSpanData()) {
-            signalProcessor.trackSpan(validSpanData)
-            logger.log(level: .debug, message: "Span ended: \(validSpanData.name), duration: \(validSpanData.duration)", error: nil, data: nil)
+        SignPost.trace(subcategory: "Span", label: "spanProcessorOnEnded") {
+            if let validSpanData = sanitize(span.toSpanData()) {
+                signalProcessor.trackSpan(validSpanData)
+                logger.log(level: .debug, message: "Span ended: \(validSpanData.name), duration: \(validSpanData.duration)", error: nil, data: nil)
+            }
         }
     }
 

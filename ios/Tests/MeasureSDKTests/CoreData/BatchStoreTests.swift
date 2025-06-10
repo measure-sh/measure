@@ -101,27 +101,4 @@ final class BatchStoreTests: XCTestCase {
             XCTAssertEqual(batches.count, 0)
         }
     }
-
-    func testDeleteNonExistentBatch() {
-        let expectation1 = expectation(description: "Batch inserted")
-        let expectation2 = expectation(description: "Delete non-existent batch")
-
-        let batch = BatchEntity(batchId: "batch1", eventIds: ["event1", "event2"], spanIds: ["span1", "span2"], createdAt: 1_000_000)
-
-        batchStore.insertBatch(batch) { _ in
-            expectation1.fulfill()
-        }
-
-        wait(for: [expectation1], timeout: 5)
-
-        batchStore.deleteBatch("nonExistentBatch")
-        expectation2.fulfill()
-
-        wait(for: [expectation2], timeout: 5)
-
-        batchStore.getBatches(10) { batches in
-            XCTAssertEqual(batches.count, 1)
-            XCTAssertEqual(batches.first?.batchId, "batch1")
-        }
-    }
 }

@@ -12,10 +12,29 @@ import Foundation
 /// Generates the network state attributes. These attributes are expected to change during the session.
 /// This class computes the attributes every time appendAttributes is called.
 final class NetworkStateAttributeProcessor: AttributeProcessor {
+    private var cachedAttributes: (type: NetworkType, gen: NetworkGeneration, provider: String)?
+    private var lastUpdateTime: Date?
+
     func appendAttributes(_ attributes: inout Attributes) {
-        attributes.networkType = getNetworkType()
-        attributes.networkGeneration = getNetworkGeneration()
-        attributes.networkProvider = getNetworkProvider()
+        if shouldUpdateCache() {
+            cachedAttributes = (
+                type: getNetworkType(),
+                gen: getNetworkGeneration(),
+                provider: getNetworkProvider()
+            )
+            lastUpdateTime = Date()
+        }
+
+        if let cache = cachedAttributes {
+            attributes.networkType = cache.type
+            attributes.networkGeneration = cache.gen
+            attributes.networkProvider = cache.provider
+        }
+    }
+
+    private func shouldUpdateCache() -> Bool {
+        guard let last = lastUpdateTime else { return true }
+        return Date().timeIntervalSince(last) > 10
     }
 
     private func getNetworkType() -> NetworkType {
