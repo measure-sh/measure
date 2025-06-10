@@ -1,6 +1,7 @@
 package sh.measure.android.lifecycle
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import androidx.fragment.app.FragmentActivity
 import sh.measure.android.config.ConfigProvider
@@ -42,6 +43,7 @@ internal class ActivityLifecycleCollector(
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         registerFragmentLifecycleCollector(activity)
         registerAndroidXFragmentNavigationCollector(activity)
+        val intentData = getIntentData(activity.intent)
         signalProcessor.track(
             timestamp = timeProvider.now(),
             type = EventType.LIFECYCLE_ACTIVITY,
@@ -49,7 +51,7 @@ internal class ActivityLifecycleCollector(
                 type = ActivityLifecycleType.CREATED,
                 class_name = activity.javaClass.name,
                 saved_instance_state = savedInstanceState != null,
-                intent = activity.intent.dataString,
+                intent = intentData,
             ),
         )
     }
@@ -108,6 +110,13 @@ internal class ActivityLifecycleCollector(
                 true,
             )
         }
+    }
+
+    private fun getIntentData(intent: Intent?): String? {
+        if (configProvider.trackActivityIntentData) {
+            return intent?.dataString
+        }
+        return null
     }
 
     private fun isAndroidXFragmentAvailable() =

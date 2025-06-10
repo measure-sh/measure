@@ -160,9 +160,6 @@ internal class ConfigProviderImpl(
     }
 
     override fun shouldTrackHttpHeader(key: String): Boolean {
-        if (!trackHttpHeaders) {
-            return false
-        }
         return !combinedHttpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
     }
 

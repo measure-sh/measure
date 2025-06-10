@@ -25,8 +25,6 @@ import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ConfigProviderImpl
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.CustomEventCollector
-import sh.measure.android.events.DefaultEventTransformer
-import sh.measure.android.events.EventTransformer
 import sh.measure.android.events.InternalSignalCollector
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.events.SignalProcessorImpl
@@ -227,9 +225,6 @@ internal class MeasureInitializerImpl(
         networkStateAttributeProcessor,
         powerStateAttributeProcessor,
     ),
-    private val eventTransformer: EventTransformer = DefaultEventTransformer(
-        configProvider = configProvider,
-    ),
     private val signalStore: SignalStore = SignalStoreImpl(
         logger = logger,
         database = database,
@@ -284,7 +279,6 @@ internal class MeasureInitializerImpl(
         attributeProcessors = attributeProcessors,
         exceptionExporter = exceptionExporter,
         screenshotCollector = screenshotCollector,
-        eventTransformer = eventTransformer,
         configProvider = configProvider,
     ),
     override val userTriggeredEventCollector: UserTriggeredEventCollector = UserTriggeredEventCollectorImpl(
@@ -310,6 +304,7 @@ internal class MeasureInitializerImpl(
         logger = logger,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
+        configProvider = configProvider,
     ),
     override val httpEventCollector: HttpEventCollector = httpEventCollectorFactory.create(),
     override val unhandledExceptionCollector: UnhandledExceptionCollector = UnhandledExceptionCollector(
