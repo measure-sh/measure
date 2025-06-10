@@ -1,5 +1,5 @@
 -- migrate:up
-alter table default.events
+alter table events
 modify column if exists `attribute.thread_name` FixedString(128);
 
 

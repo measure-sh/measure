@@ -1,5 +1,5 @@
 -- migrate:up
-alter table default.events
+alter table events
   add index if not exists attribute_app_version_idx `attribute.app_version` type minmax granularity 2,
   add index if not exists type_idx `type` type set(100) granularity 2,
   add index if not exists exception_handled_idx `exception.handled` type minmax granularity 2,
@@ -14,7 +14,7 @@ alter table default.events
 
 
 -- migrate:down
-alter table default.events
+alter table events
   drop index if exists attribute_app_version_idx,
   drop index if exists type_idx,
   drop index if exists exception_handled_idx,
