@@ -115,7 +115,7 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                 showBugReportStatus={true}
                 showUdAttrs={true}
                 showFreeText={true}
-                freeTextPlaceholder='Search Search User ID, Session Id, Bug Report ID or description..'
+                freeTextPlaceholder='Search User ID, Session Id, Bug Report ID or description..'
                 onFiltersChanged={handleFiltersChanged} />
             <div className="py-4" />
 
