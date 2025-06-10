@@ -2,7 +2,6 @@ package sh.measure.android.events
 
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -20,7 +19,6 @@ import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
 import sh.measure.android.fakes.TestData.toEvent
-import sh.measure.android.lifecycle.ActivityLifecycleData
 import sh.measure.android.screenshot.Screenshot
 import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.utils.iso8601Timestamp
@@ -33,9 +31,6 @@ internal class SignalProcessorTest {
     private val exceptionExporter = mock<ExceptionExporter>()
     private val screenshotCollector = mock<ScreenshotCollector>()
     private val configProvider = FakeConfigProvider()
-    private val eventTransformer = object : EventTransformer {
-        override fun <T> transform(event: Event<T>): Event<T> = event
-    }
 
     private val signalProcessor = SignalProcessorImpl(
         logger = NoopLogger(),
@@ -47,7 +42,6 @@ internal class SignalProcessorTest {
         exceptionExporter = exceptionExporter,
         screenshotCollector = screenshotCollector,
         configProvider = configProvider,
-        eventTransformer = eventTransformer,
     )
 
     @Before
@@ -163,7 +157,6 @@ internal class SignalProcessorTest {
             exceptionExporter = exceptionExporter,
             screenshotCollector = screenshotCollector,
             configProvider = configProvider,
-            eventTransformer = eventTransformer,
         )
 
         // When
@@ -344,85 +337,6 @@ internal class SignalProcessorTest {
         assertEquals(appBuild, event.attributes[Attribute.APP_BUILD_KEY])
         assertEquals(appVersion, event.attributes[Attribute.APP_VERSION_KEY])
         assertEquals(sessionId, event.sessionId)
-    }
-
-    @Test
-    fun `given transformer drops event, then does not store event`() {
-        // Given
-        val exceptionData = TestData.getExceptionData()
-        val timestamp = 9856564654L
-        val type = EventType.EXCEPTION
-
-        val eventTransformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T>? = null
-        }
-        val signalProcessor = SignalProcessorImpl(
-            logger = NoopLogger(),
-            ioExecutor = executorService,
-            signalStore = signalStore,
-            idProvider = idProvider,
-            sessionManager = sessionManager,
-            attributeProcessors = emptyList(),
-            exceptionExporter = exceptionExporter,
-            screenshotCollector = screenshotCollector,
-            configProvider = configProvider,
-            eventTransformer = eventTransformer,
-        )
-
-        // When
-        signalProcessor.track(
-            data = exceptionData,
-            timestamp = timestamp,
-            type = type,
-        )
-        signalProcessor.track(
-            data = "data",
-            timestamp = timestamp,
-            type = EventType.STRING,
-        )
-
-        // Then
-        assertEquals(0, signalStore.trackedEvents.size)
-    }
-
-    @Test
-    fun `given transformer modifies event, then stores modified event`() {
-        // Given
-        val activityLifecycleData = TestData.getActivityLifecycleData(intent = "intent-data")
-        val timestamp = 9856564654L
-        val type = EventType.LIFECYCLE_ACTIVITY
-
-        val eventTransformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                // drop the intent data from the event
-                (event.data as ActivityLifecycleData).intent = null
-                return event
-            }
-        }
-        val signalProcessor = SignalProcessorImpl(
-            logger = NoopLogger(),
-            ioExecutor = executorService,
-            signalStore = signalStore,
-            idProvider = idProvider,
-            sessionManager = sessionManager,
-            attributeProcessors = emptyList(),
-            exceptionExporter = exceptionExporter,
-            screenshotCollector = screenshotCollector,
-            configProvider = configProvider,
-            eventTransformer = eventTransformer,
-        )
-
-        // When
-        signalProcessor.track(
-            data = activityLifecycleData,
-            timestamp = timestamp,
-            type = type,
-        )
-
-        // Then
-        assertEquals(1, signalStore.trackedEvents.size)
-        // verify intent data is dropped from the event
-        assertNull((signalStore.trackedEvents.first().data as ActivityLifecycleData).intent)
     }
 
     @Test

@@ -100,7 +100,6 @@ internal class SignalProcessorImpl(
     private val idProvider: IdProvider,
     private val sessionManager: SessionManager,
     private val attributeProcessors: List<AttributeProcessor>,
-    private val eventTransformer: EventTransformer,
     private val exceptionExporter: ExceptionExporter,
     private val screenshotCollector: ScreenshotCollector,
     private val configProvider: ConfigProvider,
@@ -154,17 +153,10 @@ internal class SignalProcessorImpl(
                             sessionId = sessionId,
                         )
                         applyAttributes(attributes, event, resolvedThreadName)
-                        val transformedEvent = InternalTrace.trace(
-                            label = { "msr-transform-event" },
-                            block = { eventTransformer.transform(event) },
-                        )
-
-                        if (transformedEvent != null) {
-                            InternalTrace.trace(label = { "msr-store-event" }, block = {
-                                signalStore.store(event)
-                                onEventTracked(event)
-                            })
-                        }
+                        InternalTrace.trace(label = { "msr-store-event" }, block = {
+                            signalStore.store(event)
+                            onEventTracked(event)
+                        })
                     },
                 )
             }
@@ -231,12 +223,10 @@ internal class SignalProcessorImpl(
             addScreenshotAsAttachment(event)
         }
         applyAttributes(attributes, event, threadName)
-        eventTransformer.transform(event)?.let {
-            signalStore.store(event)
-            onEventTracked(event)
-            sessionManager.markCrashedSession(event.sessionId)
-            exceptionExporter.export(event.sessionId)
-        }
+        signalStore.store(event)
+        onEventTracked(event)
+        sessionManager.markCrashedSession(event.sessionId)
+        exceptionExporter.export(event.sessionId)
     }
 
     override fun trackSpan(spanData: SpanData) {

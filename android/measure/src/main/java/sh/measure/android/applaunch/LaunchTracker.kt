@@ -177,6 +177,7 @@ internal class LaunchTracker(
         onNextDrawElapsedRealtime: Long,
         onCreateRecord: OnCreateRecord,
     ) {
+        val intentData = getIntentData(onCreateRecord.intentData)
         when (launchType) {
             "Cold" -> {
                 coldLaunchComplete = true
@@ -188,7 +189,7 @@ internal class LaunchTracker(
                         on_next_draw_uptime = onNextDrawElapsedRealtime,
                         launched_activity = onCreateRecord.activityName,
                         has_saved_state = onCreateRecord.hasSavedState,
-                        intent_data = onCreateRecord.intentData,
+                        intent_data = intentData,
                     ),
                 )
             }
@@ -201,7 +202,7 @@ internal class LaunchTracker(
                             on_next_draw_uptime = onNextDrawElapsedRealtime,
                             launched_activity = onCreateRecord.activityName,
                             has_saved_state = onCreateRecord.hasSavedState,
-                            intent_data = onCreateRecord.intentData,
+                            intent_data = intentData,
                         ),
                     )
                 }
@@ -217,7 +218,7 @@ internal class LaunchTracker(
                         on_next_draw_uptime = onNextDrawElapsedRealtime,
                         launched_activity = onCreateRecord.activityName,
                         has_saved_state = onCreateRecord.hasSavedState,
-                        intent_data = onCreateRecord.intentData,
+                        intent_data = intentData,
                         is_lukewarm = false,
                     ),
                 )
@@ -233,7 +234,7 @@ internal class LaunchTracker(
                         on_next_draw_uptime = onNextDrawElapsedRealtime,
                         launched_activity = onCreateRecord.activityName,
                         has_saved_state = onCreateRecord.hasSavedState,
-                        intent_data = onCreateRecord.intentData,
+                        intent_data = intentData,
                         is_lukewarm = true,
                     ),
                 )
@@ -313,5 +314,12 @@ internal class LaunchTracker(
 
     private fun isActivityTtidSpanEnabled(): Boolean {
         return configProvider.trackActivityLoadTime
+    }
+
+    private fun getIntentData(intentData: String?): String? {
+        if (configProvider.trackActivityIntentData) {
+            return intentData
+        }
+        return null
     }
 }

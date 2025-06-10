@@ -16,8 +16,8 @@ internal class FakeConfigProvider : ConfigProvider {
     override var screenshotCompressionQuality: Int = 25
     override val eventTypeExportAllowList: List<EventType> = emptyList()
     override val maxSignalsInDatabase: Int = 50_000
-    override var trackHttpHeaders: Boolean = false
-    override var trackHttpBody: Boolean = false
+    override var trackHttpHeaders: Boolean = true
+    override var trackHttpBody: Boolean = true
     override var httpHeadersBlocklist: List<String> = emptyList()
     override var httpUrlBlocklist: List<String> = emptyList()
     override var httpUrlAllowlist: List<String> = emptyList()
@@ -31,7 +31,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var sessionEndLastEventThresholdMs: Long = 20 * 60 * 1000 // 20 minutes
     override var maxSessionDurationMs: Long = 6 * 60 * 60 * 1000 // 6 hours
     override var maxEventNameLength: Int = 64
-    override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+\$"
+    override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+$"
     override val maxUserDefinedAttributesPerEvent: Int = 100
     override var maxUserDefinedAttributeKeyLength: Int = 64
     override var maxUserDefinedAttributeValueLength: Int = 256
@@ -51,22 +51,20 @@ internal class FakeConfigProvider : ConfigProvider {
     override val trackActivityLoadTime: Boolean = true
     override val trackFragmentLoadTime: Boolean = true
 
-    var shouldTrackHttpBody = false
+    var shouldTrackHttpBody = true
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         return shouldTrackHttpBody
     }
 
-    var shouldTrackHttpUrl = false
+    var shouldTrackHttpUrl = true
 
     override fun shouldTrackHttpUrl(url: String): Boolean {
         return shouldTrackHttpUrl
     }
 
-    var headerKeysToBlock = emptyList<String>()
-
     override fun shouldTrackHttpHeader(key: String): Boolean {
-        return !headerKeysToBlock.any { key.contains(it, ignoreCase = true) }
+        return !httpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
     }
 
     override fun setMeasureUrl(url: String) {
