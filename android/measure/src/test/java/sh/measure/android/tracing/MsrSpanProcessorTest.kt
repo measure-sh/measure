@@ -22,7 +22,7 @@ class MsrSpanProcessorTest {
     private val configProvider = FakeConfigProvider()
 
     @Test
-    fun `onStart appends attributes to spans`() {
+    fun `onStart appends thread name and onEnded appends attributes to spans`() {
         val attributeProcessor = object : AttributeProcessor {
             override fun appendAttributes(attributes: MutableMap<String, Any?>) {
                 attributes["key"] = "value"
@@ -36,11 +36,17 @@ class MsrSpanProcessorTest {
             spanProcessor,
             parentId = null,
         )
-        spanProcessor.onStart(span)
 
-        // thread name is always added as an attribute, hence size is 2
-        Assert.assertEquals(2, span.toSpanData().attributes.size)
-        Assert.assertEquals("value", span.toSpanData().attributes["key"])
+        // appends thread name
+        spanProcessor.onStart(span)
+        Assert.assertEquals(1, span.toSpanData().attributes.size)
+        Assert.assertEquals(Attribute.THREAD_NAME, span.toSpanData().attributes.keys.first())
+
+        span.end()
+
+        // appends attributes
+        Assert.assertEquals(span.toSpanData().attributes.size, 2)
+        Assert.assertEquals(span.toSpanData().attributes["key"], "value")
     }
 
     @Test

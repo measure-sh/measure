@@ -15,6 +15,10 @@ export 'src/config/client.dart';
 export 'src/config/measure_config.dart';
 export 'src/measure_api.dart';
 export 'src/navigation/navigator_observer.dart';
+export 'src/tracing/checkpoint.dart';
+export 'src/tracing/span.dart';
+export 'src/tracing/span_builder.dart';
+export 'src/tracing/span_status.dart';
 
 /// Main Measure SDK class implementing MeasureApi
 /// Provides a singleton interface for tracking events, errors, and HTTP requests
@@ -40,6 +44,7 @@ class Measure implements MeasureApi {
     required ClientInfo clientInfo,
     MeasureConfig config = const MeasureConfig(),
   }) async {
+    final startTime = DateTime.now();
     WidgetsFlutterBinding.ensureInitialized();
     if (_validateClientInfo(clientInfo)) {
       try {
@@ -51,7 +56,11 @@ class Measure implements MeasureApi {
         _logInitializationFailure(config.enableLogging, e, stackTrace);
       }
     }
-    return action();
+    final result = action();
+    Measure.instance
+        .startSpan("msr-init", timestamp: startTime.millisecondsSinceEpoch)
+        .end();
+    return result;
   }
 
   /// Initialize both native SDK and internal Measure components
@@ -217,6 +226,73 @@ class Measure implements MeasureApi {
     if (_isInitialized) {
       _measure.triggerNativeCrash();
     }
+  }
+
+  /// Starts a new performance tracing span with the specified [name].
+  ///
+  /// [name] The name to identify this span.
+  /// [timestamp] An optional timestamp in milliseconds since the Unix epoch.
+  ///
+  /// Returns [Span] A new span instance if the SDK is initialized, or an invalid no-op span if not initialized
+  @override
+  Span startSpan(
+    String name, {
+    int? timestamp,
+  }) {
+    if (_isInitialized) {
+      return _measure.startSpan(name, timestamp: timestamp);
+    } else {
+      return Span.invalid();
+    }
+  }
+
+  /// Creates a configurable span builder for deferred span creation.
+  ///
+  /// [name] The name to identify this span.
+  ///
+  /// Returns [SpanBuilder?] A builder instance to configure the span if the SDK is initialized,
+  /// or null if the SDK is not initialized
+  ///
+  /// Note: Use this method when you need to create a span without immediately starting it.
+  @override
+  SpanBuilder? createSpanBuilder(String name) {
+    if (_isInitialized) {
+      return _measure.createSpan(name);
+    } else {
+      return null;
+    }
+  }
+
+  /// Returns the W3C traceparent header value for the given span.
+  ///
+  /// [span] The span to extract the traceparent header value from
+  /// Returns A W3C trace context compliant header value in the format:
+  /// `{version}-{traceId}-{spanId}-{traceFlags}`
+  ///
+  /// Example: `00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01`
+  ///
+  /// See also:
+  /// * [getTraceParentHeaderKey]
+  /// * [W3C Trace Context specification](https://www.w3.org/TR/trace-context/#header-name)
+  ///
+  /// Note: Use this value in the `traceparent` HTTP header when making API calls to enable
+  /// distributed tracing between your mobile app and backend services.
+  @override
+  String getTraceParentHeaderValue(Span span) {
+    return _measure.getTraceParentHeaderValue(span);
+  }
+
+  /// Returns the W3C traceparent header key/name.
+  ///
+  /// Returns The standardized header key 'traceparent' that should be used when adding
+  /// distributed tracing context to HTTP requests
+  ///
+  /// See also:
+  /// * [getTraceParentHeaderValue]
+  /// * [W3C Trace Context specification](https://www.w3.org/TR/trace-context/#header-name)
+  @override
+  String getTraceParentHeaderKey() {
+    return _measure.getTraceParentHeaderKey();
   }
 
   bool _validateClientInfo(ClientInfo clientInfo) {

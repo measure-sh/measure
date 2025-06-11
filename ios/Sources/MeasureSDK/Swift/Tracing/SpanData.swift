@@ -8,7 +8,7 @@
 import Foundation
 
 /// Data class representing a span's data for processing and export.
-struct SpanData {
+struct SpanData: Codable {
     let name: String
     let traceId: String
     let spanId: String

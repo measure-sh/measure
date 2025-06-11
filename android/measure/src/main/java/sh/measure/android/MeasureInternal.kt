@@ -362,4 +362,8 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         customEventCollector.unregister()
         periodicSignalStoreScheduler.unregister()
     }
+
+    fun internalTrackSpan(spanData: MutableMap<String, Any?>) {
+        internalSignalCollector.trackSpan(spanData)
+    }
 }

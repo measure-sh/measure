@@ -94,4 +94,24 @@ class FakeMeasure implements MeasureApi {
   bool shouldTrackHttpUrl(String url) {
     return _shouldTrackHttpUrl;
   }
+
+  @override
+  SpanBuilder? createSpanBuilder(String name) {
+    throw UnimplementedError();
+  }
+
+  @override
+  String getTraceParentHeaderKey() {
+    throw UnimplementedError();
+  }
+
+  @override
+  String getTraceParentHeaderValue(Span span) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Span startSpan(String name, {int? timestamp}) {
+    throw UnimplementedError();
+  }
 }

@@ -3,12 +3,14 @@ package sh.measure.flutter
 object MethodConstants {
     // functions
     const val FUNCTION_TRACK_EVENT = "trackEvent"
+    const val FUNCTION_TRACK_SPAN = "trackSpan"
     const val FUNCTION_TRIGGER_NATIVE_CRASH = "triggerNativeCrash"
     const val FUNCTION_INITIALIZE_NATIVE_SDK = "initializeNativeSDK"
 
     // arguments
     const val ARG_EVENT_DATA = "event_data"
     const val ARG_EVENT_TYPE = "event_type"
+    const val ARG_SPAN_DATA = "span_data"
     const val ARG_TIMESTAMP = "timestamp"
     const val ARG_USER_DEFINED_ATTRS = "user_defined_attrs"
     const val ARG_USER_TRIGGERED = "user_triggered"

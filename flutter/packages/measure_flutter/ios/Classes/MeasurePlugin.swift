@@ -14,6 +14,8 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
             switch call.method {
             case MethodConstants.functionTrackEvent:
                 try handleTrackEvent(call, result: result)
+            case MethodConstants.functionTrackSpan:
+                try handleTrackSpan(call, result: result)
             case MethodConstants.functionTriggerNativeCrash:
                 triggerNativeCrash()
             case MethodConstants.functionInitializeNativeSdk:
@@ -50,6 +52,13 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
             sessionId: nil,
             threadName: threadName
         )
+        result(nil)
+    }
+
+    private func handleTrackSpan(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
+        let reader = MethodCallReader(call)
+        let spanData: [String: Any?] = try reader.requireArg(MethodConstants.argSpanData)
+        Measure.shared.internalTrackSpan(spanData: spanData)
         result(nil)
     }
 

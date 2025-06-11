@@ -378,7 +378,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          configProvider: configProvider,
                                                          httpEventValidator: httpEventValidator)
         self.internalSignalCollector = BaseInternalSignalCollector(logger: self.logger,
-                                                                   signalProcessor: self.signalProcessor)
+                                                                   signalProcessor: self.signalProcessor,
+                                                                   spanProcessor: self.spanProcessor)
         self.screenshotGenerator = BaseScreenshotGenerator(configProvider: configProvider,
                                                            logger: logger,
                                                            attachmentProcessor: attachmentProcessor,

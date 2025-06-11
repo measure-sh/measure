@@ -100,7 +100,7 @@ protocol MeasureConfig {
     ///
     /// When enabled, users can shake their device to launch the bug report activity automatically.
     let enableShakeToLaunchBugReport: Bool
-    
+
     public required init(from decoder: Decoder) throws {
          let container = try decoder.container(keyedBy: CodingKeys.self)
          

@@ -47,4 +47,11 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
       MethodConstants.argClientInfo: clientInfo,
     });
   }
+
+  @override
+  Future<void> trackSpan(Map<String, dynamic> spanData) {
+    return _methodChannel.invokeMethod(MethodConstants.functionTrackSpan, {
+      MethodConstants.argSpanData: spanData,
+    });
+  }
 }

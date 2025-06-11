@@ -26,6 +26,7 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         try {
             when (call.method) {
                 MethodConstants.FUNCTION_TRACK_EVENT -> handleTrackEvent(call, result)
+                MethodConstants.FUNCTION_TRACK_SPAN -> handleTrackSpan(call, result)
                 MethodConstants.FUNCTION_TRIGGER_NATIVE_CRASH -> triggerNativeCrash()
                 MethodConstants.FUNCTION_INITIALIZE_NATIVE_SDK -> initializeNativeSdk(call, result)
                 else -> result.notImplemented()
@@ -45,7 +46,7 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         val exception = RuntimeException("Native app crashed")
         val mainThread = Looper.getMainLooper().thread
         mainThread.uncaughtExceptionHandler?.uncaughtException(mainThread, exception)
-        mainThread.join();
+        mainThread.join()
     }
 
     private fun handleTrackEvent(call: MethodCall, result: MethodChannel.Result) {
@@ -66,6 +67,13 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
             userTriggered = userTriggered,
             threadName = threadName,
         )
+        result.success(null)
+    }
+
+    private fun handleTrackSpan(call: MethodCall, result: MethodChannel.Result) {
+        val reader = MethodCallReader(call)
+        val spanData = reader.requireArg<MutableMap<String, Any?>>(MethodConstants.ARG_SPAN_DATA)
+        Measure.internalTrackSpan(spanData)
         result.success(null)
     }
 

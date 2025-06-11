@@ -582,6 +582,20 @@ object Measure {
         }
     }
 
+    /**
+     * An internal method to track spans from cross-platform frameworks
+     * like Flutter and React Native.
+     *
+     * This method is not intended for public usage and can change in future versions.
+     *
+     * @param data the span data to track.
+     */
+    fun internalTrackSpan(data: MutableMap<String, Any?>) {
+        if (isInitialized.get()) {
+            measure.internalTrackSpan(data)
+        }
+    }
+
     internal fun getBugReportCollector(): BugReportCollector {
         if (isInitialized.get()) {
             return measure.bugReportCollector

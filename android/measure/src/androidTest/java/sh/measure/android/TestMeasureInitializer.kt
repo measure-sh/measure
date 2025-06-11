@@ -432,5 +432,6 @@ internal class TestMeasureInitializer(
         logger = logger,
         signalProcessor = signalProcessor,
         processInfoProvider = processInfoProvider,
+        spanProcessor = spanProcessor,
     ),
 ) : MeasureInitializer

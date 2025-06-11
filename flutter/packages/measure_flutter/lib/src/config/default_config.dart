@@ -12,4 +12,7 @@ class DefaultConfig {
   static const bool trackActivityLoadTime = true;
   static const bool trackFragmentLoadTime = true;
   static const bool trackViewControllerLoadTime = true;
+  static const int maxCheckpointsPerSpan = 100;
+  static const int maxSpanNameLength = 64;
+  static const int maxCheckpointNameLength = 64;
 }
