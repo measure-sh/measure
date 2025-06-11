@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.annotation.MainThread
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.MsrShakeListener
+import sh.measure.android.config.ClientInfo
 import sh.measure.android.lifecycle.AppLifecycleListener
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.tracing.Span
@@ -58,27 +59,9 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private var isStarted: Boolean = false
     private var startLock = Any()
 
-    fun init() {
-        manifestReader.load()?.let {
-            if (it.url == null) {
-                logger.log(
-                    LogLevel.Error,
-                    "sh.measure.android.API_URL is missing in the manifest, skipping initialization",
-                )
-                return
-            }
-
-            if (it.apiKey == null) {
-                logger.log(
-                    LogLevel.Error,
-                    "sh.measure.android.API_KEY is missing in the manifest, skipping initialization",
-                )
-                return
-            }
-            // This is not very elegant, but can't find a better way to do this given the way the
-            // SDK is initialized.
-            configProvider.setMeasureUrl(it.url)
-            networkClient.init(baseUrl = it.url, apiKey = it.apiKey)
+    fun init(clientInfo: ClientInfo? = null) {
+        if (setupNetworkClient(clientInfo)) {
+            return
         }
 
         // initialize a session
@@ -117,6 +100,50 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
                 isStarted = false
                 logger.log(LogLevel.Debug, "Stopped")
             }
+        }
+    }
+
+    // Validates and initializes the network client, returns true if initialization was successful,
+    // false otherwise.
+    private fun setupNetworkClient(clientInfo: ClientInfo?): Boolean {
+        return if (clientInfo != null) {
+            initializeWithCredentials(clientInfo.apiUrl, clientInfo.apiKey)
+        } else {
+            initializeFromManifest()
+        }
+    }
+
+    private fun validateApiCredentials(apiUrl: String?, apiKey: String?): String? {
+        return when {
+            apiUrl.isNullOrEmpty() -> "API URL is missing"
+            apiKey.isNullOrEmpty() -> "API Key is missing"
+            !apiKey.startsWith("msrsh") -> "invalid API Key"
+            else -> null
+        }
+    }
+
+    private fun initializeFromManifest(): Boolean {
+        val manifest = manifestReader.load()
+        if (manifest == null) {
+            return false
+        }
+
+        return initializeWithCredentials(manifest.url, manifest.apiKey)
+    }
+
+    private fun initializeWithCredentials(apiUrl: String?, apiKey: String?): Boolean {
+        val validationError = validateApiCredentials(apiUrl, apiKey)
+
+        return if (validationError != null) {
+            logger.log(
+                LogLevel.Error,
+                "Failed to initialize Measure SDK, $validationError",
+            )
+            false
+        } else {
+            configProvider.setMeasureUrl(apiUrl!!)
+            networkClient.init(baseUrl = apiUrl, apiKey = apiKey!!)
+            true
         }
     }
 

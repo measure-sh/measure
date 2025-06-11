@@ -24,7 +24,7 @@ protocol MeasureConfig {
 }
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
-@objc public final class BaseMeasureConfig: NSObject, MeasureConfig {
+@objc public final class BaseMeasureConfig: NSObject, MeasureConfig, Codable {
     /// Whether to enable internal SDK logging. Defaults to `false`.
     let enableLogging: Bool
 
@@ -100,7 +100,26 @@ protocol MeasureConfig {
     ///
     /// When enabled, users can shake their device to launch the bug report activity automatically.
     let enableShakeToLaunchBugReport: Bool
-
+    
+    public required init(from decoder: Decoder) throws {
+         let container = try decoder.container(keyedBy: CodingKeys.self)
+         
+         enableLogging = try container.decodeIfPresent(Bool.self, forKey: .enableLogging) ?? DefaultConfig.enableLogging
+         samplingRateForErrorFreeSessions = try container.decodeIfPresent(Float.self, forKey: .samplingRateForErrorFreeSessions) ?? DefaultConfig.sessionSamplingRate
+         traceSamplingRate = try container.decodeIfPresent(Float.self, forKey: .traceSamplingRate) ?? DefaultConfig.traceSamplingRate
+         autoStart = try container.decodeIfPresent(Bool.self, forKey: .autoStart) ?? DefaultConfig.autoStart
+         trackHttpHeaders = try container.decodeIfPresent(Bool.self, forKey: .trackHttpHeaders) ?? DefaultConfig.trackHttpHeaders
+         trackHttpBody = try container.decodeIfPresent(Bool.self, forKey: .trackHttpBody) ?? DefaultConfig.trackHttpBody
+         httpHeadersBlocklist = try container.decodeIfPresent([String].self, forKey: .httpHeadersBlocklist) ?? DefaultConfig.httpHeadersBlocklist
+         httpUrlBlocklist = try container.decodeIfPresent([String].self, forKey: .httpUrlBlocklist) ?? DefaultConfig.httpUrlBlocklist
+         httpUrlAllowlist = try container.decodeIfPresent([String].self, forKey: .httpUrlAllowlist) ?? DefaultConfig.httpUrlAllowlist
+         trackViewControllerLoadTime = try container.decodeIfPresent(Bool.self, forKey: .trackViewControllerLoadTime) ?? DefaultConfig.trackViewControllerLoadTime
+         screenshotMaskLevel = try container.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
+         enableShakeToLaunchBugReport = try container.decodeIfPresent(Bool.self, forKey: .enableShakeToLaunchBugReport) ?? DefaultConfig.enableShakeToLaunchBugReport
+         
+         super.init()
+     }
+    
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
     /// - Parameters:
     ///   - enableLogging: Enable or disable internal SDK logs. Defaults to `false`.

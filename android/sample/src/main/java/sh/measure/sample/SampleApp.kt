@@ -3,6 +3,7 @@ package sh.measure.sample
 import android.app.Application
 import sh.measure.android.Measure
 import sh.measure.android.attributes.AttributesBuilder
+import sh.measure.android.config.ClientInfo
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.config.ScreenshotMaskLevel
 
@@ -11,7 +12,8 @@ class SampleApp : Application() {
         super.onCreate()
         val startTime = Measure.getCurrentTime()
         Measure.init(
-            this, MeasureConfig(
+            this,
+            measureConfig = MeasureConfig(
                 enableLogging = true,
                 trackScreenshotOnCrash = true,
                 screenshotMaskLevel = if (BuildConfig.DEBUG) {
@@ -26,6 +28,10 @@ class SampleApp : Application() {
                 samplingRateForErrorFreeSessions = 1f,
                 autoStart = true,
                 traceSamplingRate = 1.0f,
+            ),
+            clientInfo = ClientInfo(
+                apiUrl = "your-api-url",
+                apiKey = "msrsh-your-api-key"
             )
         )
         val appOnCreateSpan = Measure.startSpan("SampleApp.onCreate", timestamp = startTime)

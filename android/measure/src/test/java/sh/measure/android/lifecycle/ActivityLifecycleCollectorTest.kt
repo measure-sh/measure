@@ -41,7 +41,7 @@ class ActivityLifecycleCollectorTest {
     private val configProvider = FakeConfigProvider()
     private val tracer =
         TestTracer(signalProcessor, configProvider, logger, timeProvider, sessionManager)
-    private var activityLifecycleCollector: ActivityLifecycleCollector = ActivityLifecycleCollector(
+    private var activityLifecycleCollector: DefaultActivityLifecycleCollector = DefaultActivityLifecycleCollector(
         appLifecycleManager,
         signalProcessor,
         timeProvider,

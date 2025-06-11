@@ -1,6 +1,5 @@
 package sh.measure.android.events
 
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -27,6 +26,7 @@ import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.okhttp.HttpData
+import sh.measure.android.serialization.jsonSerializer
 
 class InternalSignalCollectorTest {
     private val signalProcessor = mock<SignalProcessor>()
@@ -278,7 +278,7 @@ class InternalSignalCollectorTest {
     @Test
     fun `trackEvent tracks un-obfuscated flutter exception event`() {
         val exceptionData = TestData.getUnObfuscatedFlutterExceptionData(handled = false)
-        val jsonElement = Json.encodeToJsonElement(exceptionData)
+        val jsonElement = jsonSerializer.encodeToJsonElement(exceptionData)
         val data = jsonToMap(jsonElement.jsonObject)
         val type = EventType.EXCEPTION
         val timestamp = 1234567890L
@@ -315,7 +315,7 @@ class InternalSignalCollectorTest {
     @Test
     fun `trackEvent tracks obfuscated flutter exception event`() {
         val exceptionData = TestData.getObfuscatedFlutterExceptionData(handled = false)
-        val jsonElement = Json.encodeToJsonElement(exceptionData)
+        val jsonElement = jsonSerializer.encodeToJsonElement(exceptionData)
         val data = jsonToMap(jsonElement.jsonObject)
         val type = EventType.EXCEPTION
         val timestamp = 1234567890L
@@ -352,7 +352,7 @@ class InternalSignalCollectorTest {
     @Test
     fun `trackEvent tracks handled flutter exception event`() {
         val exceptionData = TestData.getUnObfuscatedFlutterExceptionData(handled = true)
-        val jsonElement = Json.encodeToJsonElement(exceptionData)
+        val jsonElement = jsonSerializer.encodeToJsonElement(exceptionData)
         val data = jsonToMap(jsonElement.jsonObject)
         val type = EventType.EXCEPTION
         val timestamp = 1234567890L
@@ -392,7 +392,7 @@ class InternalSignalCollectorTest {
     fun `trackEvent for flutter exception updates foreground property`() {
         processInfoProvider.foregroundProcess = true
         val exceptionData = TestData.getUnObfuscatedFlutterExceptionData(foreground = false)
-        val jsonElement = Json.encodeToJsonElement(exceptionData)
+        val jsonElement = jsonSerializer.encodeToJsonElement(exceptionData)
         val data = jsonToMap(jsonElement.jsonObject)
         val type = EventType.EXCEPTION
         val timestamp = 12345L

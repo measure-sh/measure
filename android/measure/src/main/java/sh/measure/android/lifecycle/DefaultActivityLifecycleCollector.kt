@@ -12,13 +12,18 @@ import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isClassAvailable
 import java.util.concurrent.atomic.AtomicBoolean
 
-internal class ActivityLifecycleCollector(
+internal interface ActivityLifecycleCollector {
+    fun register()
+    fun unregister()
+}
+
+internal class DefaultActivityLifecycleCollector(
     private val appLifecycleManager: AppLifecycleManager,
     private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
     private val configProvider: ConfigProvider,
     private val tracer: Tracer,
-) : ActivityLifecycleListener {
+) : ActivityLifecycleCollector, ActivityLifecycleListener {
     private val fragmentLifecycleCollector by lazy {
         FragmentLifecycleCollector(signalProcessor, timeProvider, configProvider, tracer)
     }
@@ -28,13 +33,13 @@ internal class ActivityLifecycleCollector(
 
     private var isRegistered = AtomicBoolean(false)
 
-    fun register() {
+    override fun register() {
         if (!isRegistered.getAndSet(true)) {
             appLifecycleManager.addListener(this)
         }
     }
 
-    fun unregister() {
+    override fun unregister() {
         if (isRegistered.getAndSet(false)) {
             appLifecycleManager.removeListener(this)
         }

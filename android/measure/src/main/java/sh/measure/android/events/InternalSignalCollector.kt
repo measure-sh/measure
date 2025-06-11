@@ -1,6 +1,5 @@
 package sh.measure.android.events
 
-import kotlinx.serialization.json.Json
 import sh.measure.android.MsrAttachment
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.exceptions.ExceptionData
@@ -8,6 +7,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.okhttp.HttpData
+import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.toEventAttachment
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.toJsonElement
@@ -129,18 +129,18 @@ internal class InternalSignalCollector(
     }
 
     private fun extractHttpData(map: MutableMap<String, Any?>): HttpData {
-        return Json.decodeFromJsonElement(HttpData.serializer(), map.toJsonElement())
+        return jsonSerializer.decodeFromJsonElement(HttpData.serializer(), map.toJsonElement())
     }
 
     private fun extractScreenViewData(map: MutableMap<String, Any?>): ScreenViewData {
-        return Json.decodeFromJsonElement(ScreenViewData.serializer(), map.toJsonElement())
+        return jsonSerializer.decodeFromJsonElement(ScreenViewData.serializer(), map.toJsonElement())
     }
 
     private fun extractExceptionEventData(map: Map<String, Any?>): ExceptionData {
-        return Json.decodeFromJsonElement(ExceptionData.serializer(), map.toJsonElement())
+        return jsonSerializer.decodeFromJsonElement(ExceptionData.serializer(), map.toJsonElement())
     }
 
     private fun extractCustomEventData(data: Map<String, Any?>): CustomEventData {
-        return Json.decodeFromJsonElement(CustomEventData.serializer(), data.toJsonElement())
+        return jsonSerializer.decodeFromJsonElement(CustomEventData.serializer(), data.toJsonElement())
     }
 }

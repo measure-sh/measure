@@ -59,10 +59,10 @@ void main() {
     });
 
     test('returns false if contentType is not allowed', () {
+      // by default we allow only [application/json] content type
       provider = ConfigProviderImpl(
         defaultConfig: defaultConfig.copyWith(
           trackHttpBody: true,
-          httpContentTypeAllowlist: ['application/json'],
         ),
       );
       expect(
@@ -72,10 +72,10 @@ void main() {
     });
 
     test('returns true only if contentType allowed and url is allowed', () {
+      // by default we allow only [application/json] content type
       provider = ConfigProviderImpl(
         defaultConfig: defaultConfig.copyWith(
           trackHttpBody: true,
-          httpContentTypeAllowlist: ['application/json'],
           httpUrlAllowlist: ['allowed.com'],
         ),
       );
@@ -99,7 +99,7 @@ void main() {
       provider = ConfigProviderImpl(
         defaultConfig: defaultConfig.copyWith(
           trackHttpHeaders: true,
-          defaultHttpHeadersBlocklist: ['authorization'],
+          httpHeadersBlocklist: ['Authorization'],
         ),
       );
       expect(provider.shouldTrackHttpHeader('Authorization'), isFalse);

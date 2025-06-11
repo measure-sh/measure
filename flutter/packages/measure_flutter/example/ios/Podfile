@@ -31,6 +31,7 @@ target 'Runner' do
   use_frameworks! :linkage => :static
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  pod 'measure-sh', :path => '../../../../../'
   target 'RunnerTests' do
     inherit! :search_paths
   end

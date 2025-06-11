@@ -1,16 +1,18 @@
 import 'dart:async';
 
+import 'package:measure_flutter/src/config/client.dart';
 import 'package:measure_flutter/src/config/measure_config.dart';
 
 abstract class MeasureApi {
-  Future<void> start(
-    FutureOr<void> Function() action, {
-    MeasureConfig config = const MeasureConfig(),
-  });
-
   void trackEvent({
     required String name,
     required DateTime? timestamp,
+  });
+
+  Future<void> start(
+    FutureOr<void> Function() action, {
+    required ClientInfo clientInfo,
+    MeasureConfig config = const MeasureConfig(),
   });
 
   void trackHandledError(Object error, StackTrace stack);

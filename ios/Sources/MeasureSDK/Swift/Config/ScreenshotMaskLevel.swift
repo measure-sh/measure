@@ -8,7 +8,7 @@
 import Foundation
 
 /// The level of masking to apply to the screenshot.
-public enum ScreenshotMaskLevel {
+public enum ScreenshotMaskLevel: String, Codable, CaseIterable {
     /// The strictest level of masking which masks all text, input fields, images and videos.
     case allTextAndMedia
 

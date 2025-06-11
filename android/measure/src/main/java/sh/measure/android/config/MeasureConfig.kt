@@ -1,6 +1,13 @@
+@file:Suppress("KotlinConstantConditions")
+
 package sh.measure.android.config
 
+import android.annotation.SuppressLint
+import androidx.annotation.Keep
+import kotlinx.serialization.Serializable
 import sh.measure.android.Measure
+import sh.measure.android.serialization.jsonSerializer
+import sh.measure.android.utils.toJsonElement
 
 /**
  * Configuration for the Measure SDK. See [MeasureConfig] for details.
@@ -27,6 +34,8 @@ internal interface IMeasureConfig {
  * Configuration options for the Measure SDK. Used to customize the behavior of the SDK on
  * initialization.
  */
+@SuppressLint("UnsafeOptInUsageError")
+@Serializable
 class MeasureConfig(
     /**
      * Enable or disable internal SDK logs. Defaults to `false`.
@@ -187,6 +196,14 @@ class MeasureConfig(
 
         require(traceSamplingRate in 0.0..1.0) {
             "Trace sampling rate must be between 0.0 and 1.0"
+        }
+    }
+
+    companion object {
+        @Keep
+        fun fromJson(config: Map<String, Any?>): MeasureConfig {
+            val json = config.toJsonElement()
+            return jsonSerializer.decodeFromJsonElement(serializer(), json)
         }
     }
 }

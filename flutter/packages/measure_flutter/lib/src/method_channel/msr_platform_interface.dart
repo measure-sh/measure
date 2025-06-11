@@ -29,4 +29,11 @@ abstract class MeasureFlutterPlatform extends PlatformInterface {
   Future<void> triggerNativeCrash() {
     throw UnimplementedError('triggerNativeCrash() has not been implemented.');
   }
+
+  Future<void> initializeNativeSDK(
+    Map<String, dynamic> config,
+    Map<String, String> clientInfo,
+  ) {
+    throw UnimplementedError('initializeNativeSDK() has not been implemented.');
+  }
 }

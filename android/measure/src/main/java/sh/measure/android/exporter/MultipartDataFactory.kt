@@ -1,8 +1,8 @@
 package sh.measure.android.exporter
 
-import kotlinx.serialization.json.Json
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.storage.FileStorage
 import java.io.InputStream
 
@@ -132,6 +132,6 @@ internal class MultipartDataFactoryImpl(
     }
 
     private fun SpanPacket.getSerializedData(): String {
-        return Json.encodeToString(SpanPacket.serializer(), this)
+        return jsonSerializer.encodeToString(SpanPacket.serializer(), this)
     }
 }

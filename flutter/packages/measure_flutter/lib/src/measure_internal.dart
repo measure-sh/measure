@@ -18,14 +18,14 @@ final class MeasureInternal {
   final ExceptionCollector _exceptionCollector;
   final NavigationCollector _navigationCollector;
   final HttpCollector _httpCollector;
-  final MsrMethodChannel _methodChannel;
+  final MsrMethodChannel methodChannel;
 
   MeasureInternal({
     required this.initializer,
+    required this.methodChannel,
   })  : logger = initializer.logger,
         configProvider = initializer.configProvider,
         _customEventCollector = initializer.customEventCollector,
-        _methodChannel = initializer.methodChannel,
         _exceptionCollector = initializer.exceptionCollector,
         _httpCollector = initializer.httpCollector,
         _navigationCollector = initializer.navigationCollector;
@@ -52,7 +52,7 @@ final class MeasureInternal {
   }
 
   void triggerNativeCrash() {
-    _methodChannel.triggerNativeCrash();
+    methodChannel.triggerNativeCrash();
   }
 
   void trackScreenViewEvent({

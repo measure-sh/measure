@@ -5,7 +5,6 @@ import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import org.junit.Assert
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -20,6 +19,7 @@ import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
+import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.storage.AttachmentEntity
 import sh.measure.android.storage.BatchEntity
 import sh.measure.android.storage.DatabaseImpl
@@ -332,7 +332,7 @@ internal class ExporterTest {
                 sessionId = sessionId,
                 attachmentEntities = attachmentEntities,
                 attachmentsSize = attachmentSize,
-                serializedAttachments = Json.encodeToString(attachmentEntities),
+                serializedAttachments = jsonSerializer.encodeToString(attachmentEntities),
                 serializedAttributes = "attributes",
                 serializedUserDefAttributes = null,
             ),
