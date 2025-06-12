@@ -55,14 +55,16 @@ final class BaseBugReportCollector: BugReportCollector {
     func trackBugReport(description: String,
                         attachments: [Attachment],
                         attributes: [String: AttributeValue]?) {
-        signalProcessor.trackUserTriggered(data: BugReportData(description: description),
-                                           timestamp: timeProvider.now(),
-                                           type: .bugReport,
-                                           attributes: nil,
-                                           sessionId: nil,
-                                           attachments: attachments,
-                                           userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(userDefinedAttributes),
-                                           threadName: nil)
-        sessionManager.markCurrentSessionAsCrashed()
+        SignPost.trace(subcategory: "Event", label: "trackBugReport") {
+            signalProcessor.trackUserTriggered(data: BugReportData(description: description),
+                                               timestamp: timeProvider.now(),
+                                               type: .bugReport,
+                                               attributes: nil,
+                                               sessionId: nil,
+                                               attachments: attachments,
+                                               userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(userDefinedAttributes),
+                                               threadName: nil)
+            sessionManager.markCurrentSessionAsCrashed()
+        }
     }
 }

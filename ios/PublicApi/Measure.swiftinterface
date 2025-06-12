@@ -262,7 +262,8 @@ extension SwiftUICore.View {
   @objc final public func setShakeListener(_ listener: (any Measure.MsrShakeListener)?)
   final public func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Measure.AttributeValue]? = nil)
   @objc final public func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Any]? = nil)
-  @objc final public func captureScreenshot(for viewController: UIKit.UIViewController) -> Measure.MsrAttachment?
+  @objc final public func captureScreenshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)
+  @objc final public func captureLayoutSnapshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)
   @objc deinit
 }
 @_inheritsConvenienceInitializers @objc(SpanOb) public class SpanOb : CoreData.NSManagedObject {

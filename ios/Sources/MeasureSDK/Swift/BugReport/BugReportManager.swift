@@ -45,15 +45,27 @@ final class BaseBugReportManager: BugReportManager {
         if self.bugReportingViewController != nil || self.isBugReporterOpen || self.hasBugReportFlowStarted {
             return
         }
+
         self.hasBugReportFlowStarted = true
+
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            if takeScreenshot,
-               let window = UIWindow.keyWindow(),
-               let attachment = screenshotGenerator.generate(window: window, name: screenshotName, storageType: .data) {
-                localAttachments.append(attachment)
+
+            let finishOpening = {
+                self.openBugReportViewController()
             }
-            self.openBugReportViewController()
+
+            if takeScreenshot,
+               let window = UIWindow.keyWindow() {
+                screenshotGenerator.generate(window: window, name: screenshotName, storageType: .data) { attachment in
+                    if let attachment = attachment {
+                        self.localAttachments.append(attachment)
+                    }
+                    finishOpening()
+                }
+            } else {
+                finishOpening()
+            }
         }
     }
 

@@ -9,21 +9,20 @@ import Foundation
 import os.signpost
 
 struct SignPost {
-    private static let logger = OSLog(subsystem: logTag, category: "Measure")
+    private static let logger = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "com.measure.MeasureSDK", category: "Measure")
     private static let maxLabelLength = 127
 
     static func trace<T>(
+        subcategory: StaticString,
         label: @autoclosure () -> String,
         block: () -> T
     ) -> T {
-#if INTERNAL_LOGGING
         let signpostID = OSSignpostID(log: logger)
 
-        os_signpost(.begin, log: logger, name: "performance", signpostID: signpostID, "%{public}@", label())
+        os_signpost(.begin, log: logger, name: subcategory, signpostID: signpostID, "%{public}@", label())
         defer {
-            os_signpost(.end, log: logger, name: "performance", signpostID: signpostID)
+            os_signpost(.end, log: logger, name: subcategory, signpostID: signpostID)
         }
-#endif
         return block()
     }
 }
