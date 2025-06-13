@@ -4,6 +4,7 @@ object MethodConstants {
     // functions
     const val FUNCTION_TRACK_EVENT = "trackEvent"
     const val FUNCTION_TRIGGER_NATIVE_CRASH = "triggerNativeCrash"
+    const val FUNCTION_INITIALIZE_NATIVE_SDK = "initializeNativeSDK"
 
     // arguments
     const val ARG_EVENT_DATA = "event_data"
@@ -12,6 +13,8 @@ object MethodConstants {
     const val ARG_USER_DEFINED_ATTRS = "user_defined_attrs"
     const val ARG_USER_TRIGGERED = "user_triggered"
     const val ARG_THREAD_NAME = "thread_name"
+    const val ARG_CONFIG = "config"
+    const val ARG_CLIENT_INFO = "client_info"
 }
 
 object ErrorCode {

@@ -24,6 +24,9 @@ class ConfigProviderImpl implements ConfigProvider {
   bool get enableLogging => _defaultConfig.enableLogging;
 
   @override
+  bool get autoInitializeNativeSDK => _defaultConfig.autoInitializeNativeSDK;
+
+  @override
   bool get trackHttpHeaders => _defaultConfig.trackHttpHeaders;
 
   @override
@@ -45,6 +48,26 @@ class ConfigProviderImpl implements ConfigProvider {
   @override
   List<String> get defaultHttpHeadersBlocklist =>
       _defaultConfig.defaultHttpHeadersBlocklist;
+
+  @override
+  double get samplingRateForErrorFreeSessions =>
+      _defaultConfig.samplingRateForErrorFreeSessions;
+
+  @override
+  double get traceSamplingRate => _defaultConfig.traceSamplingRate;
+
+  @override
+  bool get trackActivityIntentData => _defaultConfig.trackActivityIntentData;
+
+  @override
+  bool get trackActivityLoadTime => _defaultConfig.trackActivityLoadTime;
+
+  @override
+  bool get trackFragmentLoadTime => _defaultConfig.trackFragmentLoadTime;
+
+  @override
+  bool get trackViewControllerLoadTime =>
+      _defaultConfig.trackViewControllerLoadTime;
 
   @override
   bool shouldTrackHttpBody(String url, String? contentType) {

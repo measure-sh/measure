@@ -11,7 +11,7 @@ class MethodArgumentError: Error {
     let code: String
     let message: String
     let details: String
-    
+
     init(code: String, message: String, details: String) {
         self.code = code
         self.message = message

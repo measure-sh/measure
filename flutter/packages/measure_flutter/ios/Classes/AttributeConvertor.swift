@@ -11,7 +11,7 @@ import Measure
 class AttributeConverter {
     static func convertAttributes(_ attributes: [String: Any]) throws -> [String: AttributeValue] {
         var convertedAttributes: [String: AttributeValue] = [:]
-        
+
         for (key, value) in attributes {
             do {
                 convertedAttributes[key] = try convert(value: value, forKey: key)
@@ -23,10 +23,10 @@ class AttributeConverter {
                 )
             }
         }
-        
+
         return convertedAttributes
     }
-    
+
     private static func convert(value: Any, forKey key: String) throws -> AttributeValue {
         switch value {
         case let stringValue as String:

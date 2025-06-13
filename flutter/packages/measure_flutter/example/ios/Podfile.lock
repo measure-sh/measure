@@ -12,11 +12,11 @@ PODS:
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
+  - measure-sh (from `../../../../../`)
   - measure_flutter (from `.symlinks/plugins/measure_flutter/ios`)
 
 SPEC REPOS:
   trunk:
-    - measure-sh
     - PLCrashReporter
 
 EXTERNAL SOURCES:
@@ -24,6 +24,8 @@ EXTERNAL SOURCES:
     :path: Flutter
   integration_test:
     :path: ".symlinks/plugins/integration_test/ios"
+  measure-sh:
+    :path: "../../../../../"
   measure_flutter:
     :path: ".symlinks/plugins/measure_flutter/ios"
 
@@ -34,6 +36,6 @@ SPEC CHECKSUMS:
   measure_flutter: 0c0e3800e6aaa4bd153d13b4cf0b2d15e7a3e3f1
   PLCrashReporter: db59ef96fa3d25f3650040d02ec2798cffee75f2
 
-PODFILE CHECKSUM: 6091ecb87249e90c82512dafb1d0c35db1c8aed9
+PODFILE CHECKSUM: ff1c58377a17b16f06496a2b0ceade9796e09129
 
 COCOAPODS: 1.16.2

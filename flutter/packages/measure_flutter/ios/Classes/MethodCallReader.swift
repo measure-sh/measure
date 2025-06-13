@@ -10,11 +10,11 @@ import Flutter
 
 class MethodCallReader {
     private let call: FlutterMethodCall
-    
+
     init(_ call: FlutterMethodCall) {
         self.call = call
     }
-    
+
     func requireArg<T>(_ name: String) throws -> T {
         guard let arguments = call.arguments as? [String: Any],
               let value = arguments[name] as? T else {
@@ -26,7 +26,7 @@ class MethodCallReader {
         }
         return value
     }
-    
+
     func optionalArg<T>(_ name: String) -> T? {
         guard let arguments = call.arguments as? [String: Any] else {
             return nil

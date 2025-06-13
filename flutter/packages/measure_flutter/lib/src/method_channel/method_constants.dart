@@ -2,6 +2,7 @@ class MethodConstants {
   // Function names
   static const String functionTrackEvent = 'trackEvent';
   static const String functionTriggerNativeCrash = 'triggerNativeCrash';
+  static const String functionInitializeNativeSDK = 'initializeNativeSDK';
 
   // Argument keys
   static const String argEventData = 'event_data';
@@ -10,6 +11,8 @@ class MethodConstants {
   static const String argUserDefinedAttrs = 'user_defined_attrs';
   static const String argUserTriggered = 'user_triggered';
   static const String argThreadName = 'thread_name';
+  static const String argConfig = 'config';
+  static const String argClientInfo = 'client_info';
 
   // Error codes
   static const String errorInvalidArgument = 'invalid_argument';

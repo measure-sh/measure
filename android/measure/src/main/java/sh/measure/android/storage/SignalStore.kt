@@ -1,7 +1,6 @@
 package sh.measure.android.storage
 
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import sh.measure.android.appexit.AppExit
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.Event
@@ -9,6 +8,7 @@ import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.okhttp.HttpData
+import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.tracing.SpanData
 import sh.measure.android.utils.IdProvider
 import java.io.File
@@ -233,7 +233,7 @@ internal class SignalStoreImpl(
         if (attachmentEntities.isNullOrEmpty()) {
             return null
         }
-        return Json.encodeToString(attachmentEntities)
+        return jsonSerializer.encodeToString(attachmentEntities)
     }
 
     /**

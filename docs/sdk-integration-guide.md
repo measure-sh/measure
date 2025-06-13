@@ -54,6 +54,13 @@ in later steps.
 
 ### Add the API Key & API URL
 
+There are two ways to set the API Key and API URL:
+
+* [Using Android Manifest](#using-android-manifest)
+* [During initialization](#during-initialization)
+
+#### Using Android Manifest
+
 Add the API URL & API Key to your application's `AndroidManifest.xml` file.
 
 ```xml
@@ -117,6 +124,19 @@ Then add the following in the `AndroidManifest.xml` file:
 
 </details>
 
+#### During initialization
+
+To set the API URL and API Key in code during initialization, set `ClientInfo` during
+initialization.
+
+```kotlin
+val clientInfo = ClientInfo(
+    apiKey = "<apiKey>",
+    apiUrl = "<apiUrl>"
+)
+Measure.init(context, clientInfoclientInfo)
+```
+
 ### Add the Gradle Plugin
 
 Add the following plugin to your project.
@@ -134,8 +154,6 @@ plugins {
     id 'sh.measure.android.gradle' version '0.8.0'
 }
 ```
-
-[Read](../android/gradle-plugin.md) more about Measure Gradle Plugin.
 
 <details>
   <summary>Configure Variants</summary>

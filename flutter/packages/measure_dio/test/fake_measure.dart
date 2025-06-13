@@ -14,6 +14,7 @@ class FakeMeasure implements MeasureApi {
   @override
   Future<void> start(
     FutureOr<void> Function() action, {
+    required ClientInfo clientInfo,
     MeasureConfig config = const MeasureConfig(),
   }) async {
     await action();

@@ -10,7 +10,8 @@ import Foundation
 enum MethodConstants {
     // functions
     static let functionTrackEvent = "trackEvent"
-      static let functionTriggerNativeCrash = "triggerNativeCrash"
+    static let functionTriggerNativeCrash = "triggerNativeCrash"
+    static let functionInitializeNativeSdk = "initializeNativeSDK"
 
     // arguments
     static let argEventData = "event_data"
@@ -19,6 +20,8 @@ enum MethodConstants {
     static let argUserDefinedAttrs = "user_defined_attrs"
     static let argUserTriggered = "user_triggered"
     static let argThreadName = "thread_name"
+    static let argConfig = "config"
+    static let argClientInfo = "client_info"
 }
 
 enum ErrorCode {

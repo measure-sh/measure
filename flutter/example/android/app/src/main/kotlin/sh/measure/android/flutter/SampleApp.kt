@@ -1,19 +1,9 @@
 package sh.measure.android.flutter
 
 import android.app.Application
-import sh.measure.android.Measure
-import sh.measure.android.config.MeasureConfig
 
 class SampleApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        Measure.init(
-            this, MeasureConfig(
-                enableLogging = true,
-                samplingRateForErrorFreeSessions = 1f,
-                trackHttpHeaders = true,
-                trackHttpBody = true,
-            )
-        )
     }
 }

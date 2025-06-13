@@ -28,4 +28,12 @@ class TestMethodChannel implements MsrMethodChannel {
   Future<void> triggerNativeCrash() {
     return Future.value();
   }
+
+  @override
+  Future<void> initializeNativeSDK(
+    Map<String, dynamic> config,
+    Map<String, String> clientInfo,
+  ) {
+    return Future.value();
+  }
 }

@@ -17,7 +17,7 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
       String? threadName) async {
     final encodedAttributes = userDefinedAttrs.encode();
     try {
-      await _methodChannel.invokeMethod(MethodConstants.functionTrackEvent, {
+      return _methodChannel.invokeMethod(MethodConstants.functionTrackEvent, {
         MethodConstants.argEventData: data,
         MethodConstants.argEventType: type,
         MethodConstants.argTimestamp: timestamp,
@@ -32,7 +32,19 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
 
   @override
   Future<void> triggerNativeCrash() async {
-    await _methodChannel
+    return _methodChannel
         .invokeMethod(MethodConstants.functionTriggerNativeCrash);
+  }
+
+  @override
+  Future<void> initializeNativeSDK(
+    Map<String, dynamic> config,
+    Map<String, String> clientInfo,
+  ) async {
+    return _methodChannel
+        .invokeMethod(MethodConstants.functionInitializeNativeSDK, {
+      MethodConstants.argConfig: config,
+      MethodConstants.argClientInfo: clientInfo,
+    });
   }
 }

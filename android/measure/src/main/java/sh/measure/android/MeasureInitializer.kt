@@ -50,6 +50,7 @@ import sh.measure.android.layoutinspector.LayoutSnapshotThrottler
 import sh.measure.android.lifecycle.ActivityLifecycleCollector
 import sh.measure.android.lifecycle.AppLifecycleCollector
 import sh.measure.android.lifecycle.AppLifecycleManager
+import sh.measure.android.lifecycle.DefaultActivityLifecycleCollector
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.logger.Logger
 import sh.measure.android.networkchange.InitialNetworkStateProvider
@@ -379,7 +380,7 @@ internal class MeasureInitializerImpl(
         sessionManager = sessionManager,
         traceSampler = TraceSamplerImpl(randomizer, configProvider),
     ),
-    override val activityLifecycleCollector: ActivityLifecycleCollector = ActivityLifecycleCollector(
+    override val activityLifecycleCollector: DefaultActivityLifecycleCollector = DefaultActivityLifecycleCollector(
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         appLifecycleManager = appLifecycleManager,
