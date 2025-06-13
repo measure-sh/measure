@@ -36,4 +36,9 @@ class TestMethodChannel implements MsrMethodChannel {
   ) {
     return Future.value();
   }
+
+  @override
+  Future<void> trackSpan(Map<String, dynamic> json) {
+    throw UnimplementedError();
+  }
 }

@@ -26,10 +26,6 @@ internal class MsrSpanProcessor(
                 logger.log(LogLevel.Debug, "Span started: ${span.name}")
                 val threadName = Thread.currentThread().name
                 span.setInternalAttribute(Attribute.THREAD_NAME to threadName)
-                val attributes = span.getAttributesMap()
-                attributeProcessors.forEach {
-                    it.appendAttributes(attributes)
-                }
             },
         )
     }
@@ -38,12 +34,21 @@ internal class MsrSpanProcessor(
     }
 
     override fun onEnded(span: InternalSpan) {
-        val spanData = span.toSpanData()
-        if (!spanData.sanitize()) {
-            return
-        }
-        signalProcessor.trackSpan(spanData)
-        logger.log(LogLevel.Debug, "Span ended: ${spanData.name}, duration: ${spanData.duration}")
+        InternalTrace.trace(
+            { "msr-spanProcessor-onEnded" },
+            {
+                val attributes = span.getAttributesMap()
+                attributeProcessors.forEach {
+                    it.appendAttributes(attributes)
+                }
+                val spanData = span.toSpanData()
+                if (!spanData.sanitize()) {
+                    return@trace
+                }
+                signalProcessor.trackSpan(spanData)
+                logger.log(LogLevel.Debug, "Span ended: ${spanData.name}, duration: ${spanData.duration}")
+            },
+        )
     }
 
     private fun SpanData.sanitize(): Boolean {
