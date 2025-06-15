@@ -688,6 +688,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		exceptionThreads := "[]"
 		attachments := "[]"
 		binaryImages := "[]"
+		error := "{}"
 
 		if e.events[i].IsANR() {
 			marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
@@ -726,6 +727,15 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 					return err
 				}
 				binaryImages = string(marshalledImages)
+			}
+
+			if e.events[i].Exception.HasError() {
+				marshalledError, err := json.Marshal(e.events[i].Exception.Error)
+				if err != nil {
+					return err
+				}
+
+				error = string(marshalledError)
 			}
 		}
 
@@ -810,7 +820,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.threads`, exceptionThreads).
 				Set(`exception.foreground`, e.events[i].Exception.Foreground).
 				Set(`exception.binary_images`, binaryImages).
-				Set(`exception.framework`, e.events[i].Exception.GetFramework())
+				Set(`exception.framework`, e.events[i].Exception.GetFramework()).
+				Set(`exception.error`, error)
 		} else {
 			row.
 				Set(`exception.handled`, nil).
@@ -819,7 +830,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.threads`, nil).
 				Set(`exception.foreground`, nil).
 				Set(`exception.binary_images`, nil).
-				Set(`exception.framework`, nil)
+				Set(`exception.framework`, nil).
+				Set(`exception.error`, nil)
 		}
 
 		// app exit
