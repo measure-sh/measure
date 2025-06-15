@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -66,6 +67,7 @@ const (
 	maxCustomNameChars                        = 64
 	maxBugReportScreenShots                   = 5
 	maxBugReportDescChars                     = 4000
+	maxErrorMetaBytes                         = 4096 // Maximum size for marshaled Error.Meta in bytes
 	customNameKeyPattern                      = "^[a-zA-Z0-9_-]+$"
 )
 
@@ -271,16 +273,6 @@ func makeTitle(t, m string) (typeMessage string) {
 	return
 }
 
-var Framework = struct {
-	Apple string
-	JVM   string
-	Dart  string
-}{
-	Apple: "apple",
-	JVM:   "jvm",
-	Dart:  "dart",
-}
-
 // ExceptionUnitiOS represents iOS specific
 // structure to work with iOS exceptions.
 type ExceptionUnitiOS struct {
@@ -344,13 +336,28 @@ type Exception struct {
 	Foreground   bool           `json:"foreground" binding:"required"`
 	BinaryImages []BinaryImage  `json:"binary_images,omitempty"`
 	Framework    string         `json:"framework"`
+	Error        *Error         `json:"error"`
+}
+
+// Error represents a generic error object that occurred
+// during the app's execution.
+// Only relevant to Apple apps for now. But can be
+// extended for other OS/platform apps as well.
+type Error struct {
+	// NumCode represents the numeric error code.
+	NumCode int `json:"numcode"`
+	// Code represents the string error code.
+	Code string `json:"code"`
+	// Meta represents arbitrary metadata
+	// associated with the error.
+	Meta map[string]any `json:"meta"`
 }
 
 // BinaryImage represents each binary image
 // entry as appearning in an Apple crash
 // report.
 //
-// Only applicable for Darwin apps.
+// Only applicable for Apple apps.
 type BinaryImage struct {
 	// StartAddr is the address where the binary
 	// is loaded in virtual memory.
@@ -833,7 +840,13 @@ func (e EventField) NeedsSymbolication() (result bool) {
 		case Framework.JVM:
 			result = true
 		case Framework.Apple:
-			result = true
+			// some Apple exceptions may just contain
+			// Error with no stacktraces. skip those
+			// exceptions.
+			if len(e.Exception.Exceptions) > 0 {
+				return true
+			}
+			result = false
 		case Framework.Dart:
 			if e.Exception.Exceptions[0].Frames[0].InstructionAddr != "" {
 				result = true
@@ -934,54 +947,74 @@ func (e *EventField) Validate() error {
 	}
 
 	if e.IsException() {
-		if len(e.Exception.Exceptions) < 1 {
-			return fmt.Errorf(`%q must contain at least one exception`, `exception`)
-		}
-
 		f := e.Exception.GetFramework()
 		switch f {
 		case Framework.Apple:
-			if len(e.Exception.Threads) < 1 {
-				return fmt.Errorf(`%q must contain at least one thread`, `exception.threads`)
-			}
-
-			if len(e.Exception.BinaryImages) > 0 {
-				for i, bi := range e.Exception.BinaryImages {
-					if bi.StartAddr == "" {
-						return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `start_addr`)
-					}
-					if bi.EndAddr == "" {
-						return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `end_addr`)
-					}
-					if bi.Name == "" {
-						return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `name`)
-					}
-					if bi.Path == "" {
-						return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `path`)
-					}
+			// Apple exceptions may contain error with stacktrace or
+			// may not contain error. If it does not contain error,
+			// then validate that stacktrace must be present.
+			if !e.Exception.HasError() {
+				if len(e.Exception.Exceptions) < 1 {
+					return fmt.Errorf(`%q must contain at least one exception`, `exception`)
+				}
+				if len(e.Exception.Threads) < 1 {
+					return fmt.Errorf(`%q must contain at least one thread`, `exception.threads`)
 				}
 			}
 
+			for i, bi := range e.Exception.BinaryImages {
+				if bi.StartAddr == "" {
+					return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `start_addr`)
+				}
+				if bi.EndAddr == "" {
+					return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `end_addr`)
+				}
+				if bi.Name == "" {
+					return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `name`)
+				}
+				if bi.Path == "" {
+					return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `path`)
+				}
+			}
 		case Framework.JVM:
+			if len(e.Exception.Exceptions) < 1 {
+				return fmt.Errorf(`%q must contain at least one exception`, `exception`)
+			}
 			if len(e.Exception.Threads) < 1 {
 				return fmt.Errorf(`%q must contain at least one thread`, `exception.threads`)
 			}
 		case Framework.Dart:
+			if len(e.Exception.Exceptions) < 1 {
+				return fmt.Errorf(`%q must contain at least one exception`, `exception`)
+			}
+
 			if len(e.Exception.BinaryImages) > 1 {
 				return fmt.Errorf(`%q must contain at most one binary image`, `exception.binary_images`)
 			}
 
-			if len(e.Exception.BinaryImages) > 0 {
-				if e.Exception.BinaryImages[0].Arch == "" {
+			for i := range e.Exception.BinaryImages {
+				if e.Exception.BinaryImages[i].Arch == "" {
 					return fmt.Errorf(`%q must not be empty`, `exception.binary_images[0].arch`)
 				}
-
-				if e.Exception.BinaryImages[0].BaseAddr == "" {
+				if e.Exception.BinaryImages[i].BaseAddr == "" {
 					return fmt.Errorf(`%q must not be empty`, `exception.binary_images[0].base_addr`)
 				}
 			}
 		default:
-			return fmt.Errorf(`%q must not be empty`, `exception.framework`)
+			return fmt.Errorf(`%q is not a valid framework for %q.`, f, `exception.framework`)
+		}
+
+		// Validate Error.Meta size if Error is present in the exception
+		if e.Exception.Error != nil && e.Exception.Error.Meta != nil {
+			metaBytes, err := json.Marshal(e.Exception.Error.Meta)
+			if err != nil {
+				// This error occurs if Meta contains types that cannot be marshaled (e.g., channels, functions).
+				// For userInfo-like data (typically strings, numbers, booleans, arrays, maps), this should be rare.
+				return fmt.Errorf("failed to marshal exception.error.meta for size validation: %w", err)
+			}
+			if len(metaBytes) > maxErrorMetaBytes {
+				return fmt.Errorf("'exception.error.meta' JSON size (%d bytes) exceeds maximum allowed (%d bytes)", len(metaBytes), maxErrorMetaBytes)
+			}
 		}
 	}
 
@@ -1290,14 +1323,26 @@ func (e *EventField) Validate() error {
 // GetFramework returns the exception framework
 // in a backwards compatible way.
 func (e Exception) GetFramework() (f string) {
-	if e.Framework == "" {
+	// if we have the framework, just use it
+	// no need to infer
+	// could be "dart"
+	if e.Framework != "" {
+		return e.Framework
+	}
+
+	// Apple exception or error or error with exception
+	if e.HasExceptions() {
 		if e.Exceptions[0].ExceptionUnitiOS != nil && e.Exceptions[0].Signal != "" {
 			return Framework.Apple
 		}
-		return Framework.JVM
+	} else if e.HasError() {
+		return Framework.Apple
 	}
 
-	return e.Framework
+	// for backward compatibility
+	// nothing above matched, so must
+	// be JVM
+	return Framework.JVM
 }
 
 // IsNested returns true in case of
@@ -1317,12 +1362,36 @@ func (e Exception) HasNoFrames() bool {
 	case Framework.JVM:
 		return len(e.Exceptions[len(e.Exceptions)-1].Frames) == 0
 	case Framework.Apple:
+		if !e.HasExceptions() {
+			return true
+		}
 		return len(e.Exceptions[0].Frames) == 0
 	case Framework.Dart:
 		return len(e.Exceptions[0].Frames) == 0
 	}
 
 	return false
+}
+
+// HasExceptions returns true if the exception
+// contains exception units.
+func (e Exception) HasExceptions() bool {
+	return len(e.Exceptions) > 0
+}
+
+// HasError tells if the exception has an error.
+// An AppleFamily Exception may optionally have
+// an associated Error.
+func (e Exception) HasError() bool {
+	if e.Error == nil {
+		return false
+	}
+
+	if e.Error.Code == "" && e.Error.NumCode == 0 && len(e.Error.Meta) == 0 {
+		return false
+	}
+
+	return true
 }
 
 // GetRelevantFrame finds and returns the first
@@ -1350,7 +1419,7 @@ func (e Exception) GetRelevantFrame() (frame Frame) {
 		return e.Exceptions[unitIndex].Frames[frameIndex]
 	} else {
 		// if there is no in app frame then
-		// use then fallback to the first unit's
+		// fallback to the first unit's
 		// first frame.
 		return e.Exceptions[0].Frames[0]
 	}
@@ -1366,12 +1435,20 @@ func (e Exception) GetTitle() string {
 // GetType provides the type of
 // the exception.
 func (e Exception) GetType() string {
+	unknown := "unknown type"
+
 	switch e.GetFramework() {
 	default:
-		return "unknown type"
+		return unknown
 	case Framework.JVM:
 		return e.Exceptions[len(e.Exceptions)-1].Type
 	case Framework.Apple:
+		if !e.HasExceptions() && e.HasError() {
+			if e.Error != nil && e.Error.Code != "" {
+				return e.Error.Code
+			}
+			return unknown
+		}
 		return e.Exceptions[0].Signal
 	case Framework.Dart:
 		// We do not look for the deepest exception
@@ -1591,7 +1668,16 @@ func (e Exception) Stacktrace() string {
 // ComputeFingerprint computes a fingerprint
 // for the exception.
 func (e *Exception) ComputeFingerprint() (err error) {
-	if len(e.Exceptions) == 0 {
+	framework := e.GetFramework()
+
+	// don't compute fingerprint for exceptions that contain error
+	// but does not contain any exceptions
+	if framework == Framework.Apple && e.HasError() && !e.HasExceptions() {
+		return nil
+	}
+
+	// but for computing fingerprint having a stacktrace is essential
+	if !e.HasExceptions() {
 		return errors.New("error computing exception fingerprint: no exceptions found")
 	}
 
@@ -1603,7 +1689,7 @@ func (e *Exception) ComputeFingerprint() (err error) {
 	// parts of the input
 	sep := ":"
 
-	switch e.GetFramework() {
+	switch framework {
 	case Framework.JVM:
 		// get the innermost exception
 		innermostException := e.Exceptions[len(e.Exceptions)-1]
@@ -1663,7 +1749,6 @@ func (e *Exception) ComputeFingerprint() (err error) {
 	}
 
 	// Compute the fingerprint
-	// e.Fingerprint = computeFingerprint(input)
 	hash := md5.Sum([]byte(input))
 	e.Fingerprint = hex.EncodeToString(hash[:])
 
