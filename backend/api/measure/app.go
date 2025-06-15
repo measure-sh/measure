@@ -1559,6 +1559,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		}...)
 	case opsys.AppleFamily:
 		cols = append(cols, []string{
+			`exception.error`,
 			`toString(lifecycle_view_controller.type)`,
 			`toString(lifecycle_view_controller.class_name)`,
 			`toString(lifecycle_swift_ui.type)`,
@@ -1624,6 +1625,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		var warmLaunchDuration uint32
 		var hotLaunchDuration uint32
 
+		var exceptionError string
 		var lifecycleViewController event.LifecycleViewController
 		var lifecycleSwiftUI event.LifecycleSwiftUI
 		var memoryUsageAbs event.MemoryUsageAbs
@@ -1846,6 +1848,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			}...)
 		case opsys.AppleFamily:
 			dest = append(dest, []any{
+				&exceptionError,
 				&lifecycleViewController.Type,
 				&lifecycleViewController.ClassName,
 				&lifecycleSwiftUI.Type,
@@ -1882,12 +1885,28 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			if err := json.Unmarshal([]byte(exceptionExceptions), &exception.Exceptions); err != nil {
 				return nil, err
 			}
+
 			if err := json.Unmarshal([]byte(exceptionThreads), &exception.Threads); err != nil {
 				return nil, err
 			}
+
 			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
 				return nil, err
 			}
+
+			// for now, only unmarshal exception.error for Apple
+			// family of OSes. support can - of course, be extended
+			// to other OSes on a "need to" basis.
+			switch opsys.ToFamily(a.OSName) {
+			case opsys.AppleFamily:
+				fmt.Println("exceptionError", exceptionError)
+				if exceptionError != "" {
+					if err := json.Unmarshal([]byte(exceptionError), &exception.Error); err != nil {
+						return nil, err
+					}
+				}
+			}
+
 			ev.Exception = &exception
 			session.Events = append(session.Events, ev)
 		case event.TypeAppExit:

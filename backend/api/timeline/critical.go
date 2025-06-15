@@ -26,6 +26,7 @@ type Exception struct {
 	Handled       bool               `json:"handled"`
 	Stacktrace    string             `json:"stacktrace"`
 	Foreground    bool               `json:"foreground"`
+	Error         *event.Error       `json:"error"`
 	Timestamp     time.Time          `json:"timestamp"`
 	Attachments   []event.Attachment `json:"attachments"`
 }
@@ -111,6 +112,7 @@ func ComputeExceptions(ctx context.Context, appId *uuid.UUID, events []event.Eve
 			event.Exception.Handled,
 			event.Exception.Stacktrace(),
 			event.Exception.Foreground,
+			event.Exception.Error,
 			event.Timestamp,
 			event.Attachments,
 		}
