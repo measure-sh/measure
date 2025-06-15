@@ -202,8 +202,8 @@ import UIKit
                                    userTriggered: Bool,
                                    sessionId: String?,
                                    threadName: String?) {
-        guard let internalEventCollector = measureInternal?.internalSignalCollector else { return }
-        internalEventCollector.trackEvent(data: &data,
+        guard let internalSignalCollector = measureInternal?.internalSignalCollector else { return }
+        internalSignalCollector.trackEvent(data: &data,
                                           type: type,
                                           timestamp: timestamp,
                                           attributes: attributes,
@@ -211,6 +211,18 @@ import UIKit
                                           userTriggered: userTriggered,
                                           sessionId: sessionId,
                                           threadName: threadName)
+    }
+    
+    /// An internal method to track spans from cross-platform frameworks
+    /// like Flutter and React Native.
+    ///
+    /// This method is not intended for public usage and can change in future versions.
+    ///
+    /// - Parameter spanData: The span data to track.
+    public func internalTrackSpan(spanData: [String: Any?]) {
+        guard let internalSignalCollector = measureInternal?.internalSignalCollector else { return }
+        internalSignalCollector.trackSpan(data: spanData)
+        
     }
 
     /// Tracks an event with optional timestamp.

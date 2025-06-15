@@ -7,6 +7,9 @@ import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/navigation/navigation_collector.dart';
+import 'package:measure_flutter/src/tracing/span.dart';
+import 'package:measure_flutter/src/tracing/span_builder.dart';
+import 'package:measure_flutter/src/tracing/tracer.dart';
 
 import 'config/config_provider.dart';
 
@@ -18,6 +21,7 @@ final class MeasureInternal {
   final ExceptionCollector _exceptionCollector;
   final NavigationCollector _navigationCollector;
   final HttpCollector _httpCollector;
+  final Tracer _tracer;
   final MsrMethodChannel methodChannel;
 
   MeasureInternal({
@@ -28,7 +32,8 @@ final class MeasureInternal {
         _customEventCollector = initializer.customEventCollector,
         _exceptionCollector = initializer.exceptionCollector,
         _httpCollector = initializer.httpCollector,
-        _navigationCollector = initializer.navigationCollector;
+        _navigationCollector = initializer.navigationCollector,
+        _tracer = initializer.tracer;
 
   Future<void> init() async {
     registerCollectors();
@@ -91,5 +96,28 @@ final class MeasureInternal {
       responseBody: responseBody,
       client: client,
     );
+  }
+
+  Span startSpan(
+    String name, {
+    int? timestamp,
+  }) {
+    if (timestamp == null) {
+      return _tracer.spanBuilder(name).startSpan();
+    } else {
+      return _tracer.spanBuilder(name).startSpanWithTime(timestamp);
+    }
+  }
+
+  SpanBuilder? createSpan(String name) {
+    return _tracer.spanBuilder(name);
+  }
+
+  String getTraceParentHeaderValue(Span span) {
+    return _tracer.getTraceParentHeaderValue(span);
+  }
+
+  String getTraceParentHeaderKey() {
+    return _tracer.getTraceParentHeaderKey();
   }
 }

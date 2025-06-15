@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:measure_flutter/src/config/client.dart';
 import 'package:measure_flutter/src/config/measure_config.dart';
 
+import '../measure.dart';
+
 abstract class MeasureApi {
   void trackEvent({
     required String name,
@@ -44,4 +46,15 @@ abstract class MeasureApi {
     String? responseBody,
     String? client,
   });
+
+  Span startSpan(
+    String name, {
+    int? timestamp,
+  });
+
+  SpanBuilder? createSpanBuilder(String name);
+
+  String getTraceParentHeaderValue(Span span);
+
+  String getTraceParentHeaderKey();
 }

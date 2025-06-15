@@ -9,6 +9,8 @@ import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.toEventAttachment
+import sh.measure.android.tracing.SpanData
+import sh.measure.android.tracing.SpanProcessor
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.toJsonElement
 
@@ -18,6 +20,7 @@ import sh.measure.android.utils.toJsonElement
 internal class InternalSignalCollector(
     private val logger: Logger,
     private val signalProcessor: SignalProcessor,
+    private val spanProcessor: SpanProcessor,
     private val processInfoProvider: ProcessInfoProvider,
 ) {
     fun trackEvent(
@@ -142,5 +145,11 @@ internal class InternalSignalCollector(
 
     private fun extractCustomEventData(data: Map<String, Any?>): CustomEventData {
         return jsonSerializer.decodeFromJsonElement(CustomEventData.serializer(), data.toJsonElement())
+    }
+
+    fun trackSpan(data: MutableMap<String, Any?>) {
+        val spanData = SpanData.fromJson(data)
+        logger.log(LogLevel.Debug, spanData.toString())
+        spanProcessor.trackSpan(spanData)
     }
 }

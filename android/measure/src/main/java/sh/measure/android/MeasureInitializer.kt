@@ -458,6 +458,7 @@ internal class MeasureInitializerImpl(
     override val internalSignalCollector: InternalSignalCollector = InternalSignalCollector(
         logger,
         signalProcessor,
+        spanProcessor,
         processInfoProvider,
     ),
 ) : MeasureInitializer

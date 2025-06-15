@@ -18,6 +18,9 @@ class Config implements InternalConfig, IMeasureConfig {
     this.trackFragmentLoadTime = DefaultConfig.trackFragmentLoadTime,
     this.trackViewControllerLoadTime =
         DefaultConfig.trackViewControllerLoadTime,
+    this.maxCheckpointsPerSpan = DefaultConfig.maxCheckpointsPerSpan,
+    this.maxSpanNameLength = DefaultConfig.maxSpanNameLength,
+    this.maxCheckpointNameLength = DefaultConfig.maxCheckpointNameLength,
   });
 
   @override
@@ -46,6 +49,12 @@ class Config implements InternalConfig, IMeasureConfig {
   final bool trackFragmentLoadTime;
   @override
   final bool trackViewControllerLoadTime;
+  @override
+  final int maxCheckpointNameLength;
+  @override
+  final int maxCheckpointsPerSpan;
+  @override
+  final int maxSpanNameLength;
 
   @override
   List<String> get defaultHttpContentTypeAllowlist =>
@@ -74,6 +83,10 @@ class Config implements InternalConfig, IMeasureConfig {
     double? traceSamplingRate,
     bool? trackActivityLoadTime,
     bool? trackFragmentLoadTime,
+    bool? trackViewControllerLoadTime,
+    int? maxCheckpointsPerSpan,
+    int? maxSpanNameLength,
+    int? maxCheckpointNameLength,
   }) {
     return Config(
       enableLogging: enableLogging ?? this.enableLogging,
@@ -93,6 +106,13 @@ class Config implements InternalConfig, IMeasureConfig {
           trackActivityLoadTime ?? this.trackActivityLoadTime,
       trackFragmentLoadTime:
           trackFragmentLoadTime ?? this.trackFragmentLoadTime,
+      trackViewControllerLoadTime:
+          trackViewControllerLoadTime ?? this.trackViewControllerLoadTime,
+      maxCheckpointsPerSpan:
+          maxCheckpointsPerSpan ?? this.maxCheckpointsPerSpan,
+      maxSpanNameLength: maxSpanNameLength ?? this.maxSpanNameLength,
+      maxCheckpointNameLength:
+          maxCheckpointNameLength ?? this.maxCheckpointNameLength,
     );
   }
 }

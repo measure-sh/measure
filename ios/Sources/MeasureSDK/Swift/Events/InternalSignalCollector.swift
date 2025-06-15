@@ -14,18 +14,21 @@ protocol InternalSignalCollector {
     func trackEvent(
         data: inout [String: Any?], type: String, timestamp: Int64, attributes: [String: Any?],
         userDefinedAttrs: [String: AttributeValue], userTriggered: Bool, sessionId: String?, threadName: String?)
+    func trackSpan(data: [String: Any?])
     var isForeground: Bool { get set }
 }
 
 final class BaseInternalSignalCollector: InternalSignalCollector {
     private let logger: Logger
     private let signalProcessor: SignalProcessor
+    private let spanProcessor: SpanProcessor
     private var isEnabled = AtomicBool(false)
     var isForeground: Bool
 
-    init(logger: Logger, signalProcessor: SignalProcessor) {
+    init(logger: Logger, signalProcessor: SignalProcessor, spanProcessor: SpanProcessor) {
         self.logger = logger
         self.signalProcessor = signalProcessor
+        self.spanProcessor = spanProcessor
         self.isForeground = true
     }
 
@@ -132,25 +135,48 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
         }
     }
 
-    func extractCustomEventData(data: [String: Any?]) throws -> CustomEventData {
+    func trackSpan(data: [String: Any?]) {
+        guard isEnabled.get() else {
+            return
+        }
+        
+        do {
+            let spanData = try extractSpanData(data: data)
+            spanProcessor.trackSpan(spanData)
+        } catch {
+            logger.log(
+                level: .error,
+                message: "Error processing span: \(error)",
+                error: error,
+                data: nil)
+        }
+    }
+
+    private func extractCustomEventData(data: [String: Any?]) throws -> CustomEventData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(CustomEventData.self, from: jsonData)
     }
 
-    func extractExceptionData(data: [String: Any?]) throws -> Exception {
+    private func extractExceptionData(data: [String: Any?]) throws -> Exception {
         let jsonData = try JSONSerialization.data(
             withJSONObject: data,
             options: [.prettyPrinted])
         return try JSONDecoder().decode(Exception.self, from: jsonData)
     }
 
-    func extractScreenViewData(data: [String: Any?]) throws -> ScreenViewData {
+    private func extractScreenViewData(data: [String: Any?]) throws -> ScreenViewData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(ScreenViewData.self, from: jsonData)
     }
 
-    func extractHttpData(data: [String: Any?]) throws -> HttpData {
+    private func extractHttpData(data: [String: Any?]) throws -> HttpData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(HttpData.self, from: jsonData)
+    }
+    
+   
+    private func extractSpanData(data: [String: Any?]) throws -> SpanData {
+        let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
+        return try JSONDecoder().decode(SpanData.self, from: jsonData)
     }
 }

@@ -16,6 +16,8 @@ protocol SpanProcessor {
     ///
     /// - Parameter span: The span that has ended
     func onEnded(_ span: InternalSpan)
+    
+    func trackSpan(_ spanData: SpanData)
 }
 
 /// A concrete implementation of `SpanProcessor` that processes spans at different stages of their lifecycle.
@@ -58,6 +60,20 @@ final class BaseSpanProcessor: SpanProcessor {
             if let validSpanData = sanitize(span.toSpanData()) {
                 signalProcessor.trackSpan(validSpanData)
                 logger.log(level: .debug, message: "Span ended: \(validSpanData.name), duration: \(validSpanData.duration)", error: nil, data: nil)
+            }
+        }
+    }
+    
+    func trackSpan(_ spanData: SpanData) {
+        SignPost.trace(subcategory: "Span", label: "spanProcessorTrackSpan") {
+            if let validSpanData = sanitize(spanData) {
+                var attributes = Attributes()
+                attributes.deviceLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
+                attributeProcessors.forEach { processor in
+                    processor.appendAttributes(&attributes)
+                }
+                signalProcessor.trackSpan(validSpanData)
+                logger.log(level: .debug, message: "Span tracked: \(validSpanData.name), duration: \(validSpanData.duration)", error: nil, data: nil)
             }
         }
     }

@@ -9,6 +9,10 @@ import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 import 'package:measure_flutter/src/navigation/navigation_collector.dart';
+import 'package:measure_flutter/src/tracing/msr_tracer.dart';
+import 'package:measure_flutter/src/tracing/span_processor.dart';
+import 'package:measure_flutter/src/tracing/tracer.dart';
+import 'package:measure_flutter/src/utils/id_provider.dart';
 
 import 'config/config_provider.dart';
 
@@ -21,6 +25,7 @@ final class MeasureInitializer {
   late final NavigationCollector _navigationCollector;
   late final HttpCollector _httpCollector;
   late final SignalProcessor _signalProcessor;
+  late final Tracer _tracer;
 
   Logger get logger => _logger;
 
@@ -38,6 +43,8 @@ final class MeasureInitializer {
 
   SignalProcessor get signalProcessor => _signalProcessor;
 
+  Tracer get tracer => _tracer;
+
   MeasureInitializer(MeasureConfig inputConfig) {
     _initializeDependencies(inputConfig);
   }
@@ -54,6 +61,7 @@ final class MeasureInitializer {
         httpUrlAllowlist: inputConfig.httpUrlAllowlist,
       ),
     );
+    final idProvider = IdProviderImpl();
     _methodChannel = MsrMethodChannel();
     _signalProcessor =
         DefaultSignalProcessor(logger: logger, channel: _methodChannel);
@@ -68,6 +76,16 @@ final class MeasureInitializer {
     _navigationCollector =
         NavigationCollector(signalProcessor: signalProcessor);
     _httpCollector = HttpCollector(signalProcessor: signalProcessor);
+    final spanProcessor = MsrSpanProcessor(
+      logger: logger,
+      signalProcessor: signalProcessor,
+      configProvider: configProvider,
+    );
+    _tracer = MsrTracer(
+      logger: logger,
+      idProvider: idProvider,
+      spanProcessor: spanProcessor,
+    );
   }
 
   @visibleForTesting

@@ -29,6 +29,7 @@ public final class sh/measure/android/Measure {
 	public static synthetic fun init$default (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;Lsh/measure/android/config/ClientInfo;ILjava/lang/Object;)V
 	public final fun internalTrackEvent (Ljava/util/Map;Ljava/lang/String;JLjava/util/Map;Ljava/util/Map;Ljava/util/List;ZLjava/lang/String;Ljava/lang/String;)V
 	public static synthetic fun internalTrackEvent$default (Lsh/measure/android/Measure;Ljava/util/Map;Ljava/lang/String;JLjava/util/Map;Ljava/util/Map;Ljava/util/List;ZLjava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
+	public final fun internalTrackSpan (Ljava/util/Map;)V
 	public final fun isShakeToLaunchBugReportEnabled ()Z
 	public final fun launchBugReportActivity (ZLjava/util/Map;)V
 	public static synthetic fun launchBugReportActivity$default (Lsh/measure/android/Measure;ZLjava/util/Map;ILjava/lang/Object;)V

@@ -36,4 +36,8 @@ abstract class MeasureFlutterPlatform extends PlatformInterface {
   ) {
     throw UnimplementedError('initializeNativeSDK() has not been implemented.');
   }
+
+  Future<void> trackSpan(Map<String, dynamic> spanData) {
+    throw UnimplementedError('trackSpan() has not been implemented.');
+  }
 }

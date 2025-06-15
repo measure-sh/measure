@@ -10,12 +10,14 @@ import Foundation
 enum MethodConstants {
     // functions
     static let functionTrackEvent = "trackEvent"
+    static let functionTrackSpan = "trackSpan"
     static let functionTriggerNativeCrash = "triggerNativeCrash"
     static let functionInitializeNativeSdk = "initializeNativeSDK"
 
     // arguments
     static let argEventData = "event_data"
     static let argEventType = "event_type"
+    static let argSpanData = "span_data"
     static let argTimestamp = "timestamp"
     static let argUserDefinedAttrs = "user_defined_attrs"
     static let argUserTriggered = "user_triggered"
