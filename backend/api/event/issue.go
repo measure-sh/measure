@@ -63,7 +63,7 @@ func (e *EventANR) ComputeView() {
 		var tv ThreadView
 		tv.Name = e.ANR.Threads[i].Name
 		for j := range e.ANR.Threads[i].Frames {
-			tv.Frames = append(tv.Frames, e.ANR.Threads[i].Frames[j].String(Framework.JVM))
+			tv.Frames = append(tv.Frames, e.ANR.Threads[i].Frames[j].String(FrameworkJVM))
 		}
 		e.Threads = append(e.Threads, tv)
 	}
@@ -93,7 +93,7 @@ func (e *EventException) ComputeView() {
 			switch f {
 			default:
 				tv.Frames = append(tv.Frames, frame.String(f))
-			case Framework.Apple:
+			case FrameworkApple:
 				t.Write(append([]byte(frame.String(f)), '\n'))
 
 				// flush on last frame
