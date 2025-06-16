@@ -5,16 +5,11 @@ import (
 	"backend/api/paginate"
 	"reflect"
 	"testing"
-
-	"github.com/google/uuid"
 )
 
 var groups = []ExceptionGroup{
 	{
-		ID: func() uuid.UUID {
-			id, _ := uuid.Parse("018da688-071c-7207-a1fe-ef529bde9963")
-			return id
-		}(),
+		ID:         "5d41402abc4b2a76b9719d911017c592",
 		Type:       "type0",
 		Message:    "Message0",
 		MethodName: "MethodName0",
@@ -22,10 +17,7 @@ var groups = []ExceptionGroup{
 		LineNumber: 0,
 	},
 	{
-		ID: func() uuid.UUID {
-			id, _ := uuid.Parse("018da688-13e1-76db-8ad7-632401256db3")
-			return id
-		}(),
+		ID:         "6e809cbda0732ac4845916a59016f954",
 		Type:       "type1",
 		Message:    "Message1",
 		MethodName: "MethodName1",
@@ -33,10 +25,7 @@ var groups = []ExceptionGroup{
 		LineNumber: 1,
 	},
 	{
-		ID: func() uuid.UUID {
-			id, _ := uuid.Parse("018da688-50e5-7479-9225-8b6756adbe39")
-			return id
-		}(),
+		ID:         "7ce8be0fa3932e840f6a19c2b83e11ae",
 		Type:       "type2",
 		Message:    "Message2",
 		MethodName: "MethodName2",
@@ -46,7 +35,7 @@ var groups = []ExceptionGroup{
 }
 
 func TestPaginateGroups(t *testing.T) {
-	subgroup, next, previous := paginate.Paginate[ExceptionGroup](groups, &filter.AppFilter{})
+	subgroup, next, previous := paginate.Paginate(groups, &filter.AppFilter{})
 
 	{
 		expected := len(groups)
@@ -57,15 +46,15 @@ func TestPaginateGroups(t *testing.T) {
 	}
 
 	{
-		expected := groups[0].ID.String()
-		got := subgroup[0].ID.String()
+		expected := groups[0].ID
+		got := subgroup[0].ID
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v but got %v", expected, got)
 		}
 	}
 	{
-		expected := groups[len(groups)-1].ID.String()
-		got := subgroup[len(groups)-1].ID.String()
+		expected := groups[len(groups)-1].ID
+		got := subgroup[len(groups)-1].ID
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v but got %v", expected, got)
 		}
@@ -90,7 +79,7 @@ func TestPaginateGroups(t *testing.T) {
 }
 
 func TestForwardLimitOne(t *testing.T) {
-	subgroup, next, previous := paginate.Paginate[ExceptionGroup](groups, &filter.AppFilter{
+	subgroup, next, previous := paginate.Paginate(groups, &filter.AppFilter{
 		Limit: 1,
 	})
 
@@ -103,8 +92,8 @@ func TestForwardLimitOne(t *testing.T) {
 	}
 
 	{
-		expected := "018da688-071c-7207-a1fe-ef529bde9963"
-		got := subgroup[0].ID.String()
+		expected := "5d41402abc4b2a76b9719d911017c592"
+		got := subgroup[0].ID
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v but got %v", expected, got)
 		}
@@ -128,7 +117,7 @@ func TestForwardLimitOne(t *testing.T) {
 }
 
 func TestBackwardLimitOne(t *testing.T) {
-	subgroup, next, previous := paginate.Paginate[ExceptionGroup](groups, &filter.AppFilter{
+	subgroup, next, previous := paginate.Paginate(groups, &filter.AppFilter{
 		Limit: -1,
 	})
 
@@ -158,8 +147,8 @@ func TestBackwardLimitOne(t *testing.T) {
 }
 
 func TestForwardLimitWithID(t *testing.T) {
-	subgroup, next, previous := paginate.Paginate[ExceptionGroup](groups, &filter.AppFilter{
-		KeyID: groups[0].ID.String(),
+	subgroup, next, previous := paginate.Paginate(groups, &filter.AppFilter{
+		KeyID: groups[0].ID,
 		Limit: 1,
 	})
 
@@ -172,8 +161,8 @@ func TestForwardLimitWithID(t *testing.T) {
 	}
 
 	{
-		expected := groups[1].ID.String()
-		got := subgroup[0].ID.String()
+		expected := groups[1].ID
+		got := subgroup[0].ID
 		if !reflect.DeepEqual(expected, got) {
 			t.Errorf("Expected %v but got %v", expected, got)
 		}
@@ -195,8 +184,8 @@ func TestForwardLimitWithID(t *testing.T) {
 		}
 	}
 
-	subgroup, next, previous = paginate.Paginate[ExceptionGroup](groups, &filter.AppFilter{
-		KeyID: groups[len(groups)-1].ID.String(),
+	subgroup, next, previous = paginate.Paginate(groups, &filter.AppFilter{
+		KeyID: groups[len(groups)-1].ID,
 		Limit: 1,
 	})
 
@@ -226,8 +215,8 @@ func TestForwardLimitWithID(t *testing.T) {
 }
 
 func TestBackwardLimitWithID(t *testing.T) {
-	subgroup, next, previous := paginate.Paginate[ExceptionGroup](groups, &filter.AppFilter{
-		KeyID: groups[0].ID.String(),
+	subgroup, next, previous := paginate.Paginate(groups, &filter.AppFilter{
+		KeyID: groups[0].ID,
 		Limit: -1,
 	})
 

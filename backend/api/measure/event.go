@@ -511,20 +511,8 @@ func (e eventreq) getANRs() (events []event.EventField) {
 
 // bucketUnhandledExceptions groups unhandled exceptions
 // based on similarity.
-func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (err error) {
+func (e eventreq) bucketUnhandledExceptions(ctx context.Context) (err error) {
 	events := e.getUnhandledExceptions()
-
-	app := App{
-		ID: &e.appId,
-	}
-
-	// Track fingerprints we've already processed in this transaction.
-	// We cannot rely on the database query to check for any
-	// and newly created groups as the transaction is commited
-	// later.
-	// Not doing so would result in duplicate groups with repeated
-	// fingerprints.
-	processedFingerprints := make(map[string]bool)
 
 	for i := range events {
 		if events[i].Exception.Fingerprint == "" {
@@ -533,33 +521,9 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (er
 			continue
 		}
 
-		// Skip database lookup if we've already processed
-		// this fingerprint in this transaction.
-		if processedFingerprints[events[i].Exception.Fingerprint] {
-			// The group was just created, no need to update timestamps yet
-			continue
-		}
-
-		matchedGroup, err := app.GetExceptionGroupByFingerprint(ctx, events[i].Exception.Fingerprint)
-		if err != nil {
+		exceptionGroup := group.NewExceptionGroup(events[i].AppID, events[i].Exception.Fingerprint, events[i].Exception.GetType(), events[i].Exception.GetMessage(), events[i].Exception.GetMethodName(), events[i].Exception.GetFileName(), events[i].Exception.GetLineNumber(), events[i].Timestamp)
+		if err := exceptionGroup.Insert(ctx); err != nil {
 			return err
-		}
-
-		if matchedGroup == nil {
-			exceptionGroup := group.NewExceptionGroup(events[i].AppID, events[i].Exception.GetType(), events[i].Exception.GetMessage(), events[i].Exception.GetMethodName(), events[i].Exception.GetFileName(), events[i].Exception.GetLineNumber(), events[i].Exception.Fingerprint, events[i].Timestamp)
-			if err := exceptionGroup.Insert(ctx, tx); err != nil {
-				return err
-			}
-
-			// Mark this fingerprint as processed in this transaction
-			processedFingerprints[events[i].Exception.Fingerprint] = true
-			continue
-		}
-
-		if !matchedGroup.EventExists(events[i].ID) {
-			if err := matchedGroup.UpdateTimeStamps(ctx, &events[i], tx); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -567,12 +531,8 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (er
 }
 
 // bucketANRs groups ANRs based on similarity.
-func (e eventreq) bucketANRs(ctx context.Context, tx *pgx.Tx) (err error) {
+func (e eventreq) bucketANRs(ctx context.Context) (err error) {
 	events := e.getANRs()
-
-	app := App{
-		ID: &e.appId,
-	}
 
 	for i := range events {
 		if events[i].ANR.Fingerprint == "" {
@@ -581,24 +541,9 @@ func (e eventreq) bucketANRs(ctx context.Context, tx *pgx.Tx) (err error) {
 			continue
 		}
 
-		matchedGroup, err := app.GetANRGroupByFingerprint(ctx, events[i].ANR.Fingerprint)
-		if err != nil {
+		anrGroup := group.NewANRGroup(events[i].AppID, events[i].ANR.Fingerprint, events[i].ANR.GetType(), events[i].ANR.GetMessage(), events[i].ANR.GetMethodName(), events[i].ANR.GetFileName(), events[i].ANR.GetLineNumber(), events[i].Timestamp)
+		if err := anrGroup.Insert(ctx); err != nil {
 			return err
-		}
-
-		if matchedGroup == nil {
-			anrGroup := group.NewANRGroup(events[i].AppID, events[i].ANR.GetType(), events[i].ANR.GetMessage(), events[i].ANR.GetMethodName(), events[i].ANR.GetFileName(), events[i].ANR.GetLineNumber(), events[i].ANR.Fingerprint, events[i].Timestamp)
-			if err := anrGroup.Insert(ctx, tx); err != nil {
-				return err
-			}
-
-			return nil
-		}
-
-		if !matchedGroup.EventExists(events[i].ID) {
-			if err := matchedGroup.UpdateTimeStamps(ctx, &events[i], tx); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -1381,7 +1326,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		Select("exception.framework framework").
 		Select("attachments").
 		Select(fmt.Sprintf("row_number() over (order by timestamp %s, id) as row_num", order)).
-		Clause(prewhere, af.AppID, group.Fingerprint).
+		Clause(prewhere, af.AppID, group.ID).
 		Where("(attribute.app_version, attribute.app_build) in (?)", selectedVersions.Parameterize()).
 		Where("(attribute.os_name, attribute.os_version) in (?)", selectedOSVersions.Parameterize()).
 		Where("type = ?", event.TypeException).
@@ -1653,7 +1598,7 @@ func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.Ap
 		Select("anr.threads threads").
 		Select("attachments").
 		Select(fmt.Sprintf("row_number() over (order by timestamp %s, id) as row_num", order)).
-		Clause(prewhere, af.AppID, group.Fingerprint).
+		Clause(prewhere, af.AppID, group.ID).
 		Where("(attribute.app_version, attribute.app_build) in (?)", selectedVersions.Parameterize()).
 		Where("(attribute.os_name, attribute.os_version) in (?)", selectedOSVersions.Parameterize()).
 		Where("type = ?", event.TypeANR).
@@ -1882,10 +1827,10 @@ func GetIssuesAttributeDistribution(ctx context.Context, g group.IssueGroup, af 
 	switch g.(type) {
 	case *group.ANRGroup:
 		groupType = event.TypeANR
-		fingerprint = g.(*group.ANRGroup).GetFingerprint()
+		fingerprint = g.(*group.ANRGroup).GetId()
 	case *group.ExceptionGroup:
 		groupType = event.TypeException
-		fingerprint = g.(*group.ExceptionGroup).GetFingerprint()
+		fingerprint = g.(*group.ExceptionGroup).GetId()
 	default:
 		err := errors.New("couldn't determine correct type of issue group")
 		return nil, err
@@ -2009,7 +1954,7 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 		return nil, errors.New("missing timezone filter")
 	}
 
-	fingerprint := g.GetFingerprint()
+	fingerprint := g.GetId()
 	groupType := event.TypeException
 
 	switch g.(type) {
@@ -2367,7 +2312,7 @@ func PutEvents(c *gin.Context) {
 
 	defer bucketUnhandledExceptionsSpan.End()
 
-	if err := eventReq.bucketUnhandledExceptions(ctx, &tx); err != nil {
+	if err := eventReq.bucketUnhandledExceptions(ctx); err != nil {
 		msg := `failed to bucket unhandled exceptions`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -2382,7 +2327,7 @@ func PutEvents(c *gin.Context) {
 
 	defer bucketAnrsSpan.End()
 
-	if err := eventReq.bucketANRs(ctx, &tx); err != nil {
+	if err := eventReq.bucketANRs(ctx); err != nil {
 		msg := `failed to bucket anrs`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{

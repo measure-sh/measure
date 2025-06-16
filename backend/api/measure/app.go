@@ -91,36 +91,45 @@ func (a App) rename() error {
 }
 
 // GetExceptionGroup queries a single exception group by its id.
-func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGroup *group.ExceptionGroup, err error) {
-	stmt := sqlf.PostgreSQL.
-		From("public.unhandled_exception_groups").
-		Select("id").
+func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *group.ExceptionGroup, err error) {
+	stmt := sqlf.
+		From("unhandled_exception_groups").
+		Clause("FINAL").
 		Select("app_id").
+		Select("id").
 		Select(`type`).
 		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
-		Select("fingerprint").
-		Select("first_event_timestamp").
-		Select("created_at").
 		Select("updated_at").
 		Where("app_id = ?", a.ID).
 		Where("id = ?", id)
 
 	defer stmt.Close()
 
-	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if rows.Err() != nil {
-		return
+	row := group.ExceptionGroup{}
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, err
 	}
+	defer rows.Close()
 
-	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
-	if errors.Is(err, pgx.ErrNoRows) {
-		err = nil
-		return
-	} else if err != nil {
-		return
+	if rows.Next() {
+		if err := rows.Scan(
+			&row.AppID,
+			&row.ID,
+			&row.Type,
+			&row.Message,
+			&row.MethodName,
+			&row.FileName,
+			&row.LineNumber,
+			&row.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, nil
 	}
 
 	exceptionGroup = &row
@@ -128,7 +137,7 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 	// Get list of event IDs
 	eventDataStmt := sqlf.From(`events`).
 		Select(`distinct id`).
-		Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", a.ID, exceptionGroup.Fingerprint).
+		Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", a.ID, exceptionGroup.ID).
 		Where("type = 'exception'").
 		Where("exception.handled = false").
 		GroupBy("id")
@@ -161,95 +170,48 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 	return
 }
 
-// GetExceptionGroupByFingerprint queries a single exception group by its fingerprint.
-func (a App) GetExceptionGroupByFingerprint(ctx context.Context, fingerprint string) (exceptionGroup *group.ExceptionGroup, err error) {
-	stmt := sqlf.PostgreSQL.
-		From("public.unhandled_exception_groups").
-		Select("id").
-		Select("app_id").
-		Select(`type`).
-		Select(`message`).
-		Select(`method_name`).
-		Select(`file_name`).
-		Select(`line_number`).
-		Select("fingerprint").
-		Select("first_event_timestamp").
-		Select("created_at").
-		Select("updated_at").
-		Where("app_id = ?", a.ID).
-		Where("fingerprint = ?", fingerprint)
-
-	defer stmt.Close()
-
-	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if rows.Err() != nil {
-		return
-	}
-
-	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
-	}
-
-	exceptionGroup = &row
-
-	// Get list of event IDs
-	eventDataStmt := sqlf.From(`default.events`).
-		Select(`id`).
-		Where(`exception.fingerprint = ?`, exceptionGroup.Fingerprint)
-
-	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
-	if err != nil {
-		return nil, err
-	}
-	defer eventDataRows.Close()
-
-	var eventIds = []uuid.UUID{}
-	var eventID uuid.UUID
-	for eventDataRows.Next() {
-		if err := eventDataRows.Scan(&eventID); err != nil {
-			return nil, err
-		}
-
-		eventIds = append(eventIds, eventID)
-	}
-
-	if eventDataRows.Err() != nil {
-		return nil, eventDataRows.Err()
-	}
-
-	exceptionGroup.EventIDs = eventIds
-	exceptionGroup.Count = len(eventIds)
-
-	return exceptionGroup, nil
-}
-
 // GetExceptionGroups returns slice of ExceptionGroup
 // of an app.
 func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, err error) {
-	stmt := sqlf.PostgreSQL.
-		From("public.unhandled_exception_groups").
-		Select("id").
+	stmt := sqlf.
+		From("unhandled_exception_groups").
+		Clause("FINAL").
 		Select("app_id").
+		Select("id").
 		Select(`type`).
 		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
-		Select("fingerprint").
-		Select("first_event_timestamp").
-		Select("created_at").
 		Select("updated_at").
 		Where("app_id = ?", a.ID)
 
 	defer stmt.Close()
 
-	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	groups, err = pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var g group.ExceptionGroup
+		if err := rows.Scan(
+			&g.AppID,
+			&g.ID,
+			&g.Type,
+			&g.Message,
+			&g.MethodName,
+			&g.FileName,
+			&g.LineNumber,
+			&g.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		groups = append(groups, g)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
 	}
 
 	var exceptionGroup *group.ExceptionGroup
@@ -259,7 +221,7 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		eventDataStmt := sqlf.
 			From("events").
 			Select("distinct id").
-			Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", af.AppID, exceptionGroup.Fingerprint).
+			Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", af.AppID, exceptionGroup.ID).
 			Where("type = ?", event.TypeException).
 			Where("exception.handled = ?", false)
 
@@ -354,36 +316,45 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 }
 
 // GetANRGroup queries a single ANR group by its id.
-func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANRGroup, err error) {
-	stmt := sqlf.PostgreSQL.
-		From("public.anr_groups").
-		Select("id").
+func (a App) GetANRGroup(ctx context.Context, id string) (anrGroup *group.ANRGroup, err error) {
+	stmt := sqlf.
+		From("anr_groups").
+		Clause("FINAL").
 		Select("app_id").
+		Select("id").
 		Select(`type`).
 		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
-		Select("fingerprint").
-		Select("first_event_timestamp").
-		Select("created_at").
 		Select("updated_at").
 		Where("app_id = ?", a.ID).
 		Where("id = ?", id)
 
 	defer stmt.Close()
 
-	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if rows.Err() != nil {
-		return
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, err
 	}
+	defer rows.Close()
 
-	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ANRGroup])
-	if errors.Is(err, pgx.ErrNoRows) {
-		err = nil
-		return
-	} else if err != nil {
-		return
+	row := group.ANRGroup{}
+	if rows.Next() {
+		if err := rows.Scan(
+			&row.AppID,
+			&row.ID,
+			&row.Type,
+			&row.Message,
+			&row.MethodName,
+			&row.FileName,
+			&row.LineNumber,
+			&row.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, nil
 	}
 
 	anrGroup = &row
@@ -391,7 +362,7 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 	// Get list of event IDs
 	eventDataStmt := sqlf.From(`events`).
 		Select(`distinct id`).
-		Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", a.ID, anrGroup.Fingerprint).
+		Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", a.ID, anrGroup.ID).
 		Where("type = ?", event.TypeANR).
 		GroupBy("id")
 
@@ -421,94 +392,47 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 	return anrGroup, nil
 }
 
-// GetANRGroupByFingerprint queries a single ANR group by its fingerprint.
-func (a App) GetANRGroupByFingerprint(ctx context.Context, fingerprint string) (anrGroup *group.ANRGroup, err error) {
-	stmt := sqlf.PostgreSQL.
-		From("public.anr_groups").
-		Select("id").
-		Select("app_id").
-		Select(`type`).
-		Select(`message`).
-		Select(`method_name`).
-		Select(`file_name`).
-		Select(`line_number`).
-		Select("fingerprint").
-		Select("first_event_timestamp").
-		Select("created_at").
-		Select("updated_at").
-		Where("app_id = ?", a.ID).
-		Where("fingerprint = ?", fingerprint)
-
-	defer stmt.Close()
-
-	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if rows.Err() != nil {
-		return
-	}
-
-	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ANRGroup])
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
-	}
-
-	anrGroup = &row
-
-	// Get list of event IDs
-	eventDataStmt := sqlf.From(`default.events`).
-		Select(`id`).
-		Where(`anr.fingerprint = ?`, anrGroup.Fingerprint)
-
-	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
-	if err != nil {
-		return nil, err
-	}
-	defer eventDataRows.Close()
-
-	var eventIds = []uuid.UUID{}
-	var eventID uuid.UUID
-	for eventDataRows.Next() {
-		if err := eventDataRows.Scan(&eventID); err != nil {
-			return nil, err
-		}
-
-		eventIds = append(eventIds, eventID)
-	}
-
-	if eventDataRows.Err() != nil {
-		return nil, eventDataRows.Err()
-	}
-
-	anrGroup.EventIDs = eventIds
-	anrGroup.Count = len(eventIds)
-
-	return anrGroup, nil
-}
-
 // GetANRGroups returns slice of ANRGroup of an app.
 func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, err error) {
-	stmt := sqlf.PostgreSQL.
-		From("public.anr_groups").
-		Select("id").
+	stmt := sqlf.
+		From("anr_groups").
+		Clause("FINAL").
 		Select("app_id").
+		Select("id").
 		Select(`type`).
 		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
-		Select("fingerprint").
-		Select("first_event_timestamp").
-		Select("created_at").
 		Select("updated_at").
 		Where("app_id = ?", a.ID)
 
 	defer stmt.Close()
 
-	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	groups, err = pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ANRGroup])
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var g group.ANRGroup
+		if err := rows.Scan(
+			&g.AppID,
+			&g.ID,
+			&g.Type,
+			&g.Message,
+			&g.MethodName,
+			&g.FileName,
+			&g.LineNumber,
+			&g.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		groups = append(groups, g)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
 	}
 
 	var anrGroup *group.ANRGroup
@@ -518,7 +442,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		eventDataStmt := sqlf.
 			From("events").
 			Select("distinct id").
-			Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", af.AppID, anrGroup.Fingerprint).
+			Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", af.AppID, anrGroup.ID).
 			Where("type = ?", event.TypeANR)
 
 		defer eventDataStmt.Close()
@@ -2237,9 +2161,9 @@ func GetAppJourney(c *gin.Context) {
 	}
 
 	type Issue struct {
-		ID    uuid.UUID `json:"id"`
-		Title string    `json:"title"`
-		Count int       `json:"count"`
+		ID    string `json:"id"`
+		Title string `json:"title"`
+		Count int    `json:"count"`
 	}
 
 	type Node struct {
@@ -3084,8 +3008,8 @@ func GetCrashDetailCrashes(c *gin.Context) {
 		return
 	}
 
-	crashGroupId, err := uuid.Parse(c.Param("crashGroupId"))
-	if err != nil {
+	crashGroupId := c.Param("crashGroupId")
+	if crashGroupId == "" {
 		msg := `crash group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -3177,7 +3101,7 @@ func GetCrashDetailCrashes(c *gin.Context) {
 
 	group, err := app.GetExceptionGroup(ctx, crashGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId.String())
+		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -3235,8 +3159,8 @@ func GetCrashDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	crashGroupId, err := uuid.Parse(c.Param("crashGroupId"))
-	if err != nil {
+	crashGroupId := c.Param("crashGroupId")
+	if crashGroupId == "" {
 		msg := `crash group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -3334,7 +3258,7 @@ func GetCrashDetailPlotInstances(c *gin.Context) {
 
 	group, err := app.GetExceptionGroup(ctx, crashGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId.String())
+		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -3390,8 +3314,8 @@ func GetCrashDetailAttributeDistribution(c *gin.Context) {
 		return
 	}
 
-	crashGroupId, err := uuid.Parse(c.Param("crashGroupId"))
-	if err != nil {
+	crashGroupId := c.Param("crashGroupId")
+	if crashGroupId == "" {
 		msg := `crash group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -3489,7 +3413,7 @@ func GetCrashDetailAttributeDistribution(c *gin.Context) {
 
 	group, err := app.GetExceptionGroup(ctx, crashGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId.String())
+		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -3518,8 +3442,8 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 		return
 	}
 
-	crashGroupId, err := uuid.Parse(c.Param("crashGroupId"))
-	if err != nil {
+	crashGroupId := c.Param("crashGroupId")
+	if crashGroupId == "" {
 		msg := `crash group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -3618,7 +3542,7 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 
 	exceptionGroup, err := app.GetExceptionGroup(ctx, crashGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId.String())
+		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -3658,9 +3582,9 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 	}
 
 	type Issue struct {
-		ID    uuid.UUID `json:"id"`
-		Title string    `json:"title"`
-		Count int       `json:"count"`
+		ID    string `json:"id"`
+		Title string `json:"title"`
+		Count int    `json:"count"`
 	}
 
 	type Node struct {
@@ -4004,8 +3928,8 @@ func GetANRDetailANRs(c *gin.Context) {
 		return
 	}
 
-	anrGroupId, err := uuid.Parse(c.Param("anrGroupId"))
-	if err != nil {
+	anrGroupId := c.Param("anrGroupId")
+	if anrGroupId == "" {
 		msg := `anr group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -4103,7 +4027,7 @@ func GetANRDetailANRs(c *gin.Context) {
 
 	group, err := app.GetANRGroup(ctx, anrGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId.String())
+		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -4161,8 +4085,8 @@ func GetANRDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	anrGroupId, err := uuid.Parse(c.Param("anrGroupId"))
-	if err != nil {
+	anrGroupId := c.Param("anrGroupId")
+	if anrGroupId == "" {
 		msg := `anr group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -4254,7 +4178,7 @@ func GetANRDetailPlotInstances(c *gin.Context) {
 
 	group, err := app.GetANRGroup(ctx, anrGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId.String())
+		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -4310,8 +4234,8 @@ func GetANRDetailAttributeDistribution(c *gin.Context) {
 		return
 	}
 
-	anrGroupId, err := uuid.Parse(c.Param("anrGroupId"))
-	if err != nil {
+	anrGroupId := c.Param("anrGroupId")
+	if anrGroupId == "" {
 		msg := `anr group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -4403,7 +4327,7 @@ func GetANRDetailAttributeDistribution(c *gin.Context) {
 
 	group, err := app.GetANRGroup(ctx, anrGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get anr group with id %q", anrGroupId.String())
+		msg := fmt.Sprintf("failed to get anr group with id %q", anrGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -4432,8 +4356,8 @@ func GetANRDetailPlotJourney(c *gin.Context) {
 		return
 	}
 
-	anrGroupId, err := uuid.Parse(c.Param("anrGroupId"))
-	if err != nil {
+	anrGroupId := c.Param("anrGroupId")
+	if anrGroupId == "" {
 		msg := `ANR group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -4535,7 +4459,7 @@ func GetANRDetailPlotJourney(c *gin.Context) {
 
 	anrGroup, err := app.GetANRGroup(ctx, anrGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId.String())
+		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -4577,9 +4501,9 @@ func GetANRDetailPlotJourney(c *gin.Context) {
 	}
 
 	type Issue struct {
-		ID    uuid.UUID `json:"id"`
-		Title string    `json:"title"`
-		Count int       `json:"count"`
+		ID    string `json:"id"`
+		Title string `json:"title"`
+		Count int    `json:"count"`
 	}
 
 	type Node struct {

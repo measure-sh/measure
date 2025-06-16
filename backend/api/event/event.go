@@ -1500,7 +1500,7 @@ func (e Exception) GetFileName() string {
 
 // GetLineNumber provides the line number of
 // the exception.
-func (e Exception) GetLineNumber() int {
+func (e Exception) GetLineNumber() int32 {
 	// some exception may have zero frames
 	if e.HasNoFrames() {
 		return 0
@@ -1508,11 +1508,11 @@ func (e Exception) GetLineNumber() int {
 
 	switch e.GetFramework() {
 	case FrameworkJVM:
-		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
+		return int32(e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum)
 	case FrameworkDart:
-		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
+		return int32(e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum)
 	case FrameworkApple:
-		return e.GetRelevantFrame().LineNum
+		return int32(e.GetRelevantFrame().LineNum)
 	}
 
 	return 0
@@ -1801,11 +1801,11 @@ func (a ANR) GetFileName() string {
 
 // GetLineNumber provides the line number of
 // the ANR.
-func (a ANR) GetLineNumber() int {
+func (a ANR) GetLineNumber() int32 {
 	if a.HasNoFrames() {
-		return 0
+		return int32(0)
 	}
-	return a.Exceptions[len(a.Exceptions)-1].Frames[0].LineNum
+	return int32(a.Exceptions[len(a.Exceptions)-1].Frames[0].LineNum)
 }
 
 // GetMethodName provides the method name of

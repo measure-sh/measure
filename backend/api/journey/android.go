@@ -326,7 +326,7 @@ func (j *JourneyAndroid) GetNodeVertices() (ids []int) {
 
 // GetNodeANRCount computes total count of ANR events
 // occurring in the ANR group.
-func (j *JourneyAndroid) GetNodeANRCount(v int, anrGroupId uuid.UUID) (anrCount int) {
+func (j *JourneyAndroid) GetNodeANRCount(v int, anrGroupId string) (anrCount int) {
 	name := j.nodelutinverse[v]
 	node := j.nodelut[name]
 
@@ -349,7 +349,7 @@ func (j *JourneyAndroid) GetNodeANRCount(v int, anrGroupId uuid.UUID) (anrCount 
 
 // GetNodeExceptionCount computes total count of exception
 // events occurring in the exception group.
-func (j *JourneyAndroid) GetNodeExceptionCount(v int, exceptionGroupId uuid.UUID) (crashCount int) {
+func (j *JourneyAndroid) GetNodeExceptionCount(v int, exceptionGroupId string) (crashCount int) {
 	name := j.nodelutinverse[v]
 	node := j.nodelut[name]
 

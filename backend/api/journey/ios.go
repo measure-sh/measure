@@ -256,7 +256,7 @@ func (j *JourneyiOS) GetNodeVertices() (ids []int) {
 
 // GetNodeExceptionCount computes total count of exception
 // events occurring in the exception group.
-func (j *JourneyiOS) GetNodeExceptionCount(v int, exceptionGroupId uuid.UUID) (crashCount int) {
+func (j *JourneyiOS) GetNodeExceptionCount(v int, exceptionGroupId string) (crashCount int) {
 	name := j.nodelutinverse[v]
 	node := j.nodelut[name]
 

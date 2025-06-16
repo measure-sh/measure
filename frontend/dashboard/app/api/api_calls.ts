@@ -502,10 +502,8 @@ const emptyExceptionGroup = {
   "method_name": "",
   "file_name": "",
   "line_number": 0,
-  "fingerprint": "",
   "count": 0,
   "percentage_contribution": 0,
-  "created_at": "",
   "updated_at": ""
 }
 
