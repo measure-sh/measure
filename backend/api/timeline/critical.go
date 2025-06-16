@@ -16,12 +16,12 @@ type Exception struct {
 	EventType     string             `json:"event_type"`
 	UDAttribute   *event.UDAttribute `json:"user_defined_attribute"`
 	UserTriggered bool               `json:"user_triggered"`
-	GroupId       *uuid.UUID         `json:"group_id"`
+	GroupId       string             `json:"group_id"`
 	Type          string             `json:"type"`
 	Message       string             `json:"message"`
 	MethodName    string             `json:"method_name"`
 	FileName      string             `json:"file_name"`
-	LineNumber    int                `json:"line_number"`
+	LineNumber    int32              `json:"line_number"`
 	ThreadName    string             `json:"thread_name"`
 	Handled       bool               `json:"handled"`
 	Stacktrace    string             `json:"stacktrace"`
@@ -48,12 +48,12 @@ func (e Exception) GetTimestamp() time.Time {
 type ANR struct {
 	EventType   string             `json:"event_type"`
 	UDAttribute *event.UDAttribute `json:"user_defined_attribute"`
-	GroupId     *uuid.UUID         `json:"group_id"`
+	GroupId     string             `json:"group_id"`
 	Type        string             `json:"type"`
 	Message     string             `json:"message"`
 	MethodName  string             `json:"method_name"`
 	FileName    string             `json:"file_name"`
-	LineNumber  int                `json:"line_number"`
+	LineNumber  int32              `json:"line_number"`
 	ThreadName  string             `json:"thread_name"`
 	Stacktrace  string             `json:"stacktrace"`
 	Foreground  bool               `json:"foreground"`
@@ -78,23 +78,27 @@ func (a ANR) GetTimestamp() time.Time {
 func ComputeExceptions(ctx context.Context, appId *uuid.UUID, events []event.EventField) (result []ThreadGrouper, err error) {
 	for _, event := range events {
 
-		var groupId *uuid.UUID
+		var groupId string
 
 		if !event.Exception.Handled {
 			stmt := sqlf.PostgreSQL.
-				From("public.unhandled_exception_groups").
+				From("unhandled_exception_groups").
 				Select("id").
 				Where("app_id = ?", appId).
-				Where("fingerprint = ?", event.Exception.Fingerprint)
+				Where("id = ?", event.Exception.Fingerprint)
 
-			defer stmt.Close()
-
-			row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
-
-			err := row.Scan(&groupId)
-
+			rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 			if err != nil {
 				return nil, err
+			}
+			defer rows.Close()
+
+			if rows.Next() {
+				if err := rows.Scan(&groupId); err != nil {
+					return nil, err
+				}
+			} else {
+				return nil, nil
 			}
 		}
 
@@ -127,22 +131,26 @@ func ComputeExceptions(ctx context.Context, appId *uuid.UUID, events []event.Eve
 func ComputeANRs(ctx context.Context, appId *uuid.UUID, events []event.EventField) (result []ThreadGrouper, err error) {
 	for _, event := range events {
 
-		var groupId *uuid.UUID
+		var groupId string
 
 		stmt := sqlf.PostgreSQL.
-			From("public.anr_groups").
+			From("anr_groups").
 			Select("id").
 			Where("app_id = ?", appId).
-			Where("fingerprint = ?", event.ANR.Fingerprint)
+			Where("id = ?", event.ANR.Fingerprint)
 
-		defer stmt.Close()
-
-		row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
-
-		err := row.Scan(&groupId)
-
+		rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 		if err != nil {
 			return nil, err
+		}
+		defer rows.Close()
+
+		if rows.Next() {
+			if err := rows.Scan(&groupId); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, nil
 		}
 
 		anrs := ANR{

@@ -10,3 +10,4 @@ Choose as per your target version.
 
 - [**v0.4.x**](./v0.4.x/README.md) - Migration Guide for `v0.4.x`
 - [**v0.6.x**](./v0.6.x/README.md) - Migration Guide for `v0.6.x`
+- [**v0.8.x**](./v0.8.x/README.md) - Migration Guide for `v0.8.x`

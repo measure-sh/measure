@@ -1149,45 +1149,65 @@ The required headers must be present in each request.
     },
     "results": [
       {
-        "id": "01903291-1eb4-7b81-854b-fd9d3bbccb4b",
-        "app_id": "fddf4d6d-1df1-45f8-8bc7-9730f2236cb0",
-        "name": "java.lang.IllegalStateException@RxJava2CallAdapterFactory.java:118",
-        "fingerprint": "c37a8c1cc1c037f9",
-        "count": 41,
-        "percentage_contribution": 77.35849,
-        "created_at": "2024-06-19T22:14:49.77Z",
-        "updated_at": "2024-06-19T22:15:25.636Z"
-      },
-      {
-        "id": "01903291-6652-7ecf-9a6d-53ef16b6203a",
-        "app_id": "fddf4d6d-1df1-45f8-8bc7-9730f2236cb0",
-        "name": "java.lang.IllegalStateException@RxJava2CallAdapterFactory.java:118",
-        "fingerprint": "c3ea8c1cc1d033f9",
-        "count": 6,
-        "percentage_contribution": 11.320755,
-        "created_at": "2024-06-19T22:15:08.109Z",
-        "updated_at": "2024-06-19T22:15:23.134Z"
-      },
-      {
-        "id": "01903291-7992-7c4f-b98e-6f8e93417695",
-        "app_id": "fddf4d6d-1df1-45f8-8bc7-9730f2236cb0",
-        "name": "java.lang.IllegalStateException@RxJava2CallAdapterFactory.java:118",
-        "fingerprint": "c3faac1cc1c037bb",
-        "count": 4,
-        "percentage_contribution": 7.5471697,
-        "created_at": "2024-06-19T22:15:13.038Z",
-        "updated_at": "2024-06-19T22:15:21.224Z"
-      },
-      {
-        "id": "01903291-8379-79ee-8a27-678368a0a5b8",
-        "app_id": "fddf4d6d-1df1-45f8-8bc7-9730f2236cb0",
-        "name": "java.lang.IllegalStateException@RxJava2CallAdapterFactory.java:118",
-        "fingerprint": "c37acc1cc0c037bb",
-        "count": 2,
-        "percentage_contribution": 3.7735848,
-        "created_at": "2024-06-19T22:15:15.573Z",
-        "updated_at": "2024-06-19T22:15:19.957Z"
-      }
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "id": "0a674646a76ebe4aa378b8e1aaa49d61",
+            "type": "java.lang.IllegalAccessException",
+            "message": "This is a new exception",
+            "method_name": "onClick",
+            "file_name": "ExceptionDemoActivity",
+            "line_number": 0,
+            "count": 11,
+            "percentage_contribution": 36.67,
+            "updated_at": "2025-06-13T14:08:58.228662166Z"
+        },
+        {
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "id": "b98e7b3ee2144b658ee613ab18a4326f",
+            "type": "java.lang.StackOverflowError",
+            "message": "stack size 8188KB",
+            "method_name": "recursiveFunction",
+            "file_name": "ExceptionDemoActivity.kt",
+            "line_number": 195,
+            "count": 5,
+            "percentage_contribution": 16.67,
+            "updated_at": "2025-06-13T14:08:58.253760541Z"
+        },
+        {
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "id": "2ca7a0d943d923ee99af0e94d89ee0bc",
+            "type": "java.lang.OutOfMemoryError",
+            "message": "Failed to allocate a 104857616 byte allocation with 25165824 free bytes and 88MB until OOM, target footprint 133174272, growth limit 201326592",
+            "method_name": "onClick",
+            "file_name": "ExceptionDemoActivity",
+            "line_number": 0,
+            "count": 4,
+            "percentage_contribution": 13.33,
+            "updated_at": "2025-06-13T14:08:58.084689791Z"
+        },
+        {
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "id": "f94859bc4b47fbf05b4eec2a300de0a4",
+            "type": "sh.measure.sample.CustomException",
+            "message": "This is a nested custom exception",
+            "method_name": "onClick",
+            "file_name": "ExceptionDemoActivity",
+            "line_number": 0,
+            "count": 4,
+            "percentage_contribution": 13.33,
+            "updated_at": "2025-06-13T14:08:57.940485305Z"
+        },
+        {
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "id": "c4ee2ff2e2496be30848cf500300be56",
+            "type": "android.app.RemoteServiceException$CrashedByAdbException",
+            "message": "shell-induced crash",
+            "method_name": "throwRemoteServiceException",
+            "file_name": "ActivityThread.java",
+            "line_number": 1990,
+            "count": 3,
+            "percentage_contribution": 10,
+            "updated_at": "2025-06-13T14:08:56.040462013Z"
+        }
     ]
   }
   ```
@@ -1850,25 +1870,29 @@ The required headers must be present in each request.
     },
     "results": [
       {
-        "id": "01903291-c21a-7e2a-923d-90d3793a8fb0",
-        "app_id": "2b7ddad4-40a6-42a7-9e21-a90577e08263",
-        "name": "sh.measure.android.anr.AnrError@ExceptionDemoActivity.kt:62",
-        "fingerprint": "c37ac85cc1d013f9",
-        "count": 3,
-        "percentage_contribution": 75,
-        "created_at": "2024-06-19T22:15:31.608Z",
-        "updated_at": "2024-06-19T22:15:34.659Z"
-      },
-      {
-        "id": "01903291-cc74-793b-ba28-842ffecdb774",
-        "app_id": "2b7ddad4-40a6-42a7-9e21-a90577e08263",
-        "name": "sh.measure.android.anr.AnrError@ExceptionDemoActivity.kt:66",
-        "fingerprint": "8368c85cc1c013f9",
-        "count": 1,
-        "percentage_contribution": 25,
-        "created_at": "2024-06-19T22:15:34.258Z",
-        "updated_at": "2024-06-19T22:15:34.258Z"
-      }
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "id": "09ef78940bd258030ebe3937bf1e32a2",
+            "type": "sh.measure.android.anr.AnrError",
+            "message": "Application Not Responding for at least 5s",
+            "method_name": "run",
+            "file_name": "CpuUsageCollector",
+            "line_number": 0,
+            "count": 1,
+            "percentage_contribution": 50,
+            "updated_at": "2025-06-13T14:08:58.003350625Z"
+        },
+        {
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "id": "19f5125829c0477f56a6e610cd81b735",
+            "type": "sh.measure.android.anr.AnrError",
+            "message": "Application Not Responding for at least 5s",
+            "method_name": "sleep",
+            "file_name": "Thread.java",
+            "line_number": -2,
+            "count": 1,
+            "percentage_contribution": 50,
+            "updated_at": "2025-06-13T14:08:56.313369888Z"
+        }
     ]
   }
   ```
