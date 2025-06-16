@@ -88,4 +88,94 @@ struct Attributes: Codable {
         case deviceThermalThrottlingEnabled = "device_thermal_throttling_enabled"
         case deviceLowPowerMode = "device_low_power_mode"
     }
+    
+    init(
+        threadName: String? = nil,
+        deviceName: String? = nil,
+        deviceModel: String? = nil,
+        deviceManufacturer: String? = nil,
+        deviceType: DeviceType? = nil,
+        deviceIsFoldable: Bool? = nil,
+        deviceIsPhysical: Bool? = nil,
+        deviceDensityDpi: Number? = nil,
+        deviceWidthPx: Number? = nil,
+        deviceHeightPx: Number? = nil,
+        deviceDensity: Number? = nil,
+        deviceLocale: String? = nil,
+        osName: String? = nil,
+        osVersion: String? = nil,
+        platform: String = AttributeConstants.platform,
+        networkType: NetworkType? = nil,
+        networkGeneration: NetworkGeneration? = nil,
+        networkProvider: String? = nil,
+        installationId: String = "",
+        userId: String? = nil,
+        deviceCpuArch: String? = nil,
+        appVersion: String = "",
+        appBuild: String = "",
+        measureSdkVersion: String = "",
+        appUniqueId: String = "",
+        deviceThermalThrottlingEnabled: Bool? = nil,
+        deviceLowPowerMode: Bool? = nil,
+        osPageSize: UInt8? = nil) {
+           self.threadName = threadName
+           self.deviceName = deviceName
+           self.deviceModel = deviceModel
+           self.deviceManufacturer = deviceManufacturer
+           self.deviceType = deviceType
+           self.deviceIsFoldable = deviceIsFoldable
+           self.deviceIsPhysical = deviceIsPhysical
+           self.deviceDensityDpi = deviceDensityDpi
+           self.deviceWidthPx = deviceWidthPx
+           self.deviceHeightPx = deviceHeightPx
+           self.deviceDensity = deviceDensity
+           self.deviceLocale = deviceLocale
+           self.osName = osName
+           self.osVersion = osVersion
+           self.platform = platform
+           self.networkType = networkType
+           self.networkGeneration = networkGeneration
+           self.networkProvider = networkProvider
+           self.installationId = installationId
+           self.userId = userId
+           self.deviceCpuArch = deviceCpuArch
+           self.appVersion = appVersion
+           self.appBuild = appBuild
+           self.measureSdkVersion = measureSdkVersion
+           self.appUniqueId = appUniqueId
+           self.deviceThermalThrottlingEnabled = deviceThermalThrottlingEnabled
+           self.deviceLowPowerMode = deviceLowPowerMode
+           self.osPageSize = osPageSize
+    }
+    
+    init(dict: [String: Any?]) {
+        self.threadName = dict["threadName"] as? String
+        self.deviceName = dict["deviceName"] as? String
+        self.deviceModel = dict["deviceModel"] as? String
+        self.deviceManufacturer = dict["deviceManufacturer"] as? String
+        self.deviceType = (dict["deviceType"] as? String).flatMap(DeviceType.init)
+        self.deviceIsFoldable = dict["deviceIsFoldable"] as? Bool
+        self.deviceIsPhysical = dict["deviceIsPhysical"] as? Bool
+        self.deviceDensityDpi = dict["deviceDensityDpi"] as? Number
+        self.deviceWidthPx = dict["deviceWidthPx"] as? Number
+        self.deviceHeightPx = dict["deviceHeightPx"] as? Number
+        self.deviceDensity = dict["deviceDensity"] as? Number
+        self.deviceLocale = dict["deviceLocale"] as? String
+        self.osName = dict["osName"] as? String
+        self.osVersion = dict["osVersion"] as? String
+        self.platform = dict["platform"] as? String ?? AttributeConstants.platform
+        self.networkType = (dict["networkType"] as? String).flatMap(NetworkType.init)
+        self.networkGeneration = (dict["networkGeneration"] as? String).flatMap(NetworkGeneration.init)
+        self.networkProvider = dict["networkProvider"] as? String
+        self.installationId = dict["installationId"] as? String ?? ""
+        self.userId = dict["userId"] as? String
+        self.deviceCpuArch = dict["deviceCpuArch"] as? String
+        self.appVersion = dict["appVersion"] as? String ?? ""
+        self.appBuild = dict["appBuild"] as? String ?? ""
+        self.measureSdkVersion = dict["measureSdkVersion"] as? String ?? ""
+        self.appUniqueId = dict["appUniqueId"] as? String ?? ""
+        self.deviceThermalThrottlingEnabled = dict["deviceThermalThrottlingEnabled"] as? Bool
+        self.deviceLowPowerMode = dict["deviceLowPowerMode"] as? Bool
+        self.osPageSize = dict["osPageSize"] as? UInt8
+    }
 }

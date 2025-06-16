@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:measure_flutter/attribute_builder.dart';
-import 'package:measure_flutter/attribute_value.dart';
+import 'package:measure_flutter/src/attribute_builder.dart';
+import 'package:measure_flutter/src/attribute_value.dart';
 import 'package:measure_flutter/src/events/custom_event_data.dart';
 import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';

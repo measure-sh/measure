@@ -10,52 +10,94 @@ import Foundation
 protocol InternalSignalCollector {
     func enable()
     func disable()
+
     // swiftlint:disable:next function_parameter_count
     func trackEvent(
-        data: inout [String: Any?], type: String, timestamp: Int64, attributes: [String: Any?],
-        userDefinedAttrs: [String: AttributeValue], userTriggered: Bool, sessionId: String?, threadName: String?)
+        data: inout [String: Any?],
+        type: String,
+        timestamp: Int64,
+        attributes: [String: Any?],
+        userDefinedAttrs: [String: AttributeValue],
+        userTriggered: Bool,
+        sessionId: String?,
+        threadName: String?
+    )
+
+    func trackSpan( // swiftlint:disable:this function_parameter_count
+        name: String,
+        traceId: String,
+        spanId: String,
+        parentId: String?,
+        startTime: Int64,
+        endTime: Int64,
+        duration: Int64,
+        status: Int64,
+        attributes: [String: Any?],
+        userDefinedAttrs: [String: AttributeValue],
+        checkpoints: [String: Int64],
+        hasEnded: Bool,
+        isSampled: Bool
+    )
+
     var isForeground: Bool { get set }
 }
 
+// Recieves events and spans from cross platform frameworks and
+// sends them to the `SignalProcessor` for being stored.
 final class BaseInternalSignalCollector: InternalSignalCollector {
     private let logger: Logger
     private let signalProcessor: SignalProcessor
+    private let timeProvider: TimeProvider
+    private let sessionManager: SessionManager
+    private let attributeProcessors: [AttributeProcessor]
+    
     private var isEnabled = AtomicBool(false)
     var isForeground: Bool
 
-    init(logger: Logger, signalProcessor: SignalProcessor) {
+    init(logger: Logger,
+         timeProvider: TimeProvider,
+         signalProcessor: SignalProcessor,
+         sessionManager: SessionManager,
+         attributeProcessors: [AttributeProcessor]) {
         self.logger = logger
         self.signalProcessor = signalProcessor
+        self.sessionManager = sessionManager
+        self.timeProvider = timeProvider
+        self.attributeProcessors = attributeProcessors
         self.isForeground = true
     }
 
+    // Enables the collector
     func enable() {
         isEnabled.setTrueIfFalse {
-            logger.log(
-                level: .info, message: "InternalEventCollector enabled.", error: nil, data: nil)
+            logger.log(level: .info, message: "InternalEventCollector enabled.", error: nil, data: nil)
         }
     }
 
+    // Disables the collector
     func disable() {
         isEnabled.setFalseIfTrue {
-            logger.log(
-                level: .info, message: "InternalEventCollector disabled.", error: nil, data: nil)
+            logger.log(level: .info, message: "InternalEventCollector disabled.", error: nil, data: nil)
         }
     }
 
+    // Tracks an event.
+    //
     // swiftlint:disable:next function_parameter_count function_body_length
     func trackEvent(
-        data: inout [String: Any?], type: String, timestamp: Int64, attributes: [String: Any?],
-        userDefinedAttrs: [String: AttributeValue], userTriggered: Bool, sessionId: String?,
+        data: inout [String: Any?],
+        type: String,
+        timestamp: Int64,
+        attributes: [String: Any?],
+        userDefinedAttrs: [String: AttributeValue],
+        userTriggered: Bool,
+        sessionId: String?,
         threadName: String?
     ) {
-        guard isEnabled.get() else {
-            return
-        }
+        guard isEnabled.get() else { return }
 
         let evaluatedAttributes = Attributes()
-        let serializedUserDefinedAttributes = EventSerializer.serializeUserDefinedAttribute(
-            userDefinedAttrs)
+        let serializedUserDefinedAttributes = EventSerializer.serializeUserDefinedAttribute(userDefinedAttrs)
 
         do {
             switch type {
@@ -64,72 +106,139 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                 signalProcessor.track(
                     data: customEventData,
                     timestamp: timestamp,
-                    type: EventType.custom,
+                    type: .custom,
                     attributes: evaluatedAttributes,
                     sessionId: sessionId,
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
-                    threadName: threadName)
+                    threadName: threadName
+                )
+
             case EventType.exception.rawValue:
-                // adding foreground property to the exception data here
-                // as we don't want to add duplicate logic in Flutter/RN
-                // to find out whether the app is in foreground or not.
+                // Adding foreground property to the exception data here
                 if data.keys.contains("foreground") {
                     data["foreground"] = isForeground
                 } else {
                     logger.log(
                         level: .debug,
-                        message: "invalid exception event, missing foreground property",
+                        message: "Invalid exception event, missing foreground property",
                         error: nil,
-                        data: nil)
+                        data: nil
+                    )
                 }
                 let exceptionData = try extractExceptionData(data: data)
                 signalProcessor.track(
                     data: exceptionData,
                     timestamp: timestamp,
-                    type: EventType.exception,
+                    type: .exception,
                     attributes: evaluatedAttributes,
                     sessionId: sessionId,
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
-                    threadName: threadName)
+                    threadName: threadName
+                )
+
             case EventType.screenView.rawValue:
                 let screenViewData = try extractScreenViewData(data: data)
                 signalProcessor.track(
                     data: screenViewData,
                     timestamp: timestamp,
-                    type: EventType.screenView,
+                    type: .screenView,
                     attributes: evaluatedAttributes,
                     sessionId: sessionId,
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
-                    threadName: threadName)
+                    threadName: threadName
+                )
+
             case EventType.http.rawValue:
                 let httpData = try extractHttpData(data: data)
                 signalProcessor.track(
                     data: httpData,
                     timestamp: timestamp,
-                    type: EventType.http,
+                    type: .http,
                     attributes: evaluatedAttributes,
                     sessionId: sessionId,
                     attachments: nil,
                     userDefinedAttributes: serializedUserDefinedAttributes,
-                    threadName: threadName)
+                    threadName: threadName
+                )
+
             default:
                 logger.log(
                     level: .debug,
-                    message: "Unimplemented event type: $type",
+                    message: "Unimplemented event type: \(type)",
                     error: nil,
-                    data: nil)
+                    data: nil
+                )
             }
         } catch {
             logger.log(
                 level: .error,
                 message: "Error processing event: \(error)",
                 error: error,
-                data: nil)
-            return
+                data: nil
+            )
         }
+    }
+
+    // Tracks a span.
+    //
+    // Spans from cross platform frameworks do not contain session ID and
+    // only contain a few attributes. This function applies the session ID
+    // and remaining attributes to the span to construct SpanData object.
+    func trackSpan( // swiftlint:disable:this function_parameter_count
+        name: String,
+        traceId: String,
+        spanId: String,
+        parentId: String?,
+        startTime: Int64,
+        endTime: Int64,
+        duration: Int64,
+        status: Int64,
+        attributes: [String: Any?],
+        userDefinedAttrs: [String: AttributeValue],
+        checkpoints: [String: Int64],
+        hasEnded: Bool,
+        isSampled: Bool
+    ) {
+        guard isEnabled.get() else { return }
+
+        // get session
+        let sessionId = sessionManager.sessionId
+
+        // apply attributes
+        var parsedAttributes = Attributes(dict: attributes)
+        for attributeProcessor in attributeProcessors {
+            attributeProcessor.appendAttributes(&parsedAttributes)
+        }
+
+        // deserialize checkpoints
+        let parsedCheckpoints: [Checkpoint] = checkpoints.compactMap { entry in
+            return Checkpoint(
+                name: entry.key,
+                timestamp: timeProvider.iso8601Timestamp(timeInMillis: entry.value)
+            )
+        }
+
+        let spanData = SpanData(
+            name: name,
+            traceId: traceId,
+            spanId: spanId,
+            parentId: parentId,
+            sessionId: sessionId,
+            startTime: startTime,
+            endTime: endTime,
+            duration: duration,
+            status: SpanStatus(rawValue: status) ?? .unset,
+            attributes: parsedAttributes,
+            userDefinedAttrs: userDefinedAttrs,
+            checkpoints: parsedCheckpoints,
+            hasEnded: hasEnded,
+            isSampled: isSampled
+        )
+
+        signalProcessor.trackSpan(spanData)
     }
 
     func extractCustomEventData(data: [String: Any?]) throws -> CustomEventData {
@@ -138,9 +247,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
     }
 
     func extractExceptionData(data: [String: Any?]) throws -> Exception {
-        let jsonData = try JSONSerialization.data(
-            withJSONObject: data,
-            options: [.prettyPrinted])
+        let jsonData = try JSONSerialization.data(withJSONObject: data, options: [.prettyPrinted])
         return try JSONDecoder().decode(Exception.self, from: jsonData)
     }
 

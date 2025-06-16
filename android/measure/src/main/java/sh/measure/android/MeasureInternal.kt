@@ -60,7 +60,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private var startLock = Any()
 
     fun init(clientInfo: ClientInfo? = null) {
-        if (setupNetworkClient(clientInfo)) {
+        if (!setupNetworkClient(clientInfo)) {
             return
         }
 
@@ -340,6 +340,40 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
                 userTriggered = userTriggerEvent,
                 sessionId = sessionId,
                 threadName = threadName,
+            )
+        }
+    }
+
+    fun internalTrackSpan(
+        name: String,
+        traceId: String,
+        spanId: String,
+        parentId: String?,
+        startTime: Long,
+        endTime: Long,
+        duration: Long,
+        status: Int,
+        attributes: MutableMap<String, Any?>,
+        userDefinedAttrs: Map<String, Any>,
+        checkpoints: Map<String, Long>,
+        hasEnded: Boolean,
+        isSampled: Boolean,
+    ) {
+        if (isStarted) {
+            internalSignalCollector.trackSpan(
+                name = name,
+                traceId = traceId,
+                spanId = spanId,
+                parentId = parentId,
+                startTime = startTime,
+                endTime = endTime,
+                duration = duration,
+                status = status,
+                attributes = attributes,
+                userDefinedAttrs = userDefinedAttrs,
+                checkpoints = checkpoints,
+                hasEnded = hasEnded,
+                isSampled = isSampled,
             )
         }
     }

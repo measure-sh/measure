@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:measure_flutter/attribute_value.dart';
+import 'package:measure_flutter/src/attribute_value.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/http/http_collector.dart';
@@ -7,6 +7,10 @@ import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/navigation/navigation_collector.dart';
+import 'package:measure_flutter/src/time/time_provider.dart';
+import 'package:measure_flutter/src/tracing/span.dart';
+import 'package:measure_flutter/src/tracing/span_builder.dart';
+import 'package:measure_flutter/src/tracing/tracer.dart';
 
 import 'config/config_provider.dart';
 
@@ -18,6 +22,8 @@ final class MeasureInternal {
   final ExceptionCollector _exceptionCollector;
   final NavigationCollector _navigationCollector;
   final HttpCollector _httpCollector;
+  final Tracer _tracer;
+  final TimeProvider _timeProvider;
   final MsrMethodChannel methodChannel;
 
   MeasureInternal({
@@ -28,7 +34,9 @@ final class MeasureInternal {
         _customEventCollector = initializer.customEventCollector,
         _exceptionCollector = initializer.exceptionCollector,
         _httpCollector = initializer.httpCollector,
-        _navigationCollector = initializer.navigationCollector;
+        _navigationCollector = initializer.navigationCollector,
+        _timeProvider = initializer.timeProvider,
+        _tracer = initializer.tracer;
 
   Future<void> init() async {
     if (configProvider.autoStart) {
@@ -112,5 +120,21 @@ final class MeasureInternal {
   Future<void> stop() async {
     unregisterCollectors();
     return methodChannel.stop();
+  }
+
+  SpanBuilder createSpanBuilder(String name) {
+    return _tracer.spanBuilder(name);
+  }
+
+  String getTraceParentHeaderKey() {
+    return _tracer.getTraceParentHeaderKey();
+  }
+
+  String getTraceParentHeaderValue(Span span) {
+    return _tracer.getTraceParentHeaderValue(span);
+  }
+
+  int getCurrentTime() {
+    return _timeProvider.now();
   }
 }

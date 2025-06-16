@@ -12,6 +12,8 @@ enum MethodConstants {
     static let functionTrackEvent = "trackEvent"
     static let functionTriggerNativeCrash = "triggerNativeCrash"
     static let functionInitializeNativeSdk = "initializeNativeSDK"
+    static let functionGetSessionId = "getSessionId"
+    static let functionTrackSpan = "trackSpan"
     static let functionStart = "start"
     static let functionStop = "stop"
 
@@ -24,6 +26,19 @@ enum MethodConstants {
     static let argThreadName = "thread_name"
     static let argConfig = "config"
     static let argClientInfo = "client_info"
+    static let argSpanName = "name"
+    static let argSpanTraceId = "traceId"
+    static let argSpanId = "id"
+    static let argSpanParentId = "parentId"
+    static let argSpanStartTime = "startTime"
+    static let argSpanEndTime = "endTime"
+    static let argSpanDuration = "duration"
+    static let argSpanStatus = "status"
+    static let argSpanAttributes = "attributes"
+    static let argSpanUserDefinedAttrs = "userDefinedAttrs"
+    static let argSpanCheckpoints = "checkpoints"
+    static let argSpanHasEnded = "hasEnded"
+    static let argSpanIsSampled = "isSampled"
 }
 
 enum ErrorCode {

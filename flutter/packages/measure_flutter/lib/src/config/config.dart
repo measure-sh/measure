@@ -19,6 +19,9 @@ class Config implements InternalConfig, IMeasureConfig {
     this.trackFragmentLoadTime = DefaultConfig.trackFragmentLoadTime,
     this.trackViewControllerLoadTime =
         DefaultConfig.trackViewControllerLoadTime,
+    this.maxCheckpointNameLength = DefaultConfig.maxCheckpointNameLength,
+    this.maxSpanNameLength = DefaultConfig.maxSpanNameLength,
+    this.maxCheckpointsPerSpan = DefaultConfig.maxCheckpointsPerSpan,
   });
 
   @override
@@ -49,6 +52,12 @@ class Config implements InternalConfig, IMeasureConfig {
   final bool trackFragmentLoadTime;
   @override
   final bool trackViewControllerLoadTime;
+  @override
+  final int maxCheckpointNameLength;
+  @override
+  final int maxSpanNameLength;
+  @override
+  final int maxCheckpointsPerSpan;
 
   @override
   List<String> get defaultHttpContentTypeAllowlist =>

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:measure_flutter/attribute_value.dart';
 import 'package:measure_flutter/measure.dart';
 
 class FakeMeasure implements MeasureApi {
@@ -76,6 +75,31 @@ class FakeMeasure implements MeasureApi {
 
   @override
   Future<void> stop() {
+    throw UnimplementedError();
+  }
+
+  @override
+  SpanBuilder? createSpanBuilder(String name) {
+    throw UnimplementedError();
+  }
+
+  @override
+  String getTraceParentHeaderKey() {
+    throw UnimplementedError();
+  }
+
+  @override
+  String getTraceParentHeaderValue(Span span) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Span startSpan(String name, {int? timestamp}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  int getCurrentTime() {
     throw UnimplementedError();
   }
 }

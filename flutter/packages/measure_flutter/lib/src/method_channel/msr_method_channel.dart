@@ -1,8 +1,10 @@
 import 'package:flutter/services.dart';
-import 'package:measure_flutter/attribute_value.dart';
+import 'package:measure_flutter/src/attribute_value.dart';
 import 'package:measure_flutter/src/method_channel/attribute_value_codec.dart';
 import 'package:measure_flutter/src/method_channel/method_constants.dart';
 import 'package:measure_flutter/src/method_channel/msr_platform_interface.dart';
+
+import '../tracing/span_data.dart';
 
 class MsrMethodChannel extends MeasureFlutterPlatform {
   final _methodChannel = const MethodChannel('measure_flutter');
@@ -56,5 +58,32 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
   @override
   Future<void> stop() async {
     return _methodChannel.invokeMethod(MethodConstants.functionStop);
+  }
+
+  @override
+  Future<String?> getSessionId() {
+    return _methodChannel.invokeMethod(MethodConstants.functionGetSessionId);
+  }
+
+  @override
+  Future<void> trackSpan(SpanData data) async {
+    final checkpointsMap = {
+      for (var cp in data.checkpoints) cp.name: cp.timestamp,
+    };
+    return _methodChannel.invokeMethod(MethodConstants.functionTrackSpan, {
+      MethodConstants.argSpanName: data.name,
+      MethodConstants.argSpanTraceId: data.traceId,
+      MethodConstants.argSpanSpanId: data.spanId,
+      MethodConstants.argSpanParentId: data.parentId,
+      MethodConstants.argSpanStartTime: data.startTime,
+      MethodConstants.argSpanEndTime: data.endTime,
+      MethodConstants.argSpanDuration: data.duration,
+      MethodConstants.argSpanStatus: data.status.value,
+      MethodConstants.argSpanAttributes: data.attributes,
+      MethodConstants.argSpanUserDefinedAttrs: data.userDefinedAttrs,
+      MethodConstants.argSpanCheckpoints: checkpointsMap,
+      MethodConstants.argSpanHasEnded: data.hasEnded,
+      MethodConstants.argSpanIsSampled: data.isSampled,
+    });
   }
 }

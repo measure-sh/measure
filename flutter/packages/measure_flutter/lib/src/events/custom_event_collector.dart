@@ -1,7 +1,7 @@
 import 'dart:isolate';
 
-import 'package:flutter/cupertino.dart';
-import 'package:measure_flutter/attribute_value.dart';
+import 'package:flutter/foundation.dart';
+import 'package:measure_flutter/src/attribute_value.dart';
 import 'package:measure_flutter/src/events/custom_event_data.dart';
 import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/logger/logger.dart';

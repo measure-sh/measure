@@ -48,49 +48,57 @@ internal class SignalStoreImpl(
     private val isFlushing = AtomicBoolean(false)
 
     override fun store(spanData: SpanData) {
-        if (!spanData.isSampled) {
-            // Do not store spans that are not sampled
-            return
-        }
-        val spanEntity = spanData.toSpanEntity()
-        val isQueueFull = !spanQueue.offer(spanEntity)
-        if (isQueueFull) {
-            database.insertSpan(spanEntity)
-            flush()
+        try {
+            if (!spanData.isSampled) {
+                // Do not store spans that are not sampled
+                return
+            }
+            val spanEntity = spanData.toSpanEntity()
+            val isQueueFull = !spanQueue.offer(spanEntity)
+            if (isQueueFull) {
+                database.insertSpan(spanEntity)
+                flush()
+            }
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Failed to store span ${spanData.name}", e)
         }
     }
 
     override fun <T> store(event: Event<T>) {
-        val eventEntity = event.toEventEntity()
-        if (eventEntity == null) {
-            logger.log(
-                LogLevel.Debug,
-                "Failed to store event(${event.type}): unable to convert event to EventEntity",
-            )
-            return
-        }
-        val isCrashEvent =
-            eventEntity.type == EventType.ANR || eventEntity.type == EventType.EXCEPTION
-
-        when {
-            isCrashEvent -> {
-                val success = database.insertEvent(eventEntity)
-                flush()
-                if (!success) {
-                    handleEventInsertionFailure(eventEntity)
-                }
+        try {
+            val eventEntity = event.toEventEntity()
+            if (eventEntity == null) {
+                logger.log(
+                    LogLevel.Debug,
+                    "Failed to store event(${event.type}): unable to convert event to EventEntity",
+                )
+                return
             }
+            val isCrashEvent =
+                eventEntity.type == EventType.ANR || eventEntity.type == EventType.EXCEPTION
 
-            else -> {
-                val isQueueFull = !eventQueue.offer(eventEntity)
-                if (isQueueFull) {
+            when {
+                isCrashEvent -> {
                     val success = database.insertEvent(eventEntity)
                     flush()
                     if (!success) {
                         handleEventInsertionFailure(eventEntity)
                     }
                 }
+
+                else -> {
+                    val isQueueFull = !eventQueue.offer(eventEntity)
+                    if (isQueueFull) {
+                        val success = database.insertEvent(eventEntity)
+                        flush()
+                        if (!success) {
+                            handleEventInsertionFailure(eventEntity)
+                        }
+                    }
+                }
             }
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Failed to store event ${event.type}", e)
         }
     }
 

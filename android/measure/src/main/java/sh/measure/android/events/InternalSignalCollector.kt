@@ -1,6 +1,8 @@
 package sh.measure.android.events
 
 import sh.measure.android.MsrAttachment
+import sh.measure.android.SessionManager
+import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.LogLevel
@@ -9,16 +11,21 @@ import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.toEventAttachment
+import sh.measure.android.tracing.Checkpoint
+import sh.measure.android.tracing.SpanData
+import sh.measure.android.tracing.SpanStatus
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.toJsonElement
 
 /**
- * Processes and tracks events received from cross platform sources like Flutter/RN.
+ * Processes and tracks events or spans received from cross platform sources like Flutter/RN.
  */
 internal class InternalSignalCollector(
     private val logger: Logger,
     private val signalProcessor: SignalProcessor,
     private val processInfoProvider: ProcessInfoProvider,
+    private val sessionManager: SessionManager,
+    private val spanAttributeProcessors: List<AttributeProcessor>,
 ) {
     fun trackEvent(
         data: MutableMap<String, Any?>,
@@ -128,12 +135,59 @@ internal class InternalSignalCollector(
         }
     }
 
+    fun trackSpan(
+        name: String,
+        traceId: String,
+        spanId: String,
+        parentId: String?,
+        startTime: Long,
+        endTime: Long,
+        duration: Long,
+        status: Int,
+        attributes: MutableMap<String, Any?>,
+        userDefinedAttrs: Map<String, Any>,
+        checkpoints: Map<String, Long>,
+        hasEnded: Boolean,
+        isSampled: Boolean,
+    ) {
+        val sessionId = sessionManager.getSessionId()
+
+        spanAttributeProcessors.forEach {
+            it.appendAttributes(attributes)
+        }
+
+        try {
+            val spanData = SpanData(
+                name = name,
+                traceId = traceId,
+                spanId = spanId,
+                parentId = parentId,
+                sessionId = sessionId,
+                startTime = startTime,
+                endTime = endTime,
+                duration = duration,
+                status = SpanStatus.fromValue(status),
+                attributes = attributes,
+                userDefinedAttrs = userDefinedAttrs,
+                checkpoints = checkpoints.map { Checkpoint(it.key, it.value) }.toMutableList(),
+                hasEnded = hasEnded,
+                isSampled = isSampled,
+            )
+            signalProcessor.trackSpan(spanData)
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Failed to decode span", e)
+        }
+    }
+
     private fun extractHttpData(map: MutableMap<String, Any?>): HttpData {
         return jsonSerializer.decodeFromJsonElement(HttpData.serializer(), map.toJsonElement())
     }
 
     private fun extractScreenViewData(map: MutableMap<String, Any?>): ScreenViewData {
-        return jsonSerializer.decodeFromJsonElement(ScreenViewData.serializer(), map.toJsonElement())
+        return jsonSerializer.decodeFromJsonElement(
+            ScreenViewData.serializer(),
+            map.toJsonElement(),
+        )
     }
 
     private fun extractExceptionEventData(map: Map<String, Any?>): ExceptionData {
@@ -141,6 +195,9 @@ internal class InternalSignalCollector(
     }
 
     private fun extractCustomEventData(data: Map<String, Any?>): CustomEventData {
-        return jsonSerializer.decodeFromJsonElement(CustomEventData.serializer(), data.toJsonElement())
+        return jsonSerializer.decodeFromJsonElement(
+            CustomEventData.serializer(),
+            data.toJsonElement(),
+        )
     }
 }

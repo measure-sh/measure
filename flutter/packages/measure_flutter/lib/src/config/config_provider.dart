@@ -73,6 +73,15 @@ class ConfigProviderImpl implements ConfigProvider {
       _defaultConfig.trackViewControllerLoadTime;
 
   @override
+  int get maxCheckpointsPerSpan => _defaultConfig.maxCheckpointsPerSpan;
+
+  @override
+  int get maxSpanNameLength => _defaultConfig.maxSpanNameLength;
+
+  @override
+  int get maxCheckpointNameLength => _defaultConfig.maxCheckpointNameLength;
+
+  @override
   bool shouldTrackHttpBody(String url, String? contentType) {
     if (!trackHttpBody) {
       return false;
