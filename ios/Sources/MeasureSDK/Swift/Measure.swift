@@ -98,7 +98,7 @@ import UIKit
     /// A session represents a continuous period of activity in the app. A new session begins when the app is launched for the first time, or when there's been no activity for a 20-minute period.
     /// A single session can continue across multiple app background and foreground events; brief interruptions will not cause a new session to be created.
     /// - Returns: The session ID if the SDK is initialized, or nil otherwise.
-    @objc func getSessionId() -> String? {
+    @objc public func getSessionId() -> String? {
         guard let sessionId = measureInternal?.sessionManager.sessionId else { return nil }
 
         return sessionId
