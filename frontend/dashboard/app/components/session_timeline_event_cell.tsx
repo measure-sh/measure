@@ -61,7 +61,7 @@ export default function SessionTimelineEventCell({
 
   function getTitleFromEventType() {
     if (eventType === "exception" || eventType === "anr") {
-      return eventDetails.type + ": " + eventDetails.message
+      return `${eventDetails.type}${eventDetails.message ? `: ${eventDetails.message}` : ""}`
     }
 
     if (eventType === "bug_report") {
