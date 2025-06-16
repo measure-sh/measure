@@ -248,6 +248,7 @@ extension SwiftUICore.View {
 @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers @objc final public class Measure : ObjectiveC.NSObject {
   @objc public static let shared: Measure.Measure
   @objc final public func initialize(with client: Measure.ClientInfo, config: Measure.BaseMeasureConfig? = nil)
+  @objc final public func getSessionId() -> Swift.String?
   @objc final public func start()
   @objc final public func stop()
   final public func trackEvent(name: Swift.String, attributes: [Swift.String : Measure.AttributeValue], timestamp: Swift.Int64?)
