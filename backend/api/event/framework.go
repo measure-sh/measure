@@ -1,11 +1,13 @@
 package event
 
-var Framework = struct {
-	Apple string
-	JVM   string
-	Dart  string
-}{
-	Apple: "apple",
-	JVM:   "jvm",
-	Dart:  "dart",
-}
+// FrameworkApple represents Apple context
+// in an app's collected data.
+const FrameworkApple = "apple"
+
+// FrameworkJVM represents JVM context in
+// an app's collected data.
+const FrameworkJVM = "jvm"
+
+// FrameworkDart represents Dart context
+// in an app's collected data.
+const FrameworkDart = "dart"

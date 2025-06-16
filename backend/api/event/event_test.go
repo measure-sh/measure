@@ -477,10 +477,10 @@ func TestGetMessage(t *testing.T) {
 func TestGetFramework(t *testing.T) {
 	t.Run("Provides framework if present", func(t *testing.T) {
 		exception := Exception{
-			Framework: "dart",
+			Framework: FrameworkDart,
 		}
 
-		expected := "dart"
+		expected := FrameworkDart
 		got := exception.GetFramework()
 
 		if expected != got {
@@ -553,7 +553,7 @@ func TestGetFramework(t *testing.T) {
 				},
 			}
 
-			expected := "apple"
+			expected := FrameworkApple
 			got := exception.GetFramework()
 
 			if expected != got {
@@ -569,7 +569,7 @@ func TestGetFramework(t *testing.T) {
 				},
 			}
 
-			expected := "apple"
+			expected := FrameworkApple
 			got := exception.GetFramework()
 
 			if expected != got {
@@ -623,7 +623,7 @@ func TestGetFramework(t *testing.T) {
 			Foreground: true,
 		}
 
-		expected := "jvm"
+		expected := FrameworkJVM
 		got := exception.GetFramework()
 
 		if expected != got {
