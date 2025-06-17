@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:measure_flutter/measure.dart';
 
 import 'default_config.dart';
 
@@ -8,6 +9,8 @@ abstract class IMeasureConfig {
   bool get enableLogging;
 
   bool get autoInitializeNativeSDK;
+
+  bool get autoStart;
 
   bool get trackHttpHeaders;
 
@@ -43,6 +46,16 @@ class MeasureConfig implements IMeasureConfig {
   /// The native SDK must be initialized manually if set to `false`.
   @override
   final bool autoInitializeNativeSDK;
+
+  /// Control when the SDK starts collecting events. Defaults to `true`.
+  ///
+  /// By default, initializing the SDK also starts collecting events. Set this
+  /// to false to manually control when to collect events.
+  ///
+  /// Call [Measure.start] to manually start collecting events.
+  /// Call [Measure.stop] to stop collecting events.
+  @override
+  final bool autoStart;
 
   /// Whether to capture http headers of a network request and response. Defaults to `false`.
   @override
@@ -176,6 +189,7 @@ class MeasureConfig implements IMeasureConfig {
   const MeasureConfig({
     this.enableLogging = DefaultConfig.enableLogging,
     this.autoInitializeNativeSDK = DefaultConfig.autoInitializeNativeSDK,
+    this.autoStart = DefaultConfig.autoStart,
     this.trackHttpHeaders = DefaultConfig.trackHttpHeaders,
     this.trackHttpBody = DefaultConfig.trackHttpBody,
     this.httpHeadersBlocklist = DefaultConfig.httpHeadersBlocklist,

@@ -13,6 +13,7 @@ void main() {
       navigationCollector = NavigationCollector(
         signalProcessor: fakeSignalProcessor,
       );
+      navigationCollector.register();
     });
 
     group('trackScreenViewEvent', () {

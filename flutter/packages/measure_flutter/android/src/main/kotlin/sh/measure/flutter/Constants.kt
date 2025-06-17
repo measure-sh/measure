@@ -5,6 +5,8 @@ object MethodConstants {
     const val FUNCTION_TRACK_EVENT = "trackEvent"
     const val FUNCTION_TRIGGER_NATIVE_CRASH = "triggerNativeCrash"
     const val FUNCTION_INITIALIZE_NATIVE_SDK = "initializeNativeSDK"
+    const val FUNCTION_START = "start"
+    const val FUNCTION_STOP = "stop"
 
     // arguments
     const val ARG_EVENT_DATA = "event_data"

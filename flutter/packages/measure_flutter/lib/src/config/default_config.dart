@@ -1,6 +1,7 @@
 class DefaultConfig {
   static const bool enableLogging = false;
   static const bool autoInitializeNativeSDK = true;
+  static const bool autoStart = true;
   static const bool trackHttpHeaders = false;
   static const bool trackHttpBody = false;
   static const List<String> httpHeadersBlocklist = [];

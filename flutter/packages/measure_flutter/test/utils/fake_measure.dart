@@ -68,6 +68,16 @@ class FakeMeasure implements MeasureApi {
   bool shouldTrackHttpUrl(String url) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> start() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> stop() {
+    throw UnimplementedError();
+  }
 }
 
 class ScreenViewCall {

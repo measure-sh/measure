@@ -18,6 +18,10 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
                 triggerNativeCrash()
             case MethodConstants.functionInitializeNativeSdk:
                 try initializeNativeSdk(call, result: result)
+            case MethodConstants.functionStart:
+                try start(call, result: result)
+            case MethodConstants.functionStop:
+                try stop(call, result: result)
             default:
                 result(FlutterMethodNotImplemented)
             }
@@ -91,6 +95,17 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         let clientInfo = try JSONDecoder().decode(ClientInfo.self, from: jsonClientInfo)
 
         Measure.shared.initialize(with: clientInfo, config: config)
+        result(nil)
+    }
+    
+    private func start(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
+        Measure.shared.start()
+        result(nil)
+    }
+
+    
+    private func stop(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
+        Measure.shared.stop()
         result(nil)
     }
 }

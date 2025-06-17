@@ -23,7 +23,7 @@ void main() {
 
     test('should be disabled by default', () {
       // When
-      final isEnabled = collector.enabled;
+      final isEnabled = collector.isEnabled();
 
       // Then
       expect(isEnabled, false);
@@ -34,7 +34,7 @@ void main() {
       collector.register();
 
       // Then
-      expect(collector.enabled, true);
+      expect(collector.isEnabled(), true);
     });
 
     test('should disable tracking when unregistered', () {
@@ -45,7 +45,7 @@ void main() {
       collector.unregister();
 
       // Then
-      expect(collector.enabled, false);
+      expect(collector.isEnabled(), false);
     });
 
     test('should not track events when disabled', () {
@@ -61,7 +61,7 @@ void main() {
       expect(signalProcessor.trackedCustomEvents.length, 0);
     });
 
-    test('should track events when enabled', () {
+    test('should track events when isEnabled()', () {
       // Given
       collector.register();
       final name = 'test_event';

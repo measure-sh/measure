@@ -54,6 +54,20 @@ class Measure implements MeasureApi {
     return action();
   }
 
+  @override
+  Future<void> start() async {
+    if (isInitialized) {
+      return _measure.start();
+    }
+  }
+
+  @override
+  Future<void> stop() async {
+    if (isInitialized) {
+      return _measure.stop();
+    }
+  }
+
   /// Initialize both native SDK and internal Measure components
   Future<void> _initializeMeasureSDK(
     MeasureConfig config,
@@ -73,6 +87,7 @@ class Measure implements MeasureApi {
     if (config.autoInitializeNativeSDK) {
       var jsonConfig = config.toJson();
       var jsonClientInfo = clientInfo.toJson();
+      _logInputConfig(config.enableLogging, jsonConfig, jsonClientInfo);
       return methodChannel.initializeNativeSDK(jsonConfig, jsonClientInfo);
     }
     return Future.value();
@@ -256,6 +271,22 @@ class Measure implements MeasureApi {
         error: error,
         stackTrace: stackTrace,
         level: 900,
+      );
+    }
+  }
+
+  void _logInputConfig(bool enableLogging, Map<String, dynamic> jsonConfig,
+      Map<String, String> jsonClientInfo) {
+    if (enableLogging) {
+      developer.log(
+        'Initializing measure-flutter with config: $jsonConfig',
+        name: 'Measure',
+        level: 100,
+      );
+      developer.log(
+        'Initializing measure-flutter with client info: $jsonClientInfo',
+        name: 'Measure',
+        level: 100,
       );
     }
   }

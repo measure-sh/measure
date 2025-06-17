@@ -47,4 +47,14 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
       MethodConstants.argClientInfo: clientInfo,
     });
   }
+
+  @override
+  Future<void> start() async {
+    return _methodChannel.invokeMethod(MethodConstants.functionStart);
+  }
+
+  @override
+  Future<void> stop() async {
+    return _methodChannel.invokeMethod(MethodConstants.functionStop);
+  }
 }

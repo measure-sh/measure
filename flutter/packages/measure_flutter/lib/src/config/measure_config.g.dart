@@ -12,6 +12,7 @@ MeasureConfig _$MeasureConfigFromJson(Map<String, dynamic> json) =>
           json['enableLogging'] as bool? ?? DefaultConfig.enableLogging,
       autoInitializeNativeSDK: json['autoInitializeNativeSDK'] as bool? ??
           DefaultConfig.autoInitializeNativeSDK,
+      autoStart: json['autoStart'] as bool? ?? DefaultConfig.autoStart,
       trackHttpHeaders:
           json['trackHttpHeaders'] as bool? ?? DefaultConfig.trackHttpHeaders,
       trackHttpBody:
@@ -48,6 +49,7 @@ Map<String, dynamic> _$MeasureConfigToJson(MeasureConfig instance) =>
     <String, dynamic>{
       'enableLogging': instance.enableLogging,
       'autoInitializeNativeSDK': instance.autoInitializeNativeSDK,
+      'autoStart': instance.autoStart,
       'trackHttpHeaders': instance.trackHttpHeaders,
       'trackHttpBody': instance.trackHttpBody,
       'httpHeadersBlocklist': instance.httpHeadersBlocklist,

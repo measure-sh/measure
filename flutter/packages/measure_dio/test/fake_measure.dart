@@ -94,4 +94,14 @@ class FakeMeasure implements MeasureApi {
   bool shouldTrackHttpUrl(String url) {
     return _shouldTrackHttpUrl;
   }
+
+  @override
+  Future<void> start() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> stop() {
+    throw UnimplementedError();
+  }
 }

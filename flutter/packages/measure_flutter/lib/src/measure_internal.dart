@@ -31,12 +31,23 @@ final class MeasureInternal {
         _navigationCollector = initializer.navigationCollector;
 
   Future<void> init() async {
-    registerCollectors();
+    if (configProvider.autoStart) {
+      registerCollectors();
+    }
   }
 
   void registerCollectors() {
     _exceptionCollector.register();
     _customEventCollector.register();
+    _httpCollector.register();
+    _navigationCollector.register();
+  }
+
+  void unregisterCollectors() {
+    _exceptionCollector.unregister();
+    _customEventCollector.unregister();
+    _httpCollector.unregister();
+    _navigationCollector.unregister();
   }
 
   void trackCustomEvent(String name, DateTime? timestamp,
@@ -91,5 +102,15 @@ final class MeasureInternal {
       responseBody: responseBody,
       client: client,
     );
+  }
+
+  Future<void> start() async {
+    registerCollectors();
+    return methodChannel.start();
+  }
+
+  Future<void> stop() async {
+    unregisterCollectors();
+    return methodChannel.stop();
   }
 }

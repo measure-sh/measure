@@ -12,8 +12,15 @@ import 'package:stack_trace/stack_trace.dart';
 import 'list_item.dart';
 import 'screen_text_overflow.dart';
 
-class MainScreen extends StatelessWidget {
+class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  bool _isTrackingEnabled = false;
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +30,43 @@ class MainScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.purple,
+                borderRadius: BorderRadius.circular(48),
+              ),
+              child: ListTile(
+                title: const Text(
+                  'Enable tracking',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                trailing: Switch(
+                  value: _isTrackingEnabled,
+                  onChanged: (bool value) {
+                    setState(() {
+                      _isTrackingEnabled = value;
+                    });
+                    _onTrackingToggle(_isTrackingEnabled);
+                  },
+                  activeColor: Colors.white,
+                  activeTrackColor: Colors.white30,
+                  inactiveThumbColor: Colors.white70,
+                  inactiveTrackColor: Colors.white12,
+                ),
+                onTap: () {
+                  setState(() {
+                    _isTrackingEnabled = !_isTrackingEnabled;
+                  });
+                  _onTrackingToggle(_isTrackingEnabled);
+                },
+              ),
+            ),
+          ),
           ListSection(title: "Crashes"),
           ListItem(title: "Track custom event", onPressed: _trackCustomEvent),
           ListItem(title: "Throw error", onPressed: _trackError),
@@ -88,6 +132,14 @@ class MainScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _onTrackingToggle(bool isEnabled) {
+    if (isEnabled) {
+      Measure.instance.start();
+    } else {
+      Measure.instance.stop();
+    }
   }
 
   void _trackCustomEvent() {

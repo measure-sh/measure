@@ -52,6 +52,15 @@ final class MeasureInitializer {
         httpHeadersBlocklist: inputConfig.httpHeadersBlocklist,
         httpUrlBlocklist: inputConfig.httpUrlBlocklist,
         httpUrlAllowlist: inputConfig.httpUrlAllowlist,
+        autoStart: inputConfig.autoStart,
+        autoInitializeNativeSDK: inputConfig.autoInitializeNativeSDK,
+        samplingRateForErrorFreeSessions:
+            inputConfig.samplingRateForErrorFreeSessions,
+        traceSamplingRate: inputConfig.traceSamplingRate,
+        trackActivityIntentData: inputConfig.trackActivityIntentData,
+        trackActivityLoadTime: inputConfig.trackActivityLoadTime,
+        trackFragmentLoadTime: inputConfig.trackFragmentLoadTime,
+        trackViewControllerLoadTime: inputConfig.trackViewControllerLoadTime,
       ),
     );
     _methodChannel = MsrMethodChannel();

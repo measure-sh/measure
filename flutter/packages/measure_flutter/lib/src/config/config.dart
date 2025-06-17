@@ -6,6 +6,7 @@ class Config implements InternalConfig, IMeasureConfig {
   const Config({
     this.enableLogging = DefaultConfig.enableLogging,
     this.autoInitializeNativeSDK = DefaultConfig.autoInitializeNativeSDK,
+    this.autoStart = DefaultConfig.autoStart,
     this.trackHttpHeaders = DefaultConfig.trackHttpHeaders,
     this.trackHttpBody = DefaultConfig.trackHttpBody,
     this.httpHeadersBlocklist = DefaultConfig.httpHeadersBlocklist,
@@ -24,6 +25,8 @@ class Config implements InternalConfig, IMeasureConfig {
   final bool enableLogging;
   @override
   final bool autoInitializeNativeSDK;
+  @override
+  final bool autoStart;
   @override
   final bool trackHttpHeaders;
   @override

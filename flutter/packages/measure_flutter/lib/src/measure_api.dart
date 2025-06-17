@@ -15,6 +15,10 @@ abstract class MeasureApi {
     MeasureConfig config = const MeasureConfig(),
   });
 
+  Future<void> start();
+
+  Future<void> stop();
+
   void trackHandledError(Object error, StackTrace stack);
 
   void triggerNativeCrash();

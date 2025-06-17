@@ -27,6 +27,9 @@ class ConfigProviderImpl implements ConfigProvider {
   bool get autoInitializeNativeSDK => _defaultConfig.autoInitializeNativeSDK;
 
   @override
+  bool get autoStart => _defaultConfig.autoStart;
+
+  @override
   bool get trackHttpHeaders => _defaultConfig.trackHttpHeaders;
 
   @override

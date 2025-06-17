@@ -28,6 +28,8 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
                 MethodConstants.FUNCTION_TRACK_EVENT -> handleTrackEvent(call, result)
                 MethodConstants.FUNCTION_TRIGGER_NATIVE_CRASH -> triggerNativeCrash()
                 MethodConstants.FUNCTION_INITIALIZE_NATIVE_SDK -> initializeNativeSdk(call, result)
+                MethodConstants.FUNCTION_START -> start(call, result)
+                MethodConstants.FUNCTION_STOP -> stop(call, result)
                 else -> result.notImplemented()
             }
         } catch (e: MethodArgumentException) {
@@ -110,6 +112,15 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         result.success(null)
     }
 
+    private fun start(call: MethodCall, result: MethodChannel.Result) {
+        Measure.start()
+        result.success(null)
+    }
+
+    private fun stop(call: MethodCall, result: MethodChannel.Result) {
+        Measure.stop()
+        result.success(null)
+    }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
