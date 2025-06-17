@@ -20,7 +20,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  bool _isTrackingEnabled = false;
+  bool _isTrackingEnabled = true;
 
   @override
   Widget build(BuildContext context) {

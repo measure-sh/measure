@@ -12,14 +12,13 @@ Future<void> main() async {
       trackHttpHeaders: true,
       trackHttpBody: true,
       httpUrlBlocklist: ['http://localhost'],
-      autoStart: false,
+      autoStart: true,
     ),
     clientInfo: ClientInfo(
       apiKey: "msrsh-123",
       apiUrl: "https://localhost:8080",
     ),
   );
-  // await Measure.instance.start();
 }
 
 class MyApp extends StatelessWidget {
