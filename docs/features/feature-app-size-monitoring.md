@@ -27,4 +27,7 @@ Read more about AAB format [here](https://developer.android.com/guide/app-bundle
 
 ## iOS
 
-Coming soon...
+Measure automatically tracks size of the IPA file for each version when you upload dSYMs via the [upload_dsyms.sh](../../ios/Scripts/upload_dsyms.sh) script.
+
+> [!NOTE]
+> This represents the size of the generated .ipa, not the actual App Store download size.
