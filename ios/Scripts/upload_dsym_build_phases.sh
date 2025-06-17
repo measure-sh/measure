@@ -87,7 +87,6 @@ CURL_COMMAND="curl --request PUT \
   --form version_code=$VERSION_CODE \
   --form build_size=$BUILD_SIZE \
   --form build_type=$BUILD_TYPE \
-  --form app_unique_id=sh.measure.DemoApp" \
   --form os_name=$OS_NAME"
 
 # Attach each dSYM .tgz file
