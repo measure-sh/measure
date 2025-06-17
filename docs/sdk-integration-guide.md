@@ -295,7 +295,7 @@ func application(_ application: UIApplication,
         samplingRateForErrorFreeSessions: 1
     )
     let clientInfo = ClientInfo(apiKey: "<apiKey>", apiUrl: "<apiUrl>")
-    Measure.shared.initialize(with: clientInfo, config: config)
+    Measure.initialize(with: clientInfo, config: config)
     return true
 }
 ```
@@ -307,7 +307,7 @@ func application(_ application: UIApplication,
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
   BaseMeasureConfig *config = [[BaseMeasureConfig alloc] init];
   ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"<apiKey>" apiUrl:@"<apiUrl>"];
-  [[Measure shared] initializeWith:clientInfo config:config];
+  [Measure initializeWith:clientInfo config:config];
   return YES;
   }
 
@@ -350,7 +350,7 @@ let config = BaseMeasureConfig(
     // useful to verify the installation
     samplingRateForErrorFreeSessions: 1
 )
-Measure.shared.initialize(with: clientInfo, config: config)
+Measure.initialize(with: clientInfo, config: config)
 ```
 
 </details>
@@ -380,7 +380,7 @@ Verify the API URL and API key are set correctly in the `ClientInfo` object when
 ```swift
 let config = BaseMeasureConfig()
 let clientInfo = ClientInfo(apiKey: "<apiKey>", apiUrl: "<apiUrl>")
-Measure.shared.initialize(with: clientInfo, config: config)
+Measure.initialize(with: clientInfo, config: config)
 ```
 
 </details>
@@ -428,7 +428,7 @@ Enable logging during SDK initialization.
 
 ```swift
 let config = BaseMeasureConfig(enableLogging: true)
-Measure.shared.initialize(with: clientInfo, config: config)
+Measure.initialize(with: clientInfo, config: config)
 ```
 
 </details>

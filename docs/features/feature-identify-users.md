@@ -30,11 +30,11 @@ Measure.clearUserId()
 To set a user ID.
 
 ```swift
-Measure.shared.setUserId("user-id")
+Measure.setUserId("user-id")
 ```
 
 To clear a user ID.
 
 ```swift
-Measure.shared.clearUserId()
+Measure.clearUserId()
 ```

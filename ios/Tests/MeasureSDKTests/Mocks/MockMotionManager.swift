@@ -25,7 +25,7 @@ final class MockMotionManager: MotionManager {
         stopCalled = true
     }
 
-    func simulateAcceleration(x: Double, y: Double, z: Double) {
+    func simulateAcceleration(x: Double, y: Double, z: Double) { // swiftlint:disable:this identifier_name
         guard let handler = capturedHandler else { return }
         let data = TestableAccelerometerData(x: x, y: y, z: z)
         handler(data, nil)
@@ -46,7 +46,7 @@ final class MockShakeListener: ShakeDetectorListener {
 final class TestableAccelerometerData: CMAccelerometerData {
     private let testAcceleration: CMAcceleration
 
-    init(x: Double, y: Double, z: Double) {
+    init(x: Double, y: Double, z: Double) { // swiftlint:disable:this identifier_name
         self.testAcceleration = CMAcceleration(x: x, y: y, z: z)
         super.init()
     }

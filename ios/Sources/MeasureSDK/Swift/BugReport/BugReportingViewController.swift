@@ -219,7 +219,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         present(imagePicker, animated: true)
     }
 
-    private func setupConstraints() {
+    private func setupConstraints() { // swiftlint:disable:this function_body_length
         let safeArea = view.safeAreaLayoutGuide
 
         NSLayoutConstraint.activate([

@@ -78,7 +78,7 @@ final class SessionStoreTests: XCTestCase {
             self.sessionStore.deleteSession("2")
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                self.sessionStore.getAllSessions() { sessions in
+                self.sessionStore.getAllSessions { sessions in
                     XCTAssertNil(sessions, "Expected all sessions to be deleted.")
                     expectation.fulfill()
                 }
@@ -118,7 +118,7 @@ final class SessionStoreTests: XCTestCase {
         sessionStore.insertSession(session2)
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            self.sessionStore.getOldestSession() { oldestSessionId in
+            self.sessionStore.getOldestSession { oldestSessionId in
                 XCTAssertEqual(oldestSessionId, "1", "Expected session with ID '1' to be the oldest.")
                 expectation.fulfill()
             }

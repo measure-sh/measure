@@ -29,7 +29,7 @@ import Measure
     )
     #endif
 
-    Measure.shared.initialize(with: clientInfo, config: config)
+    Measure.initialize(with: clientInfo, config: config)
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }

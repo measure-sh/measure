@@ -44,7 +44,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
 
         XCTAssertNotNil(signalProcessor.data)
     }
-    
+
     func testTrackEvent_tracksScreenViewEvent() {
         eventCollector.enable()
         var eventData: [String: Any?] = ["name": "home"]
@@ -160,11 +160,11 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
         }
         XCTAssertEqual(data, expectedException)
     }
-    
-    func testTrackEvent_WithUnobfuscatedFlutterException_tracksExceptionEvent() {
+
+    func testTrackEvent_WithUnobfuscatedFlutterException_tracksExceptionEvent() { // swiftlint:disable:this function_body_length
         eventCollector.enable()
         let type = EventType.exception.rawValue
-        
+
         guard var eventData = fileManagerHelper.getExceptionDict(fileName: "flutter_unobfuscated", fileExtension: "json") else {
             XCTFail("Failed to read JSON file from test bundle.")
             return

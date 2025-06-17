@@ -148,13 +148,13 @@ Measure.trackScreenView("Screen Name")
 Using Swift:
 
 ```swift
-Measure.shared.trackScreenView("Home")
+Measure.trackScreenView("Home")
 ```
 
 Using ObjC:
 
 ```objc
-[[Measure shared] trackScreenView:@"Home"];
+[Measure trackScreenView:@"Home"];
 ```
 
 ## Data collected

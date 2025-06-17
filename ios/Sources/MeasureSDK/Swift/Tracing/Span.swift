@@ -16,7 +16,7 @@ import Foundation
 ///
 /// Example:
 /// ```
-/// let span = Measure.shared.startSpan("load_data")
+/// let span = Measure.startSpan("load_data")
 /// do {
 ///     // perform work
 ///     span.setCheckpoint("checkpoint")

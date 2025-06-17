@@ -22,7 +22,7 @@ struct Exception: Codable {
 
     /// An optional array of all the `BinaryImage` needed for symbolication.
     let binaryImages: [BinaryImage]?
-    
+
     /// Specifies the framework where the exception originated from.
     let framework: String?
 

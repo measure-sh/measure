@@ -32,11 +32,11 @@ Measure.stop()
 ```swift
 let config = BaseMeasureConfig(autoStart: false) // delay starting of collection
 let clientInfo = ClientInfo(apiKey: "<apiKey>", apiUrl: "<apiUrl>")
-Measure.shared.initialize(with: clientInfo, config: config)
+Measure.initialize(with: clientInfo, config: config)
 
 // Start collecting
-Measure.shared.start()
+Measure.start()
 
 // Stop collecting
-Measure.shared.stop()
+Measure.stop()
 ```

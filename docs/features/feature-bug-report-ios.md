@@ -15,7 +15,7 @@ Additionally, the SDK supports using shake gestures to launch the bug reporting 
 
 ## Built-in Experience
 
-Launch the default bug report interface using `Measure.shared.launchBugReport`. A screenshot can be automatically taken and added to the bug report. Users can remove or add more attachments in the UI.
+Launch the default bug report interface using `Measure.launchBugReport`. A screenshot can be automatically taken and added to the bug report. Users can remove or add more attachments in the UI.
 
 | Dark Mode                                    | Light Mode                                     |
 |----------------------------------------------|------------------------------------------------|
@@ -28,13 +28,13 @@ When the screenshot button is clicked, a floating screenshot and exit button app
 ### Example Usage
 
 ```swift
-Measure.shared.launchBugReport(takeScreenshot: true)
+Measure.launchBugReport(takeScreenshot: true)
 ```
 
 To disable taking a screenshot when launching, set `takeScreenshot: false`:
 
 ```swift
-Measure.shared.launchBugReport(takeScreenshot: false)
+Measure.launchBugReport(takeScreenshot: false)
 ```
 
 You can also pass a custom UI config and attributes:
@@ -43,7 +43,7 @@ You can also pass a custom UI config and attributes:
 let color = BugReportConfig.default.colors.update(isDarkMode: false)
 let config = BugReportConfig(colors: color)
 let attributes: [String: AttributeValue] = ["user_id": .string("12345")]
-Measure.shared.launchBugReport(takeScreenshot: true, bugReportConfig: config, attributes: attributes)
+Measure.launchBugReport(takeScreenshot: true, bugReportConfig: config, attributes: attributes)
 ```
 
 Currently, you can have a maximum of 5 attachments and a description length of 4000 characters.
@@ -62,7 +62,7 @@ let dimensions = MsrDimensions(
     topPadding: 20
 )
 let config = BugReportConfig(colors: color, dimensions: dimensions)
-Measure.shared.launchBugReport(takeScreenshot: true, bugReportConfig: config)
+Measure.launchBugReport(takeScreenshot: true, bugReportConfig: config)
 ```
 
 ## Custom Experience
@@ -72,9 +72,9 @@ You can build a custom bug reporting UI and use the SDK to track bug reports pro
 ### Example Usage
 
 ```swift
-let screenshot = Measure.shared.captureScreenshot(for: viewController)
-let layoutSnapshot = Measure.shared.captureLayoutSnapshot(from: viewController)
-Measure.shared.trackBugReport(
+let screenshot = Measure.captureScreenshot(for: viewController)
+let layoutSnapshot = Measure.captureLayoutSnapshot(from: viewController)
+Measure.trackBugReport(
     description: "Items from cart disappear after reopening the app",
     attachments: [screenshot, layoutSnapshot].compactMap { $0 },
     attributes: ["is_premium": .bool(true)]
@@ -88,14 +88,14 @@ Bug reports can include up to 5 attachments (screenshots or layout snapshots).
 ### Example Usage
 
 ```swift
-if let screenshot = Measure.shared.captureScreenshot(for: viewController) {
-    Measure.shared.trackBugReport(description: "Bug description", attachments: [screenshot], attributes: nil)
+if let screenshot = Measure.captureScreenshot(for: viewController) {
+    Measure.trackBugReport(description: "Bug description", attachments: [screenshot], attributes: nil)
 }
 ```
 
 ```swift
-if let snapshot = Measure.shared.captureLayoutSnapshot(from: viewController) {
-    Measure.shared.trackBugReport(description: "Bug description", attachments: [snapshot], attributes: nil)
+if let snapshot = Measure.captureLayoutSnapshot(from: viewController) {
+    Measure.trackBugReport(description: "Bug description", attachments: [snapshot], attributes: nil)
 }
 ```
 
@@ -110,13 +110,13 @@ let attributes: [String: AttributeValue] = [
     "is_premium_user": .bool(true),
     "user_id": .string("12345")
 ]
-Measure.shared.launchBugReport(attributes: attributes)
+Measure.launchBugReport(attributes: attributes)
 ```
 
 Or with custom bug reports:
 
 ```swift
-Measure.shared.trackBugReport(description: "Bug description", attachments: [], attributes: attributes)
+Measure.trackBugReport(description: "Bug description", attachments: [], attributes: attributes)
 ```
 
 ## Shake to Report Bug
@@ -126,24 +126,24 @@ Enable shake-to-report to allow users to launch the bug reporting flow by shakin
 ### Enable Shake to Launch
 
 ```swift
-Measure.shared.enableShakeToLaunchBugReport(takeScreenshot: true)
+Measure.enableShakeToLaunchBugReport(takeScreenshot: true)
 ```
 
 ### Disable Shake to Launch
 
 ```swift
-Measure.shared.disableShakeToLaunchBugReport()
+Measure.disableShakeToLaunchBugReport()
 ```
 
 ### Check if Shake-to-Launch is Enabled
 
 ```swift
-let enabled = Measure.shared.isShakeToLaunchBugReportEnabled()
+let enabled = Measure.isShakeToLaunchBugReportEnabled()
 ```
 
 ### Manually Handle Shake Gestures
 
 ```swift
-Measure.shared.setShakeListener(MyShakeListener())
+Measure.setShakeListener(MyShakeListener())
 // Implement MsrShakeListener protocol in MyShakeListener```
 ```

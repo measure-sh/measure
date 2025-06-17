@@ -1,7 +1,7 @@
 // swift-interface-format-version: 1.0
-// swift-compiler-version: Apple Swift version 6.0.3 effective-5.10 (swiftlang-6.0.3.1.10 clang-1600.0.30.1)
-// swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -Onone -enable-experimental-feature OpaqueTypeErasure -enable-bare-slash-regex -module-name Measure
-// swift-module-flags-ignorable: -no-verify-emitted-module-interface
+// swift-compiler-version: Apple Swift version 6.1.2 effective-5.10 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)
+// swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -Onone -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name Measure
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface -interface-compiler-version 6.1.2
 import AVKit
 import CoreData
 import CoreMotion
@@ -246,34 +246,35 @@ extension SwiftUICore.View {
   
 }
 @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers @objc final public class Measure : ObjectiveC.NSObject {
-  @objc public static let shared: Measure.Measure
-  @objc final public func initialize(with client: Measure.ClientInfo, config: Measure.BaseMeasureConfig? = nil)
-  @objc final public func getSessionId() -> Swift.String?
-  @objc final public func start()
-  @objc final public func stop()
-  final public func trackEvent(name: Swift.String, attributes: [Swift.String : Measure.AttributeValue], timestamp: Swift.Int64?)
-  final public func internalTrackEvent(data: inout [Swift.String : Any?], type: Swift.String, timestamp: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], userTriggered: Swift.Bool, sessionId: Swift.String?, threadName: Swift.String?)
-  @objc final public func trackEvent(_ name: Swift.String, attributes: [Swift.String : Any], timestamp: Foundation.NSNumber?)
-  @objc final public func trackScreenView(_ screenName: Swift.String)
-  @objc final public func setUserId(_ userId: Swift.String)
-  @objc final public func clearUserId()
-  @objc final public func getCurrentTime() -> Swift.Int64
-  final public func startSpan(name: Swift.String) -> any Measure.Span
-  final public func startSpan(name: Swift.String, timestamp: Swift.Int64) -> any Measure.Span
-  final public func createSpanBuilder(name: Swift.String) -> (any Measure.SpanBuilder)?
-  final public func getTraceParentHeaderValue(span: any Measure.Span) -> Swift.String
-  final public func getTraceParentHeaderKey() -> Swift.String
-  final public func launchBugReport(takeScreenshot: Swift.Bool = true, bugReportConfig: Measure.BugReportConfig = .default, attributes: [Swift.String : Measure.AttributeValue]? = nil)
-  @objc final public func launchBugReport(takeScreenshot: Swift.Bool = true, bugReportConfig: Measure.BugReportConfig = .default, attributes: [Swift.String : Any]? = nil)
-  @objc final public func enableShakeToLaunchBugReport(takeScreenshot: Swift.Bool = true)
-  @objc final public func disableShakeToLaunchBugReport()
-  @objc final public func isShakeToLaunchBugReportEnabled() -> Swift.Bool
-  @objc final public func setShakeListener(_ listener: (any Measure.MsrShakeListener)?)
-  final public func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Measure.AttributeValue]? = nil)
-  @objc final public func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Any]? = nil)
-  @objc final public func captureScreenshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)
-  @objc final public func captureLayoutSnapshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)
   @objc deinit
+}
+extension Measure.Measure {
+  @objc public static func initialize(with client: Measure.ClientInfo, config: Measure.BaseMeasureConfig? = nil)
+  @objc public static func start()
+  @objc public static func stop()
+  @objc public static func getSessionId() -> Swift.String?
+  public static func internalTrackEvent(data: inout [Swift.String : Any?], type: Swift.String, timestamp: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], userTriggered: Swift.Bool, sessionId: Swift.String?, threadName: Swift.String?)
+  public static func trackEvent(name: Swift.String, attributes: [Swift.String : Measure.AttributeValue], timestamp: Swift.Int64? = nil)
+  @objc public static func trackEvent(_ name: Swift.String, attributes: [Swift.String : Any], timestamp: Foundation.NSNumber? = nil)
+  @objc public static func trackScreenView(_ screenName: Swift.String)
+  @objc public static func setUserId(_ userId: Swift.String)
+  @objc public static func clearUserId()
+  @objc public static func getCurrentTime() -> Swift.Int64
+  public static func startSpan(name: Swift.String) -> any Measure.Span
+  public static func startSpan(name: Swift.String, timestamp: Swift.Int64) -> any Measure.Span
+  public static func createSpanBuilder(name: Swift.String) -> (any Measure.SpanBuilder)?
+  public static func getTraceParentHeaderValue(span: any Measure.Span) -> Swift.String
+  public static func getTraceParentHeaderKey() -> Swift.String
+  public static func launchBugReport(takeScreenshot: Swift.Bool = true, bugReportConfig: Measure.BugReportConfig = .default, attributes: [Swift.String : Measure.AttributeValue]? = nil)
+  @objc public static func launchBugReport(takeScreenshot: Swift.Bool = true, bugReportConfig: Measure.BugReportConfig = .default, attributes: [Swift.String : Any]? = nil)
+  @objc public static func enableShakeToLaunchBugReport(takeScreenshot: Swift.Bool = true)
+  @objc public static func disableShakeToLaunchBugReport()
+  @objc public static func isShakeToLaunchBugReportEnabled() -> Swift.Bool
+  @objc public static func setShakeListener(_ listener: (any Measure.MsrShakeListener)?)
+  public static func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Measure.AttributeValue]? = nil)
+  @objc public static func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Any]? = nil)
+  @objc public static func captureScreenshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)
+  @objc public static func captureLayoutSnapshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)
 }
 @_inheritsConvenienceInitializers @objc(SpanOb) public class SpanOb : CoreData.NSManagedObject {
   @objc override dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)

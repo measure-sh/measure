@@ -43,11 +43,11 @@ val sessionId = Measure.getSessionId()
 Using Swift:
 
 ```swift
-let sessionId = Measure.shared.getSessionId()
+let sessionId = Measure.getSessionId()
 ```
 
 or, in Objective-C:
 
 ```objc
-NSString *sessionId = [[Measure shared] getSessionId];
+NSString *sessionId = [Measure getSessionId];
 ```

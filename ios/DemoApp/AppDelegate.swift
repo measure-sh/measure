@@ -10,7 +10,6 @@ import Measure
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
-    var measureInstance = Measure.shared
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
@@ -22,9 +21,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                                        autoStart: true,
                                        trackViewControllerLoadTime: true,
                                        screenshotMaskLevel: .sensitiveFieldsOnly)
-        measureInstance.initialize(with: clientInfo, config: config)
-        measureInstance.setUserId("test_user_ios")
-        measureInstance.enableShakeToLaunchBugReport(takeScreenshot: true)
+        Measure.initialize(with: clientInfo, config: config)
+        Measure.setUserId("test_user_ios")
+        Measure.enableShakeToLaunchBugReport(takeScreenshot: true)
 
         return true
     }

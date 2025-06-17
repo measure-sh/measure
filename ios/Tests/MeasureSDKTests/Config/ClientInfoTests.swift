@@ -9,7 +9,6 @@ import XCTest
 @testable import Measure
 
 final class ClientInfoTests: XCTestCase {
-    
     private let validApiKey = "test-api-key"
     private let validApiUrl = "https://localhost:8080"
     private let invalidApiUrl = "%%%"
@@ -22,9 +21,9 @@ final class ClientInfoTests: XCTestCase {
         }
         """
         let data = json.data(using: .utf8)!
-        
+
         let clientInfo = try JSONDecoder().decode(ClientInfo.self, from: data)
-        
+
         XCTAssertEqual(clientInfo.apiKey, validApiKey)
         XCTAssertEqual(clientInfo.apiUrl.absoluteString, validApiUrl)
     }
@@ -36,7 +35,7 @@ final class ClientInfoTests: XCTestCase {
         }
         """
         let data = json.data(using: .utf8)!
-        
+
         XCTAssertThrowsError(try JSONDecoder().decode(ClientInfo.self, from: data)) { error in
             XCTAssertTrue(error is DecodingError)
         }
@@ -49,7 +48,7 @@ final class ClientInfoTests: XCTestCase {
         }
         """
         let data = json.data(using: .utf8)!
-        
+
         XCTAssertThrowsError(try JSONDecoder().decode(ClientInfo.self, from: data)) { error in
             XCTAssertTrue(error is DecodingError)
         }

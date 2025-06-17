@@ -60,13 +60,13 @@ try {
     <summary>iOS</summary>
 
 ```swift
-let onboardingSpan: Span = Measure.shared.startSpan(name: "onboarding-flow")
+let onboardingSpan: Span = Measure.startSpan(name: "onboarding-flow")
 do {
-    let signupSpan = Measure.shared.startSpan("signup").setParent(parentSpan)
+    let signupSpan = Measure.startSpan("signup").setParent(parentSpan)
     userSignup()
     signupSpan.end()
 
-    let tutorialSpan = Measure.shared.startSpan("tutorial").setParent(parentSpan)
+    let tutorialSpan = Measure.startSpan("tutorial").setParent(parentSpan)
     showTutorial()
     tutorialSpan.end(status: .ok)
 } catch {
@@ -127,7 +127,7 @@ val span: Span = Measure.startSpan("span-name")
   <summary>iOS</summary>
 
 ```swift
-let span: Span = Measure.shared.startSpan(name: "span-name")
+let span: Span = Measure.startSpan(name: "span-name")
 ```
 
 </details>
@@ -154,7 +154,7 @@ val span: Span = Measure.startSpan("span-name", timestamp = Measure.getTimestamp
   <summary>iOS</summary>
 
 ```swift
-let span: Span = Measure.shared.startSpan(name: "operation-name", timestamp: Measure.shared.getCurrentTime())
+let span: Span = Measure.startSpan(name: "operation-name", timestamp: Measure.getCurrentTime())
 ```
 
 </details>
@@ -177,7 +177,7 @@ span.end(Status.Ok)
   <summary>iOS</summary>
 
 ```swift
-let span: Span = Measure.shared.startSpan(name: "span-name")
+let span: Span = Measure.startSpan(name: "span-name")
 span.setStatus(.ok).end()
 ```
 
@@ -208,8 +208,8 @@ span.end(Status.Ok, timestamp = Measure.getTimestamp())
   <summary>iOS</summary>
 
 ```swift
-let span: Span = Measure.shared.startSpan(name: "span-name")
-span.setStatus(.ok).end(timestamp: Measure.shared.getCurrentTime())
+let span: Span = Measure.startSpan(name: "span-name")
+span.setStatus(.ok).end(timestamp: Measure.getCurrentTime())
 ```
 
 </details>
@@ -232,8 +232,8 @@ val childSpan: Span = Measure.startSpan("child-span").setParent(parentSpan)
   <summary>iOS</summary>
 
 ```swift
-let parentSpan: Span = Measure.shared.startSpan(name: "parent-span")
-let childSpan: Span = Measure.shared.startSpan(name: "child-span").setParent(parentSpan)
+let parentSpan: Span = Measure.startSpan(name: "parent-span")
+let childSpan: Span = Measure.startSpan(name: "child-span").setParent(parentSpan)
 ```
 
 </details>
@@ -258,7 +258,7 @@ span.setAttribute("key", "value")
   <summary>iOS</summary>
 
 ```swift
-let span: Span = Measure.shared.startSpan(name: "span-name")
+let span: Span = Measure.startSpan(name: "span-name")
 span.setAttribute("key", "value")
 ```
 
@@ -281,7 +281,7 @@ span.setAttributes(attributes)
   <summary>iOS</summary>
 
 ```swift
-let span: Span = Measure.shared.startSpan(name: "span-name")
+let span: Span = Measure.startSpan(name: "span-name")
 let attributes: [String: AttributeValue] = ["key": "value", "key2": 42]
 span.setAttributes(attributes)
 ```
@@ -306,7 +306,7 @@ span.removeAttribute("key")
   <summary>iOS</summary>
 
 ```swift
-let span: Span = Measure.shared.startSpan(name: "span-name")
+let span: Span = Measure.startSpan(name: "span-name")
 span.removeAttribute("key")
 ```
 
@@ -330,7 +330,7 @@ span.setName("updated-name").end()
   <summary>iOS</summary>
 
 ```swift
-let span: Span = Measure.shared.startSpan(name: "span-name")
+let span: Span = Measure.startSpan(name: "span-name")
 span.setName("updated-name").end()
 ```
 
@@ -353,7 +353,7 @@ val span: Span = Measure.startSpan("span-name").setCheckpoint("checkpoint-name")
   <summary>iOS</summary>
 
 ```swift
-let span: Span = Measure.shared.startSpan(name: "span-name").setCheckpoint("checkpoint-name")
+let span: Span = Measure.startSpan(name: "span-name").setCheckpoint("checkpoint-name")
 ```
 
 </details>
@@ -377,7 +377,7 @@ val span: Span = spanBuilder.startSpan()
   <summary>iOS</summary>
 
 ```swift
-let spanBuilder: SpanBuilder = Measure.shared.createSpanBuilder(name: "span-name")!
+let spanBuilder: SpanBuilder = Measure.createSpanBuilder(name: "span-name")!
 let span: Span = spanBuilder.startSpan()
 ```
 
@@ -425,9 +425,9 @@ val value = Measure.getTraceParentHeaderValue(span)
     <summary>iOS</summary>
 
 ```swift
-let span = Measure.shared.startSpan(name: "http")
-let key = Measure.shared.getTraceParentHeaderKey()
-let value = Measure.shared.getTraceParentHeaderValue(span: span)
+let span = Measure.startSpan(name: "http")
+let key = Measure.getTraceParentHeaderKey()
+let value = Measure.getTraceParentHeaderValue(span: span)
 ```
 
 </details>
@@ -479,11 +479,11 @@ val okHttpClient = OkHttpClient.Builder()
 // Create a URLSession interceptor to handle tracing
 class TracingInterceptor: NSObject, URLSessionTaskDelegate {
     func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
-        let span = Measure.shared.startSpan(name: "http")
+        let span = Measure.startSpan(name: "http")
         var tracedRequest = request
         tracedRequest.addValue(
-            Measure.shared.getTraceParentHeaderValue(span: span),
-            forHTTPHeaderField: Measure.shared.getTraceParentHeaderKey()
+            Measure.getTraceParentHeaderValue(span: span),
+            forHTTPHeaderField: Measure.getTraceParentHeaderKey()
         )
         completionHandler(tracedRequest)
         span.setStatus(.ok).end()

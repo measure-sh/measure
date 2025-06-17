@@ -36,13 +36,13 @@ Measure.trackEvent("event_name")
 Using Swift:
 
 ```swift
-Measure.shared.trackEvent(name: "event_name")
+Measure.trackEvent(name: "event_name")
 ```
 
 Using ObjC:
 
 ```objc
-[[Measure shared] trackEvent:@"event_name"];
+[Measure trackEvent:@"event_name"];
 ```
 
 ### Custom Event Attributes
@@ -68,13 +68,13 @@ Measure.trackEvent("event_name", attributes = attributes)
 Using Swift:
 
 ```swift
-Measure.shared.trackEvent(name: "event_name", attributes: ["is_premium_user": .bool(true)])
+Measure.trackEvent(name: "event_name", attributes: ["is_premium_user": .bool(true)])
 ```
 
 Using ObjC:
 
 ```objc
-[[Measure shared] trackEvent:@"event_name" attributes:@{@"is_premium_user": YES}];
+[Measure trackEvent:@"event_name" attributes:@{@"is_premium_user": YES}];
 ```
 
 ### Custom Event with Timestamp
@@ -92,11 +92,11 @@ Measure.trackEvent("event_name", timestamp = 1734443973879L)
 Using Swift:
 
 ```swift
-Measure.shared.trackEvent(name: "event_name", timestamp: 1734443973879)
+Measure.trackEvent(name: "event_name", timestamp: 1734443973879)
 ```
 
 Using ObjC:
 
 ```objc
-[[Measure shared] trackEvent:@"event_name" timestamp:1734443973879];
+[Measure trackEvent:@"event_name" timestamp:1734443973879];
 ```
