@@ -12,7 +12,7 @@ class FakeMeasure implements MeasureApi {
   var _shouldTrackHttpHeader = false;
 
   @override
-  Future<void> start(
+  Future<void> init(
     FutureOr<void> Function() action, {
     required ClientInfo clientInfo,
     MeasureConfig config = const MeasureConfig(),

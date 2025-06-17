@@ -6,7 +6,7 @@ import 'package:measure_flutter/measure.dart';
 import 'package:measure_flutter_example/src/screen_main.dart';
 
 Future<void> main() async {
-  await Measure.instance.start(
+  await Measure.instance.init(
     () => runApp(MyApp()),
     config: const MeasureConfig(
       enableLogging: true,

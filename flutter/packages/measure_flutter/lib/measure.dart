@@ -35,7 +35,7 @@ class Measure implements MeasureApi {
   bool get isInitialized => _isInitialized;
 
   @override
-  Future<void> start(
+  Future<void> init(
     FutureOr<void> Function() action, {
     required ClientInfo clientInfo,
     MeasureConfig config = const MeasureConfig(),

@@ -10,7 +10,7 @@ void main() {
 
       var isStarted = false;
 
-      await measure.start(
+      await measure.init(
         () {
           isStarted = true;
         },
@@ -30,7 +30,7 @@ void main() {
 
       var isStarted = false;
 
-      await measure.start(
+      await measure.init(
         () {
           isStarted = true;
         },
@@ -50,7 +50,7 @@ void main() {
 
       var isStarted = false;
 
-      await measure.start(
+      await measure.init(
         () {
           isStarted = true;
         },
@@ -70,7 +70,7 @@ void main() {
 
       var isStarted = false;
 
-      await measure.start(
+      await measure.init(
         () {
           isStarted = true;
         },

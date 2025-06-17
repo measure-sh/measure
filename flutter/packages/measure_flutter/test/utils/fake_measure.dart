@@ -7,7 +7,7 @@ class FakeMeasure implements MeasureApi {
   final List<ScreenViewCall> trackedScreenViews = [];
 
   @override
-  Future<void> start(
+  Future<void> init(
     FutureOr<void> Function() action, {
     required ClientInfo clientInfo,
     MeasureConfig config = const MeasureConfig(),

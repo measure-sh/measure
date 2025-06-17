@@ -9,7 +9,7 @@ abstract class MeasureApi {
     required DateTime? timestamp,
   });
 
-  Future<void> start(
+  Future<void> init(
     FutureOr<void> Function() action, {
     required ClientInfo clientInfo,
     MeasureConfig config = const MeasureConfig(),
