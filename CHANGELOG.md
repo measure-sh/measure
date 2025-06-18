@@ -61,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump golang.org/x/net from 0.37.0 to 0.38.0 in /backend/api (#2127) by @dependabot[bot] in #2127
 - (**deps**): Bump golang.org/x/net in /backend/cleanup (#2126) by @dependabot[bot] in #2126
 - (**deps**): Bump golang.org/x/net in /self-host/sessionator (#2124) by @dependabot[bot] in #2124
+- (**frontend**): Save journey type as part of url by @anupcowkur in #2330
 - (**frontend**): Fix typo in bug reports search placeholder by @anupcowkur in #2296
 - (**frontend**): Replace journey with sessions graph in overview by @anupcowkur in #2291
 - (**frontend**): Organise imports by @anupcowkur in #2281
