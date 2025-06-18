@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add versioning column for bug reports table by @anupcowkur in #2332
 - (**backend**): Handle empty dir cases in sessionator (#2329) by @detj in #2329
 - (**backend**): Move crash + anr groups to clickhouse by @anupcowkur in #2323
 - (**backend**): Improve workflow security (#2255) by @detj in #2255
