@@ -278,6 +278,15 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         trackBugReport(description: description, attachments: attachments, attributes: transformedAttributes)
     }
 
+    func trackError(_ error: Error, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool) {
+        userTriggeredEventCollector.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
+    }
+
+    func trackError(_ error: NSError, attributes: [String: Any]? = nil, collectStackTraces: Bool) {
+        let transformedAttributes = transformAttributes(attributes)
+        userTriggeredEventCollector.trackError(error, attributes: transformedAttributes, collectStackTraces: collectStackTraces)
+    }
+
     private func applicationDidEnterBackground() {
         self.crashDataPersistence.isForeground = false
         self.internalSignalCollector.isForeground = false

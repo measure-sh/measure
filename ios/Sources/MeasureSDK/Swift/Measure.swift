@@ -225,6 +225,16 @@ import UIKit
             completion(msrAttachment)
         }
     }
+
+    func trackError(_ error: Error, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool = false) {
+        guard let measureInternal = self.measureInternal else { return }
+        return measureInternal.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
+    }
+
+    @objc func trackError(_ error: NSError, attributes: [String: Any]? = nil, collectStackTraces: Bool = false) {
+        guard let measureInternal = self.measureInternal else { return }
+        return measureInternal.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
+    }
 }
 
 // MARK: - Static Convenience API
@@ -620,5 +630,23 @@ extension Measure {
     @objc public static func captureLayoutSnapshot(for viewController: UIViewController,
                                                    completion: @escaping (MsrAttachment?) -> Void) {
         Measure.shared.captureLayoutSnapshot(for: viewController, completion: completion)
+    }
+
+    /// Tracks a handled Swift error (`Error`) and records it as part of the monitoring system.
+    /// - Parameters:
+    ///   - error: The Swift `Error` instance to track. Use this for native Swift errors (e.g. enums or structs conforming to `Error`).
+    ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. request ID, user action, component).
+    ///   - collectStackTraces: If `true`, captures the current stack trace to aid in debugging.
+    public static func trackError(_ error: Error, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool = false) {
+        Measure.shared.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
+    }
+
+    /// Tracks a handled Objective-C style error (`NSError`) for backward compatibility or bridging scenarios.
+    /// - Parameters:
+    ///   - error: The `NSError` instance to track. Ideal for errors coming from Apple frameworks or Objective-C code.
+    ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. file path, HTTP status, method name).
+    ///   - collectStackTraces: If `true`, captures the current stack trace to aid in debugging.
+    @objc public static func trackError(_ error: NSError, attributes: [String: Any]? = nil, collectStackTraces: Bool = false) {
+        Measure.shared.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
     }
 } // swiftlint:disable:this file_length

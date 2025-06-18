@@ -70,6 +70,7 @@ protocol MeasureInitializer {
     var shakeBugReportCollector: ShakeBugReportCollector { get }
     var shakeDetector: ShakeDetector { get }
     var screenshotGenerator: ScreenshotGenerator { get }
+    var exceptionGenerator: ExceptionGenerator { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -134,6 +135,7 @@ protocol MeasureInitializer {
 /// - `bugReportingManager`: `BugReportingManager` object that manages the BugReportingViewController.
 /// - `shakeDetector`: `ShakeDetector` object responsible detecting shake gesture.
 /// - `screenshotGenerator`: `ScreenshotGenerator` object responsible for generating a screenshot.
+/// - `exceptionGenerator`: `ExceptionGenerator` object responsible for generating `Exception` object for `Error` or `NSError`
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -196,6 +198,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let shakeBugReportCollector: ShakeBugReportCollector
     let shakeDetector: ShakeDetector
     let screenshotGenerator: ScreenshotGenerator
+    let exceptionGenerator: ExceptionGenerator
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -359,9 +362,12 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                              signalProcessor: signalProcessor,
                                                              timeProvider: timeProvider,
                                                              configProvider: configProvider)
+        self.exceptionGenerator = BaseExceptionGenerator(crashReporter: systemCrashReporter,
+                                                         logger: logger)
         self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(signalProcessor: signalProcessor,
                                                                            timeProvider: timeProvider,
-                                                                           logger: logger)
+                                                                           logger: logger,
+                                                                           exceptionGenerator: exceptionGenerator)
         self.dataCleanupService = BaseDataCleanupService(eventStore: eventStore,
                                                          spanStore: spanStore,
                                                          sessionStore: sessionStore,

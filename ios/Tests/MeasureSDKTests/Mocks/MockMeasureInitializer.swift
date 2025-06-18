@@ -69,6 +69,7 @@ final class MockMeasureInitializer: MeasureInitializer {
     let shakeBugReportCollector: ShakeBugReportCollector
     let shakeDetector: ShakeDetector
     let screenshotGenerator: ScreenshotGenerator
+    let exceptionGenerator: ExceptionGenerator
 
     init(client: Client? = nil, // swiftlint:disable:this function_body_length
          configProvider: ConfigProvider? = nil,
@@ -123,7 +124,8 @@ final class MockMeasureInitializer: MeasureInitializer {
          spanProcessor: SpanProcessor? = nil,
          spanCollector: SpanCollector? = nil,
          tracer: Tracer? = nil,
-         internalSignalCollector: InternalSignalCollector? = nil) {
+         internalSignalCollector: InternalSignalCollector? = nil,
+         exceptionGenerator: ExceptionGenerator? = nil) {
         self.client = client ?? ClientInfo(apiKey: "test", apiUrl: "https://test.com")
         self.configProvider = configProvider ?? BaseConfigProvider(defaultConfig: Config(),
                                                                    configLoader: BaseConfigLoader())
@@ -273,9 +275,12 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                      signalProcessor: self.signalProcessor,
                                                                                      timeProvider: self.timeProvider,
                                                                                      configProvider: self.configProvider)
+        self.exceptionGenerator = exceptionGenerator ?? BaseExceptionGenerator(crashReporter: self.systemCrashReporter,
+                                                                               logger: self.logger)
         self.userTriggeredEventCollector = userTriggeredEventCollector ?? BaseUserTriggeredEventCollector(signalProcessor: self.signalProcessor,
                                                                                                           timeProvider: self.timeProvider,
-                                                                                                          logger: self.logger)
+                                                                                                          logger: self.logger,
+                                                                                                          exceptionGenerator: self.exceptionGenerator)
         self.dataCleanupService = dataCleanupService ?? BaseDataCleanupService(eventStore: self.eventStore,
                                                                                spanStore: self.spanStore,
                                                                                sessionStore: self.sessionStore,

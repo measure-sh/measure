@@ -275,6 +275,8 @@ extension Measure.Measure {
   @objc public static func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Any]? = nil)
   @objc public static func captureScreenshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)
   @objc public static func captureLayoutSnapshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)
+  public static func trackError(_ error: any Swift.Error, attributes: [Swift.String : Measure.AttributeValue]? = nil, collectStackTraces: Swift.Bool = false)
+  @objc public static func trackError(_ error: Foundation.NSError, attributes: [Swift.String : Any]? = nil, collectStackTraces: Swift.Bool = false)
 }
 @_inheritsConvenienceInitializers @objc(SpanOb) public class SpanOb : CoreData.NSManagedObject {
   @objc override dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)

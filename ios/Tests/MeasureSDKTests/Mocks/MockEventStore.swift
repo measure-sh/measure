@@ -37,7 +37,7 @@ final class MockEventStore: EventStore {
         completion(events.isEmpty ? nil : events)
     }
 
-    func getUnBatchedEventsWithAttachmentSize(eventCount: Number, ascending: Bool, sessionId: String?, completion: @escaping ([String : Number]) -> Void) {
+    func getUnBatchedEventsWithAttachmentSize(eventCount: Number, ascending: Bool, sessionId: String?, completion: @escaping ([String: Number]) -> Void) {
         var filteredEvents = sessionId == nil ? events : events.filter { $0.sessionId == sessionId }
 
         filteredEvents.sort {

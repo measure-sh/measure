@@ -50,6 +50,13 @@ import Measure
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+
+        do {
+            let path = "/path/that/does/not/exist.txt"
+            _ = try String(contentsOfFile: path, encoding: .utf8)
+        } catch {
+            Measure.trackError(error, collectStackTraces: true)
+        }
     }
 
     override func viewDidDisappear(_ animated: Bool) {
