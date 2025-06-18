@@ -14,7 +14,7 @@ final class MockScreenshotGenerator: ScreenshotGenerator {
     func generate(window: UIWindow, name: String, storageType: AttachmentStorageType, completion: @escaping (Attachment?) -> Void) {
         completion(attachment)
     }
-    
+
     func generate(viewController: UIViewController, completion: @escaping (Attachment?) -> Void) {
         completion(attachment)
     }

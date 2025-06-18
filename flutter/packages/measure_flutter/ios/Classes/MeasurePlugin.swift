@@ -62,7 +62,7 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         userTriggered: Bool,
         sessionId: String?,
         threadName: String?) {
-        Measure.shared.internalTrackEvent(
+        Measure.internalTrackEvent(
             data: &data,
             type: type,
             timestamp: timestamp,
@@ -90,7 +90,7 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         let jsonClientInfo = try JSONSerialization.data(withJSONObject: argClientInfo, options: [])
         let clientInfo = try JSONDecoder().decode(ClientInfo.self, from: jsonClientInfo)
 
-        Measure.shared.initialize(with: clientInfo, config: config)
+        Measure.initialize(with: clientInfo, config: config)
         result(nil)
     }
 }

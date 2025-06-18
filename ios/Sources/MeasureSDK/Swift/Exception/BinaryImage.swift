@@ -13,7 +13,7 @@ struct BinaryImage: Codable {
 
     /// End address - upper memory boundary of the binary
     let endAddress: String?
-    
+
     /// Base address - The base address for Dart exceptions.
     let baseAddress: String?
 

@@ -69,12 +69,12 @@ final class BaseSvgGenerator: SvgGenerator {
     }
 
     private func svgRect(frame: CGRect, isTarget: Bool) -> String {
-        let x = frame.origin.x.safeInt
-        let y = frame.origin.y.safeInt
+        let originX = frame.origin.x.safeInt
+        let originY = frame.origin.y.safeInt
         let width = frame.width.safeInt
         let height = frame.height.safeInt
         let targetClass = isTarget ? " class=\"target-rect\"" : ""
 
-        return "<rect x=\"\(x)\" y=\"\(y)\" width=\"\(width)\" height=\"\(height)\"\(targetClass)/>"
+        return "<rect x=\"\(originX)\" y=\"\(originY)\" width=\"\(width)\" height=\"\(height)\"\(targetClass)/>"
     }
 }

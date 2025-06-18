@@ -10,7 +10,6 @@ import UIKit
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
-    let measureInstance = Measure.shared
     var mockMeasureInitializer: MockMeasureInitializer?
     let labelMessage: UILabel = {
         let lbl = UILabel()
@@ -41,8 +40,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let config = BaseMeasureConfig(enableLogging: true,
                                        samplingRateForErrorFreeSessions: 1.0)
         mockMeasureInitializer = MockMeasureInitializer()
-        measureInstance.meaureInitializerInternal = mockMeasureInitializer
-        measureInstance.initialize(with: clientInfo, config: config)
+        Measure.shared.meaureInitializerInternal = mockMeasureInitializer
+        Measure.initialize(with: clientInfo, config: config)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.addLogLabels()
         }

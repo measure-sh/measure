@@ -16,7 +16,7 @@ class ControlsViewController: UIViewController {
 
         // Add target for UISegmentedControl when value changes
         segmentControl.addTarget(self, action: #selector(segmentControlValueChanged(_:)), for: .valueChanged)
-        Measure.shared.stop()
+        Measure.stop()
     }
 
     // Show alert when UISegmentedControl value changes

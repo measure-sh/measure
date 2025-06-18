@@ -80,7 +80,7 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
                 completion(nil)
                 return
             }
-            
+
             let attachment = attachmentProcessor.getAttachmentObject(
                 for: layoutSnapshot,
                 name: layoutSnapshotName,

@@ -100,10 +100,10 @@ protocol MeasureConfig {
     ///
     /// When enabled, users can shake their device to launch the bug report activity automatically.
     let enableShakeToLaunchBugReport: Bool
-    
+
     public required init(from decoder: Decoder) throws {
          let container = try decoder.container(keyedBy: CodingKeys.self)
-         
+
          enableLogging = try container.decodeIfPresent(Bool.self, forKey: .enableLogging) ?? DefaultConfig.enableLogging
          samplingRateForErrorFreeSessions = try container.decodeIfPresent(Float.self, forKey: .samplingRateForErrorFreeSessions) ?? DefaultConfig.sessionSamplingRate
          traceSamplingRate = try container.decodeIfPresent(Float.self, forKey: .traceSamplingRate) ?? DefaultConfig.traceSamplingRate
@@ -116,10 +116,10 @@ protocol MeasureConfig {
          trackViewControllerLoadTime = try container.decodeIfPresent(Bool.self, forKey: .trackViewControllerLoadTime) ?? DefaultConfig.trackViewControllerLoadTime
          screenshotMaskLevel = try container.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
          enableShakeToLaunchBugReport = try container.decodeIfPresent(Bool.self, forKey: .enableShakeToLaunchBugReport) ?? DefaultConfig.enableShakeToLaunchBugReport
-         
+
          super.init()
      }
-    
+
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
     /// - Parameters:
     ///   - enableLogging: Enable or disable internal SDK logs. Defaults to `false`.

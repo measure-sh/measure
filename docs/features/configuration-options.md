@@ -39,7 +39,7 @@ Measure.init(
 
 #### iOS
 
-For Android, options can be set in the `BaseMeasureConfig` object which is passed to the `Measure.shared.initialize`
+For Android, options can be set in the `BaseMeasureConfig` object which is passed to the `Measure.initialize`
 method. Example:
 
 ```swift
@@ -52,7 +52,7 @@ let config = BaseMeasureConfig(enableLogging: true,
                                httpUrlAllowlist: ["api.example.com"],
                                autoStart: true,
                                trackViewControllerLoadTime: true)
-Measure.shared.initialize(with: clientInfo, config: config)
+Measure.initialize(with: clientInfo, config: config)
 ```
 
 ## Configuration Options

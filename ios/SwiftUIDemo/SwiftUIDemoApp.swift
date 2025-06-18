@@ -15,7 +15,7 @@ struct SwiftUIDemoApp: App {
                                     apiUrl: "http://localhost:8080")
         let config = BaseMeasureConfig(enableLogging: true,
                                        samplingRateForErrorFreeSessions: 1.0)
-        Measure.shared.initialize(with: clientInfo, config: config)
+        Measure.initialize(with: clientInfo, config: config)
     }
 
     var body: some Scene {
