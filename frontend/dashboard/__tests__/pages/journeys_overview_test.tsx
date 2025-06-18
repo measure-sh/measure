@@ -75,6 +75,11 @@ jest.mock('@/app/components/journey', () => ({
     ),
 }))
 
+// Helper to mock useSearchParams with custom query
+const getSearchParamsMock = (params: Record<string, string>) => {
+    return () => new URLSearchParams(params)
+}
+
 describe('UserJourneys Page', () => {
     beforeEach(() => {
         replaceMock.mockClear()
@@ -105,7 +110,7 @@ describe('UserJourneys Page', () => {
         expect(await screen.findByTestId('tab-select-mock')).toBeInTheDocument()
         expect(await screen.findByTestId('debounce-text-input-mock')).toBeInTheDocument()
         expect(await screen.findByTestId('journey-mock-Paths')).toBeInTheDocument()
-        expect(replaceMock).toHaveBeenCalledWith('?updated', { scroll: false })
+        expect(replaceMock).toHaveBeenCalledWith('?jt=Paths&updated', { scroll: false })
     })
 
     it('renders Journey (Exceptions) when Exceptions tab is selected', async () => {
@@ -122,6 +127,45 @@ describe('UserJourneys Page', () => {
         })
 
         expect(await screen.findByTestId('journey-mock-Exceptions')).toBeInTheDocument()
+    })
+
+    it('renders Journey (Paths) by default and switches to Exceptions when tab is selected', async () => {
+        render(<UserJourneys params={{ teamId: '123' }} />)
+        const updateButton = screen.getByTestId('update-filters')
+
+        await act(async () => {
+            fireEvent.click(updateButton)
+        })
+
+        // Initially, Paths journey should be rendered
+        expect(await screen.findByTestId('journey-mock-Paths')).toBeInTheDocument()
+        expect(screen.queryByTestId('journey-mock-Exceptions')).not.toBeInTheDocument()
+
+        // Switch to Exceptions tab
+        const exceptionsTab = await screen.findByTestId('tab-Exceptions')
+        await act(async () => {
+            fireEvent.click(exceptionsTab)
+        })
+
+        // Now, Exceptions journey should be rendered
+        expect(await screen.findByTestId('journey-mock-Exceptions')).toBeInTheDocument()
+        expect(screen.queryByTestId('journey-mock-Paths')).not.toBeInTheDocument()
+    })
+
+    it('sets jt query param in URL when tab is changed', async () => {
+        // Patch useSearchParams to return empty initially
+        jest.mock('next/navigation', () => ({
+            useRouter: () => ({ replace: replaceMock }),
+            useSearchParams: getSearchParamsMock({}),
+        }))
+        // Re-import UserJourneys to use the new mock
+        const { default: UserJourneysPatched } = require('@/app/[teamId]/journeys/page')
+        render(<UserJourneysPatched params={{ teamId: '123' }} />)
+        const updateButton = screen.getByTestId('update-filters')
+        await act(async () => { fireEvent.click(updateButton) })
+        const exceptionsTab = await screen.findByTestId('tab-Exceptions')
+        await act(async () => { fireEvent.click(exceptionsTab) })
+        expect(replaceMock).toHaveBeenLastCalledWith('?jt=Exceptions&updated', { scroll: false })
     })
 
     it('updates searchText when DebounceTextInput changes', async () => {

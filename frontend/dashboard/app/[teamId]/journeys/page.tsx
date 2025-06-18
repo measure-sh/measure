@@ -5,7 +5,7 @@ import DebounceTextInput from '@/app/components/debounce_text_input'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import Journey, { JourneyType } from '@/app/components/journey'
 import TabSelect from '@/app/components/tab_select'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 enum PlotType {
@@ -21,10 +21,20 @@ interface PageState {
 
 export default function UserJourneys({ params }: { params: { teamId: string } }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const journeyTypeUrlKey = "jt"
+
+  // Determine initial plot type from URL or default
+  const initialPlotType = (() => {
+    const jt = searchParams.get(journeyTypeUrlKey)
+    if (jt === PlotType.Exceptions) return PlotType.Exceptions
+    return PlotType.Paths
+  })()
 
   const initialState: PageState = {
     filters: defaultFilters,
-    plotType: PlotType.Paths,
+    plotType: initialPlotType,
     searchText: ''
   }
 
@@ -50,10 +60,9 @@ export default function UserJourneys({ params }: { params: { teamId: string } })
     if (!pageState.filters.ready) {
       return
     }
-
-    // update url
-    router.replace(`?${pageState.filters.serialisedFilters!}`, { scroll: false })
-  }, [pageState.filters])
+    const queryParams = `${journeyTypeUrlKey}=${encodeURIComponent(pageState.plotType)}&${pageState.filters.serialisedFilters!}`
+    router.replace(`?${queryParams}`, { scroll: false })
+  }, [pageState.filters, pageState.plotType])
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start">
@@ -91,7 +100,7 @@ export default function UserJourneys({ params }: { params: { teamId: string } })
               items={Object.values(PlotType)}
               selected={pageState.plotType}
               onChangeSelected={item => {
-                setPageState(prev => ({ ...prev, plotType: item as PlotType }))
+                updatePageState({ plotType: item as PlotType })
               }}
             />
           </div>
