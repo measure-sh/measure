@@ -4456,6 +4456,7 @@ The required headers must be present in each request.
         "status": 0,
         "description": "Unresponsive button. Kept tapping but nothing happens",
         "timestamp": "2024-12-16T03:31:07.127Z",
+        "updated_at": "2024-12-16T03:31:07.127Z",
         "attribute": {
           "installation_id": "00000000-0000-0000-0000-000000000000",
           "app_version": "0.9.0-SNAPSHOT.debug",
@@ -4497,6 +4498,7 @@ The required headers must be present in each request.
         "status": 0,
         "description": "This app sucks!",
         "timestamp": "2024-11-18T14:14:41.622Z",
+        "updated_at": "2024-11-18T14:14:41.622Z",
         "attribute": {
           "installation_id": "00000000-0000-0000-0000-000000000000",
           "app_version": "0.9.0-SNAPSHOT.debug",
@@ -4538,6 +4540,7 @@ The required headers must be present in each request.
         "status": 0,
         "description": "Screen too slow to load. I'm switching to another app!!!",
         "timestamp": "2024-11-14T04:55:19.37Z",
+        "updated_at": "2024-11-14T04:55:19.37Z",
         "attribute": {
           "installation_id": "00000000-0000-0000-0000-000000000000",
           "app_version": "0.9.0-SNAPSHOT.debug",
@@ -4579,6 +4582,7 @@ The required headers must be present in each request.
         "status": 1,
         "description": "Can't click button. Screen frozen.",
         "timestamp": "2024-07-25T07:26:16.44Z",
+        "updated_at": "2024-07-25T07:26:16.44Z",
         "attribute": {
           "installation_id": "00000000-0000-0000-0000-000000000000",
           "app_version": "1.0",
@@ -4620,6 +4624,7 @@ The required headers must be present in each request.
         "status": 0,
         "description": "Clicking button leads to crash.",
         "timestamp": "2024-06-13T13:37:23.33Z",
+        "updated_at": "2024-06-13T13:37:23.33Z",
         "attribute": {
           "installation_id": "00000000-0000-0000-0000-000000000000",
           "app_version": "1.0",
@@ -4846,6 +4851,7 @@ The required headers must be present in each request.
     "status": 0,
     "description": "This app sucks!",
     "timestamp": "2024-11-18T14:14:41.622Z",
+    "updated_at": "2024-11-18T14:14:41.622Z",
     "attribute": {
       "installation_id": "00000000-0000-0000-0000-000000000000",
       "app_version": "0.9.0-SNAPSHOT.debug",
