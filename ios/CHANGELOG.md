@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.4.0] - 2025-06-19
+
+### :books: Documentation
+
+
+- (**ios**): Add app size monitoring documentation (#2321)
+
+### :bug: Bug fixes
+
+
+- (**ios**): Remove hardcoded values from upload dysm script (#2322)
+- (**ios**): Make session id API public (#2315)
+
+### :hammer: Misc
+
+
+- (**ios**): Add measure api url to http blocklist (#2317)
+- (**ios**): Add performance data (#2295)
+
+### :recycle: Refactor
+
+
+- (**ios**): Update public api interface (#2319)
+
+### :sparkles: New features
+
+
+- (**ios**): Implement handled exception tracking (#2331)
+
 ## [ios-v0.3.1] - 2025-06-04
 
 ### :bug: Bug fixes
@@ -13,6 +42,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Swizzle UIApplication.sendEvent to avoid breaking keyboard input (#2267)
 - (**ios**): Update core data Initialization logic (#2257)
 - (**ios**): Replaces uses of TARGET_OS_SIMULATOR (#2244)
+
+### :hammer: Misc
+
+
+- (**ios**): Prepare sdk release 0.3.1 (#2276)
 
 ## [ios-v0.3.0] - 2025-05-28
 
@@ -140,6 +174,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677)
 - (**ios**): Initial project setup  (#1034)
 
+[ios-v0.4.0]: https://github.com///compare/ios-v0.3.1..ios-v0.4.0
 [ios-v0.3.1]: https://github.com///compare/ios-v0.3.0..ios-v0.3.1
 [ios-v0.3.0]: https://github.com///compare/ios-v0.2.0..ios-v0.3.0
 [ios-v0.2.0]: https://github.com///compare/ios-v0.1.0..ios-v0.2.0
