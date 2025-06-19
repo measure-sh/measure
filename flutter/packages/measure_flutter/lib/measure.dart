@@ -330,4 +330,20 @@ class Measure implements MeasureApi {
       return DateTime.now().millisecondsSinceEpoch;
     }
   }
+
+  @override
+  Future<void> clearUserId() async {
+    if (isInitialized) {
+      return _measure.clearUserId();
+    }
+    return Future.value(null);
+  }
+
+  @override
+  Future<void> setUserId(String userId) {
+    if (isInitialized) {
+      return _measure.setUserId(userId);
+    }
+    return Future.value(null);
+  }
 }

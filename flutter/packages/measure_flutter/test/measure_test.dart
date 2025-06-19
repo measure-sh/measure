@@ -25,7 +25,8 @@ void main() {
       expect(isStarted, true);
     });
 
-    test('should start if apiKey is empty and keep SDK uninitialized', () async {
+    test('should start if apiKey is empty and keep SDK uninitialized',
+        () async {
       final measure = Measure.withMethodChannel(TestMethodChannel());
 
       var isStarted = false;
@@ -45,7 +46,8 @@ void main() {
       expect(isStarted, true);
     });
 
-    test('should start if apiKey is invalid and keep SDK uninitialized', () async {
+    test('should start if apiKey is invalid and keep SDK uninitialized',
+        () async {
       final measure = Measure.withMethodChannel(TestMethodChannel());
 
       var isStarted = false;
@@ -65,7 +67,8 @@ void main() {
       expect(isStarted, true);
     });
 
-    test('should start if apiUrl is empty and keep SDK uninitialized', () async {
+    test('should start if apiUrl is empty and keep SDK uninitialized',
+        () async {
       final measure = Measure.withMethodChannel(TestMethodChannel());
 
       var isStarted = false;
@@ -86,5 +89,48 @@ void main() {
     });
   });
 
+  group('User ID', () {
+    test('sets user id', () async {
+      // Given an initialized measure instance
+      final methodChannel = TestMethodChannel();
+      final measure = Measure.withMethodChannel(methodChannel);
 
+      await measure.init(
+        () {},
+        clientInfo: ClientInfo(
+          apiKey: "msrsh-123",
+          apiUrl: "https://example.com",
+        ),
+        config: const MeasureConfig(),
+      );
+
+      // When
+      await measure.setUserId("user-id");
+
+      // Then
+      expect(methodChannel.userId, "user-id");
+    });
+
+    test('clears user id', () async {
+      // Given an initialized measure instance
+      final methodChannel = TestMethodChannel();
+      final measure = Measure.withMethodChannel(methodChannel);
+
+      await measure.init(
+            () {},
+        clientInfo: ClientInfo(
+          apiKey: "msrsh-123",
+          apiUrl: "https://example.com",
+        ),
+        config: const MeasureConfig(),
+      );
+
+      // When
+      await measure.setUserId("user-id");
+      await measure.clearUserId();
+
+      // Then
+      expect(methodChannel.userId, null);
+    });
+  });
 }

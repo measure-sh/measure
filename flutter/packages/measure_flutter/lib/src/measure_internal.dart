@@ -137,4 +137,12 @@ final class MeasureInternal {
   int getCurrentTime() {
     return _timeProvider.now();
   }
+
+  Future<void> setUserId(String userId) {
+    return methodChannel.setUserId(userId);
+  }
+
+  Future<void> clearUserId() {
+    return methodChannel.clearUserId();
+  }
 }

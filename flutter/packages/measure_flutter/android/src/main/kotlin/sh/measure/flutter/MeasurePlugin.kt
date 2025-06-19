@@ -32,6 +32,8 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
                 MethodConstants.FUNCTION_STOP -> stop(call, result)
                 MethodConstants.FUNCTION_GET_SESSION_ID -> getSessionId(result)
                 MethodConstants.FUNCTION_TRACK_SPAN -> trackSpan(call, result)
+                MethodConstants.FUNCTION_SET_USER_ID -> setUserId(call, result)
+                MethodConstants.FUNCTION_CLEAR_USER_ID -> clearUserId(result)
                 else -> result.notImplemented()
             }
         } catch (e: MethodArgumentException) {
@@ -159,6 +161,18 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
 
     private fun stop(call: MethodCall, result: MethodChannel.Result) {
         Measure.stop()
+        result.success(null)
+    }
+
+    private fun setUserId(call: MethodCall, result: MethodChannel.Result) {
+        val reader = MethodCallReader(call)
+        val userId = reader.requireArg<String>(MethodConstants.ARG_USER_ID)
+        Measure.setUserId(userId)
+        result.success(null)
+    }
+
+    private fun clearUserId(result: MethodChannel.Result) {
+        Measure.clearUserId()
         result.success(null)
     }
 

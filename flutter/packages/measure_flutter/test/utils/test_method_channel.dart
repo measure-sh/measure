@@ -4,6 +4,7 @@ import 'package:measure_flutter/src/tracing/span_data.dart';
 
 class TestMethodChannel implements MsrMethodChannel {
   String? _sessionId = "test-session-id";
+  String? userId;
 
   final List<
       (
@@ -62,5 +63,15 @@ class TestMethodChannel implements MsrMethodChannel {
   @override
   Future<void> stop() {
     throw UnimplementedError();
+  }
+
+  @override
+  Future<void> setUserId(String userId) async {
+    this.userId = userId;
+  }
+
+  @override
+  Future<void> clearUserId() async {
+    userId = null;
   }
 }

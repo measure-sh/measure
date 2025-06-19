@@ -86,4 +86,16 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
       MethodConstants.argSpanIsSampled: data.isSampled,
     });
   }
+
+  @override
+  Future<void> clearUserId() {
+    return _methodChannel.invokeMethod(MethodConstants.functionClearUserId);
+  }
+
+  @override
+  Future<void> setUserId(String userId) {
+    return _methodChannel.invokeMethod(MethodConstants.functionSetUserId, {
+      MethodConstants.argUserId: userId,
+    });
+  }
 }

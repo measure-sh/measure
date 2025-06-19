@@ -18,7 +18,7 @@ Future<void> main() async {
     ),
     clientInfo: ClientInfo(
       apiKey: "msrsh-123",
-      apiUrl: "https://localhost:8080",
+      apiUrl: "http://localhost:8080",
     ),
   );
 }
