@@ -57,7 +57,7 @@ final class FileManagerHelper {
             return nil
         }
     }
-    
+
     func getExceptionDict(fileName: String, fileExtension: String) -> [String: Any?]? {
         let testBundle = Bundle(for: type(of: self))
         guard let fileURL = testBundle.url(forResource: fileName, withExtension: fileExtension) else {

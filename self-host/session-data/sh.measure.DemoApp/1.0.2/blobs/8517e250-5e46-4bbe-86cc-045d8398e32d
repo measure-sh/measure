@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 393 1015">
+    <defs>
+        <pattern id="d" width="24" height="24" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <line y1="0" y2="24" stroke="#fef08a" stroke-width="3"/>
+        </pattern>
+        <linearGradient id="text-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#fef08a;stop-opacity:0.1"/>
+            <stop offset="100%" style="stop-color:#fef08a;stop-opacity:0.05"/>
+        </linearGradient>
+        <style>
+            .base-rect { fill: none; }
+            .grey-rect { stroke: #64748b; stroke-width: 2; }
+            .text-rect { fill: url(#text-gradient); }
+            .target-rect { fill: url(#d); stroke: #fef08a; stroke-width: 3; }
+        </style>
+    </defs>
+    <g>
+        <rect width="100%" height="100%" fill="#262626"/>
+        <g class="base-rect grey-rect"><rect x="0" y="0" width="393" height="852"/><rect x="0" y="339" width="393" height="52"/><rect x="20" y="339" width="353" height="52"/><rect x="20" y="390" width="373" height="0"/><rect x="0" y="963" width="393" height="52"/><rect x="20" y="963" width="353" height="52"/><rect x="20" y="1014" width="373" height="0"/><rect x="0" y="911" width="393" height="52"/><rect x="20" y="911" width="353" height="52"/><rect x="20" y="962" width="373" height="0"/><rect x="0" y="859" width="393" height="52"/><rect x="20" y="859" width="353" height="52"/><rect x="20" y="910" width="373" height="0"/><rect x="0" y="807" width="393" height="52"/><rect x="20" y="807" width="353" height="52"/><rect x="20" y="858" width="373" height="0"/><rect x="0" y="755" width="393" height="52"/><rect x="20" y="755" width="353" height="52"/><rect x="20" y="806" width="373" height="0"/><rect x="0" y="703" width="393" height="52"/><rect x="20" y="703" width="353" height="52"/><rect x="20" y="754" width="373" height="0"/><rect x="0" y="651" width="393" height="52"/><rect x="20" y="651" width="353" height="52"/><rect x="20" y="702" width="373" height="0"/><rect x="0" y="599" width="393" height="52"/><rect x="20" y="599" width="353" height="52"/><rect x="20" y="650" width="373" height="0"/><rect x="0" y="547" width="393" height="52"/><rect x="20" y="547" width="353" height="52"/><rect x="20" y="598" width="373" height="0"/><rect x="0" y="495" width="393" height="52"/><rect x="20" y="495" width="353" height="52"/><rect x="20" y="546" width="373" height="0"/><rect x="0" y="443" width="393" height="52"/><rect x="20" y="443" width="353" height="52"/><rect x="20" y="494" width="373" height="0"/><rect x="0" y="391" width="393" height="52"/><rect x="20" y="391" width="353" height="52"/><rect x="20" y="442" width="373" height="0"/><rect x="0" y="287" width="393" height="52"/><rect x="20" y="287" width="353" height="52"/><rect x="20" y="338" width="373" height="0"/><rect x="0" y="165" width="393" height="122"/><rect x="16" y="173" width="361" height="106"/><rect x="16" y="173" width="172" height="106"/><rect x="16" y="173" width="172" height="30"/><rect x="41" y="179" width="121" height="18"/><rect x="16" y="211" width="172" height="30"/><rect x="31" y="217" width="141" height="18"/><rect x="16" y="249" width="172" height="30"/><rect x="56" y="255" width="91" height="18"/><rect x="204" y="173" width="172" height="106"/><rect x="204" y="173" width="172" height="49"/><rect x="238" y="188" width="104" height="18"/><rect x="204" y="230" width="172" height="49"/><rect x="234" y="245" width="113" height="17"/><rect x="52" y="846" width="288" height="3"/><rect x="387" y="100" width="3" height="539"/><rect x="0" y="53" width="393" height="44"/><rect x="0" y="-5" width="393" height="103"/><rect x="0" y="97" width="393" height="0"/><rect x="377" y="53" width="8" height="44"/><rect x="112" y="61" width="167" height="26"/><rect x="0" y="53" width="0" height="0"/>        </g>
+    </g>
+</svg>

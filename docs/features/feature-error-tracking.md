@@ -22,4 +22,27 @@ try {
 
 #### iOS
 
-This feature is currently not implemented on iOS.
+To track handled errors or exceptions, use the `trackError` method with either a native Swift Error or an NSError.
+
+```swift
+do {
+    try someThrowingFunction()
+} catch {
+    Measure.trackError(error)
+}
+```
+
+You can optionally include metadata and enable stack trace collection.
+
+```swift
+Measure.trackError(error, attributes: [
+    "screen": .string("Login"),
+    "retryCount": .int(2)
+], collectStackTraces: true)
+```
+
+You can track handled NSError objects from Objective-C code as well using `trackError` method.
+
+```objc
+[Measure trackError:error attributes:@{ @"screen": @"Login", @"retryCount": 2 } collectStackTraces:YES];
+```

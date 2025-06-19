@@ -257,6 +257,8 @@
 		CF1BB5552DE4371600588506 /* MsrFonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB5542DE4371600588506 /* MsrFonts.swift */; };
 		CF48773F2DEEB26B00311F57 /* UIApplication+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF48773E2DEEB26B00311F57 /* UIApplication+Extension.swift */; };
 		CF4877412DEEB2C000311F57 /* UIWindow+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF4877402DEEB2C000311F57 /* UIWindow+Extension.swift */; };
+		CF48E3562DF95E8100FCD26D /* ExceptionGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF48E3552DF95E8100FCD26D /* ExceptionGenerator.swift */; };
+		CF48E3982E01866400FCD26D /* Error.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF48E3972E01866400FCD26D /* Error.swift */; };
 		CF4FE3942D913BAC0073D8AE /* Measure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* Measure.framework */; };
 		CF4FE3952D913BAC0073D8AE /* Measure.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* Measure.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CF7CAE4A2D940E4700E15CDB /* AppVersionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE492D940E4700E15CDB /* AppVersionInfo.swift */; };
@@ -664,6 +666,8 @@
 		CF1BB5542DE4371600588506 /* MsrFonts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrFonts.swift; sourceTree = "<group>"; };
 		CF48773E2DEEB26B00311F57 /* UIApplication+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIApplication+Extension.swift"; sourceTree = "<group>"; };
 		CF4877402DEEB2C000311F57 /* UIWindow+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIWindow+Extension.swift"; sourceTree = "<group>"; };
+		CF48E3552DF95E8100FCD26D /* ExceptionGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExceptionGenerator.swift; sourceTree = "<group>"; };
+		CF48E3972E01866400FCD26D /* Error.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Error.swift; sourceTree = "<group>"; };
 		CF7CAE492D940E4700E15CDB /* AppVersionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersionInfo.swift; sourceTree = "<group>"; };
 		CF7CAE4B2D940F2700E15CDB /* MockAppVersionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAppVersionInfo.swift; sourceTree = "<group>"; };
 		CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidator.swift; sourceTree = "<group>"; };
@@ -903,12 +907,14 @@
 		526D17CD2D5A1913009A2E90 /* Exception */ = {
 			isa = PBXGroup;
 			children = (
-				69694F0E2DE04619008D1AF1 /* Framework.swift */,
 				529B319A2D5B85FC007A8E45 /* BinaryImage.swift */,
 				526D17C92D5A1913009A2E90 /* Exception.swift */,
 				526D17CA2D5A1913009A2E90 /* ExceptionDetail.swift */,
+				CF48E3552DF95E8100FCD26D /* ExceptionGenerator.swift */,
+				69694F0E2DE04619008D1AF1 /* Framework.swift */,
 				526D17CB2D5A1913009A2E90 /* StackFrame.swift */,
 				526D17CC2D5A1913009A2E90 /* ThreadDetail.swift */,
+				CF48E3972E01866400FCD26D /* Error.swift */,
 			);
 			path = Exception;
 			sourceTree = "<group>";
@@ -1872,6 +1878,7 @@
 				52B7F1902D76AFBB001498BC /* EventOb+CoreDataProperties.swift in Sources */,
 				CF48773F2DEEB26B00311F57 /* UIApplication+Extension.swift in Sources */,
 				52B7F1912D76AFBB001498BC /* SessionOb+CoreDataClass.swift in Sources */,
+				CF48E3982E01866400FCD26D /* Error.swift in Sources */,
 				52B7F1922D76AFBB001498BC /* SessionOb+CoreDataProperties.swift in Sources */,
 				526D187B2D5A1913009A2E90 /* NSObject+Extension.swift in Sources */,
 				526D188D2D5A1913009A2E90 /* UserPermissionManager.swift in Sources */,
@@ -1886,6 +1893,7 @@
 				CF1BB54F2DE436F300588506 /* MsrColors.swift in Sources */,
 				526D18252D5A1913009A2E90 /* LaunchCallbacks.swift in Sources */,
 				526D18592D5A1913009A2E90 /* NetworkClient.swift in Sources */,
+				CF48E3562DF95E8100FCD26D /* ExceptionGenerator.swift in Sources */,
 				526D184E2D5A1913009A2E90 /* UserTriggeredEventCollector.swift in Sources */,
 				526D18852D5A1913009A2E90 /* Logger.swift in Sources */,
 				526D18422D5A1913009A2E90 /* CrashReport.swift in Sources */,
@@ -2572,7 +2580,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.measure.DemoApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -2604,7 +2612,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.measure.DemoApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -2770,7 +2778,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = sh.measure.DemoApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

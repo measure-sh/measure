@@ -78,7 +78,7 @@ final class CrashDataFormatter {
         }
     }
 
-    func getException() -> Exception {
+    func getException(_ handled: Bool = false, error: MsrError? = nil) -> Exception {
         let crashedThread = getCrashedThread()
         let exceptionDetails = ExceptionDetail(type: crashReport.exceptionName,
                                                message: crashReport.exceptionReason,
@@ -88,22 +88,24 @@ final class CrashDataFormatter {
                                                threadSequence: crashedThread?.sequence ?? 0,
                                                osBuildNumber: crashReport.osBuildNumber)
         guard let crashedThread = crashedThread, let threads = getExceptionStackTrace() else {
-            return Exception(handled: false,
+            return Exception(handled: handled,
                              exceptions: [exceptionDetails],
                              foreground: true,
                              threads: nil,
                              binaryImages: nil,
-                             framework: Framework.apple)
+                             framework: Framework.apple,
+                             error: error)
         }
 
         let binaryImages = getBinaryImageInfo([crashedThread] + threads)
 
-        return Exception(handled: false,
+        return Exception(handled: handled,
                          exceptions: [exceptionDetails],
                          foreground: true,
                          threads: threads,
                          binaryImages: binaryImages,
-                         framework: Framework.apple)
+                         framework: Framework.apple,
+                         error: error)
     }
 
     private func getCrashedThread() -> ThreadDetail? {
