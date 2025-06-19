@@ -26,11 +26,11 @@ class SampleApp : Application() {
                 trackActivityIntentData = true,
                 httpUrlBlocklist = listOf("http://localhost:8080"),
                 samplingRateForErrorFreeSessions = 1f,
-                autoStart = true,
+                autoStart = false,
                 traceSamplingRate = 1.0f,
             ),
             clientInfo = ClientInfo(
-                apiUrl = "your-api-url",
+                apiUrl = "http://localhost:8080",
                 apiKey = "msrsh-your-api-key"
             )
         )

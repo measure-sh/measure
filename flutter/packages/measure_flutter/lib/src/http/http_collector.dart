@@ -4,8 +4,17 @@ import 'http_data.dart';
 
 class HttpCollector {
   final SignalProcessor signalProcessor;
+  bool _enabled = false;
 
   HttpCollector({required this.signalProcessor});
+
+  void register() {
+    _enabled = true;
+  }
+
+  void unregister() {
+    _enabled = false;
+  }
 
   void trackHttpEvent({
     required String url,
@@ -21,6 +30,9 @@ class HttpCollector {
     String? responseBody,
     String? client,
   }) {
+    if (!_enabled) {
+      return;
+    }
     final data = HttpData(
       url: url,
       method: method,

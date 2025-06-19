@@ -36,4 +36,14 @@ class TestMethodChannel implements MsrMethodChannel {
   ) {
     return Future.value();
   }
+
+  @override
+  Future<void> start() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> stop() {
+    throw UnimplementedError();
+  }
 }

@@ -1,5 +1,6 @@
 import 'dart:isolate';
 
+import 'package:flutter/cupertino.dart';
 import 'package:measure_flutter/attribute_value.dart';
 import 'package:measure_flutter/src/events/custom_event_data.dart';
 import 'package:measure_flutter/src/events/event_type.dart';
@@ -9,7 +10,7 @@ import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 final class CustomEventCollector {
   final Logger logger;
   final SignalProcessor signalProcessor;
-  bool enabled = false;
+  bool _enabled = false;
 
   CustomEventCollector({
     required this.logger,
@@ -17,11 +18,11 @@ final class CustomEventCollector {
   });
 
   void register() {
-    enabled = true;
+    _enabled = true;
   }
 
   void unregister() {
-    enabled = false;
+    _enabled = false;
   }
 
   void trackCustomEvent(
@@ -29,7 +30,7 @@ final class CustomEventCollector {
     DateTime? timestamp,
     Map<String, AttributeValue> attributes,
   ) {
-    if (!enabled) {
+    if (!_enabled) {
       return;
     }
     signalProcessor.trackEvent(
@@ -40,5 +41,10 @@ final class CustomEventCollector {
       userTriggered: true,
       threadName: Isolate.current.debugName,
     );
+  }
+
+  @visibleForTesting
+  bool isEnabled() {
+    return _enabled;
   }
 }

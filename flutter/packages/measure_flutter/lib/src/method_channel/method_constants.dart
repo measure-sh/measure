@@ -3,6 +3,8 @@ class MethodConstants {
   static const String functionTrackEvent = 'trackEvent';
   static const String functionTriggerNativeCrash = 'triggerNativeCrash';
   static const String functionInitializeNativeSDK = 'initializeNativeSDK';
+  static const String functionStart = 'start';
+  static const String functionStop = 'stop';
 
   // Argument keys
   static const String argEventData = 'event_data';

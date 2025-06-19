@@ -12,7 +12,7 @@ import '../events/event_type.dart';
 final class ExceptionCollector {
   final Logger logger;
   final SignalProcessor signalProcessor;
-  bool enabled = false;
+  bool _enabled = false;
 
   ExceptionCollector({
     required this.logger,
@@ -20,23 +20,23 @@ final class ExceptionCollector {
   });
 
   void register() {
-    enabled = true;
+    _enabled = true;
   }
 
   void unregister() {
-    enabled = false;
+    _enabled = false;
   }
 
   Future<void> trackError(
     FlutterErrorDetails details, {
     required bool handled,
-  }) {
-    if (!enabled) return Future.value();
+  }) async {
+    if (!_enabled) return;
     final ExceptionData? exceptionData =
         ExceptionFactory.from(details, handled);
     if (exceptionData == null) {
       logger.log(LogLevel.error, "Failed to parse exception");
-      return Future.value();
+      return;
     }
     return signalProcessor.trackEvent(
       data: exceptionData,
@@ -46,5 +46,10 @@ final class ExceptionCollector {
       userTriggered: false,
       threadName: Isolate.current.debugName,
     );
+  }
+
+  @visibleForTesting
+  bool isEnabled() {
+    return _enabled;
   }
 }

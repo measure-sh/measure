@@ -23,20 +23,20 @@ void main() {
     });
 
     test('initial state should be disabled', () {
-      expect(collector.enabled, false);
+      expect(collector.isEnabled(), false);
     });
 
     test('registers the collector', () {
       collector.register();
-      expect(collector.enabled, true);
+      expect(collector.isEnabled(), true);
     });
 
     test('unregisters the collector', () {
       collector.register();
-      expect(collector.enabled, true);
+      expect(collector.isEnabled(), true);
 
       collector.unregister();
-      expect(collector.enabled, false);
+      expect(collector.isEnabled(), false);
     });
 
     test('tracks exception with un-obfuscated stacktrace', () {

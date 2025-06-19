@@ -9,11 +9,15 @@ abstract class MeasureApi {
     required DateTime? timestamp,
   });
 
-  Future<void> start(
+  Future<void> init(
     FutureOr<void> Function() action, {
     required ClientInfo clientInfo,
     MeasureConfig config = const MeasureConfig(),
   });
+
+  Future<void> start();
+
+  Future<void> stop();
 
   void trackHandledError(Object error, StackTrace stack);
 

@@ -12,6 +12,8 @@ enum MethodConstants {
     static let functionTrackEvent = "trackEvent"
     static let functionTriggerNativeCrash = "triggerNativeCrash"
     static let functionInitializeNativeSdk = "initializeNativeSDK"
+    static let functionStart = "start"
+    static let functionStop = "stop"
 
     // arguments
     static let argEventData = "event_data"

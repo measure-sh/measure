@@ -4,15 +4,27 @@ import 'package:measure_flutter/src/navigation/screen_view_data.dart';
 
 class NavigationCollector {
   final SignalProcessor signalProcessor;
+  bool _enabled = false;
 
-  const NavigationCollector({
+  void register() {
+    _enabled = true;
+  }
+
+  void unregister() {
+    _enabled = false;
+  }
+
+  NavigationCollector({
     required this.signalProcessor,
   });
 
   Future<void> trackScreenViewEvent({
     required String name,
     required bool userTriggered,
-  }) {
+  }) async {
+    if (!_enabled) {
+      return;
+    }
     final data = ScreenViewData(name: name);
     return signalProcessor.trackEvent(
       data: data,

@@ -36,4 +36,12 @@ abstract class MeasureFlutterPlatform extends PlatformInterface {
   ) {
     throw UnimplementedError('initializeNativeSDK() has not been implemented.');
   }
+
+  Future<void> start() {
+    throw UnimplementedError('start() has not been implemented.');
+  }
+
+  Future<void> stop() {
+    throw UnimplementedError('stop() has not been implemented.');
+  }
 }

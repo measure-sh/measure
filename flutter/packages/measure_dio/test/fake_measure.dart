@@ -12,7 +12,7 @@ class FakeMeasure implements MeasureApi {
   var _shouldTrackHttpHeader = false;
 
   @override
-  Future<void> start(
+  Future<void> init(
     FutureOr<void> Function() action, {
     required ClientInfo clientInfo,
     MeasureConfig config = const MeasureConfig(),
@@ -93,5 +93,15 @@ class FakeMeasure implements MeasureApi {
   @override
   bool shouldTrackHttpUrl(String url) {
     return _shouldTrackHttpUrl;
+  }
+
+  @override
+  Future<void> start() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> stop() {
+    throw UnimplementedError();
   }
 }
