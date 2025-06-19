@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, ChevronsUpDown } from "lucide-react"
+import { ChevronsUpDown, Circle, CircleCheck } from "lucide-react"
 import React, { useEffect, useState } from 'react'
 import { UserDefAttr } from '../api/api_calls'
 import { cn } from '../utils/shadcn_utils'
@@ -200,10 +200,8 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, i
               >
                 <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-0">
                   <div className="flex items-center justify-center w-full sm:w-[5%]">
-                    <Check className={cn(
-                      "h-4 w-4",
-                      isAttrSelected(attr) ? "opacity-100" : "opacity-0"
-                    )} />
+                    {!isAttrSelected(attr) && <Circle className={cn("h-4 w-4 opacity-50")} />}
+                    {isAttrSelected(attr) && <CircleCheck className={cn("h-4 w-4")} />}
                   </div>
 
                   <div className="flex items-center w-full sm:w-[15%]">
