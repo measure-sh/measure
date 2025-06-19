@@ -4,7 +4,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:measure_dio/measure_dio.dart';
-import 'package:measure_flutter/attribute_builder.dart';
 import 'package:measure_flutter/measure.dart';
 import 'package:measure_flutter_example/src/screen_navigation.dart';
 import 'package:stack_trace/stack_trace.dart';
@@ -129,6 +128,9 @@ class _MainScreenState extends State<MainScreen> {
           ListItem(title: "Dio GET", onPressed: _makeDioGetHttpRequest),
           ListItem(title: "Dio POST", onPressed: _makeDioPostHttpRequest),
           ListItem(title: "Dio Failure", onPressed: _makeDioFailedHttpRequest),
+          ListSection(title: "spans"),
+          ListItem(title: "Create span", onPressed: _trackSpan),
+          ListItem(title: "Create nested span", onPressed: _trackNestedSpan),
         ],
       ),
     );
@@ -243,6 +245,84 @@ class _MainScreenState extends State<MainScreen> {
       await dio.get('https://fakestoreapi.com/login');
     } catch (e) {
       // ignore-errors
+    }
+  }
+
+  void _trackSpan() async {
+    final attributes = AttributeBuilder().add("is_premium", false).build();
+    final span = Measure.instance
+        .startSpan("load-data")
+        .setCheckpoint("on-start")
+        .setAttributes(attributes)
+        .setStatus(SpanStatus.error);
+    await Future.delayed(const Duration(seconds: 2));
+    span.setCheckpoint("on-error");
+    span.end();
+  }
+
+  void _trackNestedSpan() async {
+    // Main operation: Load user profile
+    final profileAttributes = AttributeBuilder()
+        .add("user_id", "user_12345")
+        .add("cache_enabled", true)
+        .build();
+
+    final profileSpan = Measure.instance
+        .startSpan("load-user-profile")
+        .setCheckpoint("profile-load-started")
+        .setAttributes(profileAttributes);
+
+    try {
+      // Check cache first
+      await _checkCache(profileSpan);
+
+      // If cache miss, fetch from API
+      await _fetchFromAPI(profileSpan);
+
+      profileSpan.setCheckpoint("profile-loaded")
+          .setStatus(SpanStatus.ok);
+
+    } catch (e) {
+      profileSpan.setCheckpoint("profile-load-failed")
+          .setStatus(SpanStatus.error);
+    } finally {
+      profileSpan.end();
+    }
+  }
+
+  Future<void> _checkCache(parentSpan) async {
+    final cacheSpan = Measure.instance
+        .startSpan("check-profile-cache")
+        .setParent(parentSpan)
+        .setCheckpoint("cache-check-started");
+
+    try {
+      await Future.delayed(const Duration(milliseconds: 100));
+      cacheSpan.setCheckpoint("cache-miss")
+          .setStatus(SpanStatus.ok);
+    } finally {
+      cacheSpan.end();
+    }
+  }
+
+  Future<void> _fetchFromAPI(parentSpan) async {
+    final apiAttributes = AttributeBuilder()
+        .add("endpoint", "/api/v1/user/profile")
+        .add("timeout_ms", 5000)
+        .build();
+
+    final apiSpan = Measure.instance
+        .startSpan("fetch-profile-api")
+        .setParent(parentSpan)
+        .setCheckpoint("api-request-sent")
+        .setAttributes(apiAttributes);
+
+    try {
+      await Future.delayed(const Duration(milliseconds: 800));
+      apiSpan.setCheckpoint("api-response-received")
+          .setStatus(SpanStatus.ok);
+    } finally {
+      apiSpan.end();
     }
   }
 }

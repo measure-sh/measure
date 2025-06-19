@@ -30,6 +30,8 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
                 MethodConstants.FUNCTION_INITIALIZE_NATIVE_SDK -> initializeNativeSdk(call, result)
                 MethodConstants.FUNCTION_START -> start(call, result)
                 MethodConstants.FUNCTION_STOP -> stop(call, result)
+                MethodConstants.FUNCTION_GET_SESSION_ID -> getSessionId(result)
+                MethodConstants.FUNCTION_TRACK_SPAN -> trackSpan(call, result)
                 else -> result.notImplemented()
             }
         } catch (e: MethodArgumentException) {
@@ -43,11 +45,16 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         }
     }
 
+    private fun getSessionId(result: MethodChannel.Result) {
+        val sessionId = Measure.getSessionId()
+        return result.success(sessionId)
+    }
+
     private fun triggerNativeCrash() {
         val exception = RuntimeException("Native app crashed")
         val mainThread = Looper.getMainLooper().thread
         mainThread.uncaughtExceptionHandler?.uncaughtException(mainThread, exception)
-        mainThread.join();
+        mainThread.join()
     }
 
     private fun handleTrackEvent(call: MethodCall, result: MethodChannel.Result) {
@@ -109,6 +116,39 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         val config = MeasureConfig.fromJson(configJson)
         val clientInfo = ClientInfo.fromJson(clientInfoJson)
         Measure.init(context, measureConfig = config, clientInfo = clientInfo)
+        result.success(null)
+    }
+
+    private fun trackSpan(call: MethodCall, result: MethodChannel.Result) {
+        val reader = MethodCallReader(call)
+        val name: String = reader.requireArg(MethodConstants.ARG_SPAN_NAME)
+        val traceId: String = reader.requireArg(MethodConstants.ARG_SPAN_TRACE_ID)
+        val spanId: String = reader.requireArg(MethodConstants.ARG_SPAN_SPAN_ID)
+        val parentId: String? = reader.optionalArg(MethodConstants.ARG_SPAN_PARENT_ID)
+        val startTime: Long = reader.requireArg(MethodConstants.ARG_SPAN_START_TIME)
+        val endTime: Long = reader.requireArg(MethodConstants.ARG_SPAN_END_TIME)
+        val duration: Long = reader.requireArg(MethodConstants.ARG_SPAN_DURATION)
+        val status: Int = reader.requireArg(MethodConstants.ARG_SPAN_STATUS)
+        val attributes: MutableMap<String, Any?>? = reader.optionalArg(MethodConstants.ARG_SPAN_ATTRIBUTES)
+        val userDefinedAttrs: Map<String, Any> = reader.requireArg(MethodConstants.ARG_SPAN_USER_DEFINED_ATTRS)
+        val checkpoints: Map<String, Long> = reader.requireArg(MethodConstants.ARG_SPAN_CHECKPOINTS)
+        val hasEnded: Boolean = reader.requireArg(MethodConstants.ARG_SPAN_HAS_ENDED)
+        val isSampled: Boolean = reader.requireArg(MethodConstants.ARG_SPAN_IS_SAMPLED)
+        Measure.internalTrackSpan(
+            name = name,
+            traceId = traceId,
+            spanId = spanId,
+            parentId = parentId,
+            startTime = startTime,
+            endTime = endTime,
+            duration = duration,
+            status = status,
+            attributes = attributes ?: mutableMapOf(),
+            userDefinedAttrs = userDefinedAttrs,
+            checkpoints = checkpoints,
+            hasEnded = hasEnded,
+            isSampled = isSampled
+        )
         result.success(null)
     }
 

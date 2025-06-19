@@ -13,6 +13,8 @@ Future<void> main() async {
       trackHttpBody: true,
       httpUrlBlocklist: ['http://localhost'],
       autoStart: true,
+      traceSamplingRate: 1,
+      samplingRateForErrorFreeSessions: 1,
     ),
     clientInfo: ClientInfo(
       apiKey: "msrsh-123",

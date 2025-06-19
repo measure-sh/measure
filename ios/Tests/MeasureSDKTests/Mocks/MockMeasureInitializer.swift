@@ -296,7 +296,10 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                configProvider: self.configProvider,
                                                                                httpEventValidator: self.httpEventValidator)
         self.internalSignalCollector = internalSignalCollector ?? BaseInternalSignalCollector(logger: self.logger,
-                                                                                             signalProcessor: self.signalProcessor)
+                                                                                              timeProvider: self.timeProvider,
+                                                                                              signalProcessor: self.signalProcessor,
+                                                                                              sessionManager: self.sessionManager,
+                                                                                              attributeProcessors: self.attributeProcessors)
         self.screenshotGenerator = BaseScreenshotGenerator(configProvider: self.configProvider,
                                                            logger: self.logger,
                                                            attachmentProcessor: self.attachmentProcessor,

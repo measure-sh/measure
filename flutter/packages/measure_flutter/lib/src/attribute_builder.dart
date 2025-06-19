@@ -1,10 +1,11 @@
-import 'package:measure_flutter/attribute_value.dart';
+import 'attribute_value.dart';
 
 final class AttributeBuilder {
   final Map<String, AttributeValue> _attributes = {};
 
-  void add(String key, Object value) {
+  AttributeBuilder add(String key, Object value) {
     _attributes[key] = value.toAttr();
+    return this;
   }
 
   Map<String, AttributeValue> build() => _attributes;

@@ -1,7 +1,10 @@
-import 'package:measure_flutter/attribute_value.dart';
+import 'package:measure_flutter/src/attribute_value.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
+import 'package:measure_flutter/src/tracing/span_data.dart';
 
 class TestMethodChannel implements MsrMethodChannel {
+  String? _sessionId = "test-session-id";
+
   final List<
       (
         Map<String, dynamic>,
@@ -26,15 +29,29 @@ class TestMethodChannel implements MsrMethodChannel {
 
   @override
   Future<void> triggerNativeCrash() {
-    return Future.value();
+    throw UnimplementedError();
   }
 
   @override
   Future<void> initializeNativeSDK(
     Map<String, dynamic> config,
     Map<String, String> clientInfo,
-  ) {
-    return Future.value();
+  ) async {
+    // no-op
+  }
+
+  @override
+  Future<String?> getSessionId() async {
+    return _sessionId;
+  }
+
+  void setSessionId(String? id) {
+    _sessionId = id;
+  }
+
+  @override
+  Future<void> trackSpan(SpanData data) {
+    throw UnimplementedError();
   }
 
   @override

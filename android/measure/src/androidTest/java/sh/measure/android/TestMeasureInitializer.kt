@@ -331,9 +331,10 @@ internal class TestMeasureInitializer(
     override val appLifecycleManager: AppLifecycleManager = AppLifecycleManager(
         application = application,
     ),
+    override val spanAttributeProcessors: List<AttributeProcessor> = emptyList(),
     private val spanProcessor: SpanProcessor = MsrSpanProcessor(
         signalProcessor = signalProcessor,
-        attributeProcessors = emptyList(),
+        attributeProcessors = spanAttributeProcessors,
         logger = logger,
         configProvider = configProvider,
     ),
@@ -432,5 +433,7 @@ internal class TestMeasureInitializer(
         logger = logger,
         signalProcessor = signalProcessor,
         processInfoProvider = processInfoProvider,
+        sessionManager = sessionManager,
+        spanAttributeProcessors = spanAttributeProcessors,
     ),
 ) : MeasureInitializer

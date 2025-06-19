@@ -22,6 +22,10 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
                 try start(call, result: result)
             case MethodConstants.functionStop:
                 try stop(call, result: result)
+            case MethodConstants.functionGetSessionId:
+                try getSessionId(call, result: result)
+            case MethodConstants.functionTrackSpan:
+                try trackSpan(call, result: result)
             default:
                 result(FlutterMethodNotImplemented)
             }
@@ -97,15 +101,54 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         Measure.initialize(with: clientInfo, config: config)
         result(nil)
     }
-    
+
     private func start(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         Measure.shared.start()
         result(nil)
     }
 
-    
+
     private func stop(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         Measure.shared.stop()
         result(nil)
+    }
+
+    private func getSessionId(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
+        let id = Measure.getSessionId()
+        result(id)
+    }
+
+    private func trackSpan(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
+        let reader = MethodCallReader(call)
+        let name: String = try reader.requireArg(MethodConstants.argSpanName)
+        let traceId: String = try reader.requireArg(MethodConstants.argSpanTraceId)
+        let spanId: String = try reader.requireArg(MethodConstants.argSpanId)
+        let parentId: String? = reader.optionalArg(MethodConstants.argSpanParentId)
+        let startTime: Int64 = try reader.requireArg(MethodConstants.argSpanStartTime)
+        let endTime: Int64 = try reader.requireArg(MethodConstants.argSpanEndTime)
+        let duration: Int64 = try reader.requireArg(MethodConstants.argSpanDuration)
+        let status: Int64 = try reader.requireArg(MethodConstants.argSpanStatus)
+        let attributes: [String: Any?]? = reader.optionalArg(MethodConstants.argSpanAttributes)
+        let rawUserDefinedAttrs: [String: Any] = try reader.requireArg(MethodConstants.argSpanUserDefinedAttrs)
+        let userDefinedAttrs = try AttributeConverter.convertAttributes(rawUserDefinedAttrs)
+        let checkpoints: [String: Int64] = try reader.requireArg(MethodConstants.argSpanCheckpoints)
+        let hasEnded: Bool = try reader.requireArg(MethodConstants.argSpanHasEnded)
+        let isSampled: Bool = try reader.requireArg(MethodConstants.argSpanIsSampled)
+
+        Measure.internalTrackSpan(
+            name: name,
+            traceId: traceId,
+            spanId: spanId,
+            parentId: parentId,
+            startTime: startTime,
+            endTime: endTime,
+            duration: duration,
+            status: status,
+            attributes: attributes ?? [:],
+            userDefinedAttrs: userDefinedAttrs,
+            checkpoints: checkpoints,
+            hasEnded: hasEnded,
+            isSampled: isSampled
+        )
     }
 }

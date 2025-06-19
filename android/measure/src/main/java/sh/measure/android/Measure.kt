@@ -582,6 +582,62 @@ object Measure {
         }
     }
 
+    /**
+     * An internal method to track spans from cross-platform frameworks
+     * like Flutter and React Native.
+     *
+     * This method is not intended for public usage and can change in future versions. To
+     * track spans use [startSpan] or [createSpanBuilder].
+     *
+     * @param name the name of the span.
+     * @param traceId the trace id this span is part of.
+     * @param spanId a unique identifier for this span.
+     * @param parentId an optional span id of the parent span.
+     * @param startTime the time in milliseconds since epoch when this span was started.
+     * @param endTime the time in milliseconds since epoch when this span ended.
+     * @param duration the duration of the operation represented by this span.
+     * @param status the [sh.measure.android.tracing.SpanStatus].
+     * @param attributes key-value pairs providing additional context to the span. Must be one of
+     *  [sh.measure.android.attributes.Attribute].
+     * @param userDefinedAttrs custom key-value pairs providing additional context to the span.
+     * @param checkpoints a map of checkpoint name to timestamp.
+     * @param hasEnded whether the span has ended.
+     * @param isSampled whether the span has been sampled or not.
+     */
+    fun internalTrackSpan(
+        name: String,
+        traceId: String,
+        spanId: String,
+        parentId: String?,
+        startTime: Long,
+        endTime: Long,
+        duration: Long,
+        status: Int,
+        attributes: MutableMap<String, Any?>,
+        userDefinedAttrs: Map<String, Any>,
+        checkpoints: Map<String, Long>,
+        hasEnded: Boolean,
+        isSampled: Boolean,
+    ) {
+        if (isInitialized.get()) {
+            measure.internalTrackSpan(
+                name = name,
+                traceId = traceId,
+                spanId = spanId,
+                parentId = parentId,
+                startTime = startTime,
+                endTime = endTime,
+                duration = duration,
+                status = status,
+                attributes = attributes,
+                userDefinedAttrs = userDefinedAttrs,
+                checkpoints = checkpoints,
+                hasEnded = hasEnded,
+                isSampled = isSampled,
+            )
+        }
+    }
+
     internal fun getBugReportCollector(): BugReportCollector {
         if (isInitialized.get()) {
             return measure.bugReportCollector

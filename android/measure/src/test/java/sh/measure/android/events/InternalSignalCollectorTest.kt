@@ -20,21 +20,33 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import sh.measure.android.MsrAttachment
+import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.fakes.FakeProcessInfoProvider
+import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.serialization.jsonSerializer
+import sh.measure.android.tracing.Checkpoint
+import sh.measure.android.tracing.SpanStatus
 
 class InternalSignalCollectorTest {
     private val signalProcessor = mock<SignalProcessor>()
     private val processInfoProvider = FakeProcessInfoProvider()
+    private val sessionManager = FakeSessionManager()
+    private val attributeProcessor = object : AttributeProcessor {
+        override fun appendAttributes(attributes: MutableMap<String, Any?>) {
+            attributes.put("key-processor", "value-processor")
+        }
+    }
     private val internalSignalCollector = InternalSignalCollector(
         logger = NoopLogger(),
         signalProcessor = signalProcessor,
         processInfoProvider = processInfoProvider,
+        sessionManager = sessionManager,
+        spanAttributeProcessors = listOf(attributeProcessor),
     )
 
     @Test
@@ -423,6 +435,48 @@ class InternalSignalCollectorTest {
             attachments = mutableListOf(),
             threadName = threadName,
         )
+    }
+
+    @Test
+    fun `trackSpan with valid input map tracks span with session ID and attributes applied`() {
+        val expectedSpanData = TestData.getSpanData(
+            name = "span_name",
+            traceId = "trace_id",
+            spanId = "span_id",
+            sessionId = sessionManager.getSessionId(),
+            parentId = "parent_id",
+            startTime = 1234567890L,
+            endTime = 1234568890L,
+            duration = 1000,
+            status = SpanStatus.Ok,
+            attributes = mapOf("key" to "value", "key-processor" to "value-processor"),
+            userDefinedAttrs = mapOf("key" to "value"),
+            checkpoints = mutableListOf(
+                Checkpoint("checkpoint_name", 1234567890L),
+            ),
+            hasEnded = true,
+            isSampled = true,
+        )
+
+        // When
+        internalSignalCollector.trackSpan(
+            name = "span_name",
+            traceId = "trace_id",
+            spanId = "span_id",
+            parentId = "parent_id",
+            startTime = 1234567890L,
+            endTime = 1234568890L,
+            duration = 1000,
+            status = SpanStatus.Ok.value,
+            attributes = mutableMapOf("key" to "value"),
+            userDefinedAttrs = mapOf("key" to "value"),
+            checkpoints = mapOf("checkpoint_name" to 1234567890L),
+            hasEnded = true,
+            isSampled = true,
+        )
+
+        // Then
+        verify(signalProcessor).trackSpan(expectedSpanData)
     }
 
     private fun jsonToMap(jsonObject: JsonObject): MutableMap<String, Any?> {

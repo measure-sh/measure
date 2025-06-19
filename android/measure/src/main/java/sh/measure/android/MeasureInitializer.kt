@@ -359,17 +359,18 @@ internal class MeasureInitializerImpl(
     private val spanDeviceAttributeProcessor: SpanDeviceAttributeProcessor = SpanDeviceAttributeProcessor(
         localeProvider = localeProvider,
     ),
+    override val spanAttributeProcessors: List<AttributeProcessor> = listOf(
+        userAttributeProcessor,
+        spanDeviceAttributeProcessor,
+        appAttributeProcessor,
+        installationIdAttributeProcessor,
+        networkStateAttributeProcessor,
+        powerStateAttributeProcessor,
+    ),
     private val spanProcessor: SpanProcessor = MsrSpanProcessor(
         logger,
         signalProcessor,
-        attributeProcessors = listOf(
-            userAttributeProcessor,
-            spanDeviceAttributeProcessor,
-            appAttributeProcessor,
-            installationIdAttributeProcessor,
-            networkStateAttributeProcessor,
-            powerStateAttributeProcessor,
-        ),
+        attributeProcessors = spanAttributeProcessors,
         configProvider,
     ),
     private val tracer: Tracer = MsrTracer(
@@ -459,6 +460,8 @@ internal class MeasureInitializerImpl(
         logger,
         signalProcessor,
         processInfoProvider,
+        sessionManager,
+        spanAttributeProcessors,
     ),
 ) : MeasureInitializer
 
@@ -498,4 +501,5 @@ internal interface MeasureInitializer {
     val executorServiceRegistry: ExecutorServiceRegistry
     val shakeBugReportCollector: ShakeBugReportCollector
     val internalSignalCollector: InternalSignalCollector
+    val spanAttributeProcessors: List<AttributeProcessor>
 }

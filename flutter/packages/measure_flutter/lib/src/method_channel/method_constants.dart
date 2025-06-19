@@ -5,6 +5,8 @@ class MethodConstants {
   static const String functionInitializeNativeSDK = 'initializeNativeSDK';
   static const String functionStart = 'start';
   static const String functionStop = 'stop';
+  static const String functionGetSessionId = 'getSessionId';
+  static const String functionTrackSpan = 'trackSpan';
 
   // Argument keys
   static const String argEventData = 'event_data';
@@ -15,6 +17,21 @@ class MethodConstants {
   static const String argThreadName = 'thread_name';
   static const String argConfig = 'config';
   static const String argClientInfo = 'client_info';
+  static const String argSpanName = "name";
+  static const String argSpanTraceId = "traceId";
+  static const String argSpanSpanId = "id";
+  static const String argSpanParentId = "parentId";
+  static const String argSpanStartTime = "startTime";
+  static const String argSpanEndTime = "endTime";
+  static const String argSpanDuration = "duration";
+  static const String argSpanStatus = "status";
+  static const String argSpanAttributes = "attributes";
+  static const String argSpanUserDefinedAttrs = "userDefinedAttrs";
+  static const String argSpanCheckpoints = "checkpoints";
+  static const String argSpanCheckpointName = "name";
+  static const String argSpanCheckpointTimestamp = "timestamp";
+  static const String argSpanHasEnded = "hasEnded";
+  static const String argSpanIsSampled = "isSampled";
 
   // Error codes
   static const String errorInvalidArgument = 'invalid_argument';

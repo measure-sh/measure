@@ -3,7 +3,6 @@ import 'dart:developer' as developer;
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
-import 'package:measure_flutter/attribute_value.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/measure_internal.dart';
@@ -11,10 +10,15 @@ import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 
 import 'measure.dart';
 
+export 'src/attribute_builder.dart';
+export 'src/attribute_value.dart';
 export 'src/config/client.dart';
 export 'src/config/measure_config.dart';
 export 'src/measure_api.dart';
 export 'src/navigation/navigator_observer.dart';
+export 'src/tracing/span.dart';
+export 'src/tracing/span_builder.dart';
+export 'src/tracing/span_status.dart';
 
 /// Main Measure SDK class implementing MeasureApi
 /// Provides a singleton interface for tracking events, errors, and HTTP requests
@@ -288,6 +292,42 @@ class Measure implements MeasureApi {
         name: 'Measure',
         level: 100,
       );
+    }
+  }
+
+  @override
+  SpanBuilder? createSpanBuilder(String name) {
+    if (isInitialized) {
+      return _measure.createSpanBuilder(name);
+    }
+    return null;
+  }
+
+  @override
+  String getTraceParentHeaderKey() {
+    return _measure.getTraceParentHeaderKey();
+  }
+
+  @override
+  String getTraceParentHeaderValue(Span span) {
+    return _measure.getTraceParentHeaderValue(span);
+  }
+
+  @override
+  Span startSpan(String name, {int? timestamp}) {
+    if (isInitialized) {
+      return _measure.createSpanBuilder(name).startSpan(timestamp: timestamp);
+    } else {
+      return Span.invalid();
+    }
+  }
+
+  @override
+  int getCurrentTime() {
+    if (isInitialized) {
+      return _measure.getCurrentTime();
+    } else {
+      return DateTime.now().millisecondsSinceEpoch;
     }
   }
 }

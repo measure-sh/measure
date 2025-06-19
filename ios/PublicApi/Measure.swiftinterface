@@ -1,7 +1,7 @@
 // swift-interface-format-version: 1.0
-// swift-compiler-version: Apple Swift version 6.1.2 effective-5.10 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)
-// swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -Onone -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name Measure
-// swift-module-flags-ignorable: -no-verify-emitted-module-interface -interface-compiler-version 6.1.2
+// swift-compiler-version: Apple Swift version 6.0.3 effective-5.10 (swiftlang-6.0.3.1.10 clang-1600.0.30.1)
+// swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -Onone -enable-experimental-feature OpaqueTypeErasure -enable-bare-slash-regex -module-name Measure
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface
 import AVKit
 import CoreData
 import CoreMotion
@@ -254,6 +254,7 @@ extension Measure.Measure {
   @objc public static func stop()
   @objc public static func getSessionId() -> Swift.String?
   public static func internalTrackEvent(data: inout [Swift.String : Any?], type: Swift.String, timestamp: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], userTriggered: Swift.Bool, sessionId: Swift.String?, threadName: Swift.String?)
+  public static func internalTrackSpan(name: Swift.String, traceId: Swift.String, spanId: Swift.String, parentId: Swift.String?, startTime: Swift.Int64, endTime: Swift.Int64, duration: Swift.Int64, status: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], checkpoints: [Swift.String : Swift.Int64], hasEnded: Swift.Bool, isSampled: Swift.Bool)
   public static func trackEvent(name: Swift.String, attributes: [Swift.String : Measure.AttributeValue], timestamp: Swift.Int64? = nil)
   @objc public static func trackEvent(_ name: Swift.String, attributes: [Swift.String : Any], timestamp: Foundation.NSNumber? = nil)
   @objc public static func trackScreenView(_ screenName: Swift.String)

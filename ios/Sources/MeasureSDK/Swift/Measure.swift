@@ -105,6 +105,35 @@ import UIKit
                                           threadName: threadName)
     }
 
+    func internalTrackSpan(name: String, // swiftlint:disable:this function_parameter_count
+                           traceId: String,
+                           spanId: String,
+                           parentId: String?,
+                           startTime: Int64,
+                           endTime: Int64,
+                           duration: Int64,
+                           status: Int64,
+                           attributes: [String: Any?],
+                           userDefinedAttrs: [String: AttributeValue],
+                           checkpoints: [String: Int64],
+                           hasEnded: Bool,
+                           isSampled: Bool) {
+        guard let internalSignalCollector = measureInternal?.internalSignalCollector else { return }
+        internalSignalCollector.trackSpan(name: name,
+                                          traceId: traceId,
+                                          spanId: spanId,
+                                          parentId: parentId,
+                                          startTime: startTime,
+                                          endTime: endTime,
+                                          duration: duration,
+                                          status: status,
+                                          attributes: attributes,
+                                          userDefinedAttrs: userDefinedAttrs,
+                                          checkpoints: checkpoints,
+                                          hasEnded: hasEnded,
+                                          isSampled: isSampled)
+    }
+
     @objc func trackEvent(_ name: String, attributes: [String: Any], timestamp: NSNumber?) {
         guard let measureInternal = measureInternal else { return }
 
@@ -353,6 +382,55 @@ extension Measure {
                                           userTriggered: userTriggered,
                                           sessionId: sessionId,
                                           threadName: threadName)
+    }
+
+    /// An internal method to track spans from cross-platform frameworks
+    /// like Flutter and React Native.
+    ///
+    /// This method is not intended for public usage and can change in future versions. To
+    /// track spans use startSpan or createSpanBuilder.
+    ///
+    /// - **Parameters**:
+    ///   - name: The name of the span.
+    ///   - traceId: The trace id this span is part of.
+    ///   - spanId: A unique identifier for this span.
+    ///   - parentId: An optional span id of the parent span.
+    ///   - startTime: The time in milliseconds since epoch when this span was started.
+    ///   - endTime: The time in milliseconds since epoch when this span ended.
+    ///   - duration: The duration of the operation represented by this span.
+    ///   - status: The span status.
+    ///   - attributes: Key-value pairs providing additional context to the span. Must be one of
+    ///     the supported Attribute types.
+    ///   - userDefinedAttrs: Custom key-value pairs providing additional context to the span.
+    ///   - checkpoints: A map of checkpoint name to timestamp.
+    ///   - hasEnded: Whether the span has ended.
+    ///   - isSampled: Whether the span has been sampled or not.
+    public static func internalTrackSpan(name: String, // swiftlint:disable:this function_parameter_count
+                                         traceId: String,
+                                         spanId: String,
+                                         parentId: String?,
+                                         startTime: Int64,
+                                         endTime: Int64,
+                                         duration: Int64,
+                                         status: Int64,
+                                         attributes: [String: Any?],
+                                         userDefinedAttrs: [String: AttributeValue],
+                                         checkpoints: [String: Int64],
+                                         hasEnded: Bool,
+                                         isSampled: Bool) {
+        Measure.shared.internalTrackSpan(name: name,
+                                         traceId: traceId,
+                                         spanId: spanId,
+                                         parentId: parentId,
+                                         startTime: startTime,
+                                         endTime: endTime,
+                                         duration: duration,
+                                         status: status,
+                                         attributes: attributes,
+                                         userDefinedAttrs: userDefinedAttrs,
+                                         checkpoints: checkpoints,
+                                         hasEnded: hasEnded,
+                                         isSampled: isSampled)
     }
 
     /// Tracks an event with optional timestamp.

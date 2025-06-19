@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:measure_flutter/attribute_value.dart';
+import 'package:measure_flutter/src/attribute_value.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/events/custom_event_data.dart';
 

@@ -26,17 +26,6 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <meta-data
-            android:name="sh.measure.android.API_KEY"
-            android:value="msrsh_f266e068dfe7e95834881bd7fd3675e8f0f5bea0f918978d5f1626e56a8df9d0_f2c39747" />
-
-        <meta-data
-            android:name="sh.measure.android.API_URL"
-            android:value="http://10.0.2.2:8080" />
-
-        <meta-data
-            android:name="sh.measure.android.BUILD_API_URL"
-            android:value="http://localhost:8080" />
     </application>
     <queries>
         <intent>

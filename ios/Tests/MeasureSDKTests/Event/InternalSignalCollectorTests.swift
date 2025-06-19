@@ -13,6 +13,8 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
     private var signalProcessor: MockSignalProcessor!
     private var eventCollector: BaseInternalSignalCollector!
     private var fileManagerHelper = FileManagerHelper()
+    private var timeProvider = MockTimeProvider()
+    private var sessionManager = MockSessionManager()
 
     override func setUp() {
         super.setUp()
@@ -22,7 +24,10 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
 
         eventCollector = BaseInternalSignalCollector(
             logger: logger,
-            signalProcessor: signalProcessor
+            timeProvider: timeProvider,
+            signalProcessor: signalProcessor,
+            sessionManager: sessionManager,
+            attributeProcessors: []
         )
     }
 
@@ -281,5 +286,64 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             return
         }
         XCTAssertEqual(data.foreground, true)
+    }
+    
+    func testTrackSpan_tracksSpan() {
+        eventCollector.enable()
+
+        eventCollector.trackSpan(
+            name: "span_name",
+            traceId: "trace_id",
+            spanId: "span_id",
+            parentId: "parent_id",
+            startTime: 1234567890,
+            endTime: 1234568890,
+            duration: 1000,
+            status: 1,
+            attributes: [
+                "threadName": "main"
+            ],
+            userDefinedAttrs: [
+                "key": AttributeValue.string("value")
+            ],
+            checkpoints: [
+                "checkpoint_name": 1234567890
+            ],
+            hasEnded: true,
+            isSampled: true
+        )
+
+        XCTAssertNotNil(signalProcessor.spanData)
+        guard let spanData = signalProcessor.spanData else {
+            XCTFail("SpanData should not be nil")
+            return
+        }
+
+        XCTAssertEqual(spanData.name, "span_name")
+        XCTAssertEqual(spanData.traceId, "trace_id")
+        XCTAssertEqual(spanData.spanId, "span_id")
+        XCTAssertEqual(spanData.parentId, "parent_id")
+        XCTAssertEqual(spanData.sessionId, sessionManager.sessionId)
+        XCTAssertEqual(spanData.startTime, 1234567890)
+        XCTAssertEqual(spanData.endTime, 1234568890)
+        XCTAssertEqual(spanData.duration, 1000)
+        XCTAssertEqual(spanData.status, .ok)
+        XCTAssertTrue(spanData.hasEnded)
+        XCTAssertTrue(spanData.isSampled)
+
+        // Attributes
+        XCTAssertEqual(spanData.attributes?.threadName, "main")
+
+        // User-defined attributes
+        guard let attrs = spanData.userDefinedAttrs else {
+            XCTFail("userDefinedAttrs should not be nil")
+            return
+        }
+        XCTAssertEqual(attrs["key"]?.value as? String, "value")
+
+        // Checkpoints
+        XCTAssertEqual(spanData.checkpoints.count, 1)
+        XCTAssertEqual(spanData.checkpoints.first?.name, "checkpoint_name")
+        XCTAssertEqual(spanData.checkpoints.first?.timestamp, timeProvider.iso8601Timestamp)
     }
 }
