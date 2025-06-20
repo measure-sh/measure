@@ -112,6 +112,11 @@ class FakeMeasure implements MeasureApi {
   Future<void> setUserId(String userId) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<String?> getSessionId() {
+    throw UnimplementedError();
+  }
 }
 
 class ScreenViewCall {

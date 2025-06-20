@@ -145,4 +145,8 @@ final class MeasureInternal {
   Future<void> clearUserId() {
     return methodChannel.clearUserId();
   }
+
+  Future<String?> getSessionId() {
+    return methodChannel.getSessionId();
+  }
 }

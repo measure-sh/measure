@@ -67,4 +67,6 @@ abstract class MeasureApi {
   Future<void> setUserId(String userId);
 
   Future<void> clearUserId();
+
+  Future<String?> getSessionId();
 }
