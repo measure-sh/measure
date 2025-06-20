@@ -40,7 +40,7 @@ final class BaseDataCleanupService: DataCleanupService {
             }
 
             sessionStore.deleteSessions(sessionsToDelete)
-            eventStore.deleteEvents(sessionIds: sessionsToDelete)
+            eventStore.deleteEvents(sessionIds: sessionsToDelete) {}
             spanStore.deleteSpans(sessionIds: sessionsToDelete)
 
             logger.internalLog(level: .info, message: "Cleared stale session data for \(sessionsToDelete.count) sessions.", error: nil, data: ["sessionIds": sessionsToDelete])

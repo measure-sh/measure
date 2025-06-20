@@ -11,7 +11,7 @@ import CoreData
 protocol BatchStore {
     func insertBatch(_ batch: BatchEntity, completion: @escaping (Bool) -> Void)
     func getBatches(_ maxNumberOfBatches: Int, completion: @escaping ([BatchEntity]) -> Void)
-    func deleteBatch(_ batchId: String)
+    func deleteBatch(_ batchId: String, completion: @escaping () -> Void)
 }
 
 final class BaseBatchStore: BatchStore {
@@ -76,9 +76,12 @@ final class BaseBatchStore: BatchStore {
         }
     }
 
-    func deleteBatch(_ batchId: String) {
+    func deleteBatch(_ batchId: String, completion: @escaping () -> Void) {
         coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self = self else { return }
+            guard let self = self else {
+                completion()
+                return
+            }
 
             let fetchRequest: NSFetchRequest<BatchOb> = BatchOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "batchId == %@", batchId)
@@ -95,6 +98,8 @@ final class BaseBatchStore: BatchStore {
             } catch {
                 self.logger.internalLog(level: .error, message: "Failed to delete batch with id: \(batchId)", error: error, data: nil)
             }
+
+            completion()
         }
     }
 }

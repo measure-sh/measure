@@ -53,13 +53,13 @@ class DataCleanupServiceTests: XCTestCase {
         let span2 = TestDataGenerator.generateSpans(name: "span2", sessionId: "session1")
         let session = SessionEntity(sessionId: "session1", pid: 123, createdAt: 123, needsReporting: false, crashed: false)
 
-        eventStore.insertEvent(event: event1)
-        eventStore.insertEvent(event: event2)
-        eventStore.insertEvent(event: event3)
-        eventStore.insertEvent(event: event4)
+        eventStore.insertEvent(event: event1) {}
+        eventStore.insertEvent(event: event2) {}
+        eventStore.insertEvent(event: event3) {}
+        eventStore.insertEvent(event: event4) {}
         spanStore.insertSpan(span: span1)
         spanStore.insertSpan(span: span2)
-        sessionStore.insertSession(session)
+        sessionStore.insertSession(session) {}
 
         // Trigger cleanup
         dataCleanupService.clearStaleData()
@@ -90,11 +90,11 @@ class DataCleanupServiceTests: XCTestCase {
         let event4 = TestDataGenerator.generateEvents(id: "event4", sessionId: "session1", needsReporting: true)
         let session = SessionEntity(sessionId: "session1", pid: 123, createdAt: 123, needsReporting: false, crashed: false)
 
-        eventStore.insertEvent(event: event1)
-        eventStore.insertEvent(event: event2)
-        eventStore.insertEvent(event: event3)
-        eventStore.insertEvent(event: event4)
-        sessionStore.insertSession(session)
+        eventStore.insertEvent(event: event1) {}
+        eventStore.insertEvent(event: event2) {}
+        eventStore.insertEvent(event: event3) {}
+        eventStore.insertEvent(event: event4) {}
+        sessionStore.insertSession(session) {}
 
         dataCleanupService.clearStaleData()
 
@@ -122,13 +122,13 @@ class DataCleanupServiceTests: XCTestCase {
         let span2 = TestDataGenerator.generateSpans(name: "span2", sessionId: "session1")
         let session = SessionEntity(sessionId: "session1", pid: 123, createdAt: 123, needsReporting: true, crashed: false)
 
-        eventStore.insertEvent(event: event1)
-        eventStore.insertEvent(event: event2)
-        eventStore.insertEvent(event: event3)
-        eventStore.insertEvent(event: event4)
+        eventStore.insertEvent(event: event1) {}
+        eventStore.insertEvent(event: event2) {}
+        eventStore.insertEvent(event: event3) {}
+        eventStore.insertEvent(event: event4) {}
         spanStore.insertSpan(span: span1)
         spanStore.insertSpan(span: span2)
-        sessionStore.insertSession(session)
+        sessionStore.insertSession(session) {}
 
         dataCleanupService.clearStaleData()
 
@@ -161,15 +161,15 @@ class DataCleanupServiceTests: XCTestCase {
         let currentSession = SessionEntity(sessionId: "currentSession", pid: 123, createdAt: 123, needsReporting: false, crashed: false)
         let session = SessionEntity(sessionId: "session1", pid: 1234, createdAt: 1234, needsReporting: false, crashed: false)
 
-        eventStore.insertEvent(event: event1)
-        eventStore.insertEvent(event: event2)
-        eventStore.insertEvent(event: event3)
-        eventStore.insertEvent(event: event4)
+        eventStore.insertEvent(event: event1) {}
+        eventStore.insertEvent(event: event2) {}
+        eventStore.insertEvent(event: event3) {}
+        eventStore.insertEvent(event: event4) {}
         spanStore.insertSpan(span: span1)
         spanStore.insertSpan(span: span2)
         spanStore.insertSpan(span: span3)
-        sessionStore.insertSession(currentSession)
-        sessionStore.insertSession(session)
+        sessionStore.insertSession(currentSession) {}
+        sessionStore.insertSession(session) {}
 
         dataCleanupService.clearStaleData()
 
