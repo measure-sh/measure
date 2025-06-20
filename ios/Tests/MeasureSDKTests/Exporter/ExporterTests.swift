@@ -39,8 +39,8 @@ final class BaseexporterTests: XCTestCase {
         let batchId = "batch1"
         let eventIds = ["event1", "event2"]
         let spanIds = ["span1", "span2"]
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 100))
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200))
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 100)) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200)) {}
 
         exporter.export(batchId: batchId, eventIds: eventIds, spanIds: spanIds) { response in
             XCTAssertNotNil(response)
@@ -79,8 +79,8 @@ final class BaseexporterTests: XCTestCase {
         let batchId = "batch1"
         let eventIds = ["event1", "event2"]
         let spanIds = ["span1", "span2"]
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 100))
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200))
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 100)) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200)) {}
 
         networkClient.response = .success(body: "success")
 
@@ -97,8 +97,8 @@ final class BaseexporterTests: XCTestCase {
         let batchId = "batch1"
         let eventIds = ["event1", "event2"]
         let spanIds = ["span1", "span2"]
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 100))
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200))
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 100)) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200)) {}
 
         networkClient.response = .error(.clientError(responseCode: 400, body: "error"))
 

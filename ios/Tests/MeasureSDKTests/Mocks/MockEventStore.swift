@@ -13,7 +13,7 @@ final class MockEventStore: EventStore {
     var deleteEventsCalled = false
     var deletedEventIds = [String]()
 
-    func insertEvent(event: EventEntity) {
+    func insertEvent(event: EventEntity, completion: @escaping () -> Void) {
         events.append(event)
     }
 
@@ -27,7 +27,7 @@ final class MockEventStore: EventStore {
         completion(filteredEvents.isEmpty ? nil : filteredEvents)
     }
 
-    func deleteEvents(eventIds: [String]) {
+    func deleteEvents(eventIds: [String], completion: @escaping () -> Void) {
         deletedEventIds = eventIds
         deleteEventsCalled = true
         events.removeAll { eventIds.contains($0.id) }
@@ -61,10 +61,12 @@ final class MockEventStore: EventStore {
         }
     }
 
-    func deleteEvents(sessionIds: [String]) {
+    func deleteEvents(sessionIds: [String], completion: @escaping () -> Void) {
         let eventsToDelete = events.filter { sessionIds.contains($0.sessionId) && !$0.needsReporting }
         let eventIdsToDelete = eventsToDelete.map { $0.id }
 
-        deleteEvents(eventIds: eventIdsToDelete)
+        deleteEvents(eventIds: eventIdsToDelete) {
+            completion()
+        }
     }
 }

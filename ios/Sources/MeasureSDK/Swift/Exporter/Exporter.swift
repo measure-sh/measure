@@ -73,7 +73,7 @@ final class BaseExporter: Exporter {
 
                 guard !spans.isEmpty || !events.isEmpty else {
                     logger.internalLog(level: .error, message: "No events and spans found for batch \(batchId), invalid export request.", error: nil, data: nil)
-                    self.batchStore.deleteBatch(batchId)
+                    self.batchStore.deleteBatch(batchId) {}
                     self.batchIdsInTransit.remove(batchId)
                     completion(nil)
                     return
@@ -109,7 +109,7 @@ final class BaseExporter: Exporter {
         let eventIds = events.map { $0.id }
         let spanIds = spans.map { $0.spanId }
         spanStore.deleteSpans(spanIds: spanIds)
-        eventStore.deleteEvents(eventIds: eventIds)
-        batchStore.deleteBatch(batchId)
+        eventStore.deleteEvents(eventIds: eventIds) {}
+        batchStore.deleteBatch(batchId) {}
     }
 }

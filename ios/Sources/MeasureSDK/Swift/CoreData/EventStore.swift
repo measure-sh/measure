@@ -9,11 +9,11 @@ import CoreData
 import Foundation
 
 protocol EventStore {
-    func insertEvent(event: EventEntity)
+    func insertEvent(event: EventEntity, completion: @escaping () -> Void)
     func getEvents(eventIds: [String], completion: @escaping ([EventEntity]?) -> Void)
     func getEventsForSessions(sessions: [String], completion: @escaping ([EventEntity]?) -> Void)
-    func deleteEvents(eventIds: [String])
-    func deleteEvents(sessionIds: [String])
+    func deleteEvents(eventIds: [String], completion: @escaping () -> Void)
+    func deleteEvents(sessionIds: [String], completion: @escaping () -> Void)
     func getAllEvents(completion: @escaping ([EventEntity]?) -> Void)
     func getUnBatchedEventsWithAttachmentSize(eventCount: Number, ascending: Bool, sessionId: String?, completion: @escaping ([String: Number]) -> Void)
     func updateBatchId(_ batchId: String, for events: [String])
@@ -29,9 +29,12 @@ final class BaseEventStore: EventStore {
         self.logger = logger
     }
 
-    func insertEvent(event: EventEntity) {
+    func insertEvent(event: EventEntity, completion: @escaping () -> Void) {
         coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { return }
+            guard let self else {
+                completion()
+                return
+            }
 
             let eventOb = EventOb(context: context)
             eventOb.id = event.id
@@ -63,11 +66,14 @@ final class BaseEventStore: EventStore {
             eventOb.screenView = event.screenView
             eventOb.bugReport = event.bugReport
             eventOb.needsReporting = event.needsReporting
+
             do {
                 try context.saveIfNeeded()
             } catch {
                 logger.internalLog(level: .error, message: "Failed to save event: \(event.id)", error: error, data: nil)
             }
+
+            completion()
         }
     }
 
@@ -110,13 +116,17 @@ final class BaseEventStore: EventStore {
         }
     }
 
-    func deleteEvents(eventIds: [String]) {
+    func deleteEvents(eventIds: [String], completion: @escaping () -> Void) {
         coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { return }
+            guard let self else {
+                completion()
+                return
+            }
 
             let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
             fetchRequest.fetchLimit = eventIds.count
             fetchRequest.predicate = NSPredicate(format: "id IN %@", eventIds)
+
             do {
                 let events = try context.fetch(fetchRequest)
                 events.forEach { context.delete($0) }
@@ -124,24 +134,30 @@ final class BaseEventStore: EventStore {
             } catch {
                 logger.internalLog(level: .error, message: "Failed to delete events by IDs: \(eventIds.joined(separator: ","))", error: error, data: nil)
             }
+
+            completion()
         }
     }
 
-    func deleteEvents(sessionIds: [String]) {
+    func deleteEvents(sessionIds: [String], completion: @escaping () -> Void) {
         coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { return }
+            guard let self else {
+                completion()
+                return
+            }
 
             let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "sessionId IN %@ AND needsReporting == %d", sessionIds, false)
+
             do {
                 let events = try context.fetch(fetchRequest)
-                for event in events {
-                    context.delete(event)
-                }
+                events.forEach { context.delete($0) }
                 try context.saveIfNeeded()
             } catch {
                 logger.internalLog(level: .error, message: "Failed to delete events by session IDs: \(sessionIds.joined(separator: ","))", error: error, data: nil)
             }
+
+            completion()
         }
     }
 

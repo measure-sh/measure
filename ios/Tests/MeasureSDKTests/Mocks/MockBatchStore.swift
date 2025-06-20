@@ -26,7 +26,7 @@ final class MockBatchStore: BatchStore {
         completion(Array(batches.prefix(maxNumberOfBatches)))
     }
 
-    func deleteBatch(_ batchId: String) {
+    func deleteBatch(_ batchId: String, completion: @escaping () -> Void) {
         deleteBatchCalled = true
         deletedBatchId = batchId
         batches.removeAll { $0.batchId == batchId }

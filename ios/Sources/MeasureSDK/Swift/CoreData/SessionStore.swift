@@ -9,12 +9,12 @@ import CoreData
 import Foundation
 
 protocol SessionStore {
-    func insertSession(_ session: SessionEntity)
+    func insertSession(_ session: SessionEntity, completion: @escaping () -> Void)
     func getSession(byId sessionId: String, completion: @escaping (SessionEntity?) -> Void)
     func getAllSessions(completion: @escaping ([SessionEntity]?) -> Void)
-    func deleteSession(_ sessionId: String)
+    func deleteSession(_ sessionId: String, completion: @escaping () -> Void)
     func markCrashedSessions(sessionIds: [String])
-    func markCrashedSession(sessionId: String)
+    func markCrashedSession(sessionId: String, completion: @escaping () -> Void)
     func updateNeedsReporting(sessionId: String, needsReporting: Bool)
     func getOldestSession(completion: @escaping (String?) -> Void)
     func deleteSessions(_ sessionIds: [String])
@@ -30,9 +30,12 @@ final class BaseSessionStore: SessionStore {
         self.logger = logger
     }
 
-    func insertSession(_ session: SessionEntity) {
+    func insertSession(_ session: SessionEntity, completion: @escaping () -> Void) {
         coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { return }
+            guard let self else {
+                completion()
+                return
+            }
 
             let sessionOb = SessionOb(context: context)
             sessionOb.sessionId = session.sessionId
@@ -46,6 +49,8 @@ final class BaseSessionStore: SessionStore {
             } catch {
                 self.logger.internalLog(level: .error, message: "Failed to save session: \(session.sessionId)", error: error, data: nil)
             }
+
+            completion()
         }
     }
 
@@ -104,9 +109,12 @@ final class BaseSessionStore: SessionStore {
         }
     }
 
-    func deleteSession(_ sessionId: String) {
+    func deleteSession(_ sessionId: String, completion: @escaping () -> Void) {
         coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { return }
+            guard let self else {
+                completion()
+                return
+            }
 
             let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
             fetchRequest.fetchLimit = 1
@@ -120,6 +128,8 @@ final class BaseSessionStore: SessionStore {
             } catch {
                 self.logger.internalLog(level: .error, message: "Failed to delete session: \(sessionId)", error: error, data: nil)
             }
+
+            completion()
         }
     }
 
@@ -143,9 +153,12 @@ final class BaseSessionStore: SessionStore {
         }
     }
 
-    func markCrashedSession(sessionId: String) {
+    func markCrashedSession(sessionId: String, completion: @escaping () -> Void) {
         coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { return }
+            guard let self else {
+                completion()
+                return
+            }
 
             let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
             fetchRequest.fetchLimit = 1
@@ -159,6 +172,8 @@ final class BaseSessionStore: SessionStore {
             } catch {
                 self.logger.internalLog(level: .error, message: "Failed to mark crashed session: \(sessionId)", error: error, data: nil)
             }
+
+            completion()
         }
     }
 
