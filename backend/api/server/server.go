@@ -87,7 +87,7 @@ func (sc *ServerConfig) IsCloud() bool {
 
 func NewConfig() *ServerConfig {
 	cloudEnv := false
-	if ce := os.Getenv("CLOUD_ENV"); ce == "true" {
+	if os.Getenv("K_SERVICE") != "" && os.Getenv("K_REVISION") != "" {
 		cloudEnv = true
 	}
 
