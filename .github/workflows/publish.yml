@@ -61,7 +61,7 @@ jobs:
         run: go test ./...
 
   trigger-cloud-deploy:
-    name: Triggle Cloud Deploy
+    name: Trigger Cloud Deploy
     runs-on: ubuntu-latest
     needs: [build-api, test-api]
     steps:
