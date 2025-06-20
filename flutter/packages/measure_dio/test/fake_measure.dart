@@ -128,4 +128,14 @@ class FakeMeasure implements MeasureApi {
   Span startSpan(String name, {int? timestamp}) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> clearUserId() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> setUserId(String userId) {
+    throw UnimplementedError();
+  }
 }

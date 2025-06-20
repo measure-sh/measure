@@ -16,6 +16,8 @@ enum MethodConstants {
     static let functionTrackSpan = "trackSpan"
     static let functionStart = "start"
     static let functionStop = "stop"
+    static let functionSetUserId = "setUserId"
+    static let functionClearUserId = "clearUserId"
 
     // arguments
     static let argEventData = "event_data"
@@ -39,6 +41,7 @@ enum MethodConstants {
     static let argSpanCheckpoints = "checkpoints"
     static let argSpanHasEnded = "hasEnded"
     static let argSpanIsSampled = "isSampled"
+    static let argUserId = "user_id"
 }
 
 enum ErrorCode {

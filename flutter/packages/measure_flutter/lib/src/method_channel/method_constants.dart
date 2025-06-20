@@ -7,6 +7,8 @@ class MethodConstants {
   static const String functionStop = 'stop';
   static const String functionGetSessionId = 'getSessionId';
   static const String functionTrackSpan = 'trackSpan';
+  static const String functionSetUserId = 'setUserId';
+  static const String functionClearUserId = 'clearUserId';
 
   // Argument keys
   static const String argEventData = 'event_data';
@@ -32,6 +34,7 @@ class MethodConstants {
   static const String argSpanCheckpointTimestamp = "timestamp";
   static const String argSpanHasEnded = "hasEnded";
   static const String argSpanIsSampled = "isSampled";
+  static const String argUserId = 'user_id';
 
   // Error codes
   static const String errorInvalidArgument = 'invalid_argument';

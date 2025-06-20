@@ -131,6 +131,9 @@ class _MainScreenState extends State<MainScreen> {
           ListSection(title: "spans"),
           ListItem(title: "Create span", onPressed: _trackSpan),
           ListItem(title: "Create nested span", onPressed: _trackNestedSpan),
+          ListSection(title: "user"),
+          ListItem(title: "Set user", onPressed: _setUserId),
+          ListItem(title: "Clear user", onPressed: _clearUserId),
         ],
       ),
     );
@@ -324,6 +327,14 @@ class _MainScreenState extends State<MainScreen> {
     } finally {
       apiSpan.end();
     }
+  }
+
+  void _setUserId() {
+    Measure.instance.setUserId("user-131351");
+  }
+
+  void _clearUserId() {
+    Measure.instance.clearUserId();
   }
 }
 

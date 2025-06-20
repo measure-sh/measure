@@ -26,6 +26,10 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
                 try getSessionId(call, result: result)
             case MethodConstants.functionTrackSpan:
                 try trackSpan(call, result: result)
+            case MethodConstants.functionSetUserId:
+                try setUserId(call, result: result)
+            case MethodConstants.functionClearUserId:
+                try clearUserId(result: result)
             default:
                 result(FlutterMethodNotImplemented)
             }
@@ -103,13 +107,13 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
     }
 
     private func start(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
-        Measure.shared.start()
+        Measure.start()
         result(nil)
     }
 
 
     private func stop(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
-        Measure.shared.stop()
+        Measure.stop()
         result(nil)
     }
 
@@ -150,5 +154,17 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
             hasEnded: hasEnded,
             isSampled: isSampled
         )
+    }
+    
+    private func setUserId(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
+        let reader = MethodCallReader(call)
+        let userId: String = try reader.requireArg(MethodConstants.argUserId)
+        Measure.setUserId(userId)
+        result(nil)
+    }
+
+    private func clearUserId(result: @escaping FlutterResult) throws {
+        Measure.clearUserId()
+        result(nil)
     }
 }

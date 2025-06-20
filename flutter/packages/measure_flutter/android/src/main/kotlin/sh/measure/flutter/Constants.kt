@@ -9,6 +9,8 @@ object MethodConstants {
     const val FUNCTION_TRACK_SPAN = "trackSpan"
     const val FUNCTION_START = "start"
     const val FUNCTION_STOP = "stop"
+    const val FUNCTION_SET_USER_ID = "setUserId"
+    const val FUNCTION_CLEAR_USER_ID = "clearUserId"
 
     // arguments
     const val ARG_EVENT_DATA = "event_data"
@@ -32,6 +34,7 @@ object MethodConstants {
     const val ARG_SPAN_CHECKPOINTS = "checkpoints";
     const val ARG_SPAN_HAS_ENDED = "hasEnded";
     const val ARG_SPAN_IS_SAMPLED = "isSampled";
+    const val ARG_USER_ID = "user_id";
 
 }
 

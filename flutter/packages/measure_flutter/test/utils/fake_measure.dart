@@ -102,6 +102,16 @@ class FakeMeasure implements MeasureApi {
   int getCurrentTime() {
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> clearUserId() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> setUserId(String userId) {
+    throw UnimplementedError();
+  }
 }
 
 class ScreenViewCall {

@@ -54,4 +54,12 @@ abstract class MeasureFlutterPlatform extends PlatformInterface {
   Future<void> trackSpan(SpanData data) {
     throw UnimplementedError('trackSpan() has not been implemented.');
   }
+
+  Future<void> setUserId(String userId) {
+    throw UnimplementedError('stop() has not been implemented.');
+  }
+
+  Future<void> clearUserId() {
+    throw UnimplementedError('getUserId() has not been implemented.');
+  }
 }
