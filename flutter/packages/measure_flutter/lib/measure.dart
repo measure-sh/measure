@@ -346,4 +346,12 @@ class Measure implements MeasureApi {
     }
     return Future.value(null);
   }
+
+  @override
+  Future<String?> getSessionId() async {
+    if (isInitialized) {
+      return _measure.getSessionId();
+    }
+    return Future.value(null);
+  }
 }
