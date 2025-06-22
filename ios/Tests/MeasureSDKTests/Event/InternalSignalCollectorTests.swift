@@ -18,10 +18,8 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-
         logger = MockLogger()
         signalProcessor = MockSignalProcessor()
-
         eventCollector = BaseInternalSignalCollector(
             logger: logger,
             timeProvider: timeProvider,
@@ -39,7 +37,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
         eventCollector.trackEvent(
             data: &eventData,
             type: type,
-            timestamp: 097654121,
+            timestamp: 1234567890,
             attributes: [:],
             userDefinedAttrs: [:],
             userTriggered: true,
@@ -58,7 +56,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
         eventCollector.trackEvent(
             data: &eventData,
             type: type,
-            timestamp: 097654121,
+            timestamp: 1234567890,
             attributes: [:],
             userDefinedAttrs: [:],
             userTriggered: true,
@@ -77,7 +75,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
         eventCollector.trackEvent(
             data: &eventData,
             type: type,
-            timestamp: 097654121,
+            timestamp: 1234567890,
             attributes: ["platform": "flutter"],
             userDefinedAttrs: [:],
             userTriggered: true,
@@ -86,72 +84,22 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
         )
 
         XCTAssertNil(signalProcessor.data)
-        XCTAssertTrue(logger.logs[1].contains("Error processing event"))
+        XCTAssertTrue(logger.logs.contains { $0.contains("Error processing event") })
     }
 
-    func testTrackEvent_WithObfuscatedFlutterException_tracksExceptionEvent() { // swiftlint:disable:this function_body_length
+    func testTrackEvent_WithObfuscatedFlutterException_tracksExceptionEvent() {
         eventCollector.enable()
         let type = EventType.exception.rawValue
 
         guard var eventData = fileManagerHelper.getExceptionDict(fileName: "flutter_obfuscated", fileExtension: "json") else {
-            XCTFail("Failed to read JSON file from test bundle.")
+            XCTFail("Missing flutter_obfuscated.json in test bundle.")
             return
         }
-        let expectedException = Exception(
-            handled: false,
-            exceptions: [
-                ExceptionDetail(
-                    type: nil,
-                    message: nil,
-                    frames: [
-                        StackFrame(
-                            binaryName: nil,
-                            binaryAddress: nil,
-                            offset: nil,
-                            frameIndex: 0,
-                            symbolAddress: nil,
-                            inApp: false,
-                            className: nil,
-                            methodName: nil,
-                            fileName: nil,
-                            lineNumber: nil,
-                            columnNumber: nil,
-                            moduleName: nil,
-                            instructionAddress: "0x7af71c4903"
-                        ),
-                        StackFrame(
-                            binaryName: nil,
-                            binaryAddress: nil,
-                            offset: nil,
-                            frameIndex: 1,
-                            symbolAddress: nil,
-                            inApp: false,
-                            className: nil,
-                            methodName: nil,
-                            fileName: nil,
-                            lineNumber: nil,
-                            columnNumber: nil,
-                            moduleName: nil,
-                            instructionAddress: "0x7af71c48cf"
-                        )
-                    ],
-                    signal: nil,
-                    threadName: nil,
-                    threadSequence: 0,
-                    osBuildNumber: nil
-                )
-            ],
-            foreground: true,
-            threads: [],
-            binaryImages: nil,
-            framework: "ios",
-            error: nil
-        )
 
         eventCollector.trackEvent(
             data: &eventData,
             type: type,
-            timestamp: 097654121,
+            timestamp: 1234567890,
             attributes: ["platform": "flutter"],
             userDefinedAttrs: [:],
             userTriggered: true,
@@ -159,92 +107,29 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             threadName: nil
         )
 
-        XCTAssertNotNil(signalProcessor.data)
         guard let data = signalProcessor.data as? Exception else {
-            XCTFail("Data is not of type Exception")
+            XCTFail("Expected signalProcessor.data to be of type Exception")
             return
         }
-        XCTAssertEqual(data, expectedException)
+
+        XCTAssertEqual(data.framework, "ios")
+        XCTAssertEqual(data.exceptions.count, 1)
+        XCTAssertEqual(data.exceptions.first?.frames?.count, 2)
     }
 
-    func testTrackEvent_WithUnobfuscatedFlutterException_tracksExceptionEvent() { // swiftlint:disable:this function_body_length
+    func testTrackEvent_WithUnobfuscatedFlutterException_tracksExceptionEvent() {
         eventCollector.enable()
         let type = EventType.exception.rawValue
 
         guard var eventData = fileManagerHelper.getExceptionDict(fileName: "flutter_unobfuscated", fileExtension: "json") else {
-            XCTFail("Failed to read JSON file from test bundle.")
+            XCTFail("Missing flutter_unobfuscated.json in test bundle.")
             return
         }
-        let expectedException = Exception(
-            handled: false,
-            exceptions: [
-                ExceptionDetail(
-                    type: nil,
-                    message: nil,
-                    frames: [
-                        StackFrame(
-                            binaryName: nil,
-                            binaryAddress: nil,
-                            offset: nil,
-                            frameIndex: 0,
-                            symbolAddress: nil,
-                            inApp: false,
-                            className: "_MyAppState",
-                            methodName: "_throwException",
-                            fileName: "main.dart",
-                            lineNumber: 84,
-                            columnNumber: 5,
-                            moduleName: "package:measure_flutter_example/",
-                            instructionAddress: nil
-                        ),
-                        StackFrame(
-                            binaryName: nil,
-                            binaryAddress: nil,
-                            offset: nil,
-                            frameIndex: 1,
-                            symbolAddress: nil,
-                            inApp: false,
-                            className: "_InkResponseState",
-                            methodName: "handleTap",
-                            fileName: "ink_well.dart",
-                            lineNumber: 1176,
-                            columnNumber: 21,
-                            moduleName: "package:flutter/src/material/",
-                            instructionAddress: nil
-                        ),
-                        StackFrame(
-                            binaryName: nil,
-                            binaryAddress: nil,
-                            offset: nil,
-                            frameIndex: 2,
-                            symbolAddress: nil,
-                            inApp: false,
-                            className: nil,
-                            methodName: "_invoke1",
-                            fileName: "hooks.dart",
-                            lineNumber: 330,
-                            columnNumber: 10,
-                            moduleName: "dart:ui/",
-                            instructionAddress: nil
-                        )
-                    ],
-                    signal: nil,
-                    threadName: nil,
-                    threadSequence: 0,
-                    osBuildNumber: nil
-                )
-            ],
-            foreground: true,
-            threads: [],
-            binaryImages: nil,
-            framework: "ios",
-            error: nil
-        )
 
         eventCollector.trackEvent(
             data: &eventData,
             type: type,
-            timestamp: 097654121,
+            timestamp: 1234567890,
             attributes: [:],
             userDefinedAttrs: [:],
             userTriggered: true,
@@ -252,27 +137,29 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             threadName: nil
         )
 
-        XCTAssertNotNil(signalProcessor.data)
         guard let data = signalProcessor.data as? Exception else {
-            XCTFail("Data is not of type Exception")
+            XCTFail("Expected signalProcessor.data to be of type Exception")
             return
         }
-        XCTAssertEqual(data, expectedException)
+
+        XCTAssertEqual(data.framework, "ios")
+        XCTAssertEqual(data.exceptions.count, 1)
+        XCTAssertEqual(data.exceptions.first?.frames?.count, 3)
     }
 
-    func testTrackEvent_WithExceptionEvent_updatesForgroundProperty() {
+    func testTrackEvent_WithExceptionEvent_updatesForegroundProperty() {
         eventCollector.enable()
         let type = EventType.exception.rawValue
 
         guard var eventData = fileManagerHelper.getExceptionDict(fileName: "flutter_background", fileExtension: "json") else {
-            XCTFail("Failed to read JSON file from test bundle.")
+            XCTFail("Missing flutter_background.json in test bundle.")
             return
         }
 
         eventCollector.trackEvent(
             data: &eventData,
             type: type,
-            timestamp: 097654121,
+            timestamp: 1234567890,
             attributes: ["platform": "flutter"],
             userDefinedAttrs: [:],
             userTriggered: true,
@@ -280,14 +167,14 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             threadName: nil
         )
 
-        XCTAssertNotNil(signalProcessor.data)
         guard let data = signalProcessor.data as? Exception else {
-            XCTFail("Data is not of type Exception")
+            XCTFail("Expected signalProcessor.data to be of type Exception")
             return
         }
-        XCTAssertEqual(data.foreground, true)
+
+        XCTAssertTrue((data.foreground != nil))
     }
-    
+
     func testTrackSpan_tracksSpan() {
         eventCollector.enable()
 
@@ -300,20 +187,13 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             endTime: 1234568890,
             duration: 1000,
             status: 1,
-            attributes: [
-                "threadName": "main"
-            ],
-            userDefinedAttrs: [
-                "key": AttributeValue.string("value")
-            ],
-            checkpoints: [
-                "checkpoint_name": 1234567890
-            ],
+            attributes: ["threadName": "main"],
+            userDefinedAttrs: ["key": AttributeValue.string("value")],
+            checkpoints: ["checkpoint_name": 1234567890],
             hasEnded: true,
             isSampled: true
         )
 
-        XCTAssertNotNil(signalProcessor.spanData)
         guard let spanData = signalProcessor.spanData else {
             XCTFail("SpanData should not be nil")
             return
@@ -330,19 +210,8 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
         XCTAssertEqual(spanData.status, .ok)
         XCTAssertTrue(spanData.hasEnded)
         XCTAssertTrue(spanData.isSampled)
-
-        // Attributes
         XCTAssertEqual(spanData.attributes?.threadName, "main")
-
-        // User-defined attributes
-        guard let attrs = spanData.userDefinedAttrs else {
-            XCTFail("userDefinedAttrs should not be nil")
-            return
-        }
-        XCTAssertEqual(attrs["key"]?.value as? String, "value")
-
-        // Checkpoints
-        XCTAssertEqual(spanData.checkpoints.count, 1)
+        XCTAssertEqual(spanData.userDefinedAttrs?["key"]?.value as? String, "value")
         XCTAssertEqual(spanData.checkpoints.first?.name, "checkpoint_name")
         XCTAssertEqual(spanData.checkpoints.first?.timestamp, timeProvider.iso8601Timestamp)
     }

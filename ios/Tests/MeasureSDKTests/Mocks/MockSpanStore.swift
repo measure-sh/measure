@@ -48,12 +48,13 @@ final class MockSpanStore: SpanStore {
         }
     }
 
-    func deleteSpans(sessionIds: [String]) {
+    func deleteSpans(sessionIds: [String], completion: @escaping () -> Void) {
         for (key, span) in spans {
             if let sessionId = span.sessionId, sessionIds.contains(sessionId) {
                 spans.removeValue(forKey: key)
             }
         }
+        completion()
     }
 
     func updateBatchId(_ batchId: String, for spansToUpdate: [String]) {

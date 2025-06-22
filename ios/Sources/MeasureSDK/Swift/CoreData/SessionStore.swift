@@ -17,7 +17,7 @@ protocol SessionStore {
     func markCrashedSession(sessionId: String, completion: @escaping () -> Void)
     func updateNeedsReporting(sessionId: String, needsReporting: Bool)
     func getOldestSession(completion: @escaping (String?) -> Void)
-    func deleteSessions(_ sessionIds: [String])
+    func deleteSessions(_ sessionIds: [String], completion: @escaping () -> Void)
     func getSessionsToDelete(completion: @escaping ([String]?) -> Void)
 }
 
@@ -217,9 +217,12 @@ final class BaseSessionStore: SessionStore {
         }
     }
 
-    func deleteSessions(_ sessionIds: [String]) {
+    func deleteSessions(_ sessionIds: [String], completion: @escaping () -> Void) {
         coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { return }
+            guard let self else {
+                completion()
+                return
+            }
 
             let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
             fetchRequest.fetchLimit = sessionIds.count
@@ -234,6 +237,8 @@ final class BaseSessionStore: SessionStore {
             } catch {
                 self.logger.internalLog(level: .error, message: "Failed to delete sessions: \(sessionIds.joined(separator: ","))", error: error, data: nil)
             }
+
+            completion()
         }
     }
 
