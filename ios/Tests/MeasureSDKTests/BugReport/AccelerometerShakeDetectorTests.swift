@@ -61,19 +61,14 @@ final class AccelerometerShakeDetectorTests: XCTestCase {
 
         let detector = AccelerometerShakeDetector(configProvider: config, motionManager: motion)
         let listener = MockShakeListener()
-        detector.setShakeListener(listener)
-        detector.start()
-
-        let expectation = expectation(description: "Shake should be triggered")
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            motion.simulateAcceleration(x: 2.0, y: 2.0, z: 2.0)
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            XCTAssertTrue(listener.didShake)
+        let expectation = self.expectation(description: "Shake should be triggered")
+        listener.onShakeCallback = {
             expectation.fulfill()
         }
+
+        detector.setShakeListener(listener)
+        detector.start()
+        motion.simulateAcceleration(x: 2.0, y: 2.0, z: 2.0)
 
         wait(for: [expectation], timeout: 1.0)
     }
@@ -87,13 +82,9 @@ final class AccelerometerShakeDetectorTests: XCTestCase {
         let listener = MockShakeListener()
         detector.setShakeListener(listener)
         detector.start()
+        motion.simulateAcceleration(x: 1.0, y: 1.0, z: 1.0)
 
-        let expectation = expectation(description: "Shake should NOT be triggered")
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            motion.simulateAcceleration(x: 1.0, y: 1.0, z: 1.0)
-        }
-
+        let expectation = self.expectation(description: "No shake should be triggered")
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             XCTAssertFalse(listener.didShake)
             expectation.fulfill()
@@ -110,23 +101,22 @@ final class AccelerometerShakeDetectorTests: XCTestCase {
 
         let detector = AccelerometerShakeDetector(configProvider: config, motionManager: motion)
         let listener = MockShakeListener()
+
+        let expectation = self.expectation(description: "Only one shake should be triggered")
+        listener.onShakeCallback = {
+            if listener.didShakeCount == 1 {
+                // Simulate another shake that should be ignored
+                motion.simulateAcceleration(x: 2.0, y: 2.0, z: 2.0)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    XCTAssertEqual(listener.didShakeCount, 1)
+                    expectation.fulfill()
+                }
+            }
+        }
+
         detector.setShakeListener(listener)
         detector.start()
-
-        let expectation = expectation(description: "Only one shake should be triggered")
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
-            motion.simulateAcceleration(x: 2.0, y: 2.0, z: 2.0)
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
-            motion.simulateAcceleration(x: 2.0, y: 2.0, z: 2.0) // should be ignored
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            XCTAssertEqual(listener.didShakeCount, 1)
-            expectation.fulfill()
-        }
+        motion.simulateAcceleration(x: 2.0, y: 2.0, z: 2.0)
 
         wait(for: [expectation], timeout: 1.0)
     }
