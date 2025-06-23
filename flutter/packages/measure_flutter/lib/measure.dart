@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer' as developer;
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
@@ -15,10 +16,14 @@ export 'src/attribute_value.dart';
 export 'src/config/client.dart';
 export 'src/config/measure_config.dart';
 export 'src/measure_api.dart';
+export 'src/measure_widget.dart';
+export 'src/events/msr_attachment.dart';
 export 'src/navigation/navigator_observer.dart';
 export 'src/tracing/span.dart';
 export 'src/tracing/span_builder.dart';
 export 'src/tracing/span_status.dart';
+export 'src/bug_report/ui/bug_report.dart';
+export 'src/events/attachment_type.dart';
 
 /// Main Measure SDK class implementing MeasureApi
 /// Provides a singleton interface for tracking events, errors, and HTTP requests
@@ -130,6 +135,7 @@ class Measure implements MeasureApi {
   }
 
   /// Setup platform dispatcher error handler and execute the main block
+
   Future<void> _initPlatformDispatcherOnError() async {
     PlatformDispatcher.instance.onError = (exception, stackTrace) {
       final details = FlutterErrorDetails(
@@ -218,6 +224,21 @@ class Measure implements MeasureApi {
         requestBody: requestBody,
         responseBody: responseBody,
         client: client,
+      );
+    }
+  }
+
+  @override
+  void trackBugReport({
+    required String description,
+    required List<MsrAttachment> attachments,
+    required Map<String, AttributeValue> attributes,
+  }) {
+    if (_isInitialized) {
+      _measure.trackBugReport(
+        description,
+        attachments,
+        attributes,
       );
     }
   }
@@ -353,5 +374,22 @@ class Measure implements MeasureApi {
       return _measure.getSessionId();
     }
     return Future.value(null);
+  }
+
+  @override
+  Future<MsrAttachment?> captureScreenshot() async {
+    if (isInitialized) {
+      return _measure.captureScreenshot();
+    }
+    return Future.value(null);
+  }
+
+  @override
+  MsrAttachment? createAttachment(Uint8List bytes, AttachmentType type) {
+    if (isInitialized) {
+      return _measure.getAttachment(bytes, type);
+    } else {
+      return null;
+    }
   }
 }

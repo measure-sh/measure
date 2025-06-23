@@ -138,7 +138,7 @@ internal class MeasureInitializerImpl(
     override val logger: Logger = AndroidLogger(configProvider.enableLogging),
     override val timeProvider: TimeProvider = AndroidTimeProvider(AndroidSystemClock()),
     override val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
-    private val fileStorage: FileStorage = FileStorageImpl(
+    override val fileStorage: FileStorage = FileStorageImpl(
         rootDir = application.filesDir.path,
         logger = logger,
     ),
@@ -502,4 +502,5 @@ internal interface MeasureInitializer {
     val shakeBugReportCollector: ShakeBugReportCollector
     val internalSignalCollector: InternalSignalCollector
     val spanAttributeProcessors: List<AttributeProcessor>
+    val fileStorage: FileStorage
 }

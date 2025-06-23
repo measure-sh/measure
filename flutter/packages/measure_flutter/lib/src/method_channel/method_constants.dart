@@ -9,6 +9,7 @@ class MethodConstants {
   static const String functionTrackSpan = 'trackSpan';
   static const String functionSetUserId = 'setUserId';
   static const String functionClearUserId = 'clearUserId';
+  static const String functionGetAttachmentDirectory = 'getAttachmentDirectory';
 
   // Argument keys
   static const String argEventData = 'event_data';
@@ -17,6 +18,7 @@ class MethodConstants {
   static const String argUserDefinedAttrs = 'user_defined_attrs';
   static const String argUserTriggered = 'user_triggered';
   static const String argThreadName = 'thread_name';
+  static const String argAttachments = 'attachments';
   static const String argConfig = 'config';
   static const String argClientInfo = 'client_info';
   static const String argSpanName = "name";

@@ -8,7 +8,7 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         let instance = MeasurePlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
-
+    
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         do {
             switch call.method {
@@ -30,6 +30,8 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
                 try setUserId(call, result: result)
             case MethodConstants.functionClearUserId:
                 try clearUserId(result: result)
+            case MethodConstants.functionGetAttachmentDirectory:
+                try getAttachmentDirectory(result: result)
             default:
                 result(FlutterMethodNotImplemented)
             }
@@ -43,7 +45,7 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
             ))
         }
     }
-
+    
     private func handleTrackEvent(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         let reader = MethodCallReader(call)
         var eventData: [String: Any?] = try reader.requireArg(MethodConstants.argEventData)
@@ -53,6 +55,9 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         let convertedAttributes = try AttributeConverter.convertAttributes(rawAttributes)
         let userTriggered: Bool = try reader.requireArg(MethodConstants.argUserTriggered)
         let threadName: String? = reader.optionalArg(MethodConstants.argThreadName)
+        let rawAttachments: String? = reader.optionalArg(MethodConstants.argAttachments)
+        let convertedAttachments = try AttachmentsConverter.convertAttachments(rawAttachments)
+        
         trackEvent(
             data: &eventData,
             type: eventType,
@@ -60,11 +65,12 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
             userDefinedAttrs: convertedAttributes,
             userTriggered: userTriggered,
             sessionId: nil,
-            threadName: threadName
+            threadName: threadName,
+            attachments: convertedAttachments
         )
         result(nil)
     }
-
+    
     // swiftlint:disable:next function_parameter_count
     private func trackEvent(
         data: inout [String: Any?],
@@ -73,55 +79,57 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         userDefinedAttrs: [String: AttributeValue],
         userTriggered: Bool,
         sessionId: String?,
-        threadName: String?) {
-        Measure.internalTrackEvent(
-            data: &data,
-            type: type,
-            timestamp: timestamp,
-            attributes: [:],
-            userDefinedAttrs: userDefinedAttrs,
-            userTriggered: userTriggered,
-            sessionId: sessionId,
-            threadName: threadName
-        )
-    }
-
+        threadName: String?,
+        attachments: [Attachment]) {
+            Measure.internalTrackEvent(
+                data: &data,
+                type: type,
+                timestamp: timestamp,
+                attributes: [:],
+                userDefinedAttrs: userDefinedAttrs,
+                userTriggered: userTriggered,
+                sessionId: sessionId,
+                threadName: threadName,
+                attachments: attachments
+            )
+        }
+    
     private func triggerNativeCrash() {
         let optionalString: String? = nil
         _ = optionalString!
     }
-
+    
     private func initializeNativeSdk(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         let reader = MethodCallReader(call)
         let argConfig: [String: Any?] = try reader.requireArg(MethodConstants.argConfig)
         let argClientInfo: [String: Any?] = try reader.requireArg(MethodConstants.argClientInfo)
-
+        
         let jsonConfig = try JSONSerialization.data(withJSONObject: argConfig, options: [])
         let config = try JSONDecoder().decode(BaseMeasureConfig.self, from: jsonConfig)
-
+        
         let jsonClientInfo = try JSONSerialization.data(withJSONObject: argClientInfo, options: [])
         let clientInfo = try JSONDecoder().decode(ClientInfo.self, from: jsonClientInfo)
-
+        
         Measure.initialize(with: clientInfo, config: config)
         result(nil)
     }
-
+    
     private func start(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         Measure.start()
         result(nil)
     }
-
-
+    
+    
     private func stop(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         Measure.stop()
         result(nil)
     }
-
+    
     private func getSessionId(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         let id = Measure.getSessionId()
         result(id)
     }
-
+    
     private func trackSpan(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         let reader = MethodCallReader(call)
         let name: String = try reader.requireArg(MethodConstants.argSpanName)
@@ -138,7 +146,7 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         let checkpoints: [String: Int64] = try reader.requireArg(MethodConstants.argSpanCheckpoints)
         let hasEnded: Bool = try reader.requireArg(MethodConstants.argSpanHasEnded)
         let isSampled: Bool = try reader.requireArg(MethodConstants.argSpanIsSampled)
-
+        
         Measure.internalTrackSpan(
             name: name,
             traceId: traceId,
@@ -162,9 +170,14 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         Measure.setUserId(userId)
         result(nil)
     }
-
+    
     private func clearUserId(result: @escaping FlutterResult) throws {
         Measure.clearUserId()
         result(nil)
+    }
+    
+    private func getAttachmentDirectory(result: @escaping FlutterResult) throws {
+        let path = Measure.getDocumentDirectoryPath()
+        result(path)
     }
 }

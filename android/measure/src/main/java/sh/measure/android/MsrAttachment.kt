@@ -11,12 +11,28 @@ import sh.measure.android.events.AttachmentType
  * @property bytes The bytes containing the attachment data.
  * @property type The type of attachment. Must be one of [AttachmentType].
  */
-class MsrAttachment internal constructor(val name: String, val bytes: ByteArray, val type: String)
+class MsrAttachment internal constructor(
+    val name: String,
+    val bytes: ByteArray?,
+    val path: String? = null,
+    val type: String,
+) {
+    constructor(
+        name: String,
+        path: String?,
+        type: String,
+    ) : this(name, null, path, type)
+
+    init {
+        require(type in AttachmentType.VALID_TYPES) { "Invalid attachment type: $type" }
+    }
+}
 
 internal fun MsrAttachment.toEventAttachment(attachmentType: String): Attachment {
     return Attachment(
         name = name,
         type = attachmentType,
         bytes = bytes,
+        path = path,
     )
 }

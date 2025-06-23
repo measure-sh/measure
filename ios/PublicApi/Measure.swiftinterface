@@ -225,6 +225,11 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
 @objc public protocol MsrShakeListener {
   @objc func onShake()
 }
+public struct Attachment : Swift.Codable {
+  public init(name: Swift.String, type: Measure.AttachmentType, size: Swift.Int64, id: Swift.String, bytes: Foundation.Data? = nil, path: Swift.String? = nil)
+  public func encode(to encoder: any Swift.Encoder) throws
+  public init(from decoder: any Swift.Decoder) throws
+}
 @objc public class MsrDimensions : ObjectiveC.NSObject {
   final public let topPadding: CoreFoundation.CGFloat
   public init(topPadding: CoreFoundation.CGFloat)
@@ -253,7 +258,7 @@ extension Measure.Measure {
   @objc public static func start()
   @objc public static func stop()
   @objc public static func getSessionId() -> Swift.String?
-  public static func internalTrackEvent(data: inout [Swift.String : Any?], type: Swift.String, timestamp: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], userTriggered: Swift.Bool, sessionId: Swift.String?, threadName: Swift.String?)
+  public static func internalTrackEvent(data: inout [Swift.String : Any?], type: Swift.String, timestamp: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], userTriggered: Swift.Bool, sessionId: Swift.String?, threadName: Swift.String?, attachments: [Measure.Attachment])
   public static func internalTrackSpan(name: Swift.String, traceId: Swift.String, spanId: Swift.String, parentId: Swift.String?, startTime: Swift.Int64, endTime: Swift.Int64, duration: Swift.Int64, status: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], checkpoints: [Swift.String : Swift.Int64], hasEnded: Swift.Bool, isSampled: Swift.Bool)
   public static func trackEvent(name: Swift.String, attributes: [Swift.String : Measure.AttributeValue], timestamp: Swift.Int64? = nil)
   @objc public static func trackEvent(_ name: Swift.String, attributes: [Swift.String : Any], timestamp: Foundation.NSNumber? = nil)
@@ -278,6 +283,7 @@ extension Measure.Measure {
   @objc public static func captureLayoutSnapshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)
   public static func trackError(_ error: any Swift.Error, attributes: [Swift.String : Measure.AttributeValue]? = nil, collectStackTraces: Swift.Bool = false)
   @objc public static func trackError(_ error: Foundation.NSError, attributes: [Swift.String : Any]? = nil, collectStackTraces: Swift.Bool = false)
+  public static func getDocumentDirectoryPath() -> Swift.String?
 }
 @_inheritsConvenienceInitializers @objc(SpanOb) public class SpanOb : CoreData.NSManagedObject {
   @objc override dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
@@ -357,6 +363,15 @@ extension Measure.SpanOb {
 public struct MSRNetworkInterceptor {
   public static func enable(on sessionConfiguration: Foundation.URLSessionConfiguration)
 }
+public enum AttachmentType : Swift.String, Swift.Codable {
+  case screenshot
+  case layoutSnapshot
+  public init?(rawValue: Swift.String)
+  public typealias RawValue = Swift.String
+  public var rawValue: Swift.String {
+    get
+  }
+}
 @objc @_inheritsConvenienceInitializers @_Concurrency.MainActor @preconcurrency open class MsrViewController : UIKit.UIViewController {
   @_Concurrency.MainActor @preconcurrency @objc override dynamic open func loadView()
   @objc deinit
@@ -374,3 +389,6 @@ extension Measure.VCLifecycleEventType : Swift.Hashable {}
 extension Measure.VCLifecycleEventType : Swift.RawRepresentable {}
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 extension Measure.MsrMoniterView : Swift.Sendable {}
+extension Measure.AttachmentType : Swift.Equatable {}
+extension Measure.AttachmentType : Swift.Hashable {}
+extension Measure.AttachmentType : Swift.RawRepresentable {}

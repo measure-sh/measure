@@ -1,9 +1,6 @@
 import 'dart:async';
-
-import 'package:measure_flutter/src/config/client.dart';
-import 'package:measure_flutter/src/config/measure_config.dart';
-import 'package:measure_flutter/src/tracing/span.dart';
-import 'package:measure_flutter/src/tracing/span_builder.dart';
+import 'dart:typed_data';
+import 'package:measure_flutter/measure.dart';
 
 abstract class MeasureApi {
   void trackEvent({
@@ -35,6 +32,12 @@ abstract class MeasureApi {
   bool shouldTrackHttpUrl(String url);
 
   bool shouldTrackHttpHeader(String key);
+
+  void trackBugReport({
+    required String description,
+    required List<MsrAttachment> attachments,
+    required Map<String, AttributeValue> attributes,
+  });
 
   void trackHttpEvent({
     required String url,
@@ -69,4 +72,8 @@ abstract class MeasureApi {
   Future<void> clearUserId();
 
   Future<String?> getSessionId();
+
+  Future<MsrAttachment?> captureScreenshot();
+
+  MsrAttachment? createAttachment(Uint8List bytes, AttachmentType type);
 }
