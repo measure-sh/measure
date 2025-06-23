@@ -8,7 +8,7 @@
 import Foundation
 
 protocol DataCleanupService {
-    func clearStaleData()
+    func clearStaleData(completion: @escaping () -> Void)
 }
 
 final class BaseDataCleanupService: DataCleanupService {
@@ -26,9 +26,10 @@ final class BaseDataCleanupService: DataCleanupService {
         self.sessionManager = sessionManager
     }
 
-    func clearStaleData() {
+    func clearStaleData(completion: @escaping () -> Void) {
         sessionStore.getSessionsToDelete { [weak self] sessionsToDelete in
             guard let self = self, var sessionsToDelete = sessionsToDelete else {
+                completion()
                 return
             }
 
@@ -36,14 +37,31 @@ final class BaseDataCleanupService: DataCleanupService {
 
             guard !sessionsToDelete.isEmpty else {
                 self.logger.internalLog(level: .info, message: "No stale session data to clear after filtering current session.", error: nil, data: nil)
+                completion()
                 return
             }
 
-            sessionStore.deleteSessions(sessionsToDelete)
-            eventStore.deleteEvents(sessionIds: sessionsToDelete)
-            spanStore.deleteSpans(sessionIds: sessionsToDelete)
+            let group = DispatchGroup()
 
-            logger.internalLog(level: .info, message: "Cleared stale session data for \(sessionsToDelete.count) sessions.", error: nil, data: ["sessionIds": sessionsToDelete])
+            group.enter()
+            self.sessionStore.deleteSessions(sessionsToDelete) {
+                group.leave()
+            }
+
+            group.enter()
+            self.eventStore.deleteEvents(sessionIds: sessionsToDelete) {
+                group.leave()
+            }
+
+            group.enter()
+            self.spanStore.deleteSpans(sessionIds: sessionsToDelete) {
+                group.leave()
+            }
+
+            group.notify(queue: .main) {
+                self.logger.internalLog(level: .info, message: "Cleared stale session data for \(sessionsToDelete.count) sessions.", error: nil, data: ["sessionIds": sessionsToDelete])
+                completion()
+            }
         }
     }
 }

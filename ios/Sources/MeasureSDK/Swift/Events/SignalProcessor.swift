@@ -153,7 +153,7 @@ final class BaseSignalProcessor: SignalProcessor {
         appendAttributes(event: event, threadName: threadName)
         let needsReporting = sessionManager.shouldReportSession ? true : configProvider.eventTypeExportAllowList.contains(event.type)
         let eventEntity = EventEntity(event, needsReporting: needsReporting)
-        eventStore.insertEvent(event: eventEntity)
+        eventStore.insertEvent(event: eventEntity) {}
         sessionManager.onEventTracked(eventEntity)
         logger.log(level: .debug, message: "Event processed: \(type), \(event.id)", error: nil, data: data)
     }

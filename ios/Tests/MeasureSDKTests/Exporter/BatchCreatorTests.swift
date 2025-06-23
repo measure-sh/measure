@@ -62,8 +62,8 @@ final class BatchCreatorTests: XCTestCase {
     }
 
     func testCreateWithEventsButExceedsAttachmentSize() {
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 200))
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 300))
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 200)) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 300)) {}
         configProvider.maxAttachmentSizeInEventsBatchInBytes = 100
         configProvider.maxEventsInBatch = 2
 
@@ -76,8 +76,8 @@ final class BatchCreatorTests: XCTestCase {
     }
 
     func testCreateSuccessfulBatch() {
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 100))
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200))
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 100)) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200)) {}
         configProvider.maxAttachmentSizeInEventsBatchInBytes = 300
         configProvider.maxEventsInBatch = 2
         idProvider.uuId = "batch1"
@@ -99,8 +99,8 @@ final class BatchCreatorTests: XCTestCase {
     }
 
     func testCreateReturnsNilIfNoEventsToBatchAfterFiltering() {
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 200))
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 300))
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 200)) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 300)) {}
         configProvider.maxAttachmentSizeInEventsBatchInBytes = 100
         configProvider.maxEventsInBatch = 2
 

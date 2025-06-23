@@ -15,7 +15,7 @@ protocol SpanStore {
     func getAllSpans(completion: @escaping ([SpanEntity]?) -> Void)
     func getUnBatchedSpans(spanCount: Int64, ascending: Bool, completion: @escaping ([String]) -> Void)
     func updateBatchId(_ batchId: String, for spans: [String])
-    func deleteSpans(sessionIds: [String])
+    func deleteSpans(sessionIds: [String], completion: @escaping () -> Void)
 }
 
 final class BaseSpanStore: SpanStore {
@@ -156,9 +156,12 @@ final class BaseSpanStore: SpanStore {
         }
     }
 
-    func deleteSpans(sessionIds: [String]) {
+    func deleteSpans(sessionIds: [String], completion: @escaping () -> Void) {
         coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { return }
+            guard let self else {
+                completion()
+                return
+            }
 
             let fetchRequest: NSFetchRequest<SpanOb> = SpanOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
@@ -177,6 +180,8 @@ final class BaseSpanStore: SpanStore {
                     data: nil
                 )
             }
+
+            completion()
         }
     }
 }
