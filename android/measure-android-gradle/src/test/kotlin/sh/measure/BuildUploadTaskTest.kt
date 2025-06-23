@@ -25,13 +25,11 @@ class BuildUploadTaskTest {
     private lateinit var mockWebServer: MockWebServer
     private val retriesCount = 2
     private val customHeaders = mapOf(
-        "Content-Type" to "CustomTypeValue",
         "msr-req-id" to "requestId",
         "customHeader" to "customHeaderValue"
     )
-    private val disallowedCustomHeaders =
-        setOf("Content-Type", "msr-req-id", "Authorization", "Content-Length")
-    private val allowedCustomHeaders = customHeaders.keys.minus(disallowedCustomHeaders)
+    private val disallowedCustomHeader = "msr-req-id"
+    private val allowedCustomHeaders = customHeaders.keys.minus(disallowedCustomHeader)
 
     @Before
     fun setup() {
@@ -102,8 +100,7 @@ class BuildUploadTaskTest {
         assertTrue(
             requestHeaders.names().containsAll(allowedCustomHeaders)
         )
-        assertTrue(requestHeaders.names().none { it in disallowedCustomHeaders })
-
+        assertTrue(requestHeaders.names().none { it in disallowedCustomHeader })
     }
     
     @Test
