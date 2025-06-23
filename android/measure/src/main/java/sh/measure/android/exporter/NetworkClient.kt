@@ -25,7 +25,7 @@ internal class NetworkClientImpl(
         logger,
         fileStorage,
     ),
-    private val configProvider: ConfigProvider
+    private val configProvider: ConfigProvider,
 ) : NetworkClient {
     private var baseUrl: URL? = null
     private var eventsUrl: URL? = null
