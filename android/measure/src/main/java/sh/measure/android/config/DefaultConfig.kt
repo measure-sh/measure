@@ -18,10 +18,4 @@ internal object DefaultConfig {
     const val TRACK_FRAGMENT_LOAD_TIME: Boolean = true
     val DISALLOWED_CUSTOM_HEADERS: List<String> =
         listOf("Content-Type", "msr-req-id", "Authorization", "Content-Length")
-    val MSR_REQUEST_HEADER_PROVIDER: MsrRequestHeadersProvider =
-        object : MsrRequestHeadersProvider {
-            override fun getRequestHeaders(): Map<String, String> {
-                return emptyMap()
-            }
-        }
 }

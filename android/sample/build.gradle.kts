@@ -11,7 +11,6 @@ measure {
     variantFilter {
         httpHeaders = when {
             name.contains("debug") -> mapOf("key" to "debug-value")
-            name.contains("alpha") -> mapOf("key" to "alpha-value")
             else -> mapOf("key" to "prod-value")
         }
         if (name.contains("debug")) {

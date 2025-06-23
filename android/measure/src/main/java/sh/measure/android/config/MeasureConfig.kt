@@ -28,7 +28,7 @@ internal interface IMeasureConfig {
     val enableShakeToLaunchBugReport: Boolean
     val trackActivityLoadTime: Boolean
     val trackFragmentLoadTime: Boolean
-    val requestHeadersProvider: MsrRequestHeadersProvider
+    val requestHeadersProvider: MsrRequestHeadersProvider?
 }
 
 /**
@@ -191,14 +191,13 @@ class MeasureConfig(
     override val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
 
     /**
-     *  Map of HTTP headers to be included in http request.
-     *  Defaults to an empty map. The following headers are always excluded:
-     *  * "Content-Type"
-     *  * "msr-req-id"
-     *  * "Authorization"
-     *  * "Content-Length"
+     * Allows configuring custom HTTP headers for requests made by the Measure SDK to the
+     * Measure API. This is useful only for self-hosted clients who may require additional
+     * headers for requests in their infrastructure.
+     *
+     * See [MsrRequestHeadersProvider] for usage details.
      */
-    override val requestHeadersProvider: MsrRequestHeadersProvider = DefaultConfig.MSR_REQUEST_HEADER_PROVIDER,
+    override val requestHeadersProvider: MsrRequestHeadersProvider? = null,
 ) : IMeasureConfig {
     init {
         require(samplingRateForErrorFreeSessions in 0.0..1.0) {

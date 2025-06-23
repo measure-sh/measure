@@ -19,7 +19,7 @@ internal data class Config(
     override val trackActivityLoadTime: Boolean = DefaultConfig.TRACK_ACTIVITY_LOAD_TIME,
     override val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
     override val disallowedCustomHeaders: List<String> = DefaultConfig.DISALLOWED_CUSTOM_HEADERS,
-    override val requestHeadersProvider: MsrRequestHeadersProvider = DefaultConfig.MSR_REQUEST_HEADER_PROVIDER,
+    override val requestHeadersProvider: MsrRequestHeadersProvider? = null
 ) : InternalConfig, IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25
