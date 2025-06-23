@@ -123,6 +123,7 @@ internal class TestMeasureInitializer(
             httpUrlAllowlist = inputConfig.httpUrlAllowlist,
             trackActivityIntentData = inputConfig.trackActivityIntentData,
             samplingRateForErrorFreeSessions = inputConfig.samplingRateForErrorFreeSessions,
+            requestHeadersProvider = inputConfig.requestHeadersProvider
         ),
         configLoader = ConfigLoaderImpl(),
     ),
@@ -138,6 +139,7 @@ internal class TestMeasureInitializer(
     override val networkClient: NetworkClient = NetworkClientImpl(
         logger = logger,
         fileStorage = fileStorage,
+        configProvider = configProvider
     ),
     private val randomizer: Randomizer = RandomizerImpl(),
     private val idProvider: IdProvider = IdProviderImpl(randomizer),

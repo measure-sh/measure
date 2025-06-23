@@ -1,5 +1,7 @@
 package sh.measure.android.exporter
 
+import okhttp3.Headers
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.FileStorage
@@ -23,6 +25,7 @@ internal class NetworkClientImpl(
         logger,
         fileStorage,
     ),
+    private val configProvider: ConfigProvider
 ) : NetworkClient {
     private var baseUrl: URL? = null
     private var eventsUrl: URL? = null
@@ -87,7 +90,7 @@ internal class NetworkClientImpl(
         return mapOf(
             "msr-req-id" to batchId,
             "Authorization" to "Bearer $apiKey",
-        )
+        ) + sanitizedCustomHeaders()
     }
 
     private fun prepareMultipartData(
@@ -105,5 +108,13 @@ internal class NetworkClientImpl(
             multipartDataFactory.createFromSpanPacket(it)
         }
         return events + attachments + spans
+    }
+
+    private fun sanitizedCustomHeaders(): Headers {
+        val headersBuilder = Headers.Builder()
+        configProvider.requestHeadersProvider.getRequestHeaders()
+            .filter { it.key !in configProvider.disallowedCustomHeaders }
+            .map { headersBuilder.add(it.key, it.value) }
+        return headersBuilder.build()
     }
 }

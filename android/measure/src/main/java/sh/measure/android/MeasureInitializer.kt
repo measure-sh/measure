@@ -132,6 +132,7 @@ internal class MeasureInitializerImpl(
             enableShakeToLaunchBugReport = inputConfig.enableShakeToLaunchBugReport,
             trackActivityLoadTime = inputConfig.trackActivityLoadTime,
             trackFragmentLoadTime = inputConfig.trackFragmentLoadTime,
+            requestHeadersProvider = inputConfig.requestHeadersProvider
         ),
         configLoader = ConfigLoaderImpl(),
     ),
@@ -148,6 +149,7 @@ internal class MeasureInitializerImpl(
     override val networkClient: NetworkClient = NetworkClientImpl(
         logger = logger,
         fileStorage = fileStorage,
+        configProvider = configProvider
     ),
     private val idProvider: IdProvider = IdProviderImpl(randomizer),
     override val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),

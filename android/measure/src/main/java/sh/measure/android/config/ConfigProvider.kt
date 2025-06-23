@@ -129,6 +129,10 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { trackActivityLoadTime }
     override val trackFragmentLoadTime: Boolean
         get() = getMergedConfig { trackFragmentLoadTime }
+    override val disallowedCustomHeaders: List<String>
+        get() = getMergedConfig { disallowedCustomHeaders }
+    override val requestHeadersProvider: MsrRequestHeadersProvider
+        get() = getMergedConfig { requestHeadersProvider }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (!trackHttpBody) {

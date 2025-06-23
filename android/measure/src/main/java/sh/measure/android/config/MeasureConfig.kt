@@ -28,6 +28,7 @@ internal interface IMeasureConfig {
     val enableShakeToLaunchBugReport: Boolean
     val trackActivityLoadTime: Boolean
     val trackFragmentLoadTime: Boolean
+    val requestHeadersProvider: MsrRequestHeadersProvider
 }
 
 /**
@@ -188,6 +189,8 @@ class MeasureConfig(
      * through the app.
      */
     override val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
+
+    override val requestHeadersProvider: MsrRequestHeadersProvider = DefaultConfig.MSR_REQUEST_HEADER_PROVIDER,
 ) : IMeasureConfig {
     init {
         require(samplingRateForErrorFreeSessions in 0.0..1.0) {

@@ -142,4 +142,9 @@ internal interface InternalConfig {
      * Number of movements required before considering a shake. Defaults to 3.
      */
     val shakeSlop: Int
+
+    /**
+     * List of custom headers that should not be included.
+     */
+    val disallowedCustomHeaders: List<String>
 }
