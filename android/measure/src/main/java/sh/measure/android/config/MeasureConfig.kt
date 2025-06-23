@@ -190,6 +190,14 @@ class MeasureConfig(
      */
     override val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
 
+    /**
+     *  Map of HTTP headers to be included in http request.
+     *  Defaults to an empty map. The following headers are always excluded:
+     *  * "Content-Type"
+     *  * "msr-req-id"
+     *  * "Authorization"
+     *  * "Content-Length"
+     */
     override val requestHeadersProvider: MsrRequestHeadersProvider = DefaultConfig.MSR_REQUEST_HEADER_PROVIDER,
 ) : IMeasureConfig {
     init {
