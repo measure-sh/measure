@@ -51,7 +51,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override val enableShakeToLaunchBugReport: Boolean = false
     override val trackActivityLoadTime: Boolean = true
     override val trackFragmentLoadTime: Boolean = true
-    override val disallowedCustomHeaders: List<String> = listOf("msr-req-id")
+    override val disallowedCustomHeaders: List<String> =  listOf("Content-Type", "msr-req-id", "Authorization", "Content-Length")
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null
 
     var shouldTrackHttpBody = true
