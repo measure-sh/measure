@@ -25,7 +25,7 @@ class NetworkClientTest {
         fileStorage = fileStorage,
         httpClient = httpClient,
         multipartDataFactory = multipartDataFactory,
-        configProvider = configProvider
+        configProvider = configProvider,
     ).apply {
         init(apiKey = "secret", baseUrl = "http://localhost:8080")
     }
@@ -45,7 +45,7 @@ class NetworkClientTest {
             fileStorage = fileStorage,
             httpClient = httpClient,
             multipartDataFactory = multipartDataFactory,
-            configProvider = configProvider
+            configProvider = configProvider,
         )
 
         clientWithErrorLogger.init(baseUrl = "invalid-url", apiKey = "secret")
@@ -183,7 +183,7 @@ class NetworkClientTest {
             fileStorage = fileStorage,
             httpClient = httpClient,
             multipartDataFactory = multipartDataFactory,
-            configProvider = configProvider
+            configProvider = configProvider,
         )
 
         val result =
