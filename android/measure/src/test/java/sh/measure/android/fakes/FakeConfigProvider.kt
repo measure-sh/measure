@@ -1,6 +1,7 @@
 package sh.measure.android.fakes
 
 import sh.measure.android.config.ConfigProvider
+import sh.measure.android.config.MsrRequestHeadersProvider
 import sh.measure.android.config.ScreenshotMaskLevel
 import sh.measure.android.events.EventType
 
@@ -50,6 +51,8 @@ internal class FakeConfigProvider : ConfigProvider {
     override val enableShakeToLaunchBugReport: Boolean = false
     override val trackActivityLoadTime: Boolean = true
     override val trackFragmentLoadTime: Boolean = true
+    override val disallowedCustomHeaders: List<String> = listOf("msr-req-id")
+    override val requestHeadersProvider: MsrRequestHeadersProvider? = null
 
     var shouldTrackHttpBody = true
 
