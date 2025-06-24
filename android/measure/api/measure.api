@@ -192,14 +192,15 @@ public final class sh/measure/android/config/MeasureConfig : sh/measure/android/
 	public static final field $stable I
 	public static final field Companion Lsh/measure/android/config/MeasureConfig$Companion;
 	public fun <init> ()V
-	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZZ)V
-	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZZLsh/measure/android/config/MsrRequestHeadersProvider;)V
+	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZZLsh/measure/android/config/MsrRequestHeadersProvider;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun getAutoStart ()Z
 	public fun getEnableLogging ()Z
 	public fun getEnableShakeToLaunchBugReport ()Z
 	public fun getHttpHeadersBlocklist ()Ljava/util/List;
 	public fun getHttpUrlAllowlist ()Ljava/util/List;
 	public fun getHttpUrlBlocklist ()Ljava/util/List;
+	public fun getRequestHeadersProvider ()Lsh/measure/android/config/MsrRequestHeadersProvider;
 	public fun getSamplingRateForErrorFreeSessions ()F
 	public fun getScreenshotMaskLevel ()Lsh/measure/android/config/ScreenshotMaskLevel;
 	public fun getTraceSamplingRate ()F
@@ -226,6 +227,10 @@ public final class sh/measure/android/config/MeasureConfig$$serializer : kotlinx
 public final class sh/measure/android/config/MeasureConfig$Companion {
 	public final fun fromJson (Ljava/util/Map;)Lsh/measure/android/config/MeasureConfig;
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public abstract interface class sh/measure/android/config/MsrRequestHeadersProvider {
+	public abstract fun getRequestHeaders ()Ljava/util/Map;
 }
 
 public final class sh/measure/android/config/ScreenshotMaskLevel : java/lang/Enum {

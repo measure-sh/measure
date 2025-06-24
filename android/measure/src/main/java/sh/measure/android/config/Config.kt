@@ -18,6 +18,8 @@ internal data class Config(
     override val enableShakeToLaunchBugReport: Boolean = DefaultConfig.ENABLE_SHAKE_TO_LAUNCH_BUG_REPORT,
     override val trackActivityLoadTime: Boolean = DefaultConfig.TRACK_ACTIVITY_LOAD_TIME,
     override val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
+    override val disallowedCustomHeaders: List<String> = DefaultConfig.DISALLOWED_CUSTOM_HEADERS,
+    override val requestHeadersProvider: MsrRequestHeadersProvider? = null,
 ) : InternalConfig, IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25

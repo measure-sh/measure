@@ -13,8 +13,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import java.time.Duration
 import java.io.File
+import java.time.Duration
 
 class BuildUploadTaskTest {
 
@@ -24,6 +24,12 @@ class BuildUploadTaskTest {
     private lateinit var task: BuildUploadTask
     private lateinit var mockWebServer: MockWebServer
     private val retriesCount = 2
+    private val customHeaders = mapOf(
+        "msr-req-id" to "requestId",
+        "customHeader" to "customHeaderValue"
+    )
+    private val disallowedCustomHeader = "msr-req-id"
+    private val allowedCustomHeaders = customHeaders.keys.minus(disallowedCustomHeader)
 
     @Before
     fun setup() {
@@ -58,6 +64,7 @@ class BuildUploadTaskTest {
         task.mappingFileProperty.set(mappingFile)
         task.appSizeFileProperty.set(appSizeFile)
         task.flutterSymbolsDirProperty.set(project.file(flutterSymbolsDir))
+        task.requestHeadersProperty.set(customHeaders)
     }
 
     @After
@@ -72,6 +79,7 @@ class BuildUploadTaskTest {
         val recordedRequest = mockWebServer.takeRequest()
         assertEquals("PUT", recordedRequest.method)
         val requestBody = recordedRequest.body.readUtf8()
+        val requestHeaders = recordedRequest.headers
 
         // println(requestBody)
 
@@ -87,8 +95,12 @@ class BuildUploadTaskTest {
         assertTrue(requestBody.contains("aab"))
         assertTrue(requestBody.contains("name=\"mapping_type\""))
         assertTrue(requestBody.contains("proguard"))
-        assertTrue(requestBody.contains("name=\"platform\""))
+        assertTrue(requestBody.contains("name=\"os_name\""))
         assertTrue(requestBody.contains("android"))
+        assertTrue(
+            requestHeaders.names().containsAll(allowedCustomHeaders)
+        )
+        assertTrue(requestHeaders.names().none { it in disallowedCustomHeader })
     }
     
     @Test

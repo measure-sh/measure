@@ -2,12 +2,15 @@ package sh.measure
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
+import okhttp3.Headers
 import okhttp3.MultipartBody
 import okhttp3.Request
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.Response
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
@@ -18,6 +21,7 @@ import org.gradle.api.tasks.TaskAction
 import java.io.File
 import java.io.IOException
 import java.net.URI
+import java.net.URL
 
 private const val HEADER_AUTHORIZATION = "Authorization"
 private const val VERSION_CODE = "version_code"
@@ -39,6 +43,9 @@ private const val ERROR_MSG_413 =
     "[ERROR]: Failed to upload mapping file to Measure, mapping file size exceeded the maximum allowed limit.  Stack traces will not be symbolicated."
 private const val ERROR_MSG_500 =
     "[ERROR]: Failed to upload mapping file to Measure, the server encountered an error, try again later. Stack traces will not be symbolicated."
+
+private val DISALLOWED_CUSTOM_HEADERS =
+    setOf("Content-Type", "msr-req-id", "Authorization", "Content-Length")
 
 abstract class BuildUploadTask : DefaultTask() {
     init {
@@ -65,6 +72,9 @@ abstract class BuildUploadTask : DefaultTask() {
 
     @get:Input
     abstract val retriesProperty: Property<Int>
+
+    @get:Input
+    abstract val requestHeadersProperty: MapProperty<String, String>
 
     @TaskAction
     fun upload() {
@@ -107,8 +117,7 @@ abstract class BuildUploadTask : DefaultTask() {
             addFormDataPart(BUILD_TYPE, buildType)
         }.build()
         val url = URI.create(manifestData.apiUrl).resolve(BUILDS_PATH).toURL()
-        val request: Request = Request.Builder().url(url)
-            .header(HEADER_AUTHORIZATION, "Bearer ${manifestData.apiKey}").put(requestBody).build()
+        val request: Request = getRequest(url, manifestData, requestBody)
         try {
             val response = client.newCall(request).execute()
             if (!response.isSuccessful) {
@@ -118,6 +127,23 @@ abstract class BuildUploadTask : DefaultTask() {
             logger.error("[ERROR]: Failed to upload mapping file to Measure, ${e.message}")
             return
         }
+    }
+
+    private fun getRequest(
+        url: URL, manifestData: ManifestData, requestBody: RequestBody
+    ): Request {
+        val requestBuilder = Request.Builder()
+        requestBuilder.url(url).header(HEADER_AUTHORIZATION, "Bearer ${manifestData.apiKey}")
+        requestBuilder.headers(sanitizedCustomHeaders())
+        requestBuilder.put(requestBody)
+        return requestBuilder.build()
+    }
+
+    private fun sanitizedCustomHeaders(): Headers {
+        val headersBuilder = Headers.Builder()
+        requestHeadersProperty.get().filter { it.key !in DISALLOWED_CUSTOM_HEADERS }
+            .map { headersBuilder.add(it.key, it.value) }
+        return headersBuilder.build()
     }
 
     private fun logError(response: Response) {

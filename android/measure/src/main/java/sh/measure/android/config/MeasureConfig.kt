@@ -28,6 +28,7 @@ internal interface IMeasureConfig {
     val enableShakeToLaunchBugReport: Boolean
     val trackActivityLoadTime: Boolean
     val trackFragmentLoadTime: Boolean
+    val requestHeadersProvider: MsrRequestHeadersProvider?
 }
 
 /**
@@ -188,6 +189,15 @@ class MeasureConfig(
      * through the app.
      */
     override val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
+
+    /**
+     * Allows configuring custom HTTP headers for requests made by the Measure SDK to the
+     * Measure API. This is useful only for self-hosted clients who may require additional
+     * headers for requests in their infrastructure.
+     *
+     * See [MsrRequestHeadersProvider] for usage details.
+     */
+    override val requestHeadersProvider: MsrRequestHeadersProvider? = null,
 ) : IMeasureConfig {
     init {
         require(samplingRateForErrorFreeSessions in 0.0..1.0) {
