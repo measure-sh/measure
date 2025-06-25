@@ -89,7 +89,7 @@ func (e ExceptionGroup) EventExists(id uuid.UUID) bool {
 // timestamp.
 func (e ExceptionGroup) UpdateTimeStamps(ctx context.Context, event *event.EventField, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.
-		Update("public.unhandled_exception_groups").
+		Update("unhandled_exception_groups").
 		Set("updated_at", time.Now()).
 		Where("id = ?", e.ID)
 
@@ -117,7 +117,7 @@ func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	}
 
 	stmt := sqlf.PostgreSQL.
-		InsertInto("public.unhandled_exception_groups").
+		InsertInto("unhandled_exception_groups").
 		Set("id", id).
 		Set("app_id", e.AppID).
 		Set("type", e.Type).
@@ -170,7 +170,7 @@ func (a ANRGroup) EventExists(id uuid.UUID) bool {
 // timestamp.
 func (e ANRGroup) UpdateTimeStamps(ctx context.Context, event *event.EventField, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.
-		Update("public.anr_groups").
+		Update("anr_groups").
 		Set("updated_at", time.Now()).
 		Where("id = ?", e.ID)
 
@@ -198,7 +198,7 @@ func (a *ANRGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
 	}
 
 	stmt := sqlf.PostgreSQL.
-		InsertInto("public.anr_groups").
+		InsertInto("anr_groups").
 		Set("id", id).
 		Set("app_id", a.AppID).
 		Set("type", a.Type).
@@ -277,7 +277,7 @@ func SortANRGroups(groups []ANRGroup) {
 // matched by app filter(s) and exception event ids.
 func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (exceptionGroups []ExceptionGroup, err error) {
 	// Get list of fingerprints and event IDs
-	eventDataStmt := sqlf.From(`default.events`).
+	eventDataStmt := sqlf.From(`events`).
 		Select(`id, exception.fingerprint`).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where("id in ?", eventIds)
@@ -313,7 +313,7 @@ func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilte
 
 	// Query groups that match the obtained fingerprints
 	stmt := sqlf.PostgreSQL.
-		From(`public.unhandled_exception_groups`).
+		From(`unhandled_exception_groups`).
 		Select(`id`).
 		Select(`type`).
 		Select(`message`).
@@ -354,7 +354,7 @@ func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilte
 // matched by app filter(s) and ANR event ids.
 func GetANRGroupsFromANRIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (anrGroups []ANRGroup, err error) {
 	// Get list of fingerprints and event IDs
-	eventDataStmt := sqlf.From(`default.events`).
+	eventDataStmt := sqlf.From(`events`).
 		Select(`id, anr.fingerprint`).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where(`id in ?`, eventIds)
@@ -388,7 +388,7 @@ func GetANRGroupsFromANRIds(ctx context.Context, af *filter.AppFilter, eventIds 
 
 	// Query groups that match the obtained fingerprints
 	stmt := sqlf.PostgreSQL.
-		From(`public.anr_groups`).
+		From(`anr_groups`).
 		Select(`id`).
 		Select(`type`).
 		Select(`message`).

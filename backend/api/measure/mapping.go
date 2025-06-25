@@ -718,7 +718,7 @@ type BuildSize struct {
 // database.
 func (bs BuildSize) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.
-		InsertInto(`public.build_sizes`).
+		InsertInto(`build_sizes`).
 		Set(`app_id`, bs.AppID).
 		Set(`version_name`, bs.VersionName).
 		Set(`version_code`, bs.VersionCode).

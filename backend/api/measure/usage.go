@@ -88,7 +88,7 @@ func GetUsage(c *gin.Context) {
 
 	// Query events and session counts for all apps in team
 	eventsStmt := sqlf.
-		From(`default.events`).
+		From(`events`).
 		Select("app_id").
 		Select("formatDateTime(toStartOfMonth(timestamp), '%b %Y') AS month_year").
 		Select("COUNT(*) AS event_count").

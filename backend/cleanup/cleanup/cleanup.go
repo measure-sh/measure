@@ -83,7 +83,7 @@ func DeleteStaleData(ctx context.Context) {
 // have passed the expiry time
 func deleteStaleAuthSessions(ctx context.Context) {
 	threshold := time.Now()
-	stmt := sqlf.PostgreSQL.DeleteFrom("public.auth_sessions").
+	stmt := sqlf.PostgreSQL.DeleteFrom("auth_sessions").
 		Where("rt_expiry_at < ?", threshold)
 
 	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
@@ -99,7 +99,7 @@ func deleteStaleAuthSessions(ctx context.Context) {
 // have passed the expiry threshold
 func deleteStaleShortenedFilters(ctx context.Context) {
 	threshold := time.Now().Add(-60 * time.Minute) // 1 hour expiry
-	stmt := sqlf.PostgreSQL.DeleteFrom("public.short_filters").
+	stmt := sqlf.PostgreSQL.DeleteFrom("short_filters").
 		Where("created_at < ?", threshold)
 
 	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
@@ -115,7 +115,7 @@ func deleteStaleShortenedFilters(ctx context.Context) {
 // have passed the expiry threshold
 func deleteStaleInvites(ctx context.Context) {
 	threshold := time.Now().Add(-48 * time.Hour) // 48 hour expiry
-	stmt := sqlf.PostgreSQL.DeleteFrom("public.invites").
+	stmt := sqlf.PostgreSQL.DeleteFrom("invites").
 		Where("updated_at < ?", threshold)
 
 	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)

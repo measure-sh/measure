@@ -54,9 +54,9 @@ func timeOrNil(t *time.Time) string {
 func (u *User) getTeams() ([]map[string]string, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("team_membership.team_id, team_membership.role, teams.name").
-		From("public.team_membership").
-		LeftJoin("public.teams", "public.team_membership.team_id = teams.id").
-		Where("public.team_membership.user_id = ?", nil)
+		From("team_membership").
+		LeftJoin("teams", "team_membership.team_id = teams.id").
+		Where("team_membership.user_id = ?", nil)
 
 	defer stmt.Close()
 
@@ -91,10 +91,10 @@ func (u *User) getTeams() ([]map[string]string, error) {
 func (u *User) getOwnTeam(ctx context.Context) (team *Team, err error) {
 	stmt := sqlf.PostgreSQL.
 		Select("teams.id, teams.name").
-		From("public.teams").
-		LeftJoin("public.team_membership", "public.teams.id = public.team_membership.team_id and public.team_membership.role = 'owner'").
-		Where("public.team_membership.user_id = ?", u.ID).
-		OrderBy("public.team_membership.created_at").
+		From("teams").
+		LeftJoin("team_membership", "teams.id = team_membership.team_id and team_membership.role = 'owner'").
+		Where("team_membership.user_id = ?", u.ID).
+		OrderBy("team_membership.created_at").
 		Limit(1)
 
 	defer stmt.Close()
@@ -113,7 +113,7 @@ func (u *User) getRole(teamId string) (rank, error) {
 
 	stmt := sqlf.PostgreSQL.
 		Select("role").
-		From("public.team_membership").
+		From("team_membership").
 		Where("user_id::uuid = ? and team_id::uuid = ?", nil, nil)
 
 	defer stmt.Close()
@@ -133,7 +133,7 @@ func (u *User) getRole(teamId string) (rank, error) {
 // save saves a user to database.
 func (u *User) save(ctx context.Context, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.
-		InsertInto("public.users").
+		InsertInto("users").
 		Set("id", u.ID).
 		Set("name", u.Name).
 		Set("email", u.Email).
@@ -168,7 +168,7 @@ func (u *User) firstName() (firstName string) {
 // value for the user.
 func (u *User) touchLastSignInAt(ctx context.Context) (err error) {
 	stmt := sqlf.PostgreSQL.
-		Update("public.users").
+		Update("users").
 		Set("last_sign_in_at", time.Now()).
 		Where("id = ?", u.ID)
 
@@ -182,7 +182,7 @@ func (u *User) touchLastSignInAt(ctx context.Context) (err error) {
 // getEmail retrieves the email address of the user.
 func (u *User) getEmail(ctx context.Context) (err error) {
 	stmt := sqlf.PostgreSQL.
-		From("public.users").
+		From("users").
 		Select("email").
 		Where("id = ?", nil)
 
@@ -202,7 +202,7 @@ func (u *User) getEmail(ctx context.Context) (err error) {
 // getUser retrieves the user details from the database.
 func (u *User) getUserDetails(ctx context.Context) (err error) {
 	stmt := sqlf.PostgreSQL.
-		From("public.users").
+		From("users").
 		Select("id").
 		Select("name").
 		Select("email").
@@ -243,7 +243,7 @@ func GetExistingAndNewInvitees(invitees []Invitee) ([]Invitee, []Invitee, error)
 
 	stmt := sqlf.PostgreSQL.
 		Select("id, email").
-		From("public.users").
+		From("users").
 		Where(fmt.Sprintf("email in (%s)", emailList)).
 		Where("confirmed_at is not null")
 
@@ -288,7 +288,7 @@ func GetExistingAndNewInvitees(invitees []Invitee) ([]Invitee, []Invitee, error)
 // FindUserByEmail finds a user from their email.
 func FindUserByEmail(ctx context.Context, email string) (*User, error) {
 	stmt := sqlf.PostgreSQL.
-		From("public.users").
+		From("users").
 		Select("id").
 		Select("name").
 		Select("email").

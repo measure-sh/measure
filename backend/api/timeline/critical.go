@@ -81,7 +81,7 @@ func ComputeExceptions(ctx context.Context, appId *uuid.UUID, events []event.Eve
 
 		if !event.Exception.Handled {
 			stmt := sqlf.PostgreSQL.
-				From("public.unhandled_exception_groups").
+				From("unhandled_exception_groups").
 				Select("id").
 				Where("app_id = ?", appId).
 				Where("fingerprint = ?", event.Exception.Fingerprint)
@@ -128,7 +128,7 @@ func ComputeANRs(ctx context.Context, appId *uuid.UUID, events []event.EventFiel
 		var groupId *uuid.UUID
 
 		stmt := sqlf.PostgreSQL.
-			From("public.anr_groups").
+			From("anr_groups").
 			Select("id").
 			Where("app_id = ?", appId).
 			Where("fingerprint = ?", event.ANR.Fingerprint)

@@ -86,7 +86,7 @@ func (shortFilters *ShortFilters) Create(ctx context.Context) error {
 		return nil
 	}
 
-	stmt := sqlf.PostgreSQL.InsertInto("public.short_filters").
+	stmt := sqlf.PostgreSQL.InsertInto("short_filters").
 		Set("code", shortFilters.Code).
 		Set("app_id", shortFilters.AppId).
 		Set("filters", shortFilters.Filters).
@@ -115,7 +115,7 @@ func GetFiltersFromCode(ctx context.Context, filterShortCode string, appId uuid.
 
 	stmt := sqlf.PostgreSQL.
 		Select("filters").
-		From("public.short_filters").
+		From("short_filters").
 		Where("code = ?", filterShortCode).
 		Where("app_id = ?", appId)
 

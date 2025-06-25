@@ -406,7 +406,7 @@ func (e eventreq) getRequest(ctx context.Context) (r *eventreq, err error) {
 // storage.
 func (e eventreq) start(ctx context.Context) (err error) {
 	stmt := sqlf.PostgreSQL.
-		InsertInto(`public.event_reqs`).
+		InsertInto(`event_reqs`).
 		Set(`id`, e.id).
 		Set(`app_id`, e.appId).
 		Set(`status`, pending)
@@ -422,7 +422,7 @@ func (e eventreq) start(ctx context.Context) (err error) {
 // status as "done" along with additional even request
 // related metadata.
 func (e eventreq) end(ctx context.Context, tx *pgx.Tx) (err error) {
-	stmt := sqlf.PostgreSQL.Update(`public.event_reqs`).
+	stmt := sqlf.PostgreSQL.Update(`event_reqs`).
 		Set(`event_count`, len(e.events)).
 		Set(`span_count`, len(e.spans)).
 		Set(`attachment_count`, len(e.attachments)).
@@ -678,7 +678,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		return nil
 	}
 
-	stmt := sqlf.InsertInto(`default.events`)
+	stmt := sqlf.InsertInto(`events`)
 	defer stmt.Close()
 
 	for i := range e.events {
@@ -1880,7 +1880,7 @@ func GetIssuesAttributeDistribution(ctx context.Context, g group.IssueGroup, af 
 	}
 
 	stmt := sqlf.
-		From("default.events").
+		From("events").
 		Select("concat(toString(attribute.app_version), ' (', toString(attribute.app_build), ')') as app_version").
 		Select("concat(toString(attribute.os_name), ' ', toString(attribute.os_version)) as os_version").
 		Select("toString(inet.country_code) as country").
