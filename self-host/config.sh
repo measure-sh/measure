@@ -180,7 +180,7 @@ CLICKHOUSE_READER_USER=app_reader
 CLICKHOUSE_READER_PASSWORD=dummY_p@55w0rd
 CLICKHOUSE_USER=app_operator
 CLICKHOUSE_PASSWORD=dummY_p@55w0rd
-CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_USER}:\${CLICKHOUSE_PASSWORD}@clickhouse:9000/dummy
+CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_USER}:\${CLICKHOUSE_PASSWORD}@clickhouse:9000/measure
 
 ##################
 # Object Storage #
