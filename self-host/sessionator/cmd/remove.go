@@ -104,6 +104,10 @@ func newRemoveAppsCmd() *cobra.Command {
 				return
 			}
 
+			if err = j.rmIssueGroups(ctx); err != nil {
+				return
+			}
+
 			if err = j.rmUserDefAttrs(ctx); err != nil {
 				return
 			}
@@ -112,7 +116,7 @@ func newRemoveAppsCmd() *cobra.Command {
 				return
 			}
 
-			// issue groups, builds, event requests and
+			// builds, event requests and
 			// short filters will be removed via cascade
 			// when the app is finally removed.
 			// hence, no need for explicit removal
