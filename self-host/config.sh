@@ -169,7 +169,7 @@ $ENV_HEADER
 
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
-POSTGRES_MIGRATION_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/postgres?search_path=dbmate,measure&sslmode=disable
+POSTGRES_MIGRATION_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=dbmate,measure&sslmode=disable
 POSTGRES_DSN=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure
 
 CLICKHOUSE_USER=default
