@@ -2,9 +2,21 @@
 
 set -e
 
+# Primary database name
+DB_NAME=measure
+
+# Primary schema name
+SCHEMA_NAME=measure
+
+# Create database if it doesn't exist
+if ! psql -v ON_ERROR_STOP=1 -U postgres -d postgres -tAc "select 1 from pg_database where datname = '${DB_NAME}'" | grep -q 1; then
+  echo "Creating '${DB_NAME}' database"
+  createdb -U postgres -O postgres "${DB_NAME}"
+fi
+
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
--- Create schema if not exists
-CREATE SCHEMA IF NOT EXISTS measure;
+-- Create schema if it doesn't exist
+CREATE SCHEMA IF NOT EXISTS ${SCHEMA_NAME};
 
 -- Create roles, grant permissions and create users.
 -- Idempotent, safe to run on every startup.
@@ -21,17 +33,17 @@ END
 \$\$;
 
 -- Grant schema usage
-GRANT USAGE ON SCHEMA measure TO operator;
-GRANT USAGE ON SCHEMA measure TO reader;
+GRANT USAGE ON SCHEMA ${SCHEMA_NAME} TO operator;
+GRANT USAGE ON SCHEMA ${SCHEMA_NAME} TO reader;
 
 -- Grant privileges to roles
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA measure TO operator;
-ALTER DEFAULT PRIVILEGES IN SCHEMA measure GRANT ALL ON TABLES TO operator;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA measure TO operator;
-ALTER DEFAULT PRIVILEGES IN SCHEMA measure GRANT ALL ON SEQUENCES TO operator;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ${SCHEMA_NAME} TO operator;
+ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA_NAME} GRANT ALL ON TABLES TO operator;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA ${SCHEMA_NAME} TO operator;
+ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA_NAME} GRANT ALL ON SEQUENCES TO operator;
 
-GRANT SELECT ON ALL TABLES IN SCHEMA measure TO reader;
-ALTER DEFAULT PRIVILEGES IN SCHEMA measure GRANT SELECT ON TABLES to reader;
+GRANT SELECT ON ALL TABLES IN SCHEMA ${SCHEMA_NAME} TO reader;
+ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA_NAME} GRANT SELECT ON TABLES to reader;
 
 -- Create application users and assign them to roles
 GRANT operator TO ${POSTGRES_USER};
