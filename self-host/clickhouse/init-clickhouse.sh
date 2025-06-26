@@ -1,6 +1,6 @@
 #!/usr/env/bin bash
 
-set -e
+set -euo pipefail
 
 clickhouse-client --query "CREATE DATABASE IF NOT EXISTS measure;"
 
