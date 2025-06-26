@@ -1,4 +1,4 @@
-<clickouse>
+<clickhouse>
   <users>
     <default>
       <password></password>
@@ -8,4 +8,7 @@
       <show_named_collections_secrets>1</show_named_collections_secrets>
     </default>
   </users>
+  <profiles>
+    <default></default>
+  </profiles>
 </clickhouse>
