@@ -323,6 +323,9 @@ services:
       - type: bind
         source: ./clickhouse/config/config.xml
         target: /etc/clickhouse-server/config.d/config.xml
+      - type: bind
+        source: ./clickhouse/config/users.xml
+        target: /etc/clickhouse-server/users.xml
 
 volumes:
   clickhouse-volume:
