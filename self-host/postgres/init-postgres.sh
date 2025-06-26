@@ -14,7 +14,7 @@ if ! psql -v ON_ERROR_STOP=1 -U postgres -d postgres -tAc "select 1 from pg_data
   createdb -U postgres -O postgres "${DB_NAME}"
 fi
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$DB_NAME" <<-EOSQL
 -- Create schema if it doesn't exist
 CREATE SCHEMA IF NOT EXISTS ${SCHEMA_NAME};
 
@@ -49,7 +49,3 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA_NAME} GRANT SELECT ON TABLES to read
 GRANT operator TO ${POSTGRES_USER};
 GRANT reader TO ${POSTGRES_USER};
 EOSQL
-
-# Drop a sentinel file
-# for other healthcheck purpose
-touch /var/lib/postgresql/data/init_complete
