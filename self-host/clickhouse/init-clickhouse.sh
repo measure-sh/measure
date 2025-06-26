@@ -3,15 +3,22 @@
 set -euo pipefail
 
 clickhouse-client \
-  --query "CREATE DATABASE IF NOT EXISTS measure;" \
-  --query "create role if not exists operator;" \
-  --query "create role if not exists reader;"
+  --user default \
+  --query "create user app_admin identified with sha256_password by '${CLICKHOUSE_ADMIN_PASSWORD}'" \
+  --query "grant all on *.* to app_admin with grant option;" \
+  --query "CREATE DATABASE IF NOT EXISTS measure;"
+  # --query "create role if not exists operator;" \
+  # --query "create role if not exists reader;"
 
-clickhouse-client -n --database measure <<-EOSQL
-  -- create role if not exists operator;
-  -- create role if not exists reader;
-  -- grant select, insert on measure.* to operator;
-  -- grant select on measure.* to reader;
+clickhouse-client -n \
+  --database measure \
+  --user "${CLICKHOUSE_ADMIN_USER}" \
+  --password "${CLICKHOUSE_ADMIN_PASSWORD}" \
+  <<-EOSQL
+  create role if not exists operator;
+  create role if not exists reader;
+  grant select, insert on measure.* to operator;
+  grant select on measure.* to reader;
 
   create user if not exists '${CLICKHOUSE_OPERATOR_USER}' identified with sha256_password by '${CLICKHOUSE_OPERATOR_PASSWORD}' default role operator default database measure;
 

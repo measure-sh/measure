@@ -301,8 +301,8 @@ POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 POSTGRES_MIGRATION_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=dbmate,measure&sslmode=disable
 POSTGRES_DSN=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure
 
-CLICKHOUSE_USER=default
-CLICKHOUSE_PASSWORD=$CLICKHOUSE_PASSWORD
+CLICKHOUSE_ADMIN_USER=app_admin
+CLICKHOUSE_ADMIN_PASSWORD=$CLICKHOUSE_ADMIN_PASSWORD
 CLICKHOUSE_OPERATOR_USER=app_operator
 CLICKHOUSE_OPERATOR_PASSWORD=dummY_Pa55w0rd
 CLICKHOUSE_READER_USER=app_reader
@@ -473,8 +473,8 @@ END
     echo -e "Set Postgres user's password"
     POSTGRES_PASSWORD=$(prompt_password 24 "Enter password for Postgres user: ")
 
-    echo -e "Set ClickHouse default user's password"
-    CLICKHOUSE_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
+    echo -e "Set ClickHouse admin user's password"
+    CLICKHOUSE_ADMIN_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
 
     echo -e "Set ClickHouse operator user's password"
     CLICKHOUSE_OPERATOR_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
@@ -486,8 +486,8 @@ END
     echo -e "Generated secure password for Postgres user"
     POSTGRES_PASSWORD=$(generate_password 24)
 
-    echo -e "Generated secure password for ClickHouse default user"
-    CLICKHOUSE_PASSWORD=$(generate_password 24)
+    echo -e "Generated secure password for ClickHouse admin user"
+    CLICKHOUSE_ADMIN_PASSWORD=$(generate_password 24)
 
     echo -e "Generated secure password for ClickHouse operator user"
     CLICKHOUSE_OPERATOR_PASSWORD=$(generate_password 24)
