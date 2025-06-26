@@ -286,7 +286,7 @@ services:
       - "5432:5432"
     command: ["postgres", "-c", "log_statement=all"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d measure"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d measure && [ -f /var/lib/postgresql/data/init_complete ]"]
       interval: 3s
       timeout: 10s
       retries: 5

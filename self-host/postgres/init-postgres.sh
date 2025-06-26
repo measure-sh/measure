@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
 # Primary database name
 DB_NAME=measure
@@ -49,3 +49,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA_NAME} GRANT SELECT ON TABLES to read
 GRANT operator TO ${POSTGRES_USER};
 GRANT reader TO ${POSTGRES_USER};
 EOSQL
+
+# Drop a sentinel file
+# for other healthcheck purpose
+touch /var/lib/postgresql/data/init_complete
