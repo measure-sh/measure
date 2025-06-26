@@ -178,7 +178,8 @@ CLICKHOUSE_OPERATOR_USER=app_operator
 CLICKHOUSE_OPERATOR_PASSWORD=dummY_p@55w0rd
 CLICKHOUSE_READER_USER=app_reader
 CLICKHOUSE_READER_PASSWORD=dummY_p@55w0rd
-CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_USER}:\${CLICKHOUSE_PASSWORD}@clickhouse:9000/measure
+CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_PASSWORD}@clickhouse:9000/measure
+CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
 
 ##################
 # Object Storage #
@@ -226,10 +227,10 @@ SESSION_REFRESH_SECRET=super-secret-for-jwt-token-with-at-least-32-characters
 # Email #
 #########
 
-SMTP_HOST=$SMTP_HOST
-SMTP_PORT=$SMTP_PORT
-SMTP_USER=$SMTP_USER
-SMTP_PASSWORD=$SMTP_PASSWORD
+SMTP_HOST=smtp.ethereal.email
+SMTP_PORT=587
+SMTP_USER=payton68@ethereal.email
+SMTP_PASSWORD=Bf1Qq34KhTpFV4AAu2
 
 ########
 # OTEL #
