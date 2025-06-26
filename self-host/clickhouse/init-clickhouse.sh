@@ -2,11 +2,14 @@
 
 set -euo pipefail
 
-clickhouse-client --query "CREATE DATABASE IF NOT EXISTS measure;"
+clickhouse-client \
+  --query "CREATE DATABASE IF NOT EXISTS measure;" \
+  --query "create role if not exists operator;" \
+  --query "create role if not exists reader;"
 
 clickhouse-client -n --database measure <<-EOSQL
-  create role if not exists operator;
-  create role if not exists reader;
+  -- create role if not exists operator;
+  -- create role if not exists reader;
   -- grant select, insert on measure.* to operator;
   -- grant select on measure.* to reader;
 
