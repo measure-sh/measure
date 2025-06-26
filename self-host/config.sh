@@ -302,7 +302,11 @@ POSTGRES_DSN=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/
 
 CLICKHOUSE_USER=default
 CLICKHOUSE_PASSWORD=$CLICKHOUSE_PASSWORD
-CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_USER}:\${CLICKHOUSE_PASSWORD}@clickhouse:9000/default
+CLICKHOUSE_OPERATOR_USER=app_operator
+CLICKHOUSE_OPERATOR_PASSWORD=$CLICKHOUSE_OPERATOR_PASSWORD
+CLICKHOUSE_READER_USER=app_reader
+CLICKHOUSE_READER_PASSWORD=$CLICKHOUSE_READER_PASSWORD
+CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_USER}:\${CLICKHOUSE_PASSWORD}@clickhouse:9000/measure
 
 ##################
 # Object Storage #
@@ -467,15 +471,27 @@ END
     echo -e "Set Postgres user's password"
     POSTGRES_PASSWORD=$(prompt_password 24 "Enter password for Postgres user: ")
 
-    echo -e "Set ClickHouse user's password"
+    echo -e "Set ClickHouse default user's password"
     CLICKHOUSE_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
+
+    echo -e "Set ClickHouse operator user's password"
+    CLICKHOUSE_OPERATOR_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
+
+    echo -e "Set ClickHouse reader user's password"
+    CLICKHOUSE_READER_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
   else
     # Generate secure database passwords
     echo -e "Generated secure password for Postgres user"
     POSTGRES_PASSWORD=$(generate_password 24)
 
-    echo -e "Generated secure password for ClickHouse user"
+    echo -e "Generated secure password for ClickHouse default user"
     CLICKHOUSE_PASSWORD=$(generate_password 24)
+
+    echo -e "Generated secure password for ClickHouse operator user"
+    CLICKHOUSE_OPERATOR_PASSWORD=$(generate_password 24)
+
+    echo -e "Generated secure password for ClickHouse reader user"
+    CLICKHOUSE_READER_PASSWORD=$(generate_password 24)
   fi
 
   if [[ $USE_EXTERNAL_BUCKETS -eq 1 ]]; then
