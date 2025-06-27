@@ -70,6 +70,7 @@ final class MockMeasureInitializer: MeasureInitializer {
     let shakeDetector: ShakeDetector
     let screenshotGenerator: ScreenshotGenerator
     let exceptionGenerator: ExceptionGenerator
+    let measureDispatchQueue: MeasureDispatchQueue
 
     init(client: Client? = nil, // swiftlint:disable:this function_body_length
          configProvider: ConfigProvider? = nil,
@@ -125,7 +126,8 @@ final class MockMeasureInitializer: MeasureInitializer {
          spanCollector: SpanCollector? = nil,
          tracer: Tracer? = nil,
          internalSignalCollector: InternalSignalCollector? = nil,
-         exceptionGenerator: ExceptionGenerator? = nil) {
+         exceptionGenerator: ExceptionGenerator? = nil,
+         measureDispatchQueue: MeasureDispatchQueue? = nil) {
         self.client = client ?? ClientInfo(apiKey: "test", apiUrl: "https://test.com")
         self.configProvider = configProvider ?? BaseConfigProvider(defaultConfig: Config(),
                                                                    configLoader: BaseConfigLoader())
@@ -154,8 +156,10 @@ final class MockMeasureInitializer: MeasureInitializer {
         self.deviceAttributeProcessor = deviceAttributeProcessor ?? DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = installationIdAttributeProcessor ?? InstallationIdAttributeProcessor(userDefaultStorage: self.userDefaultStorage,
                                                                                                                      idProvider: self.idProvider)
-        self.networkStateAttributeProcessor = networkStateAttributeProcessor ?? NetworkStateAttributeProcessor()
-        self.userAttributeProcessor = userAttributeProcessor ?? UserAttributeProcessor(userDefaultStorage: self.userDefaultStorage)
+        self.measureDispatchQueue = measureDispatchQueue ?? BaseMeasureDispatchQueue()
+        self.networkStateAttributeProcessor = networkStateAttributeProcessor ?? NetworkStateAttributeProcessor(measureDispatchQueue: self.measureDispatchQueue)
+        self.userAttributeProcessor = userAttributeProcessor ?? UserAttributeProcessor(userDefaultStorage: self.userDefaultStorage,
+                                                                                       measureDispatchQueue: self.measureDispatchQueue)
         self.attributeProcessors = [self.appAttributeProcessor,
                                     self.deviceAttributeProcessor,
                                     self.installationIdAttributeProcessor,
@@ -183,7 +187,8 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                       timeProvider: self.timeProvider,
                                                                       crashDataPersistence: self.crashDataPersistence,
                                                                       eventStore: self.eventStore,
-                                                                      spanStore: self.spanStore)
+                                                                      spanStore: self.spanStore,
+                                                                      measureDispatchQueue: self.measureDispatchQueue)
         self.systemCrashReporter = systemCrashReporter ?? BaseSystemCrashReporter(logger: self.logger)
         self.crashReportManager = crashReportManager ?? CrashReportingManager(logger: self.logger,
                                                                               signalProcessor: self.signalProcessor,

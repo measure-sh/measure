@@ -88,7 +88,7 @@ struct Attributes: Codable {
         case deviceThermalThrottlingEnabled = "device_thermal_throttling_enabled"
         case deviceLowPowerMode = "device_low_power_mode"
     }
-    
+
     init(
         threadName: String? = nil,
         deviceName: String? = nil,
@@ -147,7 +147,7 @@ struct Attributes: Codable {
            self.deviceLowPowerMode = deviceLowPowerMode
            self.osPageSize = osPageSize
     }
-    
+
     init(dict: [String: Any?]) {
         self.threadName = dict["threadName"] as? String
         self.deviceName = dict["deviceName"] as? String

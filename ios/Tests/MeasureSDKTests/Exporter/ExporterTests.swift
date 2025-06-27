@@ -68,7 +68,7 @@ final class BaseexporterTests: XCTestCase {
         let batch2 = BatchEntity(batchId: "batch2", eventIds: ["event3", "event4"], spanIds: ["span3", "span4"], createdAt: 1727272497000)
 
         batchStore.batches = [batch1, batch2]
-        exporter.getExistingBatches() { batches in
+        exporter.getExistingBatches { batches in
             XCTAssertEqual(batches.count, 2)
             XCTAssertEqual(batches[0].eventIds, ["event1", "event2"])
             XCTAssertEqual(batches[1].eventIds, ["event3", "event4"])

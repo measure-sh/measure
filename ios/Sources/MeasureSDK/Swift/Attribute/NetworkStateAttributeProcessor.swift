@@ -14,21 +14,29 @@ import Foundation
 final class NetworkStateAttributeProcessor: AttributeProcessor {
     private var cachedAttributes: (type: NetworkType, gen: NetworkGeneration, provider: String)?
     private var lastUpdateTime: Date?
+    private let measureDispatchQueue: MeasureDispatchQueue
+
+    init(measureDispatchQueue: MeasureDispatchQueue) {
+        self.measureDispatchQueue = measureDispatchQueue
+    }
 
     func appendAttributes(_ attributes: inout Attributes) {
-        if shouldUpdateCache() {
-            cachedAttributes = (
-                type: getNetworkType(),
-                gen: getNetworkGeneration(),
-                provider: getNetworkProvider()
-            )
-            lastUpdateTime = Date()
-        }
-
         if let cache = cachedAttributes {
             attributes.networkType = cache.type
             attributes.networkGeneration = cache.gen
             attributes.networkProvider = cache.provider
+        }
+
+        measureDispatchQueue.submit { [weak self] in
+            guard let self else { return }
+            if shouldUpdateCache() {
+                cachedAttributes = (
+                    type: getNetworkType(),
+                    gen: getNetworkGeneration(),
+                    provider: getNetworkProvider()
+                )
+                lastUpdateTime = Date()
+            }
         }
     }
 

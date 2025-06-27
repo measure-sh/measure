@@ -46,6 +46,7 @@ final class BaseSignalProcessor: SignalProcessor {
     private var crashDataPersistence: CrashDataPersistence
     private let eventStore: EventStore
     private let spanStore: SpanStore
+    private let measureDispatchQueue: MeasureDispatchQueue
 
     init(logger: Logger,
          idProvider: IdProvider,
@@ -55,7 +56,8 @@ final class BaseSignalProcessor: SignalProcessor {
          timeProvider: TimeProvider,
          crashDataPersistence: CrashDataPersistence,
          eventStore: EventStore,
-         spanStore: SpanStore) {
+         spanStore: SpanStore,
+         measureDispatchQueue: MeasureDispatchQueue) {
         self.logger = logger
         self.idProvider = idProvider
         self.sessionManager = sessionManager
@@ -65,6 +67,7 @@ final class BaseSignalProcessor: SignalProcessor {
         self.crashDataPersistence = crashDataPersistence
         self.eventStore = eventStore
         self.spanStore = spanStore
+        self.measureDispatchQueue = measureDispatchQueue
     }
 
     func track<T: Codable>( // swiftlint:disable:this function_parameter_count
@@ -118,15 +121,18 @@ final class BaseSignalProcessor: SignalProcessor {
     }
 
     private func trackSpanData(_ spanData: SpanData) {
-        if !spanData.isSampled {
-        // Do not store spans that are not sampled
-        return
-       }
-       let spanEntity = SpanEntity(spanData,
-        startTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.startTime),
-        endTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.endTime))
-        spanStore.insertSpan(span: spanEntity)
-        logger.log(level: .debug, message: "Span processed: \(spanData.name), spanId: \(spanData.spanId), duration: \(spanData.duration)", error: nil, data: nil)
+        measureDispatchQueue.submit { [weak self] in
+            guard let self else { return }
+            if !spanData.isSampled {
+                // Do not store spans that are not sampled
+                return
+            }
+            let spanEntity = SpanEntity(spanData,
+                                        startTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.startTime),
+                                        endTimeString: timeProvider.iso8601Timestamp(timeInMillis: spanData.endTime))
+            spanStore.insertSpan(span: spanEntity)
+            logger.log(level: .debug, message: "Span processed: \(spanData.name), spanId: \(spanData.spanId), duration: \(spanData.duration)", error: nil, data: nil)
+        }
     }
 
     private func track<T: Codable>( // swiftlint:disable:this function_parameter_count
@@ -140,22 +146,34 @@ final class BaseSignalProcessor: SignalProcessor {
         userDefinedAttributes: String?,
         threadName: String?
     ) {
-        let event = createEvent(
-            data: data,
-            timestamp: timestamp,
-            type: type,
-            attachments: attachments,
-            attributes: attributes ?? Attributes(),
-            userTriggered: userTriggered,
-            sessionId: sessionId,
-            userDefinedAttributes: userDefinedAttributes
-        )
-        appendAttributes(event: event, threadName: threadName)
-        let needsReporting = sessionManager.shouldReportSession ? true : configProvider.eventTypeExportAllowList.contains(event.type)
-        let eventEntity = EventEntity(event, needsReporting: needsReporting)
-        eventStore.insertEvent(event: eventEntity) {}
-        sessionManager.onEventTracked(eventEntity)
-        logger.log(level: .debug, message: "Event processed: \(type), \(event.id)", error: nil, data: data)
+        let resolvedThreadName = threadName ?? Thread.current.name ?? "unknown"
+
+        measureDispatchQueue.submit { [weak self] in
+            guard let self else { return }
+
+            let event = self.createEvent(
+                data: data,
+                timestamp: timestamp,
+                type: type,
+                attachments: attachments,
+                attributes: attributes ?? Attributes(),
+                userTriggered: userTriggered,
+                sessionId: sessionId,
+                userDefinedAttributes: userDefinedAttributes
+            )
+
+            self.appendAttributes(event: event, threadName: resolvedThreadName)
+
+            let needsReporting = self.sessionManager.shouldReportSession ||
+            self.configProvider.eventTypeExportAllowList.contains(event.type)
+
+            let eventEntity = EventEntity(event, needsReporting: needsReporting)
+
+            self.eventStore.insertEvent(event: eventEntity) {}
+            self.sessionManager.onEventTracked(eventEntity)
+
+            self.logger.log(level: .debug, message: "Event processed: \(type), \(event.id)", error: nil, data: data)
+        }
     }
 
     private func appendAttributes<T: Codable>(event: Event<T>, threadName: String?) {
