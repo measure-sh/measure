@@ -257,6 +257,8 @@
 		CF7CAE4C2D940F2700E15CDB /* MockAppVersionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE4B2D940F2700E15CDB /* MockAppVersionInfo.swift */; };
 		CF7CAE552D952FA600E15CDB /* HttpEventValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */; };
 		CF7CAE582D95344100E15CDB /* HttpEventValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE572D95344100E15CDB /* HttpEventValidatorTests.swift */; };
+		CF83E2E32E0D21EB00FE7041 /* MeasureDispatchQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF83E2E22E0D21EB00FE7041 /* MeasureDispatchQueue.swift */; };
+		CF83E2E52E0DA3AE00FE7041 /* MockMeasureDispatchQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF83E2E42E0DA3AE00FE7041 /* MockMeasureDispatchQueue.swift */; };
 		CF86818F2DB6541F00C62DA5 /* SpanId.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF86818D2DB6541F00C62DA5 /* SpanId.swift */; };
 		CF8681902DB6541F00C62DA5 /* TraceId.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF86818E2DB6541F00C62DA5 /* TraceId.swift */; };
 		CFB838212DAFEF780023592B /* SpanProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB838202DAFEF780023592B /* SpanProcessorTests.swift */; };
@@ -616,6 +618,8 @@
 		CF7CAE4B2D940F2700E15CDB /* MockAppVersionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAppVersionInfo.swift; sourceTree = "<group>"; };
 		CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidator.swift; sourceTree = "<group>"; };
 		CF7CAE572D95344100E15CDB /* HttpEventValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidatorTests.swift; sourceTree = "<group>"; };
+		CF83E2E22E0D21EB00FE7041 /* MeasureDispatchQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureDispatchQueue.swift; sourceTree = "<group>"; };
+		CF83E2E42E0DA3AE00FE7041 /* MockMeasureDispatchQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockMeasureDispatchQueue.swift; sourceTree = "<group>"; };
 		CF86818D2DB6541F00C62DA5 /* SpanId.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanId.swift; sourceTree = "<group>"; };
 		CF86818E2DB6541F00C62DA5 /* TraceId.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceId.swift; sourceTree = "<group>"; };
 		CFB838202DAFEF780023592B /* SpanProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanProcessorTests.swift; sourceTree = "<group>"; };
@@ -992,6 +996,7 @@
 				CF86818E2DB6541F00C62DA5 /* TraceId.swift */,
 				526D18112D5A1913009A2E90 /* UserDefaultStorage.swift */,
 				526D18122D5A1913009A2E90 /* UserPermissionManager.swift */,
+				CF83E2E22E0D21EB00FE7041 /* MeasureDispatchQueue.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -1163,6 +1168,7 @@
 				52B7F1132D757F81001498BC /* MockHeartbeat.swift */,
 				52B7F1142D757F81001498BC /* MockIdProvider.swift */,
 				52B7F1152D757F81001498BC /* MockLogger.swift */,
+				CF83E2E42E0DA3AE00FE7041 /* MockMeasureDispatchQueue.swift */,
 				52BCF2362CB651C8003102DF /* MockMeasureInitializer.swift */,
 				52B7F1162D757F81001498BC /* MockMemoryUsageCalculator.swift */,
 				CF1BB4FE2DDF35E600588506 /* MockMotionManager.swift */,
@@ -1764,6 +1770,7 @@
 				526D18552D5A1913009A2E90 /* EventSerializer.swift in Sources */,
 				52B7F18F2D76AFBB001498BC /* EventOb+CoreDataClass.swift in Sources */,
 				CF1BB4FD2DDF317300588506 /* MotionManager.swift in Sources */,
+				CF83E2E32E0D21EB00FE7041 /* MeasureDispatchQueue.swift in Sources */,
 				CF7CAE4A2D940E4700E15CDB /* AppVersionInfo.swift in Sources */,
 				52B7F1902D76AFBB001498BC /* EventOb+CoreDataProperties.swift in Sources */,
 				CF48773F2DEEB26B00311F57 /* UIApplication+Extension.swift in Sources */,
@@ -1875,6 +1882,7 @@
 				52B7F16D2D757F81001498BC /* MockUserPermissionManager.swift in Sources */,
 				52B7F15F2D757F81001498BC /* MockHeartbeat.swift in Sources */,
 				52B7F1632D757F81001498BC /* MockNetworkClient.swift in Sources */,
+				CF83E2E52E0DA3AE00FE7041 /* MockMeasureDispatchQueue.swift in Sources */,
 				52B7F1602D757F81001498BC /* MockIdProvider.swift in Sources */,
 				52B7F1742D757F81001498BC /* TimeProviderTests.swift in Sources */,
 				CFBF62712DB7B38100D5ADFB /* SwizzlingUtilityTests.swift in Sources */,

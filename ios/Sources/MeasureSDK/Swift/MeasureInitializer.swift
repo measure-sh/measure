@@ -71,6 +71,7 @@ protocol MeasureInitializer {
     var shakeDetector: ShakeDetector { get }
     var screenshotGenerator: ScreenshotGenerator { get }
     var exceptionGenerator: ExceptionGenerator { get }
+    var measureDispatchQueue: MeasureDispatchQueue { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -136,6 +137,7 @@ protocol MeasureInitializer {
 /// - `shakeDetector`: `ShakeDetector` object responsible detecting shake gesture.
 /// - `screenshotGenerator`: `ScreenshotGenerator` object responsible for generating a screenshot.
 /// - `exceptionGenerator`: `ExceptionGenerator` object responsible for generating `Exception` object for `Error` or `NSError`
+/// - `measureDispatchQueue`: `MeasureDispatchQueue` object to run tasks on a serial queue.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -199,6 +201,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let shakeDetector: ShakeDetector
     let screenshotGenerator: ScreenshotGenerator
     let exceptionGenerator: ExceptionGenerator
+    let measureDispatchQueue: MeasureDispatchQueue
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -240,8 +243,10 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.deviceAttributeProcessor = DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = InstallationIdAttributeProcessor(userDefaultStorage: userDefaultStorage,
                                                                                  idProvider: idProvider)
-        self.networkStateAttributeProcessor = NetworkStateAttributeProcessor()
-        self.userAttributeProcessor = UserAttributeProcessor(userDefaultStorage: userDefaultStorage)
+        self.measureDispatchQueue = BaseMeasureDispatchQueue()
+        self.networkStateAttributeProcessor = NetworkStateAttributeProcessor(measureDispatchQueue: measureDispatchQueue)
+        self.userAttributeProcessor = UserAttributeProcessor(userDefaultStorage: userDefaultStorage,
+                                                             measureDispatchQueue: measureDispatchQueue)
         self.attributeProcessors = [appAttributeProcessor,
                                     deviceAttributeProcessor,
                                     installationIdAttributeProcessor,
@@ -271,7 +276,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                    timeProvider: timeProvider,
                                                    crashDataPersistence: crashDataPersistence,
                                                    eventStore: eventStore,
-                                                   spanStore: spanStore)
+                                                   spanStore: spanStore,
+                                                   measureDispatchQueue: measureDispatchQueue)
         self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
         self.crashReportManager = CrashReportingManager(logger: logger,
                                                         signalProcessor: signalProcessor,

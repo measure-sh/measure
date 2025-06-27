@@ -50,7 +50,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
     private let timeProvider: TimeProvider
     private let sessionManager: SessionManager
     private let attributeProcessors: [AttributeProcessor]
-    
+
     private var isEnabled = AtomicBool(false)
     var isForeground: Bool
 

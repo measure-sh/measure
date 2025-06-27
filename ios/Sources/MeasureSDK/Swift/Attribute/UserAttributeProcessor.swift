@@ -10,25 +10,28 @@ import Foundation
 /// Maintains the state for the user ID attribute. The user ID is set by the SDK user and can change during the session.
 /// This class returns the latest user ID set by the user.
 final class UserAttributeProcessor: AttributeProcessor {
+    private let measureDispatchQueue: MeasureDispatchQueue
     private let userDefaultStorage: UserDefaultStorage
-    private var loadedFromDisk = false
     private var userId: String?
+    private var loadedFromDisk = AtomicBool()
 
-    init(userDefaultStorage: UserDefaultStorage) {
+    init(userDefaultStorage: UserDefaultStorage, measureDispatchQueue: MeasureDispatchQueue) {
         self.userDefaultStorage = userDefaultStorage
+        self.measureDispatchQueue = measureDispatchQueue
     }
 
     func appendAttributes(_ attributes: inout Attributes) {
-        if !loadedFromDisk {
+        loadedFromDisk.setTrueIfFalse {
             userId = userDefaultStorage.getUserId()
-            loadedFromDisk = true
         }
         attributes.userId = userId
     }
 
     func setUserId(_ userId: String) {
         self.userId = userId
-        self.userDefaultStorage.setUserId(userId)
+        measureDispatchQueue.submit {
+            self.userDefaultStorage.setUserId(userId)
+        }
     }
 
     func getUserId() -> String? {
@@ -36,7 +39,9 @@ final class UserAttributeProcessor: AttributeProcessor {
     }
 
     func clearUserId() {
-        userId = nil
-        self.userDefaultStorage.setUserId(nil)
+        self.userId = nil
+        measureDispatchQueue.submit {
+            self.userDefaultStorage.setUserId(nil)
+        }
     }
 }

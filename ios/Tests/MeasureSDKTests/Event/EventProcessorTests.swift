@@ -136,7 +136,8 @@ final class SignalProcessorTests: XCTestCase {
                                               timeProvider: BaseTimeProvider(),
                                               crashDataPersistence: crashDataPersistence,
                                               eventStore: eventStore,
-                                              spanStore: spanStore)
+                                              spanStore: spanStore,
+                                              measureDispatchQueue: MockMeasureDispatchQueue())
         signalProcessor.track(data: exception,
                              timestamp: 1_000_000_000,
                              type: .exception,
@@ -184,7 +185,8 @@ final class SignalProcessorTests: XCTestCase {
                                               timeProvider: BaseTimeProvider(),
                                               crashDataPersistence: crashDataPersistence,
                                               eventStore: eventStore,
-                                              spanStore: spanStore)
+                                              spanStore: spanStore,
+                                              measureDispatchQueue: MockMeasureDispatchQueue())
         let attributes = Attributes(
             threadName: "main",
             deviceName: "iPhone",

@@ -16,7 +16,7 @@ final class UserAttributeProcessorTests: XCTestCase {
     override func setUp() {
         super.setUp()
         userDefaultStorage = MockUserDefaultStorage()
-        userAttributeProcessor = UserAttributeProcessor(userDefaultStorage: userDefaultStorage)
+        userAttributeProcessor = UserAttributeProcessor(userDefaultStorage: userDefaultStorage, measureDispatchQueue: MockMeasureDispatchQueue())
         attributes = Attributes()
     }
 

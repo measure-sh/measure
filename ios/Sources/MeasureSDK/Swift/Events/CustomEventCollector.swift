@@ -19,15 +19,19 @@ final class BaseCustomEventCollector: CustomEventCollector {
     private let timeProvider: TimeProvider
     private let configProvider: ConfigProvider
     private var isEnabled = AtomicBool(false)
-    private lazy var customEventNameRegex: NSRegularExpression? = {
-        try? NSRegularExpression(pattern: configProvider.customEventNameRegex)
-    }()
+    private let customEventNameRegex: NSRegularExpression?
 
     init(logger: Logger, signalProcessor: SignalProcessor, timeProvider: TimeProvider, configProvider: ConfigProvider) {
         self.logger = logger
         self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.configProvider = configProvider
+        do {
+            self.customEventNameRegex = try NSRegularExpression(pattern: configProvider.customEventNameRegex)
+        } catch {
+            self.customEventNameRegex = nil
+            logger.log(level: .error, message: "Failed to create NSRegularExpression", error: error, data: nil)
+        }
     }
 
     func enable() {

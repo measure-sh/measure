@@ -34,7 +34,7 @@ final class MockMotionManager: MotionManager {
 
 final class MockShakeListener: ShakeDetectorListener {
     var didShakeCount = 0
-    var onShakeCallback: (() -> Void)? = nil
+    var onShakeCallback: (() -> Void)?
 
     func onShake() {
         didShakeCount += 1
