@@ -92,7 +92,7 @@ func (t *Team) getApps(ctx context.Context) ([]App, error) {
 		OrderBy(`apps.app_name`)
 
 	defer stmt.Close()
-	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), &t.ID)
+	rows, err := server.Server.RpgPool.Query(ctx, stmt.String(), &t.ID)
 	if err != nil {
 		return nil, err
 	}

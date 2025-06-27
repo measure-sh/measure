@@ -15,6 +15,7 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/wneessen/go-mail"
 	"go.opentelemetry.io/otel"
@@ -29,10 +30,12 @@ import (
 var Server *server
 
 type server struct {
-	PgPool *pgxpool.Pool
-	ChPool driver.Conn
-	Mail   *mail.Client
-	Config *ServerConfig
+	PgPool  *pgxpool.Pool
+	RpgPool *pgxpool.Pool
+	ChPool  driver.Conn
+	RchPool driver.Conn
+	Mail    *mail.Client
+	Config  *ServerConfig
 }
 
 type PostgresConfig struct {
@@ -42,7 +45,8 @@ type PostgresConfig struct {
 
 type ClickhouseConfig struct {
 	/* connection string of the clickhouse instance */
-	DSN string
+	DSN       string
+	ReaderDNS string
 }
 
 type ServerConfig struct {
@@ -198,6 +202,12 @@ func NewConfig() *ServerConfig {
 		log.Println("CLICKHOUSE_DSN env var is not set, cannot start server")
 	}
 
+	clickhouseReaderDSN := os.Getenv("CLICKHOUSE_READER_DSN")
+	if clickhouseReaderDSN == "" {
+		// log.Fatal("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
+		log.Println("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
+	}
+
 	smtpHost := os.Getenv("SMTP_HOST")
 	if smtpHost == "" {
 		log.Println("SMTP_HOST env var is not set, emails will not work")
@@ -230,7 +240,8 @@ func NewConfig() *ServerConfig {
 			DSN: postgresDSN,
 		},
 		CH: ClickhouseConfig{
-			DSN: clickhouseDSN,
+			DSN:       clickhouseDSN,
+			ReaderDNS: clickhouseReaderDSN,
 		},
 		SymbolsBucket:              symbolsBucket,
 		SymbolsBucketRegion:        symbolsBucketRegion,
@@ -263,6 +274,7 @@ func NewConfig() *ServerConfig {
 func Init(config *ServerConfig) {
 	ctx := context.Background()
 	var pgPool *pgxpool.Pool
+	var rPgPool *pgxpool.Pool
 
 	if config.IsCloud() {
 		pgConfig, err := pgxpool.ParseConfig(config.PG.DSN)
@@ -295,18 +307,48 @@ func Init(config *ServerConfig) {
 		}
 	} else {
 		fmt.Println("Acquiring postgres connection pool without IAM")
-		pool, err := pgxpool.New(ctx, config.PG.DSN)
+
+		// read/write pool
+		oConfig, err := pgxpool.ParseConfig(config.PG.DSN)
 		if err != nil {
-			// log.Fatalf("Unable to create PG connection pool: %v\n", err)
-			log.Printf("Unable to create PG connection pool: %v\n", err)
+			log.Fatalf("Unable to parse postgres connection string: %v\n", err)
+		}
+		oConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+			_, err := conn.Exec(ctx, "SET role operator")
+			return err
+		}
+		pool, err := pgxpool.NewWithConfig(ctx, oConfig)
+		if err != nil {
+			log.Fatalf("Unable to create PG connection pool: %v\n", err)
 		}
 		pgPool = pool
+
+		// reader pool
+		rConfig, err := pgxpool.ParseConfig(config.PG.DSN)
+		if err != nil {
+			log.Fatalf("Unable to parse reader postgres connection string: %v\n", err)
+		}
+		oConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+			_, err := conn.Exec(ctx, "SET role reader")
+			return err
+		}
+		rPool, err := pgxpool.NewWithConfig(ctx, rConfig)
+		if err != nil {
+			log.Fatalf("Unable to create reader PG connection pool: %v\n", err)
+		}
+
+		rPgPool = rPool
 	}
 
 	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
 	if err != nil {
 		// log.Fatalf("Unable to parse CH connection string: %v\n", err)
 		log.Printf("Unable to parse CH connection string: %v\n", err)
+	}
+
+	rChOpts, err := clickhouse.ParseDSN(config.CH.ReaderDNS)
+	if err != nil {
+		log.Printf("unable to parse reader CH connection string %v\n", err)
 	}
 
 	if gin.Mode() == gin.ReleaseMode {
@@ -320,7 +362,12 @@ func Init(config *ServerConfig) {
 	chPool, err := clickhouse.Open(chOpts)
 	if err != nil {
 		// log.Fatalf("Unable to create CH connection pool: %v", err)
-		log.Printf("Unable to create CH connection pool: %v", err)
+		log.Printf("Unable to create CH connection pool: %v\n", err)
+	}
+
+	rChPool, err := clickhouse.Open(rChOpts)
+	if err != nil {
+		log.Printf("Unable to create reader CH connection pool: %v\n", err)
 	}
 
 	if err := inet.Init(); err != nil {
@@ -344,10 +391,12 @@ func Init(config *ServerConfig) {
 	}
 
 	Server = &server{
-		PgPool: pgPool,
-		ChPool: chPool,
-		Config: config,
-		Mail:   mailClient,
+		PgPool:  pgPool,
+		RpgPool: rPgPool,
+		ChPool:  chPool,
+		RchPool: rChPool,
+		Config:  config,
+		Mail:    mailClient,
 	}
 }
 
