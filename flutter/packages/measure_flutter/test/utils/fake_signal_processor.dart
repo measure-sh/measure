@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:measure_flutter/src/attribute_value.dart';
+import 'package:measure_flutter/measure.dart';
 import 'package:measure_flutter/src/events/custom_event_data.dart';
 import 'package:measure_flutter/src/exception/exception_data.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
@@ -22,6 +22,7 @@ class FakeSignalProcessor implements SignalProcessor {
     required Map<String, AttributeValue> userDefinedAttrs,
     required bool userTriggered,
     String? threadName,
+    List<MsrAttachment>? attachments,
   }) async {
     if (data is ExceptionData) {
       trackedExceptions.add(data);

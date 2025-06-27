@@ -1,3 +1,4 @@
+import 'package:measure_flutter/measure.dart';
 import 'package:measure_flutter/src/attribute_value.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/tracing/span_data.dart';
@@ -17,13 +18,15 @@ class TestMethodChannel implements MsrMethodChannel {
       )> trackedEvents = [];
 
   @override
-  Future<void> trackEvent(
-      Map<String, dynamic> data,
-      String type,
-      int timestamp,
-      Map<String, AttributeValue> userDefinedAttrs,
-      bool userTriggered,
-      String? threadName) async {
+  Future<void> trackEvent({
+    required Map<String, dynamic> data,
+    required String type,
+    required int timestamp,
+    required Map<String, AttributeValue> userDefinedAttrs,
+    required bool userTriggered,
+    String? threadName,
+    List<MsrAttachment>? attachments,
+  }) async {
     trackedEvents.add(
         (data, type, timestamp, userDefinedAttrs, userTriggered, threadName));
   }
@@ -73,5 +76,10 @@ class TestMethodChannel implements MsrMethodChannel {
   @override
   Future<void> clearUserId() async {
     userId = null;
+  }
+
+  @override
+  Future<String?> getAttachmentDirectory() {
+    throw UnimplementedError();
   }
 }

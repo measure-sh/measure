@@ -1,3 +1,4 @@
+import 'package:measure_flutter/src/bug_report/bug_report_collector.dart';
 import 'package:measure_flutter/src/config/config.dart';
 import 'package:measure_flutter/src/config/measure_config.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
@@ -8,6 +9,7 @@ import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 import 'package:measure_flutter/src/navigation/navigation_collector.dart';
+import 'package:measure_flutter/src/storage/file_storage.dart';
 import 'package:measure_flutter/src/time/date_time_clock.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 import 'package:measure_flutter/src/tracing/randomizer.dart';
@@ -27,10 +29,12 @@ final class MeasureInitializer {
   late final CustomEventCollector _customEventCollector;
   late final ExceptionCollector _exceptionCollector;
   late final NavigationCollector _navigationCollector;
+  late final BugReportCollector _bugReportCollector;
   late final HttpCollector _httpCollector;
   late final SignalProcessor _signalProcessor;
   late final SpanProcessor _spanProcessor;
   late final Tracer _tracer;
+  late final FileStorage _fileStorage;
 
   Logger get logger => _logger;
 
@@ -44,6 +48,8 @@ final class MeasureInitializer {
 
   NavigationCollector get navigationCollector => _navigationCollector;
 
+  BugReportCollector get bugReportCollector => _bugReportCollector;
+
   HttpCollector get httpCollector => _httpCollector;
 
   SignalProcessor get signalProcessor => _signalProcessor;
@@ -56,12 +62,16 @@ final class MeasureInitializer {
 
   Tracer get tracer => _tracer;
 
+  FileStorage get storage => _fileStorage;
+
   MeasureInitializer(MeasureConfig inputConfig) {
     _initializeDependencies(inputConfig);
   }
 
   void _initializeDependencies(MeasureConfig inputConfig) {
     _logger = FlutterLogger(enabled: inputConfig.enableLogging);
+    final clock = DateTimeClock();
+    _timeProvider = FlutterTimeProvider(clock);
     _configProvider = ConfigProviderImpl(
       defaultConfig: Config(
         enableLogging: inputConfig.enableLogging,
@@ -96,9 +106,15 @@ final class MeasureInitializer {
         NavigationCollector(signalProcessor: signalProcessor);
     _httpCollector = HttpCollector(signalProcessor: signalProcessor);
     final randomizer = RandomizerImpl();
+    _fileStorage = FileStorage(methodChannel, logger);
     _idProvider = IdProviderImpl(randomizer);
-    final clock = DateTimeClock();
-    _timeProvider = FlutterTimeProvider(clock);
+    _bugReportCollector = BugReportCollector(
+      logger: logger,
+      signalProcessor: signalProcessor,
+      timeProvider: timeProvider,
+      fileStorage: _fileStorage,
+      idProvider: _idProvider,
+    );
     _spanProcessor = MsrSpanProcessor(
       _logger,
       _signalProcessor,

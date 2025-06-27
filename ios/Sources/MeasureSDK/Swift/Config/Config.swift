@@ -81,7 +81,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.trackViewControllerLoadTime = trackViewControllerLoadTime
         self.screenshotMaskLevel = screenshotMaskLevel
         self.enableShakeToLaunchBugReport = enableShakeToLaunchBugReport
-        self.eventsBatchingIntervalMs = 30000 // 30 seconds
+        self.eventsBatchingIntervalMs = 3000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndLastEventThresholdMs = 20 * 60 * 1000 // 20 minitues
         self.timeoutIntervalForRequest = 30 // 30 seconds

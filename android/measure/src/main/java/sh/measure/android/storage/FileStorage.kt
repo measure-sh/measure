@@ -75,6 +75,11 @@ internal interface FileStorage {
      * Returns the directory where bug report data is stored temporarily.
      */
     fun getBugReportDir(): File
+
+    /**
+     * Returns the directory where attachment files are stored.
+     */
+    fun getAttachmentDirectory(): String
 }
 
 private const val MEASURE_DIR = "measure"
@@ -144,6 +149,10 @@ internal class FileStorageImpl(
 
     override fun getBugReportDir(): File {
         return File("$rootDir/$MEASURE_DIR/$BUG_REPORTS_DIR")
+    }
+
+    override fun getAttachmentDirectory(): String {
+        return "$rootDir/$MEASURE_DIR"
     }
 
     override fun deleteEventsIfExist(eventIds: List<String>, attachmentIds: List<String>) {

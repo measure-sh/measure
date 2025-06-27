@@ -1,16 +1,22 @@
 import 'package:flutter/foundation.dart';
 import 'package:measure_flutter/src/attribute_value.dart';
+import 'package:measure_flutter/src/bug_report/bug_report_collector.dart';
+import 'package:measure_flutter/src/events/attachment_type.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
+import 'package:measure_flutter/src/events/msr_attachment.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/http/http_collector.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/navigation/navigation_collector.dart';
+import 'package:measure_flutter/src/screenshot/screenshot_helper.dart';
+import 'package:measure_flutter/src/storage/file_storage.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 import 'package:measure_flutter/src/tracing/span.dart';
 import 'package:measure_flutter/src/tracing/span_builder.dart';
 import 'package:measure_flutter/src/tracing/tracer.dart';
+import 'package:measure_flutter/src/utils/id_provider.dart';
 
 import 'config/config_provider.dart';
 
@@ -22,9 +28,12 @@ final class MeasureInternal {
   final ExceptionCollector _exceptionCollector;
   final NavigationCollector _navigationCollector;
   final HttpCollector _httpCollector;
+  final BugReportCollector _bugReportCollector;
   final Tracer _tracer;
   final TimeProvider _timeProvider;
+  final FileStorage _storage;
   final MsrMethodChannel methodChannel;
+  final IdProvider _idProvider;
 
   MeasureInternal({
     required this.initializer,
@@ -35,8 +44,11 @@ final class MeasureInternal {
         _exceptionCollector = initializer.exceptionCollector,
         _httpCollector = initializer.httpCollector,
         _navigationCollector = initializer.navigationCollector,
+        _bugReportCollector = initializer.bugReportCollector,
         _timeProvider = initializer.timeProvider,
-        _tracer = initializer.tracer;
+        _tracer = initializer.tracer,
+        _storage = initializer.storage,
+        _idProvider = initializer.idProvider;
 
   Future<void> init() async {
     if (configProvider.autoStart) {
@@ -148,5 +160,19 @@ final class MeasureInternal {
 
   Future<String?> getSessionId() {
     return methodChannel.getSessionId();
+  }
+
+  void trackBugReport(String description, List<MsrAttachment> attachments,
+      Map<String, AttributeValue> attributes) {
+    _bugReportCollector.trackBugReport(description, attachments, attributes);
+  }
+
+  Future<MsrAttachment?> captureScreenshot() {
+    return ScreenshotHelper.capture(logger, _idProvider);
+  }
+
+  MsrAttachment? getAttachment(Uint8List bytes, AttachmentType type) {
+    final id = _idProvider.uuid();
+    return MsrAttachment.fromBytes(bytes: bytes, type: type, uuid: id);
   }
 }

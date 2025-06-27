@@ -50,8 +50,8 @@ internal class LayoutSnapshot(private val nodes: List<Node>) {
                 val svg = nodes.generateSvg(targetNode, width, height)
                 MsrAttachment(
                     "snapshot.svg",
-                    svg.encodeToByteArray(),
-                    AttachmentType.LAYOUT_SNAPSHOT,
+                    bytes = svg.encodeToByteArray(),
+                    type = AttachmentType.LAYOUT_SNAPSHOT,
                 )
             },
         )

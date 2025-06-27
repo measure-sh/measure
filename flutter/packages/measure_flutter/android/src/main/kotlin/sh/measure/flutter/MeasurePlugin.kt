@@ -28,12 +28,13 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
                 MethodConstants.FUNCTION_TRACK_EVENT -> handleTrackEvent(call, result)
                 MethodConstants.FUNCTION_TRIGGER_NATIVE_CRASH -> triggerNativeCrash()
                 MethodConstants.FUNCTION_INITIALIZE_NATIVE_SDK -> initializeNativeSdk(call, result)
-                MethodConstants.FUNCTION_START -> start(call, result)
-                MethodConstants.FUNCTION_STOP -> stop(call, result)
+                MethodConstants.FUNCTION_START -> start(result)
+                MethodConstants.FUNCTION_STOP -> stop(result)
                 MethodConstants.FUNCTION_GET_SESSION_ID -> getSessionId(result)
                 MethodConstants.FUNCTION_TRACK_SPAN -> trackSpan(call, result)
                 MethodConstants.FUNCTION_SET_USER_ID -> setUserId(call, result)
                 MethodConstants.FUNCTION_CLEAR_USER_ID -> clearUserId(result)
+                MethodConstants.FUNCTION_GET_ATTACHMENT_DIRECTORY -> getAttachmentDirectory(result)
                 else -> result.notImplemented()
             }
         } catch (e: MethodArgumentException) {
@@ -69,6 +70,8 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         val convertedAttributes = AttributeConverter.convertAttributes(rawAttributes)
         val userTriggered = reader.requireArg<Boolean>(MethodConstants.ARG_USER_TRIGGERED)
         val threadName = reader.optionalArg<String>(MethodConstants.ARG_THREAD_NAME)
+        val rawAttachments = reader.optionalArg<String>(MethodConstants.ARG_ATTACHMENTS)
+        val attachments = AttachmentsConverter.convertAttachments(rawAttachments)
         trackEvent(
             data = eventData,
             type = eventType,
@@ -76,6 +79,7 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
             userDefinedAttrs = convertedAttributes,
             userTriggered = userTriggered,
             threadName = threadName,
+            attachments = attachments
         )
         result.success(null)
     }
@@ -154,12 +158,12 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
         result.success(null)
     }
 
-    private fun start(call: MethodCall, result: MethodChannel.Result) {
+    private fun start(result: MethodChannel.Result) {
         Measure.start()
         result.success(null)
     }
 
-    private fun stop(call: MethodCall, result: MethodChannel.Result) {
+    private fun stop(result: MethodChannel.Result) {
         Measure.stop()
         result.success(null)
     }
@@ -174,6 +178,11 @@ class MeasurePlugin : FlutterPlugin, MethodCallHandler {
     private fun clearUserId(result: MethodChannel.Result) {
         Measure.clearUserId()
         result.success(null)
+    }
+
+    private fun getAttachmentDirectory(result: MethodChannel.Result) {
+        val directory = Measure.internalGetAttachmentDirectory()
+        result.success(directory)
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {

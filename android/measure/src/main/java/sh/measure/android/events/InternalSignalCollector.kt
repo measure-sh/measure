@@ -4,6 +4,7 @@ import sh.measure.android.MsrAttachment
 import sh.measure.android.SessionManager
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
+import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -38,15 +39,14 @@ internal class InternalSignalCollector(
         sessionId: String?,
         threadName: String?,
     ) {
-        val eventAttachments = mutableListOf<Attachment>()
-        attachments.mapTo(eventAttachments) { it.toEventAttachment(it.type) }
-        val eventType = EventType.fromValue(type)
-        if (eventType == null) {
-            logger.log(LogLevel.Error, "Unknown event type: $type")
-            return
-        }
-
         try {
+            val eventAttachments = mutableListOf<Attachment>()
+            attachments.mapTo(eventAttachments) { it.toEventAttachment(it.type) }
+            val eventType = EventType.fromValue(type)
+            if (eventType == null) {
+                logger.log(LogLevel.Error, "Unknown event type: $type")
+                return
+            }
             when (eventType) {
                 EventType.CUSTOM -> {
                     val data = extractCustomEventData(data)
@@ -126,6 +126,19 @@ internal class InternalSignalCollector(
                     )
                 }
 
+                EventType.BUG_REPORT -> {
+                    val data = extractBugReportData(data)
+                    signalProcessor.track(
+                        data = data,
+                        timestamp = timestamp,
+                        type = eventType,
+                        attributes = attributes,
+                        userDefinedAttributes = userDefinedAttrs,
+                        attachments = eventAttachments,
+                    )
+                    sessionManager.markSessionWithBugReport()
+                }
+
                 else -> {
                     logger.log(LogLevel.Error, "Unknown event type: $type")
                 }
@@ -198,6 +211,13 @@ internal class InternalSignalCollector(
         return jsonSerializer.decodeFromJsonElement(
             CustomEventData.serializer(),
             data.toJsonElement(),
+        )
+    }
+
+    private fun extractBugReportData(map: MutableMap<String, Any?>): BugReportData {
+        return jsonSerializer.decodeFromJsonElement(
+            BugReportData.serializer(),
+            map.toJsonElement(),
         )
     }
 }

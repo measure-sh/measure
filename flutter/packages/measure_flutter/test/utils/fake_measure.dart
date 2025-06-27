@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:measure_flutter/measure.dart';
 
@@ -115,6 +116,25 @@ class FakeMeasure implements MeasureApi {
 
   @override
   Future<String?> getSessionId() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<MsrAttachment?> captureScreenshot() {
+    throw UnimplementedError();
+  }
+
+  @override
+  void trackBugReport({
+    required String description,
+    required List<MsrAttachment> attachments,
+    required Map<String, AttributeValue> attributes,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  MsrAttachment? createAttachment(Uint8List bytes, AttachmentType type) {
     throw UnimplementedError();
   }
 }
