@@ -8,6 +8,8 @@ logging:
   level: error
   enable_backtraces: false
 
+bind: "0.0.0.0:3021"
+
 # cache
 cache_dir: /data
 caches:
