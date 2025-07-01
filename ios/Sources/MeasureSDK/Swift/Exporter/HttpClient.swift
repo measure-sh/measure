@@ -79,8 +79,9 @@ final class BaseHttpClient: HttpClient {
         request.httpMethod = method.rawValue
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
-        headers.forEach { key, value in
-            request.setValue(value, forHTTPHeaderField: key)
+        headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
+        if let requestHeadersProvider = configProvider.requestHeadersProvider {
+            requestHeadersProvider.getRequestHeaders().forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
         }
         return request
     }
