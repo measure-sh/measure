@@ -10,8 +10,8 @@ env:
   API_IMAGE_NAME: measure-sh/api
 
 jobs:
-  build-api:
-    name: Build
+  build-test-api:
+    name: Build & Test API
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -22,48 +22,57 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Setup go
+
+      - name: Set Go module cache
+        run: echo "GOMODCACHE=$RUNNER_TEMP/gomodcache" >> "$GITHUB_ENV"
+
+      - name: Setup Go ${{ matrix.go-version}}
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
-          check-latest: true
           cache-dependency-path: backend/api/go.sum
+
       - name: Display go version
         run: go version
+
       - name: Install dependencies
-        run: go get .
+        run: go mod download
+
       - name: Build with ${{ matrix.go-version }}
         run: go build -v ./...
 
-  test-api:
-    name: Test
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ["1.23.x", "1.24.x"]
-    defaults:
-      run:
-        working-directory: backend/api
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Setup go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ matrix.go-version }}
-          check-latest: true
-          cache-dependency-path: backend/api/go.sum
-      - name: Display go version
-        run: go version
-      - name: Install dependencies
-        run: go get .
       - name: Test with ${{ matrix.go-version }}
         run: go test ./...
+
+  # test-api:
+  #   name: Test
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       go-version: ["1.23.x", "1.24.x"]
+  #   defaults:
+  #     run:
+  #       working-directory: backend/api
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #     - name: Setup go
+  #       uses: actions/setup-go@v5
+  #       with:
+  #         go-version: ${{ matrix.go-version }}
+  #         check-latest: true
+  #         cache-dependency-path: backend/api/go.sum
+  #     - name: Display go version
+  #       run: go version
+  #     - name: Install dependencies
+  #       run: go get .
+  #     - name: Test with ${{ matrix.go-version }}
+  #       run: go test ./...
 
   trigger-cloud-deploy:
     name: Trigger Cloud Deploy
     runs-on: ubuntu-latest
-    needs: [build-api, test-api]
+    needs: [build-test-api]
     steps:
       - name: Dispatch Cloud Deploy
         uses: peter-evans/repository-dispatch@v3
