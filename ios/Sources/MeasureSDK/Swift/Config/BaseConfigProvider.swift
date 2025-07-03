@@ -33,10 +33,6 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
-    var enableShakeToLaunchBugReport: Bool {
-        return getMergedConfig(\.enableShakeToLaunchBugReport)
-    }
-
     var screenshotMaskLevel: ScreenshotMaskLevel {
         return getMergedConfig(\.screenshotMaskLevel)
     }

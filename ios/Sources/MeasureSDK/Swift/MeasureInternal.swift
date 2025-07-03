@@ -230,20 +230,8 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         bugReportCollector.startBugReportFlow(takeScreenshot: takeScreenshot, bugReportConfig: bugReportConfig, attributes: attributes)
     }
 
-    func enableShakeToLaunchBugReport(takeScreenshot: Bool) {
-        shakeBugReportCollector.enableAutoLaunch(takeScreenshot: takeScreenshot)
-    }
-
-    func disableShakeToLaunchBugReport() {
-        shakeBugReportCollector.disableAutoLaunch()
-    }
-
     func setShakeListener(_ shakeListener: MsrShakeListener?) {
         shakeBugReportCollector.setShakeListener(shakeListener)
-    }
-
-    func isShakeToLaunchBugReportEnabled() -> Bool {
-        return shakeBugReportCollector.isShakeToLaunchBugReportEnabled()
     }
 
     func trackBugReport(description: String,

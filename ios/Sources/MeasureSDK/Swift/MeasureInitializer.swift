@@ -215,8 +215,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                    httpUrlAllowlist: config.httpUrlAllowlist,
                                    autoStart: config.autoStart,
                                    trackViewControllerLoadTime: config.trackViewControllerLoadTime,
-                                   screenshotMaskLevel: config.screenshotMaskLevel,
-                                   enableShakeToLaunchBugReport: config.enableShakeToLaunchBugReport)
+                                   screenshotMaskLevel: config.screenshotMaskLevel)
 
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
@@ -407,8 +406,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          sessionManager: sessionManager,
                                                          idProvider: idProvider)
         self.shakeDetector = AccelerometerShakeDetector(configProvider: configProvider)
-        self.shakeBugReportCollector = ShakeBugReportCollector(autoLaunchEnabled: configProvider.enableShakeToLaunchBugReport,
-                                                               bugReportManager: bugReportManager,
+        self.shakeBugReportCollector = ShakeBugReportCollector(bugReportManager: bugReportManager,
                                                                shakeDetector: shakeDetector,
                                                                screenshotGenerator: screenshotGenerator)
     }
