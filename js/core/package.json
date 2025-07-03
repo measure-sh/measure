@@ -1,0 +1,20 @@
+{
+  "name": "@measure/core",
+  "version": "0.1.0",
+  "description": "Core JavaScript package for Measure SDK",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "author": "Measure",
+  "license": "MIT",
+  "type": "module",
+  "keywords": ["monitoring", "measure", "sdk", "core"],
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
