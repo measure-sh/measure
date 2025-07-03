@@ -20,13 +20,17 @@ class FakeConfigProvider implements ConfigProvider {
   bool _trackHttpHeaders = false;
   bool _trackViewControllerLoadTime = false;
   bool _autoStart = true;
+  int _maxAttachmentsInBugReport = 5;
+  int _maxDescriptionLengthInBugReport = 1000;
+  int _screenshotCompressionQuality = 20;
 
   // Getters
   @override
   bool get autoInitializeNativeSDK => _autoInitializeNativeSDK;
 
   @override
-  List<String> get defaultHttpContentTypeAllowlist => _defaultHttpContentTypeAllowlist;
+  List<String> get defaultHttpContentTypeAllowlist =>
+      _defaultHttpContentTypeAllowlist;
 
   @override
   List<String> get defaultHttpHeadersBlocklist => _defaultHttpHeadersBlocklist;
@@ -53,7 +57,8 @@ class FakeConfigProvider implements ConfigProvider {
   int get maxSpanNameLength => _maxSpanNameLength;
 
   @override
-  double get samplingRateForErrorFreeSessions => _samplingRateForErrorFreeSessions;
+  double get samplingRateForErrorFreeSessions =>
+      _samplingRateForErrorFreeSessions;
 
   @override
   double get traceSamplingRate => _traceSamplingRate;
@@ -75,6 +80,15 @@ class FakeConfigProvider implements ConfigProvider {
 
   @override
   bool get trackViewControllerLoadTime => _trackViewControllerLoadTime;
+
+  @override
+  int get maxAttachmentsInBugReport => _maxAttachmentsInBugReport;
+
+  @override
+  int get maxDescriptionLengthInBugReport => _maxDescriptionLengthInBugReport;
+
+  @override
+  int get screenshotCompressionQuality => _screenshotCompressionQuality;
 
   // Setters
   set autoInitializeNativeSDK(bool value) => _autoInitializeNativeSDK = value;
@@ -117,9 +131,19 @@ class FakeConfigProvider implements ConfigProvider {
 
   set trackHttpHeaders(bool value) => _trackHttpHeaders = value;
 
-  set trackViewControllerLoadTime(bool value) => _trackViewControllerLoadTime = value;
+  set trackViewControllerLoadTime(bool value) =>
+      _trackViewControllerLoadTime = value;
 
   set autoStart(bool value) => _autoStart = value;
+
+  set maxAttachmentsInBugReport(int value) =>
+      _maxAttachmentsInBugReport = value;
+
+  set maxDescriptionLengthInBugReport(int value) =>
+      _maxDescriptionLengthInBugReport = value;
+
+  set screenshotCompressionQuality(int value) =>
+      _screenshotCompressionQuality = value;
 
   // Methods
   @override
@@ -129,7 +153,8 @@ class FakeConfigProvider implements ConfigProvider {
 
   @override
   bool shouldTrackHttpHeader(String key) {
-    return _trackHttpHeaders && !_httpHeadersBlocklist.contains(key.toLowerCase());
+    return _trackHttpHeaders &&
+        !_httpHeadersBlocklist.contains(key.toLowerCase());
   }
 
   @override

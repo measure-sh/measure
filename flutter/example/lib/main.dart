@@ -6,7 +6,7 @@ import 'package:measure_flutter_example/src/screen_main.dart';
 
 Future<void> main() async {
   await Measure.instance.init(
-    () => runApp(MyApp()),
+        () => runApp(MeasureWidget(child: MyApp())),
     config: const MeasureConfig(
       enableLogging: true,
       trackHttpHeaders: true,
@@ -30,6 +30,23 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorObservers: [MsrNavigatorObserver()],
+      theme: ThemeData(
+        brightness: Brightness.light,
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.light,
+        ),
+      ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.dark,
+        ),
+      ),
+      themeMode: ThemeMode.system,
       home: MainScreen(),
     );
   }

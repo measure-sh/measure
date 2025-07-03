@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:ui';
 
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/measure_internal.dart';
@@ -12,9 +12,14 @@ import 'measure.dart';
 
 export 'src/attribute_builder.dart';
 export 'src/attribute_value.dart';
+export 'src/bug_report/ui/bug_report_theme.dart';
+export 'src/bug_report/msr_shake_detector_mixin.dart';
 export 'src/config/client.dart';
 export 'src/config/measure_config.dart';
+export 'src/events/attachment_type.dart';
+export 'src/events/msr_attachment.dart';
 export 'src/measure_api.dart';
+export 'src/measure_widget.dart';
 export 'src/navigation/navigator_observer.dart';
 export 'src/tracing/span.dart';
 export 'src/tracing/span_builder.dart';
@@ -70,75 +75,6 @@ class Measure implements MeasureApi {
     if (isInitialized) {
       return _measure.stop();
     }
-  }
-
-  /// Initialize both native SDK and internal Measure components
-  Future<void> _initializeMeasureSDK(
-    MeasureConfig config,
-    ClientInfo clientInfo,
-  ) async {
-    final methodChannel = _methodChannel ?? MsrMethodChannel();
-    await _initializeNativeSDK(config, clientInfo, methodChannel);
-    await _initializeInternal(config, methodChannel);
-  }
-
-  /// Initialize the native SDK if auto-initialization is enabled
-  Future<void> _initializeNativeSDK(
-    MeasureConfig config,
-    ClientInfo clientInfo,
-    MsrMethodChannel methodChannel,
-  ) async {
-    if (config.autoInitializeNativeSDK) {
-      var jsonConfig = config.toJson();
-      var jsonClientInfo = clientInfo.toJson();
-      _logInputConfig(config.enableLogging, jsonConfig, jsonClientInfo);
-      return methodChannel.initializeNativeSDK(jsonConfig, jsonClientInfo);
-    }
-    return Future.value();
-  }
-
-  /// Initialize internal Measure components
-  Future<void> _initializeInternal(
-    MeasureConfig config,
-    MsrMethodChannel methodChannel,
-  ) async {
-    final initializer = MeasureInitializer(config);
-    _measure = MeasureInternal(
-      initializer: initializer,
-      methodChannel: methodChannel,
-    );
-    await _measure.init();
-  }
-
-  /// Setup global error handling for Flutter and platform errors
-  Future<void> _setupErrorHandling() async {
-    _initFlutterOnError();
-    _initPlatformDispatcherOnError();
-  }
-
-  /// Setup Flutter error handler to track errors through Measure
-  Future<void> _initFlutterOnError() async {
-    final originalHandler = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) async {
-      if (originalHandler != null) {
-        await _measure.trackError(details, handled: false);
-        originalHandler(details);
-      } else {
-        FlutterError.presentError(details);
-      }
-    };
-  }
-
-  /// Setup platform dispatcher error handler and execute the main block
-  Future<void> _initPlatformDispatcherOnError() async {
-    PlatformDispatcher.instance.onError = (exception, stackTrace) {
-      final details = FlutterErrorDetails(
-        exception: exception,
-        stack: stackTrace,
-      );
-      _measure.trackError(details, handled: false);
-      return false;
-    };
   }
 
   @override
@@ -218,6 +154,21 @@ class Measure implements MeasureApi {
         requestBody: requestBody,
         responseBody: responseBody,
         client: client,
+      );
+    }
+  }
+
+  @override
+  void trackBugReport({
+    required String description,
+    required List<MsrAttachment> attachments,
+    required Map<String, AttributeValue> attributes,
+  }) {
+    if (_isInitialized) {
+      _measure.trackBugReport(
+        description,
+        attachments,
+        attributes,
       );
     }
   }
@@ -353,5 +304,109 @@ class Measure implements MeasureApi {
       return _measure.getSessionId();
     }
     return Future.value(null);
+  }
+
+  @override
+  Future<MsrAttachment?> captureScreenshot() async {
+    if (isInitialized) {
+      return _measure.captureScreenshot();
+    }
+    return Future.value(null);
+  }
+
+  @override
+  Widget createBugReportWidget({
+    Key? key,
+    BugReportTheme theme = const BugReportTheme(),
+    Map<String, AttributeValue>? attributes = const {},
+    MsrAttachment? screenshot,
+  }) {
+    if (isInitialized) {
+      return _measure.createBugReport(
+        screenshot: screenshot,
+        theme: theme,
+        attributes: attributes,
+      );
+    } else {
+      developer
+          .log('Failed to open bug report, Measure SDK is not initialized');
+      return SizedBox.shrink(key: key);
+    }
+  }
+
+  @override
+  void setShakeListener(Function? onShake) {
+    if (isInitialized) {
+      _measure.setShakeListener(onShake);
+    }
+  }
+
+  /// Initialize both native SDK and internal Measure components
+  Future<void> _initializeMeasureSDK(
+    MeasureConfig config,
+    ClientInfo clientInfo,
+  ) async {
+    final methodChannel = _methodChannel ?? MsrMethodChannel();
+    await _initializeNativeSDK(config, clientInfo, methodChannel);
+    await _initializeInternal(config, methodChannel);
+  }
+
+  /// Initialize the native SDK if auto-initialization is enabled
+  Future<void> _initializeNativeSDK(
+    MeasureConfig config,
+    ClientInfo clientInfo,
+    MsrMethodChannel methodChannel,
+  ) async {
+    if (config.autoInitializeNativeSDK) {
+      var jsonConfig = config.toJson();
+      var jsonClientInfo = clientInfo.toJson();
+      _logInputConfig(config.enableLogging, jsonConfig, jsonClientInfo);
+      return methodChannel.initializeNativeSDK(jsonConfig, jsonClientInfo);
+    }
+    return Future.value();
+  }
+
+  /// Initialize internal Measure components
+  Future<void> _initializeInternal(
+    MeasureConfig config,
+    MsrMethodChannel methodChannel,
+  ) async {
+    final initializer = MeasureInitializer(config);
+    _measure = MeasureInternal(
+      initializer: initializer,
+      methodChannel: methodChannel,
+    );
+    await _measure.init();
+  }
+
+  /// Setup global error handling for Flutter and platform errors
+  Future<void> _setupErrorHandling() async {
+    _initFlutterOnError();
+    _initPlatformDispatcherOnError();
+  }
+
+  /// Setup Flutter error handler to track errors through Measure
+  Future<void> _initFlutterOnError() async {
+    final originalHandler = FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) async {
+      if (originalHandler != null) {
+        await _measure.trackError(details, handled: false);
+        originalHandler(details);
+      } else {
+        FlutterError.presentError(details);
+      }
+    };
+  }
+
+  /// Setup platform dispatcher error handler and execute the main block
+  Future<void> _initPlatformDispatcherOnError() async {
+    PlatformDispatcher.instance.onError = (exception, stackTrace) {
+      final details = FlutterErrorDetails(
+        exception: exception,
+        stack: stackTrace,
+      );
+      _measure.trackError(details, handled: false);
+      return false;
+    };
   }
 }

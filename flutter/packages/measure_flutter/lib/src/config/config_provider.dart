@@ -82,6 +82,17 @@ class ConfigProviderImpl implements ConfigProvider {
   int get maxCheckpointNameLength => _defaultConfig.maxCheckpointNameLength;
 
   @override
+  int get maxAttachmentsInBugReport => _defaultConfig.maxAttachmentsInBugReport;
+
+  @override
+  int get maxDescriptionLengthInBugReport =>
+      _defaultConfig.maxDescriptionLengthInBugReport;
+
+  @override
+  int get screenshotCompressionQuality =>
+      _defaultConfig.screenshotCompressionQuality;
+
+  @override
   bool shouldTrackHttpBody(String url, String? contentType) {
     if (!trackHttpBody) {
       return false;

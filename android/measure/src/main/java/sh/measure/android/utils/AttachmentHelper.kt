@@ -68,8 +68,8 @@ internal class AttachmentHelper(
                         onCaptured(
                             MsrAttachment(
                                 "screenshot.$extension",
-                                bytes,
-                                AttachmentType.SCREENSHOT,
+                                bytes = bytes,
+                                type = AttachmentType.SCREENSHOT,
                             ),
                         )
                     }

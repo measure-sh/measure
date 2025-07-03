@@ -22,6 +22,7 @@ import org.mockito.kotlin.verifyNoInteractions
 import sh.measure.android.MsrAttachment
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
+import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.NoopLogger
@@ -29,6 +30,7 @@ import sh.measure.android.fakes.TestData
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.serialization.jsonSerializer
+import sh.measure.android.toEventAttachment
 import sh.measure.android.tracing.Checkpoint
 import sh.measure.android.tracing.SpanStatus
 
@@ -434,6 +436,87 @@ class InternalSignalCollectorTest {
             userDefinedAttributes = userDefinedAttrs,
             attachments = mutableListOf(),
             threadName = threadName,
+        )
+    }
+
+    @Test
+    fun `trackEvent tracks bug_report event without attachments`() {
+        val data = mutableMapOf<String, Any?>(
+            "description" to "test bug report without attachments",
+        )
+        val type = EventType.BUG_REPORT
+        val timestamp = 1234567890L
+        val attributes = mutableMapOf<String, Any?>()
+        val userDefinedAttrs = mutableMapOf<String, AttributeValue>()
+        val attachments = mutableListOf<MsrAttachment>()
+        val userTriggered = true
+
+        internalSignalCollector.trackEvent(
+            data = data,
+            type = type.value,
+            timestamp = timestamp,
+            attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
+            attachments = attachments,
+            userTriggered = userTriggered,
+            sessionId = null,
+            threadName = null,
+        )
+
+        verify(signalProcessor).track(
+            data = BugReportData(
+                description = "test bug report without attachments",
+            ),
+            timestamp = timestamp,
+            type = type,
+            attributes = attributes,
+            userDefinedAttributes = userDefinedAttrs,
+            attachments = mutableListOf(),
+            userTriggered = userTriggered,
+        )
+    }
+
+    @Test
+    fun `trackEvent tracks bug_report event with only attachments`() {
+        val data = mutableMapOf<String, Any?>(
+            "description" to "",
+        )
+        val type = EventType.BUG_REPORT
+        val timestamp = 1234567890L
+        val attributes = mutableMapOf<String, Any?>()
+        val userDefinedAttrs = mutableMapOf<String, AttributeValue>()
+        val attachments = mutableListOf<MsrAttachment>(
+            MsrAttachment(
+                name = "screenshot",
+                path = "fake/path",
+                type = AttachmentType.SCREENSHOT,
+            ),
+        )
+        val userTriggered = true
+
+        internalSignalCollector.trackEvent(
+            data = data,
+            type = type.value,
+            timestamp = timestamp,
+            attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
+            attachments = attachments,
+            userTriggered = userTriggered,
+            sessionId = null,
+            threadName = null,
+        )
+
+        verify(signalProcessor).track(
+            data = BugReportData(
+                description = "",
+            ),
+            timestamp = timestamp,
+            type = type,
+            attributes = attributes,
+            userDefinedAttributes = userDefinedAttrs,
+            attachments = attachments.map { it.toEventAttachment(AttachmentType.SCREENSHOT) }
+                .toMutableList(),
+            userTriggered = userTriggered,
         )
     }
 

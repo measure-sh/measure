@@ -91,4 +91,12 @@ class FileStorageTest {
         assertNull(fileStorage.getFile("$rootDir/measure/$eventId"))
         assertNull(fileStorage.getFile("$rootDir/measure/$attachmentId"))
     }
+
+    @Test
+    fun `creates and returns attachment directory`() {
+        val dir = fileStorage.getAttachmentDirectory()
+        val file = File(dir)
+        assertTrue(file.exists())
+        assertTrue(file.isDirectory)
+    }
 }

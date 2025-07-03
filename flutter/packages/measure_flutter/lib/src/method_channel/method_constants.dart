@@ -9,6 +9,9 @@ class MethodConstants {
   static const String functionTrackSpan = 'trackSpan';
   static const String functionSetUserId = 'setUserId';
   static const String functionClearUserId = 'clearUserId';
+  static const String functionGetAttachmentDirectory = 'getAttachmentDirectory';
+  static const String functionEnableShakeDetector = 'enableShakeDetector';
+  static const String functionDisableShakeDetector = 'disableShakeDetector';
 
   // Argument keys
   static const String argEventData = 'event_data';
@@ -17,6 +20,7 @@ class MethodConstants {
   static const String argUserDefinedAttrs = 'user_defined_attrs';
   static const String argUserTriggered = 'user_triggered';
   static const String argThreadName = 'thread_name';
+  static const String argAttachments = 'attachments';
   static const String argConfig = 'config';
   static const String argClientInfo = 'client_info';
   static const String argSpanName = "name";
@@ -41,4 +45,7 @@ class MethodConstants {
   static const String errorArgumentMissing = 'argument_missing';
   static const String errorInvalidAttribute = 'invalid_attribute';
   static const String errorUnknown = 'unknown_error';
+
+  // Callbacks
+  static const String callbackOnShakeDetected = 'onShakeDetected';
 }

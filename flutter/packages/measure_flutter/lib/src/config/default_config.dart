@@ -16,4 +16,7 @@ class DefaultConfig {
   static const int maxCheckpointsPerSpan = 100;
   static const int maxSpanNameLength = 64;
   static const int maxCheckpointNameLength = 64;
+  static const int maxAttachmentsInBugReport = 5;
+  static const int maxDescriptionLengthInBugReport = 1000;
+  static const int screenshotCompressionQuality = 20;
 }

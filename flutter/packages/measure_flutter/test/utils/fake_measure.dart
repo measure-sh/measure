@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/src/widgets/framework.dart';
 import 'package:measure_flutter/measure.dart';
 
 class FakeMeasure implements MeasureApi {
   final List<ScreenViewCall> trackedScreenViews = [];
+  final List<BugReportCall> trackedBugReports = [];
 
   @override
   Future<void> init(
@@ -33,6 +35,7 @@ class FakeMeasure implements MeasureApi {
 
   void clear() {
     trackedScreenViews.clear();
+    trackedBugReports.clear();
   }
 
   @override
@@ -117,6 +120,35 @@ class FakeMeasure implements MeasureApi {
   Future<String?> getSessionId() {
     throw UnimplementedError();
   }
+
+  @override
+  Future<MsrAttachment?> captureScreenshot() {
+    throw UnimplementedError();
+  }
+
+  @override
+  void trackBugReport({
+    required String description,
+    required List<MsrAttachment> attachments,
+    required Map<String, AttributeValue> attributes,
+  }) {
+    trackedBugReports.add(BugReportCall(description, attachments, attributes));
+  }
+
+  @override
+  Widget createBugReportWidget({
+    Key? key,
+    BugReportTheme theme = const BugReportTheme(),
+    required MsrAttachment? screenshot,
+    required Map<String, AttributeValue>? attributes,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void setShakeListener(Function? onShake) {
+    throw UnimplementedError();
+  }
 }
 
 class ScreenViewCall {
@@ -124,4 +156,12 @@ class ScreenViewCall {
   final bool userTriggered;
 
   ScreenViewCall(this.name, this.userTriggered);
+}
+
+class BugReportCall {
+  final String description;
+  final List<MsrAttachment> attachments;
+  final Map<String, AttributeValue> attributes;
+
+  BugReportCall(this.description, this.attachments, this.attributes);
 }
