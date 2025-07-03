@@ -46,6 +46,15 @@ sh "${SRCROOT}/path/to/upload_dsym_build_phases.sh" <api_url> <api_key>
 > [!CAUTION]  
 > If you are using Build Phases to upload DSYMs, make sure to **upload DSYMs only for release builds**.
 
+### Flutter
+
+When obfuscating your Flutter app using --obfuscate and --split-debug-info options:
+
+* **Android** — The Measure Android Gradle Plugin automatically uploads the required mapping files.
+* **iOS** — You need to upload the dSYM files as described in the iOS section above. After building
+  with `flutter build ipa`, run the `upload_dsyms.sh` script using the IPA path and the path to the dSYM folder
+  (typically under _/build/ios/Release-iphoneos/_)
+
 ## Metrics
 
 Metrics related to crashes are automatically computed and shown on the dashboard.
@@ -121,13 +130,30 @@ First Throw Call Stack:
 )
 ```
 
+### Flutter
+
+In Flutter, crashes are grouped based on the exception type and the stack trace. Crashes with the same exception type
+and the same method name and file name from the _first frame_ of the stack trace are grouped together.
+
+For example, for the following crash, the exception type is `FlutterError`, the method name of the first frame
+is `_incrementCounter`, and the file name is `main.dart`:
+
+```
+FlutterError (setState() called after dispose(): _MyHomePageState#12345(ticker: _TickerModeEnabled))
+  at _MyHomePageState._incrementCounter (package:my_app/main.dart:42:9)
+  at _MyHomePageState.build (package:my_app/main.dart:30:5)
+  at StatelessElement.build (package:flutter/src/widgets/framework.dart:4620:27)
+  ...
+```
+
 ## API Reference
 
 ### Get a UI Snapshot
 
 #### Android
 
-A screenshot of the app is captured when an app crashes on Android. This feature is disabled by default and can be configured using the following options at the time of SDK initialization:
+A screenshot of the app is captured when an app crashes on Android. This feature is disabled by default and can be
+configured using the following options at the time of SDK initialization:
 
 - `trackScreenshotOnCrash` — Enables or disables the automatic screenshot capture on crash. It is disabled by default.
 - `screenshotMaskLevel` — To hide sensitive information in the screenshot, you can configure the masking level. See the [options](configuration-options.md#screenshotmasklevel) available.
@@ -135,6 +161,16 @@ A screenshot of the app is captured when an app crashes on Android. This feature
 #### iOS
 
 A layout snapshot of the app is captured when an app crashes on iOS. This feature is always enabled.
+
+#### Flutter
+
+A screenshot of the app is captured when an app crashes on Flutter. This feature is disabled by default and can be
+configured using the following options at the time of SDK initialization:
+
+- `trackScreenshotOnCrash` — Enables or disables the automatic screenshot capture on crash. It is disabled by default.
+
+> [!NOTE]
+> Masking sensitive information in the screenshot is not supported on Flutter yet.
 
 ## Data Collected
 
@@ -149,3 +185,9 @@ When an unhandled exception occurs, it is intercepted by Measure using an `Uncau
 ### iOS
 
 We rely on [PLCrashReporter](https://github.com/microsoft/plcrashreporter) to detect crashes. When a crash occurs, a crash report is generated and stored locally on the device. On the next launch, the crash report is prepared and sent to the server.
+
+### Flutter
+
+When the SDK is initialized, it automatically sets up both `FlutterError.onError`
+and `PlatformDispatcher.instance.onError` callbacks. Any errors are forwarded to the server. Internally, we rely
+on [stack_trace](https://pub.dev/packages/stack_trace) to parse the stack trace and send it as an `exception` event.

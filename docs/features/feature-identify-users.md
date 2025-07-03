@@ -38,3 +38,17 @@ To clear a user ID.
 ```swift
 Measure.clearUserId()
 ```
+
+### Flutter
+
+To set a user ID.
+
+```dart
+Measure.instance.setUserId("user-id");
+```
+
+To clear a user ID.
+
+```dart
+Measure.instance.clearUserId();
+```

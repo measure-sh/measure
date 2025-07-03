@@ -21,6 +21,76 @@ party libraries, are automatically tracked by simply adding the Measure Android 
 On iOS, network requests made using the [URLSession](https://developer.apple.com/documentation/foundation/urlsession),
 including any third party libraries, are automatically tracked by simply adding the iOS SDK to your project.
 
+#### Flutter
+
+On Flutter, network requests made using the [Dio](https://pub.dev/packages/dio) package can be tracked by adding
+the `measure_dio` package to your project. This package provides `MsrInterceptor` that can automatically
+track network requests done using Dio.
+
+```dart
+final dio = Dio();
+dio.interceptors.add(MsrInterceptor());
+```
+
+For any other HTTP client libraries, you can manually track network requests using the `trackHttpEvent` method. 
+Example using `http` package:
+
+```dart
+import 'package:http/http.dart' as http;
+import 'package:measure/measure.dart';
+
+Future<http.Response> trackedGet(Uri uri, {Map<String, String>? headers}) async {
+  return _trackRequest(() => http.get(uri, headers: headers), uri, 'get', headers);
+}
+
+Future<http.Response> trackedPost(Uri uri, {Map<String, String>? headers, Object? body}) async {
+  return _trackRequest(() => http.post(uri, headers: headers, body: body), uri, 'post', headers, body);
+}
+
+Future<http.Response> _trackRequest(
+    Future<http.Response> Function() request,
+    Uri uri,
+    String method,
+    Map<String, String>? headers,
+    [Object? body]
+    ) async {
+  final measure = Measure.instance;
+  final startTime = measure.getTimestamp();
+
+  try {
+    final response = await request();
+
+    measure.trackHttpEvent(
+      url: uri.toString(),
+      method: method,
+      statusCode: response.statusCode,
+      startTime: startTime,
+      endTime: measure.getTimestamp(),
+      requestHeaders: headers,
+      responseHeaders: response.headers,
+      requestBody: body?.toString(),
+      responseBody: response.body,
+      client: 'http',
+    );
+
+    return response;
+  } catch (e) {
+    measure.trackHttpEvent(
+      url: uri.toString(),
+      method: method,
+      startTime: startTime,
+      endTime: measure.getTimestamp(),
+      failureReason: e.runtimeType.toString(),
+      failureDescription: e.toString(),
+      requestHeaders: headers,
+      requestBody: body?.toString(),
+      client: 'http',
+    );
+    rethrow;
+  }
+}
+```
+
 ## Configuration Options
 
 By default, all network requests are tracked with key information like the URL, HTTP method, response status code,

@@ -76,6 +76,34 @@ do {
 
 </details>
 
+
+<details>
+    <summary>Flutter</summary>
+
+```dart
+final onboardingSpan = Measure.instance.startSpan("onboarding-flow");
+try {
+  final signupSpan = Measure.instance
+      .startSpan("signup")
+      .setParent(onboardingSpan);
+  await userSignup();
+  signupSpan.end();
+
+  final tutorialSpan = Measure.instance
+      .startSpan("tutorial")
+      .setParent(onboardingSpan);
+  await showTutorial();
+  tutorialSpan.end(status: SpanStatus.ok);
+} catch (e) {
+  onboardingSpan.end(status: SpanStatus.error);
+} finally {
+  onboardingSpan.end();
+}
+```
+
+</details>
+
+
 This will result in a trace like the following:
 
 ```
@@ -132,11 +160,20 @@ let span: Span = Measure.startSpan(name: "span-name")
 
 </details>
 
+<details>
+  <summary>Flutter</summary>
+
+```dart
+final span = Measure.instance.startSpan("span-name");
+```
+
+</details>
+
 A span can also be started by providing the start time, this is useful in cases where a certain
 operation has already started but there wasn't any way to access the Measure APIs in that part of the code.
 
 > [!IMPORTANT]
-> To set the start time, use `Measure.getTimestamp`, which returns epoch time calculated using a
+> To set the start time, use `Measure.getCurrentTime`, which returns epoch time calculated using a
 > monotonic clock.
 > Passing in `System.currentTimeInMillis` can lead to issues with corrupted span timings due to
 > clock skew issues.
@@ -145,7 +182,7 @@ operation has already started but there wasn't any way to access the Measure API
   <summary>Android</summary>
 
 ```kotlin
-val span: Span = Measure.startSpan("span-name", timestamp = Measure.getTimestamp())
+val span: Span = Measure.startSpan("span-name", timestamp = Measure.getCurrentTime())
 ```
 
 </details>
@@ -159,6 +196,15 @@ let span: Span = Measure.startSpan(name: "operation-name", timestamp: Measure.ge
 
 </details>
 
+<details>
+  <summary>Flutter</summary>
+
+```dart
+final span = Measure.instance.startSpan("span-name", timestamp: Measure.instance.getCurrentTime());
+```
+
+</details>
+
 ### End a Span
 
 A span can be ended using the `end` function. Status is mandatory to set when ending a span.
@@ -168,7 +214,7 @@ A span can be ended using the `end` function. Status is mandatory to set when en
 
 ```kotlin
 val span: Span = Measure.startSpan("span-name")
-span.end(Status.Ok)
+span.setStatus(SpanStatus.Ok).end()
 ```
 
 </details>
@@ -179,6 +225,16 @@ span.end(Status.Ok)
 ```swift
 let span: Span = Measure.startSpan(name: "span-name")
 span.setStatus(.ok).end()
+```
+
+</details>
+
+<details>
+  <summary>Flutter</summary>
+
+```dart
+final span = Measure.instance.startSpan("span-name");
+span.setStatus(SpanStatus.ok).end();
 ```
 
 </details>
@@ -214,6 +270,16 @@ span.setStatus(.ok).end(timestamp: Measure.getCurrentTime())
 
 </details>
 
+<details>
+  <summary>Flutter</summary>
+
+```dart
+final span = Measure.instance.startSpan("span-name");
+span.setStatus(SpanStatus.ok).end(timestamp: Measure.instance.getCurrentTime());
+```
+
+</details>
+
 ### Set Parent Span
 
 To set a parent span, use the `setParent` method.
@@ -234,6 +300,16 @@ val childSpan: Span = Measure.startSpan("child-span").setParent(parentSpan)
 ```swift
 let parentSpan: Span = Measure.startSpan(name: "parent-span")
 let childSpan: Span = Measure.startSpan(name: "child-span").setParent(parentSpan)
+```
+
+</details>
+
+<details>
+  <summary>Flutter</summary>
+
+```dart
+final parentSpan = Measure.instance.startSpan("parent-span");
+final childSpan = Measure.instance.startSpan("child-span").setParent(parentSpan);
 ```
 
 </details>
@@ -264,6 +340,20 @@ span.setAttribute("key", "value")
 
 </details>
 
+<details>
+  <summary>Flutter</summary>
+
+```dart
+final span = Measure.instance.startSpan("span-name");
+span.setAttributeString("key", "value");
+span.setAttributeInt("key", 10);
+span.setAttributeDouble("key", 10.5);
+span.setAttributeBool("key", true);
+```
+
+</details>
+
+
 To add multiple attributes at once use `setAttributes`.
 
 <details>
@@ -288,6 +378,18 @@ span.setAttributes(attributes)
 
 </details>
 
+<details>
+  <summary>Flutter</summary>
+
+```dart
+final span = Measure.instance.startSpan("span-name");
+final attributes = AttributesBuilder().put("key", "value").put("key2", 42).build();
+span.setAttributes(attributes);
+```
+
+</details>
+
+
 ### Remove Attribute
 
 To remove an attribute use `removeAttribute`.
@@ -308,6 +410,16 @@ span.removeAttribute("key")
 ```swift
 let span: Span = Measure.startSpan(name: "span-name")
 span.removeAttribute("key")
+```
+
+</details>
+
+<details>
+  <summary>Flutter</summary>
+
+```dart
+final span = Measure.instance.startSpan("span-name");
+span.removeAttribute("key");
 ```
 
 </details>
@@ -336,6 +448,16 @@ span.setName("updated-name").end()
 
 </details>
 
+<details>
+  <summary>Flutter</summary>
+
+```dart
+final span = Measure.instance.startSpan("span-name");
+span.setName("updated-name").end();
+```
+
+</details>
+
 ### Add Checkpoint
 
 To add a checkpoint use `setCheckpoint`.
@@ -354,6 +476,15 @@ val span: Span = Measure.startSpan("span-name").setCheckpoint("checkpoint-name")
 
 ```swift
 let span: Span = Measure.startSpan(name: "span-name").setCheckpoint("checkpoint-name")
+```
+
+</details>
+
+<details>
+  <summary>Flutter</summary>
+
+```dart
+final span = Measure.instance.startSpan("span-name").setCheckpoint("checkpoint-name");
 ```
 
 </details>
@@ -379,6 +510,16 @@ val span: Span = spanBuilder.startSpan()
 ```swift
 let spanBuilder: SpanBuilder = Measure.createSpanBuilder(name: "span-name")!
 let span: Span = spanBuilder.startSpan()
+```
+
+</details>
+
+<details>
+    <summary>Flutter</summary>
+    
+```dart
+final spanBuilder = Measure.instance.createSpanBuilder("span-name");
+final span = spanBuilder.startSpan();
 ```
 
 </details>
@@ -428,6 +569,17 @@ val value = Measure.getTraceParentHeaderValue(span)
 let span = Measure.startSpan(name: "http")
 let key = Measure.getTraceParentHeaderKey()
 let value = Measure.getTraceParentHeaderValue(span: span)
+```
+
+</details>
+
+<details>
+    <summary>Flutter</summary>
+
+```dart
+final span = Measure.instance.startSpan("http");
+final key = Measure.instance.getTraceParentHeaderKey();
+final value = Measure.instance.getTraceParentHeaderValue(span);
 ```
 
 </details>
@@ -492,6 +644,43 @@ class TracingInterceptor: NSObject, URLSessionTaskDelegate {
 
 // Set up URLSession with the interceptor
 let session = URLSession(configuration: .default, delegate: TracingInterceptor(), delegateQueue: nil)
+```
+
+h3: ### Distributed Tracing with Dio Interceptor
+
+```dart
+class TraceHeaderInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    // Start a new span for the HTTP request
+    final span = Measure.instance.startSpan("http");
+
+    // Get the trace parent header key and value
+    final key = Measure.instance.getTraceParentHeaderKey();
+    final value = Measure.instance.getTraceParentHeaderValue(span);
+
+    // Add the trace header to the request
+    options.headers[key] = value;
+
+    // Store the span in extra data so we can finish it later
+    options.extra['trace_span'] = span;
+    super.onRequest(options, handler);
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    final span = response.requestOptions.extra['trace_span'];
+    span?.end();
+    super.onResponse(response, handler);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    final span = err.requestOptions.extra['trace_span'];
+    span?.end();
+    super.onError(err, handler);
+  }
+}
 ```
 
 ## Screen Load Time

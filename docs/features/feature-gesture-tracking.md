@@ -5,6 +5,7 @@
 * [**How it works**](#how-it-works)
     * [**Android**](#android)
     * [**iOS**](#ios)
+    * [**Flutter**](#flutter)
 * [**Benchmark Results**](#benchmark-results)
     * [**Android**](#android-1)
     * [**iOS**](#ios-1)
@@ -112,6 +113,73 @@ them into different gesture types:
 Gesture target detection identifies the UI element interacted with during a gesture. It first determines the view at the
 touch location and then searches its subviews to find the most relevant target. For scroll detection, it checks if the
 interacted element is a scrollable view like `UIScrollView`, `UIDatePicker`, or `UIPickerView`.
+
+### Flutter
+
+#### Gesture detection
+
+Measure SDK detects touch events by listening to pointer events
+from [Listener](https://api.flutter.dev/flutter/widgets/Listener-class.html) widget, which is
+added to the root widget of the app using `MeasureWidget`.
+
+It processes touch events to classify them into different gesture types:
+- **Click**: A touch event that lasts for less than 500 ms.
+- **Long Click**: A touch event that lasts for more than 500 ms.
+- **Scroll**: A touch movement exceeding 20 pixels in any direction.
+
+#### Gesture target detection
+
+The SDK automatically identifies gesture targets by traversing the widget tree and checking if
+widgets at the touch position are interactive. For clicks and long clicks, it searches for clickable
+widgets, while for scrolls, it looks for scrollable widgets.
+
+> [!NOTE]
+> Any widget not listed in the tables below will not be automatically tracked for
+> gestures. For custom widgets or unsupported widget types, gestures will not be detected unless they
+> inherit from or contain one of the supported widget types.
+
+**Supported Clickable Widgets:**
+
+| Widget Type            |
+|------------------------|
+| `ButtonStyleButton`    |
+| `MaterialButton`       |
+| `IconButton`           |
+| `FloatingActionButton` |
+| `CupertinoButton`      |
+| `ListTile`             |
+| `PopupMenuButton`      |
+| `PopupMenuItem`        |
+| `DropdownButton`       |
+| `DropdownMenuItem`     |
+| `ExpansionTile`        |
+| `Card`                 |
+| `GestureDetector`      |
+| `InputChip`            |
+| `ActionChip`           |
+| `FilterChip`           |
+| `ChoiceChip`           |
+| `Checkbox`             |
+| `Switch`               |
+| `Radio`                |
+| `CupertinoSwitch`      |
+| `CheckboxListTile`     |
+| `SwitchListTile`       |
+| `RadioListTile`        |
+| `TextField`            |
+| `TextFormField`        |
+| `CupertinoTextField`   |
+| `Stepper`              |
+
+**Supported Scrollable Widgets:**
+
+| Widget Type             |
+|-------------------------|
+| `ListView`              |
+| `ScrollView`            |
+| `PageView`              |
+| `SingleChildScrollView` |
+
 
 ## Benchmark results
 
