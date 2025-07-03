@@ -32,6 +32,7 @@ import sh.measure.android.utils.TimeProvider
 import java.io.File
 import java.lang.ref.WeakReference
 import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 import sh.measure.android.events.Attachment as EventAttachment
 
@@ -49,6 +50,7 @@ internal interface BugReportCollector {
         takeScreenshot: Boolean = true,
         attributes: MutableMap<String, AttributeValue>? = null,
     )
+
     fun launchImagePicker(activity: Activity, maxAllowedSelections: Int)
     fun onImagePickedResult(
         context: Context,
@@ -65,6 +67,8 @@ internal interface BugReportCollector {
     )
 
     fun validateBugReport(attachments: Int, descriptionLength: Int): Boolean
+    fun setBugReportFlowActive()
+    fun setBugReportFlowInactive()
 }
 
 internal class BugReportCollectorImpl internal constructor(
@@ -79,11 +83,16 @@ internal class BugReportCollectorImpl internal constructor(
     private val resumedActivityProvider: ResumedActivityProvider,
 ) : BugReportCollector {
     private var attributes: MutableMap<String, AttributeValue>? = null
+    private val isBugReportFlowActive = AtomicBoolean(false)
 
     override fun startBugReportFlow(
         takeScreenshot: Boolean,
         attributes: MutableMap<String, AttributeValue>?,
     ) {
+        if (isBugReportFlowActive.get()) {
+            logger.log(LogLevel.Debug, "Bug report flow already active, skipping launch")
+            return
+        }
         this.attributes = attributes
         val activity = resumedActivityProvider.getResumedActivity() ?: return
         fun launchActivity(initialAttachment: ParcelableAttachment?) {
@@ -103,6 +112,14 @@ internal class BugReportCollectorImpl internal constructor(
         } else {
             launchActivity(null)
         }
+    }
+
+    override fun setBugReportFlowActive() {
+        isBugReportFlowActive.compareAndSet(false, true)
+    }
+
+    override fun setBugReportFlowInactive() {
+        isBugReportFlowActive.compareAndSet(true, false)
     }
 
     override fun launchImagePicker(activity: Activity, maxAllowedSelections: Int) {
@@ -146,7 +163,11 @@ internal class BugReportCollectorImpl internal constructor(
                         )
                         selectedUris.add(uri)
                     } catch (e: SecurityException) {
-                        logger.log(LogLevel.Error, "Failed to read image: permission missing for URI $uri", e)
+                        logger.log(
+                            LogLevel.Error,
+                            "Failed to read image: permission missing for URI $uri",
+                            e,
+                        )
                     }
                 }
             } else {
@@ -159,7 +180,11 @@ internal class BugReportCollectorImpl internal constructor(
                         )
                         selectedUris.add(uri)
                     } catch (e: SecurityException) {
-                        logger.log(LogLevel.Error, "Failed to read image: permission missing for URI $uri", e)
+                        logger.log(
+                            LogLevel.Error,
+                            "Failed to read image: permission missing for URI $uri",
+                            e,
+                        )
                     }
                 }
             }
@@ -219,7 +244,7 @@ internal class BugReportCollectorImpl internal constructor(
         }
         try {
             activity.startActivityForResult(intent, PICK_IMAGES_REQUEST)
-        } catch (e: ActivityNotFoundException) {
+        } catch (_: ActivityNotFoundException) {
             Toast.makeText(activity, "No app available to open images", Toast.LENGTH_LONG).show()
         }
     }
@@ -265,7 +290,7 @@ internal class BugReportCollectorImpl internal constructor(
                         val parcelableAttachment = ParcelableAttachment(name = id, path = path)
                         activity.runOnUiThread { onSuccess(parcelableAttachment) }
                     }
-                } catch (e: RejectedExecutionException) {
+                } catch (_: RejectedExecutionException) {
                     onError()
                 }
             },

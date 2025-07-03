@@ -15,9 +15,6 @@ public final class sh/measure/android/Measure {
 	public static synthetic fun captureScreenshot$default (Lsh/measure/android/Measure;Landroid/app/Activity;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 	public static final fun clearUserId ()V
 	public final fun createSpanBuilder (Ljava/lang/String;)Lsh/measure/android/tracing/SpanBuilder;
-	public final fun disableShakeToLaunchBugReport ()V
-	public final fun enableShakeToLaunchBugReport (Z)V
-	public static synthetic fun enableShakeToLaunchBugReport$default (Lsh/measure/android/Measure;ZILjava/lang/Object;)V
 	public final fun getCurrentTime ()J
 	public final fun getSessionId ()Ljava/lang/String;
 	public final fun getTraceParentHeaderKey ()Ljava/lang/String;
@@ -30,7 +27,6 @@ public final class sh/measure/android/Measure {
 	public final fun internalTrackEvent (Ljava/util/Map;Ljava/lang/String;JLjava/util/Map;Ljava/util/Map;Ljava/util/List;ZLjava/lang/String;Ljava/lang/String;)V
 	public static synthetic fun internalTrackEvent$default (Lsh/measure/android/Measure;Ljava/util/Map;Ljava/lang/String;JLjava/util/Map;Ljava/util/Map;Ljava/util/List;ZLjava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
 	public final fun internalTrackSpan (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JJJILjava/util/Map;Ljava/util/Map;Ljava/util/Map;ZZ)V
-	public final fun isShakeToLaunchBugReportEnabled ()Z
 	public final fun launchBugReportActivity (ZLjava/util/Map;)V
 	public static synthetic fun launchBugReportActivity$default (Lsh/measure/android/Measure;ZLjava/util/Map;ILjava/lang/Object;)V
 	public final fun setShakeListener (Lsh/measure/android/bugreport/MsrShakeListener;)V
@@ -192,11 +188,10 @@ public final class sh/measure/android/config/MeasureConfig : sh/measure/android/
 	public static final field $stable I
 	public static final field Companion Lsh/measure/android/config/MeasureConfig$Companion;
 	public fun <init> ()V
-	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZZLsh/measure/android/config/MsrRequestHeadersProvider;)V
-	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZZLsh/measure/android/config/MsrRequestHeadersProvider;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZLsh/measure/android/config/MsrRequestHeadersProvider;)V
+	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZLsh/measure/android/config/MsrRequestHeadersProvider;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun getAutoStart ()Z
 	public fun getEnableLogging ()Z
-	public fun getEnableShakeToLaunchBugReport ()Z
 	public fun getHttpHeadersBlocklist ()Ljava/util/List;
 	public fun getHttpUrlAllowlist ()Ljava/util/List;
 	public fun getHttpUrlBlocklist ()Ljava/util/List;

@@ -138,7 +138,7 @@ Add attributes when the Bug Report Activity is launched:
 
 ```kotlin
 val attributes = AttributesBuilder().put("is_premium", true).build()
-Measure.launchBugReportActivity(this, attributes = attributes)
+Measure.launchBugReportActivity(takeScreenshot = true, attributes = attributes)
 ```
 
 or, when `trackBugReport` is called:
@@ -152,32 +152,30 @@ Measure.trackBugReport(description = "...", attributes = attributes)
 
 ## Shake to Report Bug
 
-Enable this feature to use a shake gesture for launching the bug reporting flow. To enable this feature, use one of the following approaches based on your control requirements:
+A shake listener can be set up to allow users to report bugs by shaking their device. This is particularly useful for
+quickly reporting issues without navigating through the app.
 
-* Enable for the entire app: This automatically launches the bug reporting flow when users shake their devices.
+To set up a shake listener, use the `setShakeListener` method. The listener will be triggered when a shake is detected,
+use the `launchBugReportActivity` method to open the bug report interface or implement a custom UI.
 
-```kotlin
-Measure.init(context, MeasureConfig(enableShakeToLaunchBugReport = true))
-```
-
-* Enable/disable at any point in the app: Enable to automatically launch the bug reporting flow when users shake their devices.
-
-```kotlin
-// Enable shake to report
-Measure.enableShakeToLaunchBugReport()
-
-// Disable shake to report
-Measure.disableShakeToLaunchBugReport()
-```
-
-* Manually listen to the shake gesture: Use this approach to show a confirmation dialog to users before launching the bug reporting flow.
+> [!NOTE]
+> The listener can get called multiple times if the device is shaken multiple times in quick succession.
+> The `launchBugReportActivity` method handles this by ensuring that the bug report interface is only launched once.
+> However, if you implement a custom UI, you may need to handle this logic yourself.
 
 ```kotlin
 Measure.setShakeListener(object : MsrShakeListener {
     override fun onShake() {
-        Measure.launchBugReportActivity(false)
+      val attributes = AttributesBuilder().put("is_premium", true).build()
+      Measure.launchBugReportActivity(takeScreenshot = true, attributes = attributes)
     }
 })
+```
+
+To disable the shake listener, use:
+
+```kotlin
+Measure.setShakeListener(null)
 ```
 
 ## Benchmarks

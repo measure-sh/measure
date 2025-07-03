@@ -234,7 +234,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     fun getSessionId(): String? {
         return try {
             sessionManager.getSessionId()
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             return null
         }
     }
@@ -302,20 +302,8 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         )
     }
 
-    fun enableShakeToLaunchBugReport(takeScreenshot: Boolean) {
-        shakeBugReportCollector.enableAutoLaunch(takeScreenshot)
-    }
-
-    fun disableShakeToLaunchBugReport() {
-        shakeBugReportCollector.disableAutoLaunch()
-    }
-
     fun setShakeListener(shakeListener: MsrShakeListener?) {
         shakeBugReportCollector.setShakeListener(shakeListener)
-    }
-
-    fun isShakeToLaunchBugReportEnabled(): Boolean {
-        return shakeBugReportCollector.isShakeToLaunchBugReportEnabled()
     }
 
     fun internalTrackEvent(

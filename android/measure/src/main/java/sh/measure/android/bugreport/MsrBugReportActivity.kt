@@ -44,12 +44,10 @@ internal class MsrBugReportActivity : Activity() {
     private var uris: MutableSet<Uri> = mutableSetOf()
     private var attachments: MutableSet<ParcelableAttachment> = mutableSetOf()
     private val totalAttachments: Int get() = attachments.size + uris.size
-    private var wasShakeBugReportEnabled = false
 
     companion object {
         private const val PARCEL_SCREENSHOTS = "parcel_screenshots"
         private const val PARCEL_URIS = "parcel_uris"
-        private const val PARCEL_SHAKE_ENABLED = "parcel_shake_enabled"
 
         fun launch(
             context: Context,
@@ -77,22 +75,18 @@ internal class MsrBugReportActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        wasShakeBugReportEnabled = Measure.isShakeToLaunchBugReportEnabled()
-        Measure.disableShakeToLaunchBugReport()
+        bugReportCollector.setBugReportFlowActive()
     }
 
     override fun onPause() {
         super.onPause()
-        if (wasShakeBugReportEnabled) {
-            Measure.enableShakeToLaunchBugReport()
-        }
+        bugReportCollector.setBugReportFlowInactive()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putParcelableArray(PARCEL_SCREENSHOTS, attachments.toTypedArray())
         outState.putParcelableArray(PARCEL_URIS, uris.toTypedArray())
-        outState.putBoolean(PARCEL_SHAKE_ENABLED, wasShakeBugReportEnabled)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -225,7 +219,6 @@ internal class MsrBugReportActivity : Activity() {
     }
 
     private fun restoreState(savedInstanceState: Bundle) {
-        wasShakeBugReportEnabled = savedInstanceState.getBoolean(PARCEL_SHAKE_ENABLED, false)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             restoreStateApi33(savedInstanceState)
         } else {

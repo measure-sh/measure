@@ -123,8 +123,6 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { shakeAccelerationThreshold }
     override val shakeSlop: Int
         get() = getMergedConfig { shakeSlop }
-    override val enableShakeToLaunchBugReport: Boolean
-        get() = getMergedConfig { enableShakeToLaunchBugReport }
     override val trackActivityLoadTime: Boolean
         get() = getMergedConfig { trackActivityLoadTime }
     override val trackFragmentLoadTime: Boolean
@@ -159,7 +157,7 @@ internal class ConfigProviderImpl(
 
         // If the allowlist is empty, then block the URLs that are in the blocklist.
         return !combinedHttpUrlBlocklist.any { value ->
-            value?.let { url.contains(it, ignoreCase = true) } ?: false
+            value?.let { url.contains(it, ignoreCase = true) } == true
         }
     }
 
