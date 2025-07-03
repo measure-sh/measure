@@ -40,3 +40,29 @@ Measure.start()
 // Stop collecting
 Measure.stop()
 ```
+
+### Flutter
+
+```dart
+Future<void> main() async {
+  await Measure.instance.init(
+        () =>
+        runApp(
+          MeasureWidget(child: MyApp()),
+        ),
+    config: const MeasureConfig(
+      autoStart: false, // delay starting of collection
+    ),
+    clientInfo: ClientInfo(
+      apiKey: "YOUR_API_KEY",
+      apiUrl: "YOUR_API_URL",
+    ),
+  );
+}
+
+// Start collecting
+Measure.instance.start();
+
+// Stop collecting
+Measure.instance.stop();
+```
