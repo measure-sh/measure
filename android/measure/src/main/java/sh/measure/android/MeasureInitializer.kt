@@ -129,7 +129,6 @@ internal class MeasureInitializerImpl(
             samplingRateForErrorFreeSessions = inputConfig.samplingRateForErrorFreeSessions,
             autoStart = inputConfig.autoStart,
             traceSamplingRate = inputConfig.traceSamplingRate,
-            enableShakeToLaunchBugReport = inputConfig.enableShakeToLaunchBugReport,
             trackActivityLoadTime = inputConfig.trackActivityLoadTime,
             trackFragmentLoadTime = inputConfig.trackFragmentLoadTime,
             requestHeadersProvider = inputConfig.requestHeadersProvider,
@@ -451,7 +450,6 @@ internal class MeasureInitializerImpl(
         resumedActivityProvider = resumedActivityProvider,
     ),
     override val shakeBugReportCollector: ShakeBugReportCollector = ShakeBugReportCollector(
-        autoLaunchEnabled = configProvider.enableShakeToLaunchBugReport,
         shakeDetector = AccelerometerShakeDetector(
             sensorManager = systemServiceProvider.sensorManager,
             timeProvider = timeProvider,

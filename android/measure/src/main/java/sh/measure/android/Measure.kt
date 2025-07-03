@@ -10,8 +10,6 @@ import org.jetbrains.annotations.TestOnly
 import sh.measure.android.Measure.captureLayoutSnapshot
 import sh.measure.android.Measure.captureScreenshot
 import sh.measure.android.Measure.clearUserId
-import sh.measure.android.Measure.disableShakeToLaunchBugReport
-import sh.measure.android.Measure.enableShakeToLaunchBugReport
 import sh.measure.android.Measure.getCurrentTime
 import sh.measure.android.Measure.getTraceParentHeaderKey
 import sh.measure.android.Measure.getTraceParentHeaderValue
@@ -354,57 +352,13 @@ object Measure {
     }
 
     /**
-     * Enables automatic bug reporting using shake detection.
-     * When the device is shaken, this will automatically launch the [MsrBugReportActivity].
-     *
-     * @see [disableShakeToLaunchBugReport] to disable the feature
-     */
-    fun enableShakeToLaunchBugReport(takeScreenshot: Boolean = true) {
-        if (isInitialized.get()) {
-            measure.enableShakeToLaunchBugReport(takeScreenshot)
-        }
-    }
-
-    /**
-     * Disables automatic bug reporting on shake.
-     * After calling this method, shake gestures will no longer trigger
-     * the bug report flow automatically.
-     */
-    fun disableShakeToLaunchBugReport() {
-        if (isInitialized.get()) {
-            measure.disableShakeToLaunchBugReport()
-        }
-    }
-
-    /**
-     * Checks if automatic bug reporting on shake is currently enabled.
-     *
-     * Returns true if the shake-to-report feature is active and will trigger
-     * the bug report flow when the device is shaken.
-     *
-     * @return Boolean indicating if shake detection for bug reporting is enabled
-     */
-    fun isShakeToLaunchBugReportEnabled(): Boolean {
-        if (isInitialized.get()) {
-            return measure.isShakeToLaunchBugReportEnabled()
-        }
-        return false
-    }
-
-    /**
      * Sets a custom shake listener for manual bug report handling.
-     *
-     * This method allows defining custom behavior when the device is shaken. The typical use case
-     * is to display a confirmation dialog before initiating the bug report process through
-     * [launchBugReportActivity].
      *
      * Key behaviors:
      * - Setting a non-null listener automatically begins monitoring accelerometer data
      * - Setting a null listener stops accelerometer monitoring and removes any existing listener
      * - The listener will only be triggered once every 5 seconds, regardless of how many shakes occur
      *   during that cooldown period
-     * - This method has no effect if automatic shake detection is already enabled via
-     *   [enableShakeToLaunchBugReport]
      *
      * @param listener The [MsrShakeListener] callback to invoke when a shake is detected, or null to
      *                 disable shake detection and remove the current listener

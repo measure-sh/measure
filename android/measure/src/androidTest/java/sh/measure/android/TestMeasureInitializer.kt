@@ -424,7 +424,6 @@ internal class TestMeasureInitializer(
         configProvider = configProvider,
     ),
     override val shakeBugReportCollector: ShakeBugReportCollector = ShakeBugReportCollector(
-        autoLaunchEnabled = configProvider.enableShakeToLaunchBugReport,
         shakeDetector = AccelerometerShakeDetector(
             sensorManager = systemServiceProvider.sensorManager,
             timeProvider = timeProvider,
