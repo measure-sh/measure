@@ -45,6 +45,12 @@ Using ObjC:
 [Measure trackEvent:@"event_name"];
 ```
 
+#### Flutter
+
+```dart
+Measure.instance.trackEvent(name: "event_name");
+```
+
 ### Custom Event Attributes
 
 A custom event can also contain attributes, which are key-value pairs.
@@ -77,6 +83,15 @@ Using ObjC:
 [Measure trackEvent:@"event_name" attributes:@{@"is_premium_user": YES}];
 ```
 
+#### Flutter
+
+```dart
+final attributes = AttributesBuilder()
+  .putBool("is_premium_user", true);
+  .build();
+Measure.instance.trackEvent(name: "event_name", attribites: attributes);
+```
+
 ### Custom Event with Timestamp
 
 You can also record a custom event with a specific timestamp. This is useful for tracking events that happened before the SDK was initialized, like events during app startup. The timestamp should be in milliseconds since epoch.
@@ -99,4 +114,10 @@ Using ObjC:
 
 ```objc
 [Measure trackEvent:@"event_name" timestamp:1734443973879];
+```
+
+#### Flutter
+
+```dart
+Measure.instance.trackEvent(name: "event_name", timestamp: 1734443973879);
 ```
