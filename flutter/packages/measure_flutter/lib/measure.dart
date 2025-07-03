@@ -274,7 +274,7 @@ class Measure implements MeasureApi {
   }
 
   @override
-  int getCurrentTime() {
+  int getTimestamp() {
     if (isInitialized) {
       return _measure.getCurrentTime();
     } else {

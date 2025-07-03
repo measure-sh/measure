@@ -66,7 +66,7 @@ abstract class MeasureApi {
 
   String getTraceParentHeaderKey();
 
-  int getCurrentTime();
+  int getTimestamp();
 
   Future<void> setUserId(String userId);
 

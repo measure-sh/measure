@@ -111,7 +111,7 @@ class FakeMeasure implements MeasureApi {
   }
 
   @override
-  int getCurrentTime() {
+  int getTimestamp() {
     throw UnimplementedError();
   }
 
