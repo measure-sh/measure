@@ -51,3 +51,9 @@ or, in Objective-C:
 ```objc
 NSString *sessionId = [Measure getSessionId];
 ```
+
+#### Flutter
+
+```dart
+final String? sessionId = await Measure.instance.getSessionId();
+```
