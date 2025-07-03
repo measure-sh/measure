@@ -592,6 +592,17 @@ object Measure {
         }
     }
 
+    /**
+     * Internal method that returns the path to the directory where attachments are stored.
+     * This method is not intended for public usage and can change in future versions.
+     */
+    fun internalGetAttachmentDirectory(): String? {
+        if (isInitialized.get()) {
+            return measure.getAttachmentDirectory()
+        }
+        return null
+    }
+
     internal fun getBugReportCollector(): BugReportCollector {
         if (isInitialized.get()) {
             return measure.bugReportCollector

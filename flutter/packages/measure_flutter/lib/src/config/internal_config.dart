@@ -14,4 +14,14 @@ abstract class InternalConfig {
 
   /// The maximum length of a checkpoint name. Defaults to 64.
   int get maxCheckpointNameLength;
+
+  /// The maximum allowed attachments in a bug report. Defaults to 5.
+  int get maxAttachmentsInBugReport;
+
+  /// The maximum allowed characters in a bug report. Defaults to 1000.
+  int get maxDescriptionLengthInBugReport;
+
+  /// The compression quality of the screenshot. Must be between 0 and 100, where 0 is lowest quality
+  /// and smallest size while 100 is highest quality and largest size.
+  int get screenshotCompressionQuality;
 }

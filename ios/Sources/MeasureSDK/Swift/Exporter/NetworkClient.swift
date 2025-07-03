@@ -36,24 +36,26 @@ final class BaseNetworkClient: NetworkClient {
                 for attachment in attachments {
                     if let bytes = attachment.bytes {
                         multipartData.append(.fileData(name: "blob-\(attachment.id)", filename: attachment.name, data: bytes))
+                    } else if let _ = attachment.path, let image = systemFileManager.retrieveFile(name: attachment.name, folderName: nil, directory: .documentDirectory) {
+                        multipartData.append(.fileData(name: "blob-\(attachment.id)", filename: attachment.name, data: image))
                     }
                 }
             }
         }
-
+        
         for spanEntity in spans {
             let span = spanEntity.toSpanDataCodable()
-
+            
             let encoder = JSONEncoder()
             if let data = try? encoder.encode(span) {
                 multipartData.append(.formField(name: formFieldSpan, value: data))
             }
         }
-
+        
         return httpClient.sendMultipartRequest(url: baseUrl.appendingPathComponent(eventsEndpoint),
                                                method: .put,
                                                headers: [authorization: "\(bearer) \(apiKey)",
-                                                         msrRequestId: batchId],
+                                                          msrRequestId: batchId],
                                                multipartData: multipartData)
     }
 }

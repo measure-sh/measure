@@ -3,9 +3,12 @@ import UIKit
 import Measure
 
 public class MeasurePlugin: NSObject, FlutterPlugin {
+    private var channel: FlutterMethodChannel?
+
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "measure_flutter", binaryMessenger: registrar.messenger())
         let instance = MeasurePlugin()
+        instance.channel = channel
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
 
@@ -30,6 +33,12 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
                 try setUserId(call, result: result)
             case MethodConstants.functionClearUserId:
                 try clearUserId(result: result)
+            case MethodConstants.functionGetAttachmentDirectory:
+                try getAttachmentDirectory(result: result)
+            case MethodConstants.functionEnableShakeDetection:
+                try enableShakeDetector()
+            case MethodConstants.functionDisableShakeDetection:
+                try disableShakeDetector()
             default:
                 result(FlutterMethodNotImplemented)
             }
@@ -53,6 +62,9 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         let convertedAttributes = try AttributeConverter.convertAttributes(rawAttributes)
         let userTriggered: Bool = try reader.requireArg(MethodConstants.argUserTriggered)
         let threadName: String? = reader.optionalArg(MethodConstants.argThreadName)
+        let rawAttachments: String? = reader.optionalArg(MethodConstants.argAttachments)
+        let convertedAttachments = try AttachmentsConverter.convertAttachments(rawAttachments)
+
         trackEvent(
             data: &eventData,
             type: eventType,
@@ -60,7 +72,8 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
             userDefinedAttrs: convertedAttributes,
             userTriggered: userTriggered,
             sessionId: nil,
-            threadName: threadName
+            threadName: threadName,
+            attachments: convertedAttachments
         )
         result(nil)
     }
@@ -73,18 +86,20 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         userDefinedAttrs: [String: AttributeValue],
         userTriggered: Bool,
         sessionId: String?,
-        threadName: String?) {
-        Measure.internalTrackEvent(
-            data: &data,
-            type: type,
-            timestamp: timestamp,
-            attributes: [:],
-            userDefinedAttrs: userDefinedAttrs,
-            userTriggered: userTriggered,
-            sessionId: sessionId,
-            threadName: threadName
-        )
-    }
+        threadName: String?,
+        attachments: [Attachment]) {
+            Measure.internalTrackEvent(
+                data: &data,
+                type: type,
+                timestamp: timestamp,
+                attributes: [:],
+                userDefinedAttrs: userDefinedAttrs,
+                userTriggered: userTriggered,
+                sessionId: sessionId,
+                threadName: threadName,
+                attachments: attachments
+            )
+        }
 
     private func triggerNativeCrash() {
         let optionalString: String? = nil
@@ -110,7 +125,6 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         Measure.start()
         result(nil)
     }
-
 
     private func stop(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         Measure.stop()
@@ -155,7 +169,7 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
             isSampled: isSampled
         )
     }
-    
+
     private func setUserId(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
         let reader = MethodCallReader(call)
         let userId: String = try reader.requireArg(MethodConstants.argUserId)
@@ -166,5 +180,20 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
     private func clearUserId(result: @escaping FlutterResult) throws {
         Measure.clearUserId()
         result(nil)
+    }
+
+    private func getAttachmentDirectory(result: @escaping FlutterResult) throws {
+        let path = Measure.internalGetAttachmentDirectory()
+        result(path)
+    }
+
+    private func enableShakeDetector() throws {
+        Measure.onShake {
+            self.channel?.invokeMethod(MethodConstants.callbackOnShakeDetected, arguments: nil)
+        }
+    }
+
+    private func disableShakeDetector() throws {
+        Measure.onShake(nil)
     }
 }

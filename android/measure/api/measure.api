@@ -24,6 +24,7 @@ public final class sh/measure/android/Measure {
 	public static final fun init (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;)V
 	public static final fun init (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;Lsh/measure/android/config/ClientInfo;)V
 	public static synthetic fun init$default (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;Lsh/measure/android/config/ClientInfo;ILjava/lang/Object;)V
+	public final fun internalGetAttachmentDirectory ()Ljava/lang/String;
 	public final fun internalTrackEvent (Ljava/util/Map;Ljava/lang/String;JLjava/util/Map;Ljava/util/Map;Ljava/util/List;ZLjava/lang/String;Ljava/lang/String;)V
 	public static synthetic fun internalTrackEvent$default (Lsh/measure/android/Measure;Ljava/util/Map;Ljava/lang/String;JLjava/util/Map;Ljava/util/Map;Ljava/util/List;ZLjava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
 	public final fun internalTrackSpan (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JJJILjava/util/Map;Ljava/util/Map;Ljava/util/Map;ZZ)V
@@ -45,8 +46,10 @@ public final class sh/measure/android/Measure {
 
 public final class sh/measure/android/MsrAttachment {
 	public static final field $stable I
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
 	public final fun getBytes ()[B
 	public final fun getName ()Ljava/lang/String;
+	public final fun getPath ()Ljava/lang/String;
 	public final fun getType ()Ljava/lang/String;
 }
 

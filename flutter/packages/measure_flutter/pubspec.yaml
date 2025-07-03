@@ -15,6 +15,8 @@ dependencies:
   stack_trace: ^1.12.0
   json_annotation: ^4.9.0
   uuid: ^4.5.1
+  image: ^4.5.4
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:

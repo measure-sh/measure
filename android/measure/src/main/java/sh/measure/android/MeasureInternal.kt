@@ -56,6 +56,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private val executorServiceRegistry by lazy { measureInitializer.executorServiceRegistry }
     private val shakeBugReportCollector by lazy { measureInitializer.shakeBugReportCollector }
     private val internalSignalCollector by lazy { measureInitializer.internalSignalCollector }
+    private val fileStorage by lazy { measureInitializer.fileStorage }
     private var isStarted: Boolean = false
     private var startLock = Any()
 
@@ -364,6 +365,10 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
                 isSampled = isSampled,
             )
         }
+    }
+
+    fun getAttachmentDirectory(): String? {
+        return fileStorage.getAttachmentDirectory()
     }
 
     private fun unregisterCollectors() {

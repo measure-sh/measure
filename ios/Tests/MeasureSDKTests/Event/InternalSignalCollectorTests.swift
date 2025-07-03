@@ -42,7 +42,8 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             userDefinedAttrs: [:],
             userTriggered: true,
             sessionId: nil,
-            threadName: nil
+            threadName: nil,
+            attachments: []
         )
 
         XCTAssertNotNil(signalProcessor.data)
@@ -61,7 +62,8 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             userDefinedAttrs: [:],
             userTriggered: true,
             sessionId: nil,
-            threadName: nil
+            threadName: nil,
+            attachments: []
         )
 
         XCTAssertNotNil(signalProcessor.data)
@@ -80,7 +82,8 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             userDefinedAttrs: [:],
             userTriggered: true,
             sessionId: nil,
-            threadName: nil
+            threadName: nil,
+            attachments: []
         )
 
         XCTAssertNil(signalProcessor.data)
@@ -104,7 +107,8 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             userDefinedAttrs: [:],
             userTriggered: true,
             sessionId: nil,
-            threadName: nil
+            threadName: nil,
+            attachments: []
         )
 
         guard let data = signalProcessor.data as? Exception else {
@@ -134,7 +138,8 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             userDefinedAttrs: [:],
             userTriggered: true,
             sessionId: nil,
-            threadName: nil
+            threadName: nil,
+            attachments: []
         )
 
         guard let data = signalProcessor.data as? Exception else {
@@ -164,7 +169,8 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             userDefinedAttrs: [:],
             userTriggered: true,
             sessionId: nil,
-            threadName: nil
+            threadName: nil,
+            attachments: []
         )
 
         guard let data = signalProcessor.data as? Exception else {
@@ -214,5 +220,67 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
         XCTAssertEqual(spanData.userDefinedAttrs?["key"]?.value as? String, "value")
         XCTAssertEqual(spanData.checkpoints.first?.name, "checkpoint_name")
         XCTAssertEqual(spanData.checkpoints.first?.timestamp, timeProvider.iso8601Timestamp)
+    }
+
+    func testTrackEvent_tracksBugReportWithoutAttachment() {
+        eventCollector.enable()
+        var eventData: [String: Any?] = ["description": "this thing doesn't work"]
+        let type = EventType.bugReport.rawValue
+
+        eventCollector.trackEvent(
+            data: &eventData,
+            type: type,
+            timestamp: 1234567890,
+            attributes: [:],
+            userDefinedAttrs: [:],
+            userTriggered: true,
+            sessionId: nil,
+            threadName: nil,
+            attachments: []
+        )
+
+        XCTAssertNotNil(signalProcessor.data)
+    }
+
+    func testTrackEvent_tracksBugReportWithAttachment() {
+        eventCollector.enable()
+        var eventData: [String: Any?] = ["description": "this thing doesn't work"]
+        let type = EventType.bugReport.rawValue
+
+        eventCollector.trackEvent(
+            data: &eventData,
+            type: type,
+            timestamp: 1234567890,
+            attributes: [:],
+            userDefinedAttrs: [:],
+            userTriggered: true,
+            sessionId: nil,
+            threadName: nil,
+            attachments: [Attachment(name: "name", type: .screenshot, size: 100, id: "987654-231", path: "/file/path")]
+        )
+
+        XCTAssertNotNil(signalProcessor.data)
+    }
+
+    func testTrackEvent_updatesSessionAsCrashedForBugReport() {
+        eventCollector.enable()
+        var eventData: [String: Any?] = ["description": "this thing doesn't work"]
+        let type = EventType.bugReport.rawValue
+
+        XCTAssertFalse(sessionManager.isCrashed)
+
+        eventCollector.trackEvent(
+            data: &eventData,
+            type: type,
+            timestamp: 1234567890,
+            attributes: [:],
+            userDefinedAttrs: [:],
+            userTriggered: true,
+            sessionId: nil,
+            threadName: nil,
+            attachments: []
+        )
+
+        XCTAssertTrue(sessionManager.isCrashed)
     }
 }

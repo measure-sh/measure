@@ -1,4 +1,4 @@
-import 'package:measure_flutter/src/attribute_value.dart';
+import 'package:measure_flutter/measure.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
@@ -13,6 +13,7 @@ abstract interface class SignalProcessor {
     required Map<String, AttributeValue> userDefinedAttrs,
     required bool userTriggered,
     String? threadName,
+    List<MsrAttachment>? attachments,
   });
 
   Future<void> trackSpan(SpanData spanData);
@@ -32,11 +33,19 @@ final class DefaultSignalProcessor extends SignalProcessor {
     required Map<String, AttributeValue> userDefinedAttrs,
     required bool userTriggered,
     String? threadName,
+    List<MsrAttachment>? attachments,
   }) {
     var json = data.toJson();
     logger.log(LogLevel.debug, "$type: $json");
-    return channel.trackEvent(json, type, timestamp.millisecondsSinceEpoch,
-        userDefinedAttrs, userTriggered, threadName);
+    return channel.trackEvent(
+        data: json,
+        type: type,
+        timestamp: timestamp.millisecondsSinceEpoch,
+        userDefinedAttrs: userDefinedAttrs,
+        userTriggered: userTriggered,
+        threadName: threadName,
+        attachments: attachments,
+    );
   }
 
   @override

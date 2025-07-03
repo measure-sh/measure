@@ -1,16 +1,24 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:measure_flutter/src/attribute_value.dart';
+import 'package:measure_flutter/src/bug_report/bug_report_collector.dart';
+import 'package:measure_flutter/src/bug_report/shake_detector.dart';
+import 'package:measure_flutter/src/bug_report/ui/bug_report_theme.dart';
+import 'package:measure_flutter/src/events/attachment_type.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
+import 'package:measure_flutter/src/events/msr_attachment.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/http/http_collector.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/navigation/navigation_collector.dart';
+import 'package:measure_flutter/src/screenshot/screenshot_service.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 import 'package:measure_flutter/src/tracing/span.dart';
 import 'package:measure_flutter/src/tracing/span_builder.dart';
 import 'package:measure_flutter/src/tracing/tracer.dart';
+import 'package:measure_flutter/src/utils/id_provider.dart';
 
 import 'config/config_provider.dart';
 
@@ -22,9 +30,12 @@ final class MeasureInternal {
   final ExceptionCollector _exceptionCollector;
   final NavigationCollector _navigationCollector;
   final HttpCollector _httpCollector;
+  final BugReportCollector _bugReportCollector;
   final Tracer _tracer;
   final TimeProvider _timeProvider;
   final MsrMethodChannel methodChannel;
+  final IdProvider _idProvider;
+  final ShakeDetector _shakeDetector;
 
   MeasureInternal({
     required this.initializer,
@@ -35,8 +46,11 @@ final class MeasureInternal {
         _exceptionCollector = initializer.exceptionCollector,
         _httpCollector = initializer.httpCollector,
         _navigationCollector = initializer.navigationCollector,
+        _bugReportCollector = initializer.bugReportCollector,
         _timeProvider = initializer.timeProvider,
-        _tracer = initializer.tracer;
+        _tracer = initializer.tracer,
+        _idProvider = initializer.idProvider,
+        _shakeDetector = initializer.shakeDetector;
 
   Future<void> init() async {
     if (configProvider.autoStart) {
@@ -49,6 +63,8 @@ final class MeasureInternal {
     _customEventCollector.register();
     _httpCollector.register();
     _navigationCollector.register();
+    _bugReportCollector.register();
+    _shakeDetector.register();
   }
 
   void unregisterCollectors() {
@@ -56,6 +72,8 @@ final class MeasureInternal {
     _customEventCollector.unregister();
     _httpCollector.unregister();
     _navigationCollector.unregister();
+    _bugReportCollector.unregister();
+    _shakeDetector.unregister();
   }
 
   void trackCustomEvent(String name, DateTime? timestamp,
@@ -148,5 +166,33 @@ final class MeasureInternal {
 
   Future<String?> getSessionId() {
     return methodChannel.getSessionId();
+  }
+
+  void trackBugReport(String description, List<MsrAttachment> attachments,
+      Map<String, AttributeValue> attributes) {
+    _bugReportCollector.trackBugReport(description, attachments, attributes);
+  }
+
+  Future<MsrAttachment?> captureScreenshot() {
+    return ScreenshotService.capture(logger, _idProvider, configProvider);
+  }
+
+  MsrAttachment? getAttachment(Uint8List bytes, AttachmentType type) {
+    final id = _idProvider.uuid();
+    return MsrAttachment.fromBytes(bytes: bytes, type: type, uuid: id);
+  }
+
+  Widget createBugReport({
+    Key? key,
+    required MsrAttachment? screenshot,
+    required BugReportTheme theme,
+    required Map<String, AttributeValue>? attributes,
+  }) {
+    return _bugReportCollector.createBugReport(
+        key: key, screenshot: screenshot, theme: theme, attributes: attributes);
+  }
+
+  void setShakeListener(Function? onShake) {
+    _shakeDetector.setShakeListener(onShake);
   }
 }

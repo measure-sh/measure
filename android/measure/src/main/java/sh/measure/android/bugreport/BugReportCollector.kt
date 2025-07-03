@@ -222,7 +222,6 @@ internal class BugReportCollectorImpl internal constructor(
                             threadName = threadName,
                             userDefinedAttributes = attributes ?: mutableMapOf(),
                         )
-                        sessionManager.markSessionWithBugReport()
                     },
                 )
             } catch (e: Exception) {
