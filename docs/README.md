@@ -36,6 +36,7 @@ feature's documentation to understand its underlying mechanism and enhance your 
 * **Bug Reporting** — Let users report bugs directly from your app
     * [**Android**](features/feature-bug-report-android.md)
     * [**iOS**](features/feature-bug-report-ios.md)
+    * [**Flutter**](features/feature-bug-report-flutter.md)
 * [**App Launch Metrics**](features/feature-app-launch-metrics.md) — Measure app launch performance
 * [**Network Monitoring**](features/feature-network-monitoring.md) — Monitor HTTP requests and responses
 * [**Network Connectivity Changes**](features/feature-network-connectivity-changes.md) — Track when network connectivity changes
