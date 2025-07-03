@@ -200,21 +200,6 @@ import UIKit
         measureInternal.startBugReportFlow(takeScreenshot: takeScreenshot, bugReportConfig: bugReportConfig, attributes: attributes)
     }
 
-    @objc func enableShakeToLaunchBugReport(takeScreenshot: Bool = true) {
-        guard let measureInternal = self.measureInternal else { return }
-        measureInternal.enableShakeToLaunchBugReport(takeScreenshot: takeScreenshot)
-    }
-
-    @objc func disableShakeToLaunchBugReport() {
-        guard let measureInternal = self.measureInternal else { return }
-        measureInternal.disableShakeToLaunchBugReport()
-    }
-
-    @objc func isShakeToLaunchBugReportEnabled() -> Bool {
-        guard let measureInternal = self.measureInternal else { return false }
-        return measureInternal.isShakeToLaunchBugReportEnabled()
-    }
-
     @objc func setShakeListener(_ listener: MsrShakeListener?) {
         guard let measureInternal = self.measureInternal else { return }
         measureInternal.setShakeListener(listener)
@@ -600,30 +585,6 @@ extension Measure {
         Measure.shared.launchBugReport(takeScreenshot: takeScreenshot,
                                        bugReportConfig: bugReportConfig,
                                        attributes: attributes)
-    }
-
-    /// Enables automatic bug reporting using shake detection.
-    /// When the device is shaken, this will automatically launch the built-in bug report UI.
-    ///
-    /// - Parameter takeScreenshot: Set to `true` to include a screenshot with the report (default is `true`).
-    /// - SeeAlso: `disableShakeToLaunchBugReport()`
-    @objc public static func enableShakeToLaunchBugReport(takeScreenshot: Bool = true) {
-        Measure.shared.enableShakeToLaunchBugReport(takeScreenshot: takeScreenshot)
-    }
-
-    /// Disables automatic bug reporting triggered by shaking the device.
-    /// After calling this method, shake gestures will no longer open the bug report screen.
-    ///
-    /// - SeeAlso: `enableShakeToLaunchBugReport(takeScreenshot:)`
-    @objc public static func disableShakeToLaunchBugReport() {
-        Measure.shared.disableShakeToLaunchBugReport()
-    }
-
-    /// Checks whether the shake-to-launch bug report feature is currently enabled.
-    ///
-    /// - Returns: `true` if shake detection is active and will launch the bug report UI, otherwise `false`.
-    @objc public static func isShakeToLaunchBugReportEnabled() -> Bool {
-        Measure.shared.isShakeToLaunchBugReportEnabled()
     }
 
     /// Sets a custom shake listener for manually handling shake gestures.

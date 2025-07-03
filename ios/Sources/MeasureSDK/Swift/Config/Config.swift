@@ -55,7 +55,6 @@ struct Config: InternalConfig, MeasureConfig {
     let shakeMinTimeIntervalMs: Number
     let accelerometerUpdateInterval: TimeInterval
     let screenshotMaskLevel: ScreenshotMaskLevel
-    let enableShakeToLaunchBugReport: Bool
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
@@ -67,8 +66,7 @@ struct Config: InternalConfig, MeasureConfig {
                   httpUrlAllowlist: [String] = DefaultConfig.httpUrlAllowlist,
                   autoStart: Bool = DefaultConfig.autoStart,
                   trackViewControllerLoadTime: Bool = DefaultConfig.trackViewControllerLoadTime,
-                  screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel,
-                  enableShakeToLaunchBugReport: Bool = DefaultConfig.enableShakeToLaunchBugReport) {
+                  screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel) {
         self.enableLogging = enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
         self.traceSamplingRate = traceSamplingRate
@@ -80,7 +78,6 @@ struct Config: InternalConfig, MeasureConfig {
         self.autoStart = autoStart
         self.trackViewControllerLoadTime = trackViewControllerLoadTime
         self.screenshotMaskLevel = screenshotMaskLevel
-        self.enableShakeToLaunchBugReport = enableShakeToLaunchBugReport
         self.eventsBatchingIntervalMs = 30000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndLastEventThresholdMs = 20 * 60 * 1000 // 20 minitues

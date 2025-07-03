@@ -318,8 +318,7 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                          sessionManager: self.sessionManager,
                                                          idProvider: self.idProvider)
         self.shakeDetector = AccelerometerShakeDetector(configProvider: self.configProvider)
-        self.shakeBugReportCollector = ShakeBugReportCollector(autoLaunchEnabled: true,
-                                                               bugReportManager: self.bugReportManager,
+        self.shakeBugReportCollector = ShakeBugReportCollector(bugReportManager: self.bugReportManager,
                                                                shakeDetector: self.shakeDetector,
                                                                screenshotGenerator: self.screenshotGenerator)
     }
