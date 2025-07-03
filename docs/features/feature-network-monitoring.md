@@ -23,7 +23,7 @@ including any third party libraries, are automatically tracked by simply adding 
 
 #### Flutter
 
-On Flutter, network requests made using the [Dio](https://pub.dev/packages/dio) library can be tracked by adding
+On Flutter, network requests made using the [Dio](https://pub.dev/packages/dio) package can be tracked by adding
 the `measure_dio` package to your project. This package provides `MsrInterceptor` that can automatically
 track network requests done using Dio.
 
@@ -32,7 +32,7 @@ final dio = Dio();
 dio.interceptors.add(MsrInterceptor());
 ```
 
-For any other HTTP client libraries, you can manually track network requests using the `trackHttpRequest` method. 
+For any other HTTP client libraries, you can manually track network requests using the `trackHttpEvent` method. 
 Example using `http` package:
 
 ```dart
