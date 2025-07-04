@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
-import 'package:measure_flutter/src/attribute_value.dart';
+import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/src/events/attachment_codec.dart';
 import 'package:measure_flutter/src/method_channel/attribute_value_codec.dart';
 import 'package:measure_flutter/src/method_channel/method_constants.dart';
 import 'package:measure_flutter/src/method_channel/msr_platform_interface.dart';
@@ -10,30 +11,30 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
   final _methodChannel = const MethodChannel('measure_flutter');
 
   @override
-  Future<void> trackEvent(
-      Map<String, dynamic> data,
-      String type,
-      int timestamp,
-      Map<String, AttributeValue> userDefinedAttrs,
-      bool userTriggered,
-      String? threadName) async {
+  Future<void> trackEvent({
+    required Map<String, dynamic> data,
+    required String type,
+    required int timestamp,
+    required Map<String, AttributeValue> userDefinedAttrs,
+    required bool userTriggered,
+    String? threadName,
+    List<MsrAttachment>? attachments,
+  }) {
     final encodedAttributes = userDefinedAttrs.encode();
-    try {
-      return _methodChannel.invokeMethod(MethodConstants.functionTrackEvent, {
-        MethodConstants.argEventData: data,
-        MethodConstants.argEventType: type,
-        MethodConstants.argTimestamp: timestamp,
-        MethodConstants.argUserDefinedAttrs: encodedAttributes,
-        MethodConstants.argUserTriggered: userTriggered,
-        MethodConstants.argThreadName: threadName,
-      });
-    } catch (e, stackTrace) {
-      return Future.error(e, stackTrace);
-    }
+    final encodedAttachments = attachments?.encode();
+    return _methodChannel.invokeMethod(MethodConstants.functionTrackEvent, {
+      MethodConstants.argEventData: data,
+      MethodConstants.argEventType: type,
+      MethodConstants.argTimestamp: timestamp,
+      MethodConstants.argUserDefinedAttrs: encodedAttributes,
+      MethodConstants.argUserTriggered: userTriggered,
+      MethodConstants.argThreadName: threadName,
+      MethodConstants.argAttachments: encodedAttachments,
+    });
   }
 
   @override
-  Future<void> triggerNativeCrash() async {
+  Future<void> triggerNativeCrash() {
     return _methodChannel
         .invokeMethod(MethodConstants.functionTriggerNativeCrash);
   }
@@ -42,7 +43,7 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
   Future<void> initializeNativeSDK(
     Map<String, dynamic> config,
     Map<String, String> clientInfo,
-  ) async {
+  ) {
     return _methodChannel
         .invokeMethod(MethodConstants.functionInitializeNativeSDK, {
       MethodConstants.argConfig: config,
@@ -51,12 +52,12 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
   }
 
   @override
-  Future<void> start() async {
+  Future<void> start() {
     return _methodChannel.invokeMethod(MethodConstants.functionStart);
   }
 
   @override
-  Future<void> stop() async {
+  Future<void> stop() {
     return _methodChannel.invokeMethod(MethodConstants.functionStop);
   }
 
@@ -66,7 +67,7 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
   }
 
   @override
-  Future<void> trackSpan(SpanData data) async {
+  Future<void> trackSpan(SpanData data) {
     final checkpointsMap = {
       for (var cp in data.checkpoints) cp.name: cp.timestamp,
     };
@@ -97,5 +98,28 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
     return _methodChannel.invokeMethod(MethodConstants.functionSetUserId, {
       MethodConstants.argUserId: userId,
     });
+  }
+
+  @override
+  Future<String?> getAttachmentDirectory() {
+    return _methodChannel
+        .invokeMethod(MethodConstants.functionGetAttachmentDirectory);
+  }
+
+  @override
+  Future<void> enableShakeDetector() {
+    return _methodChannel
+        .invokeMethod(MethodConstants.functionEnableShakeDetector);
+  }
+
+  @override
+  Future<void> disableShakeDetector() {
+    return _methodChannel
+        .invokeMethod(MethodConstants.functionDisableShakeDetector);
+  }
+
+  void setMethodCallHandler(
+      Future<void> Function(MethodCall call) handleMethodCall) {
+    _methodChannel.setMethodCallHandler(handleMethodCall);
   }
 }

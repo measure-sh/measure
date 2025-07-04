@@ -157,6 +157,30 @@ Using ObjC:
 [Measure trackScreenView:@"Home"];
 ```
 
+#### Flutter
+
+To hook up with the Flutter navigation system, use the `MsrNavigatorObserver` which automatically tracks screen views
+when navigating between screens. You can add it to your `MaterialApp` or `CupertinoApp` as follows:
+
+```dart
+ @override
+Widget build(BuildContext context) {
+  return MaterialApp(
+    navigatorObservers: [MsrNavigatorObserver()],
+    home: HomeScreen(),
+  );
+}
+```
+
+To manually track screen views in a Flutter application, you can use the `trackScreenView` method from the Measure SDK:
+
+```dart
+Measure.instance.trackScreenView("Home");
+```
+
+> [!Note]
+> All Android/iOS lifecycle events are also automatically tracked for Flutter.
+
 ## Data collected
 
 Check the following sections for the data collected by Measure for each lifecycle event:

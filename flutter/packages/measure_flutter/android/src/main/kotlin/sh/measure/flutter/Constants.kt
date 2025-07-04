@@ -11,6 +11,9 @@ object MethodConstants {
     const val FUNCTION_STOP = "stop"
     const val FUNCTION_SET_USER_ID = "setUserId"
     const val FUNCTION_CLEAR_USER_ID = "clearUserId"
+    const val FUNCTION_GET_ATTACHMENT_DIRECTORY = "getAttachmentDirectory"
+    const val FUNCTION_ENABLE_SHAKE_DETECTOR = "enableShakeDetector"
+    const val FUNCTION_DISABLE_SHAKE_DETECTOR = "disableShakeDetector"
 
     // arguments
     const val ARG_EVENT_DATA = "event_data"
@@ -19,6 +22,7 @@ object MethodConstants {
     const val ARG_USER_DEFINED_ATTRS = "user_defined_attrs"
     const val ARG_USER_TRIGGERED = "user_triggered"
     const val ARG_THREAD_NAME = "thread_name"
+    const val ARG_ATTACHMENTS = "attachments"
     const val ARG_CONFIG = "config"
     const val ARG_CLIENT_INFO = "client_info"
     const val ARG_SPAN_NAME = "name";
@@ -36,6 +40,8 @@ object MethodConstants {
     const val ARG_SPAN_IS_SAMPLED = "isSampled";
     const val ARG_USER_ID = "user_id";
 
+    // Callbacks
+    const val CALLBACK_ON_SHAKE_DETECTED = "onShakeDetected"
 }
 
 object ErrorCode {

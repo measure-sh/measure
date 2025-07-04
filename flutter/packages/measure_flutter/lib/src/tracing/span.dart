@@ -129,11 +129,11 @@ abstract class Span {
 
   /// Marks this span as completed using the specified end time.
   ///
-  /// [timestamp] The end time in milliseconds since epoch, obtained via [Measure.getCurrentTime]
+  /// [timestamp] The end time in milliseconds since epoch, obtained via [Measure.getTimestamp]
   ///
   /// Note: This method can be called only once per span. Subsequent calls will have no effect.
   /// Use this variant when you need to trace an operation that has already completed and you
-  /// have captured its end time using [Measure.getCurrentTime].
+  /// have captured its end time using [Measure.getTimestamp].
   Span endWithTimestamp(int timestamp);
 
   /// Checks if this span has been completed.

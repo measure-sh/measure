@@ -157,6 +157,9 @@ internal class SignalProcessorImpl(
                             signalStore.store(event)
                             onEventTracked(event)
                         })
+                        if (type == EventType.BUG_REPORT) {
+                            sessionManager.markSessionWithBugReport()
+                        }
                     },
                 )
             }

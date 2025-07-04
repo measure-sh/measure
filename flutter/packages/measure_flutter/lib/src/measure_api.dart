@@ -1,9 +1,7 @@
 import 'dart:async';
 
-import 'package:measure_flutter/src/config/client.dart';
-import 'package:measure_flutter/src/config/measure_config.dart';
-import 'package:measure_flutter/src/tracing/span.dart';
-import 'package:measure_flutter/src/tracing/span_builder.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:measure_flutter/measure.dart';
 
 abstract class MeasureApi {
   void trackEvent({
@@ -36,6 +34,12 @@ abstract class MeasureApi {
 
   bool shouldTrackHttpHeader(String key);
 
+  void trackBugReport({
+    required String description,
+    required List<MsrAttachment> attachments,
+    required Map<String, AttributeValue> attributes,
+  });
+
   void trackHttpEvent({
     required String url,
     required String method,
@@ -62,11 +66,22 @@ abstract class MeasureApi {
 
   String getTraceParentHeaderKey();
 
-  int getCurrentTime();
+  int getTimestamp();
 
   Future<void> setUserId(String userId);
 
   Future<void> clearUserId();
 
   Future<String?> getSessionId();
+
+  Future<MsrAttachment?> captureScreenshot();
+
+  Widget createBugReportWidget({
+    Key? key,
+    BugReportTheme theme,
+    required MsrAttachment? screenshot,
+    required Map<String, AttributeValue>? attributes,
+  });
+
+  void setShakeListener(Function? onShake);
 }

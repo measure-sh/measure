@@ -27,6 +27,7 @@ in later steps.
 
 * [Android](#android)
 * [iOS](#ios)
+* [Flutter](#flutter)
 
 ## Android
 
@@ -313,6 +314,80 @@ func application(_ application: UIApplication,
 
 ```
 
+## Flutter
+
+The Flutter SDK currently supports only Android and iOS targets and is not available for web or desktop. The
+SDK depends on the native Android and iOS SDKs, so all the minimum requirements for Android and iOS apply to the
+Flutter SDK as well.
+
+<details>
+  <summary>Minimum Requirements</summary>
+
+| Name    | Version |
+|---------|---------|
+| Flutter | `3.10`  |
+
+</details>
+
+<details>
+    <summary>Self-host Compatibility</summary>
+
+| SDK Version | Minimum Required Self-host Version |
+|-------------|------------------------------------|
+| `0.1.0`     | `0.8.0`                            |
+
+</details>
+
+### Install the SDK
+
+Add the following dependency to your `pubspec.yaml` file:
+
+```yaml
+dependencies:
+  measure_flutter: ^0.1.0
+```
+
+### Setup Android Gradle Plugin
+
+To ensure stacktraces in crash reports are symbolicated correctly, you need to add the Measure Android Gradle Plugin
+to your `android/build.gradle` file. This plugin automatically uploads the Flutter symbol files to the Measure server
+when you build your app. See the [Add the Gradle Plugin](#add-the-gradle-plugin) section above for instructions.
+
+### Initialize the SDK
+
+To initialize the SDK, you need to call the `Measure.instance.init` method in your `main` function.
+
+> ![IMPORTANT]
+> The `MeasureWidget` is a widget that wraps your app and allows the Measure SDK to inject instrumentation into your
+> app. Not using the `MeasureWidget` can result in certain features like screenshots to not work as expected.
+
+```dart
+Future<void> main() async {
+  await Measure.instance.init(
+        () =>
+        runApp(
+          MeasureWidget(child: MyApp()),
+        ),
+    config: const MeasureConfig(
+      enableLogging: true,
+      traceSamplingRate: 1,
+      samplingRateForErrorFreeSessions: 1,
+    ),
+    clientInfo: ClientInfo(
+      apiKey: "YOUR_API_KEY",
+      apiUrl: "YOUR_API_URL",
+    ),
+  );
+}
+```
+
+This does the following:
+
+* Initializes the Measure SDK with the provided `clientInfo` and `config`.
+* Wraps your app with the `MeasureWidget`.
+* Sets up the error handlers to track uncaught exceptions.
+* Initializes the native Measure SDKs for Android and iOS with the same `clientInfo` and `config`.
+
 ## 3. Verify Installation
 
 Launch the app with the SDK integrated and navigate through a few screens. The data is sent to the server periodically,
@@ -440,5 +515,6 @@ For example: set the API URL to `https://measure-api.<your-domain>.com`, replaci
 
 ### Contact Support
 
-If none of the above steps resolve the issue, feel free to reach out to us on [Discord](https://discord.gg/f6zGkBCt42) for further
+If none of the above steps resolve the issue, feel free to reach out to us on [Discord](https://discord.gg/f6zGkBCt42)
+for further
 assistance.

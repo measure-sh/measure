@@ -4,6 +4,7 @@ import sh.measure.android.MsrAttachment
 import sh.measure.android.SessionManager
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
+import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -38,20 +39,19 @@ internal class InternalSignalCollector(
         sessionId: String?,
         threadName: String?,
     ) {
-        val eventAttachments = mutableListOf<Attachment>()
-        attachments.mapTo(eventAttachments) { it.toEventAttachment(it.type) }
-        val eventType = EventType.fromValue(type)
-        if (eventType == null) {
-            logger.log(LogLevel.Error, "Unknown event type: $type")
-            return
-        }
-
         try {
+            val eventAttachments = mutableListOf<Attachment>()
+            attachments.mapTo(eventAttachments) { it.toEventAttachment(it.type) }
+            val eventType = EventType.fromValue(type)
+            if (eventType == null) {
+                logger.log(LogLevel.Error, "Unknown event type: $type")
+                return
+            }
             when (eventType) {
                 EventType.CUSTOM -> {
-                    val data = extractCustomEventData(data)
+                    val extractedData = extractCustomEventData(data)
                     signalProcessor.track(
-                        data = data,
+                        data = extractedData,
                         timestamp = timestamp,
                         type = eventType,
                         attributes = attributes,
@@ -75,13 +75,13 @@ internal class InternalSignalCollector(
                             "invalid exception event, missing foreground property",
                         )
                     }
-                    val data = extractExceptionEventData(data)
-                    if (!data.handled) {
+                    val extractedData = extractExceptionEventData(data)
+                    if (!extractedData.handled) {
                         // ignoring session ID and user triggered properties
                         // this should be safe as handled exceptions are not tracked in
                         // a separate session and are not user triggered.
                         signalProcessor.trackCrash(
-                            data = data,
+                            data = extractedData,
                             timestamp = timestamp,
                             type = eventType,
                             attributes = attributes,
@@ -91,7 +91,7 @@ internal class InternalSignalCollector(
                         )
                     } else {
                         signalProcessor.track(
-                            data = data,
+                            data = extractedData,
                             timestamp = timestamp,
                             type = eventType,
                             attributes = attributes,
@@ -105,24 +105,39 @@ internal class InternalSignalCollector(
                 }
 
                 EventType.SCREEN_VIEW -> {
-                    val data = extractScreenViewData(data)
+                    val extractedData = extractScreenViewData(data)
                     signalProcessor.track(
-                        data = data,
+                        data = extractedData,
                         timestamp = timestamp,
                         type = eventType,
                         attributes = attributes,
                         userDefinedAttributes = userDefinedAttrs,
+                        userTriggered = userTriggered,
                     )
                 }
 
                 EventType.HTTP -> {
-                    val data = extractHttpData(data)
+                    val extractedData = extractHttpData(data)
                     signalProcessor.track(
-                        data = data,
+                        data = extractedData,
                         timestamp = timestamp,
                         type = eventType,
                         attributes = attributes,
                         userDefinedAttributes = userDefinedAttrs,
+                        userTriggered = userTriggered,
+                    )
+                }
+
+                EventType.BUG_REPORT -> {
+                    val extractedData = extractBugReportData(data)
+                    signalProcessor.track(
+                        data = extractedData,
+                        timestamp = timestamp,
+                        type = eventType,
+                        attributes = attributes,
+                        userDefinedAttributes = userDefinedAttrs,
+                        attachments = eventAttachments,
+                        userTriggered = userTriggered,
                     )
                 }
 
@@ -198,6 +213,13 @@ internal class InternalSignalCollector(
         return jsonSerializer.decodeFromJsonElement(
             CustomEventData.serializer(),
             data.toJsonElement(),
+        )
+    }
+
+    private fun extractBugReportData(map: MutableMap<String, Any?>): BugReportData {
+        return jsonSerializer.decodeFromJsonElement(
+            BugReportData.serializer(),
+            map.toJsonElement(),
         )
     }
 }

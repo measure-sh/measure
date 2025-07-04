@@ -13,7 +13,7 @@ abstract class InternalSpan extends Span {
 
   /// Gets the timestamp when this span was started.
   ///
-  /// Returns the start time in milliseconds since epoch, obtained via [Measure.getCurrentTime].
+  /// Returns the start time in milliseconds since epoch, obtained via [Measure.getTimestamp].
   int get startTime;
 
   /// Gets the list of time-based checkpoints added to this span.

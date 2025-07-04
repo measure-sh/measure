@@ -12,6 +12,6 @@ abstract class SpanBuilder {
   /// Returns a new [Span] instance.
   ///
   /// Note: After calling this method, any further builder configurations will be ignored.
-  /// The start time is automatically set using [Measure.getCurrentTime].
+  /// The start time is automatically set using [Measure.getTimestamp].
   Span startSpan({int? timestamp});
 }

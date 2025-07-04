@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum AttachmentType: String, Codable {
+public enum AttachmentType: String, Codable {
     case screenshot
     case layoutSnapshot = "layout_snapshot"
 }

@@ -3,6 +3,8 @@
 - [**Introduction**](#introduction)
 - [**Android**](#android)
 - [**iOS**](#ios)
+- [**Flutter**](#flutter)
+- [**Data collected**](#data-collected)
 
 Measure SDK captures CPU usage periodically (defaults to 3 seconds) when the app is in foreground.
 
@@ -54,6 +56,11 @@ Measure SDK calculates CPU usage by retrieving task and thread information using
     - The SDK converts this into a percentage by summing the CPU usage of all non-idle threads and normalizing it against `TH_USAGE_SCALE`.
 
 This provides an estimate of how much CPU time the app is consuming relative to available CPU resources.
+
+## Flutter
+
+CPU usage is collected for Flutter apps based on the platform the app is running on (Android or iOS). The SDK uses the
+same methods as described above for Android and iOS.
 
 #### Further reading
 
