@@ -179,6 +179,42 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName
                 )
+            case EventType.gestureClick.rawValue:
+                let bugReportData = try extractClickData(data: data)
+                signalProcessor.track(
+                    data: bugReportData,
+                    timestamp: timestamp,
+                    type: .gestureClick,
+                    attributes: evaluatedAttributes,
+                    sessionId: sessionId,
+                    attachments: attachments,
+                    userDefinedAttributes: serializedUserDefinedAttributes,
+                    threadName: threadName
+                )
+            case EventType.gestureLongClick.rawValue:
+                let bugReportData = try extractLongClickData(data: data)
+                signalProcessor.track(
+                    data: bugReportData,
+                    timestamp: timestamp,
+                    type: .gestureLongClick,
+                    attributes: evaluatedAttributes,
+                    sessionId: sessionId,
+                    attachments: attachments,
+                    userDefinedAttributes: serializedUserDefinedAttributes,
+                    threadName: threadName
+                )
+            case EventType.gestureScroll.rawValue:
+                let bugReportData = try extractScrollData(data: data)
+                signalProcessor.track(
+                    data: bugReportData,
+                    timestamp: timestamp,
+                    type: .gestureScroll,
+                    attributes: evaluatedAttributes,
+                    sessionId: sessionId,
+                    attachments: attachments,
+                    userDefinedAttributes: serializedUserDefinedAttributes,
+                    threadName: threadName
+                )
             default:
                 logger.log(
                     level: .debug,
@@ -279,5 +315,20 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
     func extractBugReportData(data: [String: Any?]) throws -> BugReportData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(BugReportData.self, from: jsonData)
+    }
+    
+    func extractClickData(data: [String: Any?]) throws -> ClickData {
+        let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
+        return try JSONDecoder().decode(ClickData.self, from: jsonData)
+    }
+    
+    func extractLongClickData(data: [String: Any?]) throws -> LongClickData {
+        let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
+        return try JSONDecoder().decode(LongClickData.self, from: jsonData)
+    }
+    
+    func extractScrollData(data: [String: Any?]) throws -> ScrollData {
+        let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
+        return try JSONDecoder().decode(ScrollData.self, from: jsonData)
     }
 }

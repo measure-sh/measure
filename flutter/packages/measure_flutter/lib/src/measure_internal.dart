@@ -8,6 +8,9 @@ import 'package:measure_flutter/src/events/attachment_type.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/events/msr_attachment.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
+import 'package:measure_flutter/src/gestures/click_data.dart';
+import 'package:measure_flutter/src/gestures/gesture_collector.dart';
+import 'package:measure_flutter/src/gestures/long_click_data.dart';
 import 'package:measure_flutter/src/http/http_collector.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
@@ -21,6 +24,7 @@ import 'package:measure_flutter/src/tracing/tracer.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
 
 import 'config/config_provider.dart';
+import 'gestures/scroll_data.dart';
 
 final class MeasureInternal {
   final MeasureInitializer initializer;
@@ -31,6 +35,7 @@ final class MeasureInternal {
   final NavigationCollector _navigationCollector;
   final HttpCollector _httpCollector;
   final BugReportCollector _bugReportCollector;
+  final GestureCollector _gestureCollector;
   final Tracer _tracer;
   final TimeProvider _timeProvider;
   final MsrMethodChannel methodChannel;
@@ -47,6 +52,7 @@ final class MeasureInternal {
         _httpCollector = initializer.httpCollector,
         _navigationCollector = initializer.navigationCollector,
         _bugReportCollector = initializer.bugReportCollector,
+        _gestureCollector = initializer.gestureCollector,
         _timeProvider = initializer.timeProvider,
         _tracer = initializer.tracer,
         _idProvider = initializer.idProvider,
@@ -65,6 +71,7 @@ final class MeasureInternal {
     _navigationCollector.register();
     _bugReportCollector.register();
     _shakeDetector.register();
+    _gestureCollector.register();
   }
 
   void unregisterCollectors() {
@@ -74,6 +81,7 @@ final class MeasureInternal {
     _navigationCollector.unregister();
     _bugReportCollector.unregister();
     _shakeDetector.unregister();
+    _gestureCollector.unregister();
   }
 
   void trackCustomEvent(String name, DateTime? timestamp,
@@ -194,5 +202,17 @@ final class MeasureInternal {
 
   void setShakeListener(Function? onShake) {
     _shakeDetector.setShakeListener(onShake);
+  }
+
+  void trackClick(ClickData clickData) {
+    _gestureCollector.trackGestureClick(clickData);
+  }
+
+  void trackLongClick(LongClickData longClickData) {
+    _gestureCollector.trackGestureLongClick(longClickData);
+  }
+
+  void trackScroll(ScrollData scrollData) {
+    _gestureCollector.trackGestureScroll(scrollData);
   }
 }
