@@ -166,13 +166,6 @@ func main() {
 			return
 		}
 
-		fmt.Println("symbolicator res status:", resp.StatusCode)
-		fmt.Println("symbolicator res headers:")
-
-		for key, value := range resp.Header {
-			fmt.Println("key, value:", key, value)
-		}
-
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
