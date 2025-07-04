@@ -4,6 +4,7 @@ import 'package:measure_flutter/src/config/config.dart';
 import 'package:measure_flutter/src/config/measure_config.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
+import 'package:measure_flutter/src/gestures/gesture_collector.dart';
 import 'package:measure_flutter/src/http/http_collector.dart';
 import 'package:measure_flutter/src/logger/flutter_logger.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
@@ -34,6 +35,7 @@ final class MeasureInitializer {
   late final NavigationCollector _navigationCollector;
   late final BugReportCollector _bugReportCollector;
   late final HttpCollector _httpCollector;
+  late final GestureCollector _gestureCollector;
   late final SignalProcessor _signalProcessor;
   late final SpanProcessor _spanProcessor;
   late final Tracer _tracer;
@@ -57,6 +59,8 @@ final class MeasureInitializer {
   BugReportCollector get bugReportCollector => _bugReportCollector;
 
   HttpCollector get httpCollector => _httpCollector;
+
+  GestureCollector get gestureCollector => _gestureCollector;
 
   SignalProcessor get signalProcessor => _signalProcessor;
 
@@ -114,6 +118,7 @@ final class MeasureInitializer {
     _navigationCollector =
         NavigationCollector(signalProcessor: signalProcessor);
     _httpCollector = HttpCollector(signalProcessor: signalProcessor);
+    _gestureCollector = GestureCollector(signalProcessor);
     final randomizer = RandomizerImpl();
     _fileStorage = FileStorage(methodChannel, logger);
     _idProvider = IdProviderImpl(randomizer);

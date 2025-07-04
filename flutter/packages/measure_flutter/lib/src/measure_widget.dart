@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:measure_flutter/measure.dart';
 import 'package:measure_flutter/src/screenshot/screenshot_service.dart';
 
 /// A widget that provides Measure a way to inject
@@ -31,7 +32,13 @@ class _MeasureWidgetState extends State<MeasureWidget> {
   Widget build(BuildContext context) {
     return RepaintBoundary(
       key: _repaintBoundaryKey,
-      child: widget.child,
+      child: MsrGestureDetector(
+        child: widget.child,
+        onClick: (clickData) => Measure.instance.trackClick(clickData),
+        onLongClick: (longClickData) =>
+            Measure.instance.trackLongClick(longClickData),
+        onScroll: (scrollData) => Measure.instance.trackScroll(scrollData),
+      ),
     );
   }
 }

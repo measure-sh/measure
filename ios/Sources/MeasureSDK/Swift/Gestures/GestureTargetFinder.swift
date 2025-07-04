@@ -19,6 +19,10 @@ final class BaseGestureTargetFinder: GestureTargetFinder {
         let tapPoint = CGPoint(x: x, y: y)
 
         if let tappedView = window.hitTest(tapPoint, with: nil) {
+            let className = String(describing: type(of: tappedView))
+            if className.contains("FlutterView") || className.contains("FlutterSemanticsScrollView") {
+                return (nil, nil, nil)
+            }
             if let targetData = searchSubviews(view: tappedView, tapPoint: tapPoint, window: window) {
                 return targetData
             } else {
