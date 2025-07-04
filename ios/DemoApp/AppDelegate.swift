@@ -15,12 +15,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Override point for customization after application launch.
         let clientInfo = ClientInfo(apiKey: "msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c",
                                     apiUrl: "http://localhost:8080")
+        final class CustomHeaderProvider: MsrRequestHeadersProvider {
+            private var requestHeaders: [String: String] = ["key1": "value1", "key2": "value2"]
+
+            func getRequestHeaders() -> [String: String] {
+                return requestHeaders
+            }
+        }
         let config = BaseMeasureConfig(enableLogging: true,
                                        samplingRateForErrorFreeSessions: 1.0,
                                        traceSamplingRate: 1.0,
                                        autoStart: true,
                                        trackViewControllerLoadTime: true,
-                                       screenshotMaskLevel: .sensitiveFieldsOnly)
+                                       screenshotMaskLevel: .sensitiveFieldsOnly,
+                                       requestHeadersProvider: CustomHeaderProvider())
         Measure.initialize(with: clientInfo, config: config)
         Measure.setUserId("test_user_ios")
         Measure.onShake {
