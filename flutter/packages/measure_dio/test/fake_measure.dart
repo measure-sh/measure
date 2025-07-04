@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/src/gestures/click_data.dart';
+import 'package:measure_flutter/src/gestures/long_click_data.dart';
+import 'package:measure_flutter/src/gestures/scroll_data.dart';
 
 import 'http_call.dart';
 
@@ -171,6 +174,21 @@ class FakeMeasure implements MeasureApi {
 
   @override
   void setShakeListener(Function? onShake) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void trackClick(ClickData clickData) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void trackLongClick(LongClickData longClickData) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void trackScroll(ScrollData scrollData) {
     throw UnimplementedError();
   }
 }
