@@ -20,7 +20,8 @@ protocol InternalSignalCollector {
         userDefinedAttrs: [String: AttributeValue],
         userTriggered: Bool,
         sessionId: String?,
-        threadName: String?
+        threadName: String?,
+        attachments: [Attachment]
     )
 
     func trackSpan( // swiftlint:disable:this function_parameter_count
@@ -92,7 +93,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
         userDefinedAttrs: [String: AttributeValue],
         userTriggered: Bool,
         sessionId: String?,
-        threadName: String?
+        threadName: String?,
+        attachments: [Attachment]
     ) {
         guard isEnabled.get() else { return }
 
@@ -164,6 +166,19 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     threadName: threadName
                 )
 
+            case EventType.bugReport.rawValue:
+                let bugReportData = try extractBugReportData(data: data)
+                sessionManager.markCurrentSessionAsCrashed()
+                signalProcessor.track(
+                    data: bugReportData,
+                    timestamp: timestamp,
+                    type: .bugReport,
+                    attributes: evaluatedAttributes,
+                    sessionId: sessionId,
+                    attachments: attachments,
+                    userDefinedAttributes: serializedUserDefinedAttributes,
+                    threadName: threadName
+                )
             default:
                 logger.log(
                     level: .debug,
@@ -259,5 +274,10 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
     func extractHttpData(data: [String: Any?]) throws -> HttpData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(HttpData.self, from: jsonData)
+    }
+    
+    func extractBugReportData(data: [String: Any?]) throws -> BugReportData {
+        let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
+        return try JSONDecoder().decode(BugReportData.self, from: jsonData)
     }
 }

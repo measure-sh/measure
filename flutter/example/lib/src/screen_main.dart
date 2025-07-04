@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:measure_dio/measure_dio.dart';
 import 'package:measure_flutter/measure.dart';
 import 'package:measure_flutter_example/src/screen_navigation.dart';
+import 'package:measure_flutter_example/src/toggle_list_item.dart';
 import 'package:stack_trace/stack_trace.dart';
 
 import 'list_item.dart';
@@ -18,7 +19,7 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with MsrShakeDetectorMixin {
   bool _isTrackingEnabled = true;
 
   @override
@@ -131,7 +132,15 @@ class _MainScreenState extends State<MainScreen> {
           ListSection(title: "spans"),
           ListItem(title: "Create span", onPressed: _trackSpan),
           ListItem(title: "Create nested span", onPressed: _trackNestedSpan),
-          ListSection(title: "user"),
+          ListSection(title: "bug report"),
+          ToggleListItem(
+            title: "Toggle shake to report",
+            onChanged: _toggleShakeToReport,
+            initialValue: true,
+          ),
+          ListItem(title: "Track bug report", onPressed: _trackBugReport),
+          ListItem(title: "Launch bug report", onPressed: _launchBugReport),
+          ListSection(title: "misc"),
           ListItem(title: "Set user", onPressed: _setUserId),
           ListItem(title: "Clear user", onPressed: _clearUserId),
         ],
@@ -282,11 +291,10 @@ class _MainScreenState extends State<MainScreen> {
       // If cache miss, fetch from API
       await _fetchFromAPI(profileSpan);
 
-      profileSpan.setCheckpoint("profile-loaded")
-          .setStatus(SpanStatus.ok);
-
+      profileSpan.setCheckpoint("profile-loaded").setStatus(SpanStatus.ok);
     } catch (e) {
-      profileSpan.setCheckpoint("profile-load-failed")
+      profileSpan
+          .setCheckpoint("profile-load-failed")
           .setStatus(SpanStatus.error);
     } finally {
       profileSpan.end();
@@ -301,8 +309,7 @@ class _MainScreenState extends State<MainScreen> {
 
     try {
       await Future.delayed(const Duration(milliseconds: 100));
-      cacheSpan.setCheckpoint("cache-miss")
-          .setStatus(SpanStatus.ok);
+      cacheSpan.setCheckpoint("cache-miss").setStatus(SpanStatus.ok);
     } finally {
       cacheSpan.end();
     }
@@ -322,8 +329,7 @@ class _MainScreenState extends State<MainScreen> {
 
     try {
       await Future.delayed(const Duration(milliseconds: 800));
-      apiSpan.setCheckpoint("api-response-received")
-          .setStatus(SpanStatus.ok);
+      apiSpan.setCheckpoint("api-response-received").setStatus(SpanStatus.ok);
     } finally {
       apiSpan.end();
     }
@@ -335,6 +341,51 @@ class _MainScreenState extends State<MainScreen> {
 
   void _clearUserId() {
     Measure.instance.clearUserId();
+  }
+
+  void _trackBugReport() async {
+    final screenshot = await Measure.instance.captureScreenshot();
+    Measure.instance.trackBugReport(
+      description: "Unable to place an order",
+      attachments: [
+        if (screenshot != null) screenshot,
+      ],
+      attributes: AttributeBuilder().add("order_id", "order-12345").build(),
+    );
+  }
+
+  void _launchBugReport() async {
+    final navigatorState = Navigator.of(context);
+    final screenshot = await Measure.instance.captureScreenshot();
+
+    if (context.mounted) {
+      navigatorState.push(
+        MaterialPageRoute<Widget>(
+          builder: (context) => Measure.instance.createBugReportWidget(
+            screenshot: screenshot,
+            theme: const BugReportTheme(
+              colors: BugReportColors(
+                primaryColor: Colors.lightBlue,
+              ),
+            ),
+          ),
+          settings: RouteSettings(name: '/msr_bug_report'),
+        ),
+      );
+    }
+  }
+
+  @override
+  void onShakeDetected() {
+    _launchBugReport();
+  }
+
+  void _toggleShakeToReport(bool enabled) {
+    if (enabled) {
+      enableShakeDetection();
+    } else {
+      disableShakeDetection();
+    }
   }
 }
 

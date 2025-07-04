@@ -340,6 +340,26 @@ internal class SignalProcessorTest {
     }
 
     @Test
+    fun `given an event of type bug_report, marks session with bug report`() {
+        // Given
+        val bugReportData = TestData.getBugReportData()
+        val timestamp = 1710746412L
+        val type = EventType.BUG_REPORT
+        val sessionId = "session-id-bug-report"
+
+        // When
+        signalProcessor.track(
+            data = bugReportData,
+            timestamp = timestamp,
+            type = type,
+            sessionId = sessionId,
+        )
+
+        // Then
+        assertTrue(sessionManager.markedSessionWithBugReport)
+    }
+
+    @Test
     fun `given a user triggered event, then stores the event`() {
         val data = TestData.getScreenViewData()
         val timestamp = 1710746412L

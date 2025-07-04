@@ -1,7 +1,7 @@
-import 'package:measure_flutter/src/attribute_value.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
+import '../../measure.dart';
 import '../tracing/span_data.dart';
 
 abstract class MeasureFlutterPlatform extends PlatformInterface {
@@ -18,13 +18,15 @@ abstract class MeasureFlutterPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<void> trackEvent(
-      Map<String, dynamic> data,
-      String type,
-      int timestamp,
-      Map<String, AttributeValue> userDefinedAttrs,
-      bool userTriggered,
-      String threadName) {
+  Future<void> trackEvent({
+    required Map<String, dynamic> data,
+    required String type,
+    required int timestamp,
+    required Map<String, AttributeValue> userDefinedAttrs,
+    required bool userTriggered,
+    String? threadName,
+    List<MsrAttachment>? attachments,
+  }) {
     throw UnimplementedError('trackEvent() has not been implemented.');
   }
 
@@ -61,5 +63,19 @@ abstract class MeasureFlutterPlatform extends PlatformInterface {
 
   Future<void> clearUserId() {
     throw UnimplementedError('getUserId() has not been implemented.');
+  }
+
+  Future<String?> getAttachmentDirectory() {
+    throw UnimplementedError(
+        'getAttachmentDirectory() has not been implemented.');
+  }
+
+  Future<void> enableShakeDetector() {
+    throw UnimplementedError('enableShakeDetector() has not been implemented.');
+  }
+
+  Future<void> disableShakeDetector() {
+    throw UnimplementedError(
+        'disableShakeDetector() has not been implemented.');
   }
 }

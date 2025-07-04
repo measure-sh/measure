@@ -18,6 +18,9 @@ enum MethodConstants {
     static let functionStop = "stop"
     static let functionSetUserId = "setUserId"
     static let functionClearUserId = "clearUserId"
+    static let functionGetAttachmentDirectory = "getAttachmentDirectory"
+    static let functionEnableShakeDetection = "enableShakeDetector"
+    static let functionDisableShakeDetection = "disableShakeDetector"
 
     // arguments
     static let argEventData = "event_data"
@@ -26,6 +29,7 @@ enum MethodConstants {
     static let argUserDefinedAttrs = "user_defined_attrs"
     static let argUserTriggered = "user_triggered"
     static let argThreadName = "thread_name"
+    static let argAttachments = "attachments"
     static let argConfig = "config"
     static let argClientInfo = "client_info"
     static let argSpanName = "name"
@@ -42,6 +46,9 @@ enum MethodConstants {
     static let argSpanHasEnded = "hasEnded"
     static let argSpanIsSampled = "isSampled"
     static let argUserId = "user_id"
+
+    // Callbacks
+    static let callbackOnShakeDetected = "onShakeDetected"
 }
 
 enum ErrorCode {

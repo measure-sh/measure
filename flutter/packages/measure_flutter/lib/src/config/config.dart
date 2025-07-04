@@ -22,6 +22,11 @@ class Config implements InternalConfig, IMeasureConfig {
     this.maxCheckpointNameLength = DefaultConfig.maxCheckpointNameLength,
     this.maxSpanNameLength = DefaultConfig.maxSpanNameLength,
     this.maxCheckpointsPerSpan = DefaultConfig.maxCheckpointsPerSpan,
+    this.maxAttachmentsInBugReport = DefaultConfig.maxAttachmentsInBugReport,
+    this.maxDescriptionLengthInBugReport =
+        DefaultConfig.maxDescriptionLengthInBugReport,
+    this.screenshotCompressionQuality =
+        DefaultConfig.screenshotCompressionQuality,
   });
 
   @override
@@ -58,6 +63,12 @@ class Config implements InternalConfig, IMeasureConfig {
   final int maxSpanNameLength;
   @override
   final int maxCheckpointsPerSpan;
+  @override
+  final int maxAttachmentsInBugReport;
+  @override
+  final int maxDescriptionLengthInBugReport;
+  @override
+  final int screenshotCompressionQuality;
 
   @override
   List<String> get defaultHttpContentTypeAllowlist =>

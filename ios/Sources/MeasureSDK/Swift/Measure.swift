@@ -93,7 +93,8 @@ import UIKit
                             userDefinedAttrs: [String: AttributeValue],
                             userTriggered: Bool,
                             sessionId: String?,
-                            threadName: String?) {
+                            threadName: String?,
+                            attachments: [Attachment]) {
         guard let internalEventCollector = measureInternal?.internalSignalCollector else { return }
         internalEventCollector.trackEvent(data: &data,
                                           type: type,
@@ -102,7 +103,8 @@ import UIKit
                                           userDefinedAttrs: userDefinedAttrs,
                                           userTriggered: userTriggered,
                                           sessionId: sessionId,
-                                          threadName: threadName)
+                                          threadName: threadName,
+                                          attachments: attachments)
     }
 
     func internalTrackSpan(name: String, // swiftlint:disable:this function_parameter_count
@@ -249,6 +251,11 @@ import UIKit
         guard let measureInternal = self.measureInternal else { return }
         return measureInternal.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
     }
+    
+    func internalGetAttachmentDirectory() -> String? {
+        guard let measureInternal = self.measureInternal else { return nil }
+        return measureInternal.getDocumentDirectoryPath()
+    }
 }
 
 // MARK: - Static Convenience API
@@ -358,7 +365,8 @@ extension Measure {
                                           userDefinedAttrs: [String: AttributeValue],
                                           userTriggered: Bool,
                                           sessionId: String?,
-                                          threadName: String?) {
+                                          threadName: String?,
+                                          attachments: [Attachment]) {
         Measure.shared.internalTrackEvent(data: &data,
                                           type: type,
                                           timestamp: timestamp,
@@ -366,7 +374,8 @@ extension Measure {
                                           userDefinedAttrs: userDefinedAttrs,
                                           userTriggered: userTriggered,
                                           sessionId: sessionId,
-                                          threadName: threadName)
+                                          threadName: threadName,
+                                          attachments: attachments)
     }
 
     /// An internal method to track spans from cross-platform frameworks
@@ -684,5 +693,13 @@ extension Measure {
     ///   - collectStackTraces: If `true`, captures the current stack trace to aid in debugging.
     @objc public static func trackError(_ error: NSError, attributes: [String: Any]? = nil, collectStackTraces: Bool = false) {
         Measure.shared.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
+    }
+
+    /// An internal method get the directory path wheere attachments are stored, used by cross-platform frameworks
+    /// like Flutter and React Native.
+    ///
+    /// This method is not intended for public usage and can change in future versions.
+    public static func internalGetAttachmentDirectory() -> String? {
+        return Measure.shared.internalGetAttachmentDirectory()
     }
 } // swiftlint:disable:this file_length

@@ -650,6 +650,6 @@ internal object TestData {
         content: ByteArray = "content".toByteArray(),
         type: String = AttachmentType.SCREENSHOT,
     ): MsrAttachment {
-        return MsrAttachment(name, content, type = type)
+        return MsrAttachment(name, bytes = content, type = type)
     }
 }

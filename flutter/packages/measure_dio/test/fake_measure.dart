@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:measure_flutter/measure.dart';
 
 import 'http_call.dart';
@@ -141,6 +142,35 @@ class FakeMeasure implements MeasureApi {
 
   @override
   Future<String?> getSessionId() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<MsrAttachment?> captureScreenshot() {
+    throw UnimplementedError();
+  }
+
+  @override
+  void trackBugReport({
+    required String description,
+    required List<MsrAttachment> attachments,
+    required Map<String, AttributeValue> attributes,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Widget createBugReportWidget({
+    Key? key,
+    BugReportTheme theme = const BugReportTheme(),
+    required MsrAttachment? screenshot,
+    required Map<String, AttributeValue>? attributes,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void setShakeListener(Function? onShake) {
     throw UnimplementedError();
   }
 }
