@@ -56,7 +56,7 @@ struct Config: InternalConfig, MeasureConfig {
     let accelerometerUpdateInterval: TimeInterval
     let screenshotMaskLevel: ScreenshotMaskLevel
 
-    internal init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
+    internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
                   traceSamplingRate: Float = DefaultConfig.traceSamplingRate,
                   trackHttpHeaders: Bool = DefaultConfig.trackHttpHeaders,

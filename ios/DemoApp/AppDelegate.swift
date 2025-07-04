@@ -23,6 +23,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                                        screenshotMaskLevel: .sensitiveFieldsOnly)
         Measure.initialize(with: clientInfo, config: config)
         Measure.setUserId("test_user_ios")
+        Measure.onShake {
+            Measure.launchBugReport(takeScreenshot: true, bugReportConfig: BugReportConfig.default, attributes: nil)
+        }
 
         return true
     }

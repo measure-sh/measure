@@ -8,7 +8,7 @@
 import Foundation
 @testable import Measure
 
-final class MockMeasureInitializer: MeasureInitializer {
+final class MockMeasureInitializer: MeasureInitializer {  // swiftlint:disable:this type_body_length
     let configProvider: ConfigProvider
     let client: Client
     let logger: Logger
@@ -318,8 +318,6 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                          sessionManager: self.sessionManager,
                                                          idProvider: self.idProvider)
         self.shakeDetector = AccelerometerShakeDetector(configProvider: self.configProvider)
-        self.shakeBugReportCollector = ShakeBugReportCollector(bugReportManager: self.bugReportManager,
-                                                               shakeDetector: self.shakeDetector,
-                                                               screenshotGenerator: self.screenshotGenerator)
+        self.shakeBugReportCollector = ShakeBugReportCollector(shakeDetector: self.shakeDetector)
     }
 }

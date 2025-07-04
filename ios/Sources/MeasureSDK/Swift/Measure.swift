@@ -200,9 +200,9 @@ import UIKit
         measureInternal.startBugReportFlow(takeScreenshot: takeScreenshot, bugReportConfig: bugReportConfig, attributes: attributes)
     }
 
-    @objc func setShakeListener(_ listener: MsrShakeListener?) {
+    @objc func onShake(_ handler: (() -> Void)?) {
         guard let measureInternal = self.measureInternal else { return }
-        measureInternal.setShakeListener(listener)
+        measureInternal.onShake(handler)
     }
 
     func trackBugReport(description: String,
@@ -587,19 +587,16 @@ extension Measure {
                                        attributes: attributes)
     }
 
-    /// Sets a custom shake listener for manually handling shake gestures.
-    /// This is useful for showing a confirmation UI or triggering a custom bug reporting flow instead of
-    /// launching the built-in experience.
+    /// Sets a custom shake listener using a closure for handling shake gestures.
     ///
-    /// Key behavior:
-    /// - Setting a non-`nil` listener enables shake detection.
-    /// - Setting `nil` disables shake detection.
-    /// - The listener is throttled and will only fire once every 5 seconds.
-    /// - Has no effect if automatic shake reporting is already enabled.
+    /// - Note:
+    ///   - Setting a non-`nil` handler enables shake detection.
+    ///   - Setting `nil` disables shake detection.
+    ///   - Has no effect if automatic shake reporting is already enabled.
     ///
-    /// - Parameter listener: A custom `MsrShakeListener` to receive shake callbacks, or `nil` to disable.
-    @objc public static func setShakeListener(_ listener: MsrShakeListener?) {
-        Measure.shared.setShakeListener(listener)
+    /// - Parameter handler: Closure to call when shake is detected.
+    @objc public static func onShake(_ handler: (() -> Void)?) {
+        Measure.shared.onShake(handler)
     }
 
     /// Tracks a custom bug report.

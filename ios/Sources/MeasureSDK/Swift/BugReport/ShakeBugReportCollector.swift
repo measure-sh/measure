@@ -10,20 +10,15 @@ import UIKit
 
 final class ShakeBugReportCollector: ShakeDetectorListener {
     private let shakeDetector: ShakeDetector
-    private let bugReportManager: BugReportManager
-    private var listener: MsrShakeListener?
-    private var takeScreenshot: Bool = false
-    private let screenshotGenerator: ScreenshotGenerator
+    private var shakeHandler: (() -> Void)?
 
-    init(bugReportManager: BugReportManager, shakeDetector: ShakeDetector, screenshotGenerator: ScreenshotGenerator) {
+    init(shakeDetector: ShakeDetector) {
         self.shakeDetector = shakeDetector
-        self.bugReportManager = bugReportManager
-        self.screenshotGenerator = screenshotGenerator
     }
 
-    func setShakeListener(_ listener: MsrShakeListener?) {
-        self.listener = listener
-        if listener == nil {
+    func setShakeHandler(_ handler: (() -> Void)?) {
+        self.shakeHandler = handler
+        if handler == nil {
             shakeDetector.setShakeListener(nil)
             shakeDetector.stop()
         } else {
@@ -33,8 +28,6 @@ final class ShakeBugReportCollector: ShakeDetectorListener {
     }
 
     func onShake() {
-        if let listener = listener {
-            listener.onShake()
-        }
+        shakeHandler?()
     }
 }

@@ -28,8 +28,3 @@ protocol ShakeDetector {
 protocol ShakeDetectorListener: AnyObject {
     func onShake()
 }
-
-/// Listener called when a shake motion is detected.
-@objc public protocol MsrShakeListener: AnyObject {
-    func onShake()
-}

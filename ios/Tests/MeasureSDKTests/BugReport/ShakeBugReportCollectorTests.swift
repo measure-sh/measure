@@ -9,33 +9,27 @@ import XCTest
 @testable import Measure
 
 final class ShakeBugReportCollectorTests: XCTestCase {
-    func test_onShake_delegatesToListener() {
+    func test_onShake_invokesHandler() {
         let bugManager = MockBugReportManager()
         let shakeDetector = MockShakeDetector()
-        let listener = MockMsrShakeListener()
-        let collector = ShakeBugReportCollector(
-            bugReportManager: bugManager,
-            shakeDetector: shakeDetector,
-            screenshotGenerator: MockScreenshotGenerator()
-        )
+        let collector = ShakeBugReportCollector(shakeDetector: shakeDetector)
 
-        collector.setShakeListener(listener)
+        var didCall = false
+        collector.setShakeHandler {
+            didCall = true
+        }
+
         shakeDetector.simulateShake()
 
-        XCTAssertTrue(listener.didShakeCalled)
+        XCTAssertTrue(didCall)
         XCTAssertFalse(bugManager.didOpenBugReporter)
     }
 
-    func test_setShakeListener_nilListener_stopsDetector() {
-        let bugManager = MockBugReportManager()
+    func test_setShakeHandler_nil_stopsDetector() {
         let shakeDetector = MockShakeDetector()
-        let collector = ShakeBugReportCollector(
-            bugReportManager: bugManager,
-            shakeDetector: shakeDetector,
-            screenshotGenerator: MockScreenshotGenerator()
-        )
+        let collector = ShakeBugReportCollector(shakeDetector: shakeDetector)
 
-        collector.setShakeListener(nil)
+        collector.setShakeHandler(nil)
 
         XCTAssertTrue(shakeDetector.didStop)
         XCTAssertNil(shakeDetector.getShakeListener())

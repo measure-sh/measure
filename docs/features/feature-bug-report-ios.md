@@ -124,8 +124,8 @@ Measure.trackBugReport(description: "Bug description", attachments: [], attribut
 A shake listener can be set up to allow users to report bugs by shaking their device. This is particularly useful for
 quickly reporting issues without navigating through the app.
 
-To set up a shake listener, use the `setShakeListener` method. The listener will be triggered when a shake is detected,
-use the `launchBugReport` method to open the bug report interface or implement a custom UI.
+To set up a shake listener, use the `onShake` method and pass a closure. This closure will be called whenever a shake gesture is detected.
+You can either launch the default bug report interface using `launchBugReport`, or implement your own custom UI.
 
 > [!NOTE]
 > The listener can get called multiple times if the device is shaken multiple times in quick succession.
@@ -133,12 +133,13 @@ use the `launchBugReport` method to open the bug report interface or implement a
 > However, if you implement a custom UI, you may need to handle this logic yourself.
 
 ```swift
-Measure.setShakeListener(MyShakeListener())
-// Implement MsrShakeListener protocol in MyShakeListener```
+Measure.onShake {
+    Measure.launchBugReport(takeScreenshot: true, bugReportConfig: BugReportConfig.default, attributes: nil)
+}
 ```
 
 To disable the shake listener, use:
 
 ```swift
-Measure.setShakeListener(null)
+Measure.onShake(nil)
 ```
