@@ -1,7 +1,7 @@
 // swift-interface-format-version: 1.0
-// swift-compiler-version: Apple Swift version 6.0.3 effective-5.10 (swiftlang-6.0.3.1.10 clang-1600.0.30.1)
-// swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -Onone -enable-experimental-feature OpaqueTypeErasure -enable-bare-slash-regex -module-name Measure
-// swift-module-flags-ignorable: -no-verify-emitted-module-interface
+// swift-compiler-version: Apple Swift version 6.1.2 effective-5.10 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)
+// swift-module-flags: -target arm64-apple-ios12 -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -Onone -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name Measure
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface -interface-compiler-version 6.1.2
 import AVKit
 import CoreData
 import CoreMotion
@@ -222,9 +222,6 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
     get
   }
 }
-@objc public protocol MsrShakeListener {
-  @objc func onShake()
-}
 @objc public class MsrDimensions : ObjectiveC.NSObject {
   final public let topPadding: CoreFoundation.CGFloat
   public init(topPadding: CoreFoundation.CGFloat)
@@ -268,7 +265,7 @@ extension Measure.Measure {
   public static func getTraceParentHeaderKey() -> Swift.String
   public static func launchBugReport(takeScreenshot: Swift.Bool = true, bugReportConfig: Measure.BugReportConfig = .default, attributes: [Swift.String : Measure.AttributeValue]? = nil)
   @objc public static func launchBugReport(takeScreenshot: Swift.Bool = true, bugReportConfig: Measure.BugReportConfig = .default, attributes: [Swift.String : Any]? = nil)
-  @objc public static func setShakeListener(_ listener: (any Measure.MsrShakeListener)?)
+  @objc public static func onShake(_ handler: (() -> Swift.Void)?)
   public static func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Measure.AttributeValue]? = nil)
   @objc public static func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Any]? = nil)
   @objc public static func captureScreenshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)

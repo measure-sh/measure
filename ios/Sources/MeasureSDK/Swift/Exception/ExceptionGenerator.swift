@@ -41,7 +41,7 @@ final class BaseExceptionGenerator: ExceptionGenerator {
         }
     }
 
-    private func convertToCodableValue(_ dictionary: [String: Any]) -> [String: CodableValue] {
+    private func convertToCodableValue(_ dictionary: [String: Any]) -> [String: CodableValue] {  // swiftlint:disable:this cyclomatic_complexity
         var result: [String: CodableValue] = [:]
 
         for (key, value) in dictionary {

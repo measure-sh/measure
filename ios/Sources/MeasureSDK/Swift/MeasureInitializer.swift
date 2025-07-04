@@ -406,8 +406,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          sessionManager: sessionManager,
                                                          idProvider: idProvider)
         self.shakeDetector = AccelerometerShakeDetector(configProvider: configProvider)
-        self.shakeBugReportCollector = ShakeBugReportCollector(bugReportManager: bugReportManager,
-                                                               shakeDetector: shakeDetector,
-                                                               screenshotGenerator: screenshotGenerator)
+        self.shakeBugReportCollector = ShakeBugReportCollector(shakeDetector: shakeDetector)
     }
 }

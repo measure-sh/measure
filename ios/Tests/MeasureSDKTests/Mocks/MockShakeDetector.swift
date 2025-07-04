@@ -38,11 +38,3 @@ final class MockShakeDetector: ShakeDetector {
         currentListener?.onShake()
     }
 }
-
-final class MockMsrShakeListener: MsrShakeListener {
-    var didShakeCalled = false
-
-    func onShake() {
-        didShakeCalled = true
-    }
-}
