@@ -44,10 +44,33 @@ jobs:
       - name: Test with ${{ matrix.go-version }}
         run: go test ./...
 
+  build-test-dashboard:
+    name: Build & Test dashboard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend/dashboard
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Install dependencies for CI
+        run: npm ci
+
+      - name: Run Jest tests
+        run: npm test
+
+
   trigger-cloud-deploy:
     name: Trigger Cloud Deploy
     runs-on: ubuntu-latest
-    needs: [build-test-api]
+    needs: [build-test-api, build-test-dashboard]
     steps:
       - name: Dispatch Cloud Deploy
         uses: peter-evans/repository-dispatch@v3

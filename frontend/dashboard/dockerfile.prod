@@ -1,13 +1,13 @@
-FROM node:lts-alpine AS base
+# build stage
+FROM node:lts-alpine AS builder
 
-FROM base AS builder
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM base
+FROM builder
 WORKDIR /app
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
