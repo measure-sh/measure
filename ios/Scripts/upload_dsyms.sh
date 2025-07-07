@@ -1,7 +1,9 @@
 #!/bin/bash
+
 # Check if required parameters are provided
-if [ "$#" -ne 4 ]; then
-  echo "Usage: $0 <path_to_ipa> <path_to_dsym_folder> <api_url> <api_key>"
+if [ "$#" -lt 4 ]; then
+  echo "Usage: $0 <path_to_ipa> <path_to_dsym_folder> <api_url> <api_key> [custom_headers]"
+  echo "Example: $0 build.ipa dsym/ https://api.example.com abc123 'X-Custom-1: val1|X-Custom-2: val2'"
   exit 1
 fi
 
@@ -9,7 +11,8 @@ IPA_PATH=$1
 DSYM_FOLDER=$2
 API_URL=$3
 API_KEY=$4
-SCRIPT_DIR=$(pwd) # Get the directory where the script is running
+RAW_CUSTOM_HEADERS="$5"
+SCRIPT_DIR=$(pwd)
 
 # Validate the IPA file
 if [ ! -f "$IPA_PATH" ]; then
@@ -44,7 +47,6 @@ VERSION_NAME=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$
 VERSION_CODE=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO_PLIST" 2>/dev/null)
 APP_UNIQUE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$INFO_PLIST" 2>/dev/null)
 
-# Handle missing version information gracefully
 [ -z "$VERSION_NAME" ] && VERSION_NAME="Unknown"
 [ -z "$VERSION_CODE" ] && VERSION_CODE="Unknown"
 [ -z "$APP_UNIQUE_ID" ] && APP_UNIQUE_ID="Unknown"
@@ -53,7 +55,7 @@ echo "Extracted VERSION_NAME=$VERSION_NAME"
 echo "Extracted VERSION_CODE=$VERSION_CODE"
 echo "Extracted APP_UNIQUE_ID=$APP_UNIQUE_ID"
 
-# Create .tgz archives for all dSYMs in the script's directory
+# Create .tgz archives for all dSYMs
 DSYM_TGZ_FILES=()
 for DSYM_DIR in "$DSYM_FOLDER"/*.dSYM; do
   if [ -d "$DSYM_DIR" ]; then
@@ -75,10 +77,21 @@ BUILD_SIZE=$(stat -f%z "$IPA_PATH")
 BUILD_TYPE="ipa"
 OS_NAME="ios"
 
-# Construct the curl command
+# Start building curl command
 CURL_COMMAND="curl --request PUT \
   --url $API_URL/builds \
-  --header 'Authorization: Bearer $API_KEY' \
+  --header 'Authorization: Bearer $API_KEY'"
+
+# Append custom headers if provided
+IFS='|' read -r -a CUSTOM_HEADERS <<< "$RAW_CUSTOM_HEADERS"
+for HEADER in "${CUSTOM_HEADERS[@]}"; do
+  if [ -n "$HEADER" ]; then
+    CURL_COMMAND="$CURL_COMMAND --header '$HEADER'"
+  fi
+done
+
+# Add base form fields
+CURL_COMMAND="$CURL_COMMAND \
   --form version_name=$VERSION_NAME \
   --form version_code=$VERSION_CODE \
   --form build_size=$BUILD_SIZE \
@@ -86,16 +99,16 @@ CURL_COMMAND="curl --request PUT \
   --form app_unique_id=$APP_UNIQUE_ID \
   --form os_name=$OS_NAME"
 
-# Add each dSYM .tgz file to the curl command with its own mapping_type parameter
+# Add dSYM files
 for DSYM_TGZ in "${DSYM_TGZ_FILES[@]}"; do
   CURL_COMMAND="$CURL_COMMAND --form mapping_type=dsym --form mapping_file=@$DSYM_TGZ"
 done
 
-# Execute the curl command and capture the HTTP response code
+# Execute the curl command
 echo "Executing curl command..."
 HTTP_RESPONSE=$(eval "$CURL_COMMAND --write-out '%{http_code}' --silent --output /dev/null")
 
-# Handle HTTP response codes
+# Handle response
 case "$HTTP_RESPONSE" in
   401)
     echo "[ERROR]: Failed to upload mapping file to Measure, please check that correct api_key is provided. Stack traces will not be symbolicated."
@@ -111,7 +124,7 @@ case "$HTTP_RESPONSE" in
     ;;
 esac
 
-# Clean up
+# Cleanup
 rm -rf "$TMP_DIR"
 for DSYM_TGZ in "${DSYM_TGZ_FILES[@]}"; do
   rm -f "$DSYM_TGZ"

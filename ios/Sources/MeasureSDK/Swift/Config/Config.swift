@@ -55,6 +55,8 @@ struct Config: InternalConfig, MeasureConfig {
     let shakeMinTimeIntervalMs: Number
     let accelerometerUpdateInterval: TimeInterval
     let screenshotMaskLevel: ScreenshotMaskLevel
+    let requestHeadersProvider: MsrRequestHeadersProvider?
+    let disallowedCustomHeaders: [String]
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging,
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
@@ -66,7 +68,8 @@ struct Config: InternalConfig, MeasureConfig {
                   httpUrlAllowlist: [String] = DefaultConfig.httpUrlAllowlist,
                   autoStart: Bool = DefaultConfig.autoStart,
                   trackViewControllerLoadTime: Bool = DefaultConfig.trackViewControllerLoadTime,
-                  screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel) {
+                  screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel,
+                  requestHeadersProvider: MsrRequestHeadersProvider? = nil) {
         self.enableLogging = enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
         self.traceSamplingRate = traceSamplingRate
@@ -117,5 +120,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.shakeAccelerationThreshold = 2.5
         self.shakeMinTimeIntervalMs = 1500
         self.accelerometerUpdateInterval = 0.1
+        self.requestHeadersProvider = requestHeadersProvider
+        self.disallowedCustomHeaders = DefaultConfig.disallowedCustomHeaders
     }
 }

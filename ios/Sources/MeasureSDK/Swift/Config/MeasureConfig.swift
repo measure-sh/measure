@@ -20,10 +20,11 @@ protocol MeasureConfig {
     var autoStart: Bool { get }
     var trackViewControllerLoadTime: Bool { get }
     var screenshotMaskLevel: ScreenshotMaskLevel { get }
+    var requestHeadersProvider: MsrRequestHeadersProvider? { get }
 }
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
-@objc public final class BaseMeasureConfig: NSObject, MeasureConfig, Codable {
+@objc public final class BaseMeasureConfig: NSObject, MeasureConfig {
     /// Whether to enable internal SDK logging. Defaults to `false`.
     let enableLogging: Bool
 
@@ -95,23 +96,11 @@ protocol MeasureConfig {
     /// Defaults to [ScreenshotMaskLevel.allTextAndMedia].
     let screenshotMaskLevel: ScreenshotMaskLevel
 
-    public required init(from decoder: Decoder) throws {
-         let container = try decoder.container(keyedBy: CodingKeys.self)
-
-         enableLogging = try container.decodeIfPresent(Bool.self, forKey: .enableLogging) ?? DefaultConfig.enableLogging
-         samplingRateForErrorFreeSessions = try container.decodeIfPresent(Float.self, forKey: .samplingRateForErrorFreeSessions) ?? DefaultConfig.sessionSamplingRate
-         traceSamplingRate = try container.decodeIfPresent(Float.self, forKey: .traceSamplingRate) ?? DefaultConfig.traceSamplingRate
-         autoStart = try container.decodeIfPresent(Bool.self, forKey: .autoStart) ?? DefaultConfig.autoStart
-         trackHttpHeaders = try container.decodeIfPresent(Bool.self, forKey: .trackHttpHeaders) ?? DefaultConfig.trackHttpHeaders
-         trackHttpBody = try container.decodeIfPresent(Bool.self, forKey: .trackHttpBody) ?? DefaultConfig.trackHttpBody
-         httpHeadersBlocklist = try container.decodeIfPresent([String].self, forKey: .httpHeadersBlocklist) ?? DefaultConfig.httpHeadersBlocklist
-         httpUrlBlocklist = try container.decodeIfPresent([String].self, forKey: .httpUrlBlocklist) ?? DefaultConfig.httpUrlBlocklist
-         httpUrlAllowlist = try container.decodeIfPresent([String].self, forKey: .httpUrlAllowlist) ?? DefaultConfig.httpUrlAllowlist
-         trackViewControllerLoadTime = try container.decodeIfPresent(Bool.self, forKey: .trackViewControllerLoadTime) ?? DefaultConfig.trackViewControllerLoadTime
-         screenshotMaskLevel = try container.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
-
-         super.init()
-     }
+    /// Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
+    ///
+    /// This is useful only for self-hosted clients who may require additional headers for requests in their infrastructure.
+    let requestHeadersProvider: MsrRequestHeadersProvider?
+    
 
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
     /// - Parameters:
@@ -139,6 +128,10 @@ protocol MeasureConfig {
     ///       - Disable a subdomain, eg. api.example.com
     ///       - Disable a particular path, eg. example.com/order
     ///   - autoStart: Set this to false to delay starting the SDK, by default initializing the SDK also starts tracking.
+    ///   - trackViewControllerLoadTime: Enables or disables automatic collection of ViewController load time. Defaults to `true`.
+    ///   - screenshotMaskLevel: Allows changing the masking level of screenshots to prevent sensitive information from leaking. Defaults to [ScreenshotMaskLevel.allTextAndMedia].
+    ///   - enableShakeToLaunchBugReport: Enable or disable shake to automatically launch the bug report flow. Defaults to `false`.
+    ///   - requestHeadersProvider: Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
     public init(enableLogging: Bool? = nil,
                 samplingRateForErrorFreeSessions: Float? = nil,
                 traceSamplingRate: Float? = nil,
@@ -149,7 +142,8 @@ protocol MeasureConfig {
                 httpUrlAllowlist: [String]? = nil,
                 autoStart: Bool? = nil,
                 trackViewControllerLoadTime: Bool? = nil,
-                screenshotMaskLevel: ScreenshotMaskLevel? = nil) {
+                screenshotMaskLevel: ScreenshotMaskLevel? = nil,
+                requestHeadersProvider: MsrRequestHeadersProvider? = nil) {
         self.enableLogging = enableLogging ?? DefaultConfig.enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions ?? DefaultConfig.sessionSamplingRate
         self.traceSamplingRate = traceSamplingRate ?? DefaultConfig.traceSamplingRate
@@ -161,6 +155,7 @@ protocol MeasureConfig {
         self.autoStart = autoStart ?? DefaultConfig.autoStart
         self.trackViewControllerLoadTime = trackViewControllerLoadTime ?? DefaultConfig.trackViewControllerLoadTime
         self.screenshotMaskLevel = screenshotMaskLevel ?? DefaultConfig.screenshotMaskLevel
+        self.requestHeadersProvider = requestHeadersProvider
 
         if !(0.0...1.0).contains(self.samplingRateForErrorFreeSessions) {
             debugPrint("Session sampling rate must be between 0.0 and 1.0")

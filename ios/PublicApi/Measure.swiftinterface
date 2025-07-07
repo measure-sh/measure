@@ -34,11 +34,9 @@ extension Measure.AttributeValue : Swift.Codable {
   public func encode(to encoder: any Swift.Encoder) throws
   public init(from decoder: any Swift.Decoder) throws
 }
-@objc final public class BaseMeasureConfig : ObjectiveC.NSObject, Swift.Codable {
-  required public init(from decoder: any Swift.Decoder) throws
-  public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil, traceSamplingRate: Swift.Float? = nil, trackHttpHeaders: Swift.Bool? = nil, trackHttpBody: Swift.Bool? = nil, httpHeadersBlocklist: [Swift.String]? = nil, httpUrlBlocklist: [Swift.String]? = nil, httpUrlAllowlist: [Swift.String]? = nil, autoStart: Swift.Bool? = nil, trackViewControllerLoadTime: Swift.Bool? = nil, screenshotMaskLevel: Measure.ScreenshotMaskLevel? = nil)
+@objc final public class BaseMeasureConfig : ObjectiveC.NSObject {
+  public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil, traceSamplingRate: Swift.Float? = nil, trackHttpHeaders: Swift.Bool? = nil, trackHttpBody: Swift.Bool? = nil, httpHeadersBlocklist: [Swift.String]? = nil, httpUrlBlocklist: [Swift.String]? = nil, httpUrlAllowlist: [Swift.String]? = nil, autoStart: Swift.Bool? = nil, trackViewControllerLoadTime: Swift.Bool? = nil, screenshotMaskLevel: Measure.ScreenshotMaskLevel? = nil, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)? = nil)
   @objc deinit
-  final public func encode(to encoder: any Swift.Encoder) throws
 }
 public protocol Span {
   var traceId: Swift.String { get }
@@ -204,6 +202,9 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
   public init(darkBackground: UIKit.UIColor, lightBackground: UIKit.UIColor, darkButtonBackground: UIKit.UIColor, lightButtonBackground: UIKit.UIColor, darkText: UIKit.UIColor, lightText: UIKit.UIColor, darkPlaceholder: UIKit.UIColor, lightPlaceholder: UIKit.UIColor, darkFloatingButtonBackground: UIKit.UIColor, lightFloatingButtonBackground: UIKit.UIColor, darkFloatingButtonIcon: UIKit.UIColor, lightFloatingButtonIcon: UIKit.UIColor, darkfloatingExitButtonText: UIKit.UIColor, lightfloatingExitButtonText: UIKit.UIColor, badgeColor: UIKit.UIColor, badgeTextColor: UIKit.UIColor, isDarkMode: Swift.Bool)
   public func update(darkBackground: UIKit.UIColor? = nil, lightBackground: UIKit.UIColor? = nil, darkButtonBackground: UIKit.UIColor? = nil, lightButtonBackground: UIKit.UIColor? = nil, darkText: UIKit.UIColor? = nil, lightText: UIKit.UIColor? = nil, darkPlaceholder: UIKit.UIColor? = nil, lightPlaceholder: UIKit.UIColor? = nil, darkFloatingButtonBackground: UIKit.UIColor? = nil, lightFloatingButtonBackground: UIKit.UIColor? = nil, darkFloatingButtonIcon: UIKit.UIColor? = nil, lightFloatingButtonIcon: UIKit.UIColor? = nil, darkfloatingExitButtonText: UIKit.UIColor? = nil, lightfloatingExitButtonText: UIKit.UIColor? = nil, badgeColor: UIKit.UIColor? = nil, badgeTextColor: UIKit.UIColor? = nil, isDarkMode: Swift.Bool? = nil) -> Measure.MsrColors
   @objc deinit
+}
+public protocol MsrRequestHeadersProvider {
+  func getRequestHeaders() -> [Swift.String : Swift.String]
 }
 @objc public enum VCLifecycleEventType : Swift.Int, Swift.Codable {
   case viewDidLoad = 0
