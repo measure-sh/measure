@@ -79,9 +79,11 @@ final class BaseHttpClient: HttpClient {
         request.httpMethod = method.rawValue
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
-        headers.forEach { key, value in
-            request.setValue(value, forHTTPHeaderField: key)
+        headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
+        if let customHeaders = getCustomHeaders() {
+            customHeaders.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
         }
+
         return request
     }
 
@@ -126,6 +128,18 @@ final class BaseHttpClient: HttpClient {
             return .error(.serverError(responseCode: httpResponse.statusCode, body: responseBody))
         default:
             return .error(.unknownError("Unexpected response code: \(httpResponse.statusCode)"))
+        }
+    }
+
+    func getCustomHeaders() -> [String: String]? {
+        guard let requestHeadersProvider = configProvider.requestHeadersProvider else {
+            return nil
+        }
+
+        let disallowed = Set(configProvider.disallowedCustomHeaders.map { $0.lowercased() })
+
+        return requestHeadersProvider.getRequestHeaders().filter { key, _ in
+            !disallowed.contains(key.lowercased())
         }
     }
 }

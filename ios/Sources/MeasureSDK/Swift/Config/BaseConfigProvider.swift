@@ -33,6 +33,14 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var disallowedCustomHeaders: [String] {
+        return getMergedConfig(\.disallowedCustomHeaders)
+    }
+
+    var requestHeadersProvider: MsrRequestHeadersProvider? {
+        return getMergedConfig(\.requestHeadersProvider)
+    }
+
     var screenshotMaskLevel: ScreenshotMaskLevel {
         return getMergedConfig(\.screenshotMaskLevel)
     }

@@ -50,6 +50,8 @@ final class MockConfigProvider: ConfigProvider {
     var shakeAccelerationThreshold: Float
     var shakeMinTimeIntervalMs: Number
     var accelerometerUpdateInterval: TimeInterval
+    var requestHeadersProvider: MsrRequestHeadersProvider?
+    var disallowedCustomHeaders: [String]
 
     init(enableLogging: Bool = false,
          trackScreenshotOnCrash: Bool = true,
@@ -101,7 +103,9 @@ final class MockConfigProvider: ConfigProvider {
          maxDescriptionLengthInBugReport: Int = 4000,
          shakeAccelerationThreshold: Float = 20,
          shakeMinTimeIntervalMs: Number = 1500,
-         accelerometerUpdateInterval: TimeInterval = 0.1) {
+         accelerometerUpdateInterval: TimeInterval = 0.1,
+         requestHeadersProvider: MsrRequestHeadersProvider? = nil,
+         disallowedCustomHeaders: [String] = ["Content-Type", "msr-req-id", "Authorization", "Content-Length"]) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
@@ -143,6 +147,8 @@ final class MockConfigProvider: ConfigProvider {
         self.shakeAccelerationThreshold = shakeAccelerationThreshold
         self.shakeMinTimeIntervalMs = shakeMinTimeIntervalMs
         self.accelerometerUpdateInterval = accelerometerUpdateInterval
+        self.requestHeadersProvider = requestHeadersProvider
+        self.disallowedCustomHeaders = disallowedCustomHeaders
     }
 
     func loadNetworkConfig() {}
