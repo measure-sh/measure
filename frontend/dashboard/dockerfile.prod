@@ -5,7 +5,9 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 COPY . .
-RUN NEXT_PUBLIC_API_BASE_URL=https://staging-api.measure.sh npm run build
+RUN NEXT_PUBLIC_API_BASE_URL=https://staging-api.measure.sh \
+    NEXT_TELEMETRY_DISABLED=1 \
+    npm run build
 
 FROM builder
 WORKDIR /app
