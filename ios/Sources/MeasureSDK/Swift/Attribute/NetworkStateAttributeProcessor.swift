@@ -21,7 +21,18 @@ final class NetworkStateAttributeProcessor: AttributeProcessor {
     }
 
     func appendAttributes(_ attributes: inout Attributes) {
-        if let cache = cachedAttributes {
+        if cachedAttributes == nil {
+            let newCache = (
+                type: getNetworkType(),
+                gen: getNetworkGeneration(),
+                provider: getNetworkProvider()
+            )
+            cachedAttributes = newCache
+            lastUpdateTime = Date()
+            attributes.networkType = newCache.type
+            attributes.networkGeneration = newCache.gen
+            attributes.networkProvider = newCache.provider
+        } else if let cache = cachedAttributes {
             attributes.networkType = cache.type
             attributes.networkGeneration = cache.gen
             attributes.networkProvider = cache.provider
