@@ -5,8 +5,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 COPY . .
-ENV API_BASE_URL=https://staging-api.measure.sh
-RUN npm run build
+RUN API_BASE_URL=https://staging-api.measure.sh npm run build
 
 FROM builder
 WORKDIR /app
