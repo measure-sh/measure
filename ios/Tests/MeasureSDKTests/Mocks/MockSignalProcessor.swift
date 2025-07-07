@@ -9,7 +9,7 @@ import Foundation
 @testable import Measure
 
 final class MockSignalProcessor: SignalProcessor {
-    var attachments: [Attachment]?
+    var attachments: [MsrAttachment]?
     var sessionId: String?
     var data: Codable?
     var timestamp: Number?
@@ -23,7 +23,7 @@ final class MockSignalProcessor: SignalProcessor {
                   type: EventType,
                   attributes: Attributes?,
                   sessionId: String?,
-                  attachments: [Attachment]?,
+                  attachments: [MsrAttachment]?,
                   userDefinedAttributes: String? = nil,
                   threadName: String? = nil) where T: Codable {
         self.data = data
@@ -40,7 +40,7 @@ final class MockSignalProcessor: SignalProcessor {
                                type: EventType,
                                attributes: Attributes?,
                                sessionId: String?,
-                               attachments: [Attachment]?,
+                               attachments: [MsrAttachment]?,
                                userDefinedAttributes: String? = nil,
                                threadName: String? = nil) where T: Codable {
         self.data = data

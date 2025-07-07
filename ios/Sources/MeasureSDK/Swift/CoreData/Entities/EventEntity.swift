@@ -464,10 +464,10 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             decodedData = nil
         }
 
-        let decodedAttachments: [Attachment]?
+        let decodedAttachments: [MsrAttachment]?
         if let attachmentData = self.attachments {
             do {
-                decodedAttachments = try JSONDecoder().decode([Attachment].self, from: attachmentData)
+                decodedAttachments = try JSONDecoder().decode([MsrAttachment].self, from: attachmentData)
             } catch {
                 decodedAttachments = nil
             }
@@ -498,10 +498,10 @@ struct EventEntity { // swiftlint:disable:this type_body_length
                      userDefinedAttributes: self.userDefinedAttributes)
     }
 
-    func getAttachments() -> [Attachment]? {
+    func getAttachments() -> [MsrAttachment]? {
         if let attachmentData = self.attachments {
             do {
-                return try JSONDecoder().decode([Attachment].self, from: attachmentData)
+                return try JSONDecoder().decode([MsrAttachment].self, from: attachmentData)
             } catch {
                 return nil
             }

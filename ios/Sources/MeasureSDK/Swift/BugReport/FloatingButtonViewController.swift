@@ -8,7 +8,7 @@
 import UIKit
 
 protocol FloatingButtonViewControllerDelegate: AnyObject {
-    func floatingButtonViewControllerDismissed(_ attachments: [Attachment])
+    func floatingButtonViewControllerDismissed(_ attachments: [MsrAttachment])
 }
 
 final class FloatingButtonViewController: UIViewController {
@@ -19,7 +19,7 @@ final class FloatingButtonViewController: UIViewController {
     private let bugReportConfig: BugReportConfig
     private let bottomSafeArea: CGFloat = 30
     private let topSafeArea: CGFloat = 60
-    private var attachments = [Attachment]()
+    private var attachments = [MsrAttachment]()
     private let configProvider: ConfigProvider
     weak var delegate: FloatingButtonViewControllerDelegate?
     private var lastKnownBounds: CGRect = .zero
@@ -28,7 +28,7 @@ final class FloatingButtonViewController: UIViewController {
         self.view = FloatingButtonContainerView(cancelButton: cancelButton, floatingButton: button)
     }
 
-    init(screenshotGenerator: ScreenshotGenerator, bugReportConfig: BugReportConfig, attachments: [Attachment], configProvider: ConfigProvider) {
+    init(screenshotGenerator: ScreenshotGenerator, bugReportConfig: BugReportConfig, attachments: [MsrAttachment], configProvider: ConfigProvider) {
         self.screenshotGenerator = screenshotGenerator
         self.bugReportConfig = bugReportConfig
         self.attachments = attachments
@@ -72,7 +72,7 @@ final class FloatingButtonViewController: UIViewController {
         updateBadge()
     }
 
-    func addAttachment(_ attachment: Attachment) {
+    func addAttachment(_ attachment: MsrAttachment) {
         if attachments.count < configProvider.maxAttachmentsInBugReport {
             self.attachments.append(attachment)
             updateBadge()
@@ -142,7 +142,7 @@ final class FloatingButtonViewController: UIViewController {
         }
     }
 
-    private func animateScreenshotToButton(_ attachment: Attachment) {
+    private func animateScreenshotToButton(_ attachment: MsrAttachment) {
         guard let window = view.window, let imageData = attachment.bytes, let screenshot = UIImage(data: imageData) else { return }
         let startFrame = CGRect(x: 0, y: 0 - 80, width: window.bounds.width, height: window.bounds.height)
         let imageView = UIImageView(image: screenshot)

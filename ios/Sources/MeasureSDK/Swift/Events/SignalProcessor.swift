@@ -17,7 +17,7 @@ protocol SignalProcessor {
         type: EventType,
         attributes: Attributes?,
         sessionId: String?,
-        attachments: [Attachment]?,
+        attachments: [MsrAttachment]?,
         userDefinedAttributes: String?,
         threadName: String?)
 
@@ -27,7 +27,7 @@ protocol SignalProcessor {
         type: EventType,
         attributes: Attributes?,
         sessionId: String?,
-        attachments: [Attachment]?,
+        attachments: [MsrAttachment]?,
         userDefinedAttributes: String?,
         threadName: String?)
 
@@ -76,7 +76,7 @@ final class BaseSignalProcessor: SignalProcessor {
         type: EventType,
         attributes: Attributes?,
         sessionId: String?,
-        attachments: [Attachment]?,
+        attachments: [MsrAttachment]?,
         userDefinedAttributes: String?,
         threadName: String?) {
         SignPost.trace(subcategory: "Event", label: "trackEvent") {
@@ -98,7 +98,7 @@ final class BaseSignalProcessor: SignalProcessor {
                                         type: EventType,
                                         attributes: Attributes?,
                                         sessionId: String?,
-                                        attachments: [Attachment]?,
+                                        attachments: [MsrAttachment]?,
                                         userDefinedAttributes: String?,
                                         threadName: String?) {
         SignPost.trace(subcategory: "Event", label: "trackEventUserTriggered") {
@@ -141,7 +141,7 @@ final class BaseSignalProcessor: SignalProcessor {
         type: EventType,
         attributes: Attributes?,
         userTriggered: Bool,
-        attachments: [Attachment]?,
+        attachments: [MsrAttachment]?,
         sessionId: String?,
         userDefinedAttributes: String?,
         threadName: String?
@@ -191,7 +191,7 @@ final class BaseSignalProcessor: SignalProcessor {
         data: T,
         timestamp: Number,
         type: EventType,
-        attachments: [Attachment]?,
+        attachments: [MsrAttachment]?,
         attributes: Attributes?,
         userTriggered: Bool,
         sessionId: String?,

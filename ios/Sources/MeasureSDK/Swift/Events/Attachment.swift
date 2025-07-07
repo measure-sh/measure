@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct Attachment: Codable {
+public class MsrAttachment: NSObject, Codable {
     /// The name of the attachment, e.g. "screenshot.png".
     let name: String
 
@@ -41,10 +41,5 @@ public struct Attachment: Codable {
         self.path = path
         self.size = size
         self.id = id
-    }
-
-    func toMsrAttachment() -> MsrAttachment? {
-        guard let bytes else { return nil }
-        return MsrAttachment(name: name, bytes: bytes, type: type)
     }
 }

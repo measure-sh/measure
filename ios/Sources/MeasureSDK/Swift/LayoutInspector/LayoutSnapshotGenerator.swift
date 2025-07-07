@@ -8,8 +8,8 @@
 import UIKit
 
 protocol LayoutSnapshotGenerator {
-    func generate(window: UIWindow, touchPoint: CGPoint, completion: @escaping (Attachment?) -> Void)
-    func generate(for viewController: UIViewController, completion: @escaping (Attachment?) -> Void)
+    func generate(window: UIWindow, touchPoint: CGPoint, completion: @escaping (MsrAttachment?) -> Void)
+    func generate(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void)
 }
 
 final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
@@ -34,7 +34,7 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
         self.svgGenerator = svgGenerator
     }
 
-    func generate(window: UIWindow, touchPoint: CGPoint, completion: @escaping (Attachment?) -> Void) {
+    func generate(window: UIWindow, touchPoint: CGPoint, completion: @escaping (MsrAttachment?) -> Void) {
         SignPost.trace(subcategory: "Attachment", label: "generateLayoutSnapshot") {
             let currentTime = timeProvider.now()
             guard currentTime - lastSnapshotTime > configProvider.layoutSnapshotDebounceInterval else {
@@ -66,7 +66,7 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
         }
     }
 
-    func generate(for viewController: UIViewController, completion: @escaping (Attachment?) -> Void) {
+    func generate(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
         guard let rootView = viewController.view else {
             completion(nil)
             return

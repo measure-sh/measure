@@ -21,7 +21,7 @@ protocol InternalSignalCollector {
         userTriggered: Bool,
         sessionId: String?,
         threadName: String?,
-        attachments: [Attachment]
+        attachments: [MsrAttachment]
     )
 
     func trackSpan( // swiftlint:disable:this function_parameter_count
@@ -94,7 +94,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
         userTriggered: Bool,
         sessionId: String?,
         threadName: String?,
-        attachments: [Attachment]
+        attachments: [MsrAttachment]
     ) {
         guard isEnabled.get() else { return }
 
