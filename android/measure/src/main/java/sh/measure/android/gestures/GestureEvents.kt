@@ -1,18 +1,20 @@
 package sh.measure.android.gestures
 
+import android.annotation.SuppressLint
 import kotlinx.serialization.Serializable
 import sh.measure.android.layoutinspector.Node
 
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class ClickData(
     val target: String,
     val target_id: String?,
     val width: Int?,
     val height: Int?,
-    val x: Float,
-    val y: Float,
-    val touch_down_time: Long,
-    val touch_up_time: Long,
+    val x: Float?,
+    val y: Float?,
+    val touch_down_time: Long?,
+    val touch_up_time: Long?,
 ) {
     companion object {
         fun fromTargetNode(gesture: DetectedGesture.Click, node: Node): ClickData {
@@ -30,6 +32,7 @@ internal data class ClickData(
     }
 }
 
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class LongClickData(
     val target: String,
@@ -38,8 +41,8 @@ internal data class LongClickData(
     val height: Int?,
     val x: Float,
     val y: Float,
-    val touch_down_time: Long,
-    val touch_up_time: Long,
+    val touch_down_time: Long?,
+    val touch_up_time: Long?,
 ) {
     companion object {
         fun fromTargetNode(gesture: DetectedGesture.LongClick, node: Node): LongClickData {
@@ -57,6 +60,7 @@ internal data class LongClickData(
     }
 }
 
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class ScrollData(
     val target: String,
@@ -65,9 +69,9 @@ internal data class ScrollData(
     val y: Float,
     val end_x: Float,
     val end_y: Float,
-    val direction: String,
-    val touch_down_time: Long,
-    val touch_up_time: Long,
+    val direction: String?,
+    val touch_down_time: Long?,
+    val touch_up_time: Long?,
 ) {
     companion object {
         fun fromTargetNode(gesture: DetectedGesture.Scroll, node: Node): ScrollData {

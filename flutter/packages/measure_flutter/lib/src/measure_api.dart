@@ -2,6 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/src/gestures/click_data.dart';
+import 'package:measure_flutter/src/gestures/scroll_data.dart';
+
+import 'gestures/long_click_data.dart';
 
 abstract class MeasureApi {
   void trackEvent({
@@ -84,4 +88,10 @@ abstract class MeasureApi {
   });
 
   void setShakeListener(Function? onShake);
+
+  void trackClick(ClickData clickData);
+
+  void trackLongClick(LongClickData longClickData);
+
+  void trackScroll(ScrollData scrollData);
 }

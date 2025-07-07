@@ -3,6 +3,9 @@ import 'dart:developer' as developer;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:measure_flutter/src/gestures/click_data.dart';
+import 'package:measure_flutter/src/gestures/long_click_data.dart';
+import 'package:measure_flutter/src/gestures/scroll_data.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/measure_internal.dart';
@@ -24,6 +27,7 @@ export 'src/navigation/navigator_observer.dart';
 export 'src/tracing/span.dart';
 export 'src/tracing/span_builder.dart';
 export 'src/tracing/span_status.dart';
+export 'src/gestures/msr_gesture_detector.dart';
 
 /// Main Measure SDK class implementing MeasureApi
 /// Provides a singleton interface for tracking events, errors, and HTTP requests
@@ -338,6 +342,27 @@ class Measure implements MeasureApi {
   void setShakeListener(Function? onShake) {
     if (isInitialized) {
       _measure.setShakeListener(onShake);
+    }
+  }
+
+  @override
+  void trackClick(ClickData clickData) {
+    if (isInitialized) {
+      _measure.trackClick(clickData);
+    }
+  }
+
+  @override
+  void trackLongClick(LongClickData longClickData) {
+    if (isInitialized) {
+      _measure.trackLongClick(longClickData);
+    }
+  }
+
+  @override
+  void trackScroll(ScrollData scrollData) {
+    if (isInitialized) {
+      _measure.trackScroll(scrollData);
     }
   }
 

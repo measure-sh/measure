@@ -6,6 +6,9 @@ import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.gestures.ClickData
+import sh.measure.android.gestures.LongClickData
+import sh.measure.android.gestures.ScrollData
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.navigation.ScreenViewData
@@ -141,6 +144,45 @@ internal class InternalSignalCollector(
                     )
                 }
 
+                EventType.CLICK -> {
+                    val extractedData = extractClickData(data)
+                    signalProcessor.track(
+                        data = extractedData,
+                        timestamp = timestamp,
+                        type = eventType,
+                        attributes = attributes,
+                        userDefinedAttributes = userDefinedAttrs,
+                        attachments = eventAttachments,
+                        userTriggered = userTriggered,
+                    )
+                }
+
+                EventType.LONG_CLICK -> {
+                    val extractedData = extractLongClickData(data)
+                    signalProcessor.track(
+                        data = extractedData,
+                        timestamp = timestamp,
+                        type = eventType,
+                        attributes = attributes,
+                        userDefinedAttributes = userDefinedAttrs,
+                        attachments = eventAttachments,
+                        userTriggered = userTriggered,
+                    )
+                }
+
+                EventType.SCROLL -> {
+                    val extractedData = extractScrollData(data)
+                    signalProcessor.track(
+                        data = extractedData,
+                        timestamp = timestamp,
+                        type = eventType,
+                        attributes = attributes,
+                        userDefinedAttributes = userDefinedAttrs,
+                        attachments = eventAttachments,
+                        userTriggered = userTriggered,
+                    )
+                }
+
                 else -> {
                     logger.log(LogLevel.Error, "Unknown event type: $type")
                 }
@@ -220,6 +262,21 @@ internal class InternalSignalCollector(
         return jsonSerializer.decodeFromJsonElement(
             BugReportData.serializer(),
             map.toJsonElement(),
+        )
+    }
+
+    private fun extractClickData(data: MutableMap<String, Any?>): ClickData {
+        return jsonSerializer.decodeFromJsonElement(ClickData.serializer(), data.toJsonElement())
+    }
+
+    private fun extractScrollData(data: MutableMap<String, Any?>): ScrollData {
+        return jsonSerializer.decodeFromJsonElement(ScrollData.serializer(), data.toJsonElement())
+    }
+
+    private fun extractLongClickData(data: MutableMap<String, Any?>): LongClickData {
+        return jsonSerializer.decodeFromJsonElement(
+            LongClickData.serializer(),
+            data.toJsonElement(),
         )
     }
 }
