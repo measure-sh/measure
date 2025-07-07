@@ -1,6 +1,7 @@
 node_modules
 npm-debug.log
-Dockerfile
+dockerfile
+dockerfile.prod
 .dockerignore
 .next
 .swc

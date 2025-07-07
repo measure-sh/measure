@@ -5,7 +5,7 @@ ARG NEXT_TELEMETRY_DISABLED=1
 
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN apk add --no-cache ca-certificates && npm ci
 COPY . .
 RUN NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \
     NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED} \
