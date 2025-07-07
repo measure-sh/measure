@@ -87,7 +87,7 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
         userTriggered: Bool,
         sessionId: String?,
         threadName: String?,
-        attachments: [Attachment]) {
+        attachments: [MsrAttachment]) {
             Measure.internalTrackEvent(
                 data: &data,
                 type: type,

@@ -8,8 +8,8 @@
 import UIKit
 
 protocol BugReportingViewControllerDelegate: AnyObject {
-    func bugReportingViewControllerDidDismiss(_ description: String?, attachments: [Attachment]?)
-    func bugReportingViewControllerDidRequestScreenshot(_ description: String?, attachments: [Attachment])
+    func bugReportingViewControllerDidDismiss(_ description: String?, attachments: [MsrAttachment]?)
+    func bugReportingViewControllerDidRequestScreenshot(_ description: String?, attachments: [MsrAttachment])
 }
 
 class BugReportingViewController: UIViewController, UINavigationControllerDelegate {
@@ -34,7 +34,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         return collectionView
     }()
     private let maxAttachmentsLabel = UILabel()
-    private var attachments: [Attachment]
+    private var attachments: [MsrAttachment]
 
     private let screenshotButton = UIButton(type: .system)
     private let galleryButton = UIButton(type: .system)
@@ -47,7 +47,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     private var screenshotButtonTopToLabelConstraint: NSLayoutConstraint?
     private var galleryButtonTopToLabelConstraint: NSLayoutConstraint?
 
-    init(description: String?, attachments: [Attachment] = [], configProvider: ConfigProvider, bugReportConfig: BugReportConfig, idProvider: IdProvider) {
+    init(description: String?, attachments: [MsrAttachment] = [], configProvider: ConfigProvider, bugReportConfig: BugReportConfig, idProvider: IdProvider) {
         self.textView.text = description
         placeholderLabel.isHidden = !textView.text.isEmpty
         self.attachments = attachments
@@ -292,7 +292,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         }
     }
 
-    func addAttachment(_ attachment: Attachment) {
+    func addAttachment(_ attachment: MsrAttachment) {
         guard attachments.count < configProvider.maxAttachmentsInBugReport else { return }
         attachments.append(attachment)
         imagesCollectionView.reloadData()
@@ -394,7 +394,7 @@ extension BugReportingViewController: UIImagePickerControllerDelegate {
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         if let image = info[.editedImage] as? UIImage ?? info[.originalImage] as? UIImage,
            let imageData = image.jpegData(compressionQuality: CGFloat(configProvider.screenshotCompressionQuality) / 100.0) {
-            addAttachment(Attachment(name: galleryImageName, type: .screenshot, size: Int64(imageData.count), id: idProvider.uuid(), bytes: imageData, path: nil))
+            addAttachment(MsrAttachment(name: galleryImageName, type: .screenshot, size: Int64(imageData.count), id: idProvider.uuid(), bytes: imageData, path: nil))
         }
         picker.dismiss(animated: true)
     }

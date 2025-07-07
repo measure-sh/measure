@@ -70,7 +70,7 @@ final class BaseBugReportCollectorTests: XCTestCase {
             idProvider: idProvider
         )
 
-        let attachments = [Attachment(name: "screenshot.png", type: .screenshot, size: 123, id: "attachmentId", bytes: Data("log".utf8), path: nil)]
+        let attachments = [MsrAttachment(name: "screenshot.png", type: .screenshot, size: 123, id: "attachmentId", bytes: Data("log".utf8), path: nil)]
         let attributes: [String: AttributeValue] = ["key": .string("value")]
 
         collector.startBugReportFlow(takeScreenshot: false,

@@ -256,7 +256,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             userTriggered: true,
             sessionId: nil,
             threadName: nil,
-            attachments: [Attachment(name: "name", type: .screenshot, size: 100, id: "987654-231", path: "/file/path")]
+            attachments: [MsrAttachment(name: "name", type: .screenshot, size: 100, id: "987654-231", path: "/file/path")]
         )
 
         XCTAssertNotNil(signalProcessor.data)

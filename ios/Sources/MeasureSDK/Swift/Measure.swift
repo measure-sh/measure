@@ -94,7 +94,7 @@ import UIKit
                             userTriggered: Bool,
                             sessionId: String?,
                             threadName: String?,
-                            attachments: [Attachment]) {
+                            attachments: [MsrAttachment]) {
         guard let internalEventCollector = measureInternal?.internalSignalCollector else { return }
         internalEventCollector.trackEvent(data: &data,
                                           type: type,
@@ -366,7 +366,7 @@ extension Measure {
                                           userTriggered: Bool,
                                           sessionId: String?,
                                           threadName: String?,
-                                          attachments: [Attachment]) {
+                                          attachments: [MsrAttachment]) {
         Measure.shared.internalTrackEvent(data: &data,
                                           type: type,
                                           timestamp: timestamp,

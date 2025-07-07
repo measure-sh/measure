@@ -15,7 +15,7 @@ protocol BugReportCollector {
     func validateBugReport(attachments: Int,
                            descriptionLength: Int) -> Bool
     func trackBugReport(description: String,
-                        attachments: [Attachment],
+                        attachments: [MsrAttachment],
                         attributes: [String: AttributeValue]?)
 }
 
@@ -53,7 +53,7 @@ final class BaseBugReportCollector: BugReportCollector {
     }
 
     func trackBugReport(description: String,
-                        attachments: [Attachment],
+                        attachments: [MsrAttachment],
                         attributes: [String: AttributeValue]?) {
         SignPost.trace(subcategory: "Event", label: "trackBugReport") {
             signalProcessor.trackUserTriggered(data: BugReportData(description: description),

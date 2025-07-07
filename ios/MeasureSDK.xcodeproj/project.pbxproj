@@ -147,7 +147,6 @@
 		52B7F1482D757F81001498BC /* HeartbeatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0F82D757F81001498BC /* HeartbeatTests.swift */; };
 		52B7F1492D757F81001498BC /* HttpClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0F92D757F81001498BC /* HttpClientTests.swift */; };
 		52B7F14A2D757F81001498BC /* PeriodicEventExporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0FA2D757F81001498BC /* PeriodicEventExporterTests.swift */; };
-		52B7F14C2D757F81001498BC /* Attachment+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0FE2D757F81001498BC /* Attachment+Extension.swift */; };
 		52B7F14D2D757F81001498BC /* Attributes+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0FF2D757F81001498BC /* Attributes+Extension.swift */; };
 		52B7F14E2D757F81001498BC /* Exception+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1002D757F81001498BC /* Exception+Extension.swift */; };
 		52B7F14F2D757F81001498BC /* FileManagerHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1012D757F81001498BC /* FileManagerHelper.swift */; };
@@ -229,7 +228,6 @@
 		CF1BB3E62DC8B05200588506 /* BugReportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB3E52DC8B05200588506 /* BugReportManager.swift */; };
 		CF1BB4942DCC7F0E00588506 /* BugReportData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB4932DCC7F0E00588506 /* BugReportData.swift */; };
 		CF1BB4962DCC7FE300588506 /* BugReportCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB4952DCC7FE300588506 /* BugReportCollector.swift */; };
-		CF1BB4982DCC856A00588506 /* MsrAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB4972DCC856A00588506 /* MsrAttachment.swift */; };
 		CF1BB49A2DCDF4A800588506 /* ShakeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB4992DCDF4A800588506 /* ShakeDetector.swift */; };
 		CF1BB49C2DCDF4DF00588506 /* AccelerometerShakeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB49B2DCDF4DC00588506 /* AccelerometerShakeDetector.swift */; };
 		CF1BB49E2DCDF99A00588506 /* ShakeBugReportCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB49D2DCDF99A00588506 /* ShakeBugReportCollector.swift */; };
@@ -513,7 +511,6 @@
 		52B7F0F82D757F81001498BC /* HeartbeatTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HeartbeatTests.swift; sourceTree = "<group>"; };
 		52B7F0F92D757F81001498BC /* HttpClientTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HttpClientTests.swift; sourceTree = "<group>"; };
 		52B7F0FA2D757F81001498BC /* PeriodicEventExporterTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PeriodicEventExporterTests.swift; sourceTree = "<group>"; };
-		52B7F0FE2D757F81001498BC /* Attachment+Extension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Attachment+Extension.swift"; sourceTree = "<group>"; };
 		52B7F0FF2D757F81001498BC /* Attributes+Extension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Attributes+Extension.swift"; sourceTree = "<group>"; };
 		52B7F1002D757F81001498BC /* Exception+Extension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Exception+Extension.swift"; sourceTree = "<group>"; };
 		52B7F1012D757F81001498BC /* FileManagerHelper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FileManagerHelper.swift; sourceTree = "<group>"; };
@@ -593,7 +590,6 @@
 		CF1BB3E52DC8B05200588506 /* BugReportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BugReportManager.swift; sourceTree = "<group>"; };
 		CF1BB4932DCC7F0E00588506 /* BugReportData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BugReportData.swift; sourceTree = "<group>"; };
 		CF1BB4952DCC7FE300588506 /* BugReportCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BugReportCollector.swift; sourceTree = "<group>"; };
-		CF1BB4972DCC856A00588506 /* MsrAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrAttachment.swift; sourceTree = "<group>"; };
 		CF1BB4992DCDF4A800588506 /* ShakeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShakeDetector.swift; sourceTree = "<group>"; };
 		CF1BB49B2DCDF4DC00588506 /* AccelerometerShakeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccelerometerShakeDetector.swift; sourceTree = "<group>"; };
 		CF1BB49D2DCDF99A00588506 /* ShakeBugReportCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShakeBugReportCollector.swift; sourceTree = "<group>"; };
@@ -1019,7 +1015,6 @@
 				526D18172D5A1913009A2E90 /* Measure.swift */,
 				69E4B4D22DA7581A00361E25 /* MeasureInitializer.swift */,
 				526D18192D5A1913009A2E90 /* MeasureInternal.swift */,
-				CF1BB4972DCC856A00588506 /* MsrAttachment.swift */,
 				526D181A2D5A1913009A2E90 /* RecentSession.swift */,
 				526D181B2D5A1913009A2E90 /* SessionManager.swift */,
 				526D179A2D5A1913009A2E90 /* AppLaunch */,
@@ -1142,7 +1137,6 @@
 		52B7F1042D757F81001498BC /* Helper */ = {
 			isa = PBXGroup;
 			children = (
-				52B7F0FE2D757F81001498BC /* Attachment+Extension.swift */,
 				52B7F0FF2D757F81001498BC /* Attributes+Extension.swift */,
 				52B7F1002D757F81001498BC /* Exception+Extension.swift */,
 				52B7F1012D757F81001498BC /* FileManagerHelper.swift */,
@@ -1767,7 +1761,6 @@
 				526D186F2D5A1913009A2E90 /* NetworkChangeData.swift in Sources */,
 				CFD88D482DACD3710095115E /* SpanStore.swift in Sources */,
 				526D185A2D5A1913009A2E90 /* PeriodicExporter.swift in Sources */,
-				CF1BB4982DCC856A00588506 /* MsrAttachment.swift in Sources */,
 				526D187D2D5A1913009A2E90 /* UIColor+Extension.swift in Sources */,
 				526D184B2D5A1913009A2E90 /* SignalProcessor.swift in Sources */,
 				526D18552D5A1913009A2E90 /* EventSerializer.swift in Sources */,
@@ -1881,7 +1874,6 @@
 				52B7F1642D757F81001498BC /* MockRandomizer.swift in Sources */,
 				52B7F16C2D757F81001498BC /* MockUserDefaultStorage.swift in Sources */,
 				CFD88D772DAFD0A70095115E /* MsrSpanBuilderTests.swift in Sources */,
-				52B7F14C2D757F81001498BC /* Attachment+Extension.swift in Sources */,
 				52B7F1542D757F81001498BC /* MockAttributeProcessor.swift in Sources */,
 				52B7F16D2D757F81001498BC /* MockUserPermissionManager.swift in Sources */,
 				52B7F15F2D757F81001498BC /* MockHeartbeat.swift in Sources */,

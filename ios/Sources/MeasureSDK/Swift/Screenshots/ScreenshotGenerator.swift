@@ -13,10 +13,10 @@ protocol ScreenshotGenerator {
     func generate(window: UIWindow,
                   name: String,
                   storageType: AttachmentStorageType,
-                  completion: @escaping (Attachment?) -> Void)
+                  completion: @escaping (MsrAttachment?) -> Void)
 
     func generate(viewController: UIViewController,
-                  completion: @escaping (Attachment?) -> Void)
+                  completion: @escaping (MsrAttachment?) -> Void)
 }
 
 final class BaseScreenshotGenerator: ScreenshotGenerator {
@@ -40,7 +40,7 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
     func generate(window: UIWindow,
                   name: String,
                   storageType: AttachmentStorageType,
-                  completion: @escaping (Attachment?) -> Void) {
+                  completion: @escaping (MsrAttachment?) -> Void) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else {
                 completion(nil)
@@ -79,7 +79,7 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
     }
 
     func generate(viewController: UIViewController,
-                  completion: @escaping (Attachment?) -> Void) {
+                  completion: @escaping (MsrAttachment?) -> Void) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else {
                 completion(nil)

@@ -9,9 +9,9 @@ import Foundation
 @testable import Measure
 
 final class MockAttachmentProcessor: AttachmentProcessor {
-    var attachmentObject: Attachment?
+    var attachmentObject: MsrAttachment?
 
-    func getAttachmentObject(for image: Data, name: String, storageType: AttachmentStorageType, attachmentType: AttachmentType) -> Attachment? {
+    func getAttachmentObject(for image: Data, name: String, storageType: AttachmentStorageType, attachmentType: AttachmentType) -> MsrAttachment? {
         return attachmentObject
     }
 }

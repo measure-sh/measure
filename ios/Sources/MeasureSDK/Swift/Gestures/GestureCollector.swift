@@ -85,10 +85,7 @@ final class BaseGestureCollector: GestureCollector {
                                  y: FloatNumber32(y),
                                  touchDownTime: touchDownTime,
                                  touchUpTime: touchUpTime)
-//            var attachments: [Attachment]?
-//            if let attachment = collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) {
-//                attachments = [attachment]
-//            }
+
             collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) { attachment in
                 self.signalProcessor.track(data: data,
                                       timestamp: self.timeProvider.now(),
@@ -112,10 +109,7 @@ final class BaseGestureCollector: GestureCollector {
                                      y: FloatNumber32(y),
                                      touchDownTime: touchDownTime,
                                      touchUpTime: touchUpTime)
-//            var attachments: [Attachment]?
-//            if let attachment = collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) {
-//                attachments = [attachment]
-//            }
+
             collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) { attachment in
                 self.signalProcessor.track(data: data,
                                            timestamp: self.timeProvider.now(),
@@ -139,10 +133,7 @@ final class BaseGestureCollector: GestureCollector {
                                       direction: direction,
                                       touchDownTime: touchDownTime,
                                       touchUpTime: touchUpTime)
-//                var attachments: [Attachment]?
-//                if let attachment = collectLayoutSnapshot(gesture, touchPoint: ) {
-//                    attachments = [attachment]
-//                }
+
                 collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: startX, y: startY)) { attachment in
                     self.signalProcessor.track(data: data,
                                                timestamp: self.timeProvider.now(),
@@ -158,7 +149,7 @@ final class BaseGestureCollector: GestureCollector {
         // swiftlint:enable identifier_name
     }
 
-    private func collectLayoutSnapshot(_ gesture: DetectedGesture, touchPoint: CGPoint, completion: @escaping (Attachment?) -> Void) {
+    private func collectLayoutSnapshot(_ gesture: DetectedGesture, touchPoint: CGPoint, completion: @escaping (MsrAttachment?) -> Void) {
         if let window = self.window {
             layoutSnapshotGenerator.generate(window: window, touchPoint: touchPoint) { attachment in
                 completion(attachment)

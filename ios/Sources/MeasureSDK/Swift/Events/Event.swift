@@ -25,7 +25,7 @@ final class Event<T: Codable>: Codable {
     let type: EventType
 
     /// Attachments that can be added to the event.
-    var attachments: [Attachment]?
+    var attachments: [MsrAttachment]?
 
     /// Additional key-value pairs that can be added to the event.
     var attributes: Attributes?
@@ -93,7 +93,7 @@ final class Event<T: Codable>: Codable {
          timestampInMillis: Number,
          type: EventType,
          data: T?,
-         attachments: [Attachment]?,
+         attachments: [MsrAttachment]?,
          attributes: Attributes?,
          userTriggered: Bool,
          userDefinedAttributes: String? = nil) {
