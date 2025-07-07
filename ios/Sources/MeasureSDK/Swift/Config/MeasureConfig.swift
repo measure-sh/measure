@@ -24,7 +24,7 @@ protocol MeasureConfig {
 }
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
-@objc public final class BaseMeasureConfig: NSObject, MeasureConfig {
+@objc public final class BaseMeasureConfig: NSObject, MeasureConfig, Codable {
     /// Whether to enable internal SDK logging. Defaults to `false`.
     let enableLogging: Bool
 
@@ -100,7 +100,55 @@ protocol MeasureConfig {
     ///
     /// This is useful only for self-hosted clients who may require additional headers for requests in their infrastructure.
     let requestHeadersProvider: MsrRequestHeadersProvider?
-    
+
+    public required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        enableLogging = try container.decodeIfPresent(Bool.self, forKey: .enableLogging) ?? DefaultConfig.enableLogging
+        samplingRateForErrorFreeSessions = try container.decodeIfPresent(Float.self, forKey: .samplingRateForErrorFreeSessions) ?? DefaultConfig.sessionSamplingRate
+        traceSamplingRate = try container.decodeIfPresent(Float.self, forKey: .traceSamplingRate) ?? DefaultConfig.traceSamplingRate
+        autoStart = try container.decodeIfPresent(Bool.self, forKey: .autoStart) ?? DefaultConfig.autoStart
+        trackHttpHeaders = try container.decodeIfPresent(Bool.self, forKey: .trackHttpHeaders) ?? DefaultConfig.trackHttpHeaders
+        trackHttpBody = try container.decodeIfPresent(Bool.self, forKey: .trackHttpBody) ?? DefaultConfig.trackHttpBody
+        httpHeadersBlocklist = try container.decodeIfPresent([String].self, forKey: .httpHeadersBlocklist) ?? DefaultConfig.httpHeadersBlocklist
+        httpUrlBlocklist = try container.decodeIfPresent([String].self, forKey: .httpUrlBlocklist) ?? DefaultConfig.httpUrlBlocklist
+        httpUrlAllowlist = try container.decodeIfPresent([String].self, forKey: .httpUrlAllowlist) ?? DefaultConfig.httpUrlAllowlist
+        trackViewControllerLoadTime = try container.decodeIfPresent(Bool.self, forKey: .trackViewControllerLoadTime) ?? DefaultConfig.trackViewControllerLoadTime
+        screenshotMaskLevel = try container.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
+        requestHeadersProvider = nil // requestHeadersProvider is not encodable
+
+        super.init()
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case enableLogging
+        case samplingRateForErrorFreeSessions
+        case traceSamplingRate
+        case autoStart
+        case trackHttpHeaders
+        case trackHttpBody
+        case httpHeadersBlocklist
+        case httpUrlBlocklist
+        case httpUrlAllowlist
+        case trackViewControllerLoadTime
+        case screenshotMaskLevel
+        // requestHeadersProvider is not encodable
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(enableLogging, forKey: .enableLogging)
+        try container.encode(samplingRateForErrorFreeSessions, forKey: .samplingRateForErrorFreeSessions)
+        try container.encode(traceSamplingRate, forKey: .traceSamplingRate)
+        try container.encode(autoStart, forKey: .autoStart)
+        try container.encode(trackHttpHeaders, forKey: .trackHttpHeaders)
+        try container.encode(trackHttpBody, forKey: .trackHttpBody)
+        try container.encode(httpHeadersBlocklist, forKey: .httpHeadersBlocklist)
+        try container.encode(httpUrlBlocklist, forKey: .httpUrlBlocklist)
+        try container.encode(httpUrlAllowlist, forKey: .httpUrlAllowlist)
+        try container.encode(trackViewControllerLoadTime, forKey: .trackViewControllerLoadTime)
+        try container.encode(screenshotMaskLevel, forKey: .screenshotMaskLevel)
+    }
 
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
     /// - Parameters:

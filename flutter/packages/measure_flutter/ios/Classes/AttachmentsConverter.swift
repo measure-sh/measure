@@ -10,13 +10,13 @@ import Measure
 class AttachmentsConverter {
 
     // Static method to convert JSON string to array of MsrAttachment objects
-    static func convertAttachments(_ json: String?) throws -> [Attachment] {
+    static func convertAttachments(_ json: String?) throws -> [MsrAttachment] {
         // Return empty array if json is nil
         guard let json = json else {
             return []
         }
 
-        var attachments: [Attachment] = []
+        var attachments: [MsrAttachment] = []
         // Convert JSON string to Data
         guard let jsonData = json.data(using: .utf8) else {
             fatalError("Invalid attachments format: Unable to convert string to data")
@@ -53,7 +53,7 @@ class AttachmentsConverter {
                 fatalError("Invalid attachment type: \(type)")
             }
 
-            let attachment = Attachment(name: name, type: attachmentType, size: size, id: id, bytes: nil, path: path)
+            let attachment = MsrAttachment(name: name, type: attachmentType, size: size, id: id, bytes: nil, path: path)
             attachments.append(attachment)
         }
 
