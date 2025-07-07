@@ -1,11 +1,15 @@
 # build stage
 FROM node:lts-alpine AS builder
+ARG NEXT_PUBLIC_API_BASE_URL=https://staging-api.measure.sh
+ARG NEXT_TELEMETRY_DISABLED=1
 
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 COPY . .
-RUN npm run build
+RUN NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \
+    NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED} \
+    npm run build
 
 FROM builder
 WORKDIR /app
