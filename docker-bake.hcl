@@ -16,7 +16,7 @@ target "cleanup" {
 
 target "dashboard" {
   context = "frontend/dashboard"
-  dockerfile = "dockerfile"
+  dockerfile = "dockerfile.prod"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
   platforms = ["linux/amd64", "linux/arm64"]
