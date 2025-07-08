@@ -84,14 +84,16 @@ class BugReportCollector {
           ),
         );
 
-        if (result.filePath != null) {
+        final filePath = result.filePath;
+        final compressedSize = result.compressedSize;
+        if (filePath != null && compressedSize != null) {
           storedAttachments.add(
             MsrAttachment(
               name: uuid,
-              path: result.filePath,
+              path: filePath,
               type: AttachmentType.screenshot,
               id: uuid,
-              size: bytes.length,
+              size: compressedSize,
               bytes: null,
             ),
           );

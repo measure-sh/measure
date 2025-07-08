@@ -321,8 +321,8 @@ class InternalSignalCollectorTest {
             type = type,
             attributes = attributes,
             userDefinedAttributes = userDefinedAttrs,
-            attachments = mutableListOf(),
             threadName = threadName,
+            takeScreenshot = false,
         )
     }
 
@@ -358,8 +358,8 @@ class InternalSignalCollectorTest {
             type = type,
             attributes = attributes,
             userDefinedAttributes = userDefinedAttrs,
-            attachments = mutableListOf(),
             threadName = threadName,
+            takeScreenshot = false,
         )
     }
 
@@ -434,8 +434,8 @@ class InternalSignalCollectorTest {
             type = type,
             attributes = attributes,
             userDefinedAttributes = userDefinedAttrs,
-            attachments = mutableListOf(),
             threadName = threadName,
+            takeScreenshot = false,
         )
     }
 

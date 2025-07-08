@@ -10,6 +10,7 @@ import org.jetbrains.annotations.TestOnly
 import sh.measure.android.Measure.captureLayoutSnapshot
 import sh.measure.android.Measure.captureScreenshot
 import sh.measure.android.Measure.clearUserId
+import sh.measure.android.Measure.createSpanBuilder
 import sh.measure.android.Measure.getCurrentTime
 import sh.measure.android.Measure.getTraceParentHeaderKey
 import sh.measure.android.Measure.getTraceParentHeaderValue
@@ -17,6 +18,7 @@ import sh.measure.android.Measure.imageUriToAttachment
 import sh.measure.android.Measure.launchBugReportActivity
 import sh.measure.android.Measure.setUserId
 import sh.measure.android.Measure.start
+import sh.measure.android.Measure.startSpan
 import sh.measure.android.Measure.stop
 import sh.measure.android.Measure.trackBugReport
 import sh.measure.android.Measure.trackEvent
@@ -648,6 +650,7 @@ object Measure {
             type = type,
             attributes = attributes,
             attachments = attachments,
+            takeScreenshot = false,
         )
     }
 
@@ -659,11 +662,12 @@ object Measure {
         attachments: MutableList<Attachment>,
     ) {
         measure.signalProcessor.trackCrash(
-            type = EventType.ANR,
             data = data,
             timestamp = timestamp,
+            type = EventType.ANR,
             attributes = attributes,
             attachments = attachments,
+            takeScreenshot = false,
         )
     }
 

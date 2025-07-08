@@ -24,6 +24,9 @@ class ConfigProviderImpl implements ConfigProvider {
   bool get enableLogging => _defaultConfig.enableLogging;
 
   @override
+  bool get takeScreenshotOnCrash => _defaultConfig.takeScreenshotOnCrash;
+
+  @override
   bool get autoInitializeNativeSDK => _defaultConfig.autoInitializeNativeSDK;
 
   @override

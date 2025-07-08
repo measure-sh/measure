@@ -67,6 +67,7 @@ class AnrCollectorTest {
             userDefinedAttributes = userDefinedAttributeCaptor.capture(),
             attachments = attachmentsCaptor.capture(),
             threadName = eq(null),
+            takeScreenshot = eq(false),
         )
 
         assertEquals(EventType.ANR, typeCaptor.firstValue)

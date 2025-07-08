@@ -12,6 +12,7 @@ import 'package:measure_flutter/src/method_channel/method_channel_callbacks.dart
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 import 'package:measure_flutter/src/navigation/navigation_collector.dart';
+import 'package:measure_flutter/src/screenshot/screenshot_collector.dart';
 import 'package:measure_flutter/src/storage/file_storage.dart';
 import 'package:measure_flutter/src/time/date_time_clock.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
@@ -36,6 +37,7 @@ final class MeasureInitializer {
   late final BugReportCollector _bugReportCollector;
   late final HttpCollector _httpCollector;
   late final GestureCollector _gestureCollector;
+  late final ScreenshotCollector _screenshotCollector;
   late final SignalProcessor _signalProcessor;
   late final SpanProcessor _spanProcessor;
   late final Tracer _tracer;
@@ -62,6 +64,8 @@ final class MeasureInitializer {
 
   GestureCollector get gestureCollector => _gestureCollector;
 
+  ScreenshotCollector get screenshotCollector => _screenshotCollector;
+
   SignalProcessor get signalProcessor => _signalProcessor;
 
   IdProvider get idProvider => _idProvider;
@@ -87,6 +91,7 @@ final class MeasureInitializer {
     _configProvider = ConfigProviderImpl(
       defaultConfig: Config(
         enableLogging: inputConfig.enableLogging,
+        takeScreenshotOnCrash: inputConfig.takeScreenshotOnCrash,
         trackHttpHeaders: inputConfig.trackHttpHeaders,
         trackHttpBody: inputConfig.trackHttpBody,
         httpHeadersBlocklist: inputConfig.httpHeadersBlocklist,
@@ -104,36 +109,43 @@ final class MeasureInitializer {
       ),
     );
     _methodChannel = MsrMethodChannel();
+    final randomizer = RandomizerImpl();
+    _idProvider = IdProviderImpl(randomizer);
     _methodChannelCallbacks = MethodChannelCallbacks(_methodChannel, _logger);
     _signalProcessor =
         DefaultSignalProcessor(logger: logger, channel: _methodChannel);
+    _screenshotCollector = DefaultScreenshotCollector(
+      logger: logger,
+      idProvider: _idProvider,
+      configProvider: _configProvider,
+    );
     _customEventCollector = CustomEventCollector(
       logger: logger,
       signalProcessor: signalProcessor,
     );
+    _fileStorage = FileStorage(methodChannel, logger);
     _exceptionCollector = ExceptionCollector(
       logger: logger,
       signalProcessor: signalProcessor,
+      configProvider: configProvider,
+      fileStorage: _fileStorage,
+      screenshotCollector: _screenshotCollector,
     );
     _navigationCollector =
         NavigationCollector(signalProcessor: signalProcessor);
     _httpCollector = HttpCollector(signalProcessor: signalProcessor);
     _gestureCollector = GestureCollector(signalProcessor);
-    final randomizer = RandomizerImpl();
-    _fileStorage = FileStorage(methodChannel, logger);
-    _idProvider = IdProviderImpl(randomizer);
     _shakeDetector = ShakeDetectorImpl(
       methodChannel: _methodChannel,
       methodChannelCallbacks: methodChannelCallbacks,
     );
     _bugReportCollector = BugReportCollector(
-      logger: logger,
-      configProvider: configProvider,
-      signalProcessor: signalProcessor,
-      fileStorage: _fileStorage,
-      idProvider: _idProvider,
-      shakeDetector: _shakeDetector
-    );
+        logger: logger,
+        configProvider: configProvider,
+        signalProcessor: signalProcessor,
+        fileStorage: _fileStorage,
+        idProvider: _idProvider,
+        shakeDetector: _shakeDetector);
     _spanProcessor = MsrSpanProcessor(
       _logger,
       _signalProcessor,

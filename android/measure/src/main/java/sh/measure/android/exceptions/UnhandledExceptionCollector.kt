@@ -37,14 +37,15 @@ internal class UnhandledExceptionCollector(
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         try {
             signalProcessor.trackCrash(
-                timestamp = timeProvider.now(),
-                type = EventType.EXCEPTION,
                 data = ExceptionFactory.createMeasureException(
                     throwable,
                     handled = false,
                     thread = thread,
                     foreground = processInfo.isForegroundProcess(),
                 ),
+                timestamp = timeProvider.now(),
+                type = EventType.EXCEPTION,
+                takeScreenshot = false,
             )
         } catch (e: Throwable) {
             // Prevent an infinite loop of exceptions if the above code fails.

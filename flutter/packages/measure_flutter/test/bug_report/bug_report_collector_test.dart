@@ -1,8 +1,6 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:image/image.dart' as img;
 import 'package:measure_flutter/measure.dart';
 import 'package:measure_flutter/src/bug_report/bug_report_collector.dart';
 import 'package:measure_flutter/src/bug_report/bug_report_data.dart';
@@ -15,13 +13,7 @@ import '../utils/fake_id_provider.dart';
 import '../utils/fake_shake_detector.dart';
 import '../utils/fake_signal_processor.dart';
 import '../utils/noop_logger.dart';
-
-Uint8List _createTestPngBytes() {
-  // Create a simple 1x1 red pixel PNG
-  final image = img.Image(width: 1, height: 1);
-  img.fill(image, color: img.ColorRgb8(255, 0, 0));
-  return Uint8List.fromList(img.encodePng(image));
-}
+import '../utils/test_png.dart';
 
 void main() {
   group('BugReportCollector', () {
@@ -70,7 +62,7 @@ void main() {
 
     test('tracks bug report with attachments', () async {
       const description = 'Test bug with attachments';
-      final attachmentBytes = _createTestPngBytes();
+      final attachmentBytes = createTestPngBytes();
       final attachments = <MsrAttachment>[
         MsrAttachment(
           name: 'test.png',
@@ -126,7 +118,7 @@ void main() {
 
     test('handles file storage failure gracefully', () async {
       const description = 'Test bug with storage failure';
-      final attachmentBytes = _createTestPngBytes();
+      final attachmentBytes = createTestPngBytes();
       final attachments = <MsrAttachment>[
         MsrAttachment(
           name: 'test.png',
@@ -147,8 +139,8 @@ void main() {
 
     test('processes multiple attachments correctly', () async {
       const description = 'Test bug with multiple attachments';
-      final attachment1Bytes = _createTestPngBytes();
-      final attachment2Bytes = _createTestPngBytes();
+      final attachment1Bytes = createTestPngBytes();
+      final attachment2Bytes = createTestPngBytes();
       final attachments = <MsrAttachment>[
         MsrAttachment(
           name: 'test1.png',
@@ -195,8 +187,8 @@ void main() {
 
     test('continues processing when some attachments fail to store', () async {
       const description = 'Test partial attachment failure';
-      final attachment1Bytes = _createTestPngBytes();
-      final attachment2Bytes = _createTestPngBytes();
+      final attachment1Bytes = createTestPngBytes();
+      final attachment2Bytes = createTestPngBytes();
       final attachments = <MsrAttachment>[
         MsrAttachment(
           name: 'test1.png',
@@ -235,7 +227,7 @@ void main() {
 
     test('tracks bug report with attachment from file path', () async {
       const description = 'Test bug with path-based attachment';
-      final attachmentBytes = _createTestPngBytes();
+      final attachmentBytes = createTestPngBytes();
       
       // Create a temporary file
       final tempDir = Directory.systemTemp.createTempSync('bug_report_test');

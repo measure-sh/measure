@@ -91,6 +91,8 @@ internal class InternalSignalCollector(
                             userDefinedAttributes = userDefinedAttrs,
                             attachments = eventAttachments,
                             threadName = threadName,
+                            // Disable screenshot as it'll be added by the Flutter SDK.
+                            takeScreenshot = false,
                         )
                     } else {
                         signalProcessor.track(

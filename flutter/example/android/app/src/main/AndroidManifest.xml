@@ -24,6 +24,13 @@
         </activity>
 
         <meta-data
+            android:name="sh.measure.android.API_KEY"
+            android:value="msrsh_" />
+
+        <meta-data android:name="sh.measure.android.API_URL"
+            android:value="http://localhost:8080" />
+
+        <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
     </application>

@@ -46,8 +46,9 @@ class CompressAndSaveParams {
 class FileProcessingResult {
   final String? filePath;
   final String? error;
+  final int? compressedSize;
 
-  const FileProcessingResult({this.filePath, this.error});
+  const FileProcessingResult({this.filePath, this.error, this.compressedSize});
 }
 
 // Core processing functions
@@ -79,7 +80,8 @@ Future<FileProcessingResult> compressAndSaveInIsolate(
 }
 
 // Private helpers
-Future<FileProcessingResult> _compressAndSave(CompressAndSaveParams params) async {
+Future<FileProcessingResult> _compressAndSave(
+    CompressAndSaveParams params) async {
   try {
     final compressedBytes = await convertImageToJpegInIsolate(
       ImageToJpegParams(
@@ -88,17 +90,22 @@ Future<FileProcessingResult> _compressAndSave(CompressAndSaveParams params) asyn
       ),
     );
 
-    final filePath = await _writeFile(compressedBytes, params.fileName, params.rootPath);
+    final filePath =
+        await _writeFile(compressedBytes, params.fileName, params.rootPath);
 
     return filePath != null
-        ? FileProcessingResult(filePath: filePath)
+        ? FileProcessingResult(
+            filePath: filePath,
+            compressedSize: compressedBytes.length,
+          )
         : FileProcessingResult(error: 'Failed to write file');
   } catch (e) {
     return FileProcessingResult(error: e.toString());
   }
 }
 
-Future<String?> _writeFile(Uint8List data, String fileName, String rootPath) async {
+Future<String?> _writeFile(
+    Uint8List data, String fileName, String rootPath) async {
   try {
     final file = File('$rootPath/$fileName');
     await file.writeAsBytes(data);
