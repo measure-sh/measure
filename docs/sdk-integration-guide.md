@@ -302,13 +302,24 @@ func application(_ application: UIApplication,
 
 ```objc
 
-#import <MeasureSDK/MeasureSDK.h>
+#import <Measure/measure-sh-umbrella.h>
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-  BaseMeasureConfig *config = [[BaseMeasureConfig alloc] init];
-  ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"<apiKey>" apiUrl:@"<apiUrl>"];
-  [Measure initializeWith:clientInfo config:config];
-  return YES;
+    ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"<apiKey>" apiUrl:@"<apiUrl>"];
+    BaseMeasureConfig *config = [[BaseMeasureConfig alloc] initWithEnableLogging:YES
+                                                           samplingRateForErrorFreeSessions:1.0
+                                                           traceSamplingRate:1.0
+                                                           trackHttpHeaders:YES
+                                                           trackHttpBody:YES
+                                                           httpHeadersBlocklist:@[]
+                                                           httpUrlBlocklist:@[]
+                                                           httpUrlAllowlist:@[]
+                                                           autoStart:true
+                                                           trackViewControllerLoadTime:true
+                                                           screenshotMaskLevel:ScreenshotMaskLevelObjcAllText
+                                                           requestHeadersProvider:nil];
+    [Measure initializeWith:clientInfo config:config];
+    return YES;
   }
 
 ```

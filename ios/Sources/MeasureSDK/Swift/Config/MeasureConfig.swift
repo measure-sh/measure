@@ -213,4 +213,60 @@ protocol MeasureConfig {
             debugPrint("Trace sampling rate must be between 0.0 and 1.0")
         }
     }
+    
+    /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
+    /// - Parameters:
+    ///   - enableLogging: Enable or disable internal SDK logs. Defaults to `false`.
+    ///   - samplingRateForErrorFreeSessions: Sampling rate for sessions without a crash. The sampling rate is a value between 0 and 1.
+    ///   For example, a value of `0.5` will export only 50% of the non-crashed sessions, and a value of `0` will disable sending non-crashed sessions to the server.
+    ///   - traceSamplingRate: Sampling rate for traces. The sampling rate is a value between 0 and 1.
+    ///   For example, a value of `0.1` will export only 10% of all traces, a value of `0` will disable exporting of traces.
+    ///   - trackHttpHeaders: Whether to capture http headers of a network request and response. Defaults to `false`.
+    ///   - trackHttpBody:Whether to capture http body of a network request and response. Defaults to `false`.
+    ///   - httpHeadersBlocklist:List of HTTP headers to not collect with the `http` event for both request and response. Defaults to an empty list. The following headers are always excluded:
+    ///       - Authorization
+    ///       - Cookie
+    ///       - Set-Cookie
+    ///       - Proxy-Authorization
+    ///       - WWW-Authenticate
+    ///       - X-Api-Key
+    ///   - httpUrlBlocklist: Allows disabling collection of `http` events for certain URLs.
+    ///   This is useful to setup if you do not want to collect data for certain endpoints.Note that this config is ignored if [httpUrlAllowlist] is set. You can:
+    ///       - Disables a domain, eg. example.com
+    ///       - Disable a subdomain, eg. api.example.com
+    ///       - Disable a particular path, eg. example.com/order
+    ///   - httpUrlAllowlist: Allows enabling collection of `http` events for only certain URLs. This is useful to setup if you do not want to collect data for all endpoints except for a few. You can:
+    ///       - Disables a domain, eg. example.com
+    ///       - Disable a subdomain, eg. api.example.com
+    ///       - Disable a particular path, eg. example.com/order
+    ///   - autoStart: Set this to false to delay starting the SDK, by default initializing the SDK also starts tracking.
+    ///   - trackViewControllerLoadTime: Enables or disables automatic collection of ViewController load time. Defaults to `true`.
+    ///   - screenshotMaskLevel: Allows changing the masking level of screenshots to prevent sensitive information from leaking. Defaults to [ScreenshotMaskLevel.allTextAndMedia].
+    ///   - enableShakeToLaunchBugReport: Enable or disable shake to automatically launch the bug report flow. Defaults to `false`.
+    ///   - requestHeadersProvider: Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
+    @objc public convenience init(enableLogging: Bool,
+                                  samplingRateForErrorFreeSessions: Float,
+                                  traceSamplingRate: Float,
+                                  trackHttpHeaders: Bool,
+                                  trackHttpBody: Bool,
+                                  httpHeadersBlocklist: [String],
+                                  httpUrlBlocklist: [String],
+                                  httpUrlAllowlist: [String],
+                                  autoStart: Bool,
+                                  trackViewControllerLoadTime: Bool,
+                                  screenshotMaskLevel: ScreenshotMaskLevelObjc,
+                                  requestHeadersProvider: MsrRequestHeadersProvider?) {
+        self.init(enableLogging: enableLogging,
+                  samplingRateForErrorFreeSessions: samplingRateForErrorFreeSessions,
+                  traceSamplingRate: traceSamplingRate,
+                  trackHttpHeaders: trackHttpHeaders,
+                  trackHttpBody: trackHttpBody,
+                  httpHeadersBlocklist: httpHeadersBlocklist,
+                  httpUrlBlocklist: httpUrlBlocklist,
+                  httpUrlAllowlist: httpUrlAllowlist,
+                  autoStart: autoStart,
+                  trackViewControllerLoadTime: trackViewControllerLoadTime,
+                  screenshotMaskLevel: screenshotMaskLevel.toSwiftValue(),
+                  requestHeadersProvider: requestHeadersProvider)
+    }
 }

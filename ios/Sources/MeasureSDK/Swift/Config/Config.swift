@@ -58,7 +58,7 @@ struct Config: InternalConfig, MeasureConfig {
     let requestHeadersProvider: MsrRequestHeadersProvider?
     let disallowedCustomHeaders: [String]
 
-    internal init(enableLogging: Bool = DefaultConfig.enableLogging,
+    internal init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
                   traceSamplingRate: Float = DefaultConfig.traceSamplingRate,
                   trackHttpHeaders: Bool = DefaultConfig.trackHttpHeaders,

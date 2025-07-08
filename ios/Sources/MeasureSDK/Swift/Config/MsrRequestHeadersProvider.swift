@@ -24,8 +24,8 @@ import Foundation
 /// Example implementation:
 ///
 /// ```swift
-/// final class CustomHeaderProvider: MsrRequestHeadersProvider {
-///     private var requestHeaders: [String: String] = [:]
+/// final class CustomHeaderProvider: NSObject, MsrRequestHeadersProvider {
+///     private var requestHeaders: NSDictionary
 ///
 ///     func addHeader(key: String, value: String) {
 ///         requestHeaders[key] = value
@@ -35,17 +35,40 @@ import Foundation
 ///         requestHeaders.removeValue(forKey: key)
 ///     }
 ///
-///     func getRequestHeaders() -> [String: String] {
+///     func getRequestHeaders() -> NSDictionary {
 ///         return requestHeaders
 ///     }
 /// }
 /// ```
-public protocol MsrRequestHeadersProvider {
+///
+/// ```objc
+/// @interface RequestHeaderProvider : NSObject <MsrRequestHeadersProvider>
+///
+/// @end
+///
+/// @implementation RequestHeaderProvider {
+/// NSMutableDictionary *_requestHeaders;
+/// }
+/// - (void)addHeaderWithKey:(NSString *)key value:(NSString *)value {
+///     _requestHeaders[key] = value;
+/// }
+///
+/// - (void)removeHeaderWithKey:(NSString *)key {
+///     [_requestHeaders removeObjectForKey:key];
+/// }
+///
+/// - (NSDictionary *)getRequestHeaders {
+///     return [_requestHeaders copy];
+/// }
+///
+/// @end
+/// ```
+@objc public protocol MsrRequestHeadersProvider: NSObjectProtocol {
     /// Returns a dictionary of custom HTTP headers to include in Measure SDK requests.
     ///
     /// This method may be called multiple times and from different threads.
     /// Implementations should return a consistent snapshot of headers at the time of the call.
     ///
     /// - Returns: A dictionary of header names to values.
-    func getRequestHeaders() -> [String: String]
+    @objc func getRequestHeaders() -> NSDictionary
 }

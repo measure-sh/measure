@@ -138,7 +138,11 @@ final class BaseHttpClient: HttpClient {
 
         let disallowed = Set(configProvider.disallowedCustomHeaders.map { $0.lowercased() })
 
-        return requestHeadersProvider.getRequestHeaders().filter { key, _ in
+        guard let headers = requestHeadersProvider.getRequestHeaders() as? [String: String] else {
+            return nil
+        }
+
+        return headers.filter { key, _ in
             !disallowed.contains(key.lowercased())
         }
     }
