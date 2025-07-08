@@ -146,7 +146,7 @@ final class BaseSignalProcessor: SignalProcessor {
         userDefinedAttributes: String?,
         threadName: String?
     ) {
-        let resolvedThreadName = threadName ?? Thread.current.name ?? "unknown"
+        let resolvedThreadName = threadName ?? OperationQueue.current?.underlyingQueue?.label ?? "unknown"
 
         measureDispatchQueue.submit { [weak self] in
             guard let self else { return }
@@ -162,7 +162,7 @@ final class BaseSignalProcessor: SignalProcessor {
                 userDefinedAttributes: userDefinedAttributes
             )
 
-            self.appendAttributes(event: event, threadName: resolvedThreadName)
+            self.appendAttributes(event: event, threadName: resolvedThreadName.isEmpty ? "unknown" : resolvedThreadName )
 
             let needsReporting = self.sessionManager.shouldReportSession ||
             self.configProvider.eventTypeExportAllowList.contains(event.type)
@@ -178,7 +178,6 @@ final class BaseSignalProcessor: SignalProcessor {
 
     private func appendAttributes<T: Codable>(event: Event<T>, threadName: String?) {
         SignPost.trace(subcategory: "Event", label: "appendAttributes") {
-            let threadName = threadName ?? OperationQueue.current?.underlyingQueue?.label ?? "unknown"
             event.attributes?.threadName = threadName
             event.attributes?.deviceLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
             event.appendAttributes(self.attributeProcessors)

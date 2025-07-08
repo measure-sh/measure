@@ -28,7 +28,7 @@ enum DeviceType: String, Codable {
     case phone
 }
 
-struct Attributes: Codable {
+class Attributes: Codable {
     var threadName: String?
     var deviceName: String?
     var deviceModel: String?

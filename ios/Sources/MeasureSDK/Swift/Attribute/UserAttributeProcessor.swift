@@ -20,7 +20,7 @@ final class UserAttributeProcessor: AttributeProcessor {
         self.measureDispatchQueue = measureDispatchQueue
     }
 
-    func appendAttributes(_ attributes: inout Attributes) {
+    func appendAttributes(_ attributes: Attributes) {
         loadedFromDisk.setTrueIfFalse {
             userId = userDefaultStorage.getUserId()
         }

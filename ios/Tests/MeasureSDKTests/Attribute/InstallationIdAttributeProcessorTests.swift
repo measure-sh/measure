@@ -36,7 +36,7 @@ final class InstallationIdAttributeProcessorTests: XCTestCase {
     }
 
     func testGivenInstallationIdIsNotSetThenCreatesStoresAndReturnsInstallationIdInUserDefaults() {
-        installationIdAttributeProcessor.appendAttributes(&attributes)
+        installationIdAttributeProcessor.appendAttributes(attributes)
 
         XCTAssertEqual(attributes.installationId, installationId)
     }
@@ -44,7 +44,7 @@ final class InstallationIdAttributeProcessorTests: XCTestCase {
     func testGivenInstallationIdIsAlreadySetThenReturnsTheStoredInstallationId() {
         userDefaultStorage.installationId = installationId
 
-        installationIdAttributeProcessor.appendAttributes(&attributes)
+        installationIdAttributeProcessor.appendAttributes(attributes)
 
         XCTAssertEqual(attributes.installationId, installationId)
     }
