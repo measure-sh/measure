@@ -95,7 +95,7 @@ protocol InternalConfig {
 
     /// The interval, in seconds, for providing accelerometer updates to the block handler. Defaults to 0.1 seconds.
     var accelerometerUpdateInterval: TimeInterval { get }
-    
+
     /// List of custom headers that should not be included.
     var disallowedCustomHeaders: [String] { get }
 }

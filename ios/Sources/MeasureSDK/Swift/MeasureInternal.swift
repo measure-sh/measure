@@ -274,7 +274,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         let transformedAttributes = transformAttributes(attributes)
         userTriggeredEventCollector.trackError(error, attributes: transformedAttributes, collectStackTraces: collectStackTraces)
     }
-    
+
     func getDocumentDirectoryPath() -> String? {
         return systemFileManager.getDirectoryPath(directory: FileManager.SearchPathDirectory.documentDirectory)
     }

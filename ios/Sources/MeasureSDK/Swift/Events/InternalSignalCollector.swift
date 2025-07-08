@@ -84,7 +84,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
 
     // Tracks an event.
     //
-    // swiftlint:disable:next function_parameter_count function_body_length
+    // swiftlint:disable:next function_parameter_count function_body_length cyclomatic_complexity
     func trackEvent(
         data: inout [String: Any?],
         type: String,

@@ -61,8 +61,8 @@ class HttpClientTests: XCTestCase {
     }
 
     func testGetCustomHeader_notNilIfSet() {
-        class CustomHeader: MsrRequestHeadersProvider {
-            func getRequestHeaders() -> [String: String] {
+        class CustomHeader: NSObject, MsrRequestHeadersProvider {
+            func getRequestHeaders() -> NSDictionary {
                 return ["key1": "value1", "key2": "value2"]
             }
         }
@@ -75,8 +75,8 @@ class HttpClientTests: XCTestCase {
     }
 
     func testGetCustomHeader_removeValuesIfKeyContainsReservedHeaders() {
-        class CustomHeader: MsrRequestHeadersProvider {
-            func getRequestHeaders() -> [String: String] {
+        class CustomHeader: NSObject, MsrRequestHeadersProvider {
+            func getRequestHeaders() -> NSDictionary {
                 return ["key1": "value1", "key2": "value2", "Content-Type": "abc", "msr-req-id": "abc", "Authorization": "abc", "Content-Length": "abc"]
             }
         }
@@ -98,8 +98,8 @@ class HttpClientTests: XCTestCase {
     }
 
     func testGetCustomHeader_caseInsensitiveDisallowFiltering() {
-        class CustomHeader: MsrRequestHeadersProvider {
-            func getRequestHeaders() -> [String: String] {
+        class CustomHeader: NSObject, MsrRequestHeadersProvider {
+            func getRequestHeaders() -> NSDictionary {
                 return ["Authorization": "abc", "authorization": "xyz", "Key1": "value"]
             }
         }

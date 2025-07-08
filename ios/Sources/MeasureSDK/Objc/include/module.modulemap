@@ -1,0 +1,13 @@
+//
+//  module.modulemap
+//  Measure
+//
+//  Created by Adwin Ross on 08/07/25.
+//
+
+framework module Measure {
+  umbrella header "Measure.h"
+
+  export *
+  module * { export * }
+}

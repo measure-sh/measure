@@ -251,7 +251,7 @@ import UIKit
         guard let measureInternal = self.measureInternal else { return }
         return measureInternal.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
     }
-    
+
     func internalGetAttachmentDirectory() -> String? {
         guard let measureInternal = self.measureInternal else { return nil }
         return measureInternal.getDocumentDirectoryPath()
@@ -280,8 +280,19 @@ extension Measure {
     ///   ```
     ///   - Objective-C:
     ///   ```objc
-    ///   BaseMeasureConfig *config = [[BaseMeasureConfig alloc] init];
     ///   ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"<apiKey>" apiUrl:@"<apiUrl>"];
+    ///   BaseMeasureConfig *config = [[BaseMeasureConfig alloc] initWithEnableLogging:YES
+    ///                                                          samplingRateForErrorFreeSessions:1.0
+    ///                                                          traceSamplingRate:1.0
+    ///                                                          trackHttpHeaders:YES
+    ///                                                          trackHttpBody:YES
+    ///                                                          httpHeadersBlocklist:@[]
+    ///                                                          httpUrlBlocklist:@[]
+    ///                                                          httpUrlAllowlist:@[]
+    ///                                                          autoStart:true
+    ///                                                          trackViewControllerLoadTime:true
+    ///                                                          screenshotMaskLevel:ScreenshotMaskLevelObjcAllText
+    ///                                                          requestHeadersProvider:nil];
     ///   [Measure initializeWith:clientInfo config:config];
     ///   ```
     @objc public static func initialize(with client: ClientInfo, config: BaseMeasureConfig? = nil) {

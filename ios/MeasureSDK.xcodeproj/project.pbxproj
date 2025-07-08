@@ -294,6 +294,7 @@
 		CFD88D792DAFDA530095115E /* MockSpanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D782DAFDA530095115E /* MockSpanStore.swift */; };
 		CFEC97ED2D9A7642000CFB68 /* MeasureInternalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */; };
 		CFEC97EE2D9A76A5000CFB68 /* MockMeasureInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF2362CB651C8003102DF /* MockMeasureInitializer.swift */; };
+		CFFD42752E1D40CF0037DF21 /* Measure.h in Headers */ = {isa = PBXBuildFile; fileRef = CFFD42742E1D40CF0037DF21 /* Measure.h */; settings = {ATTRIBUTES = (Public, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -649,6 +650,8 @@
 		CFD88D762DAFD0A70095115E /* MsrSpanBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrSpanBuilderTests.swift; sourceTree = "<group>"; };
 		CFD88D782DAFDA530095115E /* MockSpanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSpanStore.swift; sourceTree = "<group>"; };
 		CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInternalTests.swift; sourceTree = "<group>"; };
+		CFFD42742E1D40CF0037DF21 /* Measure.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Measure.h; sourceTree = "<group>"; };
+		CFFD42762E1D40FF0037DF21 /* module.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -727,6 +730,8 @@
 			isa = PBXGroup;
 			children = (
 				526D17922D5A1913009A2E90 /* MSRViewController.h */,
+				CFFD42742E1D40CF0037DF21 /* Measure.h */,
+				CFFD42762E1D40FF0037DF21 /* module.modulemap */,
 			);
 			path = include;
 			sourceTree = "<group>";
@@ -1408,6 +1413,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				52B7F19C2D76B423001498BC /* LifecycleManager_Internal.h in Headers */,
+				CFFD42752E1D40CF0037DF21 /* Measure.h in Headers */,
 				526D18212D5A1913009A2E90 /* MSRViewController.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -9,6 +9,7 @@ import CoreTelephony
 import CrashReporter
 import Foundation
 import MachO
+@_exported import Measure
 import Network
 import Photos
 import Swift
@@ -38,6 +39,7 @@ extension Measure.AttributeValue : Swift.Codable {
   required public init(from decoder: any Swift.Decoder) throws
   final public func encode(to encoder: any Swift.Encoder) throws
   public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil, traceSamplingRate: Swift.Float? = nil, trackHttpHeaders: Swift.Bool? = nil, trackHttpBody: Swift.Bool? = nil, httpHeadersBlocklist: [Swift.String]? = nil, httpUrlBlocklist: [Swift.String]? = nil, httpUrlAllowlist: [Swift.String]? = nil, autoStart: Swift.Bool? = nil, trackViewControllerLoadTime: Swift.Bool? = nil, screenshotMaskLevel: Measure.ScreenshotMaskLevel? = nil, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)? = nil)
+  @objc convenience public init(enableLogging: Swift.Bool, samplingRateForErrorFreeSessions: Swift.Float, traceSamplingRate: Swift.Float, trackHttpHeaders: Swift.Bool, trackHttpBody: Swift.Bool, httpHeadersBlocklist: [Swift.String], httpUrlBlocklist: [Swift.String], httpUrlAllowlist: [Swift.String], autoStart: Swift.Bool, trackViewControllerLoadTime: Swift.Bool, screenshotMaskLevel: Measure.ScreenshotMaskLevelObjc, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)?)
   @objc deinit
 }
 public protocol Span {
@@ -150,6 +152,17 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
     get
   }
 }
+@objc public enum ScreenshotMaskLevelObjc : Swift.Int {
+  case allTextAndMedia
+  case allText
+  case allTextExceptClickable
+  case sensitiveFieldsOnly
+  public init?(rawValue: Swift.Int)
+  public typealias RawValue = Swift.Int
+  public var rawValue: Swift.Int {
+    get
+  }
+}
 @objc public class BugReportConfig : ObjectiveC.NSObject {
   final public let colors: Measure.MsrColors
   final public let text: Measure.MsrText
@@ -202,8 +215,8 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
   public func update(darkBackground: UIKit.UIColor? = nil, lightBackground: UIKit.UIColor? = nil, darkButtonBackground: UIKit.UIColor? = nil, lightButtonBackground: UIKit.UIColor? = nil, darkText: UIKit.UIColor? = nil, lightText: UIKit.UIColor? = nil, darkPlaceholder: UIKit.UIColor? = nil, lightPlaceholder: UIKit.UIColor? = nil, darkFloatingButtonBackground: UIKit.UIColor? = nil, lightFloatingButtonBackground: UIKit.UIColor? = nil, darkFloatingButtonIcon: UIKit.UIColor? = nil, lightFloatingButtonIcon: UIKit.UIColor? = nil, darkfloatingExitButtonText: UIKit.UIColor? = nil, lightfloatingExitButtonText: UIKit.UIColor? = nil, badgeColor: UIKit.UIColor? = nil, badgeTextColor: UIKit.UIColor? = nil, isDarkMode: Swift.Bool? = nil) -> Measure.MsrColors
   @objc deinit
 }
-public protocol MsrRequestHeadersProvider {
-  func getRequestHeaders() -> [Swift.String : Swift.String]
+@objc public protocol MsrRequestHeadersProvider : ObjectiveC.NSObjectProtocol {
+  @objc func getRequestHeaders() -> Foundation.NSDictionary
 }
 @objc public enum VCLifecycleEventType : Swift.Int, Swift.Codable {
   case viewDidLoad = 0
@@ -379,6 +392,9 @@ extension Measure.SpanStatus : Swift.RawRepresentable {}
 extension Measure.ScreenshotMaskLevel : Swift.Equatable {}
 extension Measure.ScreenshotMaskLevel : Swift.Hashable {}
 extension Measure.ScreenshotMaskLevel : Swift.RawRepresentable {}
+extension Measure.ScreenshotMaskLevelObjc : Swift.Equatable {}
+extension Measure.ScreenshotMaskLevelObjc : Swift.Hashable {}
+extension Measure.ScreenshotMaskLevelObjc : Swift.RawRepresentable {}
 extension Measure.VCLifecycleEventType : Swift.Equatable {}
 extension Measure.VCLifecycleEventType : Swift.Hashable {}
 extension Measure.VCLifecycleEventType : Swift.RawRepresentable {}
