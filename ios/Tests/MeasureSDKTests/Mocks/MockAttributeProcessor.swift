@@ -8,7 +8,7 @@
 import Foundation
 @testable import Measure
 
-typealias AttributeAppendBlock = (inout Attributes) -> Void
+typealias AttributeAppendBlock = (Attributes) -> Void
 
 final class MockAttributeProcessor: AttributeProcessor {
     private let appendBlock: AttributeAppendBlock
@@ -18,8 +18,8 @@ final class MockAttributeProcessor: AttributeProcessor {
         self.appendBlock = appendBlock
     }
 
-    func appendAttributes(_ attributes: inout Attributes) {
+    func appendAttributes(_ attributes: Attributes) {
         appendCalled = true
-        appendBlock(&attributes)
+        appendBlock(attributes)
     }
 }

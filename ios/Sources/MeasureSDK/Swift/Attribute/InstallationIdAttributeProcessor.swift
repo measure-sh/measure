@@ -18,7 +18,7 @@ final class InstallationIdAttributeProcessor: BaseComputeOnceAttributeProcessor 
         self.idProvider = idProvider
     }
 
-    override func updateAttribute(_ attribute: inout Attributes) {
+    override func updateAttribute(_ attribute: Attributes) {
         attribute.installationId = installationId
     }
 

@@ -158,7 +158,7 @@ final class Event<T: Codable>: Codable {
     /// - Parameter attributeProcessors: A list of processors that modify the event's attributes.
     func appendAttributes(_ attributeProcessors: [AttributeProcessor]) {
         attributeProcessors.forEach { processor in
-            processor.appendAttributes(&self.attributes!)
+            processor.appendAttributes(self.attributes!)
         }
     }
 }

@@ -13,13 +13,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = (scene as? UIWindowScene) else { return }
-
-        // Create and show the floating button
-//        floatingButtonController = FloatingButtonViewController()
-//        floatingButtonController?.view.frame = windowScene.coordinateSpace.bounds
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
-//            self.window?.addSubview(self.floatingButtonController!.view)
-//        })
     }
 
     @objc func floatingButtonWasTapped() {

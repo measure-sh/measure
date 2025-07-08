@@ -259,9 +259,9 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
         let sessionId = sessionManager.sessionId
 
         // apply attributes
-        var parsedAttributes = Attributes(dict: attributes)
+        let parsedAttributes = Attributes(dict: attributes)
         for attributeProcessor in attributeProcessors {
-            attributeProcessor.appendAttributes(&parsedAttributes)
+            attributeProcessor.appendAttributes(parsedAttributes)
         }
 
         // deserialize checkpoints
@@ -311,22 +311,22 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(HttpData.self, from: jsonData)
     }
-    
+
     func extractBugReportData(data: [String: Any?]) throws -> BugReportData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(BugReportData.self, from: jsonData)
     }
-    
+
     func extractClickData(data: [String: Any?]) throws -> ClickData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(ClickData.self, from: jsonData)
     }
-    
+
     func extractLongClickData(data: [String: Any?]) throws -> LongClickData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(LongClickData.self, from: jsonData)
     }
-    
+
     func extractScrollData(data: [String: Any?]) throws -> ScrollData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(ScrollData.self, from: jsonData)

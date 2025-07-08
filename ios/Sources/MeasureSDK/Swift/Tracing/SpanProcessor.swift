@@ -39,11 +39,11 @@ final class BaseSpanProcessor: SpanProcessor {
         SignPost.trace(subcategory: "Span", label: "spanProcessorOnStart") {
             logger.log(level: .debug, message: "Span started: \(span.name)", error: nil, data: nil)
             let threadName = OperationQueue.current?.underlyingQueue?.label ?? "unknown"
-            var attributes = Attributes()
+            let attributes = Attributes()
             attributes.threadName = threadName
             attributes.deviceLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
             attributeProcessors.forEach { processor in
-                processor.appendAttributes(&attributes)
+                processor.appendAttributes(attributes)
             }
             span.setInternalAttribute(attributes)
         }

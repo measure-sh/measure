@@ -20,7 +20,7 @@ final class NetworkStateAttributeProcessor: AttributeProcessor {
         self.measureDispatchQueue = measureDispatchQueue
     }
 
-    func appendAttributes(_ attributes: inout Attributes) {
+    func appendAttributes(_ attributes: Attributes) {
         if cachedAttributes == nil {
             let newCache = (
                 type: getNetworkType(),

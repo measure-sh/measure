@@ -42,16 +42,16 @@ final class BaseNetworkClient: NetworkClient {
                 }
             }
         }
-        
+
         for spanEntity in spans {
             let span = spanEntity.toSpanDataCodable()
-            
+
             let encoder = JSONEncoder()
             if let data = try? encoder.encode(span) {
                 multipartData.append(.formField(name: formFieldSpan, value: data))
             }
         }
-        
+
         return httpClient.sendMultipartRequest(url: baseUrl.appendingPathComponent(eventsEndpoint),
                                                method: .put,
                                                headers: [authorization: "\(bearer) \(apiKey)",

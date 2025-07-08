@@ -100,7 +100,7 @@ final class BaseSystemFileManager: SystemFileManager {
             return nil
         }
     }
-    
+
     func getDirectoryPath(directory: FileManager.SearchPathDirectory) -> String? {
         guard let directoryURL = fileManager.urls(for: directory, in: .userDomainMask).first else {
             logger.internalLog(level: .error, message: "Unable to access directory \(directory)", error: nil, data: nil)
