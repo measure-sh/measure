@@ -285,7 +285,7 @@ launch time metrics.
 > in `application(_:didFinishLaunchingWithOptions:)`.
 
 ```swift
-import MeasureSDK
+import Measure
 
 func application(_ application: UIApplication,
                  didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
@@ -302,7 +302,7 @@ func application(_ application: UIApplication,
 
 ```objc
 
-#import <Measure/measure-sh-umbrella.h>
+#import <Measure/Measure.h>
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"<apiKey>" apiUrl:@"<apiUrl>"];

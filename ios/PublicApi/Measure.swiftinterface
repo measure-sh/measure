@@ -9,6 +9,7 @@ import CoreTelephony
 import CrashReporter
 import Foundation
 import MachO
+@_exported import Measure
 import Network
 import Photos
 import Swift
