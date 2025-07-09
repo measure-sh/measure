@@ -109,7 +109,7 @@ class Measure implements MeasureApi {
   void trackEvent({
     required String name,
     Map<String, AttributeValue> attributes = const {},
-    DateTime? timestamp,
+    int? timestamp,
   }) {
     if (_isInitialized) {
       _measure.trackCustomEvent(name, timestamp, attributes);
@@ -133,9 +133,9 @@ class Measure implements MeasureApi {
   void trackHttpEvent({
     required String url,
     required String method,
+    required int startTime,
+    required int endTime,
     int? statusCode,
-    int? startTime,
-    int? endTime,
     String? failureReason,
     String? failureDescription,
     Map<String, String>? requestHeaders,

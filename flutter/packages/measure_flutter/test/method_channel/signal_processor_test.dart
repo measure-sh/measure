@@ -24,7 +24,7 @@ void main() {
       // Given
       final data = CustomEventData(name: "name");
       final eventType = EventType.custom;
-      final timestamp = DateTime(2024, 2, 12, 10, 30);
+      final timestamp = DateTime(2024, 2, 12, 10, 30).millisecondsSinceEpoch;
       final builder = AttributeBuilder()
         ..add("string", "value")
         ..add("integer", 100);
@@ -47,7 +47,7 @@ void main() {
       final trackedEvent = channel.trackedEvents.first;
       expect(trackedEvent.$1, data.toJson());
       expect(trackedEvent.$2, eventType);
-      expect(trackedEvent.$3, timestamp.millisecondsSinceEpoch);
+      expect(trackedEvent.$3, timestamp);
       expect(trackedEvent.$4, attributes);
       expect(trackedEvent.$5, userTriggered);
       expect(trackedEvent.$6, threadName);
@@ -57,7 +57,7 @@ void main() {
       // Given
       final data = CustomEventData(name: 'event_name');
       final eventType = EventType.custom;
-      final timestamp = DateTime(2024, 2, 12, 10, 30);
+      final timestamp = DateTime(2024, 2, 12, 10, 30).millisecondsSinceEpoch;
       final attributes = <String, AttributeValue>{};
       final userTriggered = true;
 
@@ -75,7 +75,7 @@ void main() {
       final trackedEvent = channel.trackedEvents.first;
       expect(trackedEvent.$1, data.toJson());
       expect(trackedEvent.$2, eventType);
-      expect(trackedEvent.$3, timestamp.millisecondsSinceEpoch);
+      expect(trackedEvent.$3, timestamp);
       expect(trackedEvent.$4, isEmpty);
       expect(trackedEvent.$5, userTriggered);
     });

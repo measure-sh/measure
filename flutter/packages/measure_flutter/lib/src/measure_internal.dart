@@ -86,7 +86,7 @@ final class MeasureInternal {
     _gestureCollector.unregister();
   }
 
-  void trackCustomEvent(String name, DateTime? timestamp,
+  void trackCustomEvent(String name, int? timestamp,
       Map<String, AttributeValue> attributes) {
     _customEventCollector.trackCustomEvent(name, timestamp, attributes);
   }
@@ -113,9 +113,9 @@ final class MeasureInternal {
   void trackHttpEvent({
     required String url,
     required String method,
+    required int startTime,
+    required int endTime,
     int? statusCode,
-    int? startTime,
-    int? endTime,
     String? failureReason,
     String? failureDescription,
     Map<String, String>? requestHeaders,

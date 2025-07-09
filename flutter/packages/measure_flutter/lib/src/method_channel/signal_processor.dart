@@ -9,7 +9,7 @@ abstract interface class SignalProcessor {
   Future<void> trackEvent<T extends JsonSerialized>({
     required T data,
     required String type,
-    required DateTime timestamp,
+    required int timestamp,
     required Map<String, AttributeValue> userDefinedAttrs,
     required bool userTriggered,
     String? threadName,
@@ -29,7 +29,7 @@ final class DefaultSignalProcessor extends SignalProcessor {
   Future<void> trackEvent<T extends JsonSerialized>({
     required T data,
     required String type,
-    required DateTime timestamp,
+    required int timestamp,
     required Map<String, AttributeValue> userDefinedAttrs,
     required bool userTriggered,
     String? threadName,
@@ -41,13 +41,13 @@ final class DefaultSignalProcessor extends SignalProcessor {
       logger.log(LogLevel.debug, "attachments:${attachments.length}");
     }
     return channel.trackEvent(
-      data: json,
-      type: type,
-      timestamp: timestamp.millisecondsSinceEpoch,
-      userDefinedAttrs: userDefinedAttrs,
-      userTriggered: userTriggered,
-      threadName: threadName,
-      attachments: attachments,
+        data: json,
+        type: type,
+        timestamp: timestamp,
+        userDefinedAttrs: userDefinedAttrs,
+        userTriggered: userTriggered,
+        threadName: threadName,
+        attachments: attachments,
     );
   }
 

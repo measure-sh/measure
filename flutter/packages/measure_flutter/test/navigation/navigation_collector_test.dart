@@ -1,17 +1,22 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:measure_flutter/src/navigation/navigation_collector.dart';
+import 'package:measure_flutter/src/time/time_provider.dart';
 
 import '../utils/fake_signal_processor.dart';
+import '../utils/test_clock.dart';
 
 void main() {
   group('NavigationCollector', () {
     late FakeSignalProcessor fakeSignalProcessor;
     late NavigationCollector navigationCollector;
+    late TimeProvider timeProvider;
 
     setUp(() {
       fakeSignalProcessor = FakeSignalProcessor();
+      timeProvider = FlutterTimeProvider(TestClock.create());
       navigationCollector = NavigationCollector(
         signalProcessor: fakeSignalProcessor,
+        timeProvider: timeProvider,
       );
       navigationCollector.register();
     });

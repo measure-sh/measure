@@ -14,7 +14,7 @@ import 'package:measure_flutter/measure.dart';
 /// dio.interceptors.add(MsrInterceptor());
 /// ```
 class MsrInterceptor extends Interceptor {
-  final _requests = HashMap<RequestOptions, int>();
+  final _requestsStartTime = HashMap<RequestOptions, int>();
   final MeasureApi _measure;
 
   /// Creates a new [MsrInterceptor] that tracks HTTP events.
@@ -29,7 +29,7 @@ class MsrInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    _requests[options] = DateTime.now().millisecondsSinceEpoch;
+    _requestsStartTime[options] = Measure.instance.getCurrentTime();
     handler.next(options);
   }
 
@@ -44,12 +44,18 @@ class MsrInterceptor extends Interceptor {
       final request = response.requestOptions;
       final url = _getRequestUrl(request);
       final method = _getMethod(request);
-      final startTime = _requests[request];
-      final endTime = DateTime.now().millisecondsSinceEpoch;
+      final startTime = _requestsStartTime[request];
+      final endTime = Measure.instance.getCurrentTime();
       final requestHeaders = _getRequestHeaders(request);
       final requestBody = _getRequestBody(request);
       final responseHeaders = _getResponseHeaders(response);
       final responseBody = _getResponseBody(response, request);
+
+      if (startTime == null) {
+        developer.log("Failed to track http event, unable to get start time");
+        return;
+      }
+
       _measure.trackHttpEvent(
         url: url,
         method: method,
@@ -66,7 +72,7 @@ class MsrInterceptor extends Interceptor {
       _logInternalError(e, stacktrace);
     } finally {
       handler.next(response);
-      _requests.remove(response.requestOptions);
+      _requestsStartTime.remove(response.requestOptions);
     }
   }
 
@@ -76,10 +82,14 @@ class MsrInterceptor extends Interceptor {
       final request = err.requestOptions;
       final url = _getRequestUrl(request);
       final method = _getMethod(request);
-      final startTime = _requests[request];
-      final endTime = DateTime.now().millisecondsSinceEpoch;
+      // The start time should never be null, but this happens in tests
+      // hence setting a default value.
+      final startTime =
+          _requestsStartTime[request] ?? Measure.instance.getCurrentTime();
+      final endTime = Measure.instance.getCurrentTime();
       final failureReason = _getFailureReason(err);
       final failureDescription = _getFailureDescription(err);
+
       _measure.trackHttpEvent(
         url: url,
         method: method,
@@ -93,7 +103,7 @@ class MsrInterceptor extends Interceptor {
       _logInternalError(e, stacktrace);
     } finally {
       handler.next(err);
-      _requests.remove(err.requestOptions);
+      _requestsStartTime.remove(err.requestOptions);
     }
   }
 

@@ -6,6 +6,7 @@ import 'package:measure_flutter/src/bug_report/bug_report_collector.dart';
 import 'package:measure_flutter/src/bug_report/bug_report_data.dart';
 import 'package:measure_flutter/src/config/config_provider.dart';
 import 'package:measure_flutter/src/events/event_type.dart';
+import 'package:measure_flutter/src/time/time_provider.dart';
 
 import '../utils/fake_config_provider.dart';
 import '../utils/fake_file_storage.dart';
@@ -14,6 +15,7 @@ import '../utils/fake_shake_detector.dart';
 import '../utils/fake_signal_processor.dart';
 import '../utils/noop_logger.dart';
 import '../utils/test_png.dart';
+import '../utils/test_clock.dart';
 
 void main() {
   group('BugReportCollector', () {
@@ -24,6 +26,7 @@ void main() {
     late NoopLogger logger;
     late ConfigProvider configProvider;
     late FakeShakeDetector shakeDetector;
+    late TimeProvider timeProvider;
 
     setUp(() {
       signalProcessor = FakeSignalProcessor();
@@ -32,6 +35,7 @@ void main() {
       logger = NoopLogger();
       configProvider = FakeConfigProvider();
       shakeDetector = FakeShakeDetector();
+      timeProvider = FlutterTimeProvider(TestClock.create());
       collector = BugReportCollector(
         logger: logger,
         configProvider: configProvider,
@@ -39,6 +43,7 @@ void main() {
         idProvider: idProvider,
         fileStorage: fileStorage,
         shakeDetector: shakeDetector,
+        timeProvider: timeProvider,
       );
       // Enable the collector for all tests
       collector.register();
@@ -84,11 +89,11 @@ void main() {
         expect(storedAttachment.path, contains('uuid-1'));
         expect(storedAttachment.type, equals(AttachmentType.screenshot));
         expect(storedAttachment.bytes, isNull);
-        
+
         // Check if file was created
         final file = File(storedAttachment.path!);
         expect(file.existsSync(), isTrue);
-        
+
         // Clean up
         if (file.existsSync()) {
           file.deleteSync();
@@ -165,18 +170,18 @@ void main() {
       final createdFiles = <File>[];
       if (event.attachments?.isNotEmpty == true) {
         expect(event.attachments!.length, equals(2));
-        
+
         for (int i = 0; i < event.attachments!.length; i++) {
           final attachment = event.attachments![i];
           expect(attachment.name, equals('uuid-${i + 1}'));
           expect(attachment.path, contains('uuid-${i + 1}'));
-          
+
           final file = File(attachment.path!);
           expect(file.existsSync(), isTrue);
           createdFiles.add(file);
         }
       }
-      
+
       // Clean up
       for (final file in createdFiles) {
         if (file.existsSync()) {
@@ -213,7 +218,7 @@ void main() {
 
       expect(signalProcessor.trackedEvents.length, equals(1));
       final event = signalProcessor.trackedEvents.first;
-      
+
       // Clean up any created files
       if (event.attachments?.isNotEmpty == true) {
         for (final attachment in event.attachments!) {
@@ -228,19 +233,19 @@ void main() {
     test('tracks bug report with attachment from file path', () async {
       const description = 'Test bug with path-based attachment';
       final attachmentBytes = createTestPngBytes();
-      
       // Create a temporary file
       final tempDir = Directory.systemTemp.createTempSync('bug_report_test');
       final tempFile = File('${tempDir.path}/test_image.png');
       await tempFile.writeAsBytes(attachmentBytes);
-      
+
       final attachments = <MsrAttachment>[
         MsrAttachment(
           name: 'test_image.png',
           id: 'path-test-id',
           size: attachmentBytes.length,
           path: tempFile.path,
-          bytes: null, // No bytes, should read from path
+          bytes: null,
+          // No bytes, should read from path
           type: AttachmentType.screenshot,
         ),
       ];
@@ -249,7 +254,7 @@ void main() {
 
       expect(signalProcessor.trackedEvents.length, equals(1));
       final event = signalProcessor.trackedEvents.first;
-      
+
       if (event.attachments?.isNotEmpty == true) {
         final storedAttachment = event.attachments!.first;
         expect(storedAttachment.name, equals('uuid-1'));
@@ -257,17 +262,17 @@ void main() {
         expect(storedAttachment.path, contains('uuid-1'));
         expect(storedAttachment.type, equals(AttachmentType.screenshot));
         expect(storedAttachment.bytes, isNull);
-        
+
         // Check if processed file was created
         final processedFile = File(storedAttachment.path!);
         expect(processedFile.existsSync(), isTrue);
-        
+
         // Clean up processed file
         if (processedFile.existsSync()) {
           processedFile.deleteSync();
         }
       }
-      
+
       // Clean up temp file and directory
       if (tempFile.existsSync()) {
         tempFile.deleteSync();

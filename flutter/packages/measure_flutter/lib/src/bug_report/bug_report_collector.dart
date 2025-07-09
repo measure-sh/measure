@@ -8,6 +8,7 @@ import 'package:measure_flutter/src/config/config_provider.dart';
 import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
+import 'package:measure_flutter/src/time/time_provider.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
 
 import '../../measure.dart';
@@ -23,6 +24,7 @@ class BugReportCollector {
   final IdProvider _idProvider;
   final FileStorage _fileStorage;
   final ShakeDetector _shakeDetector;
+  final TimeProvider _timeProvider;
   bool isEnabled = false;
 
   BugReportCollector({
@@ -32,12 +34,14 @@ class BugReportCollector {
     required IdProvider idProvider,
     required FileStorage fileStorage,
     required ShakeDetector shakeDetector,
+    required TimeProvider timeProvider,
   })  : _logger = logger,
         _configProvider = configProvider,
         _signalProcessor = signalProcessor,
         _idProvider = idProvider,
         _fileStorage = fileStorage,
-        _shakeDetector = shakeDetector;
+        _shakeDetector = shakeDetector,
+        _timeProvider = timeProvider;
 
   void register() {
     isEnabled = true;
@@ -109,7 +113,7 @@ class BugReportCollector {
       _signalProcessor.trackEvent(
         data: data,
         type: EventType.bugReport,
-        timestamp: DateTime.now(),
+        timestamp: _timeProvider.now(),
         userDefinedAttrs: attributes,
         userTriggered: true,
         attachments: storedAttachments,

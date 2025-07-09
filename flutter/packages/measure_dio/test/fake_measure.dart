@@ -27,7 +27,7 @@ class FakeMeasure implements MeasureApi {
   void trackEvent({
     required String name,
     Map<String, AttributeValue> attributes = const {},
-    DateTime? timestamp,
+    int? timestamp,
   }) {}
 
   @override

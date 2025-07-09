@@ -9,6 +9,7 @@ import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 import 'package:measure_flutter/src/screenshot/screenshot_collector.dart';
+import 'package:measure_flutter/src/time/time_provider.dart';
 
 import '../bug_report/attachment_processing.dart';
 import '../events/event_type.dart';
@@ -22,6 +23,7 @@ final class ExceptionCollector {
   final ScreenshotCollector screenshotCollector;
   final Future<FileProcessingResult> Function(CompressAndSaveParams)
       compressAndSave;
+  final TimeProvider timeProvider;
   bool _enabled = false;
 
   ExceptionCollector({
@@ -30,6 +32,7 @@ final class ExceptionCollector {
     required this.configProvider,
     required this.fileStorage,
     required this.screenshotCollector,
+    required this.timeProvider,
     this.compressAndSave = compressAndSaveInIsolate,
   });
 
@@ -46,7 +49,6 @@ final class ExceptionCollector {
     required bool handled,
   }) async {
     if (!_enabled) return;
-    final timestamp = DateTime.now();
     final ExceptionData? exceptionData =
         ExceptionFactory.from(details, handled);
     if (exceptionData == null) {
@@ -62,7 +64,7 @@ final class ExceptionCollector {
     return signalProcessor.trackEvent(
       data: exceptionData,
       type: EventType.exception,
-      timestamp: timestamp,
+      timestamp: timeProvider.now(),
       userDefinedAttrs: {},
       userTriggered: false,
       threadName: Isolate.current.debugName,

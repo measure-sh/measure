@@ -19,8 +19,8 @@ class HttpCollector {
   void trackHttpEvent({
     required String url,
     required String method,
+    required int startTime,
     int? statusCode,
-    int? startTime,
     int? endTime,
     String? failureReason,
     String? failureDescription,
@@ -50,17 +50,9 @@ class HttpCollector {
     signalProcessor.trackEvent(
       data: data,
       type: EventType.http,
-      timestamp: _getTimestamp(startTime),
+      timestamp: startTime,
       userDefinedAttrs: {},
       userTriggered: false,
     );
-  }
-
-  DateTime _getTimestamp(int? startTime) {
-    if (startTime != null) {
-      return DateTime.fromMillisecondsSinceEpoch(startTime);
-    } else {
-      return DateTime.now();
-    }
   }
 }

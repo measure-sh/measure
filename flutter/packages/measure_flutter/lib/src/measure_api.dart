@@ -10,7 +10,8 @@ import 'gestures/long_click_data.dart';
 abstract class MeasureApi {
   void trackEvent({
     required String name,
-    required DateTime? timestamp,
+    Map<String, AttributeValue> attributes = const {},
+    int? timestamp,
   });
 
   Future<void> init(
@@ -47,9 +48,9 @@ abstract class MeasureApi {
   void trackHttpEvent({
     required String url,
     required String method,
+    required int startTime,
+    required int endTime,
     int? statusCode,
-    int? startTime,
-    int? endTime,
     String? failureReason,
     String? failureDescription,
     Map<String, String>? requestHeaders,
