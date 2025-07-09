@@ -67,12 +67,7 @@ class InvalidSpan implements Span {
   }
 
   @override
-  Span end() {
-    return this;
-  }
-
-  @override
-  Span endWithTimestamp(int timestamp) {
+  Span end({int? timestamp}) {
     return this;
   }
 

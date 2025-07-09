@@ -324,6 +324,23 @@ void main() {
         expect(spanProcessor.endingSpanCount, 1);
         expect(spanProcessor.endedSpanCount, 1);
       });
+
+      test('uses the timestamp provided', () {
+        final span = MsrSpan.startSpan(
+          name: 'test-span',
+          logger: logger,
+          spanProcessor: spanProcessor,
+          timeProvider: timeProvider,
+          idProvider: idProvider,
+          traceSampler: traceSampler,
+          parentSpan: null,
+        ) as MsrSpan;
+
+        // End the span with explicit timestamp
+        span.end(timestamp: testClock.epochTime() + 10000);
+
+        expect(span.getDuration(), 10000);
+      });
     });
 
     group('checkpoints', () {
