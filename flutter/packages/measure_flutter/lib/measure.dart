@@ -22,6 +22,7 @@ export 'src/config/measure_config.dart';
 export 'src/events/attachment_type.dart';
 export 'src/events/msr_attachment.dart';
 export 'src/gestures/msr_gesture_detector.dart';
+export 'src/http/http_method.dart';
 export 'src/measure_api.dart';
 export 'src/measure_widget.dart';
 export 'src/navigation/navigator_observer.dart';
@@ -132,7 +133,7 @@ class Measure implements MeasureApi {
   @override
   void trackHttpEvent({
     required String url,
-    required String method,
+    required HttpMethod method,
     required int startTime,
     required int endTime,
     int? statusCode,

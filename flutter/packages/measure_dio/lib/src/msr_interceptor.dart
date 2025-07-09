@@ -58,7 +58,7 @@ class MsrInterceptor extends Interceptor {
 
       _measure.trackHttpEvent(
         url: url,
-        method: method,
+        method: HttpMethod.fromString(method),
         startTime: startTime,
         endTime: endTime,
         statusCode: response.statusCode,
@@ -92,7 +92,7 @@ class MsrInterceptor extends Interceptor {
 
       _measure.trackHttpEvent(
         url: url,
-        method: method,
+        method: HttpMethod.fromString(method),
         startTime: startTime,
         endTime: endTime,
         failureReason: failureReason,

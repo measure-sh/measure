@@ -137,20 +137,23 @@ final class MeasureInitializer {
       signalProcessor: signalProcessor,
       timeProvider: timeProvider,
     );
-    _httpCollector = HttpCollector(signalProcessor: signalProcessor);
+    _httpCollector = HttpCollector(
+      signalProcessor: signalProcessor,
+      configProvider: configProvider,
+    );
     _gestureCollector = GestureCollector(signalProcessor, timeProvider);
     _shakeDetector = ShakeDetectorImpl(
       methodChannel: _methodChannel,
       methodChannelCallbacks: methodChannelCallbacks,
     );
     _bugReportCollector = BugReportCollector(
-        logger: logger,
-        configProvider: configProvider,
-        signalProcessor: signalProcessor,
-        fileStorage: _fileStorage,
-        idProvider: _idProvider,
-        shakeDetector: _shakeDetector,
-        timeProvider: _timeProvider,
+      logger: logger,
+      configProvider: configProvider,
+      signalProcessor: signalProcessor,
+      fileStorage: _fileStorage,
+      idProvider: _idProvider,
+      shakeDetector: _shakeDetector,
+      timeProvider: _timeProvider,
     );
     _spanProcessor = MsrSpanProcessor(
       _logger,

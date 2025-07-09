@@ -47,7 +47,7 @@ abstract class MeasureApi {
 
   void trackHttpEvent({
     required String url,
-    required String method,
+    required HttpMethod method,
     required int startTime,
     required int endTime,
     int? statusCode,
