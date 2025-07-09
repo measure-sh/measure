@@ -57,6 +57,8 @@ export async function POST(request: Request) {
 
   if (!res.ok) {
     console.log(`google login failure: post /auth/google returned ${res.status}`)
+    const data = await res.json()
+    console.log({ data })
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 

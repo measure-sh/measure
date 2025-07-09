@@ -35,6 +35,8 @@ export async function GET(request: Request) {
 
   if (!res.ok) {
     console.log(`Github login failure: post /auth/github returned ${res.status}`)
+    const data = await res.json()
+    console.log({ data })
     return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
