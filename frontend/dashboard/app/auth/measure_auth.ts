@@ -40,9 +40,9 @@ export class MeasureAuth {
     private router: AppRouterInstance | null = null
 
     constructor(apiOrigin: string) {
-        if (!apiOrigin) {
-            throw new Error("`apiOrigin` is required")
-        }
+        // if (!apiOrigin) {
+        //     throw new Error("`apiOrigin` is required")
+        // }
         this.apiOrigin = apiOrigin
     }
 
