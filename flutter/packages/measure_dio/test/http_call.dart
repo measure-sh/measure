@@ -1,6 +1,8 @@
+import 'package:measure_flutter/measure.dart';
+
 class HttpCall {
   final String url;
-  final String method;
+  final HttpMethod method;
   final int? statusCode;
   final int? startTime;
   final int? endTime;

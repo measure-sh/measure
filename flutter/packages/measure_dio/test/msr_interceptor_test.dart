@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:measure_dio/measure_dio.dart';
+import 'package:measure_flutter/measure.dart';
 
 import 'fake_measure.dart';
 
@@ -42,7 +43,7 @@ void main() {
 
     final httpCall = measure.trackedHttp.first;
     expect(httpCall.url, 'https://example.com$path');
-    expect(httpCall.method, 'get');
+    expect(httpCall.method, HttpMethod.get);
     expect(httpCall.statusCode, 200);
     expect(httpCall.startTime, isNotNull);
     expect(httpCall.endTime, isNotNull);
@@ -62,7 +63,7 @@ void main() {
 
     final httpCall = measure.trackedHttp.first;
     expect(httpCall.url, 'https://example.com$path');
-    expect(httpCall.method, 'post');
+    expect(httpCall.method, HttpMethod.post);
     expect(httpCall.statusCode, 201);
     expect(httpCall.client, 'dio');
   });
@@ -156,7 +157,7 @@ void main() {
 
     final httpCall = measure.trackedHttp.first;
     expect(httpCall.url, 'https://example.com$path');
-    expect(httpCall.method, 'get');
+    expect(httpCall.method, HttpMethod.get);
     expect(httpCall.statusCode, isNull);
     expect(httpCall.failureReason, "DioExceptionType.connectionTimeout");
     expect(httpCall.failureDescription, null);
@@ -175,7 +176,7 @@ void main() {
 
     final httpCall = measure.trackedHttp.first;
     expect(httpCall.url, 'https://example.com$path');
-    expect(httpCall.method, 'get');
+    expect(httpCall.method, HttpMethod.get);
     expect(httpCall.statusCode, 200);
     expect(httpCall.startTime, isNotNull);
     expect(httpCall.endTime, isNotNull);

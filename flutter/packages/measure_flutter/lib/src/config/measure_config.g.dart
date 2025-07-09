@@ -10,6 +10,8 @@ MeasureConfig _$MeasureConfigFromJson(Map<String, dynamic> json) =>
     MeasureConfig(
       enableLogging:
           json['enableLogging'] as bool? ?? DefaultConfig.enableLogging,
+      takeScreenshotOnCrash: json['takeScreenshotOnCrash'] as bool? ??
+          DefaultConfig.takeScreenshotOnCrash,
       autoInitializeNativeSDK: json['autoInitializeNativeSDK'] as bool? ??
           DefaultConfig.autoInitializeNativeSDK,
       autoStart: json['autoStart'] as bool? ?? DefaultConfig.autoStart,
@@ -48,6 +50,7 @@ MeasureConfig _$MeasureConfigFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$MeasureConfigToJson(MeasureConfig instance) =>
     <String, dynamic>{
       'enableLogging': instance.enableLogging,
+      'takeScreenshotOnCrash': instance.takeScreenshotOnCrash,
       'autoInitializeNativeSDK': instance.autoInitializeNativeSDK,
       'autoStart': instance.autoStart,
       'trackHttpHeaders': instance.trackHttpHeaders,

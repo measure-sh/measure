@@ -45,10 +45,10 @@ class FakeMeasure implements MeasureApi {
   @override
   void trackHttpEvent({
     required String url,
-    required String method,
+    required HttpMethod method,
+    required int startTime,
+    required int endTime,
     int? statusCode,
-    int? startTime,
-    int? endTime,
     String? failureReason,
     String? failureDescription,
     Map<String, String>? requestHeaders,

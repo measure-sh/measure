@@ -1,12 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:measure_flutter/src/attribute_value.dart';
 import 'package:measure_flutter/src/bug_report/bug_report_collector.dart';
 import 'package:measure_flutter/src/bug_report/shake_detector.dart';
-import 'package:measure_flutter/src/bug_report/ui/bug_report_theme.dart';
-import 'package:measure_flutter/src/events/attachment_type.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
-import 'package:measure_flutter/src/events/msr_attachment.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/gestures/click_data.dart';
 import 'package:measure_flutter/src/gestures/gesture_collector.dart';
@@ -18,11 +14,10 @@ import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/navigation/navigation_collector.dart';
 import 'package:measure_flutter/src/screenshot/screenshot_collector.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
-import 'package:measure_flutter/src/tracing/span.dart';
-import 'package:measure_flutter/src/tracing/span_builder.dart';
 import 'package:measure_flutter/src/tracing/tracer.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
 
+import '../measure.dart';
 import 'config/config_provider.dart';
 import 'gestures/scroll_data.dart';
 
@@ -112,7 +107,7 @@ final class MeasureInternal {
 
   void trackHttpEvent({
     required String url,
-    required String method,
+    required HttpMethod method,
     required int startTime,
     required int endTime,
     int? statusCode,
