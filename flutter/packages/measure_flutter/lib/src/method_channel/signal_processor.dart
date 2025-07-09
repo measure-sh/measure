@@ -37,14 +37,17 @@ final class DefaultSignalProcessor extends SignalProcessor {
   }) {
     var json = data.toJson();
     logger.log(LogLevel.debug, "$type: $json");
+    if (attachments != null) {
+      logger.log(LogLevel.debug, "attachments:${attachments.length}");
+    }
     return channel.trackEvent(
-        data: json,
-        type: type,
-        timestamp: timestamp.millisecondsSinceEpoch,
-        userDefinedAttrs: userDefinedAttrs,
-        userTriggered: userTriggered,
-        threadName: threadName,
-        attachments: attachments,
+      data: json,
+      type: type,
+      timestamp: timestamp.millisecondsSinceEpoch,
+      userDefinedAttrs: userDefinedAttrs,
+      userTriggered: userTriggered,
+      threadName: threadName,
+      attachments: attachments,
     );
   }
 

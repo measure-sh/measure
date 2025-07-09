@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as developer;
-import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:measure_flutter/src/gestures/click_data.dart';
 import 'package:measure_flutter/src/gestures/long_click_data.dart';
@@ -15,19 +15,19 @@ import 'measure.dart';
 
 export 'src/attribute_builder.dart';
 export 'src/attribute_value.dart';
-export 'src/bug_report/ui/bug_report_theme.dart';
 export 'src/bug_report/msr_shake_detector_mixin.dart';
+export 'src/bug_report/ui/bug_report_theme.dart';
 export 'src/config/client.dart';
 export 'src/config/measure_config.dart';
 export 'src/events/attachment_type.dart';
 export 'src/events/msr_attachment.dart';
+export 'src/gestures/msr_gesture_detector.dart';
 export 'src/measure_api.dart';
 export 'src/measure_widget.dart';
 export 'src/navigation/navigator_observer.dart';
 export 'src/tracing/span.dart';
 export 'src/tracing/span_builder.dart';
 export 'src/tracing/span_status.dart';
-export 'src/gestures/msr_gesture_detector.dart';
 
 /// Main Measure SDK class implementing MeasureApi
 /// Provides a singleton interface for tracking events, errors, and HTTP requests
@@ -181,7 +181,7 @@ class Measure implements MeasureApi {
   Future<void> trackHandledError(Object error, StackTrace stack) {
     if (_isInitialized) {
       final details = FlutterErrorDetails(exception: error, stack: stack);
-      return _measure.trackError(details, handled: false);
+      return _measure.trackError(details, handled: true);
     }
     return Future.value();
   }
@@ -414,11 +414,9 @@ class Measure implements MeasureApi {
   Future<void> _initFlutterOnError() async {
     final originalHandler = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) async {
+      await _measure.trackError(details, handled: false);
       if (originalHandler != null) {
-        await _measure.trackError(details, handled: false);
         originalHandler(details);
-      } else {
-        FlutterError.presentError(details);
       }
     };
   }

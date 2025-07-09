@@ -9,6 +9,7 @@ Future<void> main() async {
         () => runApp(MeasureWidget(child: MyApp())),
     config: const MeasureConfig(
       enableLogging: true,
+      takeScreenshotOnCrash: true,
       trackHttpHeaders: true,
       trackHttpBody: true,
       httpUrlBlocklist: ['http://localhost'],

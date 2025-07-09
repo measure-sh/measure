@@ -88,6 +88,7 @@ internal interface SignalProcessor {
         userDefinedAttributes: Map<String, AttributeValue> = mapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
         threadName: String? = null,
+        takeScreenshot: Boolean = true,
     )
 
     fun trackSpan(spanData: SpanData)
@@ -211,6 +212,7 @@ internal class SignalProcessorImpl(
         userDefinedAttributes: Map<String, AttributeValue>,
         attachments: MutableList<Attachment>,
         threadName: String?,
+        takeScreenshot: Boolean,
     ) {
         val threadName = threadName ?: Thread.currentThread().name
         val event = createEvent(
@@ -222,7 +224,7 @@ internal class SignalProcessorImpl(
             userTriggered = false,
             userDefinedAttributes = userDefinedAttributes,
         )
-        if (configProvider.trackScreenshotOnCrash) {
+        if (configProvider.trackScreenshotOnCrash && takeScreenshot) {
             addScreenshotAsAttachment(event)
         }
         applyAttributes(attributes, event, threadName)

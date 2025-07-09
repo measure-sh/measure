@@ -193,6 +193,7 @@ internal class SignalProcessorTest {
             data = exceptionData,
             timestamp = timestamp,
             type = type,
+            takeScreenshot = false,
         )
 
         // Then
@@ -213,6 +214,7 @@ internal class SignalProcessorTest {
             data = exceptionData,
             timestamp = timestamp,
             type = type,
+            takeScreenshot = false,
         )
 
         // Then
@@ -397,6 +399,7 @@ internal class SignalProcessorTest {
             data = exceptionData,
             timestamp = timestamp,
             type = type,
+            takeScreenshot = false,
         )
 
         // Then

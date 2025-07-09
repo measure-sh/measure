@@ -16,7 +16,7 @@ import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/navigation/navigation_collector.dart';
-import 'package:measure_flutter/src/screenshot/screenshot_service.dart';
+import 'package:measure_flutter/src/screenshot/screenshot_collector.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 import 'package:measure_flutter/src/tracing/span.dart';
 import 'package:measure_flutter/src/tracing/span_builder.dart';
@@ -36,6 +36,7 @@ final class MeasureInternal {
   final HttpCollector _httpCollector;
   final BugReportCollector _bugReportCollector;
   final GestureCollector _gestureCollector;
+  final ScreenshotCollector _screenshotCollector;
   final Tracer _tracer;
   final TimeProvider _timeProvider;
   final MsrMethodChannel methodChannel;
@@ -53,6 +54,7 @@ final class MeasureInternal {
         _navigationCollector = initializer.navigationCollector,
         _bugReportCollector = initializer.bugReportCollector,
         _gestureCollector = initializer.gestureCollector,
+        _screenshotCollector = initializer.screenshotCollector,
         _timeProvider = initializer.timeProvider,
         _tracer = initializer.tracer,
         _idProvider = initializer.idProvider,
@@ -182,7 +184,7 @@ final class MeasureInternal {
   }
 
   Future<MsrAttachment?> captureScreenshot() {
-    return ScreenshotService.capture(logger, _idProvider, configProvider);
+    return _screenshotCollector.capture();
   }
 
   MsrAttachment? getAttachment(Uint8List bytes, AttachmentType type) {
