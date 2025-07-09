@@ -233,14 +233,8 @@ class MsrSpan implements InternalSpan {
   }
 
   @override
-  Span end() {
-    _endSpanInternal(_timeProvider.now());
-    return this;
-  }
-
-  @override
-  Span endWithTimestamp(int timestamp) {
-    _endSpanInternal(timestamp);
+  Span end({int? timestamp}) {
+    _endSpanInternal(timestamp ?? _timeProvider.now());
     return this;
   }
 
