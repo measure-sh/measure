@@ -22,7 +22,6 @@ import sh.measure.android.Measure.startSpan
 import sh.measure.android.Measure.stop
 import sh.measure.android.Measure.trackBugReport
 import sh.measure.android.Measure.trackEvent
-import sh.measure.android.applaunch.LaunchState
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.bugreport.BugReportCollector
@@ -82,7 +81,6 @@ object Measure {
                     val initializer =
                         MeasureInitializerImpl(application, inputConfig = measureConfig)
                     measure = MeasureInternal(initializer)
-                    storeProcessImportanceState()
                     measure.init(clientInfo)
                 },
             )
@@ -669,17 +667,5 @@ object Measure {
             attachments = attachments,
             takeScreenshot = false,
         )
-    }
-
-    private fun storeProcessImportanceState() {
-        try {
-            LaunchState.processImportanceOnInit = measure.processInfoProvider.getProcessImportance()
-        } catch (e: Throwable) {
-            measure.logger.log(
-                LogLevel.Debug,
-                "Failed to get process importance during initialization.",
-                e,
-            )
-        }
     }
 }
