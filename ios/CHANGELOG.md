@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.5.0] - 2025-07-09
+
+### :bug: Bug fixes
+
+
+- (**ios**): Generate non nil network attributes for first event (#2372)
+- (**ios**): Make attribute processor thread safe (#2351)
+- (**ios**): Prevent network change callback from firing on SDK initialisation (#2345)
+- (**ios**): convert float to int safely (#2381)
+
+### :hammer: Misc
+
+
+- (**ios**): Update apis to support objc initialisation (#2374)
+- (**ios**): Update shake detector api (#2365)
+- (**ios**): Remove shake to launch bug report config (#2358)
+- (**ios**): Update unreliable tests in ci environment (#2336)
+- (**ios**): Update release script (#2342)
+
+### :recycle: Refactor
+
+
+- (**ios**): Rename Attachment to MsrAttachment (#2368)
+
+### :sparkles: New features
+
+
+- (**ios**): Add support for custom header (#2355)
+
 ## [ios-v0.4.0] - 2025-06-19
 
 ### :books: Documentation
@@ -21,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
+- (**ios**): Prepare sdk release 0.4.0 (#2333)
 - (**ios**): Add measure api url to http blocklist (#2317)
 - (**ios**): Add performance data (#2295)
 
@@ -174,6 +204,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677)
 - (**ios**): Initial project setup  (#1034)
 
+[ios-v0.5.0]: https://github.com///compare/ios-v0.4.0..ios-v0.5.0
 [ios-v0.4.0]: https://github.com///compare/ios-v0.3.1..ios-v0.4.0
 [ios-v0.3.1]: https://github.com///compare/ios-v0.3.0..ios-v0.3.1
 [ios-v0.3.0]: https://github.com///compare/ios-v0.2.0..ios-v0.3.0
