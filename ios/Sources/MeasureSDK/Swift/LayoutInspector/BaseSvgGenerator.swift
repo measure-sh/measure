@@ -23,8 +23,8 @@ final class BaseSvgGenerator: SvgGenerator {
             return nil
         }
 
-        let windowWidth = Int(maxWidth)
-        let windowHeight = Int(maxHeight)
+        let windowWidth = maxWidth.safeInt
+        let windowHeight = maxHeight.safeInt
 
         var svg = """
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 \(windowWidth) \(windowHeight)">
