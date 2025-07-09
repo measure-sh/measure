@@ -5,12 +5,14 @@ import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/exception/exception_data.dart';
 import 'package:measure_flutter/src/exception/exception_framework.dart';
+import 'package:measure_flutter/src/time/time_provider.dart';
 
 import '../utils/fake_config_provider.dart';
 import '../utils/fake_file_storage.dart';
 import '../utils/fake_screenshot_collector.dart';
 import '../utils/fake_signal_processor.dart';
 import '../utils/noop_logger.dart';
+import '../utils/test_clock.dart';
 
 // Mock the isolate function
 Future<FileProcessingResult> mockCompressAndSaveInIsolate(
@@ -42,6 +44,7 @@ void main() {
         configProvider: configProvider,
         fileStorage: fileStorage,
         screenshotCollector: screenshotCollector,
+        timeProvider: FlutterTimeProvider(TestClock.create()),
         compressAndSave: mockCompressAndSaveInIsolate,
       );
     });

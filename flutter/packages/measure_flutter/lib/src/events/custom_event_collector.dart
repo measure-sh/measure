@@ -6,15 +6,18 @@ import 'package:measure_flutter/src/events/custom_event_data.dart';
 import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
+import 'package:measure_flutter/src/time/time_provider.dart';
 
 final class CustomEventCollector {
   final Logger logger;
   final SignalProcessor signalProcessor;
+  final TimeProvider timeProvider;
   bool _enabled = false;
 
   CustomEventCollector({
     required this.logger,
     required this.signalProcessor,
+    required this.timeProvider,
   });
 
   void register() {
@@ -27,7 +30,7 @@ final class CustomEventCollector {
 
   void trackCustomEvent(
     String name,
-    DateTime? timestamp,
+    int? timestamp,
     Map<String, AttributeValue> attributes,
   ) {
     if (!_enabled) {
@@ -36,7 +39,7 @@ final class CustomEventCollector {
     signalProcessor.trackEvent(
       data: CustomEventData(name: name),
       type: EventType.custom,
-      timestamp: timestamp ?? DateTime.now(),
+      timestamp: timestamp ?? timeProvider.now(),
       userDefinedAttrs: attributes,
       userTriggered: true,
       threadName: Isolate.current.debugName,

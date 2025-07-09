@@ -122,6 +122,7 @@ final class MeasureInitializer {
     _customEventCollector = CustomEventCollector(
       logger: logger,
       signalProcessor: signalProcessor,
+      timeProvider: timeProvider,
     );
     _fileStorage = FileStorage(methodChannel, logger);
     _exceptionCollector = ExceptionCollector(
@@ -130,11 +131,14 @@ final class MeasureInitializer {
       configProvider: configProvider,
       fileStorage: _fileStorage,
       screenshotCollector: _screenshotCollector,
+      timeProvider: timeProvider,
     );
-    _navigationCollector =
-        NavigationCollector(signalProcessor: signalProcessor);
+    _navigationCollector = NavigationCollector(
+      signalProcessor: signalProcessor,
+      timeProvider: timeProvider,
+    );
     _httpCollector = HttpCollector(signalProcessor: signalProcessor);
-    _gestureCollector = GestureCollector(signalProcessor);
+    _gestureCollector = GestureCollector(signalProcessor, timeProvider);
     _shakeDetector = ShakeDetectorImpl(
       methodChannel: _methodChannel,
       methodChannelCallbacks: methodChannelCallbacks,
@@ -145,7 +149,9 @@ final class MeasureInitializer {
         signalProcessor: signalProcessor,
         fileStorage: _fileStorage,
         idProvider: _idProvider,
-        shakeDetector: _shakeDetector);
+        shakeDetector: _shakeDetector,
+        timeProvider: _timeProvider,
+    );
     _spanProcessor = MsrSpanProcessor(
       _logger,
       _signalProcessor,

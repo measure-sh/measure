@@ -11,7 +11,7 @@ import 'package:measure_flutter/src/tracing/span_data.dart';
 class TrackedEvent<T extends JsonSerialized> {
   final T data;
   final String type;
-  final DateTime timestamp;
+  final int timestamp;
   final Map<String, AttributeValue> userDefinedAttrs;
   final bool userTriggered;
   final String? threadName;
@@ -39,7 +39,7 @@ class FakeSignalProcessor implements SignalProcessor {
   Future<void> trackEvent<T extends JsonSerialized>({
     required T data,
     required String type,
-    required DateTime timestamp,
+    required int timestamp,
     required Map<String, AttributeValue> userDefinedAttrs,
     required bool userTriggered,
     String? threadName,

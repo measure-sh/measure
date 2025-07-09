@@ -20,16 +20,23 @@ class FakeMeasure implements MeasureApi {
   }
 
   @override
-  void trackEvent(
-      {required String name,
-      Map<String, AttributeValue> attributes = const {},
-      DateTime? timestamp}) {}
+  void trackEvent({
+    required String name,
+    Map<String, AttributeValue> attributes = const {},
+    int? timestamp,
+  }) {
+    throw UnimplementedError();
+  }
 
   @override
-  Future<void> trackHandledError(Object error, StackTrace stack) async {}
+  Future<void> trackHandledError(Object error, StackTrace stack) async {
+    throw UnimplementedError();
+  }
 
   @override
-  void triggerNativeCrash() {}
+  void triggerNativeCrash() {
+    throw UnimplementedError();
+  }
 
   @override
   void trackScreenViewEvent({required String name, bool userTriggered = true}) {
