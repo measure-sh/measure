@@ -5,7 +5,7 @@ import 'measure_config.dart';
 class Config implements InternalConfig, IMeasureConfig {
   const Config({
     this.enableLogging = DefaultConfig.enableLogging,
-    this.takeScreenshotOnCrash = DefaultConfig.takeScreenshotOnCrash,
+    this.trackScreenshotOnCrash = DefaultConfig.trackScreenshotOnCrash,
     this.autoInitializeNativeSDK = DefaultConfig.autoInitializeNativeSDK,
     this.autoStart = DefaultConfig.autoStart,
     this.trackHttpHeaders = DefaultConfig.trackHttpHeaders,
@@ -33,7 +33,7 @@ class Config implements InternalConfig, IMeasureConfig {
   @override
   final bool enableLogging;
   @override
-  final bool takeScreenshotOnCrash;
+  final bool trackScreenshotOnCrash;
   @override
   final bool autoInitializeNativeSDK;
   @override

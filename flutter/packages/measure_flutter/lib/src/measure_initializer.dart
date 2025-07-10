@@ -91,7 +91,7 @@ final class MeasureInitializer {
     _configProvider = ConfigProviderImpl(
       defaultConfig: Config(
         enableLogging: inputConfig.enableLogging,
-        takeScreenshotOnCrash: inputConfig.takeScreenshotOnCrash,
+        trackScreenshotOnCrash: inputConfig.trackScreenshotOnCrash,
         trackHttpHeaders: inputConfig.trackHttpHeaders,
         trackHttpBody: inputConfig.trackHttpBody,
         httpHeadersBlocklist: inputConfig.httpHeadersBlocklist,

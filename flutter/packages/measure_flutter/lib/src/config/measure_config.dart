@@ -8,7 +8,7 @@ part 'measure_config.g.dart';
 abstract class IMeasureConfig {
   bool get enableLogging;
 
-  bool get takeScreenshotOnCrash;
+  bool get trackScreenshotOnCrash;
 
   bool get autoInitializeNativeSDK;
 
@@ -46,7 +46,7 @@ class MeasureConfig implements IMeasureConfig {
 
   /// Whether to take a screenshot on crash. Defaults to `false`.
   @override
-  final bool takeScreenshotOnCrash;
+  final bool trackScreenshotOnCrash;
 
   /// Whether to automatically initialize the native SDK. Defaults to `true`.
   /// The native SDK must be initialized manually if set to `false`.
@@ -194,7 +194,7 @@ class MeasureConfig implements IMeasureConfig {
   /// Creates a new MeasureConfig instance
   const MeasureConfig({
     this.enableLogging = DefaultConfig.enableLogging,
-    this.takeScreenshotOnCrash = DefaultConfig.takeScreenshotOnCrash,
+    this.trackScreenshotOnCrash = DefaultConfig.trackScreenshotOnCrash,
     this.autoInitializeNativeSDK = DefaultConfig.autoInitializeNativeSDK,
     this.autoStart = DefaultConfig.autoStart,
     this.trackHttpHeaders = DefaultConfig.trackHttpHeaders,

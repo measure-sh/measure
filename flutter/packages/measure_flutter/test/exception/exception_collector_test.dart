@@ -187,7 +187,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
     });
 
     test('tracks exception with screenshot if enabled', () async {
-      configProvider.takeScreenshotOnCrash = true;
+      configProvider.trackScreenshotOnCrash = true;
 
       final error = Object();
       final stackTrace = StackTrace.fromString([
