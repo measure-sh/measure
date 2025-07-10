@@ -10,12 +10,6 @@ import sh.measure.android.config.ConfigProvider
 import sh.measure.android.lifecycle.ActivityLifecycleAdapter
 import sh.measure.android.mainHandler
 import sh.measure.android.postAtFrontOfQueueAsync
-import sh.measure.android.tracing.AttributeName
-import sh.measure.android.tracing.CheckpointName
-import sh.measure.android.tracing.Span
-import sh.measure.android.tracing.SpanName
-import sh.measure.android.tracing.SpanStatus
-import sh.measure.android.tracing.Tracer
 
 internal interface LaunchCallbacks {
     fun onColdLaunch(coldLaunchData: ColdLaunchData, coldLaunchTime: Long?)
@@ -23,19 +17,12 @@ internal interface LaunchCallbacks {
     fun onHotLaunch(hotLaunchData: HotLaunchData)
 }
 
-internal data class ActivityTtidData(
-    val activityName: String,
-    val startTime: Long,
-    var endTime: Long?,
-)
-
 // Holds launch data until the SDK is initialized.
 internal class PreRegistrationData(
     val coldLaunchData: ColdLaunchData?,
     val coldLaunchTime: Long?,
     val warmLaunchData: WarmLaunchData?,
     val warmLaunchTime: Long?,
-    val firstActivityTTID: ActivityTtidData?,
 )
 
 /**
@@ -51,8 +38,6 @@ internal class LaunchTracker : ActivityLifecycleAdapter {
     private var coldLaunchTime: Long? = null
     private var warmLaunchData: WarmLaunchData? = null
     private var warmLaunchTime: Long? = null
-    private var firstActivityTTID: ActivityTtidData? = null
-    private var tracer: Tracer? = null
     private var configProvider: ConfigProvider? = null
 
     private data class OnCreateRecord(
@@ -60,7 +45,6 @@ internal class LaunchTracker : ActivityLifecycleAdapter {
         val hasSavedState: Boolean,
         val intentData: String?,
         val activityName: String,
-        val ttidSpan: Span? = null,
     )
 
     private val createdActivities = mutableMapOf<String, OnCreateRecord>()
@@ -69,18 +53,15 @@ internal class LaunchTracker : ActivityLifecycleAdapter {
 
     fun registerCallbacks(
         callbacks: LaunchCallbacks,
-        tracer: Tracer,
         configProvider: ConfigProvider,
     ): PreRegistrationData {
         this.callbacks = callbacks
-        this.tracer = tracer
         this.configProvider = configProvider
         return PreRegistrationData(
             coldLaunchData = coldLaunchData,
             coldLaunchTime = coldLaunchTime,
             warmLaunchData = warmLaunchData,
             warmLaunchTime = warmLaunchTime,
-            firstActivityTTID = this@LaunchTracker.firstActivityTTID,
         )
     }
 
@@ -104,19 +85,11 @@ internal class LaunchTracker : ActivityLifecycleAdapter {
         identityHash: String,
     ) {
         val hasSavedState = savedInstanceState != null
-
-        val activityTtidSpan = if (savedInstanceState == null) {
-            startActivityTtidSpan(activity)
-        } else {
-            null
-        }
-
         createdActivities[identityHash] = OnCreateRecord(
             sameMessage = true,
             hasSavedState = hasSavedState,
             intentData = activity.intent.dataString,
             activityName = activity.javaClass.name,
-            ttidSpan = activityTtidSpan,
         )
 
         // Helps differentiating between warm and hot launches.
@@ -150,17 +123,12 @@ internal class LaunchTracker : ActivityLifecycleAdapter {
         }
         val identityHash = Integer.toHexString(System.identityHashCode(activity))
         startedActivities += identityHash
-
-        createdActivities[identityHash]?.let { onCreateRecord ->
-            onCreateRecord.ttidSpan?.setCheckpoint(CheckpointName.ACTIVITY_STARTED)
-        }
     }
 
     override fun onActivityResumed(activity: Activity) {
         val identityHash = Integer.toHexString(System.identityHashCode(activity))
         resumedActivities += identityHash
         val onCreateRecord = createdActivities[identityHash]
-        onCreateRecord?.ttidSpan?.setCheckpoint(CheckpointName.ACTIVITY_RESUMED)
         activity.window.onNextDraw {
             mainHandler.postAtFrontOfQueueAsync {
                 if (launchInProgress) {
@@ -172,11 +140,8 @@ internal class LaunchTracker : ActivityLifecycleAdapter {
                             onNextDrawElapsedRealtime,
                             onCreateRecord,
                         )
-                        endActivityTtidSpan(identityHash, onCreateRecord.ttidSpan, launchType)
                         launchInProgress = false
                     }
-                } else {
-                    endActivityTtidSpan(identityHash, createdActivities[identityHash]?.ttidSpan)
                 }
             }
         }
@@ -315,47 +280,6 @@ internal class LaunchTracker : ActivityLifecycleAdapter {
             // we just use the same launch time as a cold launch. We cannot rely on
             // lastAppVisibleElapsedRealtime as it won't be set in this case.
             else -> "Lukewarm"
-        }
-    }
-
-    private fun startActivityTtidSpan(activity: Activity): Span? {
-        if (tracer == null && this@LaunchTracker.firstActivityTTID == null) {
-            this@LaunchTracker.firstActivityTTID = ActivityTtidData(
-                activityName = activity.javaClass.name,
-                startTime = SystemClock.elapsedRealtime(),
-                endTime = null,
-            )
-            return null
-        } else {
-            val span = tracer?.spanBuilder(
-                SpanName.activityTtidSpan(
-                    activity.javaClass.name,
-                    configProvider?.maxSpanNameLength ?: 64,
-                ),
-            )?.startSpan()
-            span?.setCheckpoint(CheckpointName.ACTIVITY_CREATED)
-            return span
-        }
-    }
-
-    private fun endActivityTtidSpan(
-        activityIdentityHash: String,
-        ttidSpan: Span?,
-        launchType: String? = null,
-    ) {
-        if (launchType == "Cold") {
-            ttidSpan?.setAttribute(AttributeName.APP_STARTUP_FIRST_ACTIVITY, true)
-        }
-        val ttid = firstActivityTTID
-        if (ttid != null && ttid.endTime == null) {
-            ttid.endTime = SystemClock.elapsedRealtime()
-        } else {
-            ttidSpan?.setStatus(SpanStatus.Ok)?.end()
-        }
-        if (activityIdentityHash in createdActivities && ttidSpan != null) {
-            createdActivities[activityIdentityHash]?.copy(ttidSpan = null)?.let {
-                createdActivities[activityIdentityHash] = it
-            }
         }
     }
 

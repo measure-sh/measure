@@ -408,7 +408,6 @@ internal class MeasureInitializerImpl(
         timeProvider = timeProvider,
         signalProcessor = signalProcessor,
         configProvider = configProvider,
-        tracer = tracer,
         launchTracker = LaunchState.launchTracker,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
