@@ -1,5 +1,6 @@
-# build stage
-FROM node:lts-alpine AS builder
+FROM node:lts-alpine AS base
+
+FROM base AS builder
 ARG NEXT_PUBLIC_SITE_URL
 ARG NEXT_PUBLIC_API_BASE_URL
 ARG NEXT_TELEMETRY_DISABLED=1
@@ -18,9 +19,8 @@ RUN NODE_ENV=production \
     NEXT_PUBLIC_OAUTH_GOOGLE_KEY=${NEXT_PUBLIC_OAUTH_GOOGLE_KEY} \
     NEXT_PUBLIC_OAUTH_GITHUB_KEY=${NEXT_PUBLIC_OAUTH_GITHUB_KEY} \
     npm run build
-# RUN npm run build
 
-FROM builder
+FROM base
 WORKDIR /app
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./

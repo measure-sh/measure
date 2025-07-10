@@ -19,5 +19,5 @@ target "dashboard" {
   dockerfile = "dockerfile.prod"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
-  platforms = ["linux/amd64", "linux/arm64"]
+  platforms = ["linux/amd64"]
 }
