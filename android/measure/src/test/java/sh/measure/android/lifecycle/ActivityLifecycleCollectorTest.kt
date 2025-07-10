@@ -222,8 +222,24 @@ class ActivityLifecycleCollectorTest {
         controller.setup().forceDrawFrame()
 
         // Then
-        verify(signalProcessor, times(1)).trackSpan(argumentCaptor.capture())
-        val span = argumentCaptor.firstValue
+        // Called twice first for activity, then for fragment
+        verify(signalProcessor, times(2)).trackSpan(argumentCaptor.capture())
+        val span = argumentCaptor.lastValue
         Assert.assertEquals(span.name, "Fragment TTID ${TestFragment::class.java.name}")
+    }
+
+    @Test
+    fun `tracks activity TTID span with correct span name`() {
+        // Given
+        val argumentCaptor = argumentCaptor<SpanData>()
+
+        // When
+        controller.setup().forceDrawFrame()
+
+        // Then
+        // Called twice first for activity, then for fragment
+        verify(signalProcessor, times(2)).trackSpan(argumentCaptor.capture())
+        val span = argumentCaptor.firstValue
+        Assert.assertEquals(span.name, "Activity TTID ${TestLifecycleActivity::class.java.name}")
     }
 }

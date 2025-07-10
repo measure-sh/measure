@@ -4,9 +4,17 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.fragment.app.FragmentActivity
+import curtains.onNextDraw
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.mainHandler
+import sh.measure.android.postAtFrontOfQueueAsync
+import sh.measure.android.tracing.AttributeName
+import sh.measure.android.tracing.CheckpointName
+import sh.measure.android.tracing.Span
+import sh.measure.android.tracing.SpanName
+import sh.measure.android.tracing.SpanStatus
 import sh.measure.android.tracing.Tracer
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isClassAvailable
@@ -24,6 +32,7 @@ internal class DefaultActivityLifecycleCollector(
     private val configProvider: ConfigProvider,
     private val tracer: Tracer,
 ) : ActivityLifecycleCollector, ActivityLifecycleListener {
+    private val createdActivities = mutableMapOf<String, Span>()
     private val fragmentLifecycleCollector by lazy {
         FragmentLifecycleCollector(signalProcessor, timeProvider, configProvider, tracer)
     }
@@ -32,6 +41,7 @@ internal class DefaultActivityLifecycleCollector(
     }
 
     private var isRegistered = AtomicBoolean(false)
+    private var firstActivityHash: String? = null
 
     override fun register() {
         if (!isRegistered.getAndSet(true)) {
@@ -45,7 +55,13 @@ internal class DefaultActivityLifecycleCollector(
         }
     }
 
+    override fun onActivityPreCreated(activity: Activity, savedInstanceState: Bundle?) {
+        createTtidSpan(activity)
+    }
+
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
+        createTtidSpan(activity)
+
         registerFragmentLifecycleCollector(activity)
         registerAndroidXFragmentNavigationCollector(activity)
         val intentData = getIntentData(activity.intent)
@@ -61,6 +77,12 @@ internal class DefaultActivityLifecycleCollector(
         )
     }
 
+    override fun onActivityStarted(activity: Activity) {
+        val activityIdentityHash = Integer.toHexString(System.identityHashCode(activity))
+        val ttidSpan = createdActivities[activityIdentityHash]
+        ttidSpan?.setCheckpoint(CheckpointName.ACTIVITY_STARTED)
+    }
+
     override fun onActivityResumed(activity: Activity) {
         signalProcessor.track(
             timestamp = timeProvider.now(),
@@ -70,6 +92,15 @@ internal class DefaultActivityLifecycleCollector(
                 class_name = activity.javaClass.name,
             ),
         )
+
+        activity.window.onNextDraw {
+            mainHandler.postAtFrontOfQueueAsync {
+                val activityIdentityHash = Integer.toHexString(System.identityHashCode(activity))
+                val ttidSpan = createdActivities[activityIdentityHash]
+                ttidSpan?.setCheckpoint(CheckpointName.ACTIVITY_RESUMED)
+                endActivityTtidSpan(activityIdentityHash)
+            }
+        }
     }
 
     override fun onActivityPaused(activity: Activity) {
@@ -122,6 +153,48 @@ internal class DefaultActivityLifecycleCollector(
             return intent?.dataString
         }
         return null
+    }
+
+    private fun createTtidSpan(activity: Activity) {
+        val identityHash = Integer.toHexString(System.identityHashCode(activity))
+        setFirstActivityHash(identityHash)
+        if (!createdActivities.containsKey(identityHash)) {
+            createdActivities[identityHash] = startActivityTtidSpan(activity)
+        }
+    }
+
+    private fun startActivityTtidSpan(activity: Activity): Span {
+        if (configProvider.trackActivityLoadTime) {
+            val span = tracer.spanBuilder(
+                SpanName.activityTtidSpan(
+                    activity.javaClass.name,
+                    configProvider.maxSpanNameLength,
+                ),
+            ).startSpan()
+            span.setCheckpoint(CheckpointName.ACTIVITY_CREATED)
+            return span
+        } else {
+            return Span.invalid()
+        }
+    }
+
+    private fun endActivityTtidSpan(activityIdentityHash: String) {
+        val ttidSpan = createdActivities[activityIdentityHash]
+
+        if (firstActivityHash == activityIdentityHash) {
+            ttidSpan?.setAttribute(AttributeName.APP_STARTUP_FIRST_ACTIVITY, true)
+        }
+
+        ttidSpan?.setStatus(SpanStatus.Ok)?.end()
+        if (activityIdentityHash in createdActivities && ttidSpan != null) {
+            createdActivities.remove(activityIdentityHash)
+        }
+    }
+
+    private fun setFirstActivityHash(identityHash: String) {
+        if (firstActivityHash == null) {
+            firstActivityHash = identityHash
+        }
     }
 
     private fun isAndroidXFragmentAvailable() =

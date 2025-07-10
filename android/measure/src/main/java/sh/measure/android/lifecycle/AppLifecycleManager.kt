@@ -10,7 +10,9 @@ internal interface AppLifecycleListener {
 }
 
 internal interface ActivityLifecycleListener {
+    fun onActivityPreCreated(activity: Activity, savedInstanceState: Bundle?)
     fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?)
+    fun onActivityStarted(activity: Activity)
     fun onActivityResumed(activity: Activity)
     fun onActivityPaused(activity: Activity)
     fun onActivityDestroyed(activity: Activity)
@@ -47,6 +49,10 @@ internal class AppLifecycleManager(
         appLifecycleListeners.remove(listener)
     }
 
+    override fun onActivityPreCreated(activity: Activity, savedInstanceState: Bundle?) {
+        activityLifecycleListeners.forEach { it.onActivityPreCreated(activity, savedInstanceState) }
+    }
+
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         activityLifecycleListeners.forEach { it.onActivityCreated(activity, savedInstanceState) }
     }
@@ -57,6 +63,7 @@ internal class AppLifecycleManager(
         }
         val hash = Integer.toHexString(System.identityHashCode(activity))
         startedActivities.add(hash)
+        activityLifecycleListeners.forEach { it.onActivityStarted(activity) }
     }
 
     override fun onActivityResumed(activity: Activity) {

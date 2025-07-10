@@ -375,7 +375,6 @@ internal class TestMeasureInitializer(
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         launchTracker = LaunchState.launchTracker,
-        tracer = tracer,
         configProvider = configProvider,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
