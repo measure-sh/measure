@@ -5,7 +5,7 @@ class FakeConfigProvider implements ConfigProvider {
   List<String> _defaultHttpContentTypeAllowlist = [];
   List<String> _defaultHttpHeadersBlocklist = [];
   bool _enableLogging = false;
-  bool _takeScreenshotOnCrash = false;
+  bool _trackScreenshotOnCrash = false;
   List<String> _httpHeadersBlocklist = [];
   List<String> _httpUrlAllowlist = [];
   List<String> _httpUrlBlocklist = [];
@@ -40,7 +40,7 @@ class FakeConfigProvider implements ConfigProvider {
   bool get enableLogging => _enableLogging;
 
   @override
-  bool get takeScreenshotOnCrash => _takeScreenshotOnCrash;
+  bool get trackScreenshotOnCrash => _trackScreenshotOnCrash;
 
   @override
   List<String> get httpHeadersBlocklist => _httpHeadersBlocklist;
@@ -105,7 +105,7 @@ class FakeConfigProvider implements ConfigProvider {
 
   set enableLogging(bool value) => _enableLogging = value;
 
-  set takeScreenshotOnCrash(bool value) => _takeScreenshotOnCrash = value;
+  set trackScreenshotOnCrash(bool value) => _trackScreenshotOnCrash = value;
 
   set httpHeadersBlocklist(List<String> value) => _httpHeadersBlocklist = value;
 
