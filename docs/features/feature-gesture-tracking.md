@@ -74,6 +74,11 @@ and finding a composable at the point where the touch happened and checking for 
 SemanticsActions.OnClick, SemanticsActions.OnLongClick and SemanticsActions.ScrollBy
 for click, long click and scroll respectively.
 
+> [!NOTE]
+>
+> Compose currently reports the target_id in the collected data using [testTag](https://developer.android.com/reference/kotlin/androidx/compose/ui/semantics/package-summary#(androidx.compose.ui.semantics.SemanticsPropertyReceiver).testTag()),
+> if it is set. While the `target` is always reported as `AndroidComposeView`.
+
 #### Gesture target detection
 
 Along with the type of gesture which occurred, Measure can also **estimate** the target view/composable on which the
@@ -191,13 +196,6 @@ TLDR;
 
 * On average, it takes 0.458 ms to find the clicked view in a deep view hierarchy.
 * On average, it takes 0.658 ms to find the clicked composable in a deep composable hierarchy.
-
-> [!NOTE]
->
-> Compose currently reports the target_id in the collected data
->
-using [testTag](https://developer.android.com/reference/kotlin/androidx/compose/ui/semantics/package-summary#(androidx.compose.ui.semantics.SemanticsPropertyReceiver).testTag()),
-> if it is set. While the `target` is always reported as `AndroidComposeView`.
 
 ### iOS
 
