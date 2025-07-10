@@ -210,21 +210,8 @@ public final class sh/measure/android/config/MeasureConfig : sh/measure/android/
 	public fun getTrackScreenshotOnCrash ()Z
 }
 
-public final class sh/measure/android/config/MeasureConfig$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
-	public static final field $stable I
-	public static final field INSTANCE Lsh/measure/android/config/MeasureConfig$$serializer;
-	public fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
-	public fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lsh/measure/android/config/MeasureConfig;
-	public fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
-	public fun serialize (Lkotlinx/serialization/encoding/Encoder;Lsh/measure/android/config/MeasureConfig;)V
-	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
-}
-
 public final class sh/measure/android/config/MeasureConfig$Companion {
 	public final fun fromJson (Ljava/util/Map;)Lsh/measure/android/config/MeasureConfig;
-	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public abstract interface class sh/measure/android/config/MsrRequestHeadersProvider {
