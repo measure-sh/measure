@@ -5,6 +5,9 @@ exceptions that occur during normal app operation. This is useful for identifyin
 still affect user experience.
 
 - [**API Reference**](#api-reference)
+  - [**Android**](#android)
+  - [**iOS**](#ios)
+  - [**Flutter**](#flutter)
 
 ## API Reference
 
@@ -45,4 +48,16 @@ You can track handled NSError objects from Objective-C code as well using `track
 
 ```objc
 [Measure trackError:error attributes:@{ @"screen": @"Login", @"retryCount": 2 } collectStackTraces:YES];
+```
+
+#### Flutter
+
+To track handled exceptions in Flutter, use the `trackHandledError` method from the Measure SDK.
+
+```dart
+try {
+  methodThatThrows();
+} catch (e, stackTrace) {
+  Measure.trackHandledError(e, stackTrace);
+}
 ```
