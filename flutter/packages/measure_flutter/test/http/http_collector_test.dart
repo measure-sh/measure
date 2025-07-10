@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/http/http_collector.dart';
 import 'package:measure_flutter/src/http/http_data.dart';

@@ -11,7 +11,7 @@ import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
 
-import '../../measure.dart';
+import '../../measure_flutter.dart';
 import '../logger/logger.dart';
 import '../storage/file_storage.dart';
 import 'attachment_processing.dart';

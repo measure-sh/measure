@@ -1,4 +1,4 @@
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/screenshot/screenshot_collector.dart';
 
 import 'test_png.dart';

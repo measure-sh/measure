@@ -1,7 +1,8 @@
 name: measure_dio
-description: "A new Flutter package project."
-version: 0.0.1
-homepage:
+repository: https://github.com/measure-sh/measure/tree/main/flutter/packages/measure_dio
+issue_tracker: https://github.com/measure-sh/measure/issues
+description: Provides interceptors for monitoring http requests made using Dio library using measure.sh.
+version: 0.1.0
 
 environment:
   sdk: '>=3.3.0 <4.0.0'

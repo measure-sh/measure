@@ -2,7 +2,7 @@ import 'dart:collection';
 import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 
 /// A Dio [Interceptor] that tracks HTTP events, optionally with headers and
 /// body.

@@ -2,7 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/config/config_provider.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/logger/logger.dart';

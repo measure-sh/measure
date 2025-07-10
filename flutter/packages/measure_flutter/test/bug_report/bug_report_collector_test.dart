@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/bug_report/bug_report_collector.dart';
 import 'package:measure_flutter/src/bug_report/bug_report_data.dart';
 import 'package:measure_flutter/src/config/config_provider.dart';

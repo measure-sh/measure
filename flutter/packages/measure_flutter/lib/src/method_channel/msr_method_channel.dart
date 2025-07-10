@@ -1,5 +1,5 @@
 import 'package:flutter/services.dart';
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/events/attachment_codec.dart';
 import 'package:measure_flutter/src/method_channel/attribute_value_codec.dart';
 import 'package:measure_flutter/src/method_channel/method_constants.dart';

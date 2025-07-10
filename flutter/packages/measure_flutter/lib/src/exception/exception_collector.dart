@@ -1,7 +1,7 @@
 import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/config/config_provider.dart';
 import 'package:measure_flutter/src/exception/exception_data.dart';
 import 'package:measure_flutter/src/exception/exception_factory.dart';

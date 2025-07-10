@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../measure.dart';
+import '../../measure_flutter.dart';
 
 class MsrNavigatorObserver extends NavigatorObserver {
   final MeasureApi _measure;

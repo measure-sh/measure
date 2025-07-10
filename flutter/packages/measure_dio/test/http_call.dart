@@ -1,4 +1,4 @@
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 
 class HttpCall {
   final String url;

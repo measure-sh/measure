@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/bug_report/ui/add_image_button.dart';
 import 'package:measure_flutter/src/bug_report/ui/bug_report.dart';
 import 'package:measure_flutter/src/bug_report/ui/bug_report_input.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
-import '../../measure.dart';
+import '../../measure_flutter.dart';
 
 /// Mixin to handle shake detection to launch bug report screen.
 mixin MsrShakeDetectorMixin<T extends StatefulWidget> on State<T> {

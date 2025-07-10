@@ -1,7 +1,7 @@
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-import '../../measure.dart';
+import '../../measure_flutter.dart';
 import '../tracing/span_data.dart';
 
 abstract class MeasureFlutterPlatform extends PlatformInterface {

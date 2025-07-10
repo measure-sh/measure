@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/events/custom_event_data.dart';
 import 'package:measure_flutter/src/exception/exception_data.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';

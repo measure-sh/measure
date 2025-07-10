@@ -17,7 +17,7 @@ import 'package:measure_flutter/src/time/time_provider.dart';
 import 'package:measure_flutter/src/tracing/tracer.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
 
-import '../measure.dart';
+import '../measure_flutter.dart';
 import 'config/config_provider.dart';
 import 'gestures/scroll_data.dart';
 

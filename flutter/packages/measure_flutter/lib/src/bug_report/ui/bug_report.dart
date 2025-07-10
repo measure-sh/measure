@@ -7,7 +7,7 @@ import 'package:measure_flutter/src/bug_report/ui/send_button.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
 
-import '../../../measure.dart';
+import '../../../measure_flutter.dart';
 import '../../config/config_provider.dart';
 import '../../logger/logger.dart';
 import 'add_image_button.dart';
