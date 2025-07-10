@@ -15,46 +15,6 @@ Crashes are automatically tracked, optionally with a snapshot of the app's UI at
 > [!NOTE]  
 > Crash reporting for native crashes (from C/C++/etc.) is not yet supported. Track the progress [here](https://github.com/measure-sh/measure/issues/103). Upvote and comment on the issue if you are looking forward to this feature.
 
-## Symbolicate Stacktrace
-
-Stack traces from crashes may be obfuscated or contain memory addresses. To convert the stack traces to a human-readable format, you need to upload the mapping or symbol files based on the platform.
-
-### Android
-
-If you are using ProGuard or R8 to obfuscate your code, you need to upload the mapping files to de-obfuscate the stack traces. Measure's Android Gradle Plugin automatically uploads the ProGuard/R8 mapping file to the Measure server when you run an `assemble` gradle task.
-
-### iOS
-
-To symbolicate stack traces for iOS, you need to upload the dSYM files to map the memory addresses to a human-readable format. There are two ways to upload dSYM files:
-
-#### Using Shell Script
-
-Run the [`upload_dsyms.sh`](../../ios/Scripts/upload_dsyms.sh) script to manually upload DSYM files after building your app.
-
-```sh
-sh upload_dsyms.sh <path_to_ipa> <path_to_dsym_folder> <api_url> <api_key>
-```
-
-#### Using Build Phases
-
-Add the [`upload_dsym_build_phases.sh`](../../ios/Scripts/upload_dsym_build_phases.sh) script as a **New Run Script Phase** in Xcode to upload DSYM files automatically.
-
-```sh
-sh "${SRCROOT}/path/to/upload_dsym_build_phases.sh" <api_url> <api_key>
-```
-
-> [!CAUTION]  
-> If you are using Build Phases to upload DSYMs, make sure to **upload DSYMs only for release builds**.
-
-### Flutter
-
-When obfuscating your Flutter app using --obfuscate and --split-debug-info options:
-
-* **Android** — The Measure Android Gradle Plugin automatically uploads the required mapping files.
-* **iOS** — You need to upload the dSYM files as described in the iOS section above. After building
-  with `flutter build ipa`, run the `upload_dsyms.sh` script using the IPA path and the path to the dSYM folder
-  (typically under _/build/ios/Release-iphoneos/_)
-
 ## Metrics
 
 Metrics related to crashes are automatically computed and shown on the dashboard.
@@ -148,6 +108,46 @@ FlutterError (setState() called after dispose(): _MyHomePageState#12345(ticker: 
 
 ## API Reference
 
+### Symbolicate Stacktrace
+
+Stack traces from crashes may be obfuscated or contain memory addresses. To convert the stack traces to a human-readable format, you need to upload the mapping or symbol files based on the platform.
+
+#### Android
+
+If you are using ProGuard or R8 to obfuscate your code, you need to upload the mapping files to de-obfuscate the stack traces. Measure's Android Gradle Plugin automatically uploads the ProGuard/R8 mapping file to the Measure server when you run an `assemble` gradle task.
+
+#### iOS
+
+To symbolicate stack traces for iOS, you need to upload the dSYM files to map the memory addresses to a human-readable format. There are two ways to upload dSYM files:
+
+##### Using Shell Script
+
+Run the [`upload_dsyms.sh`](../../ios/Scripts/upload_dsyms.sh) script to manually upload DSYM files after building your app.
+
+```sh
+sh upload_dsyms.sh <path_to_ipa> <path_to_dsym_folder> <api_url> <api_key>
+```
+
+##### Using Build Phases
+
+Add the [`upload_dsym_build_phases.sh`](../../ios/Scripts/upload_dsym_build_phases.sh) script as a **New Run Script Phase** in Xcode to upload DSYM files automatically.
+
+```sh
+sh "${SRCROOT}/path/to/upload_dsym_build_phases.sh" <api_url> <api_key>
+```
+
+> [!CAUTION]  
+> If you are using Build Phases to upload DSYMs, make sure to **upload DSYMs only for release builds**.
+
+#### Flutter
+
+When obfuscating your Flutter app using --obfuscate and --split-debug-info options:
+
+* **Android** — The Measure Android Gradle Plugin automatically uploads the required mapping files.
+* **iOS** — You need to upload the dSYM files as described in the iOS section above. After building
+  with `flutter build ipa`, run the `upload_dsyms.sh` script using the IPA path and the path to the dSYM folder
+  (typically under _/build/ios/Release-iphoneos/_)
+
 ### Get a UI Snapshot
 
 #### Android
@@ -190,4 +190,6 @@ We rely on [PLCrashReporter](https://github.com/microsoft/plcrashreporter) to de
 
 When the SDK is initialized, it automatically sets up both `FlutterError.onError`
 and `PlatformDispatcher.instance.onError` callbacks. Any errors are forwarded to the server. Internally, we rely
-on [stack_trace](https://pub.dev/packages/stack_trace) to parse the stack trace and send it as an `exception` event.
+on [stack_trace](https://pub.dev/packages/stack_trace) to parse the stack trace and send it as an `exception` event. 
+
+All crashes captured by the native Android or iOS SDK are also tracked for Flutter apps.
