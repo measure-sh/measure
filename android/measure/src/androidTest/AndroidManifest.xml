@@ -27,7 +27,7 @@
             </intent-filter>
         </activity>
 
-        <meta-data android:name="sh.measure.android.API_KEY" android:value="YOUR_API_KEY" />
+        <meta-data android:name="sh.measure.android.API_KEY" android:value="msrsh_api_key" />
         <!--
         The API_URL is used by mock web server, changing this could lead to test failures.
         -->

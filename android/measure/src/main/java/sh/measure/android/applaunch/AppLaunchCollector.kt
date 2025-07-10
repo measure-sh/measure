@@ -1,43 +1,55 @@
 package sh.measure.android.applaunch
 
-import android.app.Application
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.tracing.SpanStatus
+import sh.measure.android.tracing.Tracer
 import sh.measure.android.utils.TimeProvider
 
 /**
  * Tracks cold, warm and hot launch.
  */
 internal class AppLaunchCollector(
-    private val application: Application,
     private val timeProvider: TimeProvider,
     private val signalProcessor: SignalProcessor,
-    private val launchTracker: LaunchTracker,
+    private val tracer: Tracer,
+    private val configProvider: ConfigProvider,
+    private val launchTracker: LaunchTracker?,
 ) : LaunchCallbacks {
     fun register() {
-        application.registerActivityLifecycleCallbacks(launchTracker)
-        launchTracker.registerCallbacks(this)
+        val preRegistrationData =
+            launchTracker?.registerCallbacks(this, configProvider = configProvider, tracer = tracer)
+        if (preRegistrationData?.coldLaunchData != null) {
+            onColdLaunch(preRegistrationData.coldLaunchData, preRegistrationData.coldLaunchTime)
+        }
+        if (preRegistrationData?.warmLaunchData != null) {
+            onWarmLaunch(preRegistrationData.warmLaunchData, preRegistrationData.warmLaunchTime)
+        }
+        val firstTtid = preRegistrationData?.firstActivityTTID
+        val endTime = firstTtid?.endTime
+        if (firstTtid != null && endTime != null) {
+            tracer.spanBuilder(firstTtid.activityName.take(configProvider.maxSpanNameLength))
+                .startSpan(firstTtid.startTime)
+                .setStatus(SpanStatus.Ok)
+                .end(endTime)
+        }
     }
 
-    fun unregister() {
-        application.unregisterActivityLifecycleCallbacks(launchTracker)
-        launchTracker.unregisterCallbacks()
-    }
-
-    override fun onColdLaunch(coldLaunchData: ColdLaunchData) {
+    override fun onColdLaunch(coldLaunchData: ColdLaunchData, coldLaunchTime: Long?) {
         if (coldLaunchData.process_start_uptime == null && coldLaunchData.content_provider_attach_uptime == null) {
             return
         }
         signalProcessor.track(
-            timestamp = timeProvider.now(),
+            timestamp = coldLaunchTime ?: timeProvider.now(),
             type = EventType.COLD_LAUNCH,
             data = coldLaunchData,
         )
     }
 
-    override fun onWarmLaunch(warmLaunchData: WarmLaunchData) {
+    override fun onWarmLaunch(warmLaunchData: WarmLaunchData, warmLaunchTime: Long?) {
         signalProcessor.track(
-            timestamp = timeProvider.now(),
+            timestamp = warmLaunchTime ?: timeProvider.now(),
             type = EventType.WARM_LAUNCH,
             data = warmLaunchData,
         )

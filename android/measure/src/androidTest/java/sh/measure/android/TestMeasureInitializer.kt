@@ -6,7 +6,7 @@ import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.appexit.AppExitProvider
 import sh.measure.android.appexit.AppExitProviderImpl
 import sh.measure.android.applaunch.AppLaunchCollector
-import sh.measure.android.applaunch.LaunchTracker
+import sh.measure.android.applaunch.LaunchState
 import sh.measure.android.attributes.AppAttributeProcessor
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.DeviceAttributeProcessor
@@ -130,7 +130,7 @@ internal class TestMeasureInitializer(
     override val logger: Logger = AndroidLogger(configProvider.enableLogging),
     override val timeProvider: TimeProvider = AndroidTimeProvider(AndroidSystemClock()),
     override val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
-    private val fileStorage: FileStorage = FileStorageImpl(
+    override val fileStorage: FileStorage = FileStorageImpl(
         rootDir = application.filesDir.path,
         logger = logger,
     ),
@@ -371,17 +371,12 @@ internal class TestMeasureInitializer(
         defaultExecutor = executorServiceRegistry.defaultExecutor(),
         layoutSnapshotThrottler = LayoutSnapshotThrottler(timeProvider),
     ),
-    private val launchTracker: LaunchTracker = LaunchTracker(
-        logger,
-        timeProvider,
-        configProvider,
-        tracer,
-    ),
     override val appLaunchCollector: AppLaunchCollector = AppLaunchCollector(
-        application = application,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
-        launchTracker = launchTracker,
+        launchTracker = LaunchState.launchTracker,
+        tracer = tracer,
+        configProvider = configProvider,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
         logger = logger,

@@ -212,8 +212,9 @@ implementation 'sh.measure:measure-android:0.10.0'
 Add the following to your app's Application class `onCreate` method.
 
 > [!IMPORTANT]
-> To be able to detect early crashes and accurate launch time metrics, initialize the SDK as soon as possible in
-> Application `onCreate` method.
+> To be able to detect early crashes initialize the SDK as soon as possible in Application `onCreate` method. Also, note
+> a content provider `MsrInitProvider` is used to capture launch state of the app for reliably calculating cold/warm
+> launch events regardless of when the SDK is initialized.
 
 ```kotlin
 Measure.init(

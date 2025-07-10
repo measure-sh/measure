@@ -35,8 +35,7 @@ class LaunchTrackerTest {
     private val application = InstrumentationRegistry.getInstrumentation().context as Application
     private val tracer =
         TestTracer(signalProcessor, configProvider, logger, timeProvider, sessionManager)
-    private var launchTracker: LaunchTracker =
-        LaunchTracker(logger, timeProvider, configProvider, tracer)
+    private var launchTracker: LaunchTracker = LaunchTracker()
     private lateinit var controller: ActivityController<TestLifecycleActivity>
 
     @Before
@@ -52,6 +51,13 @@ class LaunchTrackerTest {
 
     @Test
     fun `tracks activity TTID span with correct name`() {
+        // Given
+        val callbacks = object : LaunchCallbacks {
+            override fun onColdLaunch(coldLaunchData: ColdLaunchData, coldLaunchTime: Long?) {}
+            override fun onWarmLaunch(warmLaunchData: WarmLaunchData, warmLaunchTime: Long?) {}
+            override fun onHotLaunch(hotLaunchData: HotLaunchData) {}
+        }
+        launchTracker.registerCallbacks(callbacks, tracer, configProvider)
         // When
         val argumentCaptor = argumentCaptor<SpanData>()
         controller.setup().forceDrawFrame()
@@ -59,8 +65,26 @@ class LaunchTrackerTest {
         // Then
         verify(signalProcessor, times(1)).trackSpan(argumentCaptor.capture())
         Assert.assertEquals(
-            argumentCaptor.firstValue.name,
             "Activity TTID ${TestLifecycleActivity::class.java.name}",
+            argumentCaptor.firstValue.name,
+        )
+    }
+
+    @Test
+    fun `returns TTID span with correct name on delayed registration`() {
+        // When
+        controller.setup().forceDrawFrame()
+
+        // Then
+        val callbacks = object : LaunchCallbacks {
+            override fun onColdLaunch(coldLaunchData: ColdLaunchData, coldLaunchTime: Long?) {}
+            override fun onWarmLaunch(warmLaunchData: WarmLaunchData, warmLaunchTime: Long?) {}
+            override fun onHotLaunch(hotLaunchData: HotLaunchData) {}
+        }
+        val preRegistrationData = launchTracker.registerCallbacks(callbacks, tracer, configProvider)
+        Assert.assertEquals(
+            "Activity TTID ${TestLifecycleActivity::class.java.name}",
+            "Activity TTID ${preRegistrationData.firstActivityTTID?.activityName}",
         )
     }
 }
