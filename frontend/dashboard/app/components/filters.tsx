@@ -485,7 +485,10 @@ const Filters = forwardRef<
 
   const urlFilters = deserializeUrlFilters(searchParams.toString())
   const sessionPersistedFiltersKey = "sessionPersistedFilters"
-  const sessionPersistedFilters: SessionPersistedFilters | null = sessionStorage.getItem(sessionPersistedFiltersKey) === null ? null : JSON.parse(sessionStorage.getItem(sessionPersistedFiltersKey)!)
+  const sessionPersistedFilters: SessionPersistedFilters | null =
+    typeof window !== "undefined" && sessionStorage.getItem(sessionPersistedFiltersKey) !== null
+      ? JSON.parse(sessionStorage.getItem(sessionPersistedFiltersKey)!)
+      : null
 
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading)
   const [rootSpanNamesApiStatus, setRootSpanNamesApiStatus] = useState(RootSpanNamesApiStatus.Loading)
