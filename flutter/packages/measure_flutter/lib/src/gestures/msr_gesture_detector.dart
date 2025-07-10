@@ -47,10 +47,11 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
 
   @override
   Widget build(BuildContext context) {
+    final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: onPointerDown,
-      onPointerUp: onPointerUp,
+      onPointerUp: (event) => onPointerUp(event, devicePixelRatio),
       onPointerMove: _onPointerMove,
       onPointerCancel: _onPointerCancel,
       child: widget.child,
@@ -61,7 +62,7 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
   void onPointerDown(PointerDownEvent event) {
     try {
       _lastPointerId = event.pointer;
-      _lastPointerDownLocation = event.localPosition;
+      _lastPointerDownLocation = event.position;
       _pointerDownTime = event.timeStamp;
     } catch (exception, stacktrace) {
       _logError('onPointerDown', exception, stacktrace);
@@ -69,7 +70,7 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
   }
 
   @visibleForTesting
-  void onPointerUp(PointerUpEvent event) {
+  void onPointerUp(PointerUpEvent event, double devicePixelRatio) {
     try {
       final location = _lastPointerDownLocation;
       final downTime = _pointerDownTime;
@@ -79,19 +80,20 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
         return;
       }
 
-      final delta = event.localPosition - location;
+      final delta = event.position - location;
       final duration = event.timeStamp - downTime;
 
       if (delta.distanceSquared < _tapDeltaArea) {
         if (duration >= _longClickDuration) {
-          _handleLongClick(event.localPosition, downTime, event.timeStamp);
+          _handleLongClick(
+              event.position, downTime, event.timeStamp, devicePixelRatio);
         } else {
-          _handleClick(event.localPosition);
+          _handleClick(event.position, devicePixelRatio);
         }
       }
 
       if (_isScrolling) {
-        _handleScrollEnd(event.localPosition, delta);
+        _handleScrollEnd(event.position, delta, devicePixelRatio);
       }
 
       _resetState();
@@ -106,7 +108,7 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
 
       final lastLocation = _lastPointerDownLocation;
       if (lastLocation != null) {
-        final delta = event.localPosition - lastLocation;
+        final delta = event.position - lastLocation;
         if (delta.distanceSquared > _tapDeltaArea) {
           _isScrolling = true;
         }
@@ -127,7 +129,7 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
     _isScrolling = false;
   }
 
-  void _handleClick(Offset position) {
+  void _handleClick(Offset position, double devicePixelRatio) {
     final tapInfo = _findElementAt(position, _isClickableElement, true);
     if (tapInfo == null) {
       developer.log("No clickable element found at $position", name: 'measure');
@@ -138,8 +140,8 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
     widget.onClick(
       ClickData(
         target: tapInfo.type,
-        x: position.dx,
-        y: position.dy,
+        x: (position.dx * devicePixelRatio).roundToDouble(),
+        y: (position.dy * devicePixelRatio).roundToDouble(),
         targetId: truncateLabel(label, maxLength: 32),
         touchDownTime: null,
         touchUpTime: null,
@@ -147,7 +149,12 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
     );
   }
 
-  void _handleLongClick(Offset position, Duration downTime, Duration upTime) {
+  void _handleLongClick(
+    Offset position,
+    Duration downTime,
+    Duration upTime,
+    double devicePixelRatio,
+  ) {
     final tapInfo = _findElementAt(position, _isClickableElement, true);
     if (tapInfo == null) {
       developer.log("No clickable element found at $position", name: 'measure');
@@ -158,8 +165,8 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
     widget.onLongClick(
       LongClickData(
         target: tapInfo.type,
-        x: position.dx,
-        y: position.dy,
+        x: (position.dx * devicePixelRatio).roundToDouble(),
+        y: (position.dy * devicePixelRatio).roundToDouble(),
         targetId: truncateLabel(label, maxLength: 32),
         touchDownTime: null,
         touchUpTime: null,
@@ -167,7 +174,8 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
     );
   }
 
-  void _handleScrollEnd(Offset position, Offset delta) {
+  void _handleScrollEnd(
+      Offset position, Offset delta, double devicePixelRatio) {
     final scrollInfo = _findElementAt(position, _isScrollableElement, false);
     if (scrollInfo == null) {
       return;
@@ -183,10 +191,10 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
     widget.onScroll(
       ScrollData(
         target: scrollInfo.type,
-        x: position.dx,
-        y: position.dy,
-        endX: position.dx + delta.dx,
-        endY: position.dy + delta.dy,
+        x: ((position.dx - delta.dx) * devicePixelRatio).roundToDouble(),
+        y: ((position.dy - delta.dy) * devicePixelRatio).roundToDouble(),
+        endX: (position.dx * devicePixelRatio).roundToDouble(),
+        endY: (position.dy * devicePixelRatio).roundToDouble(),
         targetId: null,
         direction: scrollDirection,
         touchDownTime: null,
