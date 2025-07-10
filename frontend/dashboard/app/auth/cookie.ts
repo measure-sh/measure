@@ -25,7 +25,7 @@ export function setCookiesFromJWT(accessToken: string, refreshToken: string, res
         maxAge: Math.floor((accessExp.getTime() - Date.now()) / 1000),
         httpOnly: true,
         secure: !isDev,
-        sameSite: isDev ? 'lax' : 'strict',
+        sameSite: isDev ? 'lax' : 'lax',
     })
 
     response.cookies.set('refresh_token', refreshToken, {
@@ -34,7 +34,7 @@ export function setCookiesFromJWT(accessToken: string, refreshToken: string, res
         maxAge: Math.floor((refreshExp.getTime() - Date.now()) / 1000),
         httpOnly: true,
         secure: !isDev,
-        sameSite: isDev ? 'lax' : 'strict',
+        sameSite: isDev ? 'lax' : 'lax',
     })
 
     return response
@@ -53,7 +53,7 @@ export function clearCookies(response: NextResponse<any>): NextResponse<any> {
         maxAge: -1,
         httpOnly: true,
         secure: !isDev,
-        sameSite: isDev ? 'lax' : 'strict',
+        sameSite: isDev ? 'lax' : 'lax',
     })
 
     response.cookies.set('refresh_token', '', {
@@ -62,7 +62,7 @@ export function clearCookies(response: NextResponse<any>): NextResponse<any> {
         maxAge: -1,
         httpOnly: true,
         secure: !isDev,
-        sameSite: isDev ? 'lax' : 'strict',
+        sameSite: isDev ? 'lax' : 'lax',
     })
 
     return response
