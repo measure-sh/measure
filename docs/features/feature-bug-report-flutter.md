@@ -13,13 +13,20 @@ Bug reports enable users to report issues directly from the app. Measure SDK pro
 
 ## Built-in Experience
 
-Launch the default bug report interface by using `Measure.instance.createBugReportWidget` method.
+### iOS
 
-| Dark Mode                                        | Light Mode                                         |
-|--------------------------------------------------|----------------------------------------------------|
-| ![Dark Mode](assets/flutter-bug-report-dark.png) | ![Light Mode](assets/flutter-bug-report-light.png) |
+| Dark Mode                                             | Light Mode                                              |
+|-------------------------------------------------------|---------------------------------------------------------|
+| ![Dark Mode](assets/flutter-ios-bug-report-dark.jpeg) | ![Light Mode](assets/flutter-ios-bug-report-light.jpeg) |
 
-Usage:
+### Android
+
+| Dark Mode                                                | Light Mode                                                 |
+|----------------------------------------------------------|------------------------------------------------------------|
+| ![Dark Mode](assets/flutter-android-bug-report-dark.png) | ![Light Mode](assets/flutter-android-bug-report-light.png) |
+
+
+Launch the default bug report interface by using `Measure.instance.createBugReportWidget` method. Usage:
 
 ```dart
 final widget = Measure.instance.createBugReportWidget();
