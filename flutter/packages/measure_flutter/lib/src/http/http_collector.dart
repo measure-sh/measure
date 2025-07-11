@@ -1,4 +1,4 @@
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/config/config_provider.dart';
 
 import '../events/event_type.dart';

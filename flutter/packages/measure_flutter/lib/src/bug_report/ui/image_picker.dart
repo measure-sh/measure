@@ -1,5 +1,5 @@
 import 'package:image_picker/image_picker.dart';
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 
 import '../../logger/log_level.dart';
 import '../../logger/logger.dart';

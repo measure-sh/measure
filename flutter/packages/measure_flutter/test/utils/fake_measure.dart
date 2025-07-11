@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/src/widgets/framework.dart';
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/gestures/click_data.dart';
 import 'package:measure_flutter/src/gestures/long_click_data.dart';
 import 'package:measure_flutter/src/gestures/scroll_data.dart';

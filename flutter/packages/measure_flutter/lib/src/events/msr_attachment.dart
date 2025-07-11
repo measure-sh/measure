@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:json_annotation/json_annotation.dart';
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 
 part 'msr_attachment.g.dart';
 

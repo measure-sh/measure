@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:measure_flutter/src/bug_report/ui/platform_wrapper.dart';
 
-import '../../../measure.dart';
+import '../../../measure_flutter.dart';
 
 class DeleteScreenshotButton extends StatelessWidget {
   final VoidCallback onDelete;

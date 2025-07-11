@@ -4,7 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:measure_dio/measure_dio.dart';
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter_example/src/screen_navigation.dart';
 import 'package:measure_flutter_example/src/toggle_list_item.dart';
 import 'package:stack_trace/stack_trace.dart';

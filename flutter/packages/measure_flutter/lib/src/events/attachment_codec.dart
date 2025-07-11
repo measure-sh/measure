@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 
 extension AttachmentEncoding on List<MsrAttachment> {
   List<Map<String, dynamic>> toJsonList() {

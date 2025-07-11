@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/screenshot/screenshot_collector.dart';
 
 /// A widget that provides Measure a way to inject

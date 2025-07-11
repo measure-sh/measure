@@ -1,4 +1,4 @@
-import 'package:measure_flutter/measure.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/bug_report/ui/image_picker.dart';
 
 import 'fake_id_provider.dart';
