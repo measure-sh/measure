@@ -130,7 +130,7 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
   }
 
   void _handleClick(Offset position, double devicePixelRatio) {
-    final tapInfo = _findElementAt(position, _isClickableElement, true);
+    final tapInfo = _findElementAt(position, _getClickableElementType, true);
     if (tapInfo == null) {
       developer.log("No clickable element found at $position", name: 'measure');
       return;
@@ -155,7 +155,7 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
     Duration upTime,
     double devicePixelRatio,
   ) {
-    final tapInfo = _findElementAt(position, _isClickableElement, true);
+    final tapInfo = _findElementAt(position, _getClickableElementType, true);
     if (tapInfo == null) {
       developer.log("No clickable element found at $position", name: 'measure');
       return;
@@ -176,7 +176,8 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
 
   void _handleScrollEnd(
       Offset position, Offset delta, double devicePixelRatio) {
-    final scrollInfo = _findElementAt(position, _isScrollableElement, false);
+    final scrollInfo =
+        _findElementAt(position, _getScrollableElementType, false);
     if (scrollInfo == null) {
       return;
     }
@@ -205,7 +206,7 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
 
   DetectedElement? _findElementAt(
     Offset position,
-    bool Function(Element) predicate,
+    String? Function(Element) predicate,
     bool isClickable,
   ) {
     final rootElement = _clickTrackerElement;
@@ -218,13 +219,9 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
 
       if (!_isElementHitTestable(element, position)) return;
 
-      if (predicate(element)) {
-        final type = isClickable
-            ? _getClickableElementType(element)
-            : _getScrollableElementType(element);
-        if (type != null) {
-          result = DetectedElement(element: element, type: type);
-        }
+      final type = predicate(element);
+      if (type != null) {
+        result = DetectedElement(element: element, type: type);
       }
 
       if (result == null) {
@@ -261,26 +258,14 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
     return paintBounds.contains(position);
   }
 
-  bool _isClickableElement(Element element) {
-    final widget = element.widget;
-    return _isClickable(widget);
-  }
-
-  bool _isScrollableElement(Element element) {
-    final widget = element.widget;
-    return _isScrollable(widget);
-  }
-
   String? _getClickableElementType(Element element) {
     final widget = element.widget;
-    if (!_isClickable(widget)) return null;
-    return widget.runtimeType.toString();
+    return _getClickableType(widget);
   }
 
   String? _getScrollableElementType(Element element) {
     final widget = element.widget;
-    if (!_isScrollable(widget)) return null;
-    return widget.runtimeType.toString();
+    return _getScrollableType(widget);
   }
 
   String? _extractLabel(Element element) {
@@ -298,51 +283,62 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
     };
   }
 
-  bool _isClickable(Widget widget) {
+  String? _getClickableType(Widget widget) {
     return switch (widget) {
-      ButtonStyleButton w => w.enabled,
-      MaterialButton w => w.enabled,
-      IconButton w => w.onPressed != null,
-      FloatingActionButton w => w.onPressed != null,
-      CupertinoButton w => w.enabled,
-      ListTile _ => true,
-      PopupMenuButton w => w.enabled,
-      PopupMenuItem w => w.enabled,
-      DropdownButton w => w.onChanged != null,
-      DropdownMenuItem _ => true,
-      ExpansionTile _ => true,
-      Card _ => true,
-      InkWell w => w.onTap != null,
-      GestureDetector w =>
-        w.onTap != null || w.onDoubleTap != null || w.onLongPress != null,
-      InkResponse w => w.onTap != null,
-      InputChip w => w.onPressed != null,
-      ActionChip w => w.onPressed != null,
-      FilterChip w => w.onSelected != null,
-      ChoiceChip w => w.onSelected != null,
-      Checkbox w => w.onChanged != null,
-      Switch w => w.onChanged != null,
-      Radio w => w.onChanged != null,
-      CupertinoSwitch w => w.onChanged != null,
-      CheckboxListTile w => w.onChanged != null,
-      SwitchListTile w => w.onChanged != null,
-      RadioListTile w => w.onChanged != null,
-      Slider w => w.onChanged != null,
-      RangeSlider w => w.onChanged != null,
-      CupertinoSlider w => w.onChanged != null,
-      TextField _ => true,
-      TextFormField _ => true,
-      CupertinoTextField _ => true,
-      Stepper _ => true,
-      _ => false,
+      FilledButton w when w.enabled => 'FilledButton',
+      OutlinedButton w when w.enabled => 'OutlinedButton',
+      CupertinoButton w when w.enabled => 'CupertinoButton',
+      TextButton w when w.enabled => 'TextButton',
+      ElevatedButton w when w.enabled => 'ElevatedButton',
+      ButtonStyleButton w when w.enabled => 'ButtonStyleButton',
+      MaterialButton w when w.enabled => 'MaterialButton',
+      IconButton w when w.onPressed != null => 'IconButton',
+      FloatingActionButton w when w.onPressed != null => 'FloatingActionButton',
+      CupertinoButton w when w.enabled => 'CupertinoButton',
+      ListTile _ => 'ListTile',
+      PopupMenuButton w when w.enabled => 'PopupMenuButton',
+      PopupMenuItem w when w.enabled => 'PopupMenuItem',
+      DropdownButton w when w.onChanged != null => 'DropdownButton',
+      DropdownMenuItem _ => 'DropdownMenuItem',
+      ExpansionTile _ => 'ExpansionTile',
+      Card _ => 'Card',
+      InkWell w when w.onTap != null => 'InkWell',
+      GestureDetector w
+          when w.onTap != null ||
+              w.onDoubleTap != null ||
+              w.onLongPress != null =>
+        'GestureDetector',
+      InkResponse w when w.onTap != null => 'InkResponse',
+      InputChip w when w.onPressed != null => 'InputChip',
+      ActionChip w when w.onPressed != null => 'ActionChip',
+      FilterChip w when w.onSelected != null => 'FilterChip',
+      ChoiceChip w when w.onSelected != null => 'ChoiceChip',
+      Checkbox w when w.onChanged != null => 'Checkbox',
+      Switch w when w.onChanged != null => 'Switch',
+      Radio w when w.onChanged != null => 'Radio',
+      CupertinoSwitch w when w.onChanged != null => 'CupertinoSwitch',
+      CheckboxListTile w when w.onChanged != null => 'CheckboxListTile',
+      SwitchListTile w when w.onChanged != null => 'SwitchListTile',
+      RadioListTile w when w.onChanged != null => 'RadioListTile',
+      Slider w when w.onChanged != null => 'Slider',
+      RangeSlider w when w.onChanged != null => 'RangeSlider',
+      CupertinoSlider w when w.onChanged != null => 'CupertinoSlider',
+      TextField _ => 'TextField',
+      TextFormField _ => 'TextFormField',
+      CupertinoTextField _ => 'CupertinoTextField',
+      Stepper _ => 'Stepper',
+      _ => null,
     };
   }
 
-  bool _isScrollable(Widget widget) {
-    return widget is ScrollView ||
-        widget is ListView ||
-        widget is PageView ||
-        widget is SingleChildScrollView;
+  String? _getScrollableType(Widget widget) {
+    return switch (widget) {
+      ListView _ => 'ListView',
+      PageView _ => 'PageView',
+      SingleChildScrollView _ => 'SingleChildScrollView',
+      ScrollView _ => 'ScrollView',
+      _ => null,
+    };
   }
 
   Axis? _findScrollAxis(Widget widget) {

@@ -74,6 +74,11 @@ final class BaseGestureCollector: GestureCollector {
         switch gesture {
         case .click(let x, let y, let touchDownTime, let touchUpTime, let target, let targetId, let targetFrame):
             let gestureTargetFinderData = gestureTargetFinder.findClickable(x: x, y: y, window: window)
+
+            if gestureTargetFinderData.target == nil && gestureTargetFinderData.targetFrame == nil && gestureTargetFinderData.targetId == nil {
+                return
+            }
+
             let width = UInt16((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0)
             let height = UInt16((gestureTargetFinderData.targetFrame?.height ?? targetFrame?.height) ?? 0)
 
@@ -98,6 +103,10 @@ final class BaseGestureCollector: GestureCollector {
             }
         case .longClick(let x, let y, let touchDownTime, let touchUpTime, let target, let targetId, let targetFrame):
             let gestureTargetFinderData = gestureTargetFinder.findClickable(x: x, y: y, window: window)
+            if gestureTargetFinderData.target == nil && gestureTargetFinderData.targetFrame == nil && gestureTargetFinderData.targetId == nil {
+                return
+            }
+
             let width = UInt16((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0)
             let height = UInt16((gestureTargetFinderData.targetFrame?.height ?? targetFrame?.height) ?? 0)
 
@@ -124,6 +133,10 @@ final class BaseGestureCollector: GestureCollector {
             let startScrollPoint = CGPoint(x: startX, y: startY)
             let endScrollPoint = CGPoint(x: endX, y: endY)
             if let gestureTargetFinderData = gestureTargetFinder.findScrollable(startScrollPoint: startScrollPoint, endScrollPoint: endScrollPoint, window: window) {
+                if gestureTargetFinderData.target == nil && gestureTargetFinderData.targetFrame == nil && gestureTargetFinderData.targetId == nil {
+                    return
+                }
+
                 let data = ScrollData(target: gestureTargetFinderData.target ?? target,
                                       targetId: gestureTargetFinderData.targetId ?? targetId,
                                       x: FloatNumber32(startX),
