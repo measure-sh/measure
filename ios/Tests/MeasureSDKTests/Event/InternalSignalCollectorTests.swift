@@ -193,7 +193,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             endTime: 1234568890,
             duration: 1000,
             status: 1,
-            attributes: ["threadName": "main"],
+            attributes: ["thread_name": "thread-name"],
             userDefinedAttrs: ["key": AttributeValue.string("value")],
             checkpoints: ["checkpoint_name": 1234567890],
             hasEnded: true,
@@ -216,7 +216,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
         XCTAssertEqual(spanData.status, .ok)
         XCTAssertTrue(spanData.hasEnded)
         XCTAssertTrue(spanData.isSampled)
-        XCTAssertEqual(spanData.attributes?.threadName, "main")
+        XCTAssertEqual(spanData.attributes?.threadName, "thread-name")
         XCTAssertEqual(spanData.userDefinedAttrs?["key"]?.value as? String, "value")
         XCTAssertEqual(spanData.checkpoints.first?.name, "checkpoint_name")
         XCTAssertEqual(spanData.checkpoints.first?.timestamp, timeProvider.iso8601Timestamp)

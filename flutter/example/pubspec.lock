@@ -357,14 +357,14 @@ packages:
       path: "../packages/measure_dio"
       relative: true
     source: path
-    version: "0.0.1"
+    version: "0.1.0"
   measure_flutter:
     dependency: "direct main"
     description:
       path: "../packages/measure_flutter"
       relative: true
     source: path
-    version: "0.0.1"
+    version: "0.1.0"
   meta:
     dependency: transitive
     description:
