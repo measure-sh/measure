@@ -4,22 +4,22 @@ PODS:
     - Flutter
   - integration_test (0.0.1):
     - Flutter
-  - measure-sh (0.5.0):
+  - measure-sh (0.5.1):
     - PLCrashReporter
-  - measure_flutter (0.0.1):
+  - measure_flutter (0.1.0):
     - Flutter
-    - measure-sh
+    - measure-sh (= 0.5.1)
   - PLCrashReporter (1.12.0)
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
-  - measure-sh (from `../../../`)
   - measure_flutter (from `.symlinks/plugins/measure_flutter/ios`)
 
 SPEC REPOS:
   trunk:
+    - measure-sh
     - PLCrashReporter
 
 EXTERNAL SOURCES:
@@ -29,8 +29,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/image_picker_ios/ios"
   integration_test:
     :path: ".symlinks/plugins/integration_test/ios"
-  measure-sh:
-    :path: "../../../"
   measure_flutter:
     :path: ".symlinks/plugins/measure_flutter/ios"
 
@@ -38,10 +36,10 @@ SPEC CHECKSUMS:
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   image_picker_ios: c560581cceedb403a6ff17f2f816d7fea1421fc1
   integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
-  measure-sh: bbc00908417de2a2adb1306eb732dedffe943fda
-  measure_flutter: 0c0e3800e6aaa4bd153d13b4cf0b2d15e7a3e3f1
+  measure-sh: 8df346a46f130cfb93fa2d49f3787d24e3b7c026
+  measure_flutter: 8fa92b79bd32d6b4f0ea0c0cffc28e82d35691a9
   PLCrashReporter: db59ef96fa3d25f3650040d02ec2798cffee75f2
 
-PODFILE CHECKSUM: 3cb20a85f541529366cc657f7ec57a839ce22ff1
+PODFILE CHECKSUM: 2ae3df422d6bc98b6e42b8dee788d014fde27811
 
 COCOAPODS: 1.16.2
