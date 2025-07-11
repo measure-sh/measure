@@ -15,13 +15,17 @@ export function setCookiesFromJWT(accessToken: string, refreshToken: string, res
 
     // extract the domain from the NEXT_PUBLIC_SITE_URL
     // and set it as the domain for the cookies
-    const domain = new URL(process.env.NEXT_PUBLIC_SITE_URL!).hostname
+    let { hostname } = new URL(process.env.NEXT_PUBLIC_SITE_URL!)
+
+    if (!hostname.includes("localhost") && !hostname.includes("127.0.0.1")) {
+      hostname = "measure.sh"
+    }
 
     const isDev = process.env.NODE_ENV === 'development'
 
     response.cookies.set('access_token', accessToken, {
         path: '/',
-        domain: domain,
+        domain: hostname,
         maxAge: Math.floor((accessExp.getTime() - Date.now()) / 1000),
         httpOnly: true,
         secure: !isDev,
@@ -30,7 +34,7 @@ export function setCookiesFromJWT(accessToken: string, refreshToken: string, res
 
     response.cookies.set('refresh_token', refreshToken, {
         path: '/',
-        domain: domain,
+        domain: hostname,
         maxAge: Math.floor((refreshExp.getTime() - Date.now()) / 1000),
         httpOnly: true,
         secure: !isDev,
@@ -43,26 +47,30 @@ export function setCookiesFromJWT(accessToken: string, refreshToken: string, res
 export function clearCookies(response: NextResponse<any>): NextResponse<any> {
     // extract the domain from the NEXT_PUBLIC_SITE_URL
     // and set it as the domain for the cookies
-    const domain = new URL(process.env.NEXT_PUBLIC_SITE_URL!).hostname
+    let { hostname } = new URL(process.env.NEXT_PUBLIC_SITE_URL!)
+
+    if (!hostname.includes("localhost") && !hostname.includes("127.0.0.1")) {
+      hostname = "measure.sh"
+    }
 
     const isDev = process.env.NODE_ENV === 'development'
 
     response.cookies.set('access_token', '', {
         path: '/',
-        domain: domain,
+        domain: hostname,
         maxAge: -1,
         httpOnly: true,
         secure: !isDev,
-        sameSite: isDev ? 'lax' : 'lax',
+        sameSite: isDev ? 'lax' : 'strict',
     })
 
     response.cookies.set('refresh_token', '', {
         path: '/',
-        domain: domain,
+        domain: hostname,
         maxAge: -1,
         httpOnly: true,
         secure: !isDev,
-        sameSite: isDev ? 'lax' : 'lax',
+        sameSite: isDev ? 'lax' : 'strict',
     })
 
     return response
