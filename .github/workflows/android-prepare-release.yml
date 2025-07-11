@@ -55,16 +55,16 @@ jobs:
 
       - name: Update version in README
         run: |
-          cd ../docs/android
+          cd ../docs
           # Update Groovy dependency
           GROOVY_PATTERN="implementation 'sh.measure:measure-android:.*'"
           GROOVY_REPLACEMENT="implementation 'sh.measure:measure-android:${{ inputs.version }}'"
-          sed -i "s/$GROOVY_PATTERN/$GROOVY_REPLACEMENT/" README.md
+          sed -i "s/$GROOVY_PATTERN/$GROOVY_REPLACEMENT/" sdk-integration-guide.md
           
           # Update Kotlin dependency
           KOTLIN_PATTERN='implementation("sh.measure:measure-android:.*")'
           KOTLIN_REPLACEMENT='implementation("sh.measure:measure-android:${{ inputs.version }}")'
-          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" README.md
+          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" sdk-integration-guide.md
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
