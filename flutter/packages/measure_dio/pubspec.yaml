@@ -12,7 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
   dio: ^5.3.4
-  measure_flutter: ^0.0.1
+  measure_flutter: ^0.1.0
 
 dependency_overrides:
   measure_flutter:

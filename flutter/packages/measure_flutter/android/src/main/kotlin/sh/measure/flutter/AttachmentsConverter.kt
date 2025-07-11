@@ -17,9 +17,6 @@ class AttachmentsConverter {
 
                     val name = jsonObject.getString("name")
                     val path = jsonObject.getString("path")
-                    if (path == null) {
-                        continue
-                    }
                     attachments.add(MsrAttachment(name = name, path = path, "screenshot"))
                 }
                 return attachments
