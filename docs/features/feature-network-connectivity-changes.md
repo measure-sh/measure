@@ -2,6 +2,7 @@
 
 * [**Android**](#android)
 * [**iOS**](#ios)]
+* [**Flutter**](#flutter)
 * [**Data collected**](#data-collected)
 
 Measure SDK captures changes to network connection state of the device. This includes changes to the type of network
@@ -32,6 +33,12 @@ To detect network changes, Measure relies on NWPathMonitor's `pathUpdateHandler`
 > [!IMPORTANT]  
 > Starting from iOS 16.4, access to the `network_provider` is no longer available and will be removed in a future 
 > release of the SDK. 
+
+
+## Flutter
+
+Network changes are collected for Flutter apps based on the platform the app is running on (Android or iOS). The SDK uses the
+same methods as described above for Android and iOS.
 
 ## Data collected
 

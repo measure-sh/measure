@@ -4,6 +4,7 @@
 * [2. Set Up the SDK](#2-set-up-the-sdk)
     * [Android](#android)
     * [iOS](#ios)
+    * [Flutter](#flutter)
 * [3. Verify Installation](#3-verify-installation)
 * [Troubleshoot](#troubleshoot)
 
@@ -27,6 +28,7 @@ in later steps.
 
 * [Android](#android)
 * [iOS](#ios)
+* [Flutter](#flutter)
 
 ## Android
 
@@ -53,13 +55,6 @@ in later steps.
 </details>
 
 ### Add the API Key & API URL
-
-There are two ways to set the API Key and API URL:
-
-* [Using Android Manifest](#using-android-manifest)
-* [During initialization](#during-initialization)
-
-#### Using Android Manifest
 
 Add the API URL & API Key to your application's `AndroidManifest.xml` file.
 
@@ -124,18 +119,6 @@ Then add the following in the `AndroidManifest.xml` file:
 
 </details>
 
-#### During initialization
-
-To set the API URL and API Key in code during initialization, set `ClientInfo` during
-initialization.
-
-```kotlin
-val clientInfo = ClientInfo(
-    apiKey = "<apiKey>",
-    apiUrl = "<apiUrl>"
-)
-Measure.init(context, clientInfoclientInfo)
-```
 
 ### Add the Gradle Plugin
 
@@ -325,6 +308,103 @@ func application(_ application: UIApplication,
 
 ```
 
+## Flutter
+
+The Flutter SDK currently supports only Android and iOS targets and is not available for web or desktop. The
+SDK depends on the native Android and iOS SDKs, so all the minimum requirements for Android and iOS apply to the
+Flutter SDK as well.
+
+<details>
+  <summary>Minimum Requirements</summary>
+
+| Name    | Version |
+|---------|---------|
+| Flutter | `3.10`  |
+
+</details>
+
+<details>
+    <summary>Self-host Compatibility</summary>
+
+| SDK Version | Minimum Required Self-host Version |
+|-------------|------------------------------------|
+| `0.1.0`     | `0.8.0`                            |
+
+</details>
+
+### Install the SDK
+
+Add the following dependency to your `pubspec.yaml` file:
+
+```yaml
+dependencies:
+  measure_flutter: ^0.1.0
+```
+
+### Initialize the SDK
+
+To initialize the SDK, you need to call the `Measure.instance.init` method in your `main` function.
+
+> ![IMPORTANT]
+> The `MeasureWidget` is a widget that wraps your app and allows the Measure SDK to inject instrumentation into your
+> app. Not using the `MeasureWidget` can result in certain features like screenshots to not work as expected.
+
+```dart
+Future<void> main() async {
+  await Measure.instance.init(
+        () =>
+        runApp(
+          MeasureWidget(child: MyApp()),
+        ),
+    config: const MeasureConfig(
+      enableLogging: true,
+      traceSamplingRate: 1,
+      samplingRateForErrorFreeSessions: 1,
+    ),
+    clientInfo: ClientInfo(
+      apiKey: "YOUR_API_KEY",
+      apiUrl: "YOUR_API_URL",
+    ),
+  );
+}
+```
+
+This does the following:
+
+* Initializes the Measure SDK with the provided `clientInfo` and `config`.
+* Wraps your app with the `MeasureWidget`.
+* Sets up the error handlers to track uncaught exceptions.
+* Initializes the native Measure SDKs for Android and iOS with the same `clientInfo` and `config`.
+
+### Setup Android Gradle Plugin
+
+To ensure stacktraces in crash reports are symbolicated correctly, you need to add the Measure Android Gradle Plugin
+to your `android/build.gradle` file. This plugin automatically uploads the Flutter symbol files to the Measure server
+when you build your app. See the [Add the Gradle Plugin](#add-the-gradle-plugin) section above for instructions.
+
+### Setup Android Manifest
+
+Add the API URL & API Key to your application's `AndroidManifest.xml` file. This is required by
+the Android Gradle Plugin to upload mapping and symbol files automatically to the Measure server.
+
+```xml
+
+<application>
+    <meta-data android:name="sh.measure.android.API_KEY" android:value="YOUR_API_KEY"/>
+    <meta-data android:name="sh.measure.android.API_URL" android:value="YOUR_API_URL"/>
+</application>
+```
+
+### Track navigation
+
+See [Navigation Monitoring](features/feature-navigation-lifecycle-tracking.md) for instructions on how to track
+navigation events.
+
+### Track http requests
+
+See [Network Monitoring](features/feature-network-monitoring.md) for instructions on how to track HTTP requests.
+
+
 ## 3. Verify Installation
 
 Launch the app with the SDK integrated and navigate through a few screens. The data is sent to the server periodically,
@@ -367,6 +447,28 @@ Measure.initialize(with: clientInfo, config: config)
 
 </details>
 
+<details>
+    <summary>Flutter</summary>
+
+```dart
+await Measure.instance.init(
+    () => runApp(
+      MeasureWidget(child: MyApp()),
+    ),
+    config: const MeasureConfig(
+      // Set to 1 to track all sessions
+      // useful to verify the installation
+      samplingRateForErrorFreeSessions: 1,
+    ),
+    clientInfo: ClientInfo(
+      apiKey: "YOUR_API_KEY",
+      apiUrl: "YOUR_API_URL",
+    ),
+);
+```
+
+</details>
+
 ### Verify API URL and API Key
 
 If you are not seeing any data in the dashboard, verify that the API URL and API key are set correctly in your app.
@@ -394,6 +496,31 @@ let config = BaseMeasureConfig()
 let clientInfo = ClientInfo(apiKey: "<apiKey>", apiUrl: "<apiUrl>")
 Measure.initialize(with: clientInfo, config: config)
 ```
+
+</details>
+
+<details>
+    <summary>Flutter</summary>
+
+Verify the API URL and API key are set correctly in the `ClientInfo` object when initializing the SDK.
+
+```dart
+await Measure.instance.init(
+    () => runApp(
+      MeasureWidget(child: MyApp()),
+    ),
+    config: const MeasureConfig(
+      samplingRateForErrorFreeSessions: 1,
+    ),
+    clientInfo: ClientInfo(
+      apiKey: "YOUR_API_KEY",
+      apiUrl: "YOUR_API_URL",
+    ),
+);
+```
+
+When running on Android do ensure the same API URL and API key are set in the `AndroidManifest.xml` file as well as
+it's required for the Android Gradle Plugin to upload mapping and symbol files automatically to the Measure server.
 
 </details>
 
@@ -445,6 +572,23 @@ Measure.initialize(with: clientInfo, config: config)
 
 </details>
 
+<details>
+    <summary>Flutter</summary>
+
+Enable logging during SDK initialization.
+
+```dart
+await Measure.instance.init(
+    () => runApp(
+      MeasureWidget(child: MyApp()),
+    ),
+    config: const MeasureConfig(
+      enableLogging: true,
+    ),
+);
+```
+</details>
+
 ### Connecting to a Self-hosted Server
 
 If you are hosting the server in cloud. Make sure the API URL is set to the public URL of your server.
@@ -452,5 +596,6 @@ For example: set the API URL to `https://measure-api.<your-domain>.com`, replaci
 
 ### Contact Support
 
-If none of the above steps resolve the issue, feel free to reach out to us on [Discord](https://discord.gg/f6zGkBCt42) for further
+If none of the above steps resolve the issue, feel free to reach out to us on [Discord](https://discord.gg/f6zGkBCt42)
+for further
 assistance.
