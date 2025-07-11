@@ -10,14 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :bug: Bug fixes
 
 
+- (**ios**): Convert float to int safely (#2381)
 - (**ios**): Generate non nil network attributes for first event (#2372)
 - (**ios**): Make attribute processor thread safe (#2351)
 - (**ios**): Prevent network change callback from firing on SDK initialisation (#2345)
-- (**ios**): convert float to int safely (#2381)
 
 ### :hammer: Misc
 
 
+- (**ios**): Prepare sdk release 0.5.0 (#2376)
 - (**ios**): Update apis to support objc initialisation (#2374)
 - (**ios**): Update shake detector api (#2365)
 - (**ios**): Remove shake to launch bug report config (#2358)
