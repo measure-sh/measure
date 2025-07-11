@@ -45,10 +45,6 @@ jobs:
             exit 1
           fi
 
-      - name: Create release branch
-        run: |
-          git checkout -b android-v${{ inputs.version }}
-
       - name: Update version in gradle.properties
         run: |
           sed -i "s/MEASURE_VERSION_NAME=.*/MEASURE_VERSION_NAME=${{ inputs.version }}/" gradle.properties
@@ -66,15 +62,11 @@ jobs:
           KOTLIN_REPLACEMENT='implementation("sh.measure:measure-android:${{ inputs.version }}")'
           sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" sdk-integration-guide.md
 
-      - name: Commit changes
-        run: |
-          git add ../docs/sdk-integration-guide.md gradle.properties
-          git commit -m "chore(android): prepare sdk release ${{ inputs.version }}"
-
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+          commit-message: "chore(android): prepare sdk release ${{ inputs.version }}"
           branch: android-v${{ inputs.version }}
           delete-branch: false
           title: "chore(android): prepare sdk release ${{ inputs.version }}"
