@@ -149,33 +149,33 @@ class Attributes: Codable {
     }
 
     init(dict: [String: Any?]) {
-        self.threadName = dict["threadName"] as? String
-        self.deviceName = dict["deviceName"] as? String
-        self.deviceModel = dict["deviceModel"] as? String
-        self.deviceManufacturer = dict["deviceManufacturer"] as? String
-        self.deviceType = (dict["deviceType"] as? String).flatMap(DeviceType.init)
-        self.deviceIsFoldable = dict["deviceIsFoldable"] as? Bool
-        self.deviceIsPhysical = dict["deviceIsPhysical"] as? Bool
-        self.deviceDensityDpi = dict["deviceDensityDpi"] as? Number
-        self.deviceWidthPx = dict["deviceWidthPx"] as? Number
-        self.deviceHeightPx = dict["deviceHeightPx"] as? Number
-        self.deviceDensity = dict["deviceDensity"] as? Number
-        self.deviceLocale = dict["deviceLocale"] as? String
-        self.osName = dict["osName"] as? String
-        self.osVersion = dict["osVersion"] as? String
+        self.threadName = dict["thread_name"] as? String
+        self.deviceName = dict["device_name"] as? String
+        self.deviceModel = dict["device_model"] as? String
+        self.deviceManufacturer = dict["device_manufacturer"] as? String
+        self.deviceType = (dict["device_type"] as? String).flatMap(DeviceType.init)
+        self.deviceIsFoldable = dict["device_is_foldable"] as? Bool
+        self.deviceIsPhysical = dict["device_is_physical"] as? Bool
+        self.deviceDensityDpi = dict["device_density_dpi"] as? Number
+        self.deviceWidthPx = dict["device_width_px"] as? Number
+        self.deviceHeightPx = dict["device_height_px"] as? Number
+        self.deviceDensity = dict["device_density"] as? Number
+        self.deviceLocale = dict["device_locale"] as? String
+        self.osName = dict["os_name"] as? String
+        self.osVersion = dict["os_version"] as? String
         self.platform = dict["platform"] as? String ?? AttributeConstants.platform
-        self.networkType = (dict["networkType"] as? String).flatMap(NetworkType.init)
-        self.networkGeneration = (dict["networkGeneration"] as? String).flatMap(NetworkGeneration.init)
-        self.networkProvider = dict["networkProvider"] as? String
-        self.installationId = dict["installationId"] as? String ?? ""
-        self.userId = dict["userId"] as? String
-        self.deviceCpuArch = dict["deviceCpuArch"] as? String
-        self.appVersion = dict["appVersion"] as? String ?? ""
-        self.appBuild = dict["appBuild"] as? String ?? ""
-        self.measureSdkVersion = dict["measureSdkVersion"] as? String ?? ""
-        self.appUniqueId = dict["appUniqueId"] as? String ?? ""
-        self.deviceThermalThrottlingEnabled = dict["deviceThermalThrottlingEnabled"] as? Bool
-        self.deviceLowPowerMode = dict["deviceLowPowerMode"] as? Bool
-        self.osPageSize = dict["osPageSize"] as? UInt8
+        self.networkType = (dict["network_type"] as? String).flatMap(NetworkType.init)
+        self.networkGeneration = (dict["network_generation"] as? String).flatMap(NetworkGeneration.init)
+        self.networkProvider = dict["network_provider"] as? String
+        self.installationId = dict["installation_id"] as? String ?? ""
+        self.userId = dict["user_id"] as? String
+        self.deviceCpuArch = dict["device_cpu_arch"] as? String
+        self.appVersion = dict["app_version"] as? String ?? ""
+        self.appBuild = dict["app_build"] as? String ?? ""
+        self.measureSdkVersion = dict["measure_sdk_version"] as? String ?? ""
+        self.appUniqueId = dict["app_unique_id"] as? String ?? ""
+        self.deviceThermalThrottlingEnabled = dict["device_thermal_throttling_enabled"] as? Bool
+        self.deviceLowPowerMode = dict["device_low_power_mode"] as? Bool
+        self.osPageSize = dict["os_page_size"] as? UInt8
     }
 }

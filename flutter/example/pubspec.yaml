@@ -1,7 +1,7 @@
 name: measure_flutter_example
 description: "Demonstrates how to use the measure_flutter plugin."
 publish_to: 'none'
-version: 0.0.1+2
+version: 0.0.1+3
 
 environment:
   sdk: ^3.6.1
