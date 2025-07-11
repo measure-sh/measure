@@ -25,7 +25,7 @@ export function setCookiesFromJWT(accessToken: string, refreshToken: string, res
         maxAge: Math.floor((accessExp.getTime() - Date.now()) / 1000),
         httpOnly: true,
         secure: !isDev,
-        sameSite: isDev ? 'lax' : 'lax',
+        sameSite: isDev ? 'lax' : 'strict',
     })
 
     response.cookies.set('refresh_token', refreshToken, {
@@ -34,7 +34,7 @@ export function setCookiesFromJWT(accessToken: string, refreshToken: string, res
         maxAge: Math.floor((refreshExp.getTime() - Date.now()) / 1000),
         httpOnly: true,
         secure: !isDev,
-        sameSite: isDev ? 'lax' : 'lax',
+        sameSite: isDev ? 'lax' : 'strict',
     })
 
     return response
