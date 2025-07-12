@@ -18,16 +18,9 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
-// extractToken extracts the access token
-// from the cookie or Authorization header.
+// extractToken extracts the bearer token
+// from the Authorization header.
 func extractToken(c *gin.Context) (token string) {
-	// Try cookie first
-	token, err := c.Cookie("access_token")
-	if err == nil && token != "" {
-		return token
-	}
-
-	// Fallback to Authorization header for API clients
 	authHeader := c.GetHeader("Authorization")
 	splitToken := strings.Split(authHeader, "Bearer ")
 
@@ -44,19 +37,6 @@ func extractToken(c *gin.Context) (token string) {
 	}
 
 	return
-}
-
-// extractRefreshToken extracts the refresh token
-// from the cookie or Authorization header
-func extractRefreshToken(c *gin.Context) (token string) {
-	// Try cookie first
-	token, err := c.Cookie("refresh_token")
-	if err == nil && token != "" {
-		return token
-	}
-
-	// Fallback to Authorization header
-	return extractToken(c)
 }
 
 // ValidateAPIKey validates the Measure API key.
@@ -87,11 +67,28 @@ func ValidateAPIKey() gin.HandlerFunc {
 // ValidateAccessToken validates Measure access tokens.
 func ValidateAccessToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := extractToken(c)
+		token, err := c.Cookie("access_token")
+		if err != nil {
+			msg := "failed to read access token from cookie"
+			fmt.Println(msg, err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": msg,
+			})
+			return
+		}
 
-		accessToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		if token == "" {
+			msg := "access token is empty"
+			fmt.Println(msg)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		accessToken, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				err := fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+				err := fmt.Errorf("unexpected signing method: %v\n", token.Header["alg"])
 				return nil, err
 			}
 
@@ -138,11 +135,28 @@ func ValidateAccessToken() gin.HandlerFunc {
 // ValidateRefreshToken validates the Measure refresh token.
 func ValidateRefreshToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := extractRefreshToken(c)
+		token, err := c.Cookie("refresh_token")
+		if err != nil {
+			msg := "failed to read refresh token from cookie"
+			fmt.Println(msg, err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": msg,
+			})
+			return
+		}
 
-		refreshToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		if token == "" {
+			msg := "refresh token is empty"
+			fmt.Println(msg)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		refreshToken, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				err := fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+				err := fmt.Errorf("unexpected signing method: %v\n", token.Header["alg"])
 				return nil, err
 			}
 
@@ -775,7 +789,7 @@ func GetAuthSession(c *gin.Context) {
 
 	// parse avatar url from user meta
 	// depending on the oauth provider
-	var userMeta map[string]interface{}
+	var userMeta map[string]any
 	if err := json.Unmarshal(session.UserMeta, &userMeta); err != nil {
 		msg := "failed to parse user meta data"
 		fmt.Println(msg, err)
