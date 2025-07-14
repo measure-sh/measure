@@ -1,31 +1,31 @@
-import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 
 export type MeasureAuthSession = {
   user: {
-    id: string;
-    own_team_id: string;
-    name: string;
-    email: string;
-    avatar_url: string;
-    confirmed_at: string;
-    last_sign_in_at: string;
-    created_at: string;
-    updated_at: string;
-  };
-};
+    id: string
+    own_team_id: string
+    name: string
+    email: string
+    avatar_url: string
+    confirmed_at: string
+    last_sign_in_at: string
+    created_at: string
+    updated_at: string
+  }
+}
 
 export type OAuthState = {
-  random: string;
-  path: string;
-};
+  random: string
+  path: string
+}
 
 export type OAuthOptions = {
-  clientId: string | undefined;
+  clientId: string | undefined
   options: {
-    redirectTo: URL | string;
-    next: URL | string;
-  };
-};
+    redirectTo: URL | string
+    next: URL | string
+  }
+}
 
 /**
  * MeasureAuth encapsulates login, logout and session management.
@@ -34,42 +34,42 @@ export type OAuthOptions = {
  * request cancellation.
  */
 export class MeasureAuth {
-  private inFlightRequests = new Map<string, AbortController>();
-  private router: AppRouterInstance | null = null;
+  private inFlightRequests = new Map<string, AbortController>()
+  private router: AppRouterInstance | null = null
 
   /**
    * Initializes the auth module
    */
   public init(router: AppRouterInstance): void {
-    this.router = router;
+    this.router = router
   }
 
   private base64UrlEncode(input: string) {
-    let base64 = btoa(input);
-    return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    let base64 = btoa(input)
+    return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
   }
 
   public encodeOAuthState(path: string = ""): string {
     const state: OAuthState = {
       random: this.getRandomValues(32),
       path,
-    };
-    const json = JSON.stringify(state);
-    return this.base64UrlEncode(json);
+    }
+    const json = JSON.stringify(state)
+    return this.base64UrlEncode(json)
   }
 
   private getRandomValues(len: number): string {
-    const arr = crypto.getRandomValues(new Uint8Array(len));
+    const arr = crypto.getRandomValues(new Uint8Array(len))
     return Array.from(arr, (byte) => byte.toString(16).padStart(2, "0")).join(
       "",
-    );
+    )
   }
 
   private redirectToLogin(): void {
     if (!this.router) {
-      throw new Error("Router is not initialized. Call `init` method first.");
+      throw new Error("Router is not initialized. Call `init` method first.")
     }
-    this.router.replace("/auth/login");
+    this.router.replace("/auth/login")
   }
 
   /**
@@ -81,37 +81,37 @@ export class MeasureAuth {
     options: OAuthOptions,
   ): Promise<{ url?: URL; error?: Error }> {
     if (!options.clientId) {
-      throw new Error("`clientId` is required");
+      throw new Error("`clientId` is required")
     }
-    const state = this.encodeOAuthState(options.options.next.toString());
+    const state = this.encodeOAuthState(options.options.next.toString())
     // Determine the endpoint based on the provider.
-    const body = JSON.stringify({ type: "init", state });
+    const body = JSON.stringify({ type: "init", state })
     const res = await fetch("/api/auth/github", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body,
-    });
-    const json = await res.json();
+    })
+    const json = await res.json()
 
-    let error: Error | undefined;
+    let error: Error | undefined
     if (res.status === 400) {
-      error = new Error(`Bad request: ${json?.error}`);
+      error = new Error(`Bad request: ${json?.error}`)
     } else if (res.status === 401) {
-      error = new Error(`Unauthorized: ${json?.error}`);
+      error = new Error(`Unauthorized: ${json?.error}`)
     }
     if (error) {
-      return { error };
+      return { error }
     }
     // Construct the OAuth URL.
-    const oauthUrl = new URL("https://github.com/login/oauth/authorize");
-    oauthUrl.searchParams.append("scope", "user:email read:user");
-    oauthUrl.searchParams.append("client_id", options.clientId);
-    oauthUrl.searchParams.append("state", state);
+    const oauthUrl = new URL("https://github.com/login/oauth/authorize")
+    oauthUrl.searchParams.append("scope", "user:email read:user")
+    oauthUrl.searchParams.append("client_id", options.clientId)
+    oauthUrl.searchParams.append("state", state)
     oauthUrl.searchParams.append(
       "redirect_uri",
       options.options.redirectTo.toString(),
-    );
-    return { url: oauthUrl };
+    )
+    return { url: oauthUrl }
   }
 
   /**
@@ -123,16 +123,16 @@ export class MeasureAuth {
     | { session: MeasureAuthSession; error: null }
   > {
     try {
-      const res = await this.fetchMeasure(`/api/auth/session`);
+      const res = await this.fetchMeasure(`/api/auth/session`)
 
       if (!res.ok) {
-        throw new Error("Failed to retrieve session data");
+        throw new Error("Failed to retrieve session data")
       }
 
-      const data = await res.json();
+      const data = await res.json()
 
       if (!data.user) {
-        return { session: null, error: new Error("No user in session") };
+        return { session: null, error: new Error("No user in session") }
       }
 
       // Construct a session object from the response
@@ -148,9 +148,9 @@ export class MeasureAuth {
           created_at: data.user.created_at,
           updated_at: data.user.updated_at,
         },
-      };
+      }
 
-      return { session, error: null };
+      return { session, error: null }
     } catch (error) {
       return {
         session: null,
@@ -158,7 +158,7 @@ export class MeasureAuth {
           error instanceof Error
             ? error
             : new Error("Unknown error getting session"),
-      };
+      }
     }
   }
 
@@ -167,22 +167,22 @@ export class MeasureAuth {
    * @private
    */
   private async refreshToken(): Promise<Response> {
-    const refreshEndpoint = `/auth/refresh`;
+    const refreshEndpoint = `/auth/refresh`
 
     // Create a separate controller for the refresh request
-    const controller = new AbortController();
+    const controller = new AbortController()
 
     const config: RequestInit = {
       method: "POST",
       credentials: "include",
       signal: controller.signal,
-    };
+    }
 
     try {
-      return await fetch(refreshEndpoint, config);
+      return await fetch(refreshEndpoint, config)
     } catch (error) {
-      console.error("Failed to refresh token:", error);
-      throw error;
+      console.error("Failed to refresh token:", error)
+      throw error
     }
   }
 
@@ -193,10 +193,10 @@ export class MeasureAuth {
     await fetch(`/auth/logout`, {
       method: "DELETE",
       credentials: "include",
-    });
+    })
 
     // Redirect to login page after successful logout
-    this.redirectToLogin();
+    this.redirectToLogin()
   }
 
   /**
@@ -209,42 +209,42 @@ export class MeasureAuth {
     redirectToLogin: Boolean = true,
   ): Promise<Response> {
     const getEndpoint = (res: string | Request | URL): string => {
-      let urlStr: string;
+      let urlStr: string
       if (res instanceof Request) {
-        urlStr = res.url;
+        urlStr = res.url
       } else if (res instanceof URL) {
-        urlStr = res.toString();
+        urlStr = res.toString()
       } else {
-        urlStr = res;
+        urlStr = res
       }
       try {
-        const url = new URL(urlStr);
-        return `${url.origin}${url.pathname}`;
+        const url = new URL(urlStr)
+        return `${url.origin}${url.pathname}`
       } catch {
-        return urlStr.split("?")[0];
+        return urlStr.split("?")[0]
       }
-    };
+    }
 
-    const endpoint = getEndpoint(resource);
+    const endpoint = getEndpoint(resource)
 
     // Skip token refresh if we're already refreshing
-    const isRefreshRequest = endpoint === `/auth/refresh`;
+    const isRefreshRequest = endpoint === `/auth/refresh`
 
     // Abort existing requests for the same endpoint unless it's a GET or if it's shortFilters request
-    const existingController = this.inFlightRequests.get(endpoint);
+    const existingController = this.inFlightRequests.get(endpoint)
     const isGetRequest =
-      (config.method ? config.method.toLowerCase() : "get") === "get";
+      (config.method ? config.method.toLowerCase() : "get") === "get"
     if (
       existingController &&
       !isGetRequest &&
       !endpoint.includes("shortFilters")
     ) {
-      existingController.abort();
-      this.inFlightRequests.delete(endpoint);
+      existingController.abort()
+      this.inFlightRequests.delete(endpoint)
     }
 
-    const controller = new AbortController();
-    this.inFlightRequests.set(endpoint, controller);
+    const controller = new AbortController()
+    this.inFlightRequests.set(endpoint, controller)
 
     const newConfig: RequestInit = {
       ...config,
@@ -253,22 +253,22 @@ export class MeasureAuth {
       headers: {
         ...(config.headers || {}),
       },
-    };
+    }
 
     try {
       // Make the request
-      let response = await fetch(resource, newConfig);
+      let response = await fetch(resource, newConfig)
 
       // If we get a 401 Unauthorized and it's not already a refresh request
       if (response.status === 401 && !isRefreshRequest) {
         // Try to refresh the token
-        const refreshResponse = await this.refreshToken();
+        const refreshResponse = await this.refreshToken()
 
         // If refresh was successful, retry the original request
         if (refreshResponse.ok) {
-          this.inFlightRequests.delete(endpoint);
-          const retryController = new AbortController();
-          this.inFlightRequests.set(endpoint, retryController);
+          this.inFlightRequests.delete(endpoint)
+          const retryController = new AbortController()
+          this.inFlightRequests.set(endpoint, retryController)
 
           const retryConfig: RequestInit = {
             ...config,
@@ -277,30 +277,30 @@ export class MeasureAuth {
             headers: {
               ...(config.headers || {}),
             },
-          };
+          }
 
-          response = await fetch(resource, retryConfig);
+          response = await fetch(resource, retryConfig)
 
           if (response.status === 401 && redirectToLogin) {
             // If response is still 401 after refresh and retry has been attempted, redirect to login
-            this.redirectToLogin();
+            this.redirectToLogin()
           }
         } else if (refreshResponse.status === 401 && redirectToLogin) {
           // If refresh token is also expired, redirect to login
-          this.redirectToLogin();
+          this.redirectToLogin()
         }
       }
 
-      return response;
+      return response
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
-        console.log(`Request to ${endpoint} was cancelled`);
+        console.log(`Request to ${endpoint} was cancelled`)
       }
-      throw error;
+      throw error
     } finally {
-      this.inFlightRequests.delete(endpoint);
+      this.inFlightRequests.delete(endpoint)
     }
   }
 }
 
-export const measureAuth = new MeasureAuth();
+export const measureAuth = new MeasureAuth()
