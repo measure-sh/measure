@@ -18,9 +18,16 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
-// extractToken extracts the bearer token
-// from the Authorization header.
+// extractToken extracts the access token
+// from the cookie or Authorization header.
 func extractToken(c *gin.Context) (token string) {
+	// Try cookie first
+	token, err := c.Cookie("access_token")
+	if err == nil && token != "" {
+		return token
+	}
+
+	// Fallback to Authorization header for API clients
 	authHeader := c.GetHeader("Authorization")
 	splitToken := strings.Split(authHeader, "Bearer ")
 
@@ -37,6 +44,19 @@ func extractToken(c *gin.Context) (token string) {
 	}
 
 	return
+}
+
+// extractRefreshToken extracts the refresh token
+// from the cookie or Authorization header
+func extractRefreshToken(c *gin.Context) (token string) {
+	// Try cookie first
+	token, err := c.Cookie("refresh_token")
+	if err == nil && token != "" {
+		return token
+	}
+
+	// Fallback to Authorization header
+	return extractToken(c)
 }
 
 // ValidateAPIKey validates the Measure API key.
@@ -67,24 +87,7 @@ func ValidateAPIKey() gin.HandlerFunc {
 // ValidateAccessToken validates Measure access tokens.
 func ValidateAccessToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token, err := c.Cookie("access_token")
-		if err != nil {
-			msg := "failed to read access token from cookie"
-			fmt.Println(msg, err)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": msg,
-			})
-			return
-		}
-
-		if token == "" {
-			msg := "access token is empty"
-			fmt.Println(msg)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": msg,
-			})
-			return
-		}
+		token := extractToken(c)
 
 		accessToken, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -135,24 +138,7 @@ func ValidateAccessToken() gin.HandlerFunc {
 // ValidateRefreshToken validates the Measure refresh token.
 func ValidateRefreshToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token, err := c.Cookie("refresh_token")
-		if err != nil {
-			msg := "failed to read refresh token from cookie"
-			fmt.Println(msg, err)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": msg,
-			})
-			return
-		}
-
-		if token == "" {
-			msg := "refresh token is empty"
-			fmt.Println(msg)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": msg,
-			})
-			return
-		}
+		token := extractRefreshToken(c)
 
 		refreshToken, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
