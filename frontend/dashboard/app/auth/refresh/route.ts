@@ -1,32 +1,32 @@
-import { NextResponse } from "next/server";
-import { setCookiesFromJWT } from "../cookie";
+import { NextResponse } from "next/server"
+import { setCookiesFromJWT } from "../cookie"
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"
 
-const origin = process?.env?.NEXT_PUBLIC_SITE_URL;
-const apiOrigin = process?.env?.API_BASE_URL;
-const errRedirectUrl = `${origin}/auth/login`;
+const origin = process?.env?.NEXT_PUBLIC_SITE_URL
+const apiOrigin = process?.env?.API_BASE_URL
+const errRedirectUrl = `${origin}/auth/login`
 
 export async function POST(request: Request) {
-  const cookies = request.headers.get("cookie");
-  const headers = new Headers(request.headers);
-  headers.set("cookie", cookies || "");
+  const cookies = request.headers.get("cookie")
+  const headers = new Headers(request.headers)
+  headers.set("cookie", cookies || "")
   const res = await fetch(`${apiOrigin}/auth/refresh`, {
     method: "POST",
     headers: headers,
-  });
+  })
 
   if (!res.ok) {
     console.log(
       `Refresh token failure: post /auth/refresh returned ${res.status}`,
-    );
-    return NextResponse.redirect(errRedirectUrl, { status: 302 });
+    )
+    return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
-  const data = await res.json();
+  const data = await res.json()
   if (data.error) {
-    console.log(`Logout failure: post /auth/refresh returned ${data.error}`);
-    return NextResponse.redirect(errRedirectUrl, { status: 302 });
+    console.log(`Logout failure: post /auth/refresh returned ${data.error}`)
+    return NextResponse.redirect(errRedirectUrl, { status: 302 })
   }
 
   let response = NextResponse.json(
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     {
       status: 200,
     },
-  );
+  )
 
-  return setCookiesFromJWT(data.access_token, data.refresh_token, response);
+  return setCookiesFromJWT(data.access_token, data.refresh_token, response)
 }
