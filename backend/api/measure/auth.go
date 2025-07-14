@@ -89,9 +89,9 @@ func ValidateAccessToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := extractToken(c)
 
-		accessToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		accessToken, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				err := fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+				err := fmt.Errorf("unexpected signing method: %v\n", token.Header["alg"])
 				return nil, err
 			}
 
@@ -140,9 +140,9 @@ func ValidateRefreshToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := extractRefreshToken(c)
 
-		refreshToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		refreshToken, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				err := fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+				err := fmt.Errorf("unexpected signing method: %v\n", token.Header["alg"])
 				return nil, err
 			}
 
@@ -775,7 +775,7 @@ func GetAuthSession(c *gin.Context) {
 
 	// parse avatar url from user meta
 	// depending on the oauth provider
-	var userMeta map[string]interface{}
+	var userMeta map[string]any
 	if err := json.Unmarshal(session.UserMeta, &userMeta); err != nil {
 		msg := "failed to parse user meta data"
 		fmt.Println(msg, err)
