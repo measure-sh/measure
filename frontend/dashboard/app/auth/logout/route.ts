@@ -1,26 +1,26 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from "next/server"
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"
 
-const origin = process?.env?.NEXT_PUBLIC_SITE_URL;
-const apiOrigin = process?.env?.API_BASE_URL;
+const origin = process?.env?.NEXT_PUBLIC_SITE_URL
+const apiOrigin = process?.env?.API_BASE_URL
 
 export async function DELETE(request: Request) {
-  const cookies = request.headers.get("cookie");
-  const headers = new Headers(request.headers);
-  headers.set("cookie", cookies || "");
+  const cookies = request.headers.get("cookie")
+  const headers = new Headers(request.headers)
+  headers.set("cookie", cookies || "")
   const res = await fetch(`${apiOrigin}/auth/signout`, {
     method: "DELETE",
     headers: headers,
-  });
+  })
 
   if (!res.ok) {
-    console.log(`Logout failure: post /auth/signout returned ${res.status}`);
+    console.log(`Logout failure: post /auth/signout returned ${res.status}`)
   }
 
-  const data = await res.json();
+  const data = await res.json()
   if (data.error) {
-    console.log(`Logout failure: post /auth/signout returned ${data.error}`);
+    console.log(`Logout failure: post /auth/signout returned ${data.error}`)
   }
 
   // Create a response with redirect
@@ -28,10 +28,10 @@ export async function DELETE(request: Request) {
     // Redirect to login page
     new URL(`${origin}/auth/login`),
     { status: 303 },
-  );
+  )
 
-  response.cookies.delete("access_token");
-  response.cookies.delete("refresh_token");
+  response.cookies.delete("access_token")
+  response.cookies.delete("refresh_token")
 
-  return response;
+  return response
 }
