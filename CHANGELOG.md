@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :bug: Bug fixes
+
+- (**backend**): Builds api would fail when no mappings present (#2420) by @detj in #2420
+
 ### :hammer: Misc
 
 - (**backend**): Upgrade to orhun/git-cliff-action@v4 (#2417) by @detj in #2417
