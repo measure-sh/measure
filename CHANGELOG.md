@@ -106,6 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**backend**): Add smtp configuration to self host guide (#2412) by @detj in #2412
 - (**backend**): Update sdk api documentation by @detj
 - (**backend**): Update clickhouse migration docs (#2264) by @detj in #2264
 - (**backend**): Add low memory note for podman on macos (#2169) by @detj in #2169
