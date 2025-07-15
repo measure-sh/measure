@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 COPY . .
-RUN npm run build
+RUN API_BASE_URL=http://api:8080 npm run build
 
 FROM base
 WORKDIR /app

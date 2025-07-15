@@ -5,7 +5,6 @@ services:
     environment:
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
-      - API_BASE_URL=http://api:8080
     volumes: !reset null
     restart: unless-stopped
     logging:
