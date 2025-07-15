@@ -15,12 +15,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: 'main'
+          ref: "main"
           fetch-depth: 0
           token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
 
       - name: Generate changelog
-        uses: orhun/git-cliff-action@v3
+        uses: orhun/git-cliff-action@v4
         with:
           config: cliff.toml
           args: --verbose --bump
@@ -38,7 +38,7 @@ jobs:
           git push
 
       - name: Generate release notes
-        uses: orhun/git-cliff-action@v3
+        uses: orhun/git-cliff-action@v4
         id: git-cliff
         with:
           config: cliff.toml
