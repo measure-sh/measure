@@ -155,15 +155,6 @@ class ConfigProviderTest {
     }
 
     @Test
-    fun `shouldTrackHttpHeader returns false if trackHttpHeaders is set to false`() {
-        val configProvider = ConfigProviderImpl(
-            defaultConfig = Config(trackHttpHeaders = false),
-            configLoader = configLoader,
-        )
-        Assert.assertFalse(configProvider.shouldTrackHttpHeader("key1"))
-    }
-
-    @Test
     fun `shouldTrackHttpHeader returns true for a allowed header`() {
         val configProvider = ConfigProviderImpl(
             defaultConfig = Config(trackHttpHeaders = true, httpHeadersBlocklist = listOf("key1")),

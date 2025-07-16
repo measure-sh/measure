@@ -2,63 +2,18 @@ package sh.measure.android.bugreport
 
 import org.junit.After
 import org.junit.Test
-import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 
 class ShakeBugReportCollectorTest {
     private val shakeDetector = mock(ShakeDetector::class.java)
     private val listener = mock(MsrShakeListener::class.java)
-    private val collector = ShakeBugReportCollector(false, shakeDetector)
+    private val collector = ShakeBugReportCollector(shakeDetector)
 
     @After
     fun tearDown() {
         Mockito.reset(shakeDetector, listener)
-    }
-
-    @Test
-    fun `auto launch enabled should start shake detector`() {
-        // When
-        ShakeBugReportCollector(autoLaunchEnabled = true, shakeDetector)
-
-        // Then
-        verify(shakeDetector).start()
-    }
-
-    @Test
-    fun `enableAutoLaunch should start shake detector`() {
-        // When
-        collector.enableAutoLaunch(true)
-
-        // Then
-        verify(shakeDetector).start()
-    }
-
-    @Test
-    fun `disableAutoLaunch should stop shake detector`() {
-        // Given
-        collector.enableAutoLaunch(true)
-
-        // When
-        collector.disableAutoLaunch()
-
-        // Then
-        verify(shakeDetector).stop()
-    }
-
-    @Test
-    fun `setShakeListener should not set listener when autoLaunch is enabled`() {
-        // Given
-        collector.enableAutoLaunch(true)
-
-        // When
-        collector.setShakeListener(listener)
-
-        // Then
-        // It's called once by enableAutoLaunch
-        verify(shakeDetector, times(1)).setShakeListener(any())
     }
 
     @Test

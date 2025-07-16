@@ -1,11 +1,11 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
-import Journey, { JourneyType } from "@/app/components/journey"
-import MetricsOverview from '@/app/components/metrics_overview'
 import { FilterSource } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
+import MetricsOverview from '@/app/components/metrics_overview'
+import SessionsVsExceptionsPlot from '@/app/components/sessions_vs_exceptions_overview_plot'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 interface PageState {
   filters: typeof defaultFilters
@@ -15,7 +15,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   const router = useRouter()
 
   const initialState: PageState = {
-    filters: defaultFilters
+    filters: defaultFilters,
   }
 
   const [pageState, setPageState] = useState<PageState>(initialState)
@@ -54,7 +54,6 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         teamId={params.teamId}
         filterSource={FilterSource.Events}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
-        showCreateApp={true}
         showNoData={true}
         showNotOnboarded={true}
         showAppSelector={true}
@@ -76,21 +75,15 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
       <div className="py-2" />
 
-      {pageState.filters.ready &&
-        <div className='w-full h-[600px]'>
-          <Journey
-            teamId={params.teamId}
-            bidirectional={false}
-            journeyType={JourneyType.Overview}
-            exceptionsGroupId={null}
-            filters={pageState.filters} />
-        </div>
-      }
-      <div className="py-8" />
-
-      {pageState.filters.ready &&
-        <MetricsOverview
-          filters={pageState.filters} />}
+      {pageState.filters.ready && (
+        <>
+          <SessionsVsExceptionsPlot filters={pageState.filters} />
+          <div className="py-8" />
+          {pageState.filters.ready &&
+            <MetricsOverview
+              filters={pageState.filters} />}
+        </>
+      )}
     </div>
   )
 }

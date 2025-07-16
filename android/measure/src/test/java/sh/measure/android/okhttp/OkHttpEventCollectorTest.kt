@@ -8,6 +8,7 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert
 import org.junit.Test
+import org.mockito.Mockito
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.times
@@ -17,6 +18,7 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.TestClock
@@ -26,10 +28,12 @@ class OkHttpEventCollectorTest {
     private val logger = NoopLogger()
     private val signalProcessor = mock<SignalProcessor>()
     private val timeProvider = AndroidTimeProvider(TestClock.create())
+    private val configProvider = FakeConfigProvider()
     private val okHttpEventCollector: OkHttpEventCollector = OkHttpEventCollectorImpl(
         logger,
         signalProcessor,
         timeProvider,
+        configProvider,
     )
     private val mockWebServer = MockWebServer()
     private val clientWithInterceptor: OkHttpClient = OkHttpClient.Builder()
@@ -487,6 +491,111 @@ class OkHttpEventCollectorTest {
         Assert.assertNotNull(actualData.end_time)
     }
 
+    @Test
+    fun `does not track event if trackHttpUrl is false`() {
+        configProvider.shouldTrackHttpUrl = false
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest(url = "http://localhost:8080/")
+
+        // Then
+        Mockito.verifyNoInteractions(signalProcessor)
+    }
+
+    @Test
+    fun `does not track headers if trackHttpHeaders is false`() {
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<EventType>()
+        configProvider.trackHttpHeaders = false
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest()
+
+        // Then
+        verify(signalProcessor).track(
+            data = captor.capture(),
+            timestamp = timestampCaptor.capture(),
+            type = typeCaptor.capture(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+        )
+        val actualData = captor.firstValue
+        Assert.assertEquals(emptyMap<String, String>(), actualData.request_headers)
+        Assert.assertEquals(emptyMap<String, String>(), actualData.response_headers)
+    }
+
+    @Test
+    fun `does not track headers in httpHeadersBlocklist`() {
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<EventType>()
+        configProvider.trackHttpHeaders = true
+        configProvider.httpHeadersBlocklist = listOf<String>("x-custom-header")
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest(
+            requestHeader = Pair("x-custom-header", "request-header"),
+            responseHeader = Pair("x-custom-header", "response-header"),
+        )
+
+        // Then
+        verify(signalProcessor).track(
+            data = captor.capture(),
+            timestamp = timestampCaptor.capture(),
+            type = typeCaptor.capture(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+        )
+        val actualData = captor.firstValue
+        Assert.assertNotNull(actualData.request_headers)
+        Assert.assertNotNull(actualData.response_headers)
+        Assert.assertNull(actualData.request_headers?.get("x-custom-header"))
+        Assert.assertNull(actualData.response_headers?.get("x-custom-header"))
+    }
+
+    @Test
+    fun `does not track request and response body if trackHttpBody is false`() {
+        val captor = argumentCaptor<HttpData>()
+        val timestampCaptor = argumentCaptor<Long>()
+        val typeCaptor = argumentCaptor<EventType>()
+        configProvider.trackHttpBody = false
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest(
+            requestBody = "{\"key\":\"value\"}\"",
+            responseBody = "{\"key\":\"value\"}\",",
+        )
+
+        // Then
+        verify(signalProcessor).track(
+            data = captor.capture(),
+            timestamp = timestampCaptor.capture(),
+            type = typeCaptor.capture(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+        )
+        val actualData = captor.firstValue
+        Assert.assertNull(actualData.request_body)
+        Assert.assertNull(actualData.response_body)
+    }
+
     /**
      * Creates a mock server and enqueues a successful response for a POST request.
      * Then consumes the response to ensure all events for EventFactory are triggered.
@@ -500,6 +609,8 @@ class OkHttpEventCollectorTest {
     private fun simulateSuccessfulPostRequest(
         client: OkHttpClient = clientWithInterceptor,
         statusCode: Int = 200,
+        requestHeader: Pair<String, String> = Pair("x-custom-header", "request-header"),
+        responseHeader: Pair<String, String> = Pair("x-custom-header", "response-header"),
         url: String = "http://localhost:8080/",
         requestBody: String = "{ \"key\": \"value\" }",
         responseBody: String = "{ \"key\": \"value\" }",
@@ -507,12 +618,15 @@ class OkHttpEventCollectorTest {
         mockWebServer.let {
             it.enqueue(
                 MockResponse().setResponseCode(statusCode).setBody(responseBody)
-                    .setHeader("Content-Type", "application/json"),
+                    .setHeader("Content-Type", "application/json")
+                    .setHeader(responseHeader.first, responseHeader.second),
             )
             it.start(8080)
         }
         val response = client.newCall(
-            Request.Builder().url(url).header("Content-Type", "application/json")
+            Request.Builder().url(url)
+                .header("Content-Type", "application/json")
+                .header(requestHeader.first, requestHeader.second)
                 .post(requestBody.toRequestBody()).build(),
         ).execute()
         response.body!!.source().readByteString()

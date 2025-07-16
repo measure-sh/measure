@@ -1,10 +1,11 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
-import CreateApp from '@/app/components/create_app'
 import { App, AppsApiStatus, FetchAlertPrefsApiStatus, UpdateAlertPrefsApiStatus, emptyAlertPrefs, fetchAlertPrefsFromServer, fetchAppsFromServer, updateAlertPrefsFromServer } from '@/app/api/api_calls'
-import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import { Button } from '@/app/components/button'
+import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
+import LoadingSpinner from '@/app/components/loading_spinner'
+import Link from 'next/link'
+import React, { useEffect, useState } from 'react'
 
 export default function Overview({ params }: { params: { teamId: string } }) {
   const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading)
@@ -153,13 +154,8 @@ export default function Overview({ params }: { params: { teamId: string } }) {
       <div className="py-4" />
 
       {/* Error states for apps fetch */}
-      {appsApiStatus === AppsApiStatus.Error && <p className="text-lg font-display">Error fetching apps, please check if Team ID is valid or refresh page to try again</p>}
-      {appsApiStatus === AppsApiStatus.NoApps &&
-        <div>
-          <p className="text-lg font-display">Looks like you don&apost have any apps yet. Get started by creating your first app!</p>
-          <div className="py-4" />
-          <CreateApp teamId={params.teamId} />
-        </div>}
+      {appsApiStatus === AppsApiStatus.Error && <p className="font-body text-sm">Error fetching apps, please check if Team ID is valid or refresh page to try again</p>}
+      {appsApiStatus === AppsApiStatus.NoApps && <p className='font-body text-sm'>Looks like you don&apos;t have any apps yet. Get started by <Link className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href={`apps`}>creating your first app!</Link></p>}
 
       {/* Main UI */}
       {appsApiStatus === AppsApiStatus.Success &&
@@ -167,8 +163,8 @@ export default function Overview({ params }: { params: { teamId: string } }) {
           <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={apps[0].name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
           <div className="py-4" />
 
-          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Loading && <p className='font-body'> Fetching alert preferences...</p>}
-          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Error && <p className='font-body'> Failed to fetch alert preferences. Please change selected app or refresh page to try again</p>}
+          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Loading && <LoadingSpinner />}
+          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Error && <p className='font-body text-sm'> Failed to fetch alert preferences. Please change selected app or refresh page to try again</p>}
           {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Success &&
             <div>
               <div className="table font-body">

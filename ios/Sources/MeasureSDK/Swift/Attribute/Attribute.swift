@@ -28,7 +28,7 @@ enum DeviceType: String, Codable {
     case phone
 }
 
-struct Attributes: Codable {
+class Attributes: Codable {
     var threadName: String?
     var deviceName: String?
     var deviceModel: String?
@@ -87,5 +87,95 @@ struct Attributes: Codable {
         case osPageSize = "os_page_size"
         case deviceThermalThrottlingEnabled = "device_thermal_throttling_enabled"
         case deviceLowPowerMode = "device_low_power_mode"
+    }
+
+    init(
+        threadName: String? = nil,
+        deviceName: String? = nil,
+        deviceModel: String? = nil,
+        deviceManufacturer: String? = nil,
+        deviceType: DeviceType? = nil,
+        deviceIsFoldable: Bool? = nil,
+        deviceIsPhysical: Bool? = nil,
+        deviceDensityDpi: Number? = nil,
+        deviceWidthPx: Number? = nil,
+        deviceHeightPx: Number? = nil,
+        deviceDensity: Number? = nil,
+        deviceLocale: String? = nil,
+        osName: String? = nil,
+        osVersion: String? = nil,
+        platform: String = AttributeConstants.platform,
+        networkType: NetworkType? = nil,
+        networkGeneration: NetworkGeneration? = nil,
+        networkProvider: String? = nil,
+        installationId: String = "",
+        userId: String? = nil,
+        deviceCpuArch: String? = nil,
+        appVersion: String = "",
+        appBuild: String = "",
+        measureSdkVersion: String = "",
+        appUniqueId: String = "",
+        deviceThermalThrottlingEnabled: Bool? = nil,
+        deviceLowPowerMode: Bool? = nil,
+        osPageSize: UInt8? = nil) {
+           self.threadName = threadName
+           self.deviceName = deviceName
+           self.deviceModel = deviceModel
+           self.deviceManufacturer = deviceManufacturer
+           self.deviceType = deviceType
+           self.deviceIsFoldable = deviceIsFoldable
+           self.deviceIsPhysical = deviceIsPhysical
+           self.deviceDensityDpi = deviceDensityDpi
+           self.deviceWidthPx = deviceWidthPx
+           self.deviceHeightPx = deviceHeightPx
+           self.deviceDensity = deviceDensity
+           self.deviceLocale = deviceLocale
+           self.osName = osName
+           self.osVersion = osVersion
+           self.platform = platform
+           self.networkType = networkType
+           self.networkGeneration = networkGeneration
+           self.networkProvider = networkProvider
+           self.installationId = installationId
+           self.userId = userId
+           self.deviceCpuArch = deviceCpuArch
+           self.appVersion = appVersion
+           self.appBuild = appBuild
+           self.measureSdkVersion = measureSdkVersion
+           self.appUniqueId = appUniqueId
+           self.deviceThermalThrottlingEnabled = deviceThermalThrottlingEnabled
+           self.deviceLowPowerMode = deviceLowPowerMode
+           self.osPageSize = osPageSize
+    }
+
+    init(dict: [String: Any?]) {
+        self.threadName = dict["thread_name"] as? String
+        self.deviceName = dict["device_name"] as? String
+        self.deviceModel = dict["device_model"] as? String
+        self.deviceManufacturer = dict["device_manufacturer"] as? String
+        self.deviceType = (dict["device_type"] as? String).flatMap(DeviceType.init)
+        self.deviceIsFoldable = dict["device_is_foldable"] as? Bool
+        self.deviceIsPhysical = dict["device_is_physical"] as? Bool
+        self.deviceDensityDpi = dict["device_density_dpi"] as? Number
+        self.deviceWidthPx = dict["device_width_px"] as? Number
+        self.deviceHeightPx = dict["device_height_px"] as? Number
+        self.deviceDensity = dict["device_density"] as? Number
+        self.deviceLocale = dict["device_locale"] as? String
+        self.osName = dict["os_name"] as? String
+        self.osVersion = dict["os_version"] as? String
+        self.platform = dict["platform"] as? String ?? AttributeConstants.platform
+        self.networkType = (dict["network_type"] as? String).flatMap(NetworkType.init)
+        self.networkGeneration = (dict["network_generation"] as? String).flatMap(NetworkGeneration.init)
+        self.networkProvider = dict["network_provider"] as? String
+        self.installationId = dict["installation_id"] as? String ?? ""
+        self.userId = dict["user_id"] as? String
+        self.deviceCpuArch = dict["device_cpu_arch"] as? String
+        self.appVersion = dict["app_version"] as? String ?? ""
+        self.appBuild = dict["app_build"] as? String ?? ""
+        self.measureSdkVersion = dict["measure_sdk_version"] as? String ?? ""
+        self.appUniqueId = dict["app_unique_id"] as? String ?? ""
+        self.deviceThermalThrottlingEnabled = dict["device_thermal_throttling_enabled"] as? Bool
+        self.deviceLowPowerMode = dict["device_low_power_mode"] as? Bool
+        self.osPageSize = dict["os_page_size"] as? UInt8
     }
 }

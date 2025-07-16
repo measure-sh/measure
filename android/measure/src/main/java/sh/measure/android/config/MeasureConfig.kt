@@ -1,6 +1,17 @@
+@file:Suppress("KotlinConstantConditions")
+
 package sh.measure.android.config
 
+import android.annotation.SuppressLint
+import androidx.annotation.Keep
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import sh.measure.android.Measure
+import sh.measure.android.serialization.jsonSerializer
+import sh.measure.android.utils.toJsonElement
 
 /**
  * Configuration for the Measure SDK. See [MeasureConfig] for details.
@@ -18,9 +29,9 @@ internal interface IMeasureConfig {
     val samplingRateForErrorFreeSessions: Float
     val autoStart: Boolean
     val traceSamplingRate: Float
-    val enableShakeToLaunchBugReport: Boolean
     val trackActivityLoadTime: Boolean
     val trackFragmentLoadTime: Boolean
+    val requestHeadersProvider: MsrRequestHeadersProvider?
 }
 
 /**
@@ -145,17 +156,6 @@ class MeasureConfig(
     override val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
 
     /**
-     * Enable or disable shake to automatically launch the bug report flow. Defaults to `false`.
-     *
-     * When enabled, users can shake their device to launch the bug report activity automatically.
-     *
-     * This feature can also be enabled/disabled at runtime using:
-     * @see [Measure.disableShakeToLaunchBugReport] to disable shake to launch bug report.
-     * @see [Measure.enableShakeToLaunchBugReport] to enable shake to launch bug report.
-     */
-    override val enableShakeToLaunchBugReport: Boolean = DefaultConfig.ENABLE_SHAKE_TO_LAUNCH_BUG_REPORT,
-
-    /**
      * Enable or disable automatic collection of Activity load time. Defaults to `true`.
      *
      * Activity load time measures the time between the Activity being created and the first
@@ -179,6 +179,15 @@ class MeasureConfig(
      * through the app.
      */
     override val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
+
+    /**
+     * Allows configuring custom HTTP headers for requests made by the Measure SDK to the
+     * Measure API. This is useful only for self-hosted clients who may require additional
+     * headers for requests in their infrastructure.
+     *
+     * See [MsrRequestHeadersProvider] for usage details.
+     */
+    override val requestHeadersProvider: MsrRequestHeadersProvider? = null,
 ) : IMeasureConfig {
     init {
         require(samplingRateForErrorFreeSessions in 0.0..1.0) {
@@ -188,5 +197,101 @@ class MeasureConfig(
         require(traceSamplingRate in 0.0..1.0) {
             "Trace sampling rate must be between 0.0 and 1.0"
         }
+    }
+
+    companion object {
+        /**
+         * Allows converting a map of configuration values to a [MeasureConfig] object.
+         * This is intended for internal use only by cross-platform frameworks that
+         * need to pass the configuration to the native SDK.
+         */
+        @Keep
+        fun fromJson(config: Map<String, Any?>): MeasureConfig {
+            val json = config.toJsonElement()
+            return jsonSerializer.decodeFromJsonElement(MeasureConfigSerializer, json)
+        }
+    }
+}
+
+/**
+ * Internal serializable wrapper for MeasureConfig that mirrors its structure.
+ * This keeps serialization concerns separate from the public API.
+ */
+@SuppressLint("UnsafeOptInUsageError")
+@Serializable
+internal data class SerializableMeasureConfig(
+    val enableLogging: Boolean = DefaultConfig.ENABLE_LOGGING,
+    val trackScreenshotOnCrash: Boolean = DefaultConfig.TRACK_SCREENSHOT_ON_CRASH,
+    val screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.SCREENSHOT_MASK_LEVEL,
+    val trackHttpHeaders: Boolean = DefaultConfig.TRACK_HTTP_HEADERS,
+    val trackHttpBody: Boolean = DefaultConfig.TRACK_HTTP_BODY,
+    val httpHeadersBlocklist: List<String> = DefaultConfig.HTTP_HEADERS_BLOCKLIST,
+    val httpUrlBlocklist: List<String> = DefaultConfig.HTTP_URL_BLOCKLIST,
+    val httpUrlAllowlist: List<String> = DefaultConfig.HTTP_URL_ALLOWLIST,
+    val trackActivityIntentData: Boolean = DefaultConfig.TRACK_ACTIVITY_INTENT_DATA,
+    val samplingRateForErrorFreeSessions: Float = DefaultConfig.SESSION_SAMPLING_RATE,
+    val autoStart: Boolean = DefaultConfig.AUTO_START,
+    val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
+    val trackActivityLoadTime: Boolean = DefaultConfig.TRACK_ACTIVITY_LOAD_TIME,
+    val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
+    val requestHeadersProvider: MsrRequestHeadersProvider? = null,
+) {
+    fun toMeasureConfig(): MeasureConfig = MeasureConfig(
+        enableLogging = enableLogging,
+        trackScreenshotOnCrash = trackScreenshotOnCrash,
+        screenshotMaskLevel = screenshotMaskLevel,
+        trackHttpHeaders = trackHttpHeaders,
+        trackHttpBody = trackHttpBody,
+        httpHeadersBlocklist = httpHeadersBlocklist,
+        httpUrlBlocklist = httpUrlBlocklist,
+        httpUrlAllowlist = httpUrlAllowlist,
+        trackActivityIntentData = trackActivityIntentData,
+        samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions,
+        autoStart = autoStart,
+        traceSamplingRate = traceSamplingRate,
+        trackActivityLoadTime = trackActivityLoadTime,
+        trackFragmentLoadTime = trackFragmentLoadTime,
+        requestHeadersProvider = requestHeadersProvider,
+    )
+
+    companion object {
+        fun fromMeasureConfig(config: MeasureConfig): SerializableMeasureConfig =
+            SerializableMeasureConfig(
+                enableLogging = config.enableLogging,
+                trackScreenshotOnCrash = config.trackScreenshotOnCrash,
+                screenshotMaskLevel = config.screenshotMaskLevel,
+                trackHttpHeaders = config.trackHttpHeaders,
+                trackHttpBody = config.trackHttpBody,
+                httpHeadersBlocklist = config.httpHeadersBlocklist,
+                httpUrlBlocklist = config.httpUrlBlocklist,
+                httpUrlAllowlist = config.httpUrlAllowlist,
+                trackActivityIntentData = config.trackActivityIntentData,
+                samplingRateForErrorFreeSessions = config.samplingRateForErrorFreeSessions,
+                autoStart = config.autoStart,
+                traceSamplingRate = config.traceSamplingRate,
+                trackActivityLoadTime = config.trackActivityLoadTime,
+                trackFragmentLoadTime = config.trackFragmentLoadTime,
+                requestHeadersProvider = config.requestHeadersProvider,
+            )
+    }
+}
+
+/**
+ * Custom serializer that delegates to the internal serializable wrapper.
+ * This provides a clean separation between public API and serialization concerns.
+ */
+internal object MeasureConfigSerializer : KSerializer<MeasureConfig> {
+    private val delegateSerializer = SerializableMeasureConfig.serializer()
+
+    override val descriptor: SerialDescriptor = delegateSerializer.descriptor
+
+    override fun serialize(encoder: Encoder, value: MeasureConfig) {
+        val serializableConfig = SerializableMeasureConfig.fromMeasureConfig(value)
+        encoder.encodeSerializableValue(delegateSerializer, serializableConfig)
+    }
+
+    override fun deserialize(decoder: Decoder): MeasureConfig {
+        val serializableConfig = decoder.decodeSerializableValue(delegateSerializer)
+        return serializableConfig.toMeasureConfig()
     }
 }

@@ -1,9 +1,8 @@
-import React from 'react'
-import { render, screen, fireEvent, act } from '@testing-library/react'
-import { describe, it, beforeEach, expect } from '@jest/globals'
-import '@testing-library/jest-dom'
-import { ExceptionsOverview } from '@/app/components/exceptions_overview'
 import { ExceptionsType } from '@/app/api/api_calls'
+import { ExceptionsOverview } from '@/app/components/exceptions_overview'
+import { beforeEach, describe, expect, it } from '@jest/globals'
+import '@testing-library/jest-dom'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 
 // Global replace mock for router.replace
 const replaceMock = jest.fn()

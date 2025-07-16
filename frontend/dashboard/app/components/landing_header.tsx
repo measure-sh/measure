@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useScrollDirection } from '../utils/scroll_utils'
-import Link from 'next/link'
 import Image from 'next/image'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useScrollDirection } from '../utils/scroll_utils'
 import { cn } from '../utils/shadcn_utils'
 import { buttonVariants } from './button'
 

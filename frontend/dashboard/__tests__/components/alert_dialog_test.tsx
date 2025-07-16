@@ -1,7 +1,7 @@
-import '@testing-library/jest-dom'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { expect, describe, it } from '@jest/globals'
 import AlertDialog from '@/app/components/alert_dialog'
+import { describe, expect, it } from '@jest/globals'
+import '@testing-library/jest-dom'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 describe('Alert Dialog', () => {
     it('renders correctly in opened state', () => {

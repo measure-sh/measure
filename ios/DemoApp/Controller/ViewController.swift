@@ -50,6 +50,13 @@ import Measure
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+
+        do {
+            let path = "/path/that/does/not/exist.txt"
+            _ = try String(contentsOfFile: path, encoding: .utf8)
+        } catch {
+            Measure.trackError(error, collectStackTraces: true)
+        }
     }
 
     override func viewDidDisappear(_ animated: Bool) {
@@ -58,12 +65,12 @@ import Measure
                                                     "paid_user": .boolean(true),
                                                     "credit_balance": .int(1000),
                                                     "latitude": .double(30.2661403415387)]
-        Measure.shared.trackEvent(name: "custom_event", attributes: attributes, timestamp: nil)
+        Measure.trackEvent(name: "custom_event", attributes: attributes, timestamp: nil)
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        Measure.shared.trackScreenView("Home")
+        Measure.trackScreenView("Home")
     }
 
     // MARK: - Table Header View with Buttons
@@ -164,7 +171,7 @@ import Measure
                 topPadding: 20
             )
             let config = BugReportConfig(colors: color, dimensions: dimensions)
-            Measure.shared.launchBugReport(takeScreenshot: true, bugReportConfig: config)
+            Measure.launchBugReport(takeScreenshot: true, bugReportConfig: config)
         default:
             let controller = ControlsViewController()
             self.navigationController?.pushViewController(controller, animated: true)

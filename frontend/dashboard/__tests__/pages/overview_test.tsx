@@ -1,8 +1,7 @@
-import React from 'react'
-import { render, screen, fireEvent, act } from '@testing-library/react'
-import { describe, it, beforeEach, expect } from '@jest/globals'
-import '@testing-library/jest-dom'
 import Overview from '@/app/[teamId]/overview/page'
+import { beforeEach, describe, expect, it } from '@jest/globals'
+import '@testing-library/jest-dom'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 
 const replaceMock = jest.fn()
 
@@ -37,13 +36,12 @@ jest.mock('@/app/components/filters', () => ({
     defaultFilters: { ready: false, serialisedFilters: '' }, // Mock defaultFilters
 }))
 
-// Mock Journey component
-jest.mock('@/app/components/journey', () => ({
+// Mock SessionsVsExceptionsOverviewPlot component
+jest.mock('@/app/components/sessions_vs_exceptions_overview_plot', () => ({
     __esModule: true, // Ensures the mock behaves like an ES module
     default: () => (
-        <div data-testid="journey-mock">Journey Component Rendered</div>
+        <div data-testid="sessions-vs-exceptions-overview-plot-mock">SessionsVsExceptionsOverviewPlot Component Rendered</div>
     ),
-    JourneyType: { Overview: 'overview' }, // Mock the JourneyType enum
 }))
 
 // Mock MetricsOverview component
@@ -76,7 +74,7 @@ describe('Overview Component', () => {
             fireEvent.click(updateButton)
         })
 
-        expect(await screen.findByTestId('journey-mock')).toBeInTheDocument()
+        expect(await screen.findByTestId('sessions-vs-exceptions-overview-plot-mock')).toBeInTheDocument()
         expect(await screen.findByTestId('metrics-overview-mock')).toBeInTheDocument()
         expect(replaceMock).toHaveBeenCalledWith('?updated', { scroll: false })
     })

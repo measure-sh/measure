@@ -1,6 +1,5 @@
 "use client"
 
-import React from 'react'
 import { ExceptionsType } from '@/app/api/api_calls'
 import { ExceptionsDetails } from '@/app/components/exceptions_details'
 

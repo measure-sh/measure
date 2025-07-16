@@ -152,12 +152,13 @@ func (bm *BuildMapping) validate(app *App) (code int, err error) {
 		// none of the mapping files
 		// should be non-existent
 		if mf.Header == nil {
-			code = 0
+			err = fmt.Errorf("%q at %d index has nil header", "mapping_file", i)
 			return
 		}
 
 		if mf.Header.Size < 1 {
 			err = fmt.Errorf("%q at %d index has zero or invalid size", "mapping_file", i)
+			return
 		}
 	}
 
@@ -792,6 +793,8 @@ func PutBuild(c *gin.Context) {
 		return
 	}
 
+	// prepare mapping files by opening and reading
+	// them and populating bm.MappingFiles
 	if err := bm.prepareMappings(); err != nil {
 		msg := "failed to compute checksums of files"
 		fmt.Println(msg, err)
@@ -800,27 +803,6 @@ func PutBuild(c *gin.Context) {
 			"details": err.Error(),
 		})
 		return
-	}
-
-	if code, err := bm.validate(app); err != nil {
-		msg := "failed to validate build mapping"
-		fmt.Println(msg, err)
-		c.JSON(code, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if bm.hasMapping() {
-		if err := bm.extractDif(); err != nil {
-			msg := "failed to extract debug id from mapping file"
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
 	}
 
 	tx, err := server.Server.PgPool.BeginTx(ctx, pgx.TxOptions{
@@ -855,6 +837,25 @@ func PutBuild(c *gin.Context) {
 			"ok": `updated build size info`,
 		})
 
+		return
+	}
+
+	if code, err := bm.validate(app); err != nil {
+		msg := "failed to validate build mapping"
+		fmt.Println(msg, err)
+		c.JSON(code, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := bm.extractDif(); err != nil {
+		msg := "failed to extract debug id from mapping file"
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
 		return
 	}
 

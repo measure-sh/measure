@@ -14,9 +14,4 @@ struct Checkpoint: Codable {
 
     /// The timestamp when the checkpoint was created.
     let timestamp: String
-
-    init(name: String, timestamp: String) {
-        self.name = name
-        self.timestamp = timestamp
-    }
 }

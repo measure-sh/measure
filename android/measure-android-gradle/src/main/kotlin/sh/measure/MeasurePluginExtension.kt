@@ -20,6 +20,8 @@ import javax.inject.Inject
  * ```
  */
 open class MeasurePluginExtension @Inject constructor(objects: ObjectFactory) {
+    var httpHeaders: Map<String, String> = emptyMap()
+
     internal var filter: Action<VariantFilter> = Action {
         if (it.name.lowercase().contains("debug")) {
             it.enabled = true

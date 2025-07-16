@@ -1,10 +1,10 @@
 Pod::Spec.new do |spec|
   spec.name         = "measure-sh"
   spec.module_name  = "Measure"
-  spec.version      = "0.3.0"
+  spec.version      = "0.5.1"
   spec.summary      = "Open source tool to monitor mobile apps"
   spec.homepage     = "https://github.com/measure-sh/measure.git"
-  spec.license      = { :type => "MIT", :file => "LICENSE" }
+  spec.license      = { :type => "Apache 2.0", :file => "LICENSE" }
   spec.author       = "measure.sh"
   spec.platform     = :ios, "12.0"
   spec.swift_version = "5.10"
@@ -13,6 +13,7 @@ Pod::Spec.new do |spec|
                         :tag => "ios-v#{spec.version}" }
   spec.source_files = "ios/Sources/MeasureSDK/Swift/**/*.{swift}", "ios/Sources/MeasureSDK/Objc/**/*.{h,m}"
   spec.public_header_files = "ios/Sources/MeasureSDK/Objc/include/**/*.h"
+  spec.module_map = "ios/Sources/MeasureSDK/Objc/include/module.modulemap"
   spec.resources    = ["ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModel.xcdatamodeld", "ios/Sources/MeasureSDK/Swift/Resources/PrivacyInfo.xcprivacy"]
   spec.frameworks   = "Foundation", "UIKit", "CoreData"
   spec.dependency "PLCrashReporter"

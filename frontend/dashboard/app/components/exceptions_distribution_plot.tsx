@@ -1,10 +1,10 @@
 "use client"
 
+import { ResponsiveBar } from '@nivo/bar'
 import React, { useEffect, useState } from 'react'
 import { ExceptionsDistributionPlotApiStatus, ExceptionsType, fetchExceptionsDistributionPlotFromServer } from '../api/api_calls'
 import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'
-import { ResponsiveBar } from '@nivo/bar'
 
 interface ExceptionsDistributionPlotProps {
   exceptionsType: ExceptionsType,
@@ -102,6 +102,8 @@ const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({
             legendOffset: -50,
             legendPosition: 'middle'
           }}
+          enableGridX={false}
+          enableGridY={false}
           tooltip={({
             id,
             value,

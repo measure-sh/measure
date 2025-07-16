@@ -1,7 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react'
-import { expect, it, describe } from '@jest/globals'
-import { useScrollDirection } from '@/app/utils/scroll_utils'
+import { useScrollDirection } from '@/app/utils/scroll_utils';
+import { describe, expect, it } from '@jest/globals';
 import '@testing-library/jest-dom/jest-globals';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 const TestComponent = () => {
   const scrollDirection = useScrollDirection()

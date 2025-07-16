@@ -9,16 +9,16 @@ import CoreData
 import Foundation
 
 protocol SessionStore {
-    func insertSession(_ session: SessionEntity)
-    func getSession(byId sessionId: String) -> SessionEntity?
-    func getAllSessions() -> [SessionEntity]?
-    func deleteSession(_ sessionId: String)
+    func insertSession(_ session: SessionEntity, completion: @escaping () -> Void)
+    func getSession(byId sessionId: String, completion: @escaping (SessionEntity?) -> Void)
+    func getAllSessions(completion: @escaping ([SessionEntity]?) -> Void)
+    func deleteSession(_ sessionId: String, completion: @escaping () -> Void)
     func markCrashedSessions(sessionIds: [String])
-    func markCrashedSession(sessionId: String)
+    func markCrashedSession(sessionId: String, completion: @escaping () -> Void)
     func updateNeedsReporting(sessionId: String, needsReporting: Bool)
-    func getOldestSession() -> String?
-    func deleteSessions(_ sessionIds: [String])
-    func getSessionsToDelete() -> [String]?
+    func getOldestSession(completion: @escaping (String?) -> Void)
+    func deleteSessions(_ sessionIds: [String], completion: @escaping () -> Void)
+    func getSessionsToDelete(completion: @escaping ([String]?) -> Void)
 }
 
 final class BaseSessionStore: SessionStore {
@@ -30,14 +30,14 @@ final class BaseSessionStore: SessionStore {
         self.logger = logger
     }
 
-    func insertSession(_ session: SessionEntity) {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return
-        }
-        context.performAndWait { [weak self] in
-            let sessionOb = SessionOb(context: context)
+    func insertSession(_ session: SessionEntity, completion: @escaping () -> Void) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else {
+                completion()
+                return
+            }
 
+            let sessionOb = SessionOb(context: context)
             sessionOb.sessionId = session.sessionId
             sessionOb.pid = session.pid
             sessionOb.createdAt = session.createdAt
@@ -47,98 +47,100 @@ final class BaseSessionStore: SessionStore {
             do {
                 try context.saveIfNeeded()
             } catch {
-                guard let self = self else { return }
                 self.logger.internalLog(level: .error, message: "Failed to save session: \(session.sessionId)", error: error, data: nil)
             }
+
+            completion()
         }
     }
 
-    func getSession(byId sessionId: String) -> SessionEntity? {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return nil
-        }
-        let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
-        fetchRequest.fetchLimit = 1
-        fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
+    func getSession(byId sessionId: String, completion: @escaping (SessionEntity?) -> Void) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else {
+                completion(nil)
+                return
+            }
 
-        var session: SessionEntity?
-        context.performAndWait { [weak self] in
+            let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
+            fetchRequest.fetchLimit = 1
+            fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
+
             do {
-                let result = try context.fetch(fetchRequest).first
-                session = result.map { sessionOb in
-                    SessionEntity(sessionId: sessionOb.sessionId ?? "",
-                            pid: sessionOb.pid,
-                            createdAt: sessionOb.createdAt,
-                            needsReporting: sessionOb.needsReporting,
-                            crashed: sessionOb.crashed)
+                if let sessionOb = try context.fetch(fetchRequest).first {
+                    let session = SessionEntity(sessionId: sessionOb.sessionId ?? "",
+                                                pid: sessionOb.pid,
+                                                createdAt: sessionOb.createdAt,
+                                                needsReporting: sessionOb.needsReporting,
+                                                crashed: sessionOb.crashed)
+                    completion(session)
+                } else {
+                    completion(nil)
                 }
             } catch {
-                guard let self = self else { return }
-                logger.internalLog(level: .error, message: "Failed to fetch session: \(sessionId)", error: error, data: nil)
+                self.logger.internalLog(level: .error, message: "Failed to fetch session: \(sessionId)", error: error, data: nil)
+                completion(nil)
             }
         }
-        return session
     }
 
-    func getAllSessions() -> [SessionEntity]? {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return nil
-        }
-        let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
+    func getAllSessions(completion: @escaping ([SessionEntity]?) -> Void) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else {
+                completion(nil)
+                return
+            }
 
-        var sessions = [SessionEntity]()
-        context.performAndWait { [weak self] in
+            let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
+
             do {
                 let result = try context.fetch(fetchRequest)
-                sessions = result.map { sessionOb in
-                    SessionEntity(sessionId: sessionOb.sessionId ?? "",
-                            pid: sessionOb.pid,
-                            createdAt: sessionOb.createdAt,
-                            needsReporting: sessionOb.needsReporting,
-                            crashed: sessionOb.crashed)
+                let sessions = result.map {
+                    SessionEntity(sessionId: $0.sessionId ?? "",
+                                  pid: $0.pid,
+                                  createdAt: $0.createdAt,
+                                  needsReporting: $0.needsReporting,
+                                  crashed: $0.crashed)
                 }
+                completion(sessions.isEmpty ? nil : sessions)
             } catch {
-                guard let self = self else { return }
                 self.logger.internalLog(level: .error, message: "Failed to fetch sessions.", error: error, data: nil)
+                completion(nil)
             }
         }
-        return sessions.isEmpty ? nil : sessions
     }
 
-    func deleteSession(_ sessionId: String) {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return
-        }
-        let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
-        fetchRequest.fetchLimit = 1
-        fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
+    func deleteSession(_ sessionId: String, completion: @escaping () -> Void) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else {
+                completion()
+                return
+            }
 
-        context.performAndWait { [weak self] in
+            let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
+            fetchRequest.fetchLimit = 1
+            fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
+
             do {
                 if let sessionOb = try context.fetch(fetchRequest).first {
                     context.delete(sessionOb)
                     try context.saveIfNeeded()
                 }
             } catch {
-                guard let self = self else { return }
                 self.logger.internalLog(level: .error, message: "Failed to delete session: \(sessionId)", error: error, data: nil)
             }
+
+            completion()
         }
     }
 
     func markCrashedSessions(sessionIds: [String]) {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return
-        }
-        let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
-        fetchRequest.fetchLimit = sessionIds.count
-        fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else { return }
 
-        context.performAndWait { [weak self] in
+            let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
+            fetchRequest.fetchLimit = sessionIds.count
+            fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
+
             do {
                 let sessions = try context.fetch(fetchRequest)
                 for session in sessions {
@@ -146,88 +148,86 @@ final class BaseSessionStore: SessionStore {
                 }
                 try context.saveIfNeeded()
             } catch {
-                guard let self = self else { return }
                 self.logger.internalLog(level: .error, message: "Failed to mark crashed sessions.", error: error, data: nil)
             }
         }
     }
 
-    func markCrashedSession(sessionId: String) {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return
-        }
-        let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
-        fetchRequest.fetchLimit = 1
-        fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
+    func markCrashedSession(sessionId: String, completion: @escaping () -> Void) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else {
+                completion()
+                return
+            }
 
-        context.performAndWait { [weak self] in
+            let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
+            fetchRequest.fetchLimit = 1
+            fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
+
             do {
                 if let session = try context.fetch(fetchRequest).first {
                     session.crashed = true
                     try context.saveIfNeeded()
                 }
             } catch {
-                guard let self = self else { return }
                 self.logger.internalLog(level: .error, message: "Failed to mark crashed session: \(sessionId)", error: error, data: nil)
             }
+
+            completion()
         }
     }
 
     func updateNeedsReporting(sessionId: String, needsReporting: Bool) {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return
-        }
-        let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
-        fetchRequest.fetchLimit = 1
-        fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else { return }
 
-        context.performAndWait { [weak self] in
+            let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
+            fetchRequest.fetchLimit = 1
+            fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
+
             do {
                 if let session = try context.fetch(fetchRequest).first {
                     session.needsReporting = needsReporting
                     try context.saveIfNeeded()
                 }
             } catch {
-                guard let self = self else { return }
-                self.logger.internalLog(level: .error, message: "Failed to mark crashed session: \(sessionId)", error: error, data: nil)
+                self.logger.internalLog(level: .error, message: "Failed to update needsReporting for session: \(sessionId)", error: error, data: nil)
             }
         }
     }
 
-    func getOldestSession() -> String? {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return nil
-        }
-        let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
-        fetchRequest.fetchLimit = 1
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
+    func getOldestSession(completion: @escaping (String?) -> Void) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else {
+                completion(nil)
+                return
+            }
 
-        var oldestSessionId: String?
-        context.performAndWait {
+            let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
+            fetchRequest.fetchLimit = 1
+            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
+
             do {
-                if let oldestSession = try context.fetch(fetchRequest).first {
-                    oldestSessionId = oldestSession.sessionId
-                }
+                let session = try context.fetch(fetchRequest).first
+                completion(session?.sessionId)
             } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch oldest session.", error: error, data: nil)
+                self.logger.internalLog(level: .error, message: "Failed to fetch oldest session.", error: error, data: nil)
+                completion(nil)
             }
         }
-        return oldestSessionId
     }
 
-    func deleteSessions(_ sessionIds: [String]) {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return
-        }
-        let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
-        fetchRequest.fetchLimit = sessionIds.count
-        fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
+    func deleteSessions(_ sessionIds: [String], completion: @escaping () -> Void) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else {
+                completion()
+                return
+            }
 
-        context.performAndWait { [weak self] in
+            let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
+            fetchRequest.fetchLimit = sessionIds.count
+            fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
+
             do {
                 let sessions = try context.fetch(fetchRequest)
                 for session in sessions {
@@ -235,31 +235,31 @@ final class BaseSessionStore: SessionStore {
                 }
                 try context.saveIfNeeded()
             } catch {
-                guard let self = self else { return }
                 self.logger.internalLog(level: .error, message: "Failed to delete sessions: \(sessionIds.joined(separator: ","))", error: error, data: nil)
             }
+
+            completion()
         }
     }
 
-    func getSessionsToDelete() -> [String]? {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return nil
-        }
-        let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "needsReporting == %d", false)
+    func getSessionsToDelete(completion: @escaping ([String]?) -> Void) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else {
+                completion(nil)
+                return
+            }
 
-        var sessionIds: [String]?
-        context.performAndWait { [weak self] in
+            let fetchRequest: NSFetchRequest<SessionOb> = SessionOb.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "needsReporting == %d", false)
+
             do {
                 let sessions = try context.fetch(fetchRequest)
-                sessionIds = sessions.compactMap { $0.sessionId }
+                let sessionIds = sessions.compactMap { $0.sessionId }
+                completion(sessionIds)
             } catch {
-                guard let self = self else { return }
                 self.logger.internalLog(level: .error, message: "Failed to fetch sessions to delete.", error: error, data: nil)
+                completion(nil)
             }
         }
-
-        return sessionIds
     }
 }

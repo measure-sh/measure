@@ -15,10 +15,6 @@ final class MockSpanStore: SpanStore {
         spans[span.spanId] = span
     }
 
-    func getSpans(spanIds: [String]) -> [SpanEntity]? {
-        return spanIds.compactMap { spans[$0] }
-    }
-
     func getSpansForSessions(sessions: [String]) -> [SpanEntity]? {
         return spans.values.filter { span in
             guard let sessionId = span.sessionId else { return false }
@@ -26,25 +22,15 @@ final class MockSpanStore: SpanStore {
         }
     }
 
-    func deleteSpans(spanIds: [String]) {
-        for id in spanIds {
-            spans.removeValue(forKey: id)
-        }
+    func getSpans(spanIds: [String], completion: @escaping ([SpanEntity]?) -> Void) {
+        completion(spanIds.compactMap { spans[$0] })
     }
 
-    func deleteSpans(sessionIds: [String]) {
-        for (key, span) in spans {
-            if let sessionId = span.sessionId, sessionIds.contains(sessionId) {
-                spans.removeValue(forKey: key)
-            }
-        }
+    func getAllSpans(completion: @escaping ([SpanEntity]?) -> Void) {
+        completion(Array(spans.values))
     }
 
-    func getAllSpans() -> [SpanEntity]? {
-        return Array(spans.values)
-    }
-
-    func getUnBatchedSpans(spanCount: Int64, ascending: Bool) -> [String] {
+    func getUnBatchedSpans(spanCount: Int64, ascending: Bool, completion: @escaping ([String]) -> Void) {
         let filtered = spans.values.filter { $0.batchId == nil }
         let sorted = filtered.sorted {
             if ascending {
@@ -53,7 +39,22 @@ final class MockSpanStore: SpanStore {
                 return $0.startTime > $1.startTime
             }
         }
-        return sorted.prefix(Int(spanCount)).compactMap { $0.spanId }
+        completion(sorted.prefix(Int(spanCount)).compactMap { $0.spanId })
+    }
+
+    func deleteSpans(spanIds: [String]) {
+        for id in spanIds {
+            spans.removeValue(forKey: id)
+        }
+    }
+
+    func deleteSpans(sessionIds: [String], completion: @escaping () -> Void) {
+        for (key, span) in spans {
+            if let sessionId = span.sessionId, sessionIds.contains(sessionId) {
+                spans.removeValue(forKey: key)
+            }
+        }
+        completion()
     }
 
     func updateBatchId(_ batchId: String, for spansToUpdate: [String]) {

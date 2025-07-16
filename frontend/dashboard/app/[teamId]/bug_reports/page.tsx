@@ -1,6 +1,6 @@
 "use client"
 
-import { emptyBugReportsOverviewResponse, BugReportsOverviewApiStatus, fetchBugReportsOverviewFromServer, FilterSource } from '@/app/api/api_calls'
+import { BugReportsOverviewApiStatus, emptyBugReportsOverviewResponse, fetchBugReportsOverviewFromServer, FilterSource } from '@/app/api/api_calls'
 import BugReportsOverviewPlot from '@/app/components/bug_reports_overview_plot'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import LoadingBar from '@/app/components/loading_bar'
@@ -8,9 +8,8 @@ import Paginator from '@/app/components/paginator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils'
-import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface PageState {
     bugReportsOverviewApiStatus: BugReportsOverviewApiStatus
@@ -99,7 +98,6 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                 teamId={params.teamId}
                 filterSource={FilterSource.Events}
                 appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-                showCreateApp={true}
                 showNoData={true}
                 showNotOnboarded={true}
                 showAppSelector={true}
@@ -117,7 +115,7 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                 showBugReportStatus={true}
                 showUdAttrs={true}
                 showFreeText={true}
-                freeTextPlaceholder='Search Search User ID, Session Id, Bug Report ID or description..'
+                freeTextPlaceholder='Search User ID, Session Id, Bug Report ID or description..'
                 onFiltersChanged={handleFiltersChanged} />
             <div className="py-4" />
 

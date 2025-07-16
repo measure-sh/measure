@@ -28,4 +28,8 @@ final class MockSystemCrashReporter: SystemCrashReporter {
     func loadCrashReport() throws -> Data {
         return crashData
     }
+
+    func generateLiveReport() -> Data {
+        return crashData
+    }
 }

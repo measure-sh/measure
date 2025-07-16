@@ -1,7 +1,7 @@
-import '@testing-library/jest-dom'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { expect, describe, it } from '@jest/globals'
 import Paginator from '@/app/components/paginator'
+import { describe, expect, it } from '@jest/globals'
+import '@testing-library/jest-dom'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 describe('Paginator', () => {
     it('renders correctly when prev and next buttons are enabled', () => {

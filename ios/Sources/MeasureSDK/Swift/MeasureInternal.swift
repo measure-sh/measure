@@ -230,34 +230,26 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         bugReportCollector.startBugReportFlow(takeScreenshot: takeScreenshot, bugReportConfig: bugReportConfig, attributes: attributes)
     }
 
-    func enableShakeToLaunchBugReport(takeScreenshot: Bool) {
-        shakeBugReportCollector.enableAutoLaunch(takeScreenshot: takeScreenshot)
-    }
-
-    func disableShakeToLaunchBugReport() {
-        shakeBugReportCollector.disableAutoLaunch()
-    }
-
-    func setShakeListener(_ shakeListener: MsrShakeListener?) {
-        shakeBugReportCollector.setShakeListener(shakeListener)
-    }
-
-    func isShakeToLaunchBugReportEnabled() -> Bool {
-        return shakeBugReportCollector.isShakeToLaunchBugReportEnabled()
+    func onShake(_ handler: (() -> Void)?) {
+        shakeBugReportCollector.setShakeHandler(handler)
     }
 
     func trackBugReport(description: String,
                         attachments: [MsrAttachment],
                         attributes: [String: AttributeValue]?) {
-        bugReportCollector.trackBugReport(description: description, attachments: attachments.map { $0.toEventAttachment(id: idProvider.uuid()) }, attributes: attributes)
+        bugReportCollector.trackBugReport(description: description, attachments: attachments, attributes: attributes)
     }
 
-    func captureScreenshot(for viewController: UIViewController) -> MsrAttachment? {
-        return screenshotGenerator.generate(viewController: viewController)?.toMsrAttachment()
+    func captureScreenshot(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
+        screenshotGenerator.generate(viewController: viewController) { attachment in
+            completion(attachment)
+        }
     }
 
-    func captureLayoutSnapshot(for viewController: UIViewController) -> MsrAttachment? {
-        return layoutSnapshotGenerator.generate(for: viewController)?.toMsrAttachment()
+    func captureLayoutSnapshot(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
+        layoutSnapshotGenerator.generate(for: viewController) { attachment in
+            completion(attachment)
+        }
     }
 
     func startBugReportFlow(takeScreenshot: Bool = true,
@@ -274,6 +266,19 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         trackBugReport(description: description, attachments: attachments, attributes: transformedAttributes)
     }
 
+    func trackError(_ error: Error, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool) {
+        userTriggeredEventCollector.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
+    }
+
+    func trackError(_ error: NSError, attributes: [String: Any]? = nil, collectStackTraces: Bool) {
+        let transformedAttributes = transformAttributes(attributes)
+        userTriggeredEventCollector.trackError(error, attributes: transformedAttributes, collectStackTraces: collectStackTraces)
+    }
+
+    func getDocumentDirectoryPath() -> String? {
+        return systemFileManager.getDirectoryPath(directory: FileManager.SearchPathDirectory.documentDirectory)
+    }
+
     private func applicationDidEnterBackground() {
         self.crashDataPersistence.isForeground = false
         self.internalSignalCollector.isForeground = false
@@ -282,7 +287,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleCollector.applicationDidEnterBackground()
         self.cpuUsageCollector.pause()
         self.memoryUsageCollector.pause()
-        self.dataCleanupService.clearStaleData()
+        self.dataCleanupService.clearStaleData {}
     }
 
     private func applicationWillEnterForeground() {

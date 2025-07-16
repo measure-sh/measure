@@ -32,5 +32,4 @@ extension SpanOb {
     @NSManaged public var userDefinedAttrs: Data?
     @NSManaged public var startTimeString: String
     @NSManaged public var endTimeString: String
-
 }

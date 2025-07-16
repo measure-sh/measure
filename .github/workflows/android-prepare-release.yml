@@ -29,7 +29,7 @@ jobs:
         with:
           ref: 'main'
           fetch-depth: 0
-          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Git
         run: |
@@ -45,31 +45,27 @@ jobs:
             exit 1
           fi
 
-      - name: Create release branch
-        run: |
-          git checkout -b android-v${{ inputs.version }}
-
       - name: Update version in gradle.properties
         run: |
           sed -i "s/MEASURE_VERSION_NAME=.*/MEASURE_VERSION_NAME=${{ inputs.version }}/" gradle.properties
 
       - name: Update version in README
         run: |
-          cd ../docs/android
+          cd ../docs
           # Update Groovy dependency
           GROOVY_PATTERN="implementation 'sh.measure:measure-android:.*'"
           GROOVY_REPLACEMENT="implementation 'sh.measure:measure-android:${{ inputs.version }}'"
-          sed -i "s/$GROOVY_PATTERN/$GROOVY_REPLACEMENT/" README.md
+          sed -i "s/$GROOVY_PATTERN/$GROOVY_REPLACEMENT/" sdk-integration-guide.md
           
           # Update Kotlin dependency
           KOTLIN_PATTERN='implementation("sh.measure:measure-android:.*")'
           KOTLIN_REPLACEMENT='implementation("sh.measure:measure-android:${{ inputs.version }}")'
-          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" README.md
+          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" sdk-integration-guide.md
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore(android): prepare sdk release ${{ inputs.version }}"
           branch: android-v${{ inputs.version }}
           delete-branch: false

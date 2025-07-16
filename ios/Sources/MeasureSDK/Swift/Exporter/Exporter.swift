@@ -8,9 +8,9 @@
 import Foundation
 
 protocol Exporter {
-    func createBatch(_ sessionId: String?) -> BatchCreationResult?
-    func getExistingBatches() -> [BatchEntity]
-    func export(batchId: String, eventIds: [String], spanIds: [String]) -> HttpResponse?
+    func createBatch(_ sessionId: String?, completion: @escaping (BatchCreationResult?) -> Void)
+    func getExistingBatches(completion: @escaping ([BatchEntity]) -> Void)
+    func export(batchId: String, eventIds: [String], spanIds: [String], completion: @escaping (HttpResponse?) -> Void)
 }
 
 final class BaseExporter: Exporter {
@@ -33,35 +33,59 @@ final class BaseExporter: Exporter {
         self.spanStore = spanStore
     }
 
-    func createBatch(_ sessionId: String?) -> BatchCreationResult? {
-        return batchCreator.create(sessionId: sessionId)
+    func createBatch(_ sessionId: String?, completion: @escaping (BatchCreationResult?) -> Void) {
+        batchCreator.create(sessionId: sessionId, completion: completion)
     }
 
-    func getExistingBatches() -> [BatchEntity] {
-        return batchStore.getBatches(maxExistingBatchesToExport)
+    func getExistingBatches(completion: @escaping ([BatchEntity]) -> Void) {
+        batchStore.getBatches(maxExistingBatchesToExport, completion: completion)
     }
 
-    func export(batchId: String, eventIds: [String], spanIds: [String]) -> HttpResponse? {
+    func export(batchId: String, eventIds: [String], spanIds: [String], completion: @escaping (HttpResponse?) -> Void) {
         guard !batchIdsInTransit.contains(batchId) else {
             logger.internalLog(level: .warning, message: "Batch \(batchId) is already in transit, skipping export", error: nil, data: nil)
-            return nil
+            completion(nil)
+            return
         }
 
         batchIdsInTransit.insert(batchId)
-        defer { batchIdsInTransit.remove(batchId) }
 
-        let events = eventStore.getEvents(eventIds: eventIds) ?? []
-        let spans = spanStore.getSpans(spanIds: spanIds) ?? []
-        guard !spans.isEmpty || !events.isEmpty else {
-            logger.internalLog(level: .error, message: "No events and spans found for batch \(batchId), invalid export request.", error: nil, data: nil)
-            batchStore.deleteBatch(batchId)
-            return nil
+        eventStore.getEvents(eventIds: eventIds) { [weak self] events in
+            guard let self = self, let events = events else {
+                self?.batchIdsInTransit.remove(batchId)
+                completion(nil)
+                return
+            }
+
+            self.spanStore.getSpans(spanIds: spanIds) { [weak self] spans in
+                guard let self = self else {
+                    self?.batchIdsInTransit.remove(batchId)
+                    completion(nil)
+                    return
+                }
+
+                guard let spans = spans else {
+                    logger.internalLog(level: .error, message: "Failed to fetch spans for batch \(batchId).", error: nil, data: nil)
+                    self.batchIdsInTransit.remove(batchId)
+                    completion(nil)
+                    return
+                }
+
+                guard !spans.isEmpty || !events.isEmpty else {
+                    logger.internalLog(level: .error, message: "No events and spans found for batch \(batchId), invalid export request.", error: nil, data: nil)
+                    self.batchStore.deleteBatch(batchId) {}
+                    self.batchIdsInTransit.remove(batchId)
+                    completion(nil)
+                    return
+                }
+
+                let response = self.networkClient.execute(batchId: batchId, events: events, spans: spans)
+
+                self.handleBatchProcessingResult(response: response, batchId: batchId, events: events, spans: spans)
+                self.batchIdsInTransit.remove(batchId)
+                completion(response)
+            }
         }
-
-        let response = networkClient.execute(batchId: batchId, events: events, spans: spans)
-
-        handleBatchProcessingResult(response: response, batchId: batchId, events: events, spans: spans)
-        return response
     }
 
     private func handleBatchProcessingResult(response: HttpResponse, batchId: String, events: [EventEntity], spans: [SpanEntity]) {
@@ -85,7 +109,7 @@ final class BaseExporter: Exporter {
         let eventIds = events.map { $0.id }
         let spanIds = spans.map { $0.spanId }
         spanStore.deleteSpans(spanIds: spanIds)
-        eventStore.deleteEvents(eventIds: eventIds)
-        batchStore.deleteBatch(batchId)
+        eventStore.deleteEvents(eventIds: eventIds) {}
+        batchStore.deleteBatch(batchId) {}
     }
 }

@@ -12,10 +12,48 @@ import Foundation
 /// Generates the network state attributes. These attributes are expected to change during the session.
 /// This class computes the attributes every time appendAttributes is called.
 final class NetworkStateAttributeProcessor: AttributeProcessor {
-    func appendAttributes(_ attributes: inout Attributes) {
-        attributes.networkType = getNetworkType()
-        attributes.networkGeneration = getNetworkGeneration()
-        attributes.networkProvider = getNetworkProvider()
+    private var cachedAttributes: (type: NetworkType, gen: NetworkGeneration, provider: String)?
+    private var lastUpdateTime: Date?
+    private let measureDispatchQueue: MeasureDispatchQueue
+
+    init(measureDispatchQueue: MeasureDispatchQueue) {
+        self.measureDispatchQueue = measureDispatchQueue
+    }
+
+    func appendAttributes(_ attributes: Attributes) {
+        if cachedAttributes == nil {
+            let newCache = (
+                type: getNetworkType(),
+                gen: getNetworkGeneration(),
+                provider: getNetworkProvider()
+            )
+            cachedAttributes = newCache
+            lastUpdateTime = Date()
+            attributes.networkType = newCache.type
+            attributes.networkGeneration = newCache.gen
+            attributes.networkProvider = newCache.provider
+        } else if let cache = cachedAttributes {
+            attributes.networkType = cache.type
+            attributes.networkGeneration = cache.gen
+            attributes.networkProvider = cache.provider
+        }
+
+        measureDispatchQueue.submit { [weak self] in
+            guard let self else { return }
+            if shouldUpdateCache() {
+                cachedAttributes = (
+                    type: getNetworkType(),
+                    gen: getNetworkGeneration(),
+                    provider: getNetworkProvider()
+                )
+                lastUpdateTime = Date()
+            }
+        }
+    }
+
+    private func shouldUpdateCache() -> Bool {
+        guard let last = lastUpdateTime else { return true }
+        return Date().timeIntervalSince(last) > 10
     }
 
     private func getNetworkType() -> NetworkType {

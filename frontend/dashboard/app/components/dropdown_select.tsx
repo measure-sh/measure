@@ -1,19 +1,19 @@
 "use client"
 
+import { Check, ChevronsUpDown, Circle, CircleCheck } from "lucide-react"
 import React, { useEffect, useState } from 'react'
-import { Check, ChevronsUpDown } from "lucide-react"
 import { AppVersion, OsVersion } from '../api/api_calls'
 
-import { Button } from './button'
 import { cn } from '../utils/shadcn_utils'
-import { Popover, PopoverContent, PopoverTrigger } from './popover'
+import { Button } from './button'
 import {
   Command,
-  CommandInput,
   CommandEmpty,
   CommandGroup,
+  CommandInput,
   CommandItem,
 } from './command'
+import { Popover, PopoverContent, PopoverTrigger } from './popover'
 
 export enum DropdownSelectType {
   SingleString,
@@ -309,7 +309,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
               >
                 {isMultiSelect() && (
                   <span className="mr-2 flex items-center justify-center w-4 h-4">
-                    {isItemSelected(item) ? <Check className="h-4 w-4" /> : null}
+                    {isItemSelected(item) ? <CircleCheck className="h-4 w-4" /> : <Circle className="h-4 w-4 opacity-50" />}
                   </span>
                 )}
                 <span className="flex-1 truncate font-display text-sm">{renderItemContent(item)}</span>

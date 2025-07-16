@@ -8,7 +8,7 @@
 import Foundation
 
 protocol DataCleanupService {
-    func clearStaleData()
+    func clearStaleData(completion: @escaping () -> Void)
 }
 
 final class BaseDataCleanupService: DataCleanupService {
@@ -26,24 +26,42 @@ final class BaseDataCleanupService: DataCleanupService {
         self.sessionManager = sessionManager
     }
 
-    func clearStaleData() {
-        guard let sessionsToDelete = getSessionsToDelete() else {
-            logger.internalLog(level: .info, message: "No session data to clear.", error: nil, data: nil)
-            return
+    func clearStaleData(completion: @escaping () -> Void) {
+        sessionStore.getSessionsToDelete { [weak self] sessionsToDelete in
+            guard let self = self, var sessionsToDelete = sessionsToDelete else {
+                completion()
+                return
+            }
+
+            sessionsToDelete.removeAll { $0 == self.sessionManager.sessionId }
+
+            guard !sessionsToDelete.isEmpty else {
+                self.logger.internalLog(level: .info, message: "No stale session data to clear after filtering current session.", error: nil, data: nil)
+                completion()
+                return
+            }
+
+            let group = DispatchGroup()
+
+            group.enter()
+            self.sessionStore.deleteSessions(sessionsToDelete) {
+                group.leave()
+            }
+
+            group.enter()
+            self.eventStore.deleteEvents(sessionIds: sessionsToDelete) {
+                group.leave()
+            }
+
+            group.enter()
+            self.spanStore.deleteSpans(sessionIds: sessionsToDelete) {
+                group.leave()
+            }
+
+            group.notify(queue: .main) {
+                self.logger.internalLog(level: .info, message: "Cleared stale session data for \(sessionsToDelete.count) sessions.", error: nil, data: ["sessionIds": sessionsToDelete])
+                completion()
+            }
         }
-
-        sessionStore.deleteSessions(sessionsToDelete)
-        eventStore.deleteEvents(sessionIds: sessionsToDelete)
-        spanStore.deleteSpans(sessionIds: sessionsToDelete)
-    }
-
-    private func getSessionsToDelete() -> [String]? {
-        guard var sessionsToDelete = sessionStore.getSessionsToDelete() else {
-            return nil
-        }
-
-        sessionsToDelete.removeAll { $0 == sessionManager.sessionId }
-
-        return sessionsToDelete
     }
 }

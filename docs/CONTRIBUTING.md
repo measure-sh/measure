@@ -98,7 +98,7 @@ In case of any issues related to incoherent state, reset your environment by run
 ```sh
 # would stop all containers and
 # remove images, orphan containers, volumes & networks
-docker compose down --rmi --remove-orphans --volumes
+docker compose down --rmi all --remove-orphans --volumes
 ```
 
 And rerun.

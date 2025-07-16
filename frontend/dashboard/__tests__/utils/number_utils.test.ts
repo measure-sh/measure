@@ -1,5 +1,5 @@
 import { kilobytesToMegabytes, numberToKMB } from '@/app/utils/number_utils'
-import { expect, it, describe } from '@jest/globals'
+import { describe, expect, it } from '@jest/globals'
 
 describe('number_utils', () => {
   describe('kilobytesToMegabytes', () => {

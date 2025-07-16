@@ -12,8 +12,11 @@ import AVKit
 protocol ScreenshotGenerator {
     func generate(window: UIWindow,
                   name: String,
-                  storageType: AttachmentStorageType) -> Attachment?
-    func generate(viewController: UIViewController) -> Attachment?
+                  storageType: AttachmentStorageType,
+                  completion: @escaping (MsrAttachment?) -> Void)
+
+    func generate(viewController: UIViewController,
+                  completion: @escaping (MsrAttachment?) -> Void)
 }
 
 final class BaseScreenshotGenerator: ScreenshotGenerator {
@@ -36,34 +39,61 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
 
     func generate(window: UIWindow,
                   name: String,
-                  storageType: AttachmentStorageType) -> Attachment? {
-        let typesToMask = typesToMask(for: configProvider.screenshotMaskLevel)
-        let sensitiveFrames = findSensitiveFrames(in: window, rootView: window, types: typesToMask)
+                  storageType: AttachmentStorageType,
+                  completion: @escaping (MsrAttachment?) -> Void) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else {
+                completion(nil)
+                return
+            }
 
-        let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
-        let screenshot = renderer.image { _ in
-            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            SignPost.trace(subcategory: "Attachment", label: "generateScreenshot") {
+                let typesToMask = self.typesToMask(for: self.configProvider.screenshotMaskLevel)
+                let sensitiveFrames = self.findSensitiveFrames(in: window, rootView: window, types: typesToMask)
+
+                let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
+                let screenshot = renderer.image { _ in
+                    window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+                }
+
+                guard let redactedImage = self.redactScreenshot(screenshot, sensitiveFrames: sensitiveFrames, maskColor: self.maskColor) else {
+                    completion(nil)
+                    return
+                }
+
+                guard let compressedData = redactedImage.jpegData(compressionQuality: CGFloat(self.configProvider.screenshotCompressionQuality) / 100.0) else {
+                    self.logger.log(level: .debug, message: "ScreenshotGenerator: Failed to compress image.", error: nil, data: nil)
+                    completion(nil)
+                    return
+                }
+
+                let attachment = self.attachmentProcessor.getAttachmentObject(
+                    for: compressedData,
+                    name: name,
+                    storageType: storageType,
+                    attachmentType: .screenshot
+                )
+                completion(attachment)
+            }
         }
-
-        guard let redactedImage = redactScreenshot(screenshot, sensitiveFrames: sensitiveFrames, maskColor: self.maskColor) else {
-            return nil
-        }
-
-        guard let compressedData = redactedImage.jpegData(compressionQuality: CGFloat(configProvider.screenshotCompressionQuality) / 100.0) else {
-            logger.log(level: .debug, message: "ScreenshotGenerator: Failed to compress image.", error: nil, data: nil)
-            return nil
-        }
-
-        return attachmentProcessor.getAttachmentObject(for: compressedData, name: name, storageType: storageType, attachmentType: .screenshot)
     }
 
-    func generate(viewController: UIViewController) -> Attachment? {
-        guard let window = viewController.view.window else {
-            logger.log(level: .debug, message: "ScreenshotGenerator: ViewController does not have an attached window.", error: nil, data: nil)
-            return nil
-        }
+    func generate(viewController: UIViewController,
+                  completion: @escaping (MsrAttachment?) -> Void) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else {
+                completion(nil)
+                return
+            }
 
-        return generate(window: window, name: screenshotName, storageType: .data)
+            guard let window = viewController.view.window else {
+                self.logger.log(level: .debug, message: "ScreenshotGenerator: ViewController does not have an attached window.", error: nil, data: nil)
+                completion(nil)
+                return
+            }
+
+            self.generate(window: window, name: screenshotName, storageType: .data, completion: completion)
+        }
     }
 
     private func findSensitiveFrames(in view: UIView, rootView: UIView, types: [UIView.Type]) -> [CGRect] {
@@ -106,7 +136,6 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
                 UIImageView.self,
                 WKWebView.self,
                 UIWebView.self,
-                WKWebView.self,
                 AVPlayerViewController().view.classForCoder
             ].compactMap { $0 as? UIView.Type }
 

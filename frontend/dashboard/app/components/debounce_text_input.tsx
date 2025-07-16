@@ -1,8 +1,10 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
+import { cn } from '../utils/shadcn_utils'
 
 interface DebounceTextInputProps {
+  className?: string
   id: string
   placeholder: string
   initialValue: string
@@ -10,6 +12,7 @@ interface DebounceTextInputProps {
 }
 
 const DebounceTextInput: React.FC<DebounceTextInputProps> = ({
+  className,
   id,
   placeholder,
   initialValue,
@@ -42,7 +45,7 @@ const DebounceTextInput: React.FC<DebounceTextInputProps> = ({
       id={id}
       type="text"
       placeholder={placeholder}
-      className="w-full font-body border border-black rounded-md p-2 text-sm transition-all outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] placeholder:text-neutral-400"
+      className={cn("w-full font-body border border-black rounded-md p-2 text-sm transition-all outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] placeholder:text-neutral-400", className)}
       value={inputValue}
       onChange={handleInputChange}
     />

@@ -49,13 +49,13 @@
         @"paid_user": @YES,
         @"credit_balance": @1000,
         @"latitude": @30.2661403415387};
-    [[Measure shared] start];
-    [[Measure shared] trackEvent:@"event-name" attributes:userAttributes timestamp:nil];
+    [Measure start];
+    [Measure trackEvent:@"event-name" attributes:userAttributes timestamp:nil];
     
     [self setTitle:@"Objc View Controller"];
     
     [self.view addSubview:tableView];
-    [[Measure shared] trackScreenView:@"ObjcViewController"];
+    [Measure trackScreenView:@"ObjcViewController"];
 }
 
 // MARK: - Create Table Header with Buttons

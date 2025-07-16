@@ -27,7 +27,7 @@ final class DeviceAttributeProcessor: BaseComputeOnceAttributeProcessor {
     private var osVersion: String?
     private var deviceCpuArch: String?
 
-    override func updateAttribute(_ attribute: inout Attributes) {
+    override func updateAttribute(_ attribute: Attributes) {
         attribute.deviceName = deviceName
         attribute.deviceModel = deviceModel
         attribute.deviceManufacturer = deviceManufacturer

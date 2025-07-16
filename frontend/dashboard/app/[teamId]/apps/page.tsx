@@ -1,18 +1,17 @@
 "use client"
 
 import { AppNameChangeApiStatus, AuthzAndMembersApiStatus, changeAppNameFromServer, emptyAppSettings, FetchAppSettingsApiStatus, fetchAppSettingsFromServer, fetchAuthzAndMembersFromServer, FilterSource, UpdateAppSettingsApiStatus, updateAppSettingsFromServer } from "@/app/api/api_calls"
+import { measureAuth } from "@/app/auth/measure_auth"
+import { Button } from "@/app/components/button"
 import CreateApp from "@/app/components/create_app"
 import DangerConfirmationModal from "@/app/components/danger_confirmation_dialog"
 import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters"
-import { measureAuth } from "@/app/auth/measure_auth"
-import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
-import React, { useState, useEffect, useRef } from 'react'
-import { Button } from "@/app/components/button"
-import { toast, toastNegative, toastPositive } from "@/app/utils/use_toast"
 import LoadingSpinner from "@/app/components/loading_spinner"
+import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
+import { toastNegative, toastPositive } from "@/app/utils/use_toast"
 import Link from "next/link"
-import { Separator } from "@/app/components/separator"
+import { useEffect, useRef, useState } from 'react'
 
 export default function Apps({ params }: { params: { teamId: string } }) {
   const [filters, setFilters] = useState(defaultFilters)
@@ -101,7 +100,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
       case UpdateAppSettingsApiStatus.Success:
         setUpdateAppSettingsApiStatus(UpdateAppSettingsApiStatus.Error)
         setAppSettings(updatedAppSettings)
-        toastPositive("Your app settings have been saved successfully!")
+        toastPositive("Your app settings have been saved")
         break
     }
   }
@@ -140,7 +139,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         break
       case AppNameChangeApiStatus.Success:
         setAppNameChangeApiStatus(AppNameChangeApiStatus.Success)
-        toastPositive("App name changed successfully")
+        toastPositive("App name changed")
         if (filtersRef.current?.refresh) {
           filtersRef.current.refresh()
         }
@@ -150,14 +149,20 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start">
-      <p className="font-display text-4xl max-w-6xl text-center">Apps</p>
+      <div className="flex flex-row items-center gap-2 justify-between w-full">
+        <p className="font-display text-4xl max-w-6xl text-center">Apps</p>
+        <CreateApp
+          teamId={params.teamId}
+          onSuccess={(app) => {
+            filtersRef.current?.refresh(app.id)
+          }} />
+      </div>
       <div className="py-4" />
       <Filters
         ref={filtersRef}
         teamId={params.teamId}
         filterSource={FilterSource.Events}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-        showCreateApp={false}
         showNoData={false}
         showNotOnboarded={false}
         showAppSelector={true}
@@ -176,7 +181,6 @@ export default function Apps({ params }: { params: { teamId: string } }) {
         showUdAttrs={false}
         showFreeText={false}
         onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
-
 
       {/* Main UI*/}
       {filters.ready &&
@@ -201,8 +205,8 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               {(!filters.app!.unique_identifier || !filters.app!.os_name) &&
                 <p className="font-body text-sm">Follow our <Link target='_blank' className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href='https://github.com/measure-sh/measure?tab=readme-ov-file#docs'>docs</Link> to finish setting up your app.</p>}
             </div>
-            <div className="py-8" />
-            <p className="font-display text-2xl max-w-6xl">SDK Variables</p>
+            <div className="py-10" />
+            <p className="font-display text-xl max-w-6xl">Copy SDK variables</p>
             <div className="flex flex-row items-center mt-2">
               <p className="text-sm">API URL</p>
               <div className="px-3" />
@@ -232,10 +236,10 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               </Button>
             </div>
             <div className="py-8" />
-            <p className="font-display text-2xl max-w-6xl">Configure Data Rentention</p>
+            <p className="font-display text-xl max-w-6xl">Configure data rentention</p>
             <div className="flex flex-row items-center mt-2">
               {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Loading && <LoadingSpinner />}
-              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Error && <p>: Unable to fetch retention period. Please refresh page to try again.</p>}
+              {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Error && <p className="font-body text-sm">: Unable to fetch retention period. Please refresh page to try again.</p>}
               {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success && <DropdownSelect type={DropdownSelectType.SingleString} title="Data Retention Period" items={Array.from(retentionPeriodToDisplayTextMap.values())} initialSelected={retentionPeriodToDisplayTextMap.get(appSettings.retention_period!)!} onChangeSelected={(item) => handleRetentionPeriodChange(item as string)} />}
               {fetchAppSettingsApiStatus === FetchAppSettingsApiStatus.Success &&
                 <Button
@@ -249,7 +253,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
               }
             </div>
             <div className="py-8" />
-            <p className="font-display text-2xl max-w-6xl">Change App Name</p>
+            <p className="font-display text-xl max-w-6xl">Change App Name</p>
             <div className="flex flex-row items-center mt-2">
               <input id="change-app-name-input" type="text" value={appName}
                 onChange={(event) => {
@@ -270,10 +274,6 @@ export default function Apps({ params }: { params: { teamId: string } }) {
           </div>
         </div>
       }
-      <div className="py-8" />
-      <Separator className="w-full" />
-      <div className="py-4" />
-      <CreateApp teamId={params.teamId} />
     </div>
   )
 }

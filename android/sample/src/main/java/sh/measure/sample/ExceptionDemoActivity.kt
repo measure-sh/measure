@@ -26,7 +26,7 @@ import sh.measure.sample.screenshot.ViewScreenshotActivity
 import java.io.IOException
 import kotlin.concurrent.thread
 
-class ExceptionDemoActivity : AppCompatActivity() {
+class ExceptionDemoActivity : AppCompatActivity(), MsrShakeListener {
     private val _mutex = Any()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,11 +91,11 @@ class ExceptionDemoActivity : AppCompatActivity() {
         enableShakeSwitch.setOnCheckedChangeListener { _, isChecked ->
             when (isChecked) {
                 true -> {
-                    Measure.enableShakeToLaunchBugReport(true)
+                    Measure.setShakeListener(this@ExceptionDemoActivity)
                 }
 
                 false -> {
-                    Measure.disableShakeToLaunchBugReport()
+                    Measure.setShakeListener(null)
                 }
             }
         }
@@ -249,6 +249,13 @@ class ExceptionDemoActivity : AppCompatActivity() {
                 windowInsets
             }
         }
+    }
+
+    override fun onShake() {
+        Measure.launchBugReportActivity(
+            true,
+            AttributesBuilder().put("custom-key", "value").build()
+        )
     }
 }
 

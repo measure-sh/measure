@@ -1,14 +1,13 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
-import Link from "next/link"
-import { useRouter, useSearchParams } from 'next/navigation'
 import { ExceptionsOverviewApiStatus, ExceptionsType, FilterSource, emptyExceptionsOverviewResponse, fetchExceptionsOverviewFromServer } from '@/app/api/api_calls'
 import Paginator from '@/app/components/paginator'
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters'
+import { useRouter, useSearchParams } from 'next/navigation'
+import React, { useEffect, useState } from 'react'
 import ExceptionsOverviewPlot from './exceptions_overview_plot'
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from './filters'
 import LoadingBar from './loading_bar'
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from './table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table'
 
 interface PageState {
   exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus
@@ -116,7 +115,6 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         teamId={teamId}
         filterSource={exceptionsType === ExceptionsType.Crash ? FilterSource.Crashes : FilterSource.Anrs}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-        showCreateApp={true}
         showNoData={true}
         showNotOnboarded={true}
         showAppSelector={true}

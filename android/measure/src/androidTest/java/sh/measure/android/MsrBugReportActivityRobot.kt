@@ -31,7 +31,6 @@ internal class MsrBugReportActivityRobot {
     fun initializeMeasure(config: MeasureConfig = MeasureConfig()): TestMeasureInitializer {
         val initializer = TestMeasureInitializer(
             shakeBugReportCollector = ShakeBugReportCollector(
-                autoLaunchEnabled = config.enableShakeToLaunchBugReport,
                 shakeDetector = shakeDetector,
             ),
             application = context as Application,

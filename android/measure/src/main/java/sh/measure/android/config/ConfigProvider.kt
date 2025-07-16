@@ -123,12 +123,14 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { shakeAccelerationThreshold }
     override val shakeSlop: Int
         get() = getMergedConfig { shakeSlop }
-    override val enableShakeToLaunchBugReport: Boolean
-        get() = getMergedConfig { enableShakeToLaunchBugReport }
     override val trackActivityLoadTime: Boolean
         get() = getMergedConfig { trackActivityLoadTime }
     override val trackFragmentLoadTime: Boolean
         get() = getMergedConfig { trackFragmentLoadTime }
+    override val disallowedCustomHeaders: List<String>
+        get() = getMergedConfig { disallowedCustomHeaders }
+    override val requestHeadersProvider: MsrRequestHeadersProvider?
+        get() = getMergedConfig { requestHeadersProvider }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (!trackHttpBody) {
@@ -155,14 +157,11 @@ internal class ConfigProviderImpl(
 
         // If the allowlist is empty, then block the URLs that are in the blocklist.
         return !combinedHttpUrlBlocklist.any { value ->
-            value?.let { url.contains(it, ignoreCase = true) } ?: false
+            value?.let { url.contains(it, ignoreCase = true) } == true
         }
     }
 
     override fun shouldTrackHttpHeader(key: String): Boolean {
-        if (!trackHttpHeaders) {
-            return false
-        }
         return !combinedHttpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
     }
 

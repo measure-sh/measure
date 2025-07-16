@@ -55,7 +55,8 @@ struct Config: InternalConfig, MeasureConfig {
     let shakeMinTimeIntervalMs: Number
     let accelerometerUpdateInterval: TimeInterval
     let screenshotMaskLevel: ScreenshotMaskLevel
-    let enableShakeToLaunchBugReport: Bool
+    let requestHeadersProvider: MsrRequestHeadersProvider?
+    let disallowedCustomHeaders: [String]
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
@@ -68,7 +69,7 @@ struct Config: InternalConfig, MeasureConfig {
                   autoStart: Bool = DefaultConfig.autoStart,
                   trackViewControllerLoadTime: Bool = DefaultConfig.trackViewControllerLoadTime,
                   screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel,
-                  enableShakeToLaunchBugReport: Bool = DefaultConfig.enableShakeToLaunchBugReport) {
+                  requestHeadersProvider: MsrRequestHeadersProvider? = nil) {
         self.enableLogging = enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
         self.traceSamplingRate = traceSamplingRate
@@ -80,7 +81,6 @@ struct Config: InternalConfig, MeasureConfig {
         self.autoStart = autoStart
         self.trackViewControllerLoadTime = trackViewControllerLoadTime
         self.screenshotMaskLevel = screenshotMaskLevel
-        self.enableShakeToLaunchBugReport = enableShakeToLaunchBugReport
         self.eventsBatchingIntervalMs = 30000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndLastEventThresholdMs = 20 * 60 * 1000 // 20 minitues
@@ -120,5 +120,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.shakeAccelerationThreshold = 2.5
         self.shakeMinTimeIntervalMs = 1500
         self.accelerometerUpdateInterval = 0.1
+        self.requestHeadersProvider = requestHeadersProvider
+        self.disallowedCustomHeaders = DefaultConfig.disallowedCustomHeaders
     }
 }

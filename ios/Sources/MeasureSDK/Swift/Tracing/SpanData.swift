@@ -16,7 +16,7 @@ struct SpanData {
     let sessionId: String
     let startTime: Int64
     let endTime: Int64
-    let duration: Number
+    let duration: Int64
     let status: SpanStatus
     let attributes: Attributes?
     let userDefinedAttrs: [String: AttributeValue]?

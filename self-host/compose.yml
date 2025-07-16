@@ -265,7 +265,7 @@ services:
     profiles:
       - migrate
     environment:
-      - DATABASE_URL=${CLICKHOUSE_DSN}
+      - DATABASE_URL=${CLICKHOUSE_MIGRATIONS_URL}
       - DBMATE_MIGRATIONS_DIR=/opt/clickhouse
       - DBMATE_SCHEMA_FILE=/opt/clickhouse/schema.sql
       - DBMATE_WAIT=true

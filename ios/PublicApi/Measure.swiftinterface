@@ -9,6 +9,7 @@ import CoreTelephony
 import CrashReporter
 import Foundation
 import MachO
+@_exported import Measure
 import Network
 import Photos
 import Swift
@@ -34,8 +35,11 @@ extension Measure.AttributeValue : Swift.Codable {
   public func encode(to encoder: any Swift.Encoder) throws
   public init(from decoder: any Swift.Decoder) throws
 }
-@objc final public class BaseMeasureConfig : ObjectiveC.NSObject {
-  public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil, traceSamplingRate: Swift.Float? = nil, trackHttpHeaders: Swift.Bool? = nil, trackHttpBody: Swift.Bool? = nil, httpHeadersBlocklist: [Swift.String]? = nil, httpUrlBlocklist: [Swift.String]? = nil, httpUrlAllowlist: [Swift.String]? = nil, autoStart: Swift.Bool? = nil, trackViewControllerLoadTime: Swift.Bool? = nil, screenshotMaskLevel: Measure.ScreenshotMaskLevel? = nil, enableShakeToLaunchBugReport: Swift.Bool? = nil)
+@objc final public class BaseMeasureConfig : ObjectiveC.NSObject, Swift.Codable {
+  required public init(from decoder: any Swift.Decoder) throws
+  final public func encode(to encoder: any Swift.Encoder) throws
+  public init(enableLogging: Swift.Bool? = nil, samplingRateForErrorFreeSessions: Swift.Float? = nil, traceSamplingRate: Swift.Float? = nil, trackHttpHeaders: Swift.Bool? = nil, trackHttpBody: Swift.Bool? = nil, httpHeadersBlocklist: [Swift.String]? = nil, httpUrlBlocklist: [Swift.String]? = nil, httpUrlAllowlist: [Swift.String]? = nil, autoStart: Swift.Bool? = nil, trackViewControllerLoadTime: Swift.Bool? = nil, screenshotMaskLevel: Measure.ScreenshotMaskLevel? = nil, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)? = nil)
+  @objc convenience public init(enableLogging: Swift.Bool, samplingRateForErrorFreeSessions: Swift.Float, traceSamplingRate: Swift.Float, trackHttpHeaders: Swift.Bool, trackHttpBody: Swift.Bool, httpHeadersBlocklist: [Swift.String], httpUrlBlocklist: [Swift.String], httpUrlAllowlist: [Swift.String], autoStart: Swift.Bool, trackViewControllerLoadTime: Swift.Bool, screenshotMaskLevel: Measure.ScreenshotMaskLevelObjc, requestHeadersProvider: (any Measure.MsrRequestHeadersProvider)?)
   @objc deinit
 }
 public protocol Span {
@@ -119,9 +123,11 @@ extension Measure.BatchOb {
   public func update(reportBugTitle: Swift.String? = nil, descriptionPlaceholder: Swift.String? = nil, sendButton: Swift.String? = nil, screenshotButton: Swift.String? = nil, galleryButton: Swift.String? = nil, exitScreenshotMode: Swift.String? = nil) -> Measure.MsrText
   @objc deinit
 }
-@objc final public class ClientInfo : ObjectiveC.NSObject {
+@objc final public class ClientInfo : ObjectiveC.NSObject, Swift.Codable {
   @objc public init(apiKey: Swift.String, apiUrl: Swift.String)
+  required public init(from decoder: any Swift.Decoder) throws
   @objc deinit
+  final public func encode(to encoder: any Swift.Encoder) throws
 }
 @objc public class MsrFonts : ObjectiveC.NSObject {
   final public let title: UIKit.UIFont
@@ -131,19 +137,31 @@ extension Measure.BatchOb {
   public func update(title: UIKit.UIFont? = nil, button: UIKit.UIFont? = nil, placeholder: UIKit.UIFont? = nil) -> Measure.MsrFonts
   @objc deinit
 }
-public enum ScreenshotMaskLevel {
+public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterable {
   case allTextAndMedia
   case allText
   case allTextExceptClickable
   case sensitiveFieldsOnly
-  public static func == (a: Measure.ScreenshotMaskLevel, b: Measure.ScreenshotMaskLevel) -> Swift.Bool
-  public func hash(into hasher: inout Swift.Hasher)
-  public var hashValue: Swift.Int {
+  public init?(rawValue: Swift.String)
+  public typealias AllCases = [Measure.ScreenshotMaskLevel]
+  public typealias RawValue = Swift.String
+  nonisolated public static var allCases: [Measure.ScreenshotMaskLevel] {
+    get
+  }
+  public var rawValue: Swift.String {
     get
   }
 }
-@objc @_hasMissingDesignatedInitializers public class MsrAttachment : ObjectiveC.NSObject {
-  @objc deinit
+@objc public enum ScreenshotMaskLevelObjc : Swift.Int {
+  case allTextAndMedia
+  case allText
+  case allTextExceptClickable
+  case sensitiveFieldsOnly
+  public init?(rawValue: Swift.Int)
+  public typealias RawValue = Swift.Int
+  public var rawValue: Swift.Int {
+    get
+  }
 }
 @objc public class BugReportConfig : ObjectiveC.NSObject {
   final public let colors: Measure.MsrColors
@@ -197,6 +215,9 @@ public enum ScreenshotMaskLevel {
   public func update(darkBackground: UIKit.UIColor? = nil, lightBackground: UIKit.UIColor? = nil, darkButtonBackground: UIKit.UIColor? = nil, lightButtonBackground: UIKit.UIColor? = nil, darkText: UIKit.UIColor? = nil, lightText: UIKit.UIColor? = nil, darkPlaceholder: UIKit.UIColor? = nil, lightPlaceholder: UIKit.UIColor? = nil, darkFloatingButtonBackground: UIKit.UIColor? = nil, lightFloatingButtonBackground: UIKit.UIColor? = nil, darkFloatingButtonIcon: UIKit.UIColor? = nil, lightFloatingButtonIcon: UIKit.UIColor? = nil, darkfloatingExitButtonText: UIKit.UIColor? = nil, lightfloatingExitButtonText: UIKit.UIColor? = nil, badgeColor: UIKit.UIColor? = nil, badgeTextColor: UIKit.UIColor? = nil, isDarkMode: Swift.Bool? = nil) -> Measure.MsrColors
   @objc deinit
 }
+@objc public protocol MsrRequestHeadersProvider : ObjectiveC.NSObjectProtocol {
+  @objc func getRequestHeaders() -> Foundation.NSDictionary
+}
 @objc public enum VCLifecycleEventType : Swift.Int, Swift.Codable {
   case viewDidLoad = 0
   case viewWillAppear = 1
@@ -214,8 +235,11 @@ public enum ScreenshotMaskLevel {
     get
   }
 }
-@objc public protocol MsrShakeListener {
-  @objc func onShake()
+@objc public class MsrAttachment : ObjectiveC.NSObject, Swift.Codable {
+  public init(name: Swift.String, type: Measure.AttachmentType, size: Swift.Int64, id: Swift.String, bytes: Foundation.Data? = nil, path: Swift.String? = nil)
+  @objc deinit
+  public func encode(to encoder: any Swift.Encoder) throws
+  required public init(from decoder: any Swift.Decoder) throws
 }
 @objc public class MsrDimensions : ObjectiveC.NSObject {
   final public let topPadding: CoreFoundation.CGFloat
@@ -238,32 +262,36 @@ extension SwiftUICore.View {
   
 }
 @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers @objc final public class Measure : ObjectiveC.NSObject {
-  @objc public static let shared: Measure.Measure
-  @objc final public func initialize(with client: Measure.ClientInfo, config: Measure.BaseMeasureConfig? = nil)
-  @objc final public func start()
-  @objc final public func stop()
-  final public func trackEvent(name: Swift.String, attributes: [Swift.String : Measure.AttributeValue], timestamp: Swift.Int64?)
-  final public func internalTrackEvent(data: inout [Swift.String : Any?], type: Swift.String, timestamp: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], userTriggered: Swift.Bool, sessionId: Swift.String?, threadName: Swift.String?)
-  @objc final public func trackEvent(_ name: Swift.String, attributes: [Swift.String : Any], timestamp: Foundation.NSNumber?)
-  @objc final public func trackScreenView(_ screenName: Swift.String)
-  @objc final public func setUserId(_ userId: Swift.String)
-  @objc final public func clearUserId()
-  @objc final public func getCurrentTime() -> Swift.Int64
-  final public func startSpan(name: Swift.String) -> any Measure.Span
-  final public func startSpan(name: Swift.String, timestamp: Swift.Int64) -> any Measure.Span
-  final public func createSpanBuilder(name: Swift.String) -> (any Measure.SpanBuilder)?
-  final public func getTraceParentHeaderValue(span: any Measure.Span) -> Swift.String
-  final public func getTraceParentHeaderKey() -> Swift.String
-  final public func launchBugReport(takeScreenshot: Swift.Bool = true, bugReportConfig: Measure.BugReportConfig = .default, attributes: [Swift.String : Measure.AttributeValue]? = nil)
-  @objc final public func launchBugReport(takeScreenshot: Swift.Bool = true, bugReportConfig: Measure.BugReportConfig = .default, attributes: [Swift.String : Any]? = nil)
-  @objc final public func enableShakeToLaunchBugReport(takeScreenshot: Swift.Bool = true)
-  @objc final public func disableShakeToLaunchBugReport()
-  @objc final public func isShakeToLaunchBugReportEnabled() -> Swift.Bool
-  @objc final public func setShakeListener(_ listener: (any Measure.MsrShakeListener)?)
-  final public func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Measure.AttributeValue]? = nil)
-  @objc final public func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Any]? = nil)
-  @objc final public func captureScreenshot(for viewController: UIKit.UIViewController) -> Measure.MsrAttachment?
   @objc deinit
+}
+extension Measure.Measure {
+  @objc public static func initialize(with client: Measure.ClientInfo, config: Measure.BaseMeasureConfig? = nil)
+  @objc public static func start()
+  @objc public static func stop()
+  @objc public static func getSessionId() -> Swift.String?
+  public static func internalTrackEvent(data: inout [Swift.String : Any?], type: Swift.String, timestamp: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], userTriggered: Swift.Bool, sessionId: Swift.String?, threadName: Swift.String?, attachments: [Measure.MsrAttachment])
+  public static func internalTrackSpan(name: Swift.String, traceId: Swift.String, spanId: Swift.String, parentId: Swift.String?, startTime: Swift.Int64, endTime: Swift.Int64, duration: Swift.Int64, status: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], checkpoints: [Swift.String : Swift.Int64], hasEnded: Swift.Bool, isSampled: Swift.Bool)
+  public static func trackEvent(name: Swift.String, attributes: [Swift.String : Measure.AttributeValue], timestamp: Swift.Int64? = nil)
+  @objc public static func trackEvent(_ name: Swift.String, attributes: [Swift.String : Any], timestamp: Foundation.NSNumber? = nil)
+  @objc public static func trackScreenView(_ screenName: Swift.String)
+  @objc public static func setUserId(_ userId: Swift.String)
+  @objc public static func clearUserId()
+  @objc public static func getCurrentTime() -> Swift.Int64
+  public static func startSpan(name: Swift.String) -> any Measure.Span
+  public static func startSpan(name: Swift.String, timestamp: Swift.Int64) -> any Measure.Span
+  public static func createSpanBuilder(name: Swift.String) -> (any Measure.SpanBuilder)?
+  public static func getTraceParentHeaderValue(span: any Measure.Span) -> Swift.String
+  public static func getTraceParentHeaderKey() -> Swift.String
+  public static func launchBugReport(takeScreenshot: Swift.Bool = true, bugReportConfig: Measure.BugReportConfig = .default, attributes: [Swift.String : Measure.AttributeValue]? = nil)
+  @objc public static func launchBugReport(takeScreenshot: Swift.Bool = true, bugReportConfig: Measure.BugReportConfig = .default, attributes: [Swift.String : Any]? = nil)
+  @objc public static func onShake(_ handler: (() -> Swift.Void)?)
+  public static func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Measure.AttributeValue]? = nil)
+  @objc public static func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Any]? = nil)
+  @objc public static func captureScreenshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)
+  @objc public static func captureLayoutSnapshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)
+  public static func trackError(_ error: any Swift.Error, attributes: [Swift.String : Measure.AttributeValue]? = nil, collectStackTraces: Swift.Bool = false)
+  @objc public static func trackError(_ error: Foundation.NSError, attributes: [Swift.String : Any]? = nil, collectStackTraces: Swift.Bool = false)
+  public static func internalGetAttachmentDirectory() -> Swift.String?
 }
 @_inheritsConvenienceInitializers @objc(SpanOb) public class SpanOb : CoreData.NSManagedObject {
   @objc override dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
@@ -343,6 +371,15 @@ extension Measure.SpanOb {
 public struct MSRNetworkInterceptor {
   public static func enable(on sessionConfiguration: Foundation.URLSessionConfiguration)
 }
+public enum AttachmentType : Swift.String, Swift.Codable {
+  case screenshot
+  case layoutSnapshot
+  public init?(rawValue: Swift.String)
+  public typealias RawValue = Swift.String
+  public var rawValue: Swift.String {
+    get
+  }
+}
 @objc @_inheritsConvenienceInitializers @_Concurrency.MainActor @preconcurrency open class MsrViewController : UIKit.UIViewController {
   @_Concurrency.MainActor @preconcurrency @objc override dynamic open func loadView()
   @objc deinit
@@ -354,8 +391,15 @@ extension Measure.SpanStatus : Swift.Hashable {}
 extension Measure.SpanStatus : Swift.RawRepresentable {}
 extension Measure.ScreenshotMaskLevel : Swift.Equatable {}
 extension Measure.ScreenshotMaskLevel : Swift.Hashable {}
+extension Measure.ScreenshotMaskLevel : Swift.RawRepresentable {}
+extension Measure.ScreenshotMaskLevelObjc : Swift.Equatable {}
+extension Measure.ScreenshotMaskLevelObjc : Swift.Hashable {}
+extension Measure.ScreenshotMaskLevelObjc : Swift.RawRepresentable {}
 extension Measure.VCLifecycleEventType : Swift.Equatable {}
 extension Measure.VCLifecycleEventType : Swift.Hashable {}
 extension Measure.VCLifecycleEventType : Swift.RawRepresentable {}
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 extension Measure.MsrMoniterView : Swift.Sendable {}
+extension Measure.AttachmentType : Swift.Equatable {}
+extension Measure.AttachmentType : Swift.Hashable {}
+extension Measure.AttachmentType : Swift.RawRepresentable {}

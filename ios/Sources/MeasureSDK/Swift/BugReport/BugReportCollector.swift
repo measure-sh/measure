@@ -15,7 +15,7 @@ protocol BugReportCollector {
     func validateBugReport(attachments: Int,
                            descriptionLength: Int) -> Bool
     func trackBugReport(description: String,
-                        attachments: [Attachment],
+                        attachments: [MsrAttachment],
                         attributes: [String: AttributeValue]?)
 }
 
@@ -53,16 +53,18 @@ final class BaseBugReportCollector: BugReportCollector {
     }
 
     func trackBugReport(description: String,
-                        attachments: [Attachment],
+                        attachments: [MsrAttachment],
                         attributes: [String: AttributeValue]?) {
-        signalProcessor.trackUserTriggered(data: BugReportData(description: description),
-                                           timestamp: timeProvider.now(),
-                                           type: .bugReport,
-                                           attributes: nil,
-                                           sessionId: nil,
-                                           attachments: attachments,
-                                           userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(userDefinedAttributes),
-                                           threadName: nil)
-        sessionManager.markCurrentSessionAsCrashed()
+        SignPost.trace(subcategory: "Event", label: "trackBugReport") {
+            signalProcessor.trackUserTriggered(data: BugReportData(description: description),
+                                               timestamp: timeProvider.now(),
+                                               type: .bugReport,
+                                               attributes: nil,
+                                               sessionId: nil,
+                                               attachments: attachments,
+                                               userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(userDefinedAttributes),
+                                               threadName: nil)
+            sessionManager.markCurrentSessionAsCrashed()
+        }
     }
 }

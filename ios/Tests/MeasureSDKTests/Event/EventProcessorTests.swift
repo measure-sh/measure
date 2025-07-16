@@ -136,13 +136,14 @@ final class SignalProcessorTests: XCTestCase {
                                               timeProvider: BaseTimeProvider(),
                                               crashDataPersistence: crashDataPersistence,
                                               eventStore: eventStore,
-                                              spanStore: spanStore)
+                                              spanStore: spanStore,
+                                              measureDispatchQueue: MockMeasureDispatchQueue())
         signalProcessor.track(data: exception,
                              timestamp: 1_000_000_000,
                              type: .exception,
                              attributes: nil,
                              sessionId: nil,
-                             attachments: [Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
+                             attachments: [MsrAttachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
                              userDefinedAttributes: nil,
                              threadName: nil)
 
@@ -162,7 +163,11 @@ final class SignalProcessorTests: XCTestCase {
         XCTAssertEqual(event.timestamp, "1970-01-12T13:46:40.000Z")
         XCTAssertEqual(event.type, .exception)
         XCTAssertEqual(event.attachments?.count, 1)
-        XCTAssertEqual(event.attachments?.first, Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path"))
+        XCTAssertEqual(event.attachments?.first?.name, "file-name")
+        XCTAssertEqual(event.attachments?.first?.type, .screenshot)
+        XCTAssertEqual(event.attachments?.first?.size, 10)
+        XCTAssertEqual(event.attachments?.first?.id, "id")
+        XCTAssertEqual(event.attachments?.first?.path, "file-path")
         XCTAssertEqual(event.userTriggered, false)
         XCTAssertEqual(event.attributes, attributes)
         XCTAssertEqual(event.exception, exception)
@@ -184,7 +189,8 @@ final class SignalProcessorTests: XCTestCase {
                                               timeProvider: BaseTimeProvider(),
                                               crashDataPersistence: crashDataPersistence,
                                               eventStore: eventStore,
-                                              spanStore: spanStore)
+                                              spanStore: spanStore,
+                                              measureDispatchQueue: MockMeasureDispatchQueue())
         let attributes = Attributes(
             threadName: "main",
             deviceName: "iPhone",
@@ -244,7 +250,7 @@ final class SignalProcessorTests: XCTestCase {
                              type: .exception,
                              attributes: attributes,
                              sessionId: "session-id-2",
-                             attachments: [Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
+                             attachments: [MsrAttachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
                              userDefinedAttributes: nil,
                              threadName: nil)
 
@@ -264,7 +270,11 @@ final class SignalProcessorTests: XCTestCase {
         XCTAssertEqual(event.timestamp, "1970-01-12T13:46:40.000Z")
         XCTAssertEqual(event.type, .exception)
         XCTAssertEqual(event.attachments?.count, 1)
-        XCTAssertEqual(event.attachments?.first, Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path"))
+        XCTAssertEqual(event.attachments?.first?.name, "file-name")
+        XCTAssertEqual(event.attachments?.first?.type, .screenshot)
+        XCTAssertEqual(event.attachments?.first?.size, 10)
+        XCTAssertEqual(event.attachments?.first?.id, "id")
+        XCTAssertEqual(event.attachments?.first?.path, "file-path")
         XCTAssertEqual(event.userTriggered, false)
         XCTAssertEqual(event.attributes, updatedAttributes)
         XCTAssertEqual(event.exception, exception)

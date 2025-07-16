@@ -14,7 +14,7 @@ final class MockBugReportManager: BugReportManager {
     var didSetBugReportCollector = false
 
     var receivedConfig: BugReportConfig?
-    var receivedAttachments: [Attachment] = []
+    var receivedAttachments: [MsrAttachment] = []
     var receivedTakeScreenshot: Bool?
     var receivedCollector: BaseBugReportCollector?
 
@@ -23,7 +23,7 @@ final class MockBugReportManager: BugReportManager {
         receivedConfig = bugReportConfig
     }
 
-    func openBugReporter(_ attachments: [Attachment], takeScreenshot: Bool) {
+    func openBugReporter(_ attachments: [MsrAttachment], takeScreenshot: Bool) {
         didOpenBugReporter = true
         receivedAttachments = attachments
         receivedTakeScreenshot = takeScreenshot

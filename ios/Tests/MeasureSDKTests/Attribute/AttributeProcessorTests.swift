@@ -10,7 +10,7 @@ import XCTest
 
 final class AttributeProcessorTests: XCTestCase {
     func testAppendsAttributes() {
-        var attributes = Attributes(deviceName: "iPhone 14")
+        let attributes = Attributes(deviceName: "iPhone 14")
 
         let attributeProcessor1 = MockAttributeProcessor { attributes in
             attributes.threadName = "com.thread.main"
@@ -20,7 +20,7 @@ final class AttributeProcessorTests: XCTestCase {
         }
 
         let processors: [AttributeProcessor] = [attributeProcessor1, attributeProcessor2]
-        processors.forEach { $0.appendAttributes(&attributes) }
+        processors.forEach { $0.appendAttributes(attributes) }
 
         XCTAssertEqual(attributes.threadName, "com.thread.main")
         XCTAssertEqual(attributes.measureSdkVersion, "0.0.1")
@@ -28,7 +28,7 @@ final class AttributeProcessorTests: XCTestCase {
     }
 
     func testUpdatesValueIfTwoProcessorsSetSameKey() {
-        var attributes = Attributes(deviceName: "iPhone 14")
+        let attributes = Attributes(deviceName: "iPhone 14")
 
         let attributeProcessor1 = MockAttributeProcessor { attributes in
             attributes.threadName = "com.thread.main"
@@ -38,17 +38,17 @@ final class AttributeProcessorTests: XCTestCase {
         }
 
         let processors: [AttributeProcessor] = [attributeProcessor1, attributeProcessor2]
-        processors.forEach { $0.appendAttributes(&attributes) }
+        processors.forEach { $0.appendAttributes(attributes) }
 
         XCTAssertEqual(attributes.threadName, "com.thread.background")
         XCTAssertEqual(attributes.deviceName, "iPhone 14")
     }
 
     func testNoopWhenEmptyListOfProcessorsIsPassed() {
-        var attributes = Attributes()
+        let attributes = Attributes()
 
         let processors: [AttributeProcessor] = []
-        processors.forEach { $0.appendAttributes(&attributes) }
+        processors.forEach { $0.appendAttributes(attributes) }
 
         XCTAssertEqual(attributes.threadName, nil)
         XCTAssertEqual(attributes.deviceName, nil)

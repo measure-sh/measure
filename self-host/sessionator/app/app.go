@@ -103,6 +103,13 @@ func (a App) FullName() string {
 // Validate checks if app's data and builds
 // are valid.
 func (a App) Validate() (ok bool, err error) {
+	// events and/or spans should not be empty
+	if len(a.EventAndSpanFiles) < 1 {
+		ok = false
+		err = fmt.Errorf(`app %q has zero event and span files. make sure the directory is not empty.`, a.FullName())
+		return
+	}
+
 	attribute, err := a.Attribute()
 	if err != nil {
 		return

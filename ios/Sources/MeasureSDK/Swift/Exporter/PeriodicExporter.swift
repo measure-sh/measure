@@ -79,48 +79,65 @@ final class BasePeriodicExporter: PeriodicExporter, HeartbeatListener {
     }
 
     private func processBatches() {
-        let batches = exporter.getExistingBatches()
-        if !batches.isEmpty {
-            processExistingBatches(batches)
-        } else {
-            processNewBatchIfTimeElapsed()
-        }
-    }
-
-    private func processExistingBatches(_ batches: [BatchEntity]) {
-        for batch in batches {
-            let response = exporter.export(batchId: batch.batchId, eventIds: batch.eventIds, spanIds: batch.spanIds)
-
-            switch response {
-            case .success:
-                logger.internalLog(level: .info, message: "Batch \(batch.batchId) sent successfully.", error: nil, data: nil)
-            case .error(let error):
-                switch error {
-                case .rateLimitError:
-                    // Stop processing the rest of the batches if we encounter a rate limit
-                    logger.internalLog(level: .error, message: "Rate limit hit.", error: nil, data: nil)
-                    return
-                case .serverError:
-                    // Stop processing the rest of the batches if we encounter a server error
-                    logger.internalLog(level: .error, message: "Internal server error.", error: nil, data: nil)
-                    return
-                default:
-                    logger.internalLog(level: .error, message: "Batch \(batch.batchId) request failed.", error: nil, data: nil)
-                }
-            case .none:
-                break
+        exporter.getExistingBatches { [weak self] batches in
+            guard let self else { return }
+            if !batches.isEmpty {
+                self.processExistingBatches(batches)
+            } else {
+                self.processNewBatchIfTimeElapsed()
             }
         }
     }
 
+    private func processExistingBatches(_ batches: [BatchEntity]) {
+        func processNext(index: Int) {
+            guard index < batches.count else { return } // Done with all batches
+
+            let batch = batches[index]
+
+            exporter.export(batchId: batch.batchId, eventIds: batch.eventIds, spanIds: batch.spanIds) { [weak self] response in
+                guard let self else { return }
+
+                switch response {
+                case .success:
+                    logger.internalLog(level: .info, message: "Batch \(batch.batchId) sent successfully.", error: nil, data: nil)
+                    processNext(index: index + 1) // Process next batch
+                case .error(let error):
+                    switch error {
+                    case .rateLimitError:
+                        logger.internalLog(level: .error, message: "Rate limit hit. Stopping further batch processing.", error: nil, data: nil)
+                        return // Stop processing
+                    case .serverError:
+                        logger.internalLog(level: .error, message: "Internal server error. Stopping further batch processing.", error: nil, data: nil)
+                        return // Stop processing
+                    default:
+                        logger.internalLog(level: .error, message: "Batch \(batch.batchId) request failed.", error: nil, data: nil)
+                        processNext(index: index + 1) // Continue on other errors
+                    }
+                case .none:
+                    processNext(index: index + 1) // Safely continue
+                }
+            }
+        }
+
+        processNext(index: 0) // Start processing
+    }
+
     private func processNewBatchIfTimeElapsed() {
-        if timeProvider.millisTime - lastBatchCreationUptimeMs >= configProvider.eventsBatchingIntervalMs {
-            if let result = exporter.createBatch(nil) {
-                lastBatchCreationUptimeMs = timeProvider.millisTime
-                processExistingBatches([BatchEntity(batchId: result.batchId,
-                                                    eventIds: result.eventIds,
-                                                    spanIds: result.spanIds,
-                                                    createdAt: lastBatchCreationUptimeMs)])
+        let currentTime = timeProvider.millisTime
+
+        if currentTime - lastBatchCreationUptimeMs >= configProvider.eventsBatchingIntervalMs {
+            exporter.createBatch(nil) { [weak self] result in
+                guard let self = self, let result = result else { return }
+
+                self.lastBatchCreationUptimeMs = currentTime
+
+                self.processExistingBatches([
+                    BatchEntity(batchId: result.batchId,
+                                eventIds: result.eventIds,
+                                spanIds: result.spanIds,
+                                createdAt: currentTime)
+                ])
             }
         } else {
             logger.log(level: .debug, message: "Skipping batch creation as interval hasn't elapsed", error: nil, data: nil)

@@ -182,10 +182,6 @@ func rmAppResources(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
-	if err = j.rmIssueGroups(ctx, &tx); err != nil {
-		return
-	}
-
 	if err = j.rmBuilds(ctx, &tx); err != nil {
 		return
 	}
@@ -227,6 +223,10 @@ func rmAppResources(ctx context.Context, c *config.Config) (err error) {
 	}
 
 	if err = j.rmSpans(ctx); err != nil {
+		return
+	}
+
+	if err = j.rmIssueGroups(ctx); err != nil {
 		return
 	}
 
@@ -290,7 +290,7 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 	attachmentsBucket := aws.String(j.config.Storage["attachments_s3_bucket"])
 
 	fmt.Println("removing all app resources")
-	_, err = tx.Exec(ctx, "truncate table unhandled_exception_groups, anr_groups, build_mappings, build_sizes, event_reqs, short_filters")
+	_, err = tx.Exec(ctx, "truncate table build_mappings, build_sizes, event_reqs, short_filters")
 	if err != nil {
 		return
 	}
@@ -348,6 +348,14 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 	}
 
 	if err = chconn.Exec(ctx, "truncate table span_user_def_attrs;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table unhandled_exception_groups;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table anr_groups;"); err != nil {
 		return
 	}
 
@@ -455,22 +463,39 @@ func (j *janitor) resolveAppIds(ctx context.Context, conn *pgx.Conn, apps []stri
 
 // rmIssueGroups removes unhandled exception and
 // ANR groups for apps in config.
-func (j *janitor) rmIssueGroups(ctx context.Context, tx *pgx.Tx) (err error) {
-	placeholders, args := parameterize(j.appIds)
+func (j *janitor) rmIssueGroups(ctx context.Context) (err error) {
+	deleteUnhandledExceptionGroups := `delete from unhandled_exception_groups where app_id = @app_id;`
+	deleteAnrGroups := `delete from anr_groups where app_id = @app_id;`
 
-	deleteExcepGroups := fmt.Sprintf("delete from unhandled_exception_groups where app_id in (%s);", placeholders)
-	deleteANRGroups := fmt.Sprintf("delete from anr_groups where app_id in (%s);", placeholders)
-
-	fmt.Println("removing unhandled exception groups")
-	_, err = (*tx).Exec(ctx, deleteExcepGroups, args...)
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
 	if err != nil {
 		return
 	}
 
-	fmt.Println("removing ANR groups")
-	_, err = (*tx).Exec(ctx, deleteANRGroups, args...)
+	conn, err := clickhouse.Open(opts)
 	if err != nil {
 		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing issue groups")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteUnhandledExceptionGroups, namedAppId); err != nil {
+			return err
+		}
+
+		if err := conn.Exec(ctx, deleteAnrGroups, namedAppId); err != nil {
+			return err
+		}
 	}
 
 	return

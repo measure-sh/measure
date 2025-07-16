@@ -3,60 +3,66 @@ package sh.measure.android.applaunch
 import android.app.Activity
 import android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
 import android.os.Bundle
+import android.os.SystemClock
+import android.util.Log
 import curtains.onNextDraw
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.lifecycle.ActivityLifecycleAdapter
-import sh.measure.android.logger.LogLevel
-import sh.measure.android.logger.Logger
 import sh.measure.android.mainHandler
 import sh.measure.android.postAtFrontOfQueueAsync
-import sh.measure.android.tracing.AttributeName
-import sh.measure.android.tracing.CheckpointName
-import sh.measure.android.tracing.Span
-import sh.measure.android.tracing.SpanName
-import sh.measure.android.tracing.SpanStatus
-import sh.measure.android.tracing.Tracer
-import sh.measure.android.utils.TimeProvider
 
 internal interface LaunchCallbacks {
-    fun onColdLaunch(coldLaunchData: ColdLaunchData)
-    fun onWarmLaunch(warmLaunchData: WarmLaunchData)
+    fun onColdLaunch(coldLaunchData: ColdLaunchData, coldLaunchTime: Long?)
+    fun onWarmLaunch(warmLaunchData: WarmLaunchData, warmLaunchTime: Long?)
     fun onHotLaunch(hotLaunchData: HotLaunchData)
 }
+
+// Holds launch data until the SDK is initialized.
+internal class PreRegistrationData(
+    val coldLaunchData: ColdLaunchData?,
+    val coldLaunchTime: Long?,
+    val warmLaunchData: WarmLaunchData?,
+    val warmLaunchTime: Long?,
+)
 
 /**
  * Tracks cold, warm and hot launch.
  * Heavily inspired by [PAPA](https://github.com/square/papa/).
  */
-internal class LaunchTracker(
-    private val logger: Logger,
-    private val timeProvider: TimeProvider,
-    private val configProvider: ConfigProvider,
-    private val tracer: Tracer,
-) : ActivityLifecycleAdapter {
-
+internal class LaunchTracker : ActivityLifecycleAdapter {
     private var callbacks: LaunchCallbacks? = null
     private var coldLaunchComplete = false
     private var launchInProgress = false
+
+    private var coldLaunchData: ColdLaunchData? = null
+    private var coldLaunchTime: Long? = null
+    private var warmLaunchData: WarmLaunchData? = null
+    private var warmLaunchTime: Long? = null
+    private var configProvider: ConfigProvider? = null
 
     private data class OnCreateRecord(
         val sameMessage: Boolean,
         val hasSavedState: Boolean,
         val intentData: String?,
         val activityName: String,
-        val ttidSpan: Span? = null,
     )
 
     private val createdActivities = mutableMapOf<String, OnCreateRecord>()
     private val startedActivities = mutableListOf<String>()
     private val resumedActivities = mutableListOf<String>()
 
-    fun registerCallbacks(callbacks: LaunchCallbacks) {
+    fun registerCallbacks(
+        callbacks: LaunchCallbacks,
+        configProvider: ConfigProvider,
+    ): PreRegistrationData {
         this.callbacks = callbacks
-    }
-
-    fun unregisterCallbacks() {
-        this.callbacks = null
+        this.configProvider = configProvider
+        return PreRegistrationData(
+            coldLaunchData = coldLaunchData,
+            coldLaunchTime = coldLaunchTime,
+            warmLaunchData = warmLaunchData,
+            warmLaunchTime = warmLaunchTime,
+        )
     }
 
     override fun onActivityPreCreated(activity: Activity, savedInstanceState: Bundle?) {
@@ -79,19 +85,11 @@ internal class LaunchTracker(
         identityHash: String,
     ) {
         val hasSavedState = savedInstanceState != null
-
-        val activityTtidSpan = if (savedInstanceState == null) {
-            startActivityTtidSpan(activity)
-        } else {
-            null
-        }
-
         createdActivities[identityHash] = OnCreateRecord(
             sameMessage = true,
             hasSavedState = hasSavedState,
             intentData = activity.intent.dataString,
             activityName = activity.javaClass.name,
-            ttidSpan = activityTtidSpan,
         )
 
         // Helps differentiating between warm and hot launches.
@@ -125,21 +123,16 @@ internal class LaunchTracker(
         }
         val identityHash = Integer.toHexString(System.identityHashCode(activity))
         startedActivities += identityHash
-
-        createdActivities[identityHash]?.let { onCreateRecord ->
-            onCreateRecord.ttidSpan?.setCheckpoint(CheckpointName.ACTIVITY_STARTED)
-        }
     }
 
     override fun onActivityResumed(activity: Activity) {
         val identityHash = Integer.toHexString(System.identityHashCode(activity))
         resumedActivities += identityHash
         val onCreateRecord = createdActivities[identityHash]
-        onCreateRecord?.ttidSpan?.setCheckpoint(CheckpointName.ACTIVITY_RESUMED)
         activity.window.onNextDraw {
             mainHandler.postAtFrontOfQueueAsync {
                 if (launchInProgress) {
-                    val onNextDrawElapsedRealtime = timeProvider.elapsedRealtime
+                    val onNextDrawElapsedRealtime = SystemClock.elapsedRealtime()
                     onCreateRecord?.let { onCreateRecord ->
                         val launchType = computeLaunchType(onCreateRecord)
                         trackLaunchEvent(
@@ -147,11 +140,8 @@ internal class LaunchTracker(
                             onNextDrawElapsedRealtime,
                             onCreateRecord,
                         )
-                        endActivityTtidSpan(identityHash, onCreateRecord.ttidSpan, launchType)
                         launchInProgress = false
                     }
-                } else {
-                    endActivityTtidSpan(identityHash, createdActivities[identityHash]?.ttidSpan)
                 }
             }
         }
@@ -177,76 +167,88 @@ internal class LaunchTracker(
         onNextDrawElapsedRealtime: Long,
         onCreateRecord: OnCreateRecord,
     ) {
+        val intentData = getIntentData(onCreateRecord.intentData)
         when (launchType) {
             "Cold" -> {
                 coldLaunchComplete = true
-                callbacks?.onColdLaunch(
-                    coldLaunchData = ColdLaunchData(
-                        process_start_uptime = LaunchState.processStartElapsedRealtime,
-                        process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
-                        content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
-                        on_next_draw_uptime = onNextDrawElapsedRealtime,
-                        launched_activity = onCreateRecord.activityName,
-                        has_saved_state = onCreateRecord.hasSavedState,
-                        intent_data = onCreateRecord.intentData,
-                    ),
+                val coldLaunchData = ColdLaunchData(
+                    process_start_uptime = LaunchState.processStartElapsedRealtime,
+                    process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
+                    content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
+                    on_next_draw_uptime = onNextDrawElapsedRealtime,
+                    launched_activity = onCreateRecord.activityName,
+                    has_saved_state = onCreateRecord.hasSavedState,
+                    intent_data = intentData,
                 )
+                if (callbacks != null) {
+                    callbacks?.onColdLaunch(
+                        coldLaunchData = coldLaunchData,
+                        coldLaunchTime = System.currentTimeMillis(),
+                    )
+                } else {
+                    this@LaunchTracker.coldLaunchData = coldLaunchData
+                }
             }
 
             "Hot" -> {
                 LaunchState.lastAppVisibleElapsedRealtime?.let {
-                    callbacks?.onHotLaunch(
-                        HotLaunchData(
-                            app_visible_uptime = it,
-                            on_next_draw_uptime = onNextDrawElapsedRealtime,
-                            launched_activity = onCreateRecord.activityName,
-                            has_saved_state = onCreateRecord.hasSavedState,
-                            intent_data = onCreateRecord.intentData,
-                        ),
+                    val hotLaunchData = HotLaunchData(
+                        app_visible_uptime = it,
+                        on_next_draw_uptime = onNextDrawElapsedRealtime,
+                        launched_activity = onCreateRecord.activityName,
+                        has_saved_state = onCreateRecord.hasSavedState,
+                        intent_data = intentData,
                     )
+                    callbacks?.onHotLaunch(hotLaunchData)
                 }
             }
 
             "Warm" -> {
-                callbacks?.onWarmLaunch(
-                    WarmLaunchData(
-                        process_start_uptime = LaunchState.processStartElapsedRealtime,
-                        process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
-                        content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
-                        app_visible_uptime = LaunchState.lastAppVisibleElapsedRealtime ?: 0,
-                        on_next_draw_uptime = onNextDrawElapsedRealtime,
-                        launched_activity = onCreateRecord.activityName,
-                        has_saved_state = onCreateRecord.hasSavedState,
-                        intent_data = onCreateRecord.intentData,
-                        is_lukewarm = false,
-                    ),
+                val warmLaunchData = WarmLaunchData(
+                    process_start_uptime = LaunchState.processStartElapsedRealtime,
+                    process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
+                    content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
+                    app_visible_uptime = LaunchState.lastAppVisibleElapsedRealtime ?: 0,
+                    on_next_draw_uptime = onNextDrawElapsedRealtime,
+                    launched_activity = onCreateRecord.activityName,
+                    has_saved_state = onCreateRecord.hasSavedState,
+                    intent_data = intentData,
+                    is_lukewarm = false,
                 )
+                if (callbacks != null) {
+                    callbacks?.onWarmLaunch(warmLaunchData, System.currentTimeMillis())
+                } else {
+                    this@LaunchTracker.warmLaunchData = warmLaunchData
+                }
             }
 
             "Lukewarm" -> {
-                callbacks?.onWarmLaunch(
-                    WarmLaunchData(
-                        process_start_uptime = LaunchState.processStartElapsedRealtime,
-                        process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
-                        content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
-                        app_visible_uptime = LaunchState.lastAppVisibleElapsedRealtime ?: 0,
-                        on_next_draw_uptime = onNextDrawElapsedRealtime,
-                        launched_activity = onCreateRecord.activityName,
-                        has_saved_state = onCreateRecord.hasSavedState,
-                        intent_data = onCreateRecord.intentData,
-                        is_lukewarm = true,
-                    ),
+                val warmLaunchData = WarmLaunchData(
+                    process_start_uptime = LaunchState.processStartElapsedRealtime,
+                    process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
+                    content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
+                    app_visible_uptime = LaunchState.lastAppVisibleElapsedRealtime ?: 0,
+                    on_next_draw_uptime = onNextDrawElapsedRealtime,
+                    launched_activity = onCreateRecord.activityName,
+                    has_saved_state = onCreateRecord.hasSavedState,
+                    intent_data = intentData,
+                    is_lukewarm = true,
                 )
+                if (callbacks != null) {
+                    callbacks?.onWarmLaunch(warmLaunchData, System.currentTimeMillis())
+                } else {
+                    this@LaunchTracker.warmLaunchData = warmLaunchData
+                }
             }
 
             else -> {
-                logger.log(LogLevel.Debug, "Unknown launch type: $launchType")
+                Log.d("Measure", "Unknown launch type: $launchType")
             }
         }
     }
 
     private fun appMightBecomeVisible() {
-        LaunchState.lastAppVisibleElapsedRealtime = timeProvider.elapsedRealtime
+        LaunchState.lastAppVisibleElapsedRealtime = SystemClock.elapsedRealtime()
     }
 
     private fun computeLaunchType(onCreateRecord: OnCreateRecord): String {
@@ -281,37 +283,10 @@ internal class LaunchTracker(
         }
     }
 
-    private fun startActivityTtidSpan(activity: Activity): Span? {
-        if (!isActivityTtidSpanEnabled()) {
-            return null
+    private fun getIntentData(intentData: String?): String? {
+        if (configProvider?.trackActivityIntentData == true) {
+            return intentData
         }
-        val span = tracer.spanBuilder(
-            SpanName.activityTtidSpan(
-                activity.javaClass.name,
-                configProvider.maxSpanNameLength,
-            ),
-        ).startSpan()
-        span.setCheckpoint(CheckpointName.ACTIVITY_CREATED)
-        return span
-    }
-
-    private fun endActivityTtidSpan(
-        activityIdentityHash: String,
-        ttidSpan: Span?,
-        launchType: String? = null,
-    ) {
-        if (launchType == "Cold") {
-            ttidSpan?.setAttribute(AttributeName.APP_STARTUP_FIRST_ACTIVITY, true)
-        }
-        ttidSpan?.setStatus(SpanStatus.Ok)?.end()
-        if (activityIdentityHash in createdActivities && ttidSpan != null) {
-            createdActivities[activityIdentityHash]?.copy(ttidSpan = null)?.let {
-                createdActivities[activityIdentityHash] = it
-            }
-        }
-    }
-
-    private fun isActivityTtidSpanEnabled(): Boolean {
-        return configProvider.trackActivityLoadTime
+        return null
     }
 }

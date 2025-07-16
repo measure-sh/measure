@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react"
 import { Button } from "./button"
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "./dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./dialog"
 
 interface DangerConfirmationDialogProps {
     body: ReactNode,

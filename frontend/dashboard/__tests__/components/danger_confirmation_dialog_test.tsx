@@ -1,7 +1,7 @@
-import '@testing-library/jest-dom'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { expect, describe, it } from '@jest/globals'
 import DangerConfirmationModal from '@/app/components/danger_confirmation_dialog'
+import { describe, expect, it } from '@jest/globals'
+import '@testing-library/jest-dom'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 describe('Danger Confirmation Dialog', () => {
     it('renders correctly in opened state', () => {

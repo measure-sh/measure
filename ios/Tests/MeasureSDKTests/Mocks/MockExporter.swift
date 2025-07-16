@@ -16,19 +16,19 @@ class MockExporter: Exporter {
     var createBatchCalled = false
     var exportBatchId = ""
 
-    func createBatch(_ sessionId: String?) -> BatchCreationResult? {
+    func createBatch(_ sessionId: String?, completion: @escaping (BatchCreationResult?) -> Void) {
         createBatchCalled = true
-        return createBatchResult
+        completion(createBatchResult)
     }
 
-    func getExistingBatches() -> [BatchEntity] {
-        return existingBatches
+    func getExistingBatches(completion: @escaping ([BatchEntity]) -> Void) {
+        completion(existingBatches)
     }
 
-    func export(batchId: String, eventIds: [String], spanIds: [String]) -> HttpResponse? {
+    func export(batchId: String, eventIds: [String], spanIds: [String], completion: @escaping (HttpResponse?) -> Void) {
         exportEventsCalled = true
         exportBatchId = batchId
-        return exportResponses[batchId]
+        completion(exportResponses[batchId])
     }
 
     func setCreateBatchResult(_ result: BatchCreationResult?) {

@@ -142,8 +142,7 @@ func NewConfig() *ServerConfig {
 
 	siteOrigin := os.Getenv("SITE_ORIGIN")
 	if siteOrigin == "" {
-		// log.Fatal("SITE_ORIGIN env var not set. Need for Cross Origin Resource Sharing (CORS) to work.")
-		log.Println("SITE_ORIGIN env var not set. Need for Cross Origin Resource Sharing (CORS) to work.")
+		log.Fatal("SITE_ORIGIN env var not set. Authentication and emails might not work.")
 	}
 
 	var txEmailAddress string = ""

@@ -30,9 +30,10 @@ internal class AnrCollector(
             "Application Not Responding for at least 5s",
         )
         signalProcessor.trackCrash(
+            data = toMeasureException(anrError),
             timestamp = anrError.timestamp,
             type = EventType.ANR,
-            data = toMeasureException(anrError),
+            takeScreenshot = false,
         )
     }
 

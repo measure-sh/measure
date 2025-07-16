@@ -1,7 +1,7 @@
 package sh.measure.android.storage
 
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.tracing.Checkpoint
 import sh.measure.android.tracing.SpanData
 import sh.measure.android.utils.iso8601Timestamp
@@ -19,11 +19,11 @@ internal fun SpanData.toSpanEntity(): SpanEntity {
         endTime = endTime,
         traceId = traceId,
         serializedCheckpoints = serializeCheckpoints(),
-        serializedAttributes = Json.encodeToString(
+        serializedAttributes = jsonSerializer.encodeToString(
             JsonElement.serializer(),
             attributes.toJsonElement(),
         ),
-        serializedUserDefinedAttrs = Json.encodeToString(
+        serializedUserDefinedAttrs = jsonSerializer.encodeToString(
             JsonElement.serializer(),
             userDefinedAttrs.toJsonElement(),
         ),

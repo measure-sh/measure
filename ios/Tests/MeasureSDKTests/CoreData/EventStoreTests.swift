@@ -9,7 +9,7 @@ import CoreData
 @testable import Measure
 import XCTest
 
-class EventStoreTests: XCTestCase {
+final class EventStoreTests: XCTestCase {
     var coreDataManager: MockCoreDataManager!
     var logger: MockLogger!
     var eventStore: EventStore!
@@ -29,91 +29,80 @@ class EventStoreTests: XCTestCase {
     }
 
     func testInsertEvent() {
+        let expectation = expectation(description: "Insert and fetch event")
         let event = TestDataGenerator.generateEvents(id: "1")
 
-        let insertExpectation = expectation(description: "Insert event should complete")
-        DispatchQueue.global().async {
-            self.eventStore.insertEvent(event: event)
+        eventStore.insertEvent(event: event) {
+            self.eventStore.getEventsForSessions(sessions: ["session1"]) { events in
+                XCTAssertEqual(events?.count, 1)
+                XCTAssertEqual(events?.first?.id, event.id)
+                XCTAssertEqual(events?.first?.sessionId, event.sessionId)
+                expectation.fulfill()
+            }
         }
 
-        DispatchQueue.global().async {
-            insertExpectation.fulfill()
-        }
-
-        wait(for: [insertExpectation], timeout: 5.0)
-
-        let events = self.eventStore.getEventsForSessions(sessions: ["session1"])
-        XCTAssertEqual(events?.count, 1, "Should only insert one event despite concurrent inserts.")
-        XCTAssertEqual(events?.first?.id, event.id, "Inserted event ID should match.")
-        XCTAssertEqual(events?.first?.sessionId, event.sessionId, "Inserted event sessionId should match.")
+        wait(for: [expectation], timeout: 2.0)
     }
 
     func testGetEvents() {
+        let expectation = expectation(description: "Insert and fetch specific events")
         let event1 = TestDataGenerator.generateEvents(id: "1")
         let event2 = TestDataGenerator.generateEvents(id: "2")
-        self.eventStore.insertEvent(event: event1)
-        self.eventStore.insertEvent(event: event2)
 
-        let eventIds = ["1", "2"]
-
-        let fetchExpectation = expectation(description: "Fetch events should complete")
-        var fetchedEvents: [EventEntity]?
-        DispatchQueue.global().async {
-            let events = self.eventStore.getEvents(eventIds: eventIds)
-            fetchedEvents = events
-            fetchExpectation.fulfill()
+        eventStore.insertEvent(event: event1) {
+            self.eventStore.insertEvent(event: event2) {
+                let eventIds = ["1", "2"]
+                self.eventStore.getEvents(eventIds: eventIds) { events in
+                    XCTAssertEqual(events?.count, 2)
+                    XCTAssertTrue(events?.contains(where: { $0.id == "1" }) ?? false)
+                    XCTAssertTrue(events?.contains(where: { $0.id == "2" }) ?? false)
+                    expectation.fulfill()
+                }
+            }
         }
 
-        wait(for: [fetchExpectation], timeout: 5.0)
-
-        XCTAssertEqual(fetchedEvents?.count, 2, "Should fetch 2 events matching the event IDs.")
-        XCTAssertTrue(fetchedEvents?.contains(where: { $0.id == "1" }) ?? false, "Fetched events should contain event with ID '1'.")
-        XCTAssertTrue(fetchedEvents?.contains(where: { $0.id == "2" }) ?? false, "Fetched events should contain event with ID '2'.")
+        wait(for: [expectation], timeout: 2.0)
     }
 
     func testGetEventsForSessions() {
+        let expectation = expectation(description: "Fetch events for sessions should complete")
         let event1 = TestDataGenerator.generateEvents(id: "1")
         let event2 = TestDataGenerator.generateEvents(id: "2")
-        let event3 = TestDataGenerator.generateEvents(id: "3", sessionId: "session2", timestamp: "2024-09-25T12:34:56Z", type: "test")
-        self.eventStore.insertEvent(event: event1)
-        self.eventStore.insertEvent(event: event2)
-        self.eventStore.insertEvent(event: event3)
+        let event3 = TestDataGenerator.generateEvents(id: "3", sessionId: "session2")
 
-        let sessionIds = ["session1"]
-
-        let fetchExpectation = expectation(description: "Fetch events for sessions should complete")
-        var fetchedEvents: [EventEntity]?
-        DispatchQueue.global().async {
-            let events = self.eventStore.getEventsForSessions(sessions: sessionIds)
-            fetchedEvents = events
-            fetchExpectation.fulfill()
+        eventStore.insertEvent(event: event1) {
+            self.eventStore.insertEvent(event: event2) {
+                self.eventStore.insertEvent(event: event3) {
+                    self.eventStore.getEventsForSessions(sessions: ["session1"]) { events in
+                        XCTAssertEqual(events?.count, 2)
+                        XCTAssertTrue(events?.allSatisfy { $0.sessionId == "session1" } ?? false)
+                        expectation.fulfill()
+                    }
+                }
+            }
         }
 
-        wait(for: [fetchExpectation], timeout: 5.0)
-
-        XCTAssertEqual(fetchedEvents?.count, 2, "Should fetch 2 events for session1.")
-        XCTAssertTrue(fetchedEvents?.contains(where: { $0.sessionId == "session1" }) ?? false, "Fetched events should all have session ID 'session1'.")
-        XCTAssertFalse(fetchedEvents?.contains(where: { $0.sessionId == "session2" }) ?? false, "Fetched events should not include events from other sessions.")
+        wait(for: [expectation], timeout: 2.0)
     }
 
     func testDeleteEvents() {
+        let expectation = expectation(description: "Delete and verify events")
+
         let event1 = TestDataGenerator.generateEvents(id: "1")
         let event2 = TestDataGenerator.generateEvents(id: "2")
-        self.eventStore.insertEvent(event: event1)
-        self.eventStore.insertEvent(event: event2)
 
-        let eventIds = ["1"]
-
-        let deleteExpectation = expectation(description: "Delete events should complete")
-        DispatchQueue.global().async {
-            self.eventStore.deleteEvents(eventIds: eventIds)
-            deleteExpectation.fulfill()
+        eventStore.insertEvent(event: event1) {
+            self.eventStore.insertEvent(event: event2) {
+                self.eventStore.deleteEvents(eventIds: ["1"]) {
+                    self.eventStore.getEventsForSessions(sessions: ["session1"]) { events in
+                        XCTAssertEqual(events?.count, 1)
+                        XCTAssertEqual(events?.first?.id, "2")
+                        expectation.fulfill()
+                    }
+                }
+            }
         }
 
-        wait(for: [deleteExpectation], timeout: 5.0)
-
-        let events = self.eventStore.getEventsForSessions(sessions: ["session1"])
-        XCTAssertEqual(events?.count, 1, "Only one event should remain after deletion.")
-        XCTAssertEqual(events?.first?.id, "2", "Event with ID '2' should remain.")
+        wait(for: [expectation], timeout: 3.0)
     }
 }

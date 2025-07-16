@@ -1,18 +1,18 @@
 "use client"
 
-import { FormEventHandler, useEffect, useState } from "react"
-import DangerConfirmationModal from "@/app/components/danger_confirmation_dialog"
-import { Team, TeamsApiStatus, fetchTeamsFromServer, AuthzAndMembersApiStatus, InviteMemberApiStatus, RemoveMemberApiStatus, RoleChangeApiStatus, TeamNameChangeApiStatus, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, changeTeamNameFromServer, changeRoleFromServer, inviteMemberFromServer, removeMemberFromServer, CreateTeamApiStatus, createTeamFromServer, PendingInvitesApiStatus, PendingInvite, fetchPendingInvitesFromServer, RemovePendingInviteApiStatus, removePendingInviteFromServer, resendPendingInviteFromServer, ResendPendingInviteApiStatus } from "@/app/api/api_calls"
-import { formatToCamelCase } from "@/app/utils/string_utils"
-import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
+import { AuthzAndMembersApiStatus, InviteMemberApiStatus, PendingInvite, PendingInvitesApiStatus, RemoveMemberApiStatus, RemovePendingInviteApiStatus, ResendPendingInviteApiStatus, RoleChangeApiStatus, Team, TeamNameChangeApiStatus, TeamsApiStatus, changeRoleFromServer, changeTeamNameFromServer, defaultAuthzAndMembers, fetchAuthzAndMembersFromServer, fetchPendingInvitesFromServer, fetchTeamsFromServer, inviteMemberFromServer, removeMemberFromServer, removePendingInviteFromServer, resendPendingInviteFromServer } from "@/app/api/api_calls"
 import { measureAuth } from "@/app/auth/measure_auth"
-import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
 import { Button } from "@/app/components/button"
-import AlertDialog from "@/app/components/alert_dialog"
-import { toastNegative, toastPositive } from "@/app/utils/use_toast"
+import CreateTeam from "@/app/components/create_team"
+import DangerConfirmationModal from "@/app/components/danger_confirmation_dialog"
+import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
 import LoadingSpinner from "@/app/components/loading_spinner"
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/app/components/table"
-import { Separator } from "@/app/components/separator"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/table"
+import { formatToCamelCase } from "@/app/utils/string_utils"
+import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
+import { toastNegative, toastPositive } from "@/app/utils/use_toast"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export default function TeamOverview({ params }: { params: { teamId: string } }) {
   const [teamsApiStatus, setTeamsApiStatus] = useState(TeamsApiStatus.Loading)
@@ -34,11 +34,6 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   const [removeMemberConfirmationModalOpen, setRemoveMemberConfirmationModalOpen] = useState(false)
   const [removeMemberId, setRemoveMemberId] = useState("")
   const [removeMemberEmail, setRemoveMemberEmail] = useState("")
-
-  const [createTeamApiStatus, setCreateTeamApiStatus] = useState(CreateTeamApiStatus.Init)
-  const [createTeamName, setCreateTeamName] = useState("")
-  const [createTeamErrorMsg, setCreateTeamErrorMsg] = useState("")
-  const [createTeamAlertModalOpen, setCreateTeamAlertModalOpen] = useState(false)
 
   const [getAuthzAndMembersApiStatus, setAuthzAndMembersApiStatus] = useState(AuthzAndMembersApiStatus.Loading)
   const [authzAndMembers, setAuthzAndMembers] = useState(defaultAuthzAndMembers)
@@ -64,6 +59,17 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
   const [roleChangeOldRole, setRoleChangeOldRole] = useState("")
   const [roleChangeNewRole, setRoleChangeNewRole] = useState("")
 
+  const router = useRouter()
+
+  const teamNameChangeSessionKey = "teamNameChanged"
+
+  function showToastForTeamNameChangeIfNeeded() {
+    if (typeof window !== 'undefined' && window.sessionStorage.getItem(teamNameChangeSessionKey) === "true") {
+      toastPositive(`Team name changed`)
+      window.sessionStorage.removeItem(teamNameChangeSessionKey)
+    }
+  }
+
   const getTeams = async () => {
     setTeamsApiStatus(TeamsApiStatus.Loading)
 
@@ -76,6 +82,7 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
       case TeamsApiStatus.Success:
         setTeamsApiStatus(TeamsApiStatus.Success)
         setTeam(result.data!.filter((i) => i.id === params.teamId)[0])
+        showToastForTeamNameChangeIfNeeded()
         break
     }
   }
@@ -190,6 +197,8 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
         break
       case TeamNameChangeApiStatus.Success:
         setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Success)
+        // Set flag and new name before reload
+        window.sessionStorage.setItem(teamNameChangeSessionKey, "true")
         location.reload()
         break
     }
@@ -251,40 +260,18 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
     }
   }
 
-  const createTeam: FormEventHandler = async (event) => {
-    event.preventDefault()
-
-    if (createTeamName === "") {
-      return
-    }
-
-    setCreateTeamErrorMsg("")
-    setCreateTeamApiStatus(CreateTeamApiStatus.Loading)
-
-    const result = await createTeamFromServer(createTeamName)
-
-    switch (result.status) {
-      case CreateTeamApiStatus.Error:
-        setCreateTeamApiStatus(CreateTeamApiStatus.Error)
-        setCreateTeamErrorMsg(result.error)
-        break
-      case CreateTeamApiStatus.Success:
-        setCreateTeamApiStatus(CreateTeamApiStatus.Success)
-        setCreateTeamAlertModalOpen(true)
-        break
-    }
-  }
-
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start">
-      <p className="font-display text-4xl max-w-6xl text-center">Team</p>
-      <div className="py-2" />
+      <div className="flex flex-row items-center gap-2 justify-between w-full">
+        <p className="font-display text-4xl max-w-6xl text-center">Team</p>
+        <CreateTeam onSuccess={(teamId) => router.push(`/${teamId}/team`)} />
+      </div>
 
       {/* Loading message for team */}
-      {teamsApiStatus === TeamsApiStatus.Loading && <p className="text-lg font-display">Loading team...</p>}
+      {teamsApiStatus === TeamsApiStatus.Loading && <LoadingSpinner />}
 
       {/* Error message for team fetch error */}
-      {teamsApiStatus === TeamsApiStatus.Error && <p className="text-lg font-display">Error fetching team, please refresh page to try again</p>}
+      {teamsApiStatus === TeamsApiStatus.Error && <p className="font-body text-sm">Error fetching team, please refresh page to try again</p>}
 
       {teamsApiStatus === TeamsApiStatus.Success &&
         <div className="flex flex-col items-start">
@@ -334,35 +321,8 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
             onCancelAction={() => setRemoveMemberConfirmationModalOpen(false)}
           />
 
-          {/* Dialog for acknowledging new team creation */}
-          <AlertDialog title="Team Created" body={<p className="font-body">Team <span className="font-display font-bold">{createTeamName}</span> has been succesfully created!</p>} open={createTeamAlertModalOpen} affirmativeText="Okay"
-            onAffirmativeAction={() => {
-              setCreateTeamAlertModalOpen(false)
-              location.reload()
-            }}
-          />
-
-          <div className="flex flex-row items-center">
-            <input id="change-team-name-input" type="text" defaultValue={team!.name}
-              onChange={(event) => {
-                event.target.value === team!.name ? setSaveTeamNameButtonDisabled(true) : setSaveTeamNameButtonDisabled(false)
-                setNewTeamName(event.target.value)
-                setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Init)
-              }}
-              className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
-            <Button
-              variant="outline"
-              className="m-4 font-display border border-black select-none"
-              disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
-              loading={teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
-              onClick={() => setTeamNameConfirmationModalOpen(true)}>
-              Save
-            </Button>
-          </div>
-
-          <div className="py-4" />
-          <p className="font-display text-2xl max-w-6xl text-center">Invite team members</p>
-          <div className="py-1" />
+          <div className="py-6" />
+          <p className="font-display text-xl max-w-6xl text-center">Invite team members</p>
           <div className="flex flex-row items-center">
             <input id="invite-email-input" name="invite-email-input" type="email" placeholder="Enter email" className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" onInput={(e: React.ChangeEvent<HTMLInputElement>) => setInviteMemberEmail(e.target.value)} value={inviteMemberEmail} />
             <div className="px-2" />
@@ -378,12 +338,12 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
           </div>
 
           <div className="py-8" />
-          <p className="font-display text-2xl max-w-6xl text-center">Members</p>
+          <p className="font-display text-xl max-w-6xl text-center">Members</p>
           <div className="py-2" />
           {/* Loading message for fetch members */}
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Loading && <LoadingSpinner />}
           {/* Error message for fetch members */}
-          {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Error && <p className="font-display">Error fetching team members, please refresh page to try again</p>}
+          {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Error && <p className="font-body text-sm">Error fetching team members, please refresh page to try again</p>}
 
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success &&
             <Table className="font-display table-auto w-full">
@@ -476,11 +436,11 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
               </TableBody>
             </Table>}
 
-          {(pendingInvitesApiStatus !== PendingInvitesApiStatus.Success || (pendingInvitesApiStatus === PendingInvitesApiStatus.Success && pendingInvites?.length! > 0)) && <p className="mt-16 mb-6 font-display text-2xl max-w-6xl text-center">Pending Invites</p>}
+          {(pendingInvitesApiStatus !== PendingInvitesApiStatus.Success || (pendingInvitesApiStatus === PendingInvitesApiStatus.Success && pendingInvites?.length! > 0)) && <p className="mt-16 mb-6 font-display text-xl max-w-6xl text-center">Pending Invites</p>}
           {/* Loading message for fetch pending invites */}
           {pendingInvitesApiStatus === PendingInvitesApiStatus.Loading && <LoadingSpinner />}
           {/* Error message for fetch pending invites */}
-          {pendingInvitesApiStatus === PendingInvitesApiStatus.Error && <p className="font-display">Error fetching pending invites, please refresh page to try again</p>}
+          {pendingInvitesApiStatus === PendingInvitesApiStatus.Error && <p className="font-body text-sm">Error fetching pending invites, please refresh page to try again</p>}
 
           {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success && pendingInvitesApiStatus === PendingInvitesApiStatus.Success && pendingInvites?.length! > 0 &&
             <Table className="font-display table-auto w-full">
@@ -532,29 +492,25 @@ export default function TeamOverview({ params }: { params: { teamId: string } })
               </TableBody>
             </Table>}
 
-          {/* Create new team */}
-          {getAuthzAndMembersApiStatus === AuthzAndMembersApiStatus.Success &&
-            <div className="w-full">
-              <div className="py-8" />
-              <Separator className="w-full" />
-              <div className="py-4" />
-              <form onSubmit={createTeam} className="flex flex-col">
-                <p className="font-display text-2xl">Create new team</p>
-                <div className="py-4" />
-                <input id="app-name" type="string" placeholder="Enter team name" className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" onChange={(event) => setCreateTeamName(event.target.value)} />
-                <div className="py-2" />
-                <Button
-                  variant="outline"
-                  type="submit"
-                  className="w-fit font-display border border-black select-none"
-                  disabled={createTeamApiStatus === CreateTeamApiStatus.Loading || createTeamName.length === 0}>
-                  Create Team
-                </Button>
-                <div className="py-2" />
-              </form>
-              {createTeamApiStatus === CreateTeamApiStatus.Loading && <p className="font-display">Creating team...</p>}
-              {createTeamApiStatus === CreateTeamApiStatus.Error && <p className="font-display">{createTeamErrorMsg}</p>}
-            </div>}
+          <div className="py-8" />
+          <p className="font-display text-xl max-w-6xl text-center">Change team name</p>
+          <div className="flex flex-row items-center">
+            <input id="change-team-name-input" type="text" defaultValue={team!.name}
+              onChange={(event) => {
+                event.target.value === team!.name ? setSaveTeamNameButtonDisabled(true) : setSaveTeamNameButtonDisabled(false)
+                setNewTeamName(event.target.value)
+                setTeamNameChangeApiStatus(TeamNameChangeApiStatus.Init)
+              }}
+              className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400" />
+            <Button
+              variant="outline"
+              className="m-4 font-display border border-black select-none"
+              disabled={saveTeamNameButtonDisabled || teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
+              loading={teamNameChangeApiStatus === TeamNameChangeApiStatus.Loading}
+              onClick={() => setTeamNameConfirmationModalOpen(true)}>
+              Save
+            </Button>
+          </div>
         </div>}
     </div>
   )

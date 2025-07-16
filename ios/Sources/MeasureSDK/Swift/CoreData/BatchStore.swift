@@ -9,9 +9,9 @@ import Foundation
 import CoreData
 
 protocol BatchStore {
-    func insertBatch(_ batch: BatchEntity) -> Bool
-    func getBatches(_ maxNumberOfBatches: Int) -> [BatchEntity]
-    func deleteBatch(_ batchId: String)
+    func insertBatch(_ batch: BatchEntity, completion: @escaping (Bool) -> Void)
+    func getBatches(_ maxNumberOfBatches: Int, completion: @escaping ([BatchEntity]) -> Void)
+    func deleteBatch(_ batchId: String, completion: @escaping () -> Void)
 }
 
 final class BaseBatchStore: BatchStore {
@@ -23,14 +23,13 @@ final class BaseBatchStore: BatchStore {
         self.logger = logger
     }
 
-    func insertBatch(_ batch: BatchEntity) -> Bool {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return false
-        }
-        var insertionSuccessful = false
+    func insertBatch(_ batch: BatchEntity, completion: @escaping (Bool) -> Void) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self = self else {
+                completion(false)
+                return
+            }
 
-        context.performAndWait { [weak self] in
             let batchOb = BatchOb(context: context)
             batchOb.batchId = batch.batchId
             batchOb.createdAt = batch.createdAt
@@ -39,71 +38,68 @@ final class BaseBatchStore: BatchStore {
 
             do {
                 try context.saveIfNeeded()
-                insertionSuccessful = true
+                completion(true)
             } catch {
-                guard let self = self else { return }
                 self.logger.internalLog(level: .error, message: "Failed to save batch: \(batch.batchId)", error: error, data: nil)
+                completion(false)
             }
         }
-
-        return insertionSuccessful
     }
 
-    func getBatches(_ maxNumberOfBatches: Int) -> [BatchEntity] {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return [BatchEntity]()
-        }
-        let fetchRequest: NSFetchRequest<BatchOb> = BatchOb.fetchRequest()
-        fetchRequest.fetchLimit = maxNumberOfBatches
+    func getBatches(_ maxNumberOfBatches: Int, completion: @escaping ([BatchEntity]) -> Void) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self = self else {
+                completion([])
+                return
+            }
 
-        var batches: [BatchEntity] = []
-        context.performAndWait { [weak self] in
+            let fetchRequest: NSFetchRequest<BatchOb> = BatchOb.fetchRequest()
+            fetchRequest.fetchLimit = maxNumberOfBatches
+
             do {
                 let results = try context.fetch(fetchRequest)
-                for batchOb in results {
-                    if let batchId = batchOb.batchId {
-                        let eventIds = batchOb.eventId?.components(separatedBy: ",") ?? []
-                        let spanIds = batchOb.spanIds?.components(separatedBy: ",") ?? []
+                let batches = results.compactMap { batchOb -> BatchEntity? in
+                    guard let batchId = batchOb.batchId else { return nil }
+                    let eventIds = batchOb.eventId?.components(separatedBy: ",") ?? []
+                    let spanIds = batchOb.spanIds?.components(separatedBy: ",") ?? []
 
-                        let batch = BatchEntity(batchId: batchId,
-                                                eventIds: eventIds,
-                                                spanIds: spanIds,
-                                                createdAt: batchOb.createdAt)
-                        batches.append(batch)
-                    }
+                    return BatchEntity(batchId: batchId,
+                                       eventIds: eventIds,
+                                       spanIds: spanIds,
+                                       createdAt: batchOb.createdAt)
                 }
+                completion(batches)
             } catch {
-                guard let self = self else { return }
                 self.logger.internalLog(level: .error, message: "Failed to fetch batches", error: error, data: nil)
+                completion([])
             }
         }
-
-        return batches
     }
 
-    func deleteBatch(_ batchId: String) {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "coreDataManager.backgroundContext is nil", error: nil, data: nil)
-            return
-        }
-        let fetchRequest: NSFetchRequest<BatchOb> = BatchOb.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "batchId == %@", batchId)
-        fetchRequest.fetchLimit = 1
+    func deleteBatch(_ batchId: String, completion: @escaping () -> Void) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self = self else {
+                completion()
+                return
+            }
 
-        context.performAndWait { [weak self] in
+            let fetchRequest: NSFetchRequest<BatchOb> = BatchOb.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "batchId == %@", batchId)
+            fetchRequest.fetchLimit = 1
+
             do {
                 if let batchToDelete = try context.fetch(fetchRequest).first {
                     context.delete(batchToDelete)
                     try context.saveIfNeeded()
-                    self?.logger.internalLog(level: .debug, message: "Successfully deleted batch with id: \(batchId)", error: nil, data: nil)
+                    self.logger.internalLog(level: .debug, message: "Successfully deleted batch with id: \(batchId)", error: nil, data: nil)
                 } else {
-                    self?.logger.internalLog(level: .warning, message: "No batch found with id: \(batchId)", error: nil, data: nil)
+                    self.logger.internalLog(level: .warning, message: "No batch found with id: \(batchId)", error: nil, data: nil)
                 }
             } catch {
-                guard let self = self else { return }
                 self.logger.internalLog(level: .error, message: "Failed to delete batch with id: \(batchId)", error: error, data: nil)
             }
+
+            completion()
         }
     }
 }

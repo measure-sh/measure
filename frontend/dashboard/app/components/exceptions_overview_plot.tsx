@@ -1,8 +1,8 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
 import { ResponsiveLine } from '@nivo/line'
-import { ExceptionsType, ExceptionsOverviewPlotApiStatus, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls'
+import React, { useEffect, useState } from 'react'
+import { ExceptionsOverviewPlotApiStatus, ExceptionsType, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls'
 import { formatDateToHumanReadableDate } from '../utils/time_utils'
 import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'
@@ -88,7 +88,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
           enableArea={true}
           areaOpacity={0.1}
           colors={{ scheme: 'nivo' }}
-          margin={{ top: 40, right: 20, bottom: 140, left: 100 }}
+          margin={{ top: 40, right: 40, bottom: 140, left: 100 }}
           xFormat="time:%Y-%m-%d"
           xScale={{
             format: '%Y-%m-%d',
@@ -134,6 +134,8 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
           }}
           pointLabelYOffset={-12}
           useMesh={true}
+          enableGridX={false}
+          enableGridY={false}
           enableSlices="x"
           sliceTooltip={({ slice }) => {
             return (

@@ -12,8 +12,11 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getAllSemanticsNodes
 import androidx.compose.ui.semantics.getOrNull
+import androidx.core.view.isNotEmpty
 import sh.measure.android.gestures.DetectedGesture
 import sh.measure.android.utils.ComposeHelper
+
+private const val FLUTTER_VIEW_CLASS_NAME = "io.flutter.embedding.android.FlutterView"
 
 /**
  * Inspects Android View hierarchies to create a snapshot of their current state.
@@ -68,11 +71,18 @@ internal object LayoutInspector {
             if (view.visibility != View.VISIBLE) {
                 return
             }
+
+            // Ignore any views that contain Flutter UI as the
+            // Flutter SDK will track gestures on its own.
+            if (view.javaClass.name == FLUTTER_VIEW_CLASS_NAME) {
+                return
+            }
+
             if (ComposeHelper.isComposeView(view)) {
                 val composeNodes = parseComposeView(view, gesture, motionEvent)
                 nodes.addAll(composeNodes)
             } else if (view is ViewGroup) {
-                if (view.childCount > 0 && view.width > 0 && view.height > 0) {
+                if (view.isNotEmpty() && view.width > 0 && view.height > 0) {
                     val node = createViewNode(view, gesture, motionEvent)
                     nodes.add(node)
                     for (i in 0 until view.childCount) {

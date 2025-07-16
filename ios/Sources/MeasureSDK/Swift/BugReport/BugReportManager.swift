@@ -10,7 +10,7 @@ import UIKit
 
 protocol BugReportManager {
     func setBugReportConfig(_ bugReportConfig: BugReportConfig)
-    func openBugReporter(_ attachments: [Attachment], takeScreenshot: Bool)
+    func openBugReporter(_ attachments: [MsrAttachment], takeScreenshot: Bool)
     func setBugReportCollector(_ collector: BaseBugReportCollector)
 }
 
@@ -18,7 +18,7 @@ final class BaseBugReportManager: BugReportManager {
     private var bugReportingViewController: BugReportingViewController?
     private var floatingButtonViewController: FloatingButtonViewController?
     private let screenshotGenerator: ScreenshotGenerator
-    private var localAttachments: [Attachment] = []
+    private var localAttachments: [MsrAttachment] = []
     private var isBugReporterOpen: Bool = false
     private let configProvider: ConfigProvider
     private let idProvider: IdProvider
@@ -41,19 +41,31 @@ final class BaseBugReportManager: BugReportManager {
         self.bugReportConfig = bugReportConfig
     }
 
-    func openBugReporter(_ attachments: [Attachment], takeScreenshot: Bool) {
+    func openBugReporter(_ attachments: [MsrAttachment], takeScreenshot: Bool) {
         if self.bugReportingViewController != nil || self.isBugReporterOpen || self.hasBugReportFlowStarted {
             return
         }
+
         self.hasBugReportFlowStarted = true
+
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            if takeScreenshot,
-               let window = UIWindow.keyWindow(),
-               let attachment = screenshotGenerator.generate(window: window, name: screenshotName, storageType: .data) {
-                localAttachments.append(attachment)
+
+            let finishOpening = {
+                self.openBugReportViewController()
             }
-            self.openBugReportViewController()
+
+            if takeScreenshot,
+               let window = UIWindow.keyWindow() {
+                screenshotGenerator.generate(window: window, name: screenshotName, storageType: .data) { attachment in
+                    if let attachment = attachment {
+                        self.localAttachments.append(attachment)
+                    }
+                    finishOpening()
+                }
+            } else {
+                finishOpening()
+            }
         }
     }
 
@@ -85,7 +97,7 @@ final class BaseBugReportManager: BugReportManager {
 }
 
 extension BaseBugReportManager: BugReportingViewControllerDelegate {
-    func bugReportingViewControllerDidDismiss(_ description: String?, attachments: [Attachment]?) {
+    func bugReportingViewControllerDidDismiss(_ description: String?, attachments: [MsrAttachment]?) {
         self.bugReportingViewController = nil
         self.isBugReporterOpen = false
         if let description = description, let attachments = attachments {
@@ -94,7 +106,7 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
         clearState()
     }
 
-    func bugReportingViewControllerDidRequestScreenshot(_ description: String?, attachments: [Attachment]) {
+    func bugReportingViewControllerDidRequestScreenshot(_ description: String?, attachments: [MsrAttachment]) {
         self.bugReportingViewController = nil
         self.isBugReporterOpen = false
         DispatchQueue.main.async { [weak self] in
@@ -117,7 +129,7 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
 }
 
 extension BaseBugReportManager: FloatingButtonViewControllerDelegate {
-    func floatingButtonViewControllerDismissed(_ attachments: [Attachment]) {
+    func floatingButtonViewControllerDismissed(_ attachments: [MsrAttachment]) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.localAttachments = attachments

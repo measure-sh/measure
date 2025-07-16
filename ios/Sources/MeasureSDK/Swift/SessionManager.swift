@@ -83,7 +83,7 @@ final class BaseSessionManager: SessionManager {
                                     createdAt: Number(timeProvider.now()),
                                     needsReporting: shouldReportSession,
                                     crashed: false)
-        sessionStore.insertSession(session)
+        sessionStore.insertSession(session) {}
         let recentSession = RecentSession(id: session.sessionId,
                                           createdAt: session.createdAt,
                                           versionCode: versionCode)
@@ -204,25 +204,31 @@ final class BaseSessionManager: SessionManager {
     func setPreviousSessionCrashed(_ crashed: Bool) {
         self.previousSessionCrashed = crashed
         if let recentSession = userDefaultStorage.getRecentSession(), previousSessionCrashed {
-            sessionStore.markCrashedSession(sessionId: recentSession.id)
+            sessionStore.markCrashedSession(sessionId: recentSession.id) {}
             sessionStore.updateNeedsReporting(sessionId: recentSession.id, needsReporting: true)
             eventStore.updateNeedsReportingForAllEvents(sessionId: recentSession.id, needsReporting: true)
         }
     }
 
     func markCurrentSessionAsCrashed() {
-        sessionStore.markCrashedSession(sessionId: sessionId)
-        if let session = sessionStore.getSession(byId: sessionId) {
-            let recentSession = RecentSession(id: session.sessionId,
-                                              createdAt: session.createdAt,
-                                              crashed: true,
-                                              versionCode: versionCode)
-            userDefaultStorage.setRecentSession(recentSession)
-        }
-        if !shouldReportSession {
-            sessionStore.updateNeedsReporting(sessionId: sessionId, needsReporting: true)
-            eventStore.updateNeedsReportingForAllEvents(sessionId: sessionId, needsReporting: true)
-            shouldReportSession = true
+        sessionStore.markCrashedSession(sessionId: sessionId) {}
+
+        sessionStore.getSession(byId: sessionId) { [weak self] session in
+            guard let self, let session else { return }
+
+            let recentSession = RecentSession(
+                id: session.sessionId,
+                createdAt: session.createdAt,
+                crashed: true,
+                versionCode: versionCode
+            )
+            self.userDefaultStorage.setRecentSession(recentSession)
+
+            if !self.shouldReportSession {
+                self.sessionStore.updateNeedsReporting(sessionId: self.sessionId, needsReporting: true)
+                self.eventStore.updateNeedsReportingForAllEvents(sessionId: self.sessionId, needsReporting: true)
+                self.shouldReportSession = true
+            }
         }
     }
 

@@ -202,7 +202,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 		// apple exceptions are symbolicated
 		// in place and do not need any
 		// further processing
-		if ev.Type == event.TypeException && ev.Exception.GetFramework() == event.Framework.Apple {
+		if ev.Type == event.TypeException && ev.Exception.GetFramework() == event.FrameworkApple {
 			s.appleSymbolicator.symbolicate(ev, s.Origin, s.Sources)
 			continue
 		}
@@ -240,7 +240,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 		case event.TypeException:
 			f := ev.Exception.GetFramework()
 			switch f {
-			case event.Framework.JVM:
+			case event.FrameworkJVM:
 				// initialize jvm symbolicator request
 				s.jvmSymbolicator.ensureRequestInitialized()
 
@@ -251,7 +251,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 				threads := ev.Exception.Threads
 				s.jvmSymbolicator.parseExceptions(exceptions, threads, i)
 
-			case event.Framework.Dart:
+			case event.FrameworkDart:
 				// initialize native symbolicator request
 				s.nativeSymbolicator.ensureRequestInitialized()
 

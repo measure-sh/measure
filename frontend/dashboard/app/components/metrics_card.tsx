@@ -1,10 +1,10 @@
+import { AlertTriangle, CheckCircle, TrendingDown, TrendingUp } from 'lucide-react'
 import React from 'react'
 import { MetricsApiStatus } from '../api/api_calls'
-import { Card, CardContent, CardFooter } from './card'
-import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip'
-import { TrendingDown, TrendingUp, CheckCircle, AlertTriangle } from 'lucide-react'
-import LoadingSpinner from './loading_spinner'
 import { numberToKMB } from '../utils/number_utils'
+import { Card, CardContent, CardFooter } from './card'
+import LoadingSpinner from './loading_spinner'
+import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip'
 
 // Style constants
 const STYLES = {

@@ -10,21 +10,30 @@ import Measure
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
-    var measureInstance = Measure.shared
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         let clientInfo = ClientInfo(apiKey: "msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c",
                                     apiUrl: "http://localhost:8080")
+        final class CustomHeaderProvider: NSObject, MsrRequestHeadersProvider {
+            private var requestHeaders: NSDictionary = ["key1": "value1", "key2": "value2"]
+
+            func getRequestHeaders() -> NSDictionary {
+                return requestHeaders
+            }
+        }
         let config = BaseMeasureConfig(enableLogging: true,
                                        samplingRateForErrorFreeSessions: 1.0,
                                        traceSamplingRate: 1.0,
                                        autoStart: true,
                                        trackViewControllerLoadTime: true,
-                                       screenshotMaskLevel: .sensitiveFieldsOnly)
-        measureInstance.initialize(with: clientInfo, config: config)
-        measureInstance.setUserId("test_user_ios")
-        measureInstance.enableShakeToLaunchBugReport(takeScreenshot: true)
+                                       screenshotMaskLevel: .sensitiveFieldsOnly,
+                                       requestHeadersProvider: CustomHeaderProvider())
+        Measure.initialize(with: clientInfo, config: config)
+        Measure.setUserId("test_user_ios")
+        Measure.onShake {
+            Measure.launchBugReport(takeScreenshot: true, bugReportConfig: BugReportConfig.default, attributes: nil)
+        }
 
         return true
     }

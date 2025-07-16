@@ -12,7 +12,6 @@ import (
 	"backend/api/measure"
 	"backend/api/server"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/leporo/sqlf"
 
@@ -173,17 +172,7 @@ func main() {
 	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
 	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuild)
 
-	cors := cors.New(cors.Config{
-		AllowOrigins:     []string{config.SiteOrigin},
-		AllowMethods:     []string{"GET", "OPTIONS", "PATCH", "DELETE", "PUT"},
-		AllowHeaders:     []string{"Authorization", "Content-Type"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	})
-
 	// Dashboard routes
-	// Any route below this point will use CORS
-	r.Use(cors)
 
 	// Proxy route
 	r.GET("/attachments", measure.ProxyAttachment)

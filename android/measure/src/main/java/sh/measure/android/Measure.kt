@@ -10,8 +10,7 @@ import org.jetbrains.annotations.TestOnly
 import sh.measure.android.Measure.captureLayoutSnapshot
 import sh.measure.android.Measure.captureScreenshot
 import sh.measure.android.Measure.clearUserId
-import sh.measure.android.Measure.disableShakeToLaunchBugReport
-import sh.measure.android.Measure.enableShakeToLaunchBugReport
+import sh.measure.android.Measure.createSpanBuilder
 import sh.measure.android.Measure.getCurrentTime
 import sh.measure.android.Measure.getTraceParentHeaderKey
 import sh.measure.android.Measure.getTraceParentHeaderValue
@@ -19,15 +18,16 @@ import sh.measure.android.Measure.imageUriToAttachment
 import sh.measure.android.Measure.launchBugReportActivity
 import sh.measure.android.Measure.setUserId
 import sh.measure.android.Measure.start
+import sh.measure.android.Measure.startSpan
 import sh.measure.android.Measure.stop
 import sh.measure.android.Measure.trackBugReport
 import sh.measure.android.Measure.trackEvent
-import sh.measure.android.applaunch.LaunchState
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.bugreport.BugReportCollector
 import sh.measure.android.bugreport.MsrBugReportActivity
 import sh.measure.android.bugreport.MsrShakeListener
+import sh.measure.android.config.ClientInfo
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventType
@@ -59,12 +59,20 @@ object Measure {
      * will use the default configuration. To understand the configuration options available
      * checkout the documentation for [MeasureConfig].
      *
+     * An optional [clientInfo] can be passed to provide the API key and API URL. If not provided,
+     * the SDK will expect it to be set in the AndroidManifest.
+     *
      * @param context The application context.
      * @param measureConfig The configuration for the Measure SDK.
+     * @param clientInfo The identifiers required to connect to Measure backend.
      */
     @JvmStatic
     @JvmOverloads
-    fun init(context: Context, measureConfig: MeasureConfig = MeasureConfig()) {
+    fun init(
+        context: Context,
+        measureConfig: MeasureConfig = MeasureConfig(),
+        clientInfo: ClientInfo? = null,
+    ) {
         if (isInitialized.compareAndSet(false, true)) {
             InternalTrace.trace(
                 label = { "msr-init" },
@@ -73,8 +81,7 @@ object Measure {
                     val initializer =
                         MeasureInitializerImpl(application, inputConfig = measureConfig)
                     measure = MeasureInternal(initializer)
-                    storeProcessImportanceState()
-                    measure.init()
+                    measure.init(clientInfo)
                 },
             )
         }
@@ -345,57 +352,13 @@ object Measure {
     }
 
     /**
-     * Enables automatic bug reporting using shake detection.
-     * When the device is shaken, this will automatically launch the [MsrBugReportActivity].
-     *
-     * @see [disableShakeToLaunchBugReport] to disable the feature
-     */
-    fun enableShakeToLaunchBugReport(takeScreenshot: Boolean = true) {
-        if (isInitialized.get()) {
-            measure.enableShakeToLaunchBugReport(takeScreenshot)
-        }
-    }
-
-    /**
-     * Disables automatic bug reporting on shake.
-     * After calling this method, shake gestures will no longer trigger
-     * the bug report flow automatically.
-     */
-    fun disableShakeToLaunchBugReport() {
-        if (isInitialized.get()) {
-            measure.disableShakeToLaunchBugReport()
-        }
-    }
-
-    /**
-     * Checks if automatic bug reporting on shake is currently enabled.
-     *
-     * Returns true if the shake-to-report feature is active and will trigger
-     * the bug report flow when the device is shaken.
-     *
-     * @return Boolean indicating if shake detection for bug reporting is enabled
-     */
-    fun isShakeToLaunchBugReportEnabled(): Boolean {
-        if (isInitialized.get()) {
-            return measure.isShakeToLaunchBugReportEnabled()
-        }
-        return false
-    }
-
-    /**
      * Sets a custom shake listener for manual bug report handling.
-     *
-     * This method allows defining custom behavior when the device is shaken. The typical use case
-     * is to display a confirmation dialog before initiating the bug report process through
-     * [launchBugReportActivity].
      *
      * Key behaviors:
      * - Setting a non-null listener automatically begins monitoring accelerometer data
      * - Setting a null listener stops accelerometer monitoring and removes any existing listener
      * - The listener will only be triggered once every 5 seconds, regardless of how many shakes occur
      *   during that cooldown period
-     * - This method has no effect if automatic shake detection is already enabled via
-     *   [enableShakeToLaunchBugReport]
      *
      * @param listener The [MsrShakeListener] callback to invoke when a shake is detected, or null to
      *                 disable shake detection and remove the current listener
@@ -573,6 +536,73 @@ object Measure {
         }
     }
 
+    /**
+     * An internal method to track spans from cross-platform frameworks
+     * like Flutter and React Native.
+     *
+     * This method is not intended for public usage and can change in future versions. To
+     * track spans use [startSpan] or [createSpanBuilder].
+     *
+     * @param name the name of the span.
+     * @param traceId the trace id this span is part of.
+     * @param spanId a unique identifier for this span.
+     * @param parentId an optional span id of the parent span.
+     * @param startTime the time in milliseconds since epoch when this span was started.
+     * @param endTime the time in milliseconds since epoch when this span ended.
+     * @param duration the duration of the operation represented by this span.
+     * @param status the [sh.measure.android.tracing.SpanStatus].
+     * @param attributes key-value pairs providing additional context to the span. Must be one of
+     *  [sh.measure.android.attributes.Attribute].
+     * @param userDefinedAttrs custom key-value pairs providing additional context to the span.
+     * @param checkpoints a map of checkpoint name to timestamp.
+     * @param hasEnded whether the span has ended.
+     * @param isSampled whether the span has been sampled or not.
+     */
+    fun internalTrackSpan(
+        name: String,
+        traceId: String,
+        spanId: String,
+        parentId: String?,
+        startTime: Long,
+        endTime: Long,
+        duration: Long,
+        status: Int,
+        attributes: MutableMap<String, Any?>,
+        userDefinedAttrs: Map<String, Any>,
+        checkpoints: Map<String, Long>,
+        hasEnded: Boolean,
+        isSampled: Boolean,
+    ) {
+        if (isInitialized.get()) {
+            measure.internalTrackSpan(
+                name = name,
+                traceId = traceId,
+                spanId = spanId,
+                parentId = parentId,
+                startTime = startTime,
+                endTime = endTime,
+                duration = duration,
+                status = status,
+                attributes = attributes,
+                userDefinedAttrs = userDefinedAttrs,
+                checkpoints = checkpoints,
+                hasEnded = hasEnded,
+                isSampled = isSampled,
+            )
+        }
+    }
+
+    /**
+     * Internal method that returns the path to the directory where attachments are stored.
+     * This method is not intended for public usage and can change in future versions.
+     */
+    fun internalGetAttachmentDirectory(): String? {
+        if (isInitialized.get()) {
+            return measure.getAttachmentDirectory()
+        }
+        return null
+    }
+
     internal fun getBugReportCollector(): BugReportCollector {
         if (isInitialized.get()) {
             return measure.bugReportCollector
@@ -618,6 +648,7 @@ object Measure {
             type = type,
             attributes = attributes,
             attachments = attachments,
+            takeScreenshot = false,
         )
     }
 
@@ -629,23 +660,12 @@ object Measure {
         attachments: MutableList<Attachment>,
     ) {
         measure.signalProcessor.trackCrash(
-            type = EventType.ANR,
             data = data,
             timestamp = timestamp,
+            type = EventType.ANR,
             attributes = attributes,
             attachments = attachments,
+            takeScreenshot = false,
         )
-    }
-
-    private fun storeProcessImportanceState() {
-        try {
-            LaunchState.processImportanceOnInit = measure.processInfoProvider.getProcessImportance()
-        } catch (e: Throwable) {
-            measure.logger.log(
-                LogLevel.Debug,
-                "Failed to get process importance during initialization.",
-                e,
-            )
-        }
     }
 }

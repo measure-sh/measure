@@ -15,9 +15,10 @@ internal data class Config(
     override val samplingRateForErrorFreeSessions: Float = DefaultConfig.SESSION_SAMPLING_RATE,
     override val autoStart: Boolean = DefaultConfig.AUTO_START,
     override val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
-    override val enableShakeToLaunchBugReport: Boolean = DefaultConfig.ENABLE_SHAKE_TO_LAUNCH_BUG_REPORT,
     override val trackActivityLoadTime: Boolean = DefaultConfig.TRACK_ACTIVITY_LOAD_TIME,
     override val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
+    override val disallowedCustomHeaders: List<String> = DefaultConfig.DISALLOWED_CUSTOM_HEADERS,
+    override val requestHeadersProvider: MsrRequestHeadersProvider? = null,
 ) : InternalConfig, IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25
@@ -36,7 +37,7 @@ internal data class Config(
     override val sessionEndLastEventThresholdMs: Long = 20 * 60 * 1000 // 20 minutes
     override val maxSessionDurationMs: Long = 6 * 60 * 60 * 1000 // 6 hours
     override val maxEventNameLength: Int = 64 // 64 chars
-    override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+\$"
+    override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+$"
     override val maxUserDefinedAttributesPerEvent: Int = 100
     override val maxUserDefinedAttributeKeyLength: Int = 256 // 256 chars
     override val maxUserDefinedAttributeValueLength: Int = 256 // 256 chars

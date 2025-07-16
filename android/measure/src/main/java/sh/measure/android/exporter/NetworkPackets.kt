@@ -7,9 +7,9 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Serializer
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import sh.measure.android.events.EventType
+import sh.measure.android.serialization.jsonSerializer
 
 internal data class EventPacket(
     val eventId: String,
@@ -65,7 +65,7 @@ internal object RawJsonSerializer : KSerializer<String?> {
         }
 
         try {
-            val jsonElement = Json.parseToJsonElement(value)
+            val jsonElement = jsonSerializer.parseToJsonElement(value)
             encoder.encodeSerializableValue(JsonElement.serializer(), jsonElement)
         } catch (e: Exception) {
             // If parsing fails, encode as regular string

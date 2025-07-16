@@ -15,9 +15,6 @@ public final class sh/measure/android/Measure {
 	public static synthetic fun captureScreenshot$default (Lsh/measure/android/Measure;Landroid/app/Activity;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 	public static final fun clearUserId ()V
 	public final fun createSpanBuilder (Ljava/lang/String;)Lsh/measure/android/tracing/SpanBuilder;
-	public final fun disableShakeToLaunchBugReport ()V
-	public final fun enableShakeToLaunchBugReport (Z)V
-	public static synthetic fun enableShakeToLaunchBugReport$default (Lsh/measure/android/Measure;ZILjava/lang/Object;)V
 	public final fun getCurrentTime ()J
 	public final fun getSessionId ()Ljava/lang/String;
 	public final fun getTraceParentHeaderKey ()Ljava/lang/String;
@@ -25,10 +22,12 @@ public final class sh/measure/android/Measure {
 	public final fun imageUriToAttachment (Landroid/content/Context;Landroid/net/Uri;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;)V
 	public static final fun init (Landroid/content/Context;)V
 	public static final fun init (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;)V
-	public static synthetic fun init$default (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;ILjava/lang/Object;)V
+	public static final fun init (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;Lsh/measure/android/config/ClientInfo;)V
+	public static synthetic fun init$default (Landroid/content/Context;Lsh/measure/android/config/MeasureConfig;Lsh/measure/android/config/ClientInfo;ILjava/lang/Object;)V
+	public final fun internalGetAttachmentDirectory ()Ljava/lang/String;
 	public final fun internalTrackEvent (Ljava/util/Map;Ljava/lang/String;JLjava/util/Map;Ljava/util/Map;Ljava/util/List;ZLjava/lang/String;Ljava/lang/String;)V
 	public static synthetic fun internalTrackEvent$default (Lsh/measure/android/Measure;Ljava/util/Map;Ljava/lang/String;JLjava/util/Map;Ljava/util/Map;Ljava/util/List;ZLjava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
-	public final fun isShakeToLaunchBugReportEnabled ()Z
+	public final fun internalTrackSpan (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JJJILjava/util/Map;Ljava/util/Map;Ljava/util/Map;ZZ)V
 	public final fun launchBugReportActivity (ZLjava/util/Map;)V
 	public static synthetic fun launchBugReportActivity$default (Lsh/measure/android/Measure;ZLjava/util/Map;ILjava/lang/Object;)V
 	public final fun setShakeListener (Lsh/measure/android/bugreport/MsrShakeListener;)V
@@ -47,8 +46,10 @@ public final class sh/measure/android/Measure {
 
 public final class sh/measure/android/MsrAttachment {
 	public static final field $stable I
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
 	public final fun getBytes ()[B
 	public final fun getName ()Ljava/lang/String;
+	public final fun getPath ()Ljava/lang/String;
 	public final fun getType ()Ljava/lang/String;
 }
 
@@ -166,17 +167,38 @@ public abstract interface class sh/measure/android/bugreport/MsrShakeListener {
 	public abstract fun onShake ()V
 }
 
+public final class sh/measure/android/config/ClientInfo {
+	public static final field $stable I
+	public static final field Companion Lsh/measure/android/config/ClientInfo$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lsh/measure/android/config/ClientInfo;
+	public static synthetic fun copy$default (Lsh/measure/android/config/ClientInfo;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lsh/measure/android/config/ClientInfo;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getApiKey ()Ljava/lang/String;
+	public final fun getApiUrl ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class sh/measure/android/config/ClientInfo$Companion {
+	public final fun fromJson (Ljava/util/Map;)Lsh/measure/android/config/ClientInfo;
+}
+
 public final class sh/measure/android/config/MeasureConfig : sh/measure/android/config/IMeasureConfig {
 	public static final field $stable I
+	public static final field Companion Lsh/measure/android/config/MeasureConfig$Companion;
 	public fun <init> ()V
-	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZZ)V
-	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZLsh/measure/android/config/MsrRequestHeadersProvider;)V
+	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZLsh/measure/android/config/MsrRequestHeadersProvider;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun getAutoStart ()Z
 	public fun getEnableLogging ()Z
-	public fun getEnableShakeToLaunchBugReport ()Z
 	public fun getHttpHeadersBlocklist ()Ljava/util/List;
 	public fun getHttpUrlAllowlist ()Ljava/util/List;
 	public fun getHttpUrlBlocklist ()Ljava/util/List;
+	public fun getRequestHeadersProvider ()Lsh/measure/android/config/MsrRequestHeadersProvider;
 	public fun getSamplingRateForErrorFreeSessions ()F
 	public fun getScreenshotMaskLevel ()Lsh/measure/android/config/ScreenshotMaskLevel;
 	public fun getTraceSamplingRate ()F
@@ -186,6 +208,14 @@ public final class sh/measure/android/config/MeasureConfig : sh/measure/android/
 	public fun getTrackHttpBody ()Z
 	public fun getTrackHttpHeaders ()Z
 	public fun getTrackScreenshotOnCrash ()Z
+}
+
+public final class sh/measure/android/config/MeasureConfig$Companion {
+	public final fun fromJson (Ljava/util/Map;)Lsh/measure/android/config/MeasureConfig;
+}
+
+public abstract interface class sh/measure/android/config/MsrRequestHeadersProvider {
+	public abstract fun getRequestHeaders ()Ljava/util/Map;
 }
 
 public final class sh/measure/android/config/ScreenshotMaskLevel : java/lang/Enum {

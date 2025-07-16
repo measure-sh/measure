@@ -9,6 +9,8 @@ import Foundation
 
 protocol UserTriggeredEventCollector {
     func trackScreenView(_ screenName: String)
+    func trackError(_ error: Error, attributes: [String: AttributeValue]?, collectStackTraces: Bool)
+    func trackError(_ error: NSError, attributes: [String: AttributeValue]?, collectStackTraces: Bool)
     func enable()
     func disable()
 }
@@ -18,11 +20,13 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
     private let timeProvider: TimeProvider
     private var isEnabled = AtomicBool(false)
     private let logger: Logger
+    private let exceptionGenerator: ExceptionGenerator
 
-    init(signalProcessor: SignalProcessor, timeProvider: TimeProvider, logger: Logger) {
+    init(signalProcessor: SignalProcessor, timeProvider: TimeProvider, logger: Logger, exceptionGenerator: ExceptionGenerator) {
         self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.logger = logger
+        self.exceptionGenerator = exceptionGenerator
     }
 
     func enable() {
@@ -40,10 +44,29 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
     func trackScreenView(_ screenName: String) {
         guard isEnabled.get() else { return }
 
-        let data = ScreenViewData(name: screenName)
+        track(ScreenViewData(name: screenName), type: .screenView)
+    }
+
+    func trackError(_ error: Error, attributes: [String: AttributeValue]?, collectStackTraces: Bool) {
+        guard isEnabled.get() else { return }
+
+        if let exception = exceptionGenerator.generate(error as NSError, collectStackTraces: collectStackTraces) {
+            track(exception, type: .exception)
+        }
+    }
+
+    func trackError(_ error: NSError, attributes: [String: AttributeValue]?, collectStackTraces: Bool) {
+        guard isEnabled.get() else { return }
+
+        if let exception = exceptionGenerator.generate(error, collectStackTraces: collectStackTraces) {
+            track(exception, type: .exception)
+        }
+    }
+
+    private func track(_ data: Codable, type: EventType) {
         signalProcessor.trackUserTriggered(data: data,
                                            timestamp: timeProvider.now(),
-                                           type: .screenView,
+                                           type: type,
                                            attributes: nil,
                                            sessionId: nil,
                                            attachments: nil,

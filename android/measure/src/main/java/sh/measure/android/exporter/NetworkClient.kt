@@ -1,5 +1,6 @@
 package sh.measure.android.exporter
 
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.FileStorage
@@ -23,6 +24,7 @@ internal class NetworkClientImpl(
         logger,
         fileStorage,
     ),
+    private val configProvider: ConfigProvider,
 ) : NetworkClient {
     private var baseUrl: URL? = null
     private var eventsUrl: URL? = null
@@ -84,10 +86,17 @@ internal class NetworkClientImpl(
     }
 
     private fun createHeaders(batchId: String): Map<String, String> {
-        return mapOf(
+        val defaultHeaders = mapOf(
             "msr-req-id" to batchId,
             "Authorization" to "Bearer $apiKey",
         )
+
+        val customHeaders = sanitizedCustomHeaders()
+        return if (customHeaders != null) {
+            defaultHeaders + customHeaders
+        } else {
+            defaultHeaders
+        }
     }
 
     private fun prepareMultipartData(
@@ -105,5 +114,13 @@ internal class NetworkClientImpl(
             multipartDataFactory.createFromSpanPacket(it)
         }
         return events + attachments + spans
+    }
+
+    private fun sanitizedCustomHeaders(): Map<String, String>? {
+        val requestHeaderProvider = configProvider.requestHeadersProvider ?: return null
+
+        return requestHeaderProvider.getRequestHeaders()
+            .filter { it.key !in configProvider.disallowedCustomHeaders }
+            .toMap()
     }
 }

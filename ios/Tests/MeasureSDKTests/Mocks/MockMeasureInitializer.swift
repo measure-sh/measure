@@ -8,7 +8,7 @@
 import Foundation
 @testable import Measure
 
-final class MockMeasureInitializer: MeasureInitializer {
+final class MockMeasureInitializer: MeasureInitializer {  // swiftlint:disable:this type_body_length
     let configProvider: ConfigProvider
     let client: Client
     let logger: Logger
@@ -69,6 +69,8 @@ final class MockMeasureInitializer: MeasureInitializer {
     let shakeBugReportCollector: ShakeBugReportCollector
     let shakeDetector: ShakeDetector
     let screenshotGenerator: ScreenshotGenerator
+    let exceptionGenerator: ExceptionGenerator
+    let measureDispatchQueue: MeasureDispatchQueue
 
     init(client: Client? = nil, // swiftlint:disable:this function_body_length
          configProvider: ConfigProvider? = nil,
@@ -123,7 +125,9 @@ final class MockMeasureInitializer: MeasureInitializer {
          spanProcessor: SpanProcessor? = nil,
          spanCollector: SpanCollector? = nil,
          tracer: Tracer? = nil,
-         internalSignalCollector: InternalSignalCollector? = nil) {
+         internalSignalCollector: InternalSignalCollector? = nil,
+         exceptionGenerator: ExceptionGenerator? = nil,
+         measureDispatchQueue: MeasureDispatchQueue? = nil) {
         self.client = client ?? ClientInfo(apiKey: "test", apiUrl: "https://test.com")
         self.configProvider = configProvider ?? BaseConfigProvider(defaultConfig: Config(),
                                                                    configLoader: BaseConfigLoader())
@@ -152,8 +156,10 @@ final class MockMeasureInitializer: MeasureInitializer {
         self.deviceAttributeProcessor = deviceAttributeProcessor ?? DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = installationIdAttributeProcessor ?? InstallationIdAttributeProcessor(userDefaultStorage: self.userDefaultStorage,
                                                                                                                      idProvider: self.idProvider)
-        self.networkStateAttributeProcessor = networkStateAttributeProcessor ?? NetworkStateAttributeProcessor()
-        self.userAttributeProcessor = userAttributeProcessor ?? UserAttributeProcessor(userDefaultStorage: self.userDefaultStorage)
+        self.measureDispatchQueue = measureDispatchQueue ?? BaseMeasureDispatchQueue()
+        self.networkStateAttributeProcessor = networkStateAttributeProcessor ?? NetworkStateAttributeProcessor(measureDispatchQueue: self.measureDispatchQueue)
+        self.userAttributeProcessor = userAttributeProcessor ?? UserAttributeProcessor(userDefaultStorage: self.userDefaultStorage,
+                                                                                       measureDispatchQueue: self.measureDispatchQueue)
         self.attributeProcessors = [self.appAttributeProcessor,
                                     self.deviceAttributeProcessor,
                                     self.installationIdAttributeProcessor,
@@ -181,7 +187,8 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                       timeProvider: self.timeProvider,
                                                                       crashDataPersistence: self.crashDataPersistence,
                                                                       eventStore: self.eventStore,
-                                                                      spanStore: self.spanStore)
+                                                                      spanStore: self.spanStore,
+                                                                      measureDispatchQueue: self.measureDispatchQueue)
         self.systemCrashReporter = systemCrashReporter ?? BaseSystemCrashReporter(logger: self.logger)
         self.crashReportManager = crashReportManager ?? CrashReportingManager(logger: self.logger,
                                                                               signalProcessor: self.signalProcessor,
@@ -273,9 +280,12 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                      signalProcessor: self.signalProcessor,
                                                                                      timeProvider: self.timeProvider,
                                                                                      configProvider: self.configProvider)
+        self.exceptionGenerator = exceptionGenerator ?? BaseExceptionGenerator(crashReporter: self.systemCrashReporter,
+                                                                               logger: self.logger)
         self.userTriggeredEventCollector = userTriggeredEventCollector ?? BaseUserTriggeredEventCollector(signalProcessor: self.signalProcessor,
                                                                                                           timeProvider: self.timeProvider,
-                                                                                                          logger: self.logger)
+                                                                                                          logger: self.logger,
+                                                                                                          exceptionGenerator: self.exceptionGenerator)
         self.dataCleanupService = dataCleanupService ?? BaseDataCleanupService(eventStore: self.eventStore,
                                                                                spanStore: self.spanStore,
                                                                                sessionStore: self.sessionStore,
@@ -291,7 +301,10 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                configProvider: self.configProvider,
                                                                                httpEventValidator: self.httpEventValidator)
         self.internalSignalCollector = internalSignalCollector ?? BaseInternalSignalCollector(logger: self.logger,
-                                                                                             signalProcessor: self.signalProcessor)
+                                                                                              timeProvider: self.timeProvider,
+                                                                                              signalProcessor: self.signalProcessor,
+                                                                                              sessionManager: self.sessionManager,
+                                                                                              attributeProcessors: self.attributeProcessors)
         self.screenshotGenerator = BaseScreenshotGenerator(configProvider: self.configProvider,
                                                            logger: self.logger,
                                                            attachmentProcessor: self.attachmentProcessor,
@@ -305,9 +318,6 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                          sessionManager: self.sessionManager,
                                                          idProvider: self.idProvider)
         self.shakeDetector = AccelerometerShakeDetector(configProvider: self.configProvider)
-        self.shakeBugReportCollector = ShakeBugReportCollector(autoLaunchEnabled: true,
-                                                               bugReportManager: self.bugReportManager,
-                                                               shakeDetector: self.shakeDetector,
-                                                               screenshotGenerator: self.screenshotGenerator)
+        self.shakeBugReportCollector = ShakeBugReportCollector(shakeDetector: self.shakeDetector)
     }
 }

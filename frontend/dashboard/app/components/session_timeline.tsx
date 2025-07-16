@@ -1,17 +1,17 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from 'react'
 import { LineCanvas } from '@nivo/line'
-import { emptySessionTimeline } from '../api/api_calls'
-import { formatChartFormatTimestampToHumanReadable, formatTimestampToChartFormat } from '../utils/time_utils'
-import { kilobytesToMegabytes } from '../utils/number_utils'
-import DropdownSelect, { DropdownSelectType } from './dropdown_select'
 import { DateTime, Duration } from 'luxon'
+import React, { useEffect, useRef, useState } from 'react'
+import { emptySessionTimeline } from '../api/api_calls'
+import { kilobytesToMegabytes } from '../utils/number_utils'
+import { formatChartFormatTimestampToHumanReadable, formatTimestampToChartFormat } from '../utils/time_utils'
+import DropdownSelect, { DropdownSelectType } from './dropdown_select'
 
 import { useScrollStop } from '../utils/scroll_utils'
-import SessionTimelineSeekBar from './session_timeline_seekbar'
 import SessionTimelineEventCell from './session_timeline_event_cell'
 import SessionTimelineEventDetails from './session_timeline_event_details'
+import SessionTimelineSeekBar from './session_timeline_seekbar'
 
 interface SessionTimelineProps {
   teamId: string
@@ -437,6 +437,8 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                     ]
                   ]
                 }}
+                enableGridX={false}
+                enableGridY={false}
                 tooltip={({ point }) => {
                   if (!memoryDataLookup) return null
 
@@ -511,6 +513,8 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                     ]
                   ]
                 }}
+                enableGridX={false}
+                enableGridY={false}
                 tooltip={({ point }) => {
                   if (!memoryAbsDataLookup) return null
 
@@ -586,6 +590,8 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
                     ]
                   ]
                 }}
+                enableGridX={false}
+                enableGridY={false}
                 tooltip={({ point }) => {
                   return (
                     <div className='bg-neutral-800 text-white flex flex-col p-2 text-xs rounded-md'>

@@ -33,8 +33,12 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
-    var enableShakeToLaunchBugReport: Bool {
-        return getMergedConfig(\.enableShakeToLaunchBugReport)
+    var disallowedCustomHeaders: [String] {
+        return getMergedConfig(\.disallowedCustomHeaders)
+    }
+
+    var requestHeadersProvider: MsrRequestHeadersProvider? {
+        return getMergedConfig(\.requestHeadersProvider)
     }
 
     var screenshotMaskLevel: ScreenshotMaskLevel {

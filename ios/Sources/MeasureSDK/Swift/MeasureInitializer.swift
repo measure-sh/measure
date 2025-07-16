@@ -70,6 +70,8 @@ protocol MeasureInitializer {
     var shakeBugReportCollector: ShakeBugReportCollector { get }
     var shakeDetector: ShakeDetector { get }
     var screenshotGenerator: ScreenshotGenerator { get }
+    var exceptionGenerator: ExceptionGenerator { get }
+    var measureDispatchQueue: MeasureDispatchQueue { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -134,6 +136,8 @@ protocol MeasureInitializer {
 /// - `bugReportingManager`: `BugReportingManager` object that manages the BugReportingViewController.
 /// - `shakeDetector`: `ShakeDetector` object responsible detecting shake gesture.
 /// - `screenshotGenerator`: `ScreenshotGenerator` object responsible for generating a screenshot.
+/// - `exceptionGenerator`: `ExceptionGenerator` object responsible for generating `Exception` object for `Error` or `NSError`
+/// - `measureDispatchQueue`: `MeasureDispatchQueue` object to run tasks on a serial queue.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -196,6 +200,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let shakeBugReportCollector: ShakeBugReportCollector
     let shakeDetector: ShakeDetector
     let screenshotGenerator: ScreenshotGenerator
+    let exceptionGenerator: ExceptionGenerator
+    let measureDispatchQueue: MeasureDispatchQueue
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -210,7 +216,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                    autoStart: config.autoStart,
                                    trackViewControllerLoadTime: config.trackViewControllerLoadTime,
                                    screenshotMaskLevel: config.screenshotMaskLevel,
-                                   enableShakeToLaunchBugReport: config.enableShakeToLaunchBugReport)
+                                   requestHeadersProvider: config.requestHeadersProvider)
 
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
@@ -237,8 +243,10 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.deviceAttributeProcessor = DeviceAttributeProcessor()
         self.installationIdAttributeProcessor = InstallationIdAttributeProcessor(userDefaultStorage: userDefaultStorage,
                                                                                  idProvider: idProvider)
-        self.networkStateAttributeProcessor = NetworkStateAttributeProcessor()
-        self.userAttributeProcessor = UserAttributeProcessor(userDefaultStorage: userDefaultStorage)
+        self.measureDispatchQueue = BaseMeasureDispatchQueue()
+        self.networkStateAttributeProcessor = NetworkStateAttributeProcessor(measureDispatchQueue: measureDispatchQueue)
+        self.userAttributeProcessor = UserAttributeProcessor(userDefaultStorage: userDefaultStorage,
+                                                             measureDispatchQueue: measureDispatchQueue)
         self.attributeProcessors = [appAttributeProcessor,
                                     deviceAttributeProcessor,
                                     installationIdAttributeProcessor,
@@ -268,7 +276,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                    timeProvider: timeProvider,
                                                    crashDataPersistence: crashDataPersistence,
                                                    eventStore: eventStore,
-                                                   spanStore: spanStore)
+                                                   spanStore: spanStore,
+                                                   measureDispatchQueue: measureDispatchQueue)
         self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
         self.crashReportManager = CrashReportingManager(logger: logger,
                                                         signalProcessor: signalProcessor,
@@ -359,9 +368,12 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                              signalProcessor: signalProcessor,
                                                              timeProvider: timeProvider,
                                                              configProvider: configProvider)
+        self.exceptionGenerator = BaseExceptionGenerator(crashReporter: systemCrashReporter,
+                                                         logger: logger)
         self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(signalProcessor: signalProcessor,
                                                                            timeProvider: timeProvider,
-                                                                           logger: logger)
+                                                                           logger: logger,
+                                                                           exceptionGenerator: exceptionGenerator)
         self.dataCleanupService = BaseDataCleanupService(eventStore: eventStore,
                                                          spanStore: spanStore,
                                                          sessionStore: sessionStore,
@@ -377,8 +389,11 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          client: client,
                                                          configProvider: configProvider,
                                                          httpEventValidator: httpEventValidator)
-        self.internalSignalCollector = BaseInternalSignalCollector(logger: self.logger,
-                                                                   signalProcessor: self.signalProcessor)
+        self.internalSignalCollector = BaseInternalSignalCollector(logger: logger,
+                                                                   timeProvider: timeProvider,
+                                                                   signalProcessor: signalProcessor,
+                                                                   sessionManager: sessionManager,
+                                                                   attributeProcessors: attributeProcessors)
         self.screenshotGenerator = BaseScreenshotGenerator(configProvider: configProvider,
                                                            logger: logger,
                                                            attachmentProcessor: attachmentProcessor,
@@ -392,9 +407,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          sessionManager: sessionManager,
                                                          idProvider: idProvider)
         self.shakeDetector = AccelerometerShakeDetector(configProvider: configProvider)
-        self.shakeBugReportCollector = ShakeBugReportCollector(autoLaunchEnabled: configProvider.enableShakeToLaunchBugReport,
-                                                               bugReportManager: bugReportManager,
-                                                               shakeDetector: shakeDetector,
-                                                               screenshotGenerator: screenshotGenerator)
+        self.shakeBugReportCollector = ShakeBugReportCollector(shakeDetector: shakeDetector)
     }
 }

@@ -64,7 +64,7 @@ class BugReportCollectorImplTest {
     )
 
     @Test
-    fun `tracks bug report event and updates session for reporting`() {
+    fun `tracks bug report event`() {
         // Given
         val attachmentsCaptor = argumentCaptor<MutableList<Attachment>>()
         val attachments = createTestFiles(count = 2).map {
@@ -89,7 +89,6 @@ class BugReportCollectorImplTest {
             userTriggered = eq(false),
         )
         assertEquals(5, attachmentsCaptor.firstValue.size)
-        assertTrue(sessionManager.markedSessionWithBugReport)
     }
 
     @Test

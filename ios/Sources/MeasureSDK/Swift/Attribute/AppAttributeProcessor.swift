@@ -14,7 +14,7 @@ final class AppAttributeProcessor: BaseComputeOnceAttributeProcessor {
     private lazy var appUniqueId: String = AttributeConstants.unknown
     private lazy var measureSdkVersion: String = AttributeConstants.unknown
 
-    override func updateAttribute(_ attribute: inout Attributes) {
+    override func updateAttribute(_ attribute: Attributes) {
         attribute.appVersion = appVersion
         attribute.appBuild = appBuild
         attribute.appUniqueId = appUniqueId

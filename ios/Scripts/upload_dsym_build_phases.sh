@@ -1,14 +1,16 @@
 #!/bin/bash
 
 # Ensure script is called with api_url and api_key parameters
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <api_url> <api_key>"
+if [ "$#" -lt 2 ]; then
+    echo "Usage: $0 <api_url> <api_key> [custom_headers]"
+    echo "Example: $0 https://api.example.com abc123 'X-Custom-Header1: val1|X-Custom-Header2: val2'"
     exit 1
 fi
 
 # Assign parameters
 api_url="$1"
 api_key="$2"
+raw_custom_headers="$3"
 
 # Set hardcoded values
 BUILD_TYPE="ipa"
@@ -49,7 +51,7 @@ fi
 # Log found dSYM files with full paths
 echo "Found dSYM files:"
 for DSYM in "${DSYM_FILES[@]}"; do
-    FULL_DSYM_PATH=$(realpath "$DSYM") # Get full absolute path
+    FULL_DSYM_PATH=$(realpath "$DSYM")
     echo "  - $FULL_DSYM_PATH"
 done
 
@@ -78,16 +80,26 @@ done
 
 OS_NAME="ios"
 
-# Construct the curl command
+# Start building the curl command
 CURL_COMMAND="curl --request PUT \
   --url $api_url/builds \
   --header 'Authorization: Bearer $api_key' \
-  --header 'Content-Type: multipart/form-data' \
+  --header 'Content-Type: multipart/form-data'"
+
+# Parse and add custom headers if any
+IFS='|' read -r -a CUSTOM_HEADERS <<< "$raw_custom_headers"
+for HEADER in "${CUSTOM_HEADERS[@]}"; do
+    if [ -n "$HEADER" ]; then
+        CURL_COMMAND="$CURL_COMMAND --header '$HEADER'"
+    fi
+done
+
+# Add form fields
+CURL_COMMAND="$CURL_COMMAND \
   --form version_name=$VERSION_NAME \
   --form version_code=$VERSION_CODE \
   --form build_size=$BUILD_SIZE \
   --form build_type=$BUILD_TYPE \
-  --form app_unique_id=sh.measure.DemoApp" \
   --form os_name=$OS_NAME"
 
 # Attach each dSYM .tgz file

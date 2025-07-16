@@ -1,0 +1,3 @@
+enum AttachmentType {
+  screenshot
+}

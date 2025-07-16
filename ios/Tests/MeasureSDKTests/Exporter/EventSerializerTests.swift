@@ -214,7 +214,8 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             foreground: true,
             threads: [ThreadDetail(name: "main", frames: [stackFrame], sequence: 1)],
             binaryImages: [binaryImage],
-            framework: "ios"
+            framework: "ios",
+            error: nil
         )
 
         // Event setup

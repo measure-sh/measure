@@ -19,7 +19,7 @@ protocol Client {
 /// - `apiKey`: `API Key` from the Measure dashboard.
 /// - `apiUrl`: `API URL` from the Measure dashboard.
 ///
-@objc public final class ClientInfo: NSObject, Client {
+@objc public final class ClientInfo: NSObject, Client, Codable {
     let apiKey: String
     let apiUrl: URL
 
@@ -30,7 +30,7 @@ protocol Client {
     @objc public init(apiKey: String,
                       apiUrl: String) {
         if apiKey.isEmpty {
-            debugPrint("Measure apiKey is missing, skipping initialization")
+            debugPrint("Measure apiKey is missing, skipping initialization.")
         }
         if let apiUrl = URL(string: apiUrl) {
             self.apiUrl = apiUrl
@@ -40,5 +40,16 @@ protocol Client {
         }
 
         self.apiKey = apiKey
+    }
+
+    public required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.apiKey = try container.decode(String.self, forKey: .apiKey)
+        let apiUrlString = try container.decode(String.self, forKey: .apiUrl)
+        if let url = URL(string: apiUrlString) {
+            self.apiUrl = url
+        } else {
+            self.apiUrl = URL(string: fallbackApiUrl)!
+        }
     }
 }
