@@ -1,10 +1,3 @@
-// A valid origin must be defined as a default value
-// otherwise the nextjs build won't succeed.
-// For runtime environment, it should be possible
-// to override the API origin value as per the
-// environment.
-const apiOrigin = process.env.API_BASE_URL || "http://api:8080";
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
@@ -26,6 +19,12 @@ const nextConfig = {
     ],
   },
   rewrites: async () => {
+    // A valid origin must be defined as a default value
+    // otherwise the nextjs build won't succeed.
+    // For runtime environment, it should be possible
+    // to override the API origin value as per the
+    // environment.
+    const apiOrigin = process.env.API_BASE_URL || "http://api:8080";
     return [
       {
         source: "/api/:path*",
