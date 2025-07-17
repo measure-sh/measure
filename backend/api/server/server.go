@@ -295,13 +295,6 @@ func Init(config *ServerConfig) {
 		return err
 	}
 
-	// if config.IsCloud() {
-	// pgConfig, err := pgxpool.ParseConfig(config.PG.DSN)
-	// fmt.Println("pgConfig", pgConfig)
-	// if err != nil {
-	// 	fmt.Println("Unable to parse postgres DSN")
-	// }
-
 	if config.IsCloud() {
 		d, err := cloudsqlconn.NewDialer(ctx,
 			// Always use IAM authentication.
@@ -337,44 +330,6 @@ func Init(config *ServerConfig) {
 		log.Fatalf("Unable to create reader PG connection pool: %v\n", err)
 	}
 	rPgPool = rPool
-
-	// fmt.Println("Creating connection pool with modified config...")
-	// pgPool, err = pgxpool.NewWithConfig(ctx, pgConfig)
-	// if err != nil {
-	// 	fmt.Println("Failed to acquire postgres connection pool.")
-	// }
-	// } else {
-	// read/write pool
-	// oConfig, err := pgxpool.ParseConfig(config.PG.DSN)
-	// if err != nil {
-	// 	log.Fatalf("Unable to parse postgres connection string: %v\n", err)
-	// }
-	// oConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-	// 	_, err := conn.Exec(ctx, "SET role operator")
-	// 	return err
-	// }
-	// pool, err := pgxpool.NewWithConfig(ctx, oConfig)
-	// if err != nil {
-	// 	log.Fatalf("Unable to create PG connection pool: %v\n", err)
-	// }
-	// pgPool = pool
-
-	// // reader pool
-	// rConfig, err := pgxpool.ParseConfig(config.PG.DSN)
-	// if err != nil {
-	// 	log.Fatalf("Unable to parse reader postgres connection string: %v\n", err)
-	// }
-	// oConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-	// 	_, err := conn.Exec(ctx, "SET role reader")
-	// 	return err
-	// }
-	// rPool, err := pgxpool.NewWithConfig(ctx, rConfig)
-	// if err != nil {
-	// 	log.Fatalf("Unable to create reader PG connection pool: %v\n", err)
-	// }
-
-	// rPgPool = rPool
-	// }
 
 	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
 	if err != nil {
