@@ -10,10 +10,23 @@ export default {
      * - feat(backend): attachments is now available
      *
      */
-    "scope-enum": [2, "always", ["android", "ios", "flutter", "rn", "backend", "frontend", "deps", "gradle"]],
+    "scope-enum": [
+      2,
+      "always",
+      [
+        "android",
+        "ios",
+        "flutter",
+        "rn",
+        "backend",
+        "frontend",
+        "deps",
+        "gradle",
+      ],
+    ],
     /**
      * reduce header max length violation to a warning
      */
-    "header-max-length": [1, "always", 72]
-  }
-}
+    "header-max-length": [1, "always", 72],
+  },
+};
