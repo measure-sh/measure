@@ -183,81 +183,86 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-31)
     - [Response Body](#response-body-33)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-33)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-32)
-    - [Request Body](#request-body-7)
+  - [GET `/apps/:id/alerts`](#get-appsidalerts)
     - [Usage Notes](#usage-notes-34)
+    - [Authorization \& Content Type](#authorization--content-type-32)
     - [Response Body](#response-body-34)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-34)
-  - [GET `/teams`](#get-teams)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-33)
+    - [Request Body](#request-body-7)
+    - [Usage Notes](#usage-notes-35)
     - [Response Body](#response-body-35)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-35)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-35)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-34)
     - [Response Body](#response-body-36)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-36)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-36)
     - [Authorization \& Content Type](#authorization--content-type-35)
     - [Response Body](#response-body-37)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-37)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-37)
-    - [Request body](#request-body-8)
     - [Authorization \& Content Type](#authorization--content-type-36)
     - [Response Body](#response-body-38)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-38)
-  - [GET `/teams/:id/invites`](#get-teamsidinvites)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-38)
+    - [Request body](#request-body-8)
     - [Authorization \& Content Type](#authorization--content-type-37)
     - [Response Body](#response-body-39)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-39)
-  - [POST `/teams/:id/invite`](#post-teamsidinvite)
+  - [GET `/teams/:id/invites`](#get-teamsidinvites)
     - [Usage Notes](#usage-notes-39)
-    - [Request body](#request-body-9)
     - [Authorization \& Content Type](#authorization--content-type-38)
     - [Response Body](#response-body-40)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-40)
-  - [PATCH `/teams/:id/invite/:id`](#patch-teamsidinviteid)
+  - [POST `/teams/:id/invite`](#post-teamsidinvite)
     - [Usage Notes](#usage-notes-40)
+    - [Request body](#request-body-9)
     - [Authorization \& Content Type](#authorization--content-type-39)
     - [Response Body](#response-body-41)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-41)
-  - [DELETE `/teams/:id/invite/:id`](#delete-teamsidinviteid)
+  - [PATCH `/teams/:id/invite/:id`](#patch-teamsidinviteid)
     - [Usage Notes](#usage-notes-41)
     - [Authorization \& Content Type](#authorization--content-type-40)
     - [Response Body](#response-body-42)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-42)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+  - [DELETE `/teams/:id/invite/:id`](#delete-teamsidinviteid)
     - [Usage Notes](#usage-notes-42)
-    - [Request body](#request-body-10)
     - [Authorization \& Content Type](#authorization--content-type-41)
     - [Response Body](#response-body-43)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-43)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
-    - [Usage Notes](#usage-notes-43)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+    - [Usage Notes](#usage-notes-44)
+    - [Request body](#request-body-10)
     - [Authorization \& Content Type](#authorization--content-type-42)
     - [Response Body](#response-body-44)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-44)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
     - [Usage Notes](#usage-notes-44)
     - [Authorization \& Content Type](#authorization--content-type-43)
     - [Response Body](#response-body-45)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-45)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
     - [Usage Notes](#usage-notes-45)
-    - [Request body](#request-body-11)
     - [Authorization \& Content Type](#authorization--content-type-44)
     - [Response Body](#response-body-46)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-46)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-46)
+    - [Request body](#request-body-11)
     - [Authorization \& Content Type](#authorization--content-type-45)
     - [Response Body](#response-body-47)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-47)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+    - [Usage Notes](#usage-notes-47)
+    - [Authorization \& Content Type](#authorization--content-type-46)
+    - [Response Body](#response-body-48)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-48)
 
 ## Auth
 
@@ -656,6 +661,7 @@ List of HTTP status codes for success and failures.
 - [**GET `/apps/:id/bugReports/plots/instances`**](#get-appsidbugreportsplotsinstances) - Fetch an app's bug report instances plot with optional filters.
 - [**GET `/apps/:id/bugReports/:bugReportId`**](#get-appsidbugreportsbugreportid) - Fetch a bug report.
 - [**PATCH `/apps/:id/bugReports/:bugReportId`**](#patch-appsidbugreportsbugreportid) - Update a bug report's status.
+- [**GET `/apps/:id/alerts`**](#get-appsidalerts) - Fetch an app's alerts with optional filters.
 
 ### GET `/apps/:id/journey`
 
@@ -4985,6 +4991,140 @@ The required headers must be present in each request.
   ```
 
 #### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/alerts`
+
+Fetch an app's alerts by applying various optional filters.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
+  - `offset` (_optional_) - Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
+  - `limit` (_optional_) - Number of items to return. Used for pagination. Should be used along with `offset`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+- Pass `limit` and `offset` values to paginate results
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "meta": {
+        "next": true,
+        "previous": false
+    },
+    "results": [
+        {
+            "id": "83e9d75c-b3df-432f-af80-ac6f60a9a36e",
+            "team_id": "29f0f5b2-f03f-4dbe-bd18-acf163b91965",
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "entity_id": "09ef78940bd258030ebe3937bf1e32a2",
+            "type": "anr_spike",
+            "message": "ANRs are spiking at CpuUsageCollector: run() - Application Not Responding for at least 5s",
+            "url": "http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/anrs/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/09ef78940bd258030ebe3937bf1e32a2/sh.measure.android.anr.AnrError@CpuUsageCollector",
+            "created_at": "2025-07-10T11:35:48.069383Z",
+            "updated_at": "2025-07-10T11:35:48.069383Z"
+        },
+        {
+            "id": "003e09e7-b8cf-45c6-b714-2c3149909fc5",
+            "team_id": "29f0f5b2-f03f-4dbe-bd18-acf163b91965",
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "entity_id": "19f5125829c0477f56a6e610cd81b735",
+            "type": "anr_spike",
+            "message": "ANRs are spiking at Thread.java: sleep() - Application Not Responding for at least 5s",
+            "url": "http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/anrs/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/19f5125829c0477f56a6e610cd81b735/sh.measure.android.anr.AnrError@Thread.java",
+            "created_at": "2025-07-10T11:35:48.065612Z",
+            "updated_at": "2025-07-10T11:35:48.065613Z"
+        },
+        {
+            "id": "865363ff-f960-492d-8a67-a134f242d290",
+            "team_id": "29f0f5b2-f03f-4dbe-bd18-acf163b91965",
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "entity_id": "f94859bc4b47fbf05b4eec2a300de0a4",
+            "type": "crash_spike",
+            "message": "Crashes are spiking at ExceptionDemoActivity: onClick() - This is a nested custom exception",
+            "url": "http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/crashes/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/f94859bc4b47fbf05b4eec2a300de0a4/sh.measure.sample.CustomException@ExceptionDemoActivity",
+            "created_at": "2025-07-10T11:35:48.057192Z",
+            "updated_at": "2025-07-10T11:35:48.057192Z"
+        },
+        {
+            "id": "e9b43259-bf7b-4f32-98d8-8195891e1aab",
+            "team_id": "29f0f5b2-f03f-4dbe-bd18-acf163b91965",
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "entity_id": "2ca7a0d943d923ee99af0e94d89ee0bc",
+            "type": "crash_spike",
+            "message": "Crashes are spiking at ExceptionDemoActivity: onClick() - Failed to allocate a 104857616 byte allocation with 25165824 free bytes and 88MB until OOM, target footprint 133174272, growth limit 201326592",
+            "url": "http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/crashes/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/2ca7a0d943d923ee99af0e94d89ee0bc/java.lang.OutOfMemoryError@ExceptionDemoActivity",
+            "created_at": "2025-07-10T11:35:48.052805Z",
+            "updated_at": "2025-07-10T11:35:48.052806Z"
+        },
+        {
+            "id": "2161d773-c822-47a3-9df7-da6f33f67e6a",
+            "team_id": "29f0f5b2-f03f-4dbe-bd18-acf163b91965",
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "entity_id": "e60607f81e351b2e9596faa8eb853e70",
+            "type": "crash_spike",
+            "message": "Crashes are spiking at ZygoteInit.java: main() - Unhandled Exception",
+            "url": "http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/crashes/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/e60607f81e351b2e9596faa8eb853e70/java.lang.IllegalAccessException@ZygoteInit.java",
+            "created_at": "2025-07-10T11:35:48.04831Z",
+            "updated_at": "2025-07-10T11:35:48.04831Z"
+        }
+    ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
 
 List of HTTP status codes for success and failures.
 

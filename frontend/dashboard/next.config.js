@@ -24,8 +24,8 @@ const nextConfig = {
         source: "/api/:path*",
         destination: `${process.env.API_BASE_URL}/:path*`,
       },
-    ];
+    ]
   },
-};
+}
 
-module.exports = nextConfig;
+module.exports = nextConfig
