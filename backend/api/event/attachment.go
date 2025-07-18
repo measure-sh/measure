@@ -13,6 +13,7 @@ import (
 
 	"backend/api/server"
 
+	"cloud.google.com/go/storage"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
@@ -51,6 +52,42 @@ func (a Attachment) Validate() error {
 // and returns the uploaded file's remote location.
 func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 	config := server.Server.Config
+
+	// set mime type from extension
+	ext := filepath.Ext(a.Key)
+	contentType := "application/octet-stream"
+	if ext != "" {
+		contentType = mime.TypeByExtension(ext)
+	}
+
+	if config.IsCloud() {
+		client, errStorage := storage.NewClient(ctx)
+		if errStorage != nil {
+			err = errStorage
+			return
+		}
+
+		defer client.Close()
+		obj := client.Bucket(config.AttachmentsBucket).Object(a.Key)
+		writer := obj.NewWriter(ctx)
+		writer.ContentType = contentType
+
+		if _, err = io.Copy(writer, a.Reader); err != nil {
+			fmt.Printf("failed to upload attachment key: %s bucket: %s: %v\n", a.Key, config.AttachmentsBucket, err)
+			return
+		}
+
+		if err = writer.Close(); err != nil {
+			fmt.Printf("failed to close storage writer key: %s bucket: %s: %v\n", a.Key, config.AttachmentsBucket, err)
+			return
+		}
+
+		fmt.Printf("attachment %s uploaded. name: %s\n", a.Key, obj.ObjectName())
+
+		location = "some/random/url"
+		return
+	}
+
 	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
 		return aws.Credentials{
 			AccessKeyID:     config.AttachmentsAccessKey,
@@ -70,13 +107,6 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 			o.UsePathStyle = *aws.Bool(true)
 		}
 	})
-
-	// set mime type from extension
-	ext := filepath.Ext(a.Key)
-	contentType := "application/octet-stream"
-	if ext != "" {
-		contentType = mime.TypeByExtension(ext)
-	}
 
 	putObjectInput := &s3.PutObjectInput{
 		Bucket: aws.String(config.AttachmentsBucket),
