@@ -154,7 +154,7 @@ func (a *Attachment) PreSignURL(ctx context.Context) (err error) {
 
 		defer client.Close()
 
-		url, errStorage := storage.SignedURL(config.AttachmentsBucket, a.Key, &storage.SignedURLOptions{
+		url, errStorage := client.Bucket(config.AttachmentsBucket).SignedURL(a.Key, &storage.SignedURLOptions{
 			Scheme:  storage.SigningSchemeV4,
 			Method:  "GET",
 			Expires: time.Now().Add(expires),
