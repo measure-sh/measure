@@ -82,9 +82,9 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 			return
 		}
 
-		fmt.Printf("attachment %s uploaded. name: %s\n", a.Key, obj.ObjectName())
+		location = fmt.Sprintf("https://storage.googleapis.com/%s/%s", config.AttachmentsBucket, obj.ObjectName())
 
-		location = "some/random/url"
+		fmt.Printf("attachment %s uploaded. location: %s\n", a.Key, location)
 		return
 	}
 
@@ -143,6 +143,34 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 func (a *Attachment) PreSignURL(ctx context.Context) (err error) {
 	config := server.Server.Config
 	shouldProxy := true
+	expires := 48 * time.Hour
+
+	if config.IsCloud() {
+		client, errStorage := storage.NewClient(ctx)
+		if errStorage != nil {
+			err = errStorage
+			return
+		}
+
+		defer client.Close()
+
+		url, errStorage := storage.SignedURL(config.AttachmentsBucket, a.Key, &storage.SignedURLOptions{
+			Scheme:  storage.SigningSchemeV4,
+			Method:  "GET",
+			Expires: time.Now().Add(expires),
+		})
+
+		if errStorage != nil {
+			err = errStorage
+			return
+		}
+
+		fmt.Printf("Pre-signed URL: %s\n", url)
+
+		a.Location = url
+		return
+	}
+
 	if config.AttachmentOrigin != "" {
 		shouldProxy = false
 	}
@@ -168,7 +196,7 @@ func (a *Attachment) PreSignURL(ctx context.Context) (err error) {
 	})
 
 	presignClient := s3.NewPresignClient(client, func(o *s3.PresignOptions) {
-		o.Expires = 48 * time.Hour
+		o.Expires = expires
 	})
 
 	getObjectInput := &s3.GetObjectInput{
