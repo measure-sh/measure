@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**frontend**): Update landing page videos & flutter availability by @anupcowkur in #2431
 
+### :books: Documentation
+
+- Update README with new feature videos by @anupcowkur in #2432
+
 ## [measure_flutter-v0.1.0] - 2025-07-21
 
 ### :hammer: Misc
