@@ -29,20 +29,20 @@ body = """
     {% endfor %}
 {% endfor %}\n
 """
-footer = """
-{% for release in releases -%}
-    {% if release.version -%}
-        {% if release.previous.version -%}
-            [{{ release.version | trim_start_matches(pat="v") }}]: \
-                https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}\
-                /compare/{{ release.previous.version }}..{{ release.version }}
-        {% endif -%}
-    {% else -%}
-        [unreleased]: https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}\
-            /compare/{{ release.previous.version }}..HEAD
-    {% endif -%}
-{% endfor %}
-"""
+# footer = """
+# {% for release in releases -%}
+#     {% if release.version -%}
+#         {% if release.previous.version -%}
+#             [{{ release.version | trim_start_matches(pat="v") }}]: \
+#                 https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}\
+#                 /compare/{{ release.previous.version }}..{{ release.version }}
+#         {% endif -%}
+#     {% else -%}
+#         [unreleased]: https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}\
+#             /compare/{{ release.previous.version }}..HEAD
+#     {% endif -%}
+# {% endfor %}
+# """
 # remove the leading and trailing whitespace from the templates
 trim = true
 
