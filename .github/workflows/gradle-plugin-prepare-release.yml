@@ -45,10 +45,6 @@ jobs:
             exit 1
           fi
 
-      - name: Create release branch
-        run: |
-          git checkout -b android-gradle-plugin-v${{ inputs.version }}
-
       - name: Update version in gradle.properties
         run: |
           sed -i "s/MEASURE_PLUGIN_VERSION_NAME=.*/MEASURE_PLUGIN_VERSION_NAME=${{ inputs.version }}/" measure-android-gradle/gradle.properties
