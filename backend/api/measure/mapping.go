@@ -15,10 +15,12 @@ import (
 	"backend/api/chrono"
 	"backend/api/cipher"
 	"backend/api/codec"
+	"backend/api/objstore"
 	"backend/api/opsys"
 	"backend/api/server"
 	"backend/api/symbol"
 
+	"cloud.google.com/go/storage"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
@@ -571,25 +573,40 @@ func (bm *BuildMapping) extractDif() (err error) {
 // files to S3-like object storage.
 func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 	config := server.Server.Config
-	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
-		return aws.Credentials{
-			AccessKeyID:     config.SymbolsAccessKey,
-			SecretAccessKey: config.SymbolsSecretAccessKey,
-		}, nil
-	}
+	var gcsClient *storage.Client
+	var s3Client *s3.Client
 
-	awsConfig := &aws.Config{
-		Region:      config.SymbolsBucketRegion,
-		Credentials: credentialsProvider,
-	}
-
-	client := s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
-		endpoint := config.AWSEndpoint
-		if endpoint != "" {
-			o.BaseEndpoint = aws.String(endpoint)
-			o.UsePathStyle = *aws.Bool(true)
+	// initialize object storage client
+	if config.IsCloud() {
+		gcsClient, err = storage.NewClient(ctx)
+		if err != nil {
+			return
 		}
-	})
+
+		defer gcsClient.Close()
+	} else {
+		s3Client = objstore.CreateS3Client(ctx, config.SymbolsAccessKey, config.SymbolsSecretAccessKey, config.SymbolsBucketRegion, config.AWSEndpoint)
+	}
+
+	// var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
+	// 	return aws.Credentials{
+	// 		AccessKeyID:     config.SymbolsAccessKey,
+	// 		SecretAccessKey: config.SymbolsSecretAccessKey,
+	// 	}, nil
+	// }
+
+	// awsConfig := &aws.Config{
+	// 	Region:      config.SymbolsBucketRegion,
+	// 	Credentials: credentialsProvider,
+	// }
+
+	// client := s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
+	// 	endpoint := config.AWSEndpoint
+	// 	if endpoint != "" {
+	// 		o.BaseEndpoint = aws.String(endpoint)
+	// 		o.UsePathStyle = *aws.Bool(true)
+	// 	}
+	// })
 
 	metadata := map[string]string{
 		"app_id":       bm.AppID.String(),
@@ -606,16 +623,35 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 			}
 			metadata["mapping_type"] = symbol.TypeProguard.String()
 			metadata["original_file_name"] = mf.Header.Filename
+
 			for _, dif := range mf.Difs {
-				putObjectInput := &s3.PutObjectInput{
-					Bucket:   aws.String(config.SymbolsBucket),
-					Key:      aws.String(dif.Key),
-					Body:     bytes.NewReader(dif.Data),
-					Metadata: metadata,
-				}
-				_, err = client.PutObject(ctx, putObjectInput)
-				if err != nil {
-					return
+				if config.IsCloud() {
+					obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
+					writer := obj.NewWriter(ctx)
+					writer.ObjectAttrs = storage.ObjectAttrs{
+						Metadata: metadata,
+					}
+
+					if _, err = io.Copy(writer, bytes.NewReader(dif.Data)); err != nil {
+						fmt.Printf("failed to upload build mapping key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
+						return
+					}
+
+					if err = writer.Close(); err != nil {
+						fmt.Printf("failed to close storage writer key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
+						return
+					}
+				} else {
+					putObjectInput := &s3.PutObjectInput{
+						Bucket:   aws.String(config.SymbolsBucket),
+						Key:      aws.String(dif.Key),
+						Body:     bytes.NewReader(dif.Data),
+						Metadata: metadata,
+					}
+					_, err = s3Client.PutObject(ctx, putObjectInput)
+					if err != nil {
+						return
+					}
 				}
 
 				bm.MappingFiles[index].Key = dif.Key
@@ -629,33 +665,71 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 			}
 			metadata["mapping_type"] = symbol.TypeDsym.String()
 			metadata["original_file_name"] = mf.Header.Filename
+
 			for _, dif := range mf.Difs {
 				if !dif.Meta {
-					putObjectInput := &s3.PutObjectInput{
-						Bucket:   aws.String(config.SymbolsBucket),
-						Key:      aws.String(dif.Key),
-						Body:     bytes.NewReader(dif.Data),
-						Metadata: metadata,
+					if config.IsCloud() {
+						obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
+						writer := obj.NewWriter(ctx)
+						writer.ObjectAttrs = storage.ObjectAttrs{
+							Metadata: metadata,
+						}
+
+						if _, err = io.Copy(writer, bytes.NewReader(dif.Data)); err != nil {
+							fmt.Printf("failed to upload build mapping key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
+							return
+						}
+
+						if err = writer.Close(); err != nil {
+							fmt.Printf("failed to close storage writer key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
+							return
+						}
+					} else {
+						putObjectInput := &s3.PutObjectInput{
+							Bucket:   aws.String(config.SymbolsBucket),
+							Key:      aws.String(dif.Key),
+							Body:     bytes.NewReader(dif.Data),
+							Metadata: metadata,
+						}
+						_, err = s3Client.PutObject(ctx, putObjectInput)
+						if err != nil {
+							return
+						}
 					}
-					_, err = client.PutObject(ctx, putObjectInput)
-					if err != nil {
-						return
-					}
+
 					bm.MappingFiles[index].Key = dif.Key
 					bm.MappingFiles[index].Location = buildLocation(dif.Key)
 					bm.MappingFiles[index].UploadComplete = true
 				}
 
 				if dif.Meta {
-					putObjectInput := &s3.PutObjectInput{
-						Bucket:   aws.String(config.SymbolsBucket),
-						Key:      aws.String(dif.Key),
-						Body:     bytes.NewReader(dif.Data),
-						Metadata: metadata,
-					}
-					_, err = client.PutObject(ctx, putObjectInput)
-					if err != nil {
-						return
+					if config.IsCloud() {
+						obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
+						writer := obj.NewWriter(ctx)
+						writer.ObjectAttrs = storage.ObjectAttrs{
+							Metadata: metadata,
+						}
+
+						if _, err = io.Copy(writer, bytes.NewReader(dif.Data)); err != nil {
+							fmt.Printf("failed to upload build mapping key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
+							return
+						}
+
+						if err = writer.Close(); err != nil {
+							fmt.Printf("failed to close storage writer key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
+							return
+						}
+					} else {
+						putObjectInput := &s3.PutObjectInput{
+							Bucket:   aws.String(config.SymbolsBucket),
+							Key:      aws.String(dif.Key),
+							Body:     bytes.NewReader(dif.Data),
+							Metadata: metadata,
+						}
+						_, err = s3Client.PutObject(ctx, putObjectInput)
+						if err != nil {
+							return
+						}
 					}
 				}
 			}
@@ -666,33 +740,71 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 			}
 			metadata["mapping_type"] = symbol.TypeElfDebug.String()
 			metadata["original_file_name"] = mf.Header.Filename
+
 			for _, dif := range mf.Difs {
 				if !dif.Meta {
-					putObjectInput := &s3.PutObjectInput{
-						Bucket:   aws.String(config.SymbolsBucket),
-						Key:      aws.String(dif.Key),
-						Body:     bytes.NewReader(dif.Data),
-						Metadata: metadata,
+					if config.IsCloud() {
+						obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
+						writer := obj.NewWriter(ctx)
+						writer.ObjectAttrs = storage.ObjectAttrs{
+							Metadata: metadata,
+						}
+
+						if _, err = io.Copy(writer, bytes.NewReader(dif.Data)); err != nil {
+							fmt.Printf("failed to upload build mapping key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
+							return
+						}
+
+						if err = writer.Close(); err != nil {
+							fmt.Printf("failed to close storage writer key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
+							return
+						}
+					} else {
+						putObjectInput := &s3.PutObjectInput{
+							Bucket:   aws.String(config.SymbolsBucket),
+							Key:      aws.String(dif.Key),
+							Body:     bytes.NewReader(dif.Data),
+							Metadata: metadata,
+						}
+						_, err = s3Client.PutObject(ctx, putObjectInput)
+						if err != nil {
+							return
+						}
 					}
-					_, err = client.PutObject(ctx, putObjectInput)
-					if err != nil {
-						return
-					}
+
 					bm.MappingFiles[index].Key = dif.Key
 					bm.MappingFiles[index].Location = buildLocation(dif.Key)
 					bm.MappingFiles[index].UploadComplete = true
 				}
 
 				if dif.Meta {
-					putObjectInput := &s3.PutObjectInput{
-						Bucket:   aws.String(config.SymbolsBucket),
-						Key:      aws.String(dif.Key),
-						Body:     bytes.NewReader(dif.Data),
-						Metadata: metadata,
-					}
-					_, err = client.PutObject(ctx, putObjectInput)
-					if err != nil {
-						return
+					if config.IsCloud() {
+						obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
+						writer := obj.NewWriter(ctx)
+						writer.ObjectAttrs = storage.ObjectAttrs{
+							Metadata: metadata,
+						}
+
+						if _, err = io.Copy(writer, bytes.NewReader(dif.Data)); err != nil {
+							fmt.Printf("failed to upload build mapping key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
+							return
+						}
+
+						if err = writer.Close(); err != nil {
+							fmt.Printf("failed to close storage writer key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
+							return
+						}
+					} else {
+						putObjectInput := &s3.PutObjectInput{
+							Bucket:   aws.String(config.SymbolsBucket),
+							Key:      aws.String(dif.Key),
+							Body:     bytes.NewReader(dif.Data),
+							Metadata: metadata,
+						}
+						_, err = s3Client.PutObject(ctx, putObjectInput)
+						if err != nil {
+							return
+						}
 					}
 				}
 			}
@@ -739,6 +851,12 @@ func (bs BuildSize) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
 // on the remote S3-like object store.
 func buildLocation(key string) (location string) {
 	config := server.Server.Config
+
+	if config.IsCloud() {
+		location = fmt.Sprintf("https://storage.googleapis.com/%s/%s", config.SymbolsBucket, key)
+		return
+	}
+
 	// for now, we construct the location manually
 	// implement a better solution later using
 	// EndpointResolverV2 with custom resolvers
