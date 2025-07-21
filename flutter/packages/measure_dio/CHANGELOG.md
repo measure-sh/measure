@@ -9,4 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
-- (**flutter**): Implement http tracking using dio (#2294) by @abhaysood in #2294
+- (**flutter**): Track http events using dio (#2294) by @abhaysood in #2294
+
+### :hammer: Misc
+
+- (**flutter**): Validate http events (#2385) by @abhaysood in #2385
