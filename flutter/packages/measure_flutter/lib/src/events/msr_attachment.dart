@@ -5,6 +5,35 @@ import 'package:measure_flutter/measure_flutter.dart';
 
 part 'msr_attachment.g.dart';
 
+/// Represents a file attachment that can be included with bug reports or events.
+/// 
+/// [MsrAttachment] encapsulates file data, metadata, and type information
+/// for attachments like screenshots, logs, or user-selected files.
+/// 
+/// **Usage:**
+/// ```dart
+/// // Create from bytes (e.g., screenshot)
+/// final screenshot = MsrAttachment.fromBytes(
+///   bytes: screenshotData,
+///   type: AttachmentType.screenshot,
+///   uuid: 'screenshot-123',
+/// );
+/// 
+/// // Create from file path
+/// final logFile = MsrAttachment.fromPath(
+///   path: '/path/to/log.txt',
+///   type: AttachmentType.text,
+///   size: 1024,
+///   uuid: 'log-456',
+/// );
+/// 
+/// // Include in bug report
+/// Measure.instance.trackBugReport(
+///   description: 'App crashed',
+///   attachments: [screenshot, logFile],
+///   attributes: {},
+/// );
+/// ```
 @JsonSerializable()
 class MsrAttachment {
   final String id;
@@ -25,6 +54,15 @@ class MsrAttachment {
     this.bytes,
   });
 
+  /// Creates an [MsrAttachment] from binary data.
+  /// 
+  /// Use this factory when you have file content as bytes, such as
+  /// from a screenshot capture or downloaded file.
+  /// 
+  /// **Parameters:**
+  /// - [bytes]: The binary file content
+  /// - [type]: The type of attachment (screenshot, image, etc.)
+  /// - [uuid]: A unique identifier for this attachment
   factory MsrAttachment.fromBytes({
     required Uint8List bytes,
     required AttachmentType type,
@@ -39,6 +77,15 @@ class MsrAttachment {
     );
   }
 
+  /// Creates an [MsrAttachment] from a file path.
+  /// 
+  /// Use this factory when referencing an existing file on the filesystem.
+  /// 
+  /// **Parameters:**
+  /// - [path]: The file system path to the file
+  /// - [type]: The type of attachment
+  /// - [size]: The file size in bytes
+  /// - [uuid]: A unique identifier for this attachment
   factory MsrAttachment.fromPath({
     required String path,
     required AttachmentType type,
