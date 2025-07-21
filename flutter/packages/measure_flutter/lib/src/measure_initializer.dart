@@ -123,6 +123,7 @@ final class MeasureInitializer {
       logger: logger,
       signalProcessor: signalProcessor,
       timeProvider: timeProvider,
+      configProvider: configProvider,
     );
     _fileStorage = FileStorage(methodChannel, logger);
     _exceptionCollector = ExceptionCollector(

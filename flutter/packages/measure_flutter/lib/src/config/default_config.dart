@@ -20,4 +20,6 @@ class DefaultConfig {
   static const int maxAttachmentsInBugReport = 5;
   static const int maxDescriptionLengthInBugReport = 1000;
   static const int screenshotCompressionQuality = 20;
+  static const int maxEventNameLength = 64;
+  static const String customEventNameRegex = "^[a-zA-Z0-9_-]+\$";
 }

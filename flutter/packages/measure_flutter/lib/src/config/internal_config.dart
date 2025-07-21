@@ -24,4 +24,10 @@ abstract class InternalConfig {
   /// The compression quality of the screenshot. Must be between 0 and 100, where 0 is lowest quality
   /// and smallest size while 100 is highest quality and largest size.
   int get screenshotCompressionQuality;
+
+  /// The maximum length of a custom event. Defaults to 64 chars.
+  int get maxEventNameLength;
+
+  /// The regex to validate a custom event name.
+  String get customEventNameRegex;
 }

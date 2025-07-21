@@ -24,6 +24,8 @@ class FakeConfigProvider implements ConfigProvider {
   int _maxAttachmentsInBugReport = 5;
   int _maxDescriptionLengthInBugReport = 1000;
   int _screenshotCompressionQuality = 20;
+  int _maxEventNameLength = 64;
+  String _customEventNameRegex = '^[a-zA-Z0-9_-]+\$';
 
   // Getters
   @override
@@ -94,6 +96,12 @@ class FakeConfigProvider implements ConfigProvider {
   @override
   int get screenshotCompressionQuality => _screenshotCompressionQuality;
 
+  @override
+  int get maxEventNameLength => _maxEventNameLength;
+
+  @override
+  String get customEventNameRegex => _customEventNameRegex;
+
   // Setters
   set autoInitializeNativeSDK(bool value) => _autoInitializeNativeSDK = value;
 
@@ -150,6 +158,12 @@ class FakeConfigProvider implements ConfigProvider {
 
   set screenshotCompressionQuality(int value) =>
       _screenshotCompressionQuality = value;
+
+  set customEventNameRegex(String value) =>
+      _customEventNameRegex = value;
+
+  set maxEventNameLength(int value) =>
+      _maxEventNameLength = value;
 
   // Methods
   @override

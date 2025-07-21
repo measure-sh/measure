@@ -96,6 +96,12 @@ class ConfigProviderImpl implements ConfigProvider {
       _defaultConfig.screenshotCompressionQuality;
 
   @override
+  int get maxEventNameLength => _defaultConfig.maxEventNameLength;
+
+  @override
+  String get customEventNameRegex => _defaultConfig.customEventNameRegex;
+
+  @override
   bool shouldTrackHttpBody(String url, String? contentType) {
     if (!trackHttpBody) {
       return false;

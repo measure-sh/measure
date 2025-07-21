@@ -9,31 +9,9 @@ part 'msr_attachment.g.dart';
 /// 
 /// [MsrAttachment] encapsulates file data, metadata, and type information
 /// for attachments like screenshots, logs, or user-selected files.
-/// 
-/// **Usage:**
-/// ```dart
-/// // Create from bytes (e.g., screenshot)
-/// final screenshot = MsrAttachment.fromBytes(
-///   bytes: screenshotData,
-///   type: AttachmentType.screenshot,
-///   uuid: 'screenshot-123',
-/// );
-/// 
-/// // Create from file path
-/// final logFile = MsrAttachment.fromPath(
-///   path: '/path/to/log.txt',
-///   type: AttachmentType.text,
-///   size: 1024,
-///   uuid: 'log-456',
-/// );
-/// 
-/// // Include in bug report
-/// Measure.instance.trackBugReport(
-///   description: 'App crashed',
-///   attachments: [screenshot, logFile],
-///   attributes: {},
-/// );
-/// ```
+///
+/// Use [Measure.captureScreenshot] to easily capture a screenshot and convert
+/// it to an attachment.
 @JsonSerializable()
 class MsrAttachment {
   final String id;
