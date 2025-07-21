@@ -301,7 +301,7 @@ class _MainScreenState extends State<MainScreen> with MsrShakeDetectorMixin {
     }
   }
 
-  Future<void> _checkCache(parentSpan) async {
+  Future<void> _checkCache(Span parentSpan) async {
     final cacheSpan = Measure.instance
         .startSpan("check-profile-cache")
         .setParent(parentSpan)
@@ -315,7 +315,7 @@ class _MainScreenState extends State<MainScreen> with MsrShakeDetectorMixin {
     }
   }
 
-  Future<void> _fetchFromAPI(parentSpan) async {
+  Future<void> _fetchFromAPI(Span parentSpan) async {
     final apiAttributes = AttributeBuilder()
         .add("endpoint", "/api/v1/user/profile")
         .add("timeout_ms", 5000)
