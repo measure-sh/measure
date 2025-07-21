@@ -1,6 +1,19 @@
 import 'package:flutter/material.dart';
 
-/// Text configuration for bug report UI
+/// Text configuration for customizing the bug report UI labels and messages.
+/// 
+/// [BugReportText] allows you to customize all user-facing text in the
+/// bug report widget to match your app's tone or support localization.
+/// 
+/// **Example:**
+/// ```dart
+/// final customText = BugReportText(
+///   appBarTitle: 'Send Feedback',
+///   sendButton: 'Submit',
+///   inputPlaceHolder: 'Tell us what went wrong...',
+///   addFromGalleryButton: 'Add Image',
+/// );
+/// ```
 @immutable
 class BugReportText {
   final String appBarTitle;
@@ -49,7 +62,17 @@ class BugReportText {
       );
 }
 
-/// Color configuration for bug report UI
+/// Color configuration for customizing the bug report UI appearance.
+/// 
+/// [BugReportColors] allows you to customize the colors used in the
+/// bug report widget to match your app's brand and design system.
+/// 
+/// **Example:**
+/// ```dart
+/// final customColors = BugReportColors(
+///   primaryColor: Colors.blue,
+/// );
+/// ```
 @immutable
 class BugReportColors {
   final Color? primaryColor;
@@ -77,7 +100,31 @@ class BugReportColors {
   int get hashCode => primaryColor.hashCode;
 }
 
-/// Complete theme configuration for bug report UI
+/// Complete theme configuration for the bug report UI.
+/// 
+/// [BugReportTheme] combines text and color customizations to provide
+/// a complete theming solution for the bug report widget.
+/// 
+/// **Example:**
+/// ```dart
+/// final customTheme = BugReportTheme(
+///   text: BugReportText(
+///     appBarTitle: 'Report Issue',
+///     sendButton: 'Submit Report',
+///   ),
+///   colors: BugReportColors(
+///     primaryColor: Theme.of(context).primaryColor,
+///   ),
+/// );
+/// 
+/// // Use in bug report widget
+/// showDialog(
+///   context: context,
+///   builder: (context) => Measure.instance.createBugReportWidget(
+///     theme: customTheme,
+///   ),
+/// );
+/// ```
 @immutable
 class BugReportTheme {
   final BugReportText text;
