@@ -29,7 +29,7 @@ jobs:
         with:
           ref: 'main'
           fetch-depth: 0
-          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Git
         run: |
@@ -55,21 +55,21 @@ jobs:
 
       - name: Update version in README
         run: |
-          cd ../docs/android
+          cd ../docs
           # Update Kotlin plugin declaration
           KOTLIN_PATTERN='id("sh.measure.android.gradle") version ".*"'
           KOTLIN_REPLACEMENT='id("sh.measure.android.gradle") version "${{ inputs.version }}"'
-          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" README.md
+          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" sdk-integration-guide.md
           
           # Update Groovy plugin declaration
           GROOVY_PATTERN="id 'sh.measure.android.gradle' version '.*'"
           GROOVY_REPLACEMENT="id 'sh.measure.android.gradle' version '${{ inputs.version }}'"
-          sed -i "s/$GROOVY_PATTERN/$GROOVY_REPLACEMENT/" README.md
+          sed -i "s/$GROOVY_PATTERN/$GROOVY_REPLACEMENT/" sdk-integration-guide.md
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore(gradle): prepare plugin release ${{ inputs.version }}"
           branch: android-gradle-plugin-v${{ inputs.version }}
           delete-branch: false
