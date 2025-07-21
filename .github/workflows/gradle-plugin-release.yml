@@ -27,7 +27,7 @@ jobs:
         with:
           ref: 'main'
           fetch-depth: 0
-          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-java@v3
         with:
