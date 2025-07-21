@@ -628,9 +628,9 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 				if config.IsCloud() {
 					obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
 					writer := obj.NewWriter(ctx)
-					writer.ObjectAttrs = storage.ObjectAttrs{
-						Metadata: metadata,
-					}
+					// writer.ObjectAttrs = storage.ObjectAttrs{
+					// 	Metadata: metadata,
+					// }
 
 					if _, err = io.Copy(writer, bytes.NewReader(dif.Data)); err != nil {
 						fmt.Printf("failed to upload build mapping key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
@@ -671,9 +671,9 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 					if config.IsCloud() {
 						obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
 						writer := obj.NewWriter(ctx)
-						writer.ObjectAttrs = storage.ObjectAttrs{
-							Metadata: metadata,
-						}
+						// writer.ObjectAttrs = storage.ObjectAttrs{
+						// 	Metadata: metadata,
+						// }
 
 						if _, err = io.Copy(writer, bytes.NewReader(dif.Data)); err != nil {
 							fmt.Printf("failed to upload build mapping key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
@@ -706,9 +706,9 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 					if config.IsCloud() {
 						obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
 						writer := obj.NewWriter(ctx)
-						writer.ObjectAttrs = storage.ObjectAttrs{
-							Metadata: metadata,
-						}
+						// writer.ObjectAttrs = storage.ObjectAttrs{
+						// 	Metadata: metadata,
+						// }
 
 						if _, err = io.Copy(writer, bytes.NewReader(dif.Data)); err != nil {
 							fmt.Printf("failed to upload build mapping key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
@@ -746,9 +746,9 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 					if config.IsCloud() {
 						obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
 						writer := obj.NewWriter(ctx)
-						writer.ObjectAttrs = storage.ObjectAttrs{
-							Metadata: metadata,
-						}
+						// writer.ObjectAttrs = storage.ObjectAttrs{
+						// 	Metadata: metadata,
+						// }
 
 						if _, err = io.Copy(writer, bytes.NewReader(dif.Data)); err != nil {
 							fmt.Printf("failed to upload build mapping key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
@@ -781,9 +781,9 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 					if config.IsCloud() {
 						obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
 						writer := obj.NewWriter(ctx)
-						writer.ObjectAttrs = storage.ObjectAttrs{
-							Metadata: metadata,
-						}
+						// writer.ObjectAttrs = storage.ObjectAttrs{
+						// 	Metadata: metadata,
+						// }
 
 						if _, err = io.Copy(writer, bytes.NewReader(dif.Data)); err != nil {
 							fmt.Printf("failed to upload build mapping key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)

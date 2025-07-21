@@ -76,9 +76,9 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 		obj := client.Bucket(config.AttachmentsBucket).Object(a.Key)
 		writer := obj.NewWriter(ctx)
 		writer.ContentType = contentType
-		writer.ObjectAttrs = storage.ObjectAttrs{
-			Metadata: metadata,
-		}
+		// writer.ObjectAttrs = storage.ObjectAttrs{
+		// 	Metadata: metadata,
+		// }
 
 		if _, err = io.Copy(writer, a.Reader); err != nil {
 			fmt.Printf("failed to upload attachment key: %s bucket: %s: %v\n", a.Key, config.AttachmentsBucket, err)
