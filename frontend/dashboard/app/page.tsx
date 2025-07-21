@@ -1,13 +1,13 @@
 "use client"
 
-import Image from 'next/image'
-import LandingHeader from './components/landing_header'
-import Link from 'next/link'
-import landingHeroAnim from "./animations/landing_hero.json"
 import dynamic from 'next/dynamic'
+import Image from 'next/image'
+import Link from 'next/link'
 import { useRef, useState } from 'react'
-import VideoPlayButton from './components/video_play_button'
+import landingHeroAnim from "./animations/landing_hero.json"
 import { buttonVariants } from './components/button'
+import LandingHeader from './components/landing_header'
+import VideoPlayButton from './components/video_play_button'
 import { cn } from './utils/shadcn_utils'
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
@@ -251,9 +251,8 @@ export default function Home() {
             <p className="text-center">iOS</p>
           </div>
           <div className="py-2 md:px-4" />
-          <div className="flex flex-col items-center font-display text-neutral-400 border border-neutral-400 rounded-md py-2 px-8">
+          <div className="flex flex-col items-center font-display text-black border border-black rounded-md py-4 px-8">
             <p className="text-center">Flutter</p>
-            <p className="text-xs text-center">In progress</p>
           </div>
           <div className="py-2 md:px-4" />
           <div className="flex flex-col items-center font-display text-neutral-400 border border-neutral-400 rounded-md py-2 px-8">
