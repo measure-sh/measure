@@ -4,6 +4,7 @@ import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/events/custom_event_data.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 
+import '../utils/fake_config_provider.dart';
 import '../utils/fake_signal_processor.dart';
 import '../utils/noop_logger.dart';
 import '../utils/test_clock.dart';
@@ -14,15 +15,18 @@ void main() {
     late NoopLogger logger;
     late FakeSignalProcessor signalProcessor;
     late TimeProvider timeProvider;
+    late FakeConfigProvider configProvider;
 
     setUp(() {
       logger = NoopLogger();
       signalProcessor = FakeSignalProcessor();
+      configProvider = FakeConfigProvider();
       timeProvider = FlutterTimeProvider(TestClock.create());
       collector = CustomEventCollector(
         logger: logger,
         signalProcessor: signalProcessor,
         timeProvider: timeProvider,
+        configProvider: configProvider,
       );
     });
 
@@ -93,6 +97,43 @@ void main() {
       expect(signalProcessor.trackedCustomEvents.length, 1);
 
       expect(signalProcessor.trackedCustomEvents[0], customEventData);
+    });
+
+    test('should discard event with invalid name', () {
+      // Given
+      collector.register();
+      final name = 'invalid event name with spaces';
+      final attributes = <String, AttributeValue>{};
+      // When
+      collector.trackCustomEvent(name, null, attributes);
+
+      // Then
+      expect(signalProcessor.trackedCustomEvents.length, 0);
+    });
+
+    test('should discard event with empty event name', () {
+      // Given
+      collector.register();
+      final name = '';
+      final attributes = <String, AttributeValue>{};
+      // When
+      collector.trackCustomEvent(name, null, attributes);
+
+      // Then
+      expect(signalProcessor.trackedCustomEvents.length, 0);
+    });
+
+    test('should discard event with event name exceeding max length', () {
+      // Given
+      collector.register();
+      final name =
+          List.filled(configProvider.maxEventNameLength + 1, 'a').join();
+      final attributes = <String, AttributeValue>{};
+      // When
+      collector.trackCustomEvent(name, null, attributes);
+
+      // Then
+      expect(signalProcessor.trackedCustomEvents.length, 0);
     });
   });
 }

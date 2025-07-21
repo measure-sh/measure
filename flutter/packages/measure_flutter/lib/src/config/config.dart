@@ -28,6 +28,8 @@ class Config implements InternalConfig, IMeasureConfig {
         DefaultConfig.maxDescriptionLengthInBugReport,
     this.screenshotCompressionQuality =
         DefaultConfig.screenshotCompressionQuality,
+    this.maxEventNameLength = DefaultConfig.maxEventNameLength,
+    this.customEventNameRegex = DefaultConfig.customEventNameRegex,
   });
 
   @override
@@ -72,6 +74,10 @@ class Config implements InternalConfig, IMeasureConfig {
   final int maxDescriptionLengthInBugReport;
   @override
   final int screenshotCompressionQuality;
+  @override
+  final int maxEventNameLength;
+  @override
+  final String customEventNameRegex;
 
   @override
   List<String> get defaultHttpContentTypeAllowlist =>
