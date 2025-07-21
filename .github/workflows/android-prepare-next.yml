@@ -1,5 +1,4 @@
 name: Prepare Next Android Version
-
 on:
   workflow_dispatch:
     inputs:
@@ -22,14 +21,17 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      repository-projects: write
+      issues: write
     timeout-minutes: 15
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           ref: 'main'
           fetch-depth: 0
-          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Git
         run: |
@@ -44,10 +46,6 @@ jobs:
             exit 1
           fi
 
-      - name: Create branch
-        run: |
-          git checkout -b prepare-next-android-${{ inputs.version }}
-
       - name: Update version in gradle.properties
         run: |
           sed -i "s/MEASURE_VERSION_NAME=.*/MEASURE_VERSION_NAME=${{ inputs.version }}/" gradle.properties
@@ -58,20 +56,33 @@ jobs:
           REPLACEMENT="measure-android = \"${{ inputs.version }}\""
           sed -i "s/$PATTERN/$REPLACEMENT/" gradle/libs.versions.toml
 
+      - name: Verify changes
+        run: |
+          echo "Changes made:"
+          git diff --name-only
+          git diff
+
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
-          commit-message: "chore(android): prepare next development version of SDK"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(android): prepare next development version ${{ inputs.version }}"
           branch: prepare-next-android-${{ inputs.version }}
           delete-branch: true
-          title: "chore(android): prepare next development version of SDK"
+          title: "chore(android): prepare next development version ${{ inputs.version }}"
           body: |
             This PR prepares the next development version of the Android SDK.
-
-            Changes:
-            - Updated version to ${{ inputs.version }} in gradle.properties
-            - Updated version in libs.versions.toml
+            
+            **Changes:**
+            - Updated version to `${{ inputs.version }}` in gradle.properties
+            - Updated version to `${{ inputs.version }}` in libs.versions.toml
+            
+            **Version:** ${{ inputs.version }}
           base: main
-          labels: android
+          labels: |
+            android
+            version-update
           assignees: abhaysood
+          add-paths: |
+            android/gradle.properties
+            android/gradle/libs.versions.toml
