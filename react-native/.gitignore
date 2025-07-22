@@ -67,35 +67,35 @@ bazel-out/
 *.lock
 
 # Example app build artifacts
-example/android/.gradle/
-example/android/app/build/
-example/android/build/
+example/expo/android/.gradle/
+example/expo/android/app/build/
+example/expo/android/build/
 
-example/ios/Pods/
-example/ios/Podfile.lock
-example/ios/build/
-example/ios/DerivedData/
-example/ios/*.xcworkspace
+example/expo/ios/Pods/
+example/expo/ios/Podfile.lock
+example/expo/ios/build/
+example/expo/ios/DerivedData/
+example/expo/ios/*.xcworkspace
 
 # Metro bundler cache
-example/.expo/
-example/.yarn/*
-example/.expo-shared/
-example/.metro-cache/
-example/tmp/
-example/dist/
-example/.bundle/
-example/*.log
+example/expo/.expo/
+example/expo/.yarn/*
+example/expo/.expo-shared/
+example/expo/.metro-cache/
+example/expo/tmp/
+example/expo/dist/
+example/expo/.bundle/
+example/expo/*.log
 
 # Node and Yarn
-example/node_modules/
-example/yarn.lock
+example/expo/node_modules/
+example/expo/yarn.lock
 
 
 # IDE/Tooling
-example/.idea/
-example/.vscode/
-example/*.iml
+example/expo/.idea/
+example/expo/.vscode/
+example/expo/*.iml
 
 # Misc
-example/.DS_Store
+example/expo/.DS_Store
