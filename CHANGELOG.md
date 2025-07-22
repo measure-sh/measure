@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [measure_flutter-v0.1.1] - 2025-07-21
+## [Unreleased]
 
 ### :hammer: Misc
 
@@ -14,8 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :books: Documentation
 
 - Update README with new feature videos by @anupcowkur in #2432
-
-## [measure_flutter-v0.1.0] - 2025-07-21
 
 ### :hammer: Misc
 
@@ -2103,8 +2101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Replace team/:id/invite docs with /auth/invite docs by @anupcowkur
 - (**webapp**): Add API docs for crash & ANR groups APIs by @anupcowkur
 
-[measure_flutter-v0.1.1]: https://github.com/measure-sh/measure/compare/measure_flutter-v0.1.0..measure_flutter-v0.1.1
-[measure_flutter-v0.1.0]: https://github.com/measure-sh/measure/compare/v0.8.1..measure_flutter-v0.1.0
+[unreleased]: https://github.com/measure-sh/measure/compare/v0.8.1..HEAD
 [0.8.1]: https://github.com/measure-sh/measure/compare/v0.8.0..v0.8.1
 [0.8.0]: https://github.com/measure-sh/measure/compare/v0.7.0..v0.8.0
 [0.7.0]: https://github.com/measure-sh/measure/compare/v0.6.1..v0.7.0
@@ -2118,4 +2115,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.2.0]: https://github.com/measure-sh/measure/compare/v0.1.1..v0.2.0
 [0.1.1]: https://github.com/measure-sh/measure/compare/v0.1.0..v0.1.1
 [0.1.0]: https://github.com/measure-sh/measure/compare/v0.0.1..v0.1.0
-
