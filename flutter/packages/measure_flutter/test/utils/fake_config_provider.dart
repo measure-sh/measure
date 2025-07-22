@@ -26,6 +26,7 @@ class FakeConfigProvider implements ConfigProvider {
   int _screenshotCompressionQuality = 20;
   int _maxEventNameLength = 64;
   String _customEventNameRegex = '^[a-zA-Z0-9_-]+\$';
+  int _maxDiskUsageInMb = 50;
 
   // Getters
   @override
@@ -102,6 +103,9 @@ class FakeConfigProvider implements ConfigProvider {
   @override
   String get customEventNameRegex => _customEventNameRegex;
 
+  @override
+  int get maxDiskUsageInMb => _maxDiskUsageInMb;
+
   // Setters
   set autoInitializeNativeSDK(bool value) => _autoInitializeNativeSDK = value;
 
@@ -159,11 +163,11 @@ class FakeConfigProvider implements ConfigProvider {
   set screenshotCompressionQuality(int value) =>
       _screenshotCompressionQuality = value;
 
-  set customEventNameRegex(String value) =>
-      _customEventNameRegex = value;
+  set customEventNameRegex(String value) => _customEventNameRegex = value;
 
-  set maxEventNameLength(int value) =>
-      _maxEventNameLength = value;
+  set maxEventNameLength(int value) => _maxEventNameLength = value;
+
+  set maxDiskUsageInMb(int value) => _maxDiskUsageInMb = value;
 
   // Methods
   @override

@@ -255,7 +255,7 @@ internal data class SerializableMeasureConfig(
     val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
     val trackActivityLoadTime: Boolean = DefaultConfig.TRACK_ACTIVITY_LOAD_TIME,
     val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
-    val maxEstimatedDiskUsageInMb: Int = DefaultConfig.MAX_ESTIMATED_DISK_USAGE_IN_MB,
+    val maxDiskUsageInMb: Int = DefaultConfig.MAX_ESTIMATED_DISK_USAGE_IN_MB,
     val requestHeadersProvider: MsrRequestHeadersProvider? = null,
 ) {
     fun toMeasureConfig(): MeasureConfig = MeasureConfig(
@@ -273,7 +273,7 @@ internal data class SerializableMeasureConfig(
         traceSamplingRate = traceSamplingRate,
         trackActivityLoadTime = trackActivityLoadTime,
         trackFragmentLoadTime = trackFragmentLoadTime,
-        maxDiskUsageInMb = maxEstimatedDiskUsageInMb,
+        maxDiskUsageInMb = maxDiskUsageInMb,
         requestHeadersProvider = requestHeadersProvider,
     )
 
@@ -294,7 +294,7 @@ internal data class SerializableMeasureConfig(
                 traceSamplingRate = config.traceSamplingRate,
                 trackActivityLoadTime = config.trackActivityLoadTime,
                 trackFragmentLoadTime = config.trackFragmentLoadTime,
-                maxEstimatedDiskUsageInMb = config.maxDiskUsageInMb,
+                maxDiskUsageInMb = config.maxDiskUsageInMb,
                 requestHeadersProvider = config.requestHeadersProvider,
             )
     }

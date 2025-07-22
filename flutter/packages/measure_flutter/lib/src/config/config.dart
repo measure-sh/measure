@@ -30,6 +30,7 @@ class Config implements InternalConfig, IMeasureConfig {
         DefaultConfig.screenshotCompressionQuality,
     this.maxEventNameLength = DefaultConfig.maxEventNameLength,
     this.customEventNameRegex = DefaultConfig.customEventNameRegex,
+    this.maxDiskUsageInMb = DefaultConfig.maxDiskUsageInMb,
   });
 
   @override
@@ -78,6 +79,8 @@ class Config implements InternalConfig, IMeasureConfig {
   final int maxEventNameLength;
   @override
   final String customEventNameRegex;
+  @override
+  final int maxDiskUsageInMb;
 
   @override
   List<String> get defaultHttpContentTypeAllowlist =>
@@ -106,6 +109,7 @@ class Config implements InternalConfig, IMeasureConfig {
     double? traceSamplingRate,
     bool? trackActivityLoadTime,
     bool? trackFragmentLoadTime,
+    int? maxDiskUsageInMb,
   }) {
     return Config(
       enableLogging: enableLogging ?? this.enableLogging,
@@ -125,6 +129,7 @@ class Config implements InternalConfig, IMeasureConfig {
           trackActivityLoadTime ?? this.trackActivityLoadTime,
       trackFragmentLoadTime:
           trackFragmentLoadTime ?? this.trackFragmentLoadTime,
+      maxDiskUsageInMb: maxDiskUsageInMb ?? this.maxDiskUsageInMb,
     );
   }
 }

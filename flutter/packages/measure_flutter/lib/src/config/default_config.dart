@@ -22,4 +22,5 @@ class DefaultConfig {
   static const int screenshotCompressionQuality = 20;
   static const int maxEventNameLength = 64;
   static const String customEventNameRegex = "^[a-zA-Z0-9_-]+\$";
+  static const int maxDiskUsageInMb = 50;
 }

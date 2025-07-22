@@ -102,6 +102,9 @@ class ConfigProviderImpl implements ConfigProvider {
   String get customEventNameRegex => _defaultConfig.customEventNameRegex;
 
   @override
+  int get maxDiskUsageInMb => _defaultConfig.maxDiskUsageInMb;
+
+  @override
   bool shouldTrackHttpBody(String url, String? contentType) {
     if (!trackHttpBody) {
       return false;
