@@ -18,6 +18,7 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -2210,12 +2211,24 @@ func PutEvents(c *gin.Context) {
 		// OS
 		switch opsys.ToFamily(osName) {
 		case opsys.Android:
-			sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+			if config.IsCloud() {
+				privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
+				clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
+				sources = append(sources, symbolicator.NewGCSSourceAndroid("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
+			} else {
+				sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+			}
 		case opsys.AppleFamily:
 			// by default only symbolicate app's own symbols. to symbolicate iOS
 			// system framework symbols, append a GCSSourceApple source containing
 			// all iOS system framework symbol debug information files.
-			sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+			if config.IsCloud() {
+				privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
+				clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
+				sources = append(sources, symbolicator.NewGCSSourceApple("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
+			} else {
+				sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+			}
 		}
 
 		symblctr := symbolicator.New(origin, osName, sources)
