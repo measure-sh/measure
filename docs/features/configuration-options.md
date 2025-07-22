@@ -6,6 +6,7 @@ options are set at the time of SDK initialization and can be adjusted based on y
 * [**Set Configuration Options**](#set-configuration-options)
     * [**Android**](#android)
     * [**iOS**](#ios)
+    * [**Flutter**](#flutter)
 * [**Explore all Configuration Options**](#configuration-options-1)
 
 ## Set Configuration Options
@@ -39,7 +40,7 @@ Measure.init(
 
 #### iOS
 
-For Android, options can be set in the `BaseMeasureConfig` object which is passed to the `Measure.initialize`
+For iOS, options can be set in the `BaseMeasureConfig` object which is passed to the `Measure.initialize`
 method. Example:
 
 ```swift
@@ -53,6 +54,34 @@ let config = BaseMeasureConfig(enableLogging: true,
                                autoStart: true,
                                trackViewControllerLoadTime: true)
 Measure.initialize(with: clientInfo, config: config)
+```
+
+#### Flutter
+
+For Flutter, options can be set in the `MeasureConfig` object which is passed to the `Measure.init` method. Example:
+
+```dart
+Future<void> main() async {
+  await Measure.instance.init(
+        () => runApp(MeasureWidget(child: MyApp())),
+    config: const MeasureConfig(
+      enableLogging: true,
+      trackScreenshotOnCrash: true,
+      trackHttpHeaders: true,
+      trackHttpBody: true,
+      httpHeadersBlocklist: ["Authorization"],
+      httpUrlBlocklist: ["example.api.com"],
+      httpUrlAllowlist: ["api.example.com"],
+      trackViewControllerLoadTime: true,
+      trackActivityLoadTime: true,
+      trackFragmentLoadTime: true,
+      autoInitializeNativeSDK: true,
+      autoStart: true,
+      traceSamplingRate: 1,
+      samplingRateForErrorFreeSessions: 1,
+    ),
+  );
+}
 ```
 
 ## Configuration Options
@@ -72,13 +101,13 @@ Measure.initialize(with: clientInfo, config: config)
 * [**trackViewControllerLoadTime**](#trackViewControllerLoadTime)
 * [**trackActivityLoadTime**](#trackActivityLoadTime)
 * [**trackFragmentLoadTime**](#trackFragmentLoadTime)
-
+* [**requestHeadersProvider**](#requestHeadersProvider)
 
 ## `trackScreenshotOnCrash`
 
 Applies only to Android.
 
-Whether to capture a screenshot of the app when it crashes due to a crash. 
+Whether to capture a screenshot of the app when it crashes due to a crash.
 
 Defaults to `true`.
 
@@ -165,7 +194,7 @@ leaking:
 
 ## `trackHttpBody`
 
-Allows enabling/disabling capturing of HTTP request and response body. 
+Allows enabling/disabling capturing of HTTP request and response body.
 
 Defaults to `false`.
 
@@ -202,7 +231,7 @@ Defaults to `false`.
 
 ## `samplingRateForErrorFreeSessions`
 
-Controls sampling rate for non-crashed sessions. 
+Controls sampling rate for non-crashed sessions.
 
 A value between 0.0 and 1.0 can be set:
 
@@ -283,3 +312,93 @@ A large TTID value means users are waiting too long before any content appears o
 Each Fragment load time is captured as a `Span` with the name `Fragment TTID <class name>`. For example, for a
 fully qualified Fragment class `com.example.MainFragment`, the span name would
 be: `Fragment TTID com.example.MainFragment`.
+
+## `requestHeadersProvider`
+
+Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API. This is useful **only
+for
+self-hosted** clients who may require additional headers for requests in their infrastructure.
+
+Defaults to `null`, which means no additional headers are added.
+
+The following headers are reserved by the SDK and will be ignored if provided:
+
+- `Content-Type`
+- `msr-req-id`
+- `Authorization`
+- `Content-Length`
+
+#### Android Usage
+
+```kotlin
+class CustomHeaderProvider : MsrRequestHeadersProvider {
+    private val requestHeaders: ConcurrentMap<String, String> = ConcurrentHashMap()
+
+    fun addHeader(key: String, value: String) {
+        requestHeaders[key] = value
+    }
+
+    fun removeHeader(key: String) {
+        requestHeaders.remove(key)
+    }
+
+    override fun getRequestHeaders(): Map<String, String> {
+        return requestHeaders.toMap() // Return immutable copy
+    }
+}
+
+Measure.init(
+    context, MeasureConfig(
+        requestHeadersProvider = CustomHeadersProvider()
+    )
+)
+```
+
+#### iOS Usage
+
+Using Swift:
+
+```swift
+class CustomHeaderProvider: NSObject, MsrRequestHeadersProvider {
+    func getRequestHeaders() -> NSDictionary {
+        return ["X-App-Version": "1.0.0"]
+    }
+}
+
+Measure.initialize(with: clientInfo, config: BaseMeasureConfig(requestHeadersProvider: CustomHeadersProvider()))
+```
+
+<details>
+<summary>Using ObjC</summary>
+
+```objc
+@interface RequestHeaderProvider : NSObject <MsrRequestHeadersProvider>
+
+@end
+
+@implementation RequestHeaderProvider
+
+- (NSDictionary *)getRequestHeaders {
+    return @{ @"X-Custom-Header": @"value" };
+}
+
+@end
+
+// add below snippet while initializing the SDK.
+ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"api-key" apiUrl:@"api-url"];
+    BaseMeasureConfig *config = [[BaseMeasureConfig alloc] initWithEnableLogging:YES
+                                                samplingRateForErrorFreeSessions:1.0
+                                                               traceSamplingRate:1.0
+                                                                trackHttpHeaders:YES
+                                                                   trackHttpBody:NO
+                                                            httpHeadersBlocklist:@[@"Authorization", @"Cookie"]
+                                                                httpUrlBlocklist:@[@"https://sensitive.example.com"]
+                                                                httpUrlAllowlist:@[@"https://api.example.com"]
+                                                                       autoStart:YES
+                                                     trackViewControllerLoadTime:YES
+                                                             screenshotMaskLevel:ScreenshotMaskLevelObjcAllText
+                                                          requestHeadersProvider:[RequestHeaderProvider new]];
+    [Measure initializeWith:clientInfo config:config]
+```
+
+</details>
