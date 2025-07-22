@@ -191,13 +191,14 @@ public final class sh/measure/android/config/MeasureConfig : sh/measure/android/
 	public static final field $stable I
 	public static final field Companion Lsh/measure/android/config/MeasureConfig$Companion;
 	public fun <init> ()V
-	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZLsh/measure/android/config/MsrRequestHeadersProvider;)V
-	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZLsh/measure/android/config/MsrRequestHeadersProvider;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZILsh/measure/android/config/MsrRequestHeadersProvider;)V
+	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZILsh/measure/android/config/MsrRequestHeadersProvider;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun getAutoStart ()Z
 	public fun getEnableLogging ()Z
 	public fun getHttpHeadersBlocklist ()Ljava/util/List;
 	public fun getHttpUrlAllowlist ()Ljava/util/List;
 	public fun getHttpUrlBlocklist ()Ljava/util/List;
+	public fun getMaxDiskUsageInMb ()I
 	public fun getRequestHeadersProvider ()Lsh/measure/android/config/MsrRequestHeadersProvider;
 	public fun getSamplingRateForErrorFreeSessions ()F
 	public fun getScreenshotMaskLevel ()Lsh/measure/android/config/ScreenshotMaskLevel;

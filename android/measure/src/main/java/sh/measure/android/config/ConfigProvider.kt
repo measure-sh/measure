@@ -59,8 +59,6 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { screenshotCompressionQuality }
     override val eventTypeExportAllowList: List<EventType>
         get() = getMergedConfig { eventTypeExportAllowList }
-    override val maxSignalsInDatabase: Int
-        get() = getMergedConfig { maxSignalsInDatabase }
     override val trackHttpHeaders: Boolean
         get() = getMergedConfig { trackHttpHeaders }
     override val trackHttpBody: Boolean
@@ -131,6 +129,10 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { disallowedCustomHeaders }
     override val requestHeadersProvider: MsrRequestHeadersProvider?
         get() = getMergedConfig { requestHeadersProvider }
+    override val maxDiskUsageInMb: Int
+        get() = getMergedConfig { maxDiskUsageInMb }
+    override val estimatedEventSizeInKb: Int
+        get() = getMergedConfig { estimatedEventSizeInKb }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (!trackHttpBody) {

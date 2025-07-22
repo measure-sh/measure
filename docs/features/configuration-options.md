@@ -102,7 +102,7 @@ Future<void> main() async {
 * [**trackActivityLoadTime**](#trackActivityLoadTime)
 * [**trackFragmentLoadTime**](#trackFragmentLoadTime)
 * [**requestHeadersProvider**](#requestHeadersProvider)
-
+* [**maxDiskUsageInMb**](#maxDiskUsageInMb)
 ## `trackScreenshotOnCrash`
 
 Applies only to Android.
@@ -402,3 +402,19 @@ ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"api-key" apiUrl:@"
 ```
 
 </details>
+
+## `maxDiskUsageInMb`
+
+Allows setting the maximum disk usage for Measure SDK. This is useful to control the amount of disk space
+used by the SDK for storing session data, crash reports, and other collected information.
+
+All Measure SDKs store data to disk and upload it to the server in batches. While the app is in foreground, the data
+is synced periodically and usually the disk space used by the SDK is low. However, if the device is offline
+or the server is unreachable, the SDK will continue to store data on disk until it reaches the maximum disk usage limit.
+
+Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`. Any value outside this range will be clamped
+to the nearest limit.
+
+Note that the storage usage is not exact and works on estimates and typically the SDK will use much less disk space than
+the configured limit. When the SDK reaches the maximum disk usage limit, it will start deleting the oldest data to make
+space for new data.

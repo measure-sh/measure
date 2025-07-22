@@ -16,7 +16,6 @@ internal class FakeConfigProvider : ConfigProvider {
     override var screenshotMaskHexColor: String = "#222222"
     override var screenshotCompressionQuality: Int = 25
     override val eventTypeExportAllowList: List<EventType> = emptyList()
-    override val maxSignalsInDatabase: Int = 50_000
     override var trackHttpHeaders: Boolean = true
     override var trackHttpBody: Boolean = true
     override var httpHeadersBlocklist: List<String> = emptyList()
@@ -52,6 +51,8 @@ internal class FakeConfigProvider : ConfigProvider {
     override val trackFragmentLoadTime: Boolean = true
     override val disallowedCustomHeaders: List<String> = listOf("Content-Type", "msr-req-id", "Authorization", "Content-Length")
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null
+    override val estimatedEventSizeInKb: Int = 15
+    override val maxDiskUsageInMb: Int = 50
 
     var shouldTrackHttpBody = true
 

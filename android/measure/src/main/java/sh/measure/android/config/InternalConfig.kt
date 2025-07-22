@@ -86,13 +86,6 @@ internal interface InternalConfig {
     val eventTypeExportAllowList: List<EventType>
 
     /**
-     * The maximum number of (events + spans) allowed in the database.
-     * If the number of events exceeds this limit, the oldest session is deleted everytime
-     * cleanup is triggered until the total number of events is below this limit.
-     */
-    val maxSignalsInDatabase: Int
-
-    /**
      * Max length of a span name. Defaults to 64.
      */
     val maxSpanNameLength: Int
@@ -147,4 +140,9 @@ internal interface InternalConfig {
      * List of custom headers that should not be included.
      */
     val disallowedCustomHeaders: List<String>
+
+    /**
+     * The estimated size of one event on disk.
+     */
+    val estimatedEventSizeInKb: Int
 }

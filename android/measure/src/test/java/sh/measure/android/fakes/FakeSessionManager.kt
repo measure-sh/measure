@@ -4,6 +4,7 @@ import sh.measure.android.SessionManager
 import sh.measure.android.events.Event
 
 internal class FakeSessionManager : SessionManager {
+    var session = "fake-session-id"
     var crashedSession = ""
     var crashedSessions = mutableListOf<String>()
     var onEventTracked = false
@@ -14,7 +15,7 @@ internal class FakeSessionManager : SessionManager {
     }
 
     override fun getSessionId(): String {
-        return "fake-session-id"
+        return session
     }
 
     override fun markCrashedSession(sessionId: String) {
