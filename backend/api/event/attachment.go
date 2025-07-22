@@ -76,9 +76,7 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 		obj := client.Bucket(config.AttachmentsBucket).Object(a.Key)
 		writer := obj.NewWriter(ctx)
 		writer.ContentType = contentType
-		// writer.ObjectAttrs = storage.ObjectAttrs{
-		// 	Metadata: metadata,
-		// }
+		writer.Metadata = metadata
 
 		if _, err = io.Copy(writer, a.Reader); err != nil {
 			fmt.Printf("failed to upload attachment key: %s bucket: %s: %v\n", a.Key, config.AttachmentsBucket, err)
@@ -92,29 +90,8 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 
 		location = fmt.Sprintf("https://storage.googleapis.com/%s/%s", config.AttachmentsBucket, obj.ObjectName())
 
-		fmt.Printf("attachment %s uploaded. location: %s\n", a.Key, location)
 		return
 	}
-
-	// var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
-	// 	return aws.Credentials{
-	// 		AccessKeyID:     config.AttachmentsAccessKey,
-	// 		SecretAccessKey: config.AttachmentsSecretAccessKey,
-	// 	}, nil
-	// }
-
-	// awsConfig := &aws.Config{
-	// 	Region:      config.AttachmentsBucketRegion,
-	// 	Credentials: credentialsProvider,
-	// }
-
-	// client := s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
-	// 	endpoint := config.AWSEndpoint
-	// 	if endpoint != "" {
-	// 		o.BaseEndpoint = aws.String(endpoint)
-	// 		o.UsePathStyle = *aws.Bool(true)
-	// 	}
-	// })
 
 	s3Client := objstore.CreateS3Client(ctx, config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, config.AttachmentsBucketRegion, config.AWSEndpoint)
 
