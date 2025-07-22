@@ -25,7 +25,9 @@ export async function POST(request: Request) {
 
   const data = await res.json();
   if (data.error) {
-    console.log(`Logout failure: post /auth/refresh returned ${data.error}`);
+    console.log(
+      `Refresh token failure: post /auth/refresh returned ${data.error}`,
+    );
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
