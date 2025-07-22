@@ -78,7 +78,7 @@ protect_breaking_commits = false
 # filter out the commits that are not matched by commit parsers
 filter_commits = true
 # regex for matching git tags
-tag_pattern = "measure-flutter-v[0-9].*"
+tag_pattern = "measure_flutter-v[0-9].*"
 # regex for ignoring tags
 ignore_tags = "^(android|ios|v|rn)"
 # sort the tags topologically
