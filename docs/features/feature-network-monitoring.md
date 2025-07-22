@@ -27,6 +27,12 @@ On Flutter, network requests made using the [Dio](https://pub.dev/packages/dio) 
 the `measure_dio` package to your project. This package provides `MsrInterceptor` that can automatically
 track network requests done using Dio.
 
+
+```yaml
+dependencies:
+  measure_dio: ^0.1.1
+```
+
 ```dart
 final dio = Dio();
 dio.interceptors.add(MsrInterceptor());
