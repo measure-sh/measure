@@ -87,7 +87,7 @@
     "react-native": "*"
   },
   "workspaces": [
-    "example"
+    "example/expo"
   ],
   "packageManager": "yarn@3.6.1",
   "jest": {
