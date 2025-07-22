@@ -1,4 +1,7 @@
 # Node modules
+lib/
+lib-commonjs/
+lib-module/
 node_modules/
 .yarn/*
 !.yarn/patches

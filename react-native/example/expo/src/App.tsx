@@ -1,5 +1,6 @@
 import { Text, View, StyleSheet } from 'react-native';
 import { multiply } from '@measure/react-native';
+import React from 'react';
 
 const result = multiply(3, 10);
 
