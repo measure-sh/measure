@@ -17,7 +17,7 @@ end
 target 'rnExample' do
   config = use_native_modules!
 
-  pod 'Measure', :path => '../../ios'
+  pod 'MeasureReactNative', :path => '../../..'
 
   use_react_native!(
     :path => config[:reactNativePath],

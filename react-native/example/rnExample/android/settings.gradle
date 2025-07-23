@@ -4,3 +4,5 @@ extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autoli
 rootProject.name = 'rnExample'
 include ':app'
 includeBuild('../node_modules/@react-native/gradle-plugin')
+include ':measure-react-native'
+project(':measure-react-native').projectDir = new File(rootProject.projectDir, '../../../android')
