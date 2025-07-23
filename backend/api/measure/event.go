@@ -1192,7 +1192,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		}
 	}
 
-	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
+	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
 }
 
 // ingestSpans writes the spans to database.
