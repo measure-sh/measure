@@ -1,6 +1,7 @@
 {
   "name": "@measure/react-native",
   "version": "0.1.0",
+  "react-native": "src/index.tsx",
   "description": "Open source tool to monitor mobile apps",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
@@ -50,7 +51,7 @@
     "url": "git+https://github.com/measure-sh/measure.git.git"
   },
   "author": "Measure.sh <adwin@measure.sh> (https://www.measure.sh/)",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/measure-sh/measure.git/issues"
   },

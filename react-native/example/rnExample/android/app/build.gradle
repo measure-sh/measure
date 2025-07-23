@@ -116,4 +116,6 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    implementation project(':measure-react-native')
 }
