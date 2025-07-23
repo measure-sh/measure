@@ -24,7 +24,7 @@ function App() {
 
   const handleInitialize = async () => {
     try {
-      const message = await initialize('dummy-api-key-10000');
+      const message = await initialize('msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c');
       console.log('✅ Measure SDK initialized:', message);
       Alert.alert('Success', `Measure SDK initialized:\n${message}`);
     } catch (err) {

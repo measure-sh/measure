@@ -145,3 +145,4 @@ example/rnExample/android/build
 example/rnExample/android/app/build
 example/rnExample/android/app/.cxx
 example/rnExample/ios/rnExample.xcworkspace/xcuserdata
+example/rnExample/android/local.properties

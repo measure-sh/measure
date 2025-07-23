@@ -23,4 +23,5 @@ kotlin {
 
 dependencies {
     implementation("com.facebook.react:react-native:+")
+    implementation("sh.measure:measure-android:0.11.0")
 }
