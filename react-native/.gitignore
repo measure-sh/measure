@@ -69,18 +69,15 @@ bazel-out/
 *.swp
 *.lock
 
-# Example app build artifacts
+# Expo App
 example/expo/android/.gradle/
 example/expo/android/app/build/
 example/expo/android/build/
-
 example/expo/ios/Pods/
 example/expo/ios/Podfile.lock
 example/expo/ios/build/
 example/expo/ios/DerivedData/
 example/expo/ios/*.xcworkspace
-
-# Metro bundler cache
 example/expo/.expo/
 example/expo/.yarn/*
 example/expo/.expo-shared/
@@ -89,16 +86,61 @@ example/expo/tmp/
 example/expo/dist/
 example/expo/.bundle/
 example/expo/*.log
-
-# Node and Yarn
 example/expo/node_modules/
 example/expo/yarn.lock
-
-
-# IDE/Tooling
 example/expo/.idea/
 example/expo/.vscode/
 example/expo/*.iml
-
-# Misc
 example/expo/.DS_Store
+
+# RnExample App
+example/rnExample/build/
+example/rnExample/*.pbxuser
+example/rnExample/!default.pbxuser
+example/rnExample/*.mode1v3
+example/rnExample/!default.mode1v3
+example/rnExample/*.mode2v3
+example/rnExample/!default.mode2v3
+example/rnExample/*.perspectivev3
+example/rnExample/!default.perspectivev3
+example/rnExample/xcuserdata
+example/rnExample/*.xccheckout
+example/rnExample/*.moved-aside
+example/rnExample/DerivedData
+example/rnExample/*.hmap
+example/rnExample/*.ipa
+example/rnExample/*.xcuserstate
+example/rnExample/**/.xcode.env.local
+example/rnExample/build/
+example/rnExample/.idea
+example/rnExample/.gradle
+example/rnExample/local.properties
+example/rnExample/*.iml
+example/rnExample/*.hprof
+example/rnExample/.cxx/
+example/rnExample/*.keystore
+example/rnExample/!debug.keystore
+example/rnExample/.kotlin/
+example/rnExample/node_modules/
+example/rnExample/npm-debug.log
+example/rnExample/yarn-error.log
+example/rnExample/**/fastlane/report.xml
+example/rnExample/**/fastlane/Preview.html
+example/rnExample/**/fastlane/screenshots
+example/rnExample/**/fastlane/test_output
+example/rnExample/*.jsbundle
+example/rnExample/**/Pods/
+example/rnExample//vendor/bundle/
+example/rnExample/.metro-health-check*
+example/rnExample//coverage
+example/rnExample/.yarn/*
+example/rnExample/!.yarn/patches
+example/rnExample/!.yarn/plugins
+example/rnExample/!.yarn/releases
+example/rnExample/!.yarn/sdks
+example/rnExample/!.yarn/versions
+example/rnExample/android/.gradle
+example/rnExample/android/.kotlin
+example/rnExample/android/build
+example/rnExample/android/app/build
+example/rnExample/android/app/.cxx
