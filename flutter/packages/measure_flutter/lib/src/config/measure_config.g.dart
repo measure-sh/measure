@@ -42,6 +42,8 @@ MeasureConfig _$MeasureConfigFromJson(Map<String, dynamic> json) =>
           DefaultConfig.trackActivityLoadTime,
       trackFragmentLoadTime: json['trackFragmentLoadTime'] as bool? ??
           DefaultConfig.trackFragmentLoadTime,
+      maxDiskUsageInMb: (json['maxDiskUsageInMb'] as num?)?.toInt() ??
+          DefaultConfig.maxDiskUsageInMb,
       trackViewControllerLoadTime:
           json['trackViewControllerLoadTime'] as bool? ??
               DefaultConfig.trackViewControllerLoadTime,
@@ -65,4 +67,5 @@ Map<String, dynamic> _$MeasureConfigToJson(MeasureConfig instance) =>
       'trackActivityLoadTime': instance.trackActivityLoadTime,
       'trackFragmentLoadTime': instance.trackFragmentLoadTime,
       'trackViewControllerLoadTime': instance.trackViewControllerLoadTime,
+      'maxDiskUsageInMb': instance.maxDiskUsageInMb,
     };
