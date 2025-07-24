@@ -25,7 +25,7 @@ class MeasurePlugin : Plugin<Project> {
         const val DEFAULT_RETRIES = 3
     }
 
-    @Suppress("UnstableApiUsage")
+    @Suppress("NewApi")
     override fun apply(project: Project) {
         if (!project.plugins.hasPlugin("com.android.application")) {
             project.logger.warn(
@@ -130,8 +130,6 @@ class MeasurePlugin : Plugin<Project> {
             }
         }
     }
-
-    private fun getFlutterExtension(project: Project): Any? = project.extensions.findByName("flutter")
 
     private fun appSizeFileProvider(project: Project, variant: Variant): Provider<RegularFile> {
         return project.layout.buildDirectory.file("intermediates/measure/${variant.name}/appSize.txt")

@@ -106,7 +106,7 @@ class NavigationMethodVisitor(
         loadArg(2)
 
         visitMethodInsn(
-            Opcodes.INVOKESTATIC,
+            INVOKESTATIC,
             "sh/measure/android/navigation/ComposeNavigationCollectorKt",
             "withMeasureNavigationListener",
             "(Landroidx/navigation/NavHostController;Landroidx/compose/runtime/Composer;I)Landroidx/navigation/NavHostController;",
