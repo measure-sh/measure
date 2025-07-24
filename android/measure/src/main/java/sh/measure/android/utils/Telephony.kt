@@ -9,32 +9,28 @@ import android.telephony.TelephonyManager
 import androidx.annotation.RequiresPermission
 import sh.measure.android.networkchange.NetworkGeneration
 
-internal fun hasPhoneStatePermission(context: Context): Boolean {
-    return when {
-        hasPermission(context, READ_PHONE_STATE) -> {
-            true
-        }
+internal fun hasPhoneStatePermission(context: Context): Boolean = when {
+    hasPermission(context, READ_PHONE_STATE) -> {
+        true
+    }
 
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
-            hasPermission(context, READ_BASIC_PHONE_STATE)
-        }
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
+        hasPermission(context, READ_BASIC_PHONE_STATE)
+    }
 
-        else -> {
-            false
-        }
+    else -> {
+        false
     }
 }
 
 @Suppress("DEPRECATION")
 @SuppressLint("InlinedApi")
 @RequiresPermission(anyOf = [READ_PHONE_STATE, READ_BASIC_PHONE_STATE])
-internal fun TelephonyManager.getNetworkGeneration(): String? {
-    return if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-        internalNetworkGeneration(this.networkType)
-    } else {
-        val networkType = this.dataNetworkType
-        internalNetworkGeneration(networkType)
-    }
+internal fun TelephonyManager.getNetworkGeneration(): String? = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+    internalNetworkGeneration(this.networkType)
+} else {
+    val networkType = this.dataNetworkType
+    internalNetworkGeneration(networkType)
 }
 
 private fun internalNetworkGeneration(networkType: Int): String? {

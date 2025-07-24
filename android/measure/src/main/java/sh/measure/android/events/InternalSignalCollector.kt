@@ -238,47 +238,31 @@ internal class InternalSignalCollector(
         }
     }
 
-    private fun extractHttpData(map: MutableMap<String, Any?>): HttpData {
-        return jsonSerializer.decodeFromJsonElement(HttpData.serializer(), map.toJsonElement())
-    }
+    private fun extractHttpData(map: MutableMap<String, Any?>): HttpData = jsonSerializer.decodeFromJsonElement(HttpData.serializer(), map.toJsonElement())
 
-    private fun extractScreenViewData(map: MutableMap<String, Any?>): ScreenViewData {
-        return jsonSerializer.decodeFromJsonElement(
-            ScreenViewData.serializer(),
-            map.toJsonElement(),
-        )
-    }
+    private fun extractScreenViewData(map: MutableMap<String, Any?>): ScreenViewData = jsonSerializer.decodeFromJsonElement(
+        ScreenViewData.serializer(),
+        map.toJsonElement(),
+    )
 
-    private fun extractExceptionEventData(map: Map<String, Any?>): ExceptionData {
-        return jsonSerializer.decodeFromJsonElement(ExceptionData.serializer(), map.toJsonElement())
-    }
+    private fun extractExceptionEventData(map: Map<String, Any?>): ExceptionData = jsonSerializer.decodeFromJsonElement(ExceptionData.serializer(), map.toJsonElement())
 
-    private fun extractCustomEventData(data: Map<String, Any?>): CustomEventData {
-        return jsonSerializer.decodeFromJsonElement(
-            CustomEventData.serializer(),
-            data.toJsonElement(),
-        )
-    }
+    private fun extractCustomEventData(data: Map<String, Any?>): CustomEventData = jsonSerializer.decodeFromJsonElement(
+        CustomEventData.serializer(),
+        data.toJsonElement(),
+    )
 
-    private fun extractBugReportData(map: MutableMap<String, Any?>): BugReportData {
-        return jsonSerializer.decodeFromJsonElement(
-            BugReportData.serializer(),
-            map.toJsonElement(),
-        )
-    }
+    private fun extractBugReportData(map: MutableMap<String, Any?>): BugReportData = jsonSerializer.decodeFromJsonElement(
+        BugReportData.serializer(),
+        map.toJsonElement(),
+    )
 
-    private fun extractClickData(data: MutableMap<String, Any?>): ClickData {
-        return jsonSerializer.decodeFromJsonElement(ClickData.serializer(), data.toJsonElement())
-    }
+    private fun extractClickData(data: MutableMap<String, Any?>): ClickData = jsonSerializer.decodeFromJsonElement(ClickData.serializer(), data.toJsonElement())
 
-    private fun extractScrollData(data: MutableMap<String, Any?>): ScrollData {
-        return jsonSerializer.decodeFromJsonElement(ScrollData.serializer(), data.toJsonElement())
-    }
+    private fun extractScrollData(data: MutableMap<String, Any?>): ScrollData = jsonSerializer.decodeFromJsonElement(ScrollData.serializer(), data.toJsonElement())
 
-    private fun extractLongClickData(data: MutableMap<String, Any?>): LongClickData {
-        return jsonSerializer.decodeFromJsonElement(
-            LongClickData.serializer(),
-            data.toJsonElement(),
-        )
-    }
+    private fun extractLongClickData(data: MutableMap<String, Any?>): LongClickData = jsonSerializer.decodeFromJsonElement(
+        LongClickData.serializer(),
+        data.toJsonElement(),
+    )
 }

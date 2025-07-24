@@ -70,99 +70,97 @@ internal fun <T> Event<T>.serializeUserDefinedAttributes(): String? {
 /**
  * Serializes the event data to a JSON string.
  */
-internal fun <T> Event<T>.serializeDataToString(): String {
-    return when (type) {
-        EventType.EXCEPTION -> {
-            json.encodeToString(ExceptionData.serializer(), data as ExceptionData)
-        }
+internal fun <T> Event<T>.serializeDataToString(): String = when (type) {
+    EventType.EXCEPTION -> {
+        json.encodeToString(ExceptionData.serializer(), data as ExceptionData)
+    }
 
-        EventType.ANR -> {
-            json.encodeToString(ExceptionData.serializer(), data as ExceptionData)
-        }
+    EventType.ANR -> {
+        json.encodeToString(ExceptionData.serializer(), data as ExceptionData)
+    }
 
-        EventType.APP_EXIT -> {
-            json.encodeToString(AppExit.serializer(), data as AppExit)
-        }
+    EventType.APP_EXIT -> {
+        json.encodeToString(AppExit.serializer(), data as AppExit)
+    }
 
-        EventType.CLICK -> {
-            json.encodeToString(ClickData.serializer(), data as ClickData)
-        }
+    EventType.CLICK -> {
+        json.encodeToString(ClickData.serializer(), data as ClickData)
+    }
 
-        EventType.LONG_CLICK -> {
-            json.encodeToString(LongClickData.serializer(), data as LongClickData)
-        }
+    EventType.LONG_CLICK -> {
+        json.encodeToString(LongClickData.serializer(), data as LongClickData)
+    }
 
-        EventType.SCROLL -> {
-            json.encodeToString(ScrollData.serializer(), data as ScrollData)
-        }
+    EventType.SCROLL -> {
+        json.encodeToString(ScrollData.serializer(), data as ScrollData)
+    }
 
-        EventType.LIFECYCLE_ACTIVITY -> {
-            json.encodeToString(
-                ActivityLifecycleData.serializer(),
-                data as ActivityLifecycleData,
-            )
-        }
+    EventType.LIFECYCLE_ACTIVITY -> {
+        json.encodeToString(
+            ActivityLifecycleData.serializer(),
+            data as ActivityLifecycleData,
+        )
+    }
 
-        EventType.LIFECYCLE_FRAGMENT -> {
-            json.encodeToString(
-                FragmentLifecycleData.serializer(),
-                data as FragmentLifecycleData,
-            )
-        }
+    EventType.LIFECYCLE_FRAGMENT -> {
+        json.encodeToString(
+            FragmentLifecycleData.serializer(),
+            data as FragmentLifecycleData,
+        )
+    }
 
-        EventType.LIFECYCLE_APP -> {
-            json.encodeToString(
-                ApplicationLifecycleData.serializer(),
-                data as ApplicationLifecycleData,
-            )
-        }
+    EventType.LIFECYCLE_APP -> {
+        json.encodeToString(
+            ApplicationLifecycleData.serializer(),
+            data as ApplicationLifecycleData,
+        )
+    }
 
-        EventType.COLD_LAUNCH -> {
-            json.encodeToString(ColdLaunchData.serializer(), data as ColdLaunchData)
-        }
+    EventType.COLD_LAUNCH -> {
+        json.encodeToString(ColdLaunchData.serializer(), data as ColdLaunchData)
+    }
 
-        EventType.WARM_LAUNCH -> {
-            json.encodeToString(WarmLaunchData.serializer(), data as WarmLaunchData)
-        }
+    EventType.WARM_LAUNCH -> {
+        json.encodeToString(WarmLaunchData.serializer(), data as WarmLaunchData)
+    }
 
-        EventType.HOT_LAUNCH -> {
-            json.encodeToString(HotLaunchData.serializer(), data as HotLaunchData)
-        }
+    EventType.HOT_LAUNCH -> {
+        json.encodeToString(HotLaunchData.serializer(), data as HotLaunchData)
+    }
 
-        EventType.NETWORK_CHANGE -> {
-            json.encodeToString(NetworkChangeData.serializer(), data as NetworkChangeData)
-        }
+    EventType.NETWORK_CHANGE -> {
+        json.encodeToString(NetworkChangeData.serializer(), data as NetworkChangeData)
+    }
 
-        EventType.HTTP -> {
-            json.encodeToString(HttpData.serializer(), data as HttpData)
-        }
+    EventType.HTTP -> {
+        json.encodeToString(HttpData.serializer(), data as HttpData)
+    }
 
-        EventType.MEMORY_USAGE -> {
-            json.encodeToString(MemoryUsageData.serializer(), data as MemoryUsageData)
-        }
+    EventType.MEMORY_USAGE -> {
+        json.encodeToString(MemoryUsageData.serializer(), data as MemoryUsageData)
+    }
 
-        EventType.TRIM_MEMORY -> {
-            json.encodeToString(TrimMemoryData.serializer(), data as TrimMemoryData)
-        }
+    EventType.TRIM_MEMORY -> {
+        json.encodeToString(TrimMemoryData.serializer(), data as TrimMemoryData)
+    }
 
-        EventType.CPU_USAGE -> {
-            json.encodeToString(CpuUsageData.serializer(), data as CpuUsageData)
-        }
+    EventType.CPU_USAGE -> {
+        json.encodeToString(CpuUsageData.serializer(), data as CpuUsageData)
+    }
 
-        EventType.CUSTOM -> {
-            json.encodeToString(CustomEventData.serializer(), data as CustomEventData)
-        }
+    EventType.CUSTOM -> {
+        json.encodeToString(CustomEventData.serializer(), data as CustomEventData)
+    }
 
-        EventType.SCREEN_VIEW -> {
-            json.encodeToString(ScreenViewData.serializer(), data as ScreenViewData)
-        }
+    EventType.SCREEN_VIEW -> {
+        json.encodeToString(ScreenViewData.serializer(), data as ScreenViewData)
+    }
 
-        EventType.BUG_REPORT -> {
-            json.encodeToString(BugReportData.serializer(), data as BugReportData)
-        }
+    EventType.BUG_REPORT -> {
+        json.encodeToString(BugReportData.serializer(), data as BugReportData)
+    }
 
-        EventType.STRING -> {
-            json.encodeToString(String.serializer(), data as String)
-        }
+    EventType.STRING -> {
+        json.encodeToString(String.serializer(), data as String)
     }
 }

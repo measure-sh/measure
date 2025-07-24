@@ -38,9 +38,7 @@ internal object LayoutInspector {
      */
     fun capture(
         rootView: View,
-    ): LayoutSnapshot {
-        return parseLayoutInternal(rootView, null, null)
-    }
+    ): LayoutSnapshot = parseLayoutInternal(rootView, null, null)
 
     /**
      * Creates a snapshot of the view hierarchy with information about which element will consume
@@ -56,9 +54,7 @@ internal object LayoutInspector {
         rootView: View,
         gesture: DetectedGesture,
         motionEvent: MotionEvent,
-    ): LayoutSnapshot {
-        return parseLayoutInternal(rootView, gesture, motionEvent)
-    }
+    ): LayoutSnapshot = parseLayoutInternal(rootView, gesture, motionEvent)
 
     private fun parseLayoutInternal(
         rootView: View,
@@ -153,14 +149,12 @@ internal object LayoutInspector {
         }
     }
 
-    private fun canScroll(view: View): Boolean {
-        return if (view.isScrollContainer) {
-            view.canScrollHorizontally(-1) || view.canScrollHorizontally(1) || view.canScrollVertically(
-                -1,
-            ) || view.canScrollVertically(1)
-        } else {
-            false
-        }
+    private fun canScroll(view: View): Boolean = if (view.isScrollContainer) {
+        view.canScrollHorizontally(-1) || view.canScrollHorizontally(1) || view.canScrollVertically(
+            -1,
+        ) || view.canScrollVertically(1)
+    } else {
+        false
     }
 
     /**

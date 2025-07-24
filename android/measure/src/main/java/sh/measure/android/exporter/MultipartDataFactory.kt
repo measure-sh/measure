@@ -49,33 +49,31 @@ internal class MultipartDataFactoryImpl(
         const val SPAN_FORM_NAME = "span"
     }
 
-    override fun createFromEventPacket(eventPacket: EventPacket): MultipartData? {
-        return when {
-            eventPacket.serializedData != null -> {
-                eventPacket.getFromSerializedData()?.let {
-                    MultipartData.FormField(
-                        name = EVENT_FORM_NAME,
-                        value = it,
-                    )
-                }
-            }
-
-            eventPacket.serializedDataFilePath != null -> {
-                eventPacket.getFromFileData()?.let {
-                    MultipartData.FormField(
-                        name = EVENT_FORM_NAME,
-                        value = it,
-                    )
-                }
-            }
-
-            else -> {
-                logger.log(
-                    LogLevel.Debug,
-                    "Event packet (id=${eventPacket.eventId}) does not contain serialized data or file path",
+    override fun createFromEventPacket(eventPacket: EventPacket): MultipartData? = when {
+        eventPacket.serializedData != null -> {
+            eventPacket.getFromSerializedData()?.let {
+                MultipartData.FormField(
+                    name = EVENT_FORM_NAME,
+                    value = it,
                 )
-                null
             }
+        }
+
+        eventPacket.serializedDataFilePath != null -> {
+            eventPacket.getFromFileData()?.let {
+                MultipartData.FormField(
+                    name = EVENT_FORM_NAME,
+                    value = it,
+                )
+            }
+        }
+
+        else -> {
+            logger.log(
+                LogLevel.Debug,
+                "Event packet (id=${eventPacket.eventId}) does not contain serialized data or file path",
+            )
+            null
         }
     }
 
@@ -93,25 +91,20 @@ internal class MultipartDataFactoryImpl(
         }
     }
 
-    override fun createFromSpanPacket(spanPacket: SpanPacket): MultipartData {
-        return spanPacket.getSerializedData().let {
-            MultipartData.FormField(
-                name = SPAN_FORM_NAME,
-                value = it,
-            )
+    override fun createFromSpanPacket(spanPacket: SpanPacket): MultipartData = spanPacket.getSerializedData().let {
+        MultipartData.FormField(
+            name = SPAN_FORM_NAME,
+            value = it,
+        )
+    }
+
+    private fun getFileInputStream(filePath: String): InputStream? = fileStorage.getFile(filePath)?.inputStream().also { fileInputStream ->
+        if (fileInputStream == null) {
+            logger.log(LogLevel.Debug, "No file found at path: $filePath")
         }
     }
 
-    private fun getFileInputStream(filePath: String): InputStream? {
-        return fileStorage.getFile(filePath)?.inputStream().also { fileInputStream ->
-            if (fileInputStream == null) {
-                logger.log(LogLevel.Debug, "No file found at path: $filePath")
-            }
-        }
-    }
-
-    private fun getAttachmentFormDataName(attachmentPacket: AttachmentPacket): String =
-        "$ATTACHMENT_NAME_PREFIX${attachmentPacket.id}"
+    private fun getAttachmentFormDataName(attachmentPacket: AttachmentPacket): String = "$ATTACHMENT_NAME_PREFIX${attachmentPacket.id}"
 
     private fun EventPacket.getFromSerializedData(): String? {
         if (serializedData.isNullOrEmpty()) {
@@ -131,7 +124,5 @@ internal class MultipartDataFactoryImpl(
         return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"${type.value}\",\"${type.value}\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
     }
 
-    private fun SpanPacket.getSerializedData(): String {
-        return jsonSerializer.encodeToString(SpanPacket.serializer(), this)
-    }
+    private fun SpanPacket.getSerializedData(): String = jsonSerializer.encodeToString(SpanPacket.serializer(), this)
 }

@@ -23,12 +23,10 @@ enum class SpanStatus(val value: Int) {
     ;
 
     internal companion object {
-        fun fromValue(value: Int): SpanStatus {
-            return when (value) {
-                1 -> Ok
-                2 -> Error
-                else -> Unset
-            }
+        fun fromValue(value: Int): SpanStatus = when (value) {
+            1 -> Ok
+            2 -> Error
+            else -> Unset
         }
     }
 }

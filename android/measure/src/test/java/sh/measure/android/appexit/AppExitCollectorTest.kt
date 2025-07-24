@@ -216,12 +216,11 @@ class AppExitCollectorTest {
         createdAt: Long = 98765,
         appVersion: String = "1.0.0",
         appBuild: String = "1000",
-    ) =
-        AppExitCollector.Session(
-            id = sessionId,
-            pid = pid,
-            createdAt = createdAt,
-            appVersion = appVersion,
-            appBuild = appBuild,
-        )
+    ) = AppExitCollector.Session(
+        id = sessionId,
+        pid = pid,
+        createdAt = createdAt,
+        appVersion = appVersion,
+        appBuild = appBuild,
+    )
 }

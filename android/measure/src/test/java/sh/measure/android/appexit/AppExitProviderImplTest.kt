@@ -109,13 +109,11 @@ class AppExitProviderImplTest {
         pid: Int,
         reason: Int,
         importance: Int,
-    ): ApplicationExitInfo {
-        return mock(ApplicationExitInfo::class.java).apply {
-            `when`(this.pid).thenReturn(pid)
-            `when`(this.reason).thenReturn(reason)
-            `when`(this.importance).thenReturn(importance)
-            `when`(this.processName).thenReturn("com.example.app")
-            `when`(this.timestamp).thenReturn(1234567890L)
-        }
+    ): ApplicationExitInfo = mock(ApplicationExitInfo::class.java).apply {
+        `when`(this.pid).thenReturn(pid)
+        `when`(this.reason).thenReturn(reason)
+        `when`(this.importance).thenReturn(importance)
+        `when`(this.processName).thenReturn("com.example.app")
+        `when`(this.timestamp).thenReturn(1234567890L)
     }
 }

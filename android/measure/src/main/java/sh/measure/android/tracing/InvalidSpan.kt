@@ -8,63 +8,33 @@ internal class InvalidSpan : Span {
     override val isSampled: Boolean = false
     override val parentId: String? = null
 
-    override fun setStatus(status: SpanStatus): Span {
-        return this
-    }
+    override fun setStatus(status: SpanStatus): Span = this
 
-    override fun setParent(parentSpan: Span): Span {
-        return this
-    }
+    override fun setParent(parentSpan: Span): Span = this
 
-    override fun setCheckpoint(name: String): Span {
-        return this
-    }
+    override fun setCheckpoint(name: String): Span = this
 
-    override fun setName(name: String): Span {
-        return this
-    }
+    override fun setName(name: String): Span = this
 
-    override fun setAttribute(key: String, value: String): Span {
-        return this
-    }
+    override fun setAttribute(key: String, value: String): Span = this
 
-    override fun setAttribute(key: String, value: Long): Span {
-        return this
-    }
+    override fun setAttribute(key: String, value: Long): Span = this
 
-    override fun setAttribute(key: String, value: Int): Span {
-        return this
-    }
+    override fun setAttribute(key: String, value: Int): Span = this
 
-    override fun setAttribute(key: String, value: Double): Span {
-        return this
-    }
+    override fun setAttribute(key: String, value: Double): Span = this
 
-    override fun setAttribute(key: String, value: Boolean): Span {
-        return this
-    }
+    override fun setAttribute(key: String, value: Boolean): Span = this
 
-    override fun setAttributes(attributes: Map<String, AttributeValue>): Span {
-        return this
-    }
+    override fun setAttributes(attributes: Map<String, AttributeValue>): Span = this
 
-    override fun removeAttribute(key: String): Span {
-        return this
-    }
+    override fun removeAttribute(key: String): Span = this
 
-    override fun end(): Span {
-        return this
-    }
+    override fun end(): Span = this
 
-    override fun end(timestamp: Long): Span {
-        return this
-    }
+    override fun end(timestamp: Long): Span = this
 
-    override fun hasEnded(): Boolean {
-        return false
-    }
+    override fun hasEnded(): Boolean = false
 
-    override fun getDuration(): Long {
-        return 0
-    }
+    override fun getDuration(): Long = 0
 }

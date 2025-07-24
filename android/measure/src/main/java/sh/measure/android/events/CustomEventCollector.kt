@@ -98,14 +98,10 @@ internal class CustomEventCollector(
         }
     }
 
-    private fun isKeyValid(key: String): Boolean {
-        return key.length <= configProvider.maxUserDefinedAttributeKeyLength
-    }
+    private fun isKeyValid(key: String): Boolean = key.length <= configProvider.maxUserDefinedAttributeKeyLength
 
-    private fun isValueValid(value: AttributeValue): Boolean {
-        return when (value) {
-            is StringAttr -> value.value.length <= configProvider.maxUserDefinedAttributeValueLength
-            else -> true
-        }
+    private fun isValueValid(value: AttributeValue): Boolean = when (value) {
+        is StringAttr -> value.value.length <= configProvider.maxUserDefinedAttributeValueLength
+        else -> true
     }
 }

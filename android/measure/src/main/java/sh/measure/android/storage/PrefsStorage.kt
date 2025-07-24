@@ -17,8 +17,7 @@ internal interface PrefsStorage {
     fun getRecentSession(): RecentSession?
 }
 
-internal class PrefsStorageImpl(private val context: Context) :
-    PrefsStorage {
+internal class PrefsStorageImpl(private val context: Context) : PrefsStorage {
     private val sharedPreferenceName = "sh.measure.android"
 
     private companion object {
@@ -34,17 +33,13 @@ internal class PrefsStorageImpl(private val context: Context) :
         context.getSharedPreferences(sharedPreferenceName, Context.MODE_PRIVATE)
     }
 
-    override fun getInstallationId(): String? {
-        return sharedPreferences.getString(Attribute.INSTALLATION_ID_KEY, null)
-    }
+    override fun getInstallationId(): String? = sharedPreferences.getString(Attribute.INSTALLATION_ID_KEY, null)
 
     override fun setInstallationId(installationId: String) {
         sharedPreferences.edit().putString(Attribute.INSTALLATION_ID_KEY, installationId).apply()
     }
 
-    override fun getUserId(): String? {
-        return sharedPreferences.getString(USER_ID_KEY, null)
-    }
+    override fun getUserId(): String? = sharedPreferences.getString(USER_ID_KEY, null)
 
     override fun setUserId(userId: String?) {
         if (userId == null) {

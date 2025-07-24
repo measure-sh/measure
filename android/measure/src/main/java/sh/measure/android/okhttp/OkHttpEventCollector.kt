@@ -15,7 +15,9 @@ import sh.measure.android.utils.TimeProvider
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicBoolean
 
-internal abstract class OkHttpEventCollector : EventListener(), HttpEventCollector {
+internal abstract class OkHttpEventCollector :
+    EventListener(),
+    HttpEventCollector {
     open fun request(call: Call, request: Request) {}
     open fun response(call: Call, request: Request, response: Response) {}
 }
@@ -182,7 +184,5 @@ internal class OkHttpEventCollectorImpl(
         return null
     }
 
-    private fun getIdentityHash(call: Call): String {
-        return Integer.toHexString(System.identityHashCode(call))
-    }
+    private fun getIdentityHash(call: Call): String = Integer.toHexString(System.identityHashCode(call))
 }

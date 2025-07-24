@@ -27,9 +27,7 @@ private fun Any?.toJsonElement(): JsonElement = when (this) {
     else -> error("Can't serialize unknown type: $this")
 }
 
-internal fun JsonObject.toNativeObject(): Map<String, Any?> {
-    return this.map { (key, value) -> key to value.toNativeObject() }.toMap()
-}
+internal fun JsonObject.toNativeObject(): Map<String, Any?> = this.map { (key, value) -> key to value.toNativeObject() }.toMap()
 
 internal fun Map<*, *>.toJsonElement(): JsonObject {
     val map = this.map { (key, value) ->
@@ -39,13 +37,9 @@ internal fun Map<*, *>.toJsonElement(): JsonObject {
     return JsonObject(map.toMap())
 }
 
-private fun Iterable<*>.toJsonElement(): JsonArray {
-    return JsonArray(this.map { it.toJsonElement() })
-}
+private fun Iterable<*>.toJsonElement(): JsonArray = JsonArray(this.map { it.toJsonElement() })
 
-private fun Array<*>.toJsonElement(): JsonArray {
-    return JsonArray(this.map { it.toJsonElement() })
-}
+private fun Array<*>.toJsonElement(): JsonArray = JsonArray(this.map { it.toJsonElement() })
 
 private fun JsonElement.toNativeObject(): Any? = when (this) {
     JsonNull -> null

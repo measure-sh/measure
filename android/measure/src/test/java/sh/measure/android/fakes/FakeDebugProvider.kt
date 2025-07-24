@@ -4,13 +4,9 @@ import android.os.Debug.MemoryInfo
 import sh.measure.android.utils.DebugProvider
 
 internal class FakeDebugProvider : DebugProvider {
-    override fun getNativeHeapSize(): Long {
-        return 100L
-    }
+    override fun getNativeHeapSize(): Long = 100L
 
-    override fun getNativeHeapFreeSize(): Long {
-        return 100L
-    }
+    override fun getNativeHeapFreeSize(): Long = 100L
 
     override fun populateMemoryInfo(memoryInfo: MemoryInfo) {
         memoryInfo.dalvikPss = 100

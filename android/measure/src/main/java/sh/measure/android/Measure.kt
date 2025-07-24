@@ -238,12 +238,10 @@ object Measure {
      *
      * @return [Span] A new span instance if the SDK is initialized, or an invalid no-op span if not initialized
      */
-    fun startSpan(name: String): Span {
-        return if (isInitialized.get()) {
-            measure.startSpan(name)
-        } else {
-            Span.invalid()
-        }
+    fun startSpan(name: String): Span = if (isInitialized.get()) {
+        measure.startSpan(name)
+    } else {
+        Span.invalid()
     }
 
     /**
@@ -259,12 +257,10 @@ object Measure {
      * Note: Use this method when you need to trace an operation that has already started and you have
      * captured its start time using [getCurrentTime].
      */
-    fun startSpan(name: String, timestamp: Long): Span {
-        return if (isInitialized.get()) {
-            measure.startSpan(name, timestamp = timestamp)
-        } else {
-            Span.invalid()
-        }
+    fun startSpan(name: String, timestamp: Long): Span = if (isInitialized.get()) {
+        measure.startSpan(name, timestamp = timestamp)
+    } else {
+        Span.invalid()
     }
 
     /**
@@ -278,12 +274,10 @@ object Measure {
      *
      * Note: Use this method when you need to create a span without immediately starting it.
      */
-    fun createSpanBuilder(name: String): SpanBuilder? {
-        return if (isInitialized.get()) {
-            measure.createSpan(name)
-        } else {
-            null
-        }
+    fun createSpanBuilder(name: String): SpanBuilder? = if (isInitialized.get()) {
+        measure.createSpan(name)
+    } else {
+        null
     }
 
     /**
@@ -301,9 +295,7 @@ object Measure {
      * Note: Use this value in the `traceparent` HTTP header when making API calls to enable
      * distributed tracing between your mobile app and backend services.
      */
-    fun getTraceParentHeaderValue(span: Span): String {
-        return measure.getTraceParentHeaderValue(span)
-    }
+    fun getTraceParentHeaderValue(span: Span): String = measure.getTraceParentHeaderValue(span)
 
     /**
      * Returns the W3C traceparent header key/name.
@@ -314,9 +306,7 @@ object Measure {
      * @see getTraceParentHeaderValue
      * @see <a href="https://www.w3.org/TR/trace-context/#header-name">W3C Trace Context specification</a>
      */
-    fun getTraceParentHeaderKey(): String {
-        return measure.getTraceParentHeaderKey()
-    }
+    fun getTraceParentHeaderKey(): String = measure.getTraceParentHeaderKey()
 
     /**
      * Returns the current time in milliseconds since epoch using a monotonic clock source.
@@ -326,12 +316,10 @@ object Measure {
      * Note: Use this method to obtain timestamps when creating spans to ensure consistent time
      * measurements and avoid clock drift issues within traces.
      */
-    fun getCurrentTime(): Long {
-        return if (isInitialized.get()) {
-            measure.timeProvider.now()
-        } else {
-            System.currentTimeMillis()
-        }
+    fun getCurrentTime(): Long = if (isInitialized.get()) {
+        measure.timeProvider.now()
+    } else {
+        System.currentTimeMillis()
     }
 
     /**

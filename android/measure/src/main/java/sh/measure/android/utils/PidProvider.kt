@@ -7,7 +7,5 @@ internal interface PidProvider {
 }
 
 internal class PidProviderImpl : PidProvider {
-    override fun getPid(): Int {
-        return Process.myPid()
-    }
+    override fun getPid(): Int = Process.myPid()
 }

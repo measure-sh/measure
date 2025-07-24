@@ -26,9 +26,7 @@ internal interface IdProvider {
 }
 
 internal class IdProviderImpl(private val randomizer: Randomizer) : IdProvider {
-    override fun uuid(): String {
-        return UUID.randomUUID().toString()
-    }
+    override fun uuid(): String = UUID.randomUUID().toString()
 
     override fun spanId(): String {
         val result = CharArray(16)

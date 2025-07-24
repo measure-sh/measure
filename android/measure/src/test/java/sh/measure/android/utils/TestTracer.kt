@@ -21,23 +21,17 @@ internal class TestTracer(
     private val traceSampler = FakeTraceSampler()
     private val spanProcessor = MsrSpanProcessor(logger, signalProcessor, listOf(), configProvider)
 
-    override fun spanBuilder(name: String): SpanBuilder {
-        return MsrSpanBuilder(
-            name,
-            spanProcessor = spanProcessor,
-            timeProvider = timeProvider,
-            idProvider = idProvider,
-            sessionManager = sessionManager,
-            traceSampler = traceSampler,
-            logger = logger,
-        )
-    }
+    override fun spanBuilder(name: String): SpanBuilder = MsrSpanBuilder(
+        name,
+        spanProcessor = spanProcessor,
+        timeProvider = timeProvider,
+        idProvider = idProvider,
+        sessionManager = sessionManager,
+        traceSampler = traceSampler,
+        logger = logger,
+    )
 
-    override fun getTraceParentHeaderValue(span: Span): String {
-        return "00-${span.traceId}-${span.spanId}-${0}"
-    }
+    override fun getTraceParentHeaderValue(span: Span): String = "00-${span.traceId}-${span.spanId}-${0}"
 
-    override fun getTraceParentHeaderKey(): String {
-        return "traceparent"
-    }
+    override fun getTraceParentHeaderKey(): String = "traceparent"
 }

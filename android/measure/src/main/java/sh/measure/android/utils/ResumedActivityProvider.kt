@@ -18,16 +18,15 @@ internal interface ResumedActivityProvider {
  * Implementation of [ResumedActivityProvider] that keeps a WeakReference to the resumed activity.
  */
 internal class ResumedActivityProviderImpl(private val application: Application) :
-    ResumedActivityProvider, ActivityLifecycleAdapter {
+    ResumedActivityProvider,
+    ActivityLifecycleAdapter {
     private var resumedActivity: WeakReference<Activity>? = null
 
     override fun register() {
         application.registerActivityLifecycleCallbacks(this)
     }
 
-    override fun getResumedActivity(): Activity? {
-        return resumedActivity?.get()
-    }
+    override fun getResumedActivity(): Activity? = resumedActivity?.get()
 
     override fun unregister() {
         resumedActivity?.clear()

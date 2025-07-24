@@ -31,7 +31,5 @@ internal data class RecentSession(
      */
     val versionCode: String,
 ) {
-    fun hasTrackedEvent(): Boolean {
-        return lastEventTime != 0L
-    }
+    fun hasTrackedEvent(): Boolean = lastEventTime != 0L
 }

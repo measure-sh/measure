@@ -28,11 +28,9 @@ class MsrAttachment internal constructor(
     }
 }
 
-internal fun MsrAttachment.toEventAttachment(attachmentType: String): Attachment {
-    return Attachment(
-        name = name,
-        type = attachmentType,
-        bytes = bytes,
-        path = path,
-    )
-}
+internal fun MsrAttachment.toEventAttachment(attachmentType: String): Attachment = Attachment(
+    name = name,
+    type = attachmentType,
+    bytes = bytes,
+    path = path,
+)

@@ -12,8 +12,7 @@ internal interface ManifestReader {
     fun load(): ManifestMetadata?
 }
 
-internal class ManifestReaderImpl(private val context: Context, private val logger: Logger) :
-    ManifestReader {
+internal class ManifestReaderImpl(private val context: Context, private val logger: Logger) : ManifestReader {
     private val measureUrlKey = "sh.measure.android.API_URL"
     private val measureApiKey = "sh.measure.android.API_KEY"
 
@@ -34,18 +33,16 @@ internal class ManifestReaderImpl(private val context: Context, private val logg
         )
     }
 
-    private fun getMetadataBundle(): Bundle? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.packageManager.getApplicationInfo(
-                context.packageName,
-                PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong()),
-            ).metaData
-        } else {
-            context.packageManager.getApplicationInfo(
-                context.packageName,
-                PackageManager.GET_META_DATA,
-            ).metaData
-        }
+    private fun getMetadataBundle(): Bundle? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        context.packageManager.getApplicationInfo(
+            context.packageName,
+            PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong()),
+        ).metaData
+    } else {
+        context.packageManager.getApplicationInfo(
+            context.packageName,
+            PackageManager.GET_META_DATA,
+        ).metaData
     }
 }
 

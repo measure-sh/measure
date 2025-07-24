@@ -41,32 +41,30 @@ internal class MsrSpan(
             traceSampler: TraceSampler,
             parentSpan: Span?,
             timestamp: Long? = null,
-        ): Span {
-            return InternalTrace.trace(
-                { "msr-startSpan" },
-                {
-                    val startTime = timestamp ?: timeProvider.now()
-                    val spanId: String = idProvider.spanId()
-                    val traceId = parentSpan?.traceId ?: idProvider.traceId()
-                    val sessionId = sessionManager.getSessionId()
-                    val isSampled = parentSpan?.isSampled ?: traceSampler.shouldSample()
-                    val span = MsrSpan(
-                        logger = logger,
-                        timeProvider = timeProvider,
-                        spanProcessor = spanProcessor,
-                        name = name,
-                        spanId = spanId,
-                        traceId = traceId,
-                        parentId = parentSpan?.spanId,
-                        sessionId = sessionId,
-                        startTime = startTime,
-                        isSampled = isSampled,
-                    )
-                    spanProcessor.onStart(span)
-                    span
-                },
-            )
-        }
+        ): Span = InternalTrace.trace(
+            { "msr-startSpan" },
+            {
+                val startTime = timestamp ?: timeProvider.now()
+                val spanId: String = idProvider.spanId()
+                val traceId = parentSpan?.traceId ?: idProvider.traceId()
+                val sessionId = sessionManager.getSessionId()
+                val isSampled = parentSpan?.isSampled ?: traceSampler.shouldSample()
+                val span = MsrSpan(
+                    logger = logger,
+                    timeProvider = timeProvider,
+                    spanProcessor = spanProcessor,
+                    name = name,
+                    spanId = spanId,
+                    traceId = traceId,
+                    parentId = parentSpan?.spanId,
+                    sessionId = sessionId,
+                    startTime = startTime,
+                    isSampled = isSampled,
+                )
+                spanProcessor.onStart(span)
+                span
+            },
+        )
     }
 
     override fun getStatus(): SpanStatus {
@@ -328,9 +326,7 @@ internal class MsrSpan(
         }
     }
 
-    private fun calculateDuration(): Long {
-        return endTime - startTime
-    }
+    private fun calculateDuration(): Long = endTime - startTime
 
     private enum class EndState {
         NotEnded,

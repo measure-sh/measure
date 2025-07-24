@@ -63,27 +63,21 @@ internal class NetworkClientImpl(
         }
     }
 
-    private fun parseUrl(url: String): URL? {
-        return try {
-            URL(url)
-        } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Failed to send request: invalid API_URL", e)
-            null
-        }
+    private fun parseUrl(url: String): URL? = try {
+        URL(url)
+    } catch (e: Exception) {
+        logger.log(LogLevel.Error, "Failed to send request: invalid API_URL", e)
+        null
     }
 
-    private fun createEventsUrl(baseUrl: URL): URL? {
-        return try {
-            baseUrl.toURI().resolve(PATH_EVENTS).toURL()
-        } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Failed to send request: invalid API_URL", e)
-            null
-        }
+    private fun createEventsUrl(baseUrl: URL): URL? = try {
+        baseUrl.toURI().resolve(PATH_EVENTS).toURL()
+    } catch (e: Exception) {
+        logger.log(LogLevel.Error, "Failed to send request: invalid API_URL", e)
+        null
     }
 
-    private fun isInitialized(): Boolean {
-        return !(baseUrl == null || eventsUrl == null || apiKey == null)
-    }
+    private fun isInitialized(): Boolean = !(baseUrl == null || eventsUrl == null || apiKey == null)
 
     private fun createHeaders(batchId: String): Map<String, String> {
         val defaultHeaders = mapOf(

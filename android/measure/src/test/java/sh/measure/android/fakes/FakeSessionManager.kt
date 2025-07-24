@@ -13,9 +13,7 @@ internal class FakeSessionManager : SessionManager {
         // no-op
     }
 
-    override fun getSessionId(): String {
-        return "fake-session-id"
-    }
+    override fun getSessionId(): String = "fake-session-id"
 
     override fun markCrashedSession(sessionId: String) {
         crashedSession = sessionId

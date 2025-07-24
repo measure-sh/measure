@@ -51,9 +51,7 @@ value class DoubleAttr(override val value: Double) : AttributeValue
 
 // This is required because we don't want to annotate AttributeValue with @Serializable as it's a
 // public class. Doing so will leak the serialization implementation details to the public API.
-internal fun AttributeValue.Companion.serializer(): KSerializer<@Contextual AttributeValue> {
-    return AttributeValueSerializer
-}
+internal fun AttributeValue.Companion.serializer(): KSerializer<@Contextual AttributeValue> = AttributeValueSerializer
 
 internal object AttributeValueSerializer : KSerializer<AttributeValue> {
     @OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)

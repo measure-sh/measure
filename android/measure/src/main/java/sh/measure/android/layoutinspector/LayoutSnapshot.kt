@@ -18,19 +18,17 @@ internal class LayoutSnapshot(private val nodes: List<Node>) {
      * @param height The height of the SVG to be generated.
      * @return An [Attachment] containing the SVG data with MIME type set to LAYOUT_SNAPSHOT
      */
-    fun generateSvgAttachment(targetNode: Node? = null, width: Int, height: Int): Attachment {
-        return InternalTrace.trace(
-            label = { "msr-generateSvgAttachment" },
-            block = {
-                val svg = nodes.generateSvg(targetNode, width, height)
-                Attachment(
-                    "snapshot.svg",
-                    AttachmentType.LAYOUT_SNAPSHOT,
-                    svg.encodeToByteArray(),
-                )
-            },
-        )
-    }
+    fun generateSvgAttachment(targetNode: Node? = null, width: Int, height: Int): Attachment = InternalTrace.trace(
+        label = { "msr-generateSvgAttachment" },
+        block = {
+            val svg = nodes.generateSvg(targetNode, width, height)
+            Attachment(
+                "snapshot.svg",
+                AttachmentType.LAYOUT_SNAPSHOT,
+                svg.encodeToByteArray(),
+            )
+        },
+    )
 
     /**
      * Generates an SVG visualization of the layout snapshot as an attachment.
@@ -43,27 +41,21 @@ internal class LayoutSnapshot(private val nodes: List<Node>) {
      * @param height The height of the SVG to be generated.
      * @return An [Attachment] containing the SVG data with MIME type set to LAYOUT_SNAPSHOT
      */
-    fun generateSvgMsrAttachment(targetNode: Node? = null, width: Int, height: Int): MsrAttachment {
-        return InternalTrace.trace(
-            label = { "msr-generateSvgAttachment" },
-            block = {
-                val svg = nodes.generateSvg(targetNode, width, height)
-                MsrAttachment(
-                    "snapshot.svg",
-                    bytes = svg.encodeToByteArray(),
-                    type = AttachmentType.LAYOUT_SNAPSHOT,
-                )
-            },
-        )
-    }
+    fun generateSvgMsrAttachment(targetNode: Node? = null, width: Int, height: Int): MsrAttachment = InternalTrace.trace(
+        label = { "msr-generateSvgAttachment" },
+        block = {
+            val svg = nodes.generateSvg(targetNode, width, height)
+            MsrAttachment(
+                "snapshot.svg",
+                bytes = svg.encodeToByteArray(),
+                type = AttachmentType.LAYOUT_SNAPSHOT,
+            )
+        },
+    )
 
-    fun findTargetNode(): Node? {
-        return nodes.findLast { it.willConsumeGesture }
-    }
+    fun findTargetNode(): Node? = nodes.findLast { it.willConsumeGesture }
 
-    fun isEmpty(): Boolean {
-        return nodes.isEmpty()
-    }
+    fun isEmpty(): Boolean = nodes.isEmpty()
 }
 
 internal data class Node(

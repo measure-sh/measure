@@ -7,7 +7,5 @@ internal interface LocaleProvider {
 }
 
 internal class LocaleProviderImpl : LocaleProvider {
-    override fun getLocale(): String {
-        return Locale.getDefault().toLanguageTag()
-    }
+    override fun getLocale(): String = Locale.getDefault().toLanguageTag()
 }

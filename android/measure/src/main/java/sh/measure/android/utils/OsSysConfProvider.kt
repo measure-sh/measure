@@ -7,7 +7,5 @@ internal interface OsSysConfProvider {
 }
 
 internal class OsSysConfProviderImpl : OsSysConfProvider {
-    override fun get(name: Int): Long {
-        return Os.sysconf(name)
-    }
+    override fun get(name: Int): Long = Os.sysconf(name)
 }

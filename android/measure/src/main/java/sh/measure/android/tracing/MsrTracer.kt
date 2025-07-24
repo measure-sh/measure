@@ -13,24 +13,20 @@ internal class MsrTracer(
     private val sessionManager: SessionManager,
     private val traceSampler: TraceSampler,
 ) : Tracer {
-    override fun spanBuilder(name: String): SpanBuilder {
-        return MsrSpanBuilder(
-            name,
-            idProvider,
-            timeProvider,
-            spanProcessor,
-            sessionManager,
-            traceSampler,
-            logger,
-        )
-    }
+    override fun spanBuilder(name: String): SpanBuilder = MsrSpanBuilder(
+        name,
+        idProvider,
+        timeProvider,
+        spanProcessor,
+        sessionManager,
+        traceSampler,
+        logger,
+    )
 
     override fun getTraceParentHeaderValue(span: Span): String {
         val sampledFlag = if (span.isSampled) "01" else "00"
         return "00-${span.traceId}-${span.spanId}-$sampledFlag"
     }
 
-    override fun getTraceParentHeaderKey(): String {
-        return "traceparent"
-    }
+    override fun getTraceParentHeaderKey(): String = "traceparent"
 }

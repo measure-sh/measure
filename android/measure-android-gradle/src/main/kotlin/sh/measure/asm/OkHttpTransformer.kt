@@ -89,14 +89,14 @@ class OkHttpMethodVisitor(
     // [builder, MeasureOkHttpApplicationInterceptor]
     // [builder]
     override fun onMethodEnter() {
-        visitVarInsn(Opcodes.ALOAD, 1)
+        visitVarInsn(ALOAD, 1)
 
         // create MeasureEventListenerFactory and add it to the OkHttpClient.Builder
         visitTypeInsn(NEW, "sh/measure/android/okhttp/MeasureEventListenerFactory")
         visitInsn(DUP)
-        visitVarInsn(Opcodes.ALOAD, 1)
+        visitVarInsn(ALOAD, 1)
         visitMethodInsn(
-            Opcodes.INVOKEVIRTUAL,
+            INVOKEVIRTUAL,
             "okhttp3/OkHttpClient\$Builder",
             "getEventListenerFactory\$okhttp",
             "()Lokhttp3/EventListener\$Factory;",

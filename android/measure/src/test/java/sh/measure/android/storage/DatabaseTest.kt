@@ -1202,41 +1202,35 @@ class DatabaseTest {
         assertNull(session?.appBuild)
     }
 
-    private fun queryAllEvents(db: SQLiteDatabase): Cursor {
-        return db.query(
-            EventTable.TABLE_NAME,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-        )
-    }
+    private fun queryAllEvents(db: SQLiteDatabase): Cursor = db.query(
+        EventTable.TABLE_NAME,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+    )
 
-    private fun queryAllSpans(db: SQLiteDatabase): Cursor {
-        return db.query(
-            SpansTable.TABLE_NAME,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-        )
-    }
+    private fun queryAllSpans(db: SQLiteDatabase): Cursor = db.query(
+        SpansTable.TABLE_NAME,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+    )
 
-    private fun queryAllAttachments(db: SQLiteDatabase): Cursor {
-        return db.query(
-            AttachmentTable.TABLE_NAME,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-        )
-    }
+    private fun queryAllAttachments(db: SQLiteDatabase): Cursor = db.query(
+        AttachmentTable.TABLE_NAME,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+    )
 
     private fun queryAllBatches(): Cursor {
         val db = database.writableDatabase
@@ -1277,17 +1271,15 @@ class DatabaseTest {
         )
     }
 
-    private fun queryAttachmentsForEvent(db: SQLiteDatabase, eventId: String): Cursor {
-        return db.query(
-            AttachmentTable.TABLE_NAME,
-            null,
-            "${AttachmentTable.COL_EVENT_ID} = ?",
-            arrayOf(eventId),
-            null,
-            null,
-            null,
-        )
-    }
+    private fun queryAttachmentsForEvent(db: SQLiteDatabase, eventId: String): Cursor = db.query(
+        AttachmentTable.TABLE_NAME,
+        null,
+        "${AttachmentTable.COL_EVENT_ID} = ?",
+        arrayOf(eventId),
+        null,
+        null,
+        null,
+    )
 
     /**
      * Asserts that the event in the cursor matches the expected event.

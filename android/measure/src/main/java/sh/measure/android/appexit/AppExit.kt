@@ -49,7 +49,5 @@ internal data class AppExit(
     val pid: String,
 ) {
     @RequiresApi(Build.VERSION_CODES.R)
-    fun isCrash(): Boolean {
-        return reasonId == ApplicationExitInfo.REASON_CRASH || reasonId == ApplicationExitInfo.REASON_CRASH_NATIVE || reasonId == ApplicationExitInfo.REASON_ANR
-    }
+    fun isCrash(): Boolean = reasonId == ApplicationExitInfo.REASON_CRASH || reasonId == ApplicationExitInfo.REASON_CRASH_NATIVE || reasonId == ApplicationExitInfo.REASON_ANR
 }

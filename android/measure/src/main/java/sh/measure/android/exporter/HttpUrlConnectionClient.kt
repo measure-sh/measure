@@ -42,9 +42,7 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
         method: String,
         headers: Map<String, String>,
         multipartData: List<MultipartData>,
-    ): HttpResponse {
-        return sendMultiPartRequestWithRedirects(url, method, headers, multipartData, 0)
-    }
+    ): HttpResponse = sendMultiPartRequestWithRedirects(url, method, headers, multipartData, 0)
 
     private fun sendMultiPartRequestWithRedirects(
         url: String,
@@ -107,16 +105,14 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
         url: String,
         method: String,
         headers: Map<String, String>,
-    ): HttpURLConnection {
-        return (URL(url).openConnection() as HttpURLConnection).apply {
-            requestMethod = method
-            doOutput = true
-            setChunkedStreamingMode(0)
-            connectTimeout = connectionTimeoutMs
-            readTimeout = readTimeoutMs
-            setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
-            headers.forEach { (key, value) -> setRequestProperty(key, value) }
-        }
+    ): HttpURLConnection = (URL(url).openConnection() as HttpURLConnection).apply {
+        requestMethod = method
+        doOutput = true
+        setChunkedStreamingMode(0)
+        connectTimeout = connectionTimeoutMs
+        readTimeout = readTimeoutMs
+        setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+        headers.forEach { (key, value) -> setRequestProperty(key, value) }
     }
 
     private fun streamMultipartData(
@@ -188,28 +184,24 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
         return headers to data.inputStream.source()
     }
 
-    private fun getOutputStream(connection: HttpURLConnection): BufferedSink {
-        return if (logger.enabled) {
-            LoggingOutputStream(connection.outputStream, logger).sink().buffer()
-        } else {
-            connection.outputStream.sink().buffer()
-        }
+    private fun getOutputStream(connection: HttpURLConnection): BufferedSink = if (logger.enabled) {
+        LoggingOutputStream(connection.outputStream, logger).sink().buffer()
+    } else {
+        connection.outputStream.sink().buffer()
     }
 
-    private fun getResponseBody(connection: HttpURLConnection): String? {
-        return try {
-            when (connection.responseCode) {
-                in 200..299 -> {
-                    connection.inputStream.source().buffer().readString(Charsets.UTF_8)
-                }
-
-                else -> {
-                    connection.errorStream?.source()?.buffer()?.readString(Charsets.UTF_8)
-                }
+    private fun getResponseBody(connection: HttpURLConnection): String? = try {
+        when (connection.responseCode) {
+            in 200..299 -> {
+                connection.inputStream.source().buffer().readString(Charsets.UTF_8)
             }
-        } catch (e: IOException) {
-            null
+
+            else -> {
+                connection.errorStream?.source()?.buffer()?.readString(Charsets.UTF_8)
+            }
         }
+    } catch (e: IOException) {
+        null
     }
 
     private fun processResponse(connection: HttpURLConnection): HttpResponse {

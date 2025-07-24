@@ -210,13 +210,11 @@ internal class MsrBugReportActivity : Activity() {
         addAttachmentView(screenshot)
     }
 
-    private fun getInitialScreenshot(): ParcelableAttachment? {
-        return IntentCompat.getParcelableExtra(
-            intent,
-            INITIAL_SCREENSHOT_EXTRA,
-            ParcelableAttachment::class.java,
-        )
-    }
+    private fun getInitialScreenshot(): ParcelableAttachment? = IntentCompat.getParcelableExtra(
+        intent,
+        INITIAL_SCREENSHOT_EXTRA,
+        ParcelableAttachment::class.java,
+    )
 
     private fun restoreState(savedInstanceState: Bundle) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -320,16 +318,15 @@ internal class MsrBugReportActivity : Activity() {
         )
     }
 
-    private fun canAccessGalleryImages(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            isPermissionDeclared(
-                this,
-                READ_MEDIA_VISUAL_USER_SELECTED,
-            ) || isPermissionDeclared(this, READ_MEDIA_IMAGES)
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    private fun canAccessGalleryImages(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        isPermissionDeclared(
+            this,
+            READ_MEDIA_VISUAL_USER_SELECTED,
+        ) ||
             isPermissionDeclared(this, READ_MEDIA_IMAGES)
-        } else {
-            isPermissionDeclared(this, READ_EXTERNAL_STORAGE)
-        }
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        isPermissionDeclared(this, READ_MEDIA_IMAGES)
+    } else {
+        isPermissionDeclared(this, READ_EXTERNAL_STORAGE)
     }
 }

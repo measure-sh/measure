@@ -14,7 +14,5 @@ internal class FakeAppExitProvider : AppExitProvider {
         ),
     )
 
-    override fun get(): Map<Int, AppExit> {
-        return appExits
-    }
+    override fun get(): Map<Int, AppExit> = appExits
 }

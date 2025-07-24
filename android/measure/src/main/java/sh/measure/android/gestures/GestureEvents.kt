@@ -17,18 +17,16 @@ internal data class ClickData(
     val touch_up_time: Long?,
 ) {
     companion object {
-        fun fromTargetNode(gesture: DetectedGesture.Click, node: Node): ClickData {
-            return ClickData(
-                target = node.className,
-                target_id = node.id,
-                width = node.width,
-                height = node.height,
-                x = gesture.x,
-                y = gesture.y,
-                touch_down_time = gesture.touchDownTime,
-                touch_up_time = gesture.touchUpTime,
-            )
-        }
+        fun fromTargetNode(gesture: DetectedGesture.Click, node: Node): ClickData = ClickData(
+            target = node.className,
+            target_id = node.id,
+            width = node.width,
+            height = node.height,
+            x = gesture.x,
+            y = gesture.y,
+            touch_down_time = gesture.touchDownTime,
+            touch_up_time = gesture.touchUpTime,
+        )
     }
 }
 
@@ -45,18 +43,16 @@ internal data class LongClickData(
     val touch_up_time: Long?,
 ) {
     companion object {
-        fun fromTargetNode(gesture: DetectedGesture.LongClick, node: Node): LongClickData {
-            return LongClickData(
-                target = node.className,
-                target_id = node.id,
-                width = node.width,
-                height = node.height,
-                x = gesture.x,
-                y = gesture.y,
-                touch_down_time = gesture.touchDownTime,
-                touch_up_time = gesture.touchUpTime,
-            )
-        }
+        fun fromTargetNode(gesture: DetectedGesture.LongClick, node: Node): LongClickData = LongClickData(
+            target = node.className,
+            target_id = node.id,
+            width = node.width,
+            height = node.height,
+            x = gesture.x,
+            y = gesture.y,
+            touch_down_time = gesture.touchDownTime,
+            touch_up_time = gesture.touchUpTime,
+        )
     }
 }
 
@@ -74,18 +70,16 @@ internal data class ScrollData(
     val touch_up_time: Long?,
 ) {
     companion object {
-        fun fromTargetNode(gesture: DetectedGesture.Scroll, node: Node): ScrollData {
-            return ScrollData(
-                target = node.className,
-                target_id = node.id,
-                x = gesture.x,
-                y = gesture.y,
-                end_x = gesture.endX,
-                end_y = gesture.endY,
-                touch_down_time = gesture.touchDownTime,
-                touch_up_time = gesture.touchUpTime,
-                direction = gesture.direction.name.lowercase(),
-            )
-        }
+        fun fromTargetNode(gesture: DetectedGesture.Scroll, node: Node): ScrollData = ScrollData(
+            target = node.className,
+            target_id = node.id,
+            x = gesture.x,
+            y = gesture.y,
+            end_x = gesture.endX,
+            end_y = gesture.endY,
+            touch_down_time = gesture.touchDownTime,
+            touch_up_time = gesture.touchUpTime,
+            direction = gesture.direction.name.lowercase(),
+        )
     }
 }

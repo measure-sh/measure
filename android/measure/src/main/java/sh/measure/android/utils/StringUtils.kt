@@ -6,6 +6,4 @@ package sh.measure.android.utils
  *
  * @return `true` if the string is in lowercase, `false` otherwise.
  */
-internal fun String.isLowerCase(): Boolean {
-    return this.all { it.isDigit() || it.isLowerCase() }
-}
+internal fun String.isLowerCase(): Boolean = this.all { it.isDigit() || it.isLowerCase() }

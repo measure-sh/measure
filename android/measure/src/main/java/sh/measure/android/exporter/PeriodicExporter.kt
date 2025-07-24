@@ -27,7 +27,8 @@ internal class PeriodicExporterImpl(
     private val timeProvider: TimeProvider,
     private val heartbeat: Heartbeat,
     private val exporter: Exporter,
-) : PeriodicExporter, HeartbeatListener {
+) : PeriodicExporter,
+    HeartbeatListener {
     @VisibleForTesting
     internal val isExportInProgress = AtomicBoolean(false)
 

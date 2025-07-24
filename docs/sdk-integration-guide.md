@@ -37,9 +37,9 @@ in later steps.
 
 | Name                  | Version         |
 |-----------------------|-----------------|
-| Android Gradle Plugin | `7.4`           |
+| Android Gradle Plugin | `8.6.0`         |
 | Min SDK               | `21` (Lollipop) |
-| Target SDK            | `31`            |
+| Target SDK            | `35`            |
 
 </details>
 

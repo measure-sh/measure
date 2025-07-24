@@ -297,20 +297,17 @@ internal class ExporterTest {
         }
     }
 
-    private fun queryAllSpans(): Cursor {
-        return database.writableDatabase.query(
-            SpansTable.TABLE_NAME,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-        )
-    }
+    private fun queryAllSpans(): Cursor = database.writableDatabase.query(
+        SpansTable.TABLE_NAME,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+    )
 
-    private fun getPathForAttachment(attachment1: AttachmentEntity) =
-        "$rootDir/measure/${attachment1.id}"
+    private fun getPathForAttachment(attachment1: AttachmentEntity) = "$rootDir/measure/${attachment1.id}"
 
     private fun insertAttachmentToStorage(attachment1: AttachmentEntity) {
         fileStorage.writeAttachment(attachment1.id, "content".toByteArray())

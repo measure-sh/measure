@@ -115,9 +115,7 @@ internal class GestureCollector(
         })
     }
 
-    private fun findTargetNode(layoutSnapshot: LayoutSnapshot): Node? {
-        return layoutSnapshot.findTargetNode()
-    }
+    private fun findTargetNode(layoutSnapshot: LayoutSnapshot): Node? = layoutSnapshot.findTargetNode()
 
     private fun handleClick(
         gesture: DetectedGesture.Click,
@@ -193,30 +191,26 @@ internal class GestureCollector(
         gesture: DetectedGesture,
         window: Window,
         motionEvent: MotionEvent,
-    ): LayoutSnapshot {
-        return LayoutInspector.capture(
-            window.decorView.rootView,
-            gesture,
-            motionEvent,
-        )
-    }
+    ): LayoutSnapshot = LayoutInspector.capture(
+        window.decorView.rootView,
+        gesture,
+        motionEvent,
+    )
 
     // This is required for setting the correct SVG size.
     // The window size can change when device is rotated, folded/unfolded
     // or app is resized, Also, certain views like ViewPager do not respect viewport
     // size, and draw outside of it to improve scroll perf leading to some content being rendered
     // outside visible bounds of screen.
-    private fun getScreenWidthHeight(window: Window): Pair<Int, Int> {
-        return if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            val displayMetrics = DisplayMetrics()
-            @Suppress("DEPRECATION")
-            window.windowManager.defaultDisplay.getMetrics(displayMetrics)
-            Pair(displayMetrics.widthPixels, displayMetrics.heightPixels)
-        } else {
-            val bounds = window.windowManager.currentWindowMetrics.bounds
-            val width = bounds.width()
-            val height = bounds.height()
-            Pair(width, height)
-        }
+    private fun getScreenWidthHeight(window: Window): Pair<Int, Int> = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+        val displayMetrics = DisplayMetrics()
+        @Suppress("DEPRECATION")
+        window.windowManager.defaultDisplay.getMetrics(displayMetrics)
+        Pair(displayMetrics.widthPixels, displayMetrics.heightPixels)
+    } else {
+        val bounds = window.windowManager.currentWindowMetrics.bounds
+        val width = bounds.width()
+        val height = bounds.height()
+        Pair(width, height)
     }
 }
