@@ -122,7 +122,7 @@ class BuildUploadTaskTest {
         
         // Verify Flutter symbols are included
         assertTrue(requestBody.contains("name=\"mapping_type\""))
-        assertTrue(requestBody.contains("flutter_symbols"))
+        assertTrue(requestBody.contains("elf_debug"))
         assertTrue(requestBody.contains("app.android-arm64.symbols"))
         assertTrue(requestBody.contains("flutter symbols data"))
     }

@@ -118,7 +118,7 @@ class MeasurePluginFixture(
             """
             <meta-data 
                 android:name="sh.measure.android.API_KEY" 
-                android:value="1234567890"/>
+                android:value="msrsh_1234567890"/>
             """.trimIndent()
         } else {
             ""
