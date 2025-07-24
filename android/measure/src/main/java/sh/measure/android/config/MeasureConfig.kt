@@ -31,6 +31,7 @@ internal interface IMeasureConfig {
     val traceSamplingRate: Float
     val trackActivityLoadTime: Boolean
     val trackFragmentLoadTime: Boolean
+    val maxDiskUsageInMb: Int
     val requestHeadersProvider: MsrRequestHeadersProvider?
 }
 
@@ -181,6 +182,26 @@ class MeasureConfig(
     override val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
 
     /**
+     * Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use.
+     *
+     * This is useful to control the amount of disk space used by the SDK for storing session data,
+     * crash reports, and other collected information.
+     *
+     * Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`. Any value outside this
+     * range will be clamped to the nearest limit.
+     *
+     * All Measure SDKs store data to disk and upload it to the server in batches. While the app is
+     * in foreground, the data is synced periodically and usually the disk space used by the SDK is
+     * low. However, if the device is offline or the server is unreachable, the SDK will continue to
+     * store data on disk until it reaches the maximum disk usage limit.
+     *
+     * Note that the storage usage is not exact and works on estimates and typically the SDK will
+     * use much less disk space than the configured limit. When the SDK reaches the maximum disk
+     * usage limit, it will start deleting the oldest data to make space for new data.
+     */
+    override val maxDiskUsageInMb: Int = DefaultConfig.MAX_ESTIMATED_DISK_USAGE_IN_MB,
+
+    /**
      * Allows configuring custom HTTP headers for requests made by the Measure SDK to the
      * Measure API. This is useful only for self-hosted clients who may require additional
      * headers for requests in their infrastructure.
@@ -234,6 +255,7 @@ internal data class SerializableMeasureConfig(
     val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
     val trackActivityLoadTime: Boolean = DefaultConfig.TRACK_ACTIVITY_LOAD_TIME,
     val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
+    val maxEstimatedDiskUsageInMb: Int = DefaultConfig.MAX_ESTIMATED_DISK_USAGE_IN_MB,
     val requestHeadersProvider: MsrRequestHeadersProvider? = null,
 ) {
     fun toMeasureConfig(): MeasureConfig = MeasureConfig(
@@ -251,6 +273,7 @@ internal data class SerializableMeasureConfig(
         traceSamplingRate = traceSamplingRate,
         trackActivityLoadTime = trackActivityLoadTime,
         trackFragmentLoadTime = trackFragmentLoadTime,
+        maxDiskUsageInMb = maxEstimatedDiskUsageInMb,
         requestHeadersProvider = requestHeadersProvider,
     )
 
@@ -271,6 +294,7 @@ internal data class SerializableMeasureConfig(
                 traceSamplingRate = config.traceSamplingRate,
                 trackActivityLoadTime = config.trackActivityLoadTime,
                 trackFragmentLoadTime = config.trackFragmentLoadTime,
+                maxEstimatedDiskUsageInMb = config.maxDiskUsageInMb,
                 requestHeadersProvider = config.requestHeadersProvider,
             )
     }

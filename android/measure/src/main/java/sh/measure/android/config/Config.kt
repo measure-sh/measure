@@ -18,6 +18,7 @@ internal data class Config(
     override val trackActivityLoadTime: Boolean = DefaultConfig.TRACK_ACTIVITY_LOAD_TIME,
     override val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
     override val disallowedCustomHeaders: List<String> = DefaultConfig.DISALLOWED_CUSTOM_HEADERS,
+    override val maxDiskUsageInMb: Int = DefaultConfig.MAX_ESTIMATED_DISK_USAGE_IN_MB,
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null,
 ) : InternalConfig, IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
@@ -49,7 +50,6 @@ internal data class Config(
         EventType.LIFECYCLE_FRAGMENT,
         EventType.SCREEN_VIEW,
     )
-    override val maxSignalsInDatabase: Int = 50_000
     override val maxSpanNameLength: Int = 64
     override val maxCheckpointNameLength: Int = 64
     override val maxCheckpointsPerSpan: Int = 100
@@ -60,4 +60,5 @@ internal data class Config(
     override val shakeAccelerationThreshold: Float = 20f
     override val shakeMinTimeIntervalMs: Long = 1500
     override val shakeSlop: Int = 3
+    override val estimatedEventSizeInKb: Int = 10 // 10KB
 }
