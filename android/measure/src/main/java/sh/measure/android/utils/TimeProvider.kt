@@ -37,9 +37,7 @@ internal class AndroidTimeProvider(private val systemClock: SystemClock) : TimeP
     override val elapsedRealtime
         get() = systemClock.monotonicTimeSinceBoot()
 
-    override fun now(): Long {
-        return anchoredEpochTime + (systemClock.monotonicTimeSinceBoot() - anchoredElapsedRealtime)
-    }
+    override fun now(): Long = anchoredEpochTime + (systemClock.monotonicTimeSinceBoot() - anchoredElapsedRealtime)
 }
 
 private val simpleDateFormat by lazy(LazyThreadSafetyMode.NONE) {
@@ -57,16 +55,14 @@ private val dateTimeFormatter by lazy(LazyThreadSafetyMode.NONE) {
     }
 }
 
-internal fun Long.iso8601Timestamp(): String {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        val formatter = dateTimeFormatter
-        val instant = Instant.ofEpochMilli(this)
-        formatter.format(instant)
-    } else {
-        val calendar: Calendar =
-            Calendar.getInstance(TimeZone.getTimeZone(TimeZone.getDefault().id))
-        calendar.timeInMillis = this
-        simpleDateFormat.timeZone = TimeZone.getTimeZone("UTC")
-        simpleDateFormat.format(calendar.time)
-    }
+internal fun Long.iso8601Timestamp(): String = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    val formatter = dateTimeFormatter
+    val instant = Instant.ofEpochMilli(this)
+    formatter.format(instant)
+} else {
+    val calendar: Calendar =
+        Calendar.getInstance(TimeZone.getTimeZone(TimeZone.getDefault().id))
+    calendar.timeInMillis = this
+    simpleDateFormat.timeZone = TimeZone.getTimeZone("UTC")
+    simpleDateFormat.format(calendar.time)
 }

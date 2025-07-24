@@ -19,24 +19,22 @@ internal class DeviceAttributeProcessor(
     private val configuration = context.resources.configuration
     private val resources = context.resources
 
-    override fun computeAttributes(): Map<String, Any?> {
-        return mapOf(
-            Attribute.DEVICE_NAME_KEY to Build.DEVICE,
-            Attribute.DEVICE_MODEL_KEY to Build.MODEL,
-            Attribute.DEVICE_MANUFACTURER_KEY to Build.MANUFACTURER,
-            Attribute.DEVICE_TYPE_KEY to getDeviceType(),
-            Attribute.DEVICE_IS_FOLDABLE_KEY to isFoldable(),
-            Attribute.DEVICE_IS_PHYSICAL_KEY to isPhysical(),
-            Attribute.DEVICE_DENSITY_DPI_KEY to configuration.densityDpi,
-            Attribute.DEVICE_WIDTH_PX_KEY to resources.displayMetrics.widthPixels,
-            Attribute.DEVICE_HEIGHT_PX_KEY to resources.displayMetrics.heightPixels,
-            Attribute.DEVICE_DENSITY_KEY to resources.displayMetrics.density,
-            Attribute.DEVICE_LOCALE_KEY to getDeviceLocale(),
-            Attribute.OS_NAME_KEY to "android",
-            Attribute.OS_VERSION_KEY to Build.VERSION.SDK_INT.toString(),
-            Attribute.OS_PAGE_SIZE to getPageSizeKB(),
-        )
-    }
+    override fun computeAttributes(): Map<String, Any?> = mapOf(
+        Attribute.DEVICE_NAME_KEY to Build.DEVICE,
+        Attribute.DEVICE_MODEL_KEY to Build.MODEL,
+        Attribute.DEVICE_MANUFACTURER_KEY to Build.MANUFACTURER,
+        Attribute.DEVICE_TYPE_KEY to getDeviceType(),
+        Attribute.DEVICE_IS_FOLDABLE_KEY to isFoldable(),
+        Attribute.DEVICE_IS_PHYSICAL_KEY to isPhysical(),
+        Attribute.DEVICE_DENSITY_DPI_KEY to configuration.densityDpi,
+        Attribute.DEVICE_WIDTH_PX_KEY to resources.displayMetrics.widthPixels,
+        Attribute.DEVICE_HEIGHT_PX_KEY to resources.displayMetrics.heightPixels,
+        Attribute.DEVICE_DENSITY_KEY to resources.displayMetrics.density,
+        Attribute.DEVICE_LOCALE_KEY to getDeviceLocale(),
+        Attribute.OS_NAME_KEY to "android",
+        Attribute.OS_VERSION_KEY to Build.VERSION.SDK_INT.toString(),
+        Attribute.OS_PAGE_SIZE to getPageSizeKB(),
+    )
 
     // Using heuristics from:
     // https://android-developers.googleblog.com/2023/06/detecting-if-device-is-foldable-tablet.html
@@ -67,15 +65,27 @@ internal class DeviceAttributeProcessor(
     private fun isPhysical(): Boolean {
         val isEmulator = try {
             (
-                (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")) || Build.FINGERPRINT.startsWith(
-                    "generic",
-                ) || Build.FINGERPRINT.startsWith("unknown") || Build.HARDWARE.contains("goldfish") || Build.HARDWARE.contains(
-                    "ranchu",
-                ) || Build.MODEL.contains("google_sdk") || Build.MODEL.contains("Emulator") || Build.MODEL.contains(
-                    "Android SDK built for x86",
-                ) || Build.MANUFACTURER.contains("Genymotion") || Build.PRODUCT.contains("sdk") || Build.PRODUCT.contains(
-                    "vbox86p",
-                ) || Build.PRODUCT.contains("emulator") || Build.PRODUCT.contains("simulator")
+                (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic")) ||
+                    Build.FINGERPRINT.startsWith(
+                        "generic",
+                    ) ||
+                    Build.FINGERPRINT.startsWith("unknown") ||
+                    Build.HARDWARE.contains("goldfish") ||
+                    Build.HARDWARE.contains(
+                        "ranchu",
+                    ) ||
+                    Build.MODEL.contains("google_sdk") ||
+                    Build.MODEL.contains("Emulator") ||
+                    Build.MODEL.contains(
+                        "Android SDK built for x86",
+                    ) ||
+                    Build.MANUFACTURER.contains("Genymotion") ||
+                    Build.PRODUCT.contains("sdk") ||
+                    Build.PRODUCT.contains(
+                        "vbox86p",
+                    ) ||
+                    Build.PRODUCT.contains("emulator") ||
+                    Build.PRODUCT.contains("simulator")
                 )
         } catch (e: Exception) {
             // assume it's a physical device
@@ -84,12 +94,8 @@ internal class DeviceAttributeProcessor(
         return !isEmulator
     }
 
-    private fun getDeviceLocale(): String {
-        return localeProvider.getLocale()
-    }
+    private fun getDeviceLocale(): String = localeProvider.getLocale()
 
     // Returns page size in KB.
-    private fun getPageSizeKB(): Long {
-        return osSysConfProvider.get(OsConstants._SC_PAGESIZE) / 1024
-    }
+    private fun getPageSizeKB(): Long = osSysConfProvider.get(OsConstants._SC_PAGESIZE) / 1024
 }

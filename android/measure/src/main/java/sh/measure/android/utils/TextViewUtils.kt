@@ -10,17 +10,11 @@ import android.widget.TextView
  *
  * @return true if the input type of this [TextView] is sensitive.
  */
-internal fun TextView.isSensitiveInputType(): Boolean {
-    return isPasswordInputType() || isVisiblePasswordInputType() || isEmailInputType() || isPhoneInputType()
-}
+internal fun TextView.isSensitiveInputType(): Boolean = isPasswordInputType() || isVisiblePasswordInputType() || isEmailInputType() || isPhoneInputType()
 
-private fun TextView.isEmailInputType(): Boolean {
-    return inputType == InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-}
+private fun TextView.isEmailInputType(): Boolean = inputType == InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
 
-private fun TextView.isPhoneInputType(): Boolean {
-    return inputType == InputType.TYPE_CLASS_TEXT or InputType.TYPE_CLASS_PHONE
-}
+private fun TextView.isPhoneInputType(): Boolean = inputType == InputType.TYPE_CLASS_TEXT or InputType.TYPE_CLASS_PHONE
 
 // Copied from [TextView.isPasswordInputType] as it is hidden from public API.
 private fun TextView.isPasswordInputType(): Boolean {

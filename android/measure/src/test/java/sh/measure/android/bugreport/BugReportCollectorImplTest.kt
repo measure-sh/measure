@@ -186,11 +186,9 @@ class BugReportCollectorImplTest {
         }
     }
 
-    private fun createTestIntent(clipData: ClipData? = null, singleUri: Uri? = null): Intent {
-        return Intent().apply {
-            this.clipData = clipData
-            this.data = singleUri
-        }
+    private fun createTestIntent(clipData: ClipData? = null, singleUri: Uri? = null): Intent = Intent().apply {
+        this.clipData = clipData
+        this.data = singleUri
     }
 
     private fun createTestFiles(count: Int = 2): List<File> {

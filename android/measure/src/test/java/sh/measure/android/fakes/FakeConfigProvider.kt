@@ -55,19 +55,13 @@ internal class FakeConfigProvider : ConfigProvider {
 
     var shouldTrackHttpBody = true
 
-    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
-        return shouldTrackHttpBody
-    }
+    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean = shouldTrackHttpBody
 
     var shouldTrackHttpUrl = true
 
-    override fun shouldTrackHttpUrl(url: String): Boolean {
-        return shouldTrackHttpUrl
-    }
+    override fun shouldTrackHttpUrl(url: String): Boolean = shouldTrackHttpUrl
 
-    override fun shouldTrackHttpHeader(key: String): Boolean {
-        return !httpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
-    }
+    override fun shouldTrackHttpHeader(key: String): Boolean = !httpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
 
     override fun setMeasureUrl(url: String) {
         // no-op

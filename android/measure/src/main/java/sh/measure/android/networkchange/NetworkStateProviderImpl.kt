@@ -37,7 +37,5 @@ internal class NetworkStateProviderImpl(
         this.networkState = networkState
     }
 
-    override fun getNetworkState(): NetworkState? {
-        return networkState
-    }
+    override fun getNetworkState(): NetworkState? = networkState
 }

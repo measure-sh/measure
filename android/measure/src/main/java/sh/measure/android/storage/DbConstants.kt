@@ -286,8 +286,7 @@ internal object Sql {
         }
     }
 
-    fun getSpansBatchQuery(spanCount: Int, ascending: Boolean): String {
-        return """
+    fun getSpansBatchQuery(spanCount: Int, ascending: Boolean): String = """
             SELECT sp.${SpansTable.COL_SPAN_ID} 
             FROM ${SpansTable.TABLE_NAME} sp
             LEFT JOIN ${SpansBatchTable.TABLE_NAME} sb ON sp.${SpansTable.COL_SPAN_ID} = sb.${SpansBatchTable.COL_SPAN_ID}
@@ -296,20 +295,16 @@ internal object Sql {
             AND sp.${SpansTable.COL_SAMPLED} = 1
             ORDER BY sp.${SpansTable.COL_END_TIME} ${if (ascending) "ASC" else "DESC"}
             LIMIT $spanCount
-        """.trimIndent()
-    }
+    """.trimIndent()
 
-    fun getBatches(maxCount: Int): String {
-        return """
+    fun getBatches(maxCount: Int): String = """
             SELECT DISTINCT ${BatchesTable.COL_BATCH_ID}
             FROM ${BatchesTable.TABLE_NAME}
             ORDER BY ${BatchesTable.COL_CREATED_AT} ASC
             LIMIT $maxCount
-        """.trimIndent()
-    }
+    """.trimIndent()
 
-    fun getEventsForIds(eventIds: List<String>): String {
-        return """
+    fun getEventsForIds(eventIds: List<String>): String = """
             SELECT 
                 ${EventTable.COL_ID},
                 ${EventTable.COL_SESSION_ID},
@@ -325,11 +320,9 @@ internal object Sql {
                 ${EventTable.COL_ATTACHMENTS}
             FROM ${EventTable.TABLE_NAME}
             WHERE ${EventTable.COL_ID} IN (${eventIds.joinToString(", ") { "\'$it\'" }})
-        """.trimIndent()
-    }
+    """.trimIndent()
 
-    fun getSpansForIds(spanIds: List<String>): String {
-        return """
+    fun getSpansForIds(spanIds: List<String>): String = """
             SELECT 
                 ${SpansTable.COL_NAME},
                 ${SpansTable.COL_SESSION_ID},
@@ -345,11 +338,9 @@ internal object Sql {
                 ${SpansTable.COL_SERIALIZED_USER_DEFINED_ATTRS}
             FROM ${SpansTable.TABLE_NAME}
             WHERE ${SpansTable.COL_SPAN_ID} IN (${spanIds.joinToString(", ") { "\'$it\'" }})
-        """.trimIndent()
-    }
+    """.trimIndent()
 
-    fun getAttachmentsForEventIds(eventIds: List<String>): String {
-        return """
+    fun getAttachmentsForEventIds(eventIds: List<String>): String = """
             SELECT 
                 ${AttachmentTable.COL_ID}, 
                 ${AttachmentTable.COL_EVENT_ID},
@@ -360,47 +351,36 @@ internal object Sql {
             FROM ${AttachmentTable.TABLE_NAME}
             WHERE ${AttachmentTable.COL_EVENT_ID} IN (${eventIds.joinToString(", ") { "\'$it\'" }})
         """
-    }
 
-    fun markSessionCrashed(sessionId: String): String {
-        return """
+    fun markSessionCrashed(sessionId: String): String = """
             UPDATE ${SessionsTable.TABLE_NAME}
             SET ${SessionsTable.COL_CRASHED} = 1, ${SessionsTable.COL_NEEDS_REPORTING} = 1
             WHERE ${SessionsTable.COL_SESSION_ID} = '$sessionId'
-        """.trimIndent()
-    }
+    """.trimIndent()
 
-    fun markSessionWithBugReport(sessionId: String): String {
-        return """
+    fun markSessionWithBugReport(sessionId: String): String = """
             UPDATE ${SessionsTable.TABLE_NAME}
             SET ${SessionsTable.COL_NEEDS_REPORTING} = 1
             WHERE ${SessionsTable.COL_SESSION_ID} = '$sessionId'
-        """.trimIndent()
-    }
+    """.trimIndent()
 
-    fun markSessionsCrashed(sessionIds: List<String>): String {
-        return """
+    fun markSessionsCrashed(sessionIds: List<String>): String = """
             UPDATE ${SessionsTable.TABLE_NAME}
             SET ${SessionsTable.COL_CRASHED} = 1, ${SessionsTable.COL_NEEDS_REPORTING} = 1
             WHERE ${SessionsTable.COL_SESSION_ID} IN (${sessionIds.joinToString(", ") { "\'$it\'" }})
-        """.trimIndent()
-    }
+    """.trimIndent()
 
-    fun getEventsForSessions(sessions: List<String>): String {
-        return """
+    fun getEventsForSessions(sessions: List<String>): String = """
             SELECT ${EventTable.COL_ID}
             FROM ${EventTable.TABLE_NAME}
             WHERE ${EventTable.COL_SESSION_ID} IN (${sessions.joinToString(", ") { "\'$it\'" }})
-        """.trimIndent()
-    }
+    """.trimIndent()
 
-    fun getAttachmentsForEvents(events: List<String>): String {
-        return """
+    fun getAttachmentsForEvents(events: List<String>): String = """
             SELECT ${AttachmentTable.COL_ID}
             FROM ${AttachmentTable.TABLE_NAME}
             WHERE ${AttachmentTable.COL_EVENT_ID} IN (${events.joinToString(", ") { "\'$it\'" }})
-        """.trimIndent()
-    }
+    """.trimIndent()
 
     fun getSessions(needReporting: Boolean, filterSessions: List<String>, maxCount: Int): String {
         val reportingCondition =
@@ -422,31 +402,24 @@ internal object Sql {
         """.trimIndent()
     }
 
-    fun getOldestSession(): String {
-        return """
+    fun getOldestSession(): String = """
             SELECT ${SessionsTable.COL_SESSION_ID}
             FROM ${SessionsTable.TABLE_NAME}
             ORDER BY ${SessionsTable.COL_CREATED_AT} ASC
             LIMIT 1
-        """.trimIndent()
-    }
+    """.trimIndent()
 
-    fun getEventsCount(): String {
-        return """
+    fun getEventsCount(): String = """
             SELECT COUNT(${EventTable.COL_ID}) AS count
             FROM ${EventTable.TABLE_NAME}
-        """.trimIndent()
-    }
+    """.trimIndent()
 
-    fun getSpansCount(): String {
-        return """
+    fun getSpansCount(): String = """
             SELECT COUNT(${SpansTable.COL_SPAN_ID}) AS count
             FROM ${SpansTable.TABLE_NAME}
-        """.trimIndent()
-    }
+    """.trimIndent()
 
-    fun getSessionForAppExit(pid: Int): String {
-        return """
+    fun getSessionForAppExit(pid: Int): String = """
             SELECT
                 ${AppExitTable.COL_SESSION_ID},
                 ${AppExitTable.COL_CREATED_AT},
@@ -456,11 +429,9 @@ internal object Sql {
             WHERE ${AppExitTable.COL_PID} = $pid 
             ORDER BY ${AppExitTable.COL_CREATED_AT} DESC
             LIMIT 1
-        """.trimIndent()
-    }
+    """.trimIndent()
 
-    fun getBatchedEventIds(batchIds: List<String>): String {
-        return """
+    fun getBatchedEventIds(batchIds: List<String>): String = """
             SELECT
                 ${EventsBatchTable.COL_EVENT_ID},
                 ${EventsBatchTable.COL_BATCH_ID}
@@ -469,11 +440,9 @@ internal object Sql {
             WHERE
                 ${EventsBatchTable.COL_BATCH_ID} 
                 IN (${batchIds.joinToString(", ") { "'$it'" }})
-        """.trimIndent()
-    }
+    """.trimIndent()
 
-    fun getBatchedSpanIds(batchIds: List<String>): String {
-        return """
+    fun getBatchedSpanIds(batchIds: List<String>): String = """
             SELECT
                 ${SpansBatchTable.COL_SPAN_ID},
                 ${SpansBatchTable.COL_BATCH_ID}
@@ -482,6 +451,5 @@ internal object Sql {
             WHERE
                 ${SpansBatchTable.COL_BATCH_ID} 
                 IN (${batchIds.joinToString(", ") { "'$it'" }})
-        """.trimIndent()
-    }
+    """.trimIndent()
 }

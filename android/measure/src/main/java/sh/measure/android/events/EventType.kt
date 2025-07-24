@@ -25,8 +25,6 @@ internal enum class EventType(val value: String) {
     ;
 
     companion object {
-        fun fromValue(value: String): EventType? {
-            return entries.find { it.value == value }
-        }
+        fun fromValue(value: String): EventType? = entries.find { it.value == value }
     }
 }

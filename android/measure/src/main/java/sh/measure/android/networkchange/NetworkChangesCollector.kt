@@ -188,21 +188,19 @@ internal class NetworkChangesCollector(
         previousNetworkType: String?,
         newNetworkGeneration: String?,
         previousNetworkGeneration: String?,
-    ): Boolean {
-        return when {
-            // track if network type has changed
-            previousNetworkType != newNetworkType -> {
-                true
-            }
+    ): Boolean = when {
+        // track if network type has changed
+        previousNetworkType != newNetworkType -> {
+            true
+        }
 
-            // track if network type is cellular, but network generation has changed
-            newNetworkType == NetworkType.CELLULAR && newNetworkGeneration != null && newNetworkGeneration != previousNetworkGeneration -> {
-                true
-            }
+        // track if network type is cellular, but network generation has changed
+        newNetworkType == NetworkType.CELLULAR && newNetworkGeneration != null && newNetworkGeneration != previousNetworkGeneration -> {
+            true
+        }
 
-            else -> {
-                false
-            }
+        else -> {
+            false
         }
     }
 

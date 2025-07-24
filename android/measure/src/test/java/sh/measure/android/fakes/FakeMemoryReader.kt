@@ -11,31 +11,17 @@ internal class FakeMemoryReader(
     private val nativeTotalHeapSize: Long = 600,
     private val nativeFreeHeapSize: Long = 250,
 ) : MemoryReader {
-    override fun maxHeapSize(): Long {
-        return maxHeapSize
-    }
+    override fun maxHeapSize(): Long = maxHeapSize
 
-    override fun totalHeapSize(): Long {
-        return totalHeapSize
-    }
+    override fun totalHeapSize(): Long = totalHeapSize
 
-    override fun freeHeapSize(): Long {
-        return freeHeapSize
-    }
+    override fun freeHeapSize(): Long = freeHeapSize
 
-    override fun totalPss(): Int {
-        return totalPss
-    }
+    override fun totalPss(): Int = totalPss
 
-    override fun rss(): Long {
-        return rss
-    }
+    override fun rss(): Long = rss
 
-    override fun nativeTotalHeapSize(): Long {
-        return nativeTotalHeapSize
-    }
+    override fun nativeTotalHeapSize(): Long = nativeTotalHeapSize
 
-    override fun nativeFreeHeapSize(): Long {
-        return nativeFreeHeapSize
-    }
+    override fun nativeFreeHeapSize(): Long = nativeFreeHeapSize
 }

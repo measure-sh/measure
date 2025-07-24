@@ -15,7 +15,8 @@ internal class AccelerometerShakeDetector(
     private val sensorManager: SensorManager?,
     private val timeProvider: TimeProvider,
     private val configProvider: ConfigProvider,
-) : ShakeDetector, SensorEventListener {
+) : ShakeDetector,
+    SensorEventListener {
 
     private val accelerometer: Sensor? = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
     private var shakeListener: ShakeDetector.Listener? = null
@@ -47,9 +48,7 @@ internal class AccelerometerShakeDetector(
         this.shakeListener = listener
     }
 
-    override fun getShakeListener(): ShakeDetector.Listener? {
-        return shakeListener
-    }
+    override fun getShakeListener(): ShakeDetector.Listener? = shakeListener
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         // Not used
@@ -81,9 +80,7 @@ internal class AccelerometerShakeDetector(
      * @param z The acceleration along the Z axis
      * @return The magnitude of the acceleration vector
      */
-    private fun calculateMagnitude(x: Float, y: Float, z: Float): Float {
-        return sqrt(x * x + y * y + z * z)
-    }
+    private fun calculateMagnitude(x: Float, y: Float, z: Float): Float = sqrt(x * x + y * y + z * z)
 
     private fun recordMovement() {
         val currentTime = timeProvider.now()
@@ -98,9 +95,7 @@ internal class AccelerometerShakeDetector(
         }
     }
 
-    private fun isTimedOut(currentTime: Long): Boolean {
-        return lastShakeTime + configProvider.shakeMinTimeIntervalMs < currentTime
-    }
+    private fun isTimedOut(currentTime: Long): Boolean = lastShakeTime + configProvider.shakeMinTimeIntervalMs < currentTime
 
     private fun notifyShake() {
         val currentTime = timeProvider.now()

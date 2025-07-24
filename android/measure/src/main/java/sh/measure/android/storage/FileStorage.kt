@@ -148,9 +148,7 @@ internal class FileStorageImpl(
         return null
     }
 
-    override fun getBugReportDir(): File {
-        return File("$rootDir/$MEASURE_DIR/$BUG_REPORTS_DIR")
-    }
+    override fun getBugReportDir(): File = File("$rootDir/$MEASURE_DIR/$BUG_REPORTS_DIR")
 
     override fun getAttachmentDirectory(): String {
         val dirPath = "$rootDir/$MEASURE_DIR"

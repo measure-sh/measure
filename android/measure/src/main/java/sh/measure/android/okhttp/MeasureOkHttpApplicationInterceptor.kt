@@ -25,6 +25,5 @@ class MeasureOkHttpApplicationInterceptor internal constructor(
         return response
     }
 
-    private fun getIdentityHash(call: Call): String =
-        Integer.toHexString(System.identityHashCode(call))
+    private fun getIdentityHash(call: Call): String = Integer.toHexString(System.identityHashCode(call))
 }

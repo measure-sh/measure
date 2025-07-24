@@ -82,34 +82,23 @@ internal class ScreenshotMask(private val configProvider: ConfigProvider) {
         }
     }
 
-    private fun shouldMaskTextView(view: TextView): Boolean {
-        return configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia || configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllText || (configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllTextExceptClickable && !view.isClickable) || (configProvider.screenshotMaskLevel == ScreenshotMaskLevel.SensitiveFieldsOnly && view.isSensitiveInputType())
-    }
+    private fun shouldMaskTextView(view: TextView): Boolean = configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia || configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllText || (configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllTextExceptClickable && !view.isClickable) || (configProvider.screenshotMaskLevel == ScreenshotMaskLevel.SensitiveFieldsOnly && view.isSensitiveInputType())
 
-    private fun shouldMaskComposeText(isClickable: Boolean, isPassword: Boolean): Boolean {
-        return (
-            configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia ||
-                configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllText ||
-                (configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllTextExceptClickable && !isClickable) ||
-                (configProvider.screenshotMaskLevel == ScreenshotMaskLevel.SensitiveFieldsOnly && isPassword)
-            )
-    }
+    private fun shouldMaskComposeText(isClickable: Boolean, isPassword: Boolean): Boolean = (
+        configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllTextAndMedia ||
+            configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllText ||
+            (configProvider.screenshotMaskLevel == ScreenshotMaskLevel.AllTextExceptClickable && !isClickable) ||
+            (configProvider.screenshotMaskLevel == ScreenshotMaskLevel.SensitiveFieldsOnly && isPassword)
+        )
 
-    private fun isNodeImage(node: SemanticsNode): Boolean {
-        return node.config.getOrNull(SemanticsProperties.ContentDescription) != null
-    }
+    private fun isNodeImage(node: SemanticsNode): Boolean = node.config.getOrNull(SemanticsProperties.ContentDescription) != null
 
-    private fun isNodeClickable(node: SemanticsNode): Boolean {
-        return node.config.getOrNull(SemanticsActions.OnClick) != null || node.config.getOrNull(
+    private fun isNodeClickable(node: SemanticsNode): Boolean = node.config.getOrNull(SemanticsActions.OnClick) != null ||
+        node.config.getOrNull(
             SemanticsActions.OnLongClick,
         ) != null
-    }
 
-    private fun isExoplayerView(view: View): Boolean {
-        return view.javaClass.name.equals("androidx.media3.ui.PlayerView")
-    }
+    private fun isExoplayerView(view: View): Boolean = view.javaClass.name.equals("androidx.media3.ui.PlayerView")
 
-    private fun androidx.compose.ui.geometry.Rect.toRect(): Rect {
-        return Rect(left.toInt(), top.toInt(), right.toInt(), bottom.toInt())
-    }
+    private fun androidx.compose.ui.geometry.Rect.toRect(): Rect = Rect(left.toInt(), top.toInt(), right.toInt(), bottom.toInt())
 }

@@ -255,24 +255,23 @@ internal data class SerializableMeasureConfig(
     )
 
     companion object {
-        fun fromMeasureConfig(config: MeasureConfig): SerializableMeasureConfig =
-            SerializableMeasureConfig(
-                enableLogging = config.enableLogging,
-                trackScreenshotOnCrash = config.trackScreenshotOnCrash,
-                screenshotMaskLevel = config.screenshotMaskLevel,
-                trackHttpHeaders = config.trackHttpHeaders,
-                trackHttpBody = config.trackHttpBody,
-                httpHeadersBlocklist = config.httpHeadersBlocklist,
-                httpUrlBlocklist = config.httpUrlBlocklist,
-                httpUrlAllowlist = config.httpUrlAllowlist,
-                trackActivityIntentData = config.trackActivityIntentData,
-                samplingRateForErrorFreeSessions = config.samplingRateForErrorFreeSessions,
-                autoStart = config.autoStart,
-                traceSamplingRate = config.traceSamplingRate,
-                trackActivityLoadTime = config.trackActivityLoadTime,
-                trackFragmentLoadTime = config.trackFragmentLoadTime,
-                requestHeadersProvider = config.requestHeadersProvider,
-            )
+        fun fromMeasureConfig(config: MeasureConfig): SerializableMeasureConfig = SerializableMeasureConfig(
+            enableLogging = config.enableLogging,
+            trackScreenshotOnCrash = config.trackScreenshotOnCrash,
+            screenshotMaskLevel = config.screenshotMaskLevel,
+            trackHttpHeaders = config.trackHttpHeaders,
+            trackHttpBody = config.trackHttpBody,
+            httpHeadersBlocklist = config.httpHeadersBlocklist,
+            httpUrlBlocklist = config.httpUrlBlocklist,
+            httpUrlAllowlist = config.httpUrlAllowlist,
+            trackActivityIntentData = config.trackActivityIntentData,
+            samplingRateForErrorFreeSessions = config.samplingRateForErrorFreeSessions,
+            autoStart = config.autoStart,
+            traceSamplingRate = config.traceSamplingRate,
+            trackActivityLoadTime = config.trackActivityLoadTime,
+            trackFragmentLoadTime = config.trackFragmentLoadTime,
+            requestHeadersProvider = config.requestHeadersProvider,
+        )
     }
 }
 

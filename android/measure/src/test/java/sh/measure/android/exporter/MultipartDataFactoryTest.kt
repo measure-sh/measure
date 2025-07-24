@@ -26,9 +26,7 @@ class MultipartDataFactoryTest {
 
     @Test
     fun `createFromEventPacket with serializedData returns FormField`() {
-        fun EventPacket.expectedSerializedValue(): String {
-            return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"${type.value}\",\"${type.value}\":$serializedData,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
-        }
+        fun EventPacket.expectedSerializedValue(): String = "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"${type.value}\",\"${type.value}\":$serializedData,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
 
         // Given
         val eventEntity =
@@ -47,9 +45,7 @@ class MultipartDataFactoryTest {
 
     @Test
     fun `createFromEventPacket with filePath returns FormField`() {
-        fun EventPacket.expectedSerializedValue(): String {
-            return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"${type.value}\",\"${type.value}\":${getFakeFileContent()},\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
-        }
+        fun EventPacket.expectedSerializedValue(): String = "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"${type.value}\",\"${type.value}\":${getFakeFileContent()},\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
 
         val eventEntity = TestData.getEventEntity(
             eventId = "event-id",
@@ -121,9 +117,7 @@ class MultipartDataFactoryTest {
         val startTime: Long = 1000
         val endTime: Long = 5000
         val checkpoint = TestData.getCheckpoint()
-        fun expectedSerializedValue(): String {
-            return "{\"name\":\"span-name\",\"trace_id\":\"trace-id\",\"span_id\":\"span-id\",\"parent_id\":\"parent-id\",\"session_id\":\"session-id\",\"start_time\":\"${startTime.iso8601Timestamp()}\",\"end_time\":\"${endTime.iso8601Timestamp()}\",\"duration\":4000,\"status\":1,\"attributes\":{\"key\":\"value\"},\"user_defined_attribute\":{\"user_key\":\"user_value\"},\"checkpoints\":[{\"name\":\"${checkpoint.name}\",\"timestamp\":\"${checkpoint.timestamp.iso8601Timestamp()}\"}]}"
-        }
+        fun expectedSerializedValue(): String = "{\"name\":\"span-name\",\"trace_id\":\"trace-id\",\"span_id\":\"span-id\",\"parent_id\":\"parent-id\",\"session_id\":\"session-id\",\"start_time\":\"${startTime.iso8601Timestamp()}\",\"end_time\":\"${endTime.iso8601Timestamp()}\",\"duration\":4000,\"status\":1,\"attributes\":{\"key\":\"value\"},\"user_defined_attribute\":{\"user_key\":\"user_value\"},\"checkpoints\":[{\"name\":\"${checkpoint.name}\",\"timestamp\":\"${checkpoint.timestamp.iso8601Timestamp()}\"}]}"
 
         // Given
         val attributes = mapOf("key" to "value")
@@ -154,9 +148,7 @@ class MultipartDataFactoryTest {
         val startTime: Long = 1000
         val endTime: Long = 5000
         val checkpoint = TestData.getCheckpoint()
-        fun expectedSerializedValue(): String {
-            return "{\"name\":\"span-name\",\"trace_id\":\"trace-id\",\"span_id\":\"span-id\",\"parent_id\":null,\"session_id\":\"session-id\",\"start_time\":\"${startTime.iso8601Timestamp()}\",\"end_time\":\"${endTime.iso8601Timestamp()}\",\"duration\":4000,\"status\":1,\"attributes\":{\"key\":\"value\"},\"user_defined_attribute\":{\"user_key\":\"user_value\"},\"checkpoints\":[{\"name\":\"${checkpoint.name}\",\"timestamp\":\"${checkpoint.timestamp.iso8601Timestamp()}\"}]}"
-        }
+        fun expectedSerializedValue(): String = "{\"name\":\"span-name\",\"trace_id\":\"trace-id\",\"span_id\":\"span-id\",\"parent_id\":null,\"session_id\":\"session-id\",\"start_time\":\"${startTime.iso8601Timestamp()}\",\"end_time\":\"${endTime.iso8601Timestamp()}\",\"duration\":4000,\"status\":1,\"attributes\":{\"key\":\"value\"},\"user_defined_attribute\":{\"user_key\":\"user_value\"},\"checkpoints\":[{\"name\":\"${checkpoint.name}\",\"timestamp\":\"${checkpoint.timestamp.iso8601Timestamp()}\"}]}"
 
         // Given
         val attributes = mapOf("key" to "value")
@@ -183,11 +175,7 @@ class MultipartDataFactoryTest {
         assertEquals(expectedSerializedValue(), formField.value)
     }
 
-    private fun getFakeFileContent(): String {
-        return "lorem ipsum dolor sit amet"
-    }
+    private fun getFakeFileContent(): String = "lorem ipsum dolor sit amet"
 
-    private fun InputStream.readAsString(): String {
-        return bufferedReader().use { it.readText() }
-    }
+    private fun InputStream.readAsString(): String = bufferedReader().use { it.readText() }
 }

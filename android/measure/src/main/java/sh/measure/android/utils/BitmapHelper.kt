@@ -206,7 +206,5 @@ internal object BitmapHelper {
         }
     }
 
-    private fun isMainThread(): Boolean {
-        return Thread.currentThread() == Looper.getMainLooper().thread
-    }
+    private fun isMainThread(): Boolean = Thread.currentThread() == Looper.getMainLooper().thread
 }

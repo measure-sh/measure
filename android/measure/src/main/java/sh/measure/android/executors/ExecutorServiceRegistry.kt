@@ -27,25 +27,19 @@ internal interface ExecutorServiceRegistry {
 internal class ExecutorServiceRegistryImpl : ExecutorServiceRegistry {
     private val executors: MutableMap<ExecutorServiceName, MeasureExecutorService> by lazy { mutableMapOf() }
 
-    override fun ioExecutor(): MeasureExecutorService {
-        return executors.getOrPut(ExecutorServiceName.IOExecutor) {
-            val threadFactory = namedThreadFactory("msr-io")
-            MeasureExecutorServiceImpl(threadFactory)
-        }
+    override fun ioExecutor(): MeasureExecutorService = executors.getOrPut(ExecutorServiceName.IOExecutor) {
+        val threadFactory = namedThreadFactory("msr-io")
+        MeasureExecutorServiceImpl(threadFactory)
     }
 
-    override fun defaultExecutor(): MeasureExecutorService {
-        return executors.getOrPut(ExecutorServiceName.DefaultExecutor) {
-            val threadFactory = namedThreadFactory("msr-default")
-            MeasureExecutorServiceImpl(threadFactory)
-        }
+    override fun defaultExecutor(): MeasureExecutorService = executors.getOrPut(ExecutorServiceName.DefaultExecutor) {
+        val threadFactory = namedThreadFactory("msr-default")
+        MeasureExecutorServiceImpl(threadFactory)
     }
 
-    override fun eventExportExecutor(): MeasureExecutorService {
-        return executors.getOrPut(ExecutorServiceName.ExportExecutor) {
-            val threadFactory = namedThreadFactory("msr-export")
-            MeasureExecutorServiceImpl(threadFactory)
-        }
+    override fun eventExportExecutor(): MeasureExecutorService = executors.getOrPut(ExecutorServiceName.ExportExecutor) {
+        val threadFactory = namedThreadFactory("msr-export")
+        MeasureExecutorServiceImpl(threadFactory)
     }
 
     private fun namedThreadFactory(threadName: String) = ThreadFactory { runnable: Runnable ->

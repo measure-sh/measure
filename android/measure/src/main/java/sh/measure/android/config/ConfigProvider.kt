@@ -6,7 +6,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
 
-internal interface ConfigProvider : IMeasureConfig, InternalConfig {
+internal interface ConfigProvider :
+    IMeasureConfig,
+    InternalConfig {
     fun loadNetworkConfig()
     fun shouldTrackHttpBody(url: String, contentType: String?): Boolean
     fun shouldTrackHttpUrl(url: String): Boolean
@@ -161,9 +163,7 @@ internal class ConfigProviderImpl(
         }
     }
 
-    override fun shouldTrackHttpHeader(key: String): Boolean {
-        return !combinedHttpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
-    }
+    override fun shouldTrackHttpHeader(key: String): Boolean = !combinedHttpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
 
     override fun setMeasureUrl(url: String) {
         combinedHttpUrlBlocklist.add(url)
