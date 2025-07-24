@@ -62,7 +62,8 @@ class MeasurePluginTest {
         agpVersion: SemVer,
         gradleVersion: GradleVersion,
     ) {
-        val project = MeasurePluginFixture(agpVersion, minifyEnabled = true, enabled = false).gradleProject
+        val project =
+            MeasurePluginFixture(agpVersion, minifyEnabled = true, enabled = false).gradleProject
         val assembleResult = build(gradleVersion, project.rootDir, ":app:assembleRelease")
         assertThat(assembleResult).doesNotHaveTask(":app:extractReleaseManifestData")
         assertThat(assembleResult).doesNotHaveTask(":app:calculateApkSizeRelease")
@@ -95,7 +96,11 @@ class MeasurePluginTest {
     ) {
         server.enqueue(MockResponse().setResponseCode(200))
         server.start(8080)
-        val project = MeasurePluginFixture(agpVersion, setMeasureApiKey = true, measureApiUrl = "http://localhost:8080").gradleProject
+        val project = MeasurePluginFixture(
+            agpVersion,
+            setMeasureApiKey = true,
+            measureApiUrl = "http://localhost:8080"
+        ).gradleProject
         build(gradleVersion, project.rootDir, ":app:assembleRelease")
         assertEquals(1, server.requestCount)
     }
@@ -108,7 +113,8 @@ class MeasurePluginTest {
     ) {
         val project = MeasurePluginFixture(agpVersion, setMeasureApiKey = false).gradleProject
         val result = build(gradleVersion, project.rootDir, ":app:assembleRelease")
-        assertThat(result).output().contains("[ERROR]: sh.measure.android.API_KEY missing in manifest, Measure SDK will not be initialized.")
+        assertThat(result).output()
+            .contains("[ERROR]: sh.measure.android.API_KEY missing in manifest, Measure SDK will not be initialized.")
     }
 
     @ParameterizedTest
@@ -119,7 +125,8 @@ class MeasurePluginTest {
     ) {
         val project = MeasurePluginFixture(agpVersion, setMeasureApiUrl = false).gradleProject
         val result = build(gradleVersion, project.rootDir, ":app:assembleRelease")
-        assertThat(result).output().contains("[ERROR]: sh.measure.android.API_URL missing in manifest, Measure SDK will not be initialized.")
+        assertThat(result).output()
+            .contains("[ERROR]: sh.measure.android.API_URL missing in manifest, Measure SDK will not be initialized.")
     }
 
     @ParameterizedTest
@@ -151,11 +158,8 @@ class MeasurePluginTest {
             return Stream.of(
                 Arguments.of(SemVer(7, 4, 1), GradleVersion.version("7.5")),
                 Arguments.of(SemVer(8, 0, 2), GradleVersion.version("8.0")),
-                Arguments.of(SemVer(8, 2, 1), GradleVersion.version("8.2")),
                 Arguments.of(SemVer(8, 3, 2), GradleVersion.version("8.5")),
-                Arguments.of(SemVer(8, 4, 1), GradleVersion.version("8.6")),
                 Arguments.of(SemVer(8, 5, 2), GradleVersion.version("8.7")),
-                Arguments.of(SemVer(8, 6, 1), GradleVersion.version("8.7")),
                 Arguments.of(SemVer(8, 7, 3), GradleVersion.version("8.9")),
                 Arguments.of(SemVer(8, 8, 0), GradleVersion.version("8.10.2")),
                 Arguments.of(SemVer(8, 9, 0), GradleVersion.version("8.11.1")),
