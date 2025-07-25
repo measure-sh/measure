@@ -95,7 +95,8 @@ const SessionsVsExceptionsPlot: React.FC<SessionsVsExceptionsPlotProps> = ({ fil
           axisBottom={{
             tickPadding: 20,
             format: '%b %d, %Y',
-            legendPosition: 'middle'
+            legendPosition: 'middle',
+            tickRotation: 45
           }}
           axisLeft={{
             tickSize: 1,
