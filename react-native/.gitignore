@@ -70,14 +70,8 @@ bazel-out/
 *.lock
 
 # Expo App
-example/expo/android/.gradle/
-example/expo/android/app/build/
-example/expo/android/build/
-example/expo/ios/Pods/
-example/expo/ios/Podfile.lock
-example/expo/ios/build/
-example/expo/ios/DerivedData/
-example/expo/ios/*.xcworkspace
+example/expo/android/
+example/expo/ios/
 example/expo/.expo/
 example/expo/.yarn/*
 example/expo/.expo-shared/
