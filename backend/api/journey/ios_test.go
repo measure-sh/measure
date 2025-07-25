@@ -63,3 +63,41 @@ func TestNewJourneyiOSOne(t *testing.T) {
 		}
 	}
 }
+
+func TestNewJourneyiOSWithScreenViews(t *testing.T) {
+	events, err := readEvents("ios_events_two.json")
+	if err != nil {
+		panic(err)
+	}
+
+	journey := NewJourneyiOS(events, &Options{
+		BiGraph: true,
+	})
+
+	vertices := journey.GetNodeVertices()
+	screenViewNodes := make(map[string]int)
+	var viewControllerVertex int
+
+	for _, vertex := range vertices {
+		nodeName := journey.GetNodeName(vertex)
+		switch nodeName {
+		case "home", "order", "checkout":
+			screenViewNodes[nodeName] = vertex
+		case "ControlsViewController":
+			viewControllerVertex = vertex
+		}
+	}
+
+	expectedGraphString := "4 [(0 1) (0 2) (0 3)]"
+	gotGraphString := journey.Graph.String()
+
+	if expectedGraphString != gotGraphString {
+		t.Errorf("Expected graph %q, got %q", expectedGraphString, gotGraphString)
+	}
+
+	for screenName, screenVertex := range screenViewNodes {
+		if !journey.Graph.Edge(viewControllerVertex, screenVertex) {
+			t.Errorf("Expected edge from ControlsViewController to %s screen view", screenName)
+		}
+	}
+}

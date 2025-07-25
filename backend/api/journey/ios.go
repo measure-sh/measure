@@ -22,8 +22,9 @@ type NodeiOS struct {
 	ID int
 
 	// Name is the name of the
-	// lifecycle view controller or
-	// lifecycle swift ui class name.
+	// lifecycle view controller,
+	// lifecycle swift ui class name,
+	// or screen view name.
 	Name string
 
 	// IsViewController indicates the node
@@ -34,6 +35,10 @@ type NodeiOS struct {
 	// IsSwiftUI indicates the node
 	// is of lifecycle swift ui origin.
 	IsSwiftUI bool
+
+	// IsScreenView indicates the node
+	// is a screen view.
+	IsScreenView bool
 
 	// IssueEvents is the list
 	// of issue slice index.
@@ -127,7 +132,7 @@ func (j *JourneyiOS) buildGraph() {
 	var nodeidxs []int
 
 	for i := range j.Nodes {
-		if j.Nodes[i].IsViewController || j.Nodes[i].IsSwiftUI {
+		if j.Nodes[i].IsViewController || j.Nodes[i].IsSwiftUI || j.Nodes[i].IsScreenView {
 			nodeidxs = append(nodeidxs, i)
 		}
 	}
@@ -169,7 +174,7 @@ func (j *JourneyiOS) buildGraph() {
 			continue
 		}
 
-		if nextNode.IsViewController || nextNode.IsSwiftUI {
+		if nextNode.IsViewController || nextNode.IsSwiftUI || nextNode.IsScreenView {
 			j.addEdgeID(v.vertex, w.vertex, currSession)
 		}
 
@@ -189,11 +194,15 @@ func (j *JourneyiOS) buildGraph() {
 			shouldDiscard = true
 		}
 
+		if currEvent.IsScreenView() && nextEvent.IsScreenView() && currNode.Name == nextNode.Name {
+			shouldDiscard = true
+		}
+
 		if shouldDiscard {
 			continue
 		}
 
-		if nextNode.IsViewController || nextNode.IsSwiftUI {
+		if nextNode.IsViewController || nextNode.IsSwiftUI || nextNode.IsScreenView {
 			if j.options.BiGraph {
 				if !j.Graph.Edge(v.vertex, w.vertex) {
 					j.Graph.Add(v.vertex, w.vertex)
@@ -337,7 +346,7 @@ func (j JourneyiOS) GetLastView(node *NodeiOS) (parent *NodeiOS) {
 			break
 		}
 
-		if j.Nodes[c].IsViewController || j.Nodes[c].IsSwiftUI {
+		if j.Nodes[c].IsViewController || j.Nodes[c].IsSwiftUI || j.Nodes[c].IsScreenView {
 			return &j.Nodes[c]
 		}
 	}
@@ -360,6 +369,7 @@ func NewJourneyiOS(events []event.EventField, opts *Options) (journey *JourneyiO
 		node.ID = i
 		viewController := events[i].IsLifecycleViewController()
 		swiftUI := events[i].IsLifecycleSwiftUI()
+		screenView := events[i].IsScreenView()
 		issue := i > 0 && events[i].IsUnhandledException()
 
 		if viewController {
@@ -368,6 +378,9 @@ func NewJourneyiOS(events []event.EventField, opts *Options) (journey *JourneyiO
 		} else if swiftUI {
 			node.Name = events[i].LifecycleSwiftUI.ClassName
 			node.IsSwiftUI = true
+		} else if screenView {
+			node.Name = events[i].ScreenView.Name
+			node.IsScreenView = true
 		} else if issue {
 			// find the previous view node and
 			// attach the issue to that node.
@@ -380,8 +393,8 @@ func NewJourneyiOS(events []event.EventField, opts *Options) (journey *JourneyiO
 					break
 				}
 
-				// we only add issues to view nodes
-				if journey.Nodes[c].IsViewController || journey.Nodes[c].IsSwiftUI {
+				// we only add issues to view and screen view nodes
+				if journey.Nodes[c].IsViewController || journey.Nodes[c].IsSwiftUI || journey.Nodes[c].IsScreenView {
 					addIssue := false
 
 					// only add exception if requested and if the issue exists
@@ -411,7 +424,7 @@ func NewJourneyiOS(events []event.EventField, opts *Options) (journey *JourneyiO
 		// let's construct lookup tables for this
 		// journey because we gonna need to do a bunch
 		// of lookups and inverse lookups at a later point
-		if node.IsViewController || node.IsSwiftUI {
+		if node.IsViewController || node.IsSwiftUI || node.IsScreenView {
 			_, ok := journey.nodelut[node.Name]
 			if !ok {
 				vertex := len(journey.nodelut)

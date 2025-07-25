@@ -894,6 +894,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				event.LifecycleFragmentTypeAttached,
 				event.LifecycleFragmentTypeResumed,
 			},
+			event.TypeScreenView,
 		)
 	case opsys.AppleFamily:
 		whereVals = append(
@@ -907,6 +908,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			[]string{
 				event.LifecycleSwiftUITypeOnAppear,
 			},
+			event.TypeScreenView,
 		)
 	}
 
@@ -943,13 +945,15 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			Select(`toString(lifecycle_fragment.type)`).
 			Select(`toString(lifecycle_fragment.class_name)`).
 			Select(`toString(lifecycle_fragment.parent_activity)`).
-			Select(`toString(lifecycle_fragment.parent_fragment)`)
+			Select(`toString(lifecycle_fragment.parent_fragment)`).
+			Select(`toString(screen_view.name)`)
 	case opsys.AppleFamily:
 		stmt.
 			Select(`toString(lifecycle_view_controller.type)`).
 			Select(`toString(lifecycle_view_controller.class_name)`).
 			Select(`toString(lifecycle_swift_ui.type)`).
-			Select(`toString(lifecycle_swift_ui.class_name)`)
+			Select(`toString(lifecycle_swift_ui.class_name)`).
+			Select(`toString(screen_view.name)`)
 	}
 
 	if len(af.Versions) > 0 {
@@ -963,16 +967,16 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	if opts.All {
 		switch opsys.ToFamily(a.OSName) {
 		case opsys.Android:
-			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
+			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
 		case opsys.AppleFamily:
-			stmt.Where("((type = ? and `lifecycle_view_controller.type` in ?) or (type = ? and `lifecycle_swift_ui.type` in ?) or (type = ? and `exception.handled` = ?))", whereVals...)
+			stmt.Where("((type = ? and `lifecycle_view_controller.type` in ?) or (type = ? and `lifecycle_swift_ui.type` in ?) or (type = ?) or (type = ? and `exception.handled` = ?))", whereVals...)
 		}
 	} else if opts.Exceptions {
-		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ? and `exception.handled` = ?))", whereVals...)
+		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?) or (type = ? and `exception.handled` = ?))", whereVals...)
 	} else if opts.ANRs {
 		switch a.OSName {
 		case opsys.Android:
-			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?))", whereVals...)
+			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?) or (type = ?))", whereVals...)
 		}
 	}
 
@@ -1033,6 +1037,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		var lifecycleViewControllerClassName string
 		var lifecycleSwiftUIType string
 		var lifecycleSwiftUIClassName string
+		var screenViewName string
 
 		dest := []any{
 			&ev.ID,
@@ -1051,6 +1056,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				&lifecycleFragmentClassName,
 				&lifecycleFragmentParentActivity,
 				&lifecycleFragmentParentFragment,
+				&screenViewName,
 			)
 		case opsys.AppleFamily:
 			dest = append(
@@ -1059,6 +1065,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				&lifecycleViewControllerClassName,
 				&lifecycleSwiftUIType,
 				&lifecycleSwiftUIClassName,
+				&screenViewName,
 			)
 		}
 
@@ -1087,6 +1094,10 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			ev.LifecycleSwiftUI = &event.LifecycleSwiftUI{
 				Type:      lifecycleSwiftUIType,
 				ClassName: lifecycleSwiftUIClassName,
+			}
+		} else if ev.IsScreenView() {
+			ev.ScreenView = &event.ScreenView{
+				Name: screenViewName,
 			}
 		} else if ev.IsException() {
 			ev.Exception = &event.Exception{}
