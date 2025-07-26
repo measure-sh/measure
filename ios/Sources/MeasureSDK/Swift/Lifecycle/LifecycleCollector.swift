@@ -77,7 +77,18 @@ final class BaseLifecycleCollector: LifecycleCollector {
             "UIKitNavigationController",
             "NavigationStackHostingController",
             "NotifyingMulticolumnSplitViewController",
-            "StyleContextSplitViewController"
+            "StyleContextSplitViewController",
+            "UISystemAssistantViewController",
+            "UISystemKeyboardDockController",
+            "UIEditingOverlayViewController",
+            "UIInputWindowContoller",
+            "PrewarmingViewController",
+            "UIInputViewController",
+            "UICompactibilityInputViewController",
+            "UICompactibilityInputViewController",
+            "UIPredictionViewController",
+            "_UICursorAccessoryViewController",
+            "UIMultiscriptCandidateViewController"
         ]
 
         guard !excludedClassNames.contains(where: { className.contains($0) }) else { return }
