@@ -92,6 +92,12 @@ const initNavData = {
       title: "Settings",
       items: [
         {
+          title: "Sampling",
+          url: "sampling",
+          isActive: false,
+          external: false,
+        },
+        {
           title: "Apps",
           url: "apps",
           isActive: false,
