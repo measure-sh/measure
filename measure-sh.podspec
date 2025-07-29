@@ -13,8 +13,7 @@ Pod::Spec.new do |spec|
                         :tag => "ios-v#{spec.version}" }
   spec.source_files = "ios/Sources/MeasureSDK/Swift/**/*.{swift}", "ios/Sources/MeasureSDK/Objc/**/*.{h,m}"
   spec.public_header_files = "ios/Sources/MeasureSDK/Objc/include/**/*.h"
-  spec.module_map = "ios/Sources/MeasureSDK/Objc/include/module.modulemap"
-  spec.resources    = ["ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModel.xcdatamodeld", "ios/Sources/MeasureSDK/Swift/Resources/PrivacyInfo.xcprivacy"]
+  spec.resources    = ["ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModel.xcdatamodeld"]
   spec.frameworks   = "Foundation", "UIKit", "CoreData"
   spec.dependency "PLCrashReporter"
 end

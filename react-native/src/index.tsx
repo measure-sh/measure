@@ -36,10 +36,5 @@ export function initialize(apiKey: string) {
  * Example multiply method - uses native side if available.
  */
 export function multiply(a: number, b: number): number {
-  if (MeasureModule.multiply) {
-    return MeasureModule.multiply(a, b);
-  }
-
-  // Fallback for dev
   return a * b;
 }
