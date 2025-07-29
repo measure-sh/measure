@@ -17,8 +17,6 @@ end
 target 'rnExample' do
   config = use_native_modules!
 
-  use_frameworks! :linkage => :static
-
   pod 'MeasureReactNative', :path => '../../..'
   pod 'measure-sh', :path => '../../../..'
 
