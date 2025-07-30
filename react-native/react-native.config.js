@@ -6,6 +6,7 @@ module.exports = {
         },
         android: {
           packageInstance: 'new MeasureModule()',
+          packageImportPath: 'import com.measure.MeasurePackage;',
         },
       },
     },

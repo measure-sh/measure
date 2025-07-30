@@ -24,5 +24,10 @@
     "react-native-builder-bob": "^0.40.13",
     "react-native-monorepo-config": "^0.1.9"
   },
-  "private": true
+  "private": true,
+  "expo": {
+  "autolinking": {
+    "nativeModulesDir": "../../"
+    }
+  }
 }
