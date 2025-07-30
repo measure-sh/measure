@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :sparkles: New features
+
+- (**backend**): Use screen view events to build journey (#2460) by @abhaysood in #2460
+
 ### :bug: Bug fixes
 
 - (**frontend**): Add tick rotation to fix overview sessions vs exceptions graph date overlap by @anupcowkur in #2458
