@@ -26,8 +26,8 @@
   },
   "private": true,
   "expo": {
-  "autolinking": {
-    "nativeModulesDir": "../../"
+    "autolinking": {
+      "nativeModulesDir": "../../"
     }
   }
 }
