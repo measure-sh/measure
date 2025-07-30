@@ -213,7 +213,7 @@ protocol MeasureConfig {
             debugPrint("Trace sampling rate must be between 0.0 and 1.0")
         }
     }
-    
+
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
     /// - Parameters:
     ///   - enableLogging: Enable or disable internal SDK logs. Defaults to `false`.
