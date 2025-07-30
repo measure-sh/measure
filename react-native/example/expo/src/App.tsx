@@ -1,18 +1,19 @@
-import { Text, View, StyleSheet, Button } from 'react-native';
+import { Text, View, StyleSheet, Button, Alert } from 'react-native';
 import { multiply, initialize } from '@measure/react-native';
 import React from 'react';
 
 const result = multiply(3, 10);
 
 export default function App() {
-  const handleInitialize = () => {
-    initialize('YOUR_API_KEY')
-      .then(() => {
-        console.log('Measure SDK initialized');
-      })
-      .catch((err) => {
-        console.error('Initialization failed:', err);
-      });
+  const handleInitialize = async () => {
+    try {
+      const message = await initialize('msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c');
+      console.log('✅ Measure SDK initialized:', message);
+      Alert.alert('Success', `Measure SDK initialized:\n${message}`);
+    } catch (err) {
+      console.error('❌ Failed to initialize Measure SDK:', err);
+      Alert.alert('Error', 'Failed to initialize Measure SDK');
+    }
   };
 
   return (

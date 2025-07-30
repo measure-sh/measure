@@ -1,0 +1,10 @@
+{
+  "name": "@measure/react-native",
+  "platforms": ["android", "ios"],
+  "android": {
+    "modulesClassNames": ["com.measure.MeasurePackage"]
+  },
+  "ios": {
+    "modulesClassNames": []
+  }
+}

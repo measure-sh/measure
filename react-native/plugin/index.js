@@ -1,32 +1,14 @@
-const { withPodfile } = require('@expo/config-plugins');
+const {
+  withPodfile,
+  withSettingsGradle,
+  withMainApplication,
+} = require('@expo/config-plugins');
 
 const MEASURE_POD_TAG = `# @measure/react-native`;
 const MEASURE_POD_LINES = `
 ${MEASURE_POD_TAG}
   pod 'MeasureReactNative', :path => '../../..', :modular_headers => false
   pod 'measure-sh', :path => '../../../..', :modular_headers => false
-`;
-
-const DEDUPE_SCRIPT = `
-  # Fix duplicate headers and signing issues
-  installer.pods_project.targets.each do |target|
-    target.build_phases.each do |phase|
-      if phase.respond_to?(:files)
-        seen = {}
-        phase.files.delete_if do |file|
-          ref = file.file_ref
-          next false unless ref
-          path = ref.real_path.to_s
-          if seen[path]
-            true
-          else
-            seen[path] = true
-            false
-          end
-        end
-      end
-    end
-  end
 `;
 
 function injectMeasurePods(contents) {
@@ -39,31 +21,59 @@ function injectMeasurePods(contents) {
   return contents;
 }
 
-function injectPostInstall(contents) {
-  if (contents.includes('post_install do |installer|')) {
-    if (contents.includes('Fix duplicate headers')) return contents; // Already added
-
-    return contents.replace(
-      /(post_install do \|installer\|[\s\S]*?)end/,
-      (match) => match.replace(/end$/, `${DEDUPE_SCRIPT}\nend`)
-    );
-  } else {
-    return `${contents}\n\npost_install do |installer|\n${DEDUPE_SCRIPT}\nend\n`;
-  }
-}
-
-function withMeasure(config) {
+function withMeasureIos(config) {
   return withPodfile(config, (config) => {
     console.log('[Measure Plugin] running withPodfile');
-
-    let contents = config.modResults.contents;
-
-    contents = injectMeasurePods(contents);
-    // contents = injectPostInstall(contents);
-
-    config.modResults.contents = contents;
+    config.modResults.contents = injectMeasurePods(config.modResults.contents);
     return config;
   });
 }
 
-module.exports = withMeasure;
+function withMeasureAndroidSettings(config) {
+  return withSettingsGradle(config, (mod) => {
+    console.log('[Measure Plugin] modifying settings.gradle');
+
+    const includeLine = `include(":measure-react-native")`;
+    const projectLine = `project(":measure-react-native").projectDir = new File(rootDir, "../../../android")`;
+
+    if (!mod.modResults.contents.includes(includeLine)) {
+      mod.modResults.contents += `\n${includeLine}\n${projectLine}\n`;
+    }
+
+    return mod;
+  });
+}
+
+function withMeasureMainApplication(config) {
+  return withMainApplication(config, (mod) => {
+    console.log('[Measure Plugin] modifying MainApplication.kt');
+
+    let contents = mod.modResults.contents;
+
+    // 1. Ensure the import is present
+    if (!contents.includes('import com.measure.MeasurePackage')) {
+      contents = contents.replace(
+        /(package .*?\n)/,
+        `$1import com.measure.MeasurePackage\n`
+      );
+    }
+
+    // 2. Inject packages.add(...) just before "return packages"
+    if (!contents.includes('packages.add(MeasurePackage())')) {
+      contents = contents.replace(
+        /(return\s+packages;?)/,
+        `packages.add(MeasurePackage())\n            $1`
+      );
+    }
+
+    mod.modResults.contents = contents;
+    return mod;
+  });
+}
+
+module.exports = function withMeasurePlugin(config) {
+  config = withMeasureIos(config);
+  config = withMeasureAndroidSettings(config);
+  config = withMeasureMainApplication(config);
+  return config;
+};
