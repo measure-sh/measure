@@ -22,8 +22,9 @@ type NodeAndroid struct {
 	ID int
 
 	// Name is the name of the
-	// lifecycle activity or
-	// fragment's class name.
+	// lifecycle activity, 
+	// fragment's class name,
+	// or screen view name.
 	Name string
 
 	// IsActivity indicates the node
@@ -37,6 +38,10 @@ type NodeAndroid struct {
 	// IsFragmentParent indicates the fragment
 	// node is maybe a parent fragment.
 	IsFragmentParent bool
+
+	// IsScreenView indicates the node
+	// is a screen view.
+	IsScreenView bool
 
 	// IssueEvents is the list
 	// of issue slice index.
@@ -132,7 +137,7 @@ func (j *JourneyAndroid) buildGraph() {
 	var nodeidxs []int
 
 	for i := range j.Nodes {
-		if j.Nodes[i].IsActivity || j.Nodes[i].IsFragment {
+		if j.Nodes[i].IsActivity || j.Nodes[i].IsFragment || j.Nodes[i].IsScreenView {
 			nodeidxs = append(nodeidxs, i)
 		}
 	}
@@ -230,6 +235,10 @@ func (j *JourneyAndroid) buildGraph() {
 			j.addEdgeID(v.vertex, w.vertex, currSession)
 		}
 
+		if nextNode.IsScreenView {
+			j.addEdgeID(v.vertex, w.vertex, currSession)
+		}
+
 		// session has changed, so let's start over
 		if !sameSession {
 			continue
@@ -243,6 +252,10 @@ func (j *JourneyAndroid) buildGraph() {
 		}
 
 		if currEvent.IsLifecycleFragment() && nextEvent.IsLifecycleFragment() && currNode.Name == nextNode.Name {
+			shouldDiscard = true
+		}
+
+		if currEvent.IsScreenView() && nextEvent.IsScreenView() && currNode.Name == nextNode.Name {
 			shouldDiscard = true
 		}
 
@@ -264,6 +277,19 @@ func (j *JourneyAndroid) buildGraph() {
 		}
 
 		if nextNode.IsActivity {
+			if j.options.BiGraph {
+				if !j.Graph.Edge(v.vertex, w.vertex) {
+					j.Graph.Add(v.vertex, w.vertex)
+				}
+			} else {
+				if !j.Graph.Edge(w.vertex, v.vertex) {
+					j.Graph.Add(v.vertex, w.vertex)
+				}
+			}
+			continue
+		}
+
+		if nextNode.IsScreenView {
 			if j.options.BiGraph {
 				if !j.Graph.Edge(v.vertex, w.vertex) {
 					j.Graph.Add(v.vertex, w.vertex)
@@ -503,6 +529,7 @@ func NewJourneyAndroid(events []event.EventField, opts *Options) (journey *Journ
 		node.ID = i
 		activity := events[i].IsLifecycleActivity()
 		fragment := events[i].IsLifecycleFragment()
+		screenView := events[i].IsScreenView()
 		issue := i > 0 && events[i].IsUnhandledException() || events[i].IsANR()
 
 		if activity {
@@ -517,6 +544,9 @@ func NewJourneyAndroid(events []event.EventField, opts *Options) (journey *Journ
 				node.IsFragmentParent = true
 			}
 
+		} else if screenView {
+			node.Name = events[i].ScreenView.Name
+			node.IsScreenView = true
 		} else if issue {
 			// find the previous activity node
 			// and attach the issue to that node.
@@ -529,8 +559,8 @@ func NewJourneyAndroid(events []event.EventField, opts *Options) (journey *Journ
 					break
 				}
 
-				// we only add issues to activity nodes
-				if journey.Nodes[c].IsActivity {
+				// we only add issues to activity and screen view nodes
+				if journey.Nodes[c].IsActivity || journey.Nodes[c].IsScreenView {
 					addIssue := false
 
 					// only add exception if requested and if the issue exists
@@ -567,7 +597,7 @@ func NewJourneyAndroid(events []event.EventField, opts *Options) (journey *Journ
 		// let's construct lookup tables for this
 		// journey because we gonna need to do a bunch
 		// of lookups and inverse lookups at a later point
-		if node.IsActivity || node.IsFragment {
+		if node.IsActivity || node.IsFragment || node.IsScreenView {
 			_, ok := journey.nodelut[node.Name]
 			if !ok {
 				vertex := len(journey.nodelut)

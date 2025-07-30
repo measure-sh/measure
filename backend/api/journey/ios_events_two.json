@@ -1,0 +1,39 @@
+[
+  {
+    "id": "f3195996-51cc-48a4-b7bd-fb0ec20d6a30",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:49.970Z",
+    "type": "lifecycle_view_controller",
+    "lifecycle_view_controller": {
+      "type": "viewDidAppear",
+      "class_name": "ControlsViewController"
+    }
+  },
+  {
+    "id": "084d900a-41fb-43ac-b74a-8053853cae6b",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:49.972Z",
+    "type": "screen_view",
+    "screen_view": {
+      "name": "home"
+    }
+  },
+  {
+    "id": "084d900a-41fb-43ac-b74a-8053853cae6c",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:49.974Z",
+    "type": "screen_view",
+    "screen_view": {
+      "name": "order"
+    }
+  },
+  {
+    "id": "084d900a-41fb-43ac-b74a-8053853cae6d",
+    "session_id": "557c5de5-4cdd-46d5-891a-7d77fdb94a87",
+    "timestamp": "2024-12-17T12:06:49.976Z",
+    "type": "screen_view",
+    "screen_view": {
+      "name": "checkout"
+    }
+  }
+]

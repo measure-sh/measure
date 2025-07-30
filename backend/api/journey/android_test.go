@@ -2007,3 +2007,51 @@ func TestNewJourneyAndroidANRsOne(t *testing.T) {
 		}
 	}
 }
+
+func TestNewJourneyAndroidScreenViewsFour(t *testing.T) {
+	events, err := readEvents("android_events_four.json")
+	if err != nil {
+		panic(err)
+	}
+
+	journey := NewJourneyAndroid(events, &Options{
+		BiGraph: true,
+	})
+
+	// Verify correct number of nodes (1 activity + 3 screen views = 4 nodes)
+	expectedOrder := 4
+	gotOrder := journey.Graph.Order()
+
+	if expectedOrder != gotOrder {
+		t.Errorf("Expected %d vertices, but got %d", expectedOrder, gotOrder)
+	}
+
+	vertices := journey.GetNodeVertices()
+	screenViewNodes := make(map[string]int)
+	var activityVertex int
+
+	for _, vertex := range vertices {
+		nodeName := journey.GetNodeName(vertex)
+		switch nodeName {
+		case "home", "order", "checkout":
+			screenViewNodes[nodeName] = vertex
+		case "sh.measure.sample.ComposeNavigationActivity":
+			activityVertex = vertex
+		}
+	}
+
+	// Verify graph structure: activity should have edges to all screen view nodes
+	expectedGraphString := "4 [(0 1) (0 2) (0 3)]"
+	gotGraphString := journey.Graph.String()
+
+	if expectedGraphString != gotGraphString {
+		t.Errorf("Expected graph %q, got %q", expectedGraphString, gotGraphString)
+	}
+
+	// Verify edges from activity to each screen view
+	for screenName, screenVertex := range screenViewNodes {
+		if !journey.Graph.Edge(activityVertex, screenVertex) {
+			t.Errorf("Expected edge from ComposeNavigationActivity to %s screen view", screenName)
+		}
+	}
+}
