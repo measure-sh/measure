@@ -1,4 +1,4 @@
-package com.measure
+package sh.measurern
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

@@ -51,10 +51,10 @@ function withMeasureMainApplication(config) {
     let contents = mod.modResults.contents;
 
     // 1. Ensure the import is present
-    if (!contents.includes('import com.measure.MeasurePackage')) {
+    if (!contents.includes('import sh.measurern.MeasurePackage')) {
       contents = contents.replace(
         /(package .*?\n)/,
-        `$1import com.measure.MeasurePackage\n`
+        `$1import sh.measurern.MeasurePackage\n`
       );
     }
 

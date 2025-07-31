@@ -43,6 +43,11 @@
     "release": "release-it --only-version"
   },
   "keywords": [
+    "measure",
+    "monitoring",
+    "sdk",
+    "expo",
+    "mobile",
     "react-native",
     "ios",
     "android"
