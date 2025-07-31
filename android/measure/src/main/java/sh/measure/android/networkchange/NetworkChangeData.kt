@@ -1,7 +1,10 @@
 package sh.measure.android.networkchange
 
+import android.annotation.SuppressLint
 import kotlinx.serialization.Serializable
+import sh.measure.android.cel.CelFieldAccessor
 
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class NetworkChangeData(
     /**
@@ -30,4 +33,15 @@ internal data class NetworkChangeData(
      * The name of the network provider that is now active. Only set for cellular networks.
      */
     val network_provider: String,
-)
+): CelFieldAccessor {
+    override fun getField(fieldName: String): Any? {
+        return when (fieldName) {
+            "previous_network_type" -> previous_network_type
+            "network_type" -> network_type
+            "previous_network_generation" -> previous_network_generation
+            "network_generation" -> network_generation
+            "network_provider" -> network_provider
+            else -> null
+        }
+    }
+}
