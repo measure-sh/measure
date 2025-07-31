@@ -1,6 +1,7 @@
 package sh.measure.android.events
 
 import sh.measure.android.attributes.AttributeValue
+import sh.measure.android.cel.CelFieldAccessor
 
 /**
  * Represents an event in Measure. This object maps very closely to the event object in
@@ -54,7 +55,7 @@ internal data class Event<T>(
      * however, the allowed values can only be String, Int, Long, Double, Float or Boolean.
      */
     val userDefinedAttributes: Map<String, AttributeValue>,
-) {
+) : CelFieldAccessor {
     /**
      * Adds an attribute to the event.
      *
@@ -67,5 +68,39 @@ internal data class Event<T>(
 
     fun addAttachment(attachment: Attachment) {
         attachments.add(attachment)
+    }
+
+    override fun getField(fieldName: String): Any? {
+        return when (fieldName) {
+            "id" -> id
+            "session_id" -> sessionId
+            "user_triggered" -> userTriggered
+            "type" -> type.value
+            "attribute" -> attributes
+            "user_defined_attribute" -> userDefinedAttributes
+            EventType.STRING.value,
+            EventType.EXCEPTION.value,
+            EventType.ANR.value,
+            EventType.APP_EXIT.value,
+            EventType.CLICK.value,
+            EventType.LONG_CLICK.value,
+            EventType.SCROLL.value,
+            EventType.LIFECYCLE_ACTIVITY.value,
+            EventType.LIFECYCLE_FRAGMENT.value,
+            EventType.LIFECYCLE_APP.value,
+            EventType.COLD_LAUNCH.value,
+            EventType.WARM_LAUNCH.value,
+            EventType.HOT_LAUNCH.value,
+            EventType.NETWORK_CHANGE.value,
+            EventType.HTTP.value,
+            EventType.MEMORY_USAGE.value,
+            EventType.TRIM_MEMORY.value,
+            EventType.CPU_USAGE.value,
+            EventType.SCREEN_VIEW.value,
+            EventType.CUSTOM.value,
+            EventType.BUG_REPORT.value,
+                -> data
+            else -> null
+        }
     }
 }

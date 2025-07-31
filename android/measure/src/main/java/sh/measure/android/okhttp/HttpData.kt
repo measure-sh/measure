@@ -1,7 +1,10 @@
 package sh.measure.android.okhttp
 
+import android.annotation.SuppressLint
 import kotlinx.serialization.Serializable
+import sh.measure.android.cel.CelFieldAccessor
 
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class HttpData(
     /**
@@ -65,7 +68,7 @@ internal data class HttpData(
      * @see [HttpClientName]
      */
     val client: String,
-) {
+): CelFieldAccessor {
 
     // Builder
     class Builder {
@@ -124,6 +127,24 @@ internal data class HttpData(
                 response_body = responseBody,
                 client = client,
             )
+        }
+    }
+
+    override fun getField(fieldName: String): Any? {
+        return when (fieldName) {
+            "url" -> url
+            "method" -> method
+            "status_code" -> status_code
+            "start_time" -> start_time
+            "end_time" -> end_time
+            "failure_reason" -> failure_reason
+            "failure_description" -> failure_description
+            "request_headers" -> request_headers
+            "response_headers" -> response_headers
+            "request_body" -> request_body
+            "response_body" -> response_body
+            "client" -> client
+            else -> null
         }
     }
 }

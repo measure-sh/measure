@@ -9,6 +9,7 @@ import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.AttachmentType
+import sh.measure.android.events.CustomEventData
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
@@ -234,7 +235,7 @@ internal object TestData {
         onNextDrawUptime: Long = 400,
         launchedActivity: String = "launched_activity",
         hasSavedState: Boolean = true,
-        intentData: String = "intent_data",
+        intentData: String? = "intent_data",
     ): ColdLaunchData {
         return ColdLaunchData(
             processStartUptime,
@@ -255,7 +256,7 @@ internal object TestData {
         onNextDrawUptime: Long = 200,
         launchedActivity: String = "launched_activity",
         hasSavedState: Boolean = true,
-        intentData: String = "intent_data",
+        intentData: String? = "intent_data",
         isLukewarm: Boolean = false,
     ): WarmLaunchData {
         return WarmLaunchData(
@@ -641,8 +642,10 @@ internal object TestData {
         )
     }
 
-    fun getBugReportData(): BugReportData {
-        return BugReportData("Bug report description")
+    fun getBugReportData(
+        description: String = "Bug report description",
+    ): BugReportData {
+        return BugReportData(description)
     }
 
     fun getMsrAttachment(
@@ -651,5 +654,9 @@ internal object TestData {
         type: String = AttachmentType.SCREENSHOT,
     ): MsrAttachment {
         return MsrAttachment(name, bytes = content, type = type)
+    }
+
+    fun getCustomEvent(name: String = "custom-event"): CustomEventData {
+        return CustomEventData(name)
     }
 }

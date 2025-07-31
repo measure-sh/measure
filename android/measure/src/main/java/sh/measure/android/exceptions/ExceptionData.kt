@@ -1,10 +1,13 @@
 package sh.measure.android.exceptions
 
+import android.annotation.SuppressLint
 import kotlinx.serialization.Serializable
+import sh.measure.android.cel.CelFieldAccessor
 
 /**
  * Represents an exception in Measure. This is used to track handled and unhandled exceptions.
  */
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class ExceptionData(
     /**
@@ -37,8 +40,18 @@ internal data class ExceptionData(
      * For Android this is always JVM.
      */
     val framework: String? = ExceptionFramework.JVM,
-)
+) : CelFieldAccessor {
 
+    override fun getField(fieldName: String): Any? {
+        return when (fieldName) {
+            "handled" -> handled
+            "foreground" -> foreground
+            else -> null
+        }
+    }
+}
+
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class MeasureThread(
     val name: String,
@@ -48,6 +61,7 @@ internal data class MeasureThread(
 /**
  * Represents a stacktrace in Measure.
  */
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class ExceptionUnit(
     /**
@@ -89,6 +103,7 @@ internal data class ExceptionUnit(
 /**
  * Represents a stackframe in Measure.
  */
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class Frame(
     /**
@@ -150,6 +165,7 @@ internal data class Frame(
 /**
  * Represents a binary image. Used for Dart exceptions and native crashes.
  */
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class BinaryImage(
     /**

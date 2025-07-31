@@ -1,10 +1,13 @@
 package sh.measure.android.applaunch
 
+import android.annotation.SuppressLint
 import android.os.Process
 import curtains.onNextDraw
 import kotlinx.serialization.Serializable
 import sh.measure.android.MeasureInitProvider
+import sh.measure.android.cel.CelFieldAccessor
 
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class ColdLaunchData(
     /**
@@ -41,8 +44,22 @@ internal data class ColdLaunchData(
      * The Intent data used to launch the [launched_activity].
      */
     var intent_data: String?,
-)
+) : CelFieldAccessor {
+    override fun getField(fieldName: String): Any? {
+        return when (fieldName) {
+            "process_start_uptime" -> process_start_uptime
+            "process_start_requested_uptime" -> process_start_requested_uptime
+            "content_provider_attach_uptime" -> content_provider_attach_uptime
+            "on_next_draw_uptime" -> on_next_draw_uptime
+            "launched_activity" -> launched_activity
+            "has_saved_state" -> has_saved_state
+            "intent_data" -> intent_data
+            else -> null
+        }
+    }
+}
 
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class WarmLaunchData(
     /**
@@ -89,8 +106,24 @@ internal data class WarmLaunchData(
      * Whether the warm launch is actually a lukewarm launch.
      */
     var is_lukewarm: Boolean,
-)
+) : CelFieldAccessor {
+    override fun getField(fieldName: String): Any? {
+        return when (fieldName) {
+            "process_start_uptime" -> process_start_uptime
+            "process_start_requested_uptime" -> process_start_requested_uptime
+            "content_provider_attach_uptime" -> content_provider_attach_uptime
+            "app_visible_uptime" -> app_visible_uptime
+            "on_next_draw_uptime" -> on_next_draw_uptime
+            "launched_activity" -> launched_activity
+            "has_saved_state" -> has_saved_state
+            "intent_data" -> intent_data
+            "is_lukewarm" -> is_lukewarm
+            else -> null
+        }
+    }
+}
 
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class HotLaunchData(
     /**
