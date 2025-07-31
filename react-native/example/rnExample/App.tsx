@@ -15,9 +15,7 @@ import {
   Button,
   Alert,
 } from 'react-native';
-import { multiply, initialize } from '@measure/react-native';
-
-const result = multiply(3, 10);
+import { initialize } from '@measure/react-native';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -40,7 +38,6 @@ function App() {
         <NewAppScreen templateFileName="App.tsx" />
       </View>
       <View style={styles.container1}>
-        <Text>Result: {result}</Text>
         <Button title="Initialize SDK" onPress={handleInitialize} />
       </View>
     </>

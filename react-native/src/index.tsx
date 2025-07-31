@@ -31,10 +31,3 @@ export function initialize(apiKey: string) {
   // Optional: fallback for dev mode
   return Promise.resolve();
 }
-
-/**
- * Example multiply method - uses native side if available.
- */
-export function multiply(a: number, b: number): number {
-  return a * b;
-}

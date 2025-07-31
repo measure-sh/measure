@@ -33,7 +33,8 @@
     "!**/.*"
   ],
   "scripts": {
-    "example": "yarn workspace @measure/react-native-example",
+    "exampleExpo": "yarn workspace @measure/react-native-example",
+    "exampleRn": "yarn workspace @measure/rnexample",
     "test": "jest",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
