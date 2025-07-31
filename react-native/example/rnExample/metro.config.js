@@ -13,7 +13,7 @@ module.exports = mergeConfig(defaultConfig, {
       path.resolve(__dirname, '../../node_modules')
     ],
     extraNodeModules: {
-      '@measure/react-native': path.resolve(__dirname, '../../') // local link
+      '@measuresh/react-native': path.resolve(__dirname, '../../') // local link
     }
   }
 });

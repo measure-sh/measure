@@ -2092,13 +2092,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@measure/react-native-example@workspace:.":
+"@measuresh/react-native-example@workspace:.":
   version: 0.0.0-use.local
-  resolution: "@measure/react-native-example@workspace:."
+  resolution: "@measuresh/react-native-example@workspace:."
   dependencies:
     "@babel/core": ^7.20.0
     "@expo/metro-runtime": ~5.0.4
-    "@measure/react-native": "portal:../../../"
+    "@measuresh/react-native": "portal:../../../"
     expo: ~53.0.20
     expo-dev-client: ~5.2.4
     expo-status-bar: ~2.2.3
@@ -2111,9 +2111,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@measure/react-native@portal:../../../::locator=%40measure%2Freact-native-example%40workspace%3A.":
+"@measuresh/react-native@portal:../../../::locator=%40measuresh%2Freact-native-example%40workspace%3A.":
   version: 0.0.0-use.local
-  resolution: "@measure/react-native@portal:../../../::locator=%40measure%2Freact-native-example%40workspace%3A."
+  resolution: "@measuresh/react-native@portal:../../../::locator=%40measuresh%2Freact-native-example%40workspace%3A."
   dependencies:
     "@radix-ui/react-accordion": ^1.2.11
   languageName: node

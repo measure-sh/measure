@@ -15,7 +15,7 @@ import {
   Button,
   Alert,
 } from 'react-native';
-import { initialize } from '@measure/react-native';
+import { initialize } from '@measuresh/react-native';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
