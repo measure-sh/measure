@@ -66,7 +66,6 @@ bazel-out/
 
 # Misc
 *.swp
-*.lock
 
 # Expo App
 example/expo/android/
@@ -80,7 +79,6 @@ example/expo/dist/
 example/expo/.bundle/
 example/expo/*.log
 example/expo/node_modules/
-example/expo/yarn.lock
 example/expo/.idea/
 example/expo/.vscode/
 example/expo/*.iml
@@ -138,4 +136,5 @@ example/rnExample/android/build
 example/rnExample/android/app/build
 example/rnExample/android/app/.cxx
 example/rnExample/ios/rnExample.xcworkspace/xcuserdata
+example/rnExample/ios/Podfile.lock
 example/rnExample/android/local.properties
