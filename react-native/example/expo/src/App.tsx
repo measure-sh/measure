@@ -1,8 +1,6 @@
 import { Text, View, StyleSheet, Button, Alert } from 'react-native';
-import { multiply, initialize } from '@measure/react-native';
+import { initialize } from '@measure/react-native';
 import React from 'react';
-
-const result = multiply(3, 10);
 
 export default function App() {
   const handleInitialize = async () => {
@@ -18,7 +16,7 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome to Measure {result}</Text>
+      <Text style={styles.title}>Welcome to Measure</Text>
       <Button title="Initialize SDK" onPress={handleInitialize} />
     </View>
   );
