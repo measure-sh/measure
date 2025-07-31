@@ -2746,13 +2746,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@measure/react-native-example@workspace:example/expo":
+"@measuresh/react-native-example@workspace:example/expo":
   version: 0.0.0-use.local
-  resolution: "@measure/react-native-example@workspace:example/expo"
+  resolution: "@measuresh/react-native-example@workspace:example/expo"
   dependencies:
     "@babel/core": ^7.20.0
     "@expo/metro-runtime": ~5.0.4
-    "@measure/react-native": "portal:../../../"
+    "@measuresh/react-native": "portal:../../../"
     expo: ~53.0.20
     expo-dev-client: ~5.2.4
     expo-status-bar: ~2.2.3
@@ -2765,17 +2765,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@measure/react-native@portal:../../../::locator=%40measure%2Freact-native-example%40workspace%3Aexample%2Fexpo":
+"@measuresh/react-native@portal:../../../::locator=%40measuresh%2Freact-native-example%40workspace%3Aexample%2Fexpo":
   version: 0.0.0-use.local
-  resolution: "@measure/react-native@portal:../../../::locator=%40measure%2Freact-native-example%40workspace%3Aexample%2Fexpo"
+  resolution: "@measuresh/react-native@portal:../../../::locator=%40measuresh%2Freact-native-example%40workspace%3Aexample%2Fexpo"
   dependencies:
     "@radix-ui/react-accordion": ^1.2.11
   languageName: node
   linkType: soft
 
-"@measure/react-native@workspace:*, @measure/react-native@workspace:.":
+"@measuresh/react-native@workspace:*, @measuresh/react-native@workspace:.":
   version: 0.0.0-use.local
-  resolution: "@measure/react-native@workspace:."
+  resolution: "@measuresh/react-native@workspace:."
   dependencies:
     "@commitlint/config-conventional": ^19.6.0
     "@eslint/compat": ^1.2.7
@@ -2805,14 +2805,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@measure/rnexample@workspace:example/rnExample":
+"@measuresh/rnexample@workspace:example/rnExample":
   version: 0.0.0-use.local
-  resolution: "@measure/rnexample@workspace:example/rnExample"
+  resolution: "@measuresh/rnexample@workspace:example/rnExample"
   dependencies:
     "@babel/core": ^7.25.2
     "@babel/preset-env": ^7.25.3
     "@babel/runtime": ^7.25.0
-    "@measure/react-native": "workspace:*"
+    "@measuresh/react-native": "workspace:*"
     "@react-native-community/cli": 19.0.0
     "@react-native-community/cli-platform-android": 19.0.0
     "@react-native-community/cli-platform-ios": 19.0.0

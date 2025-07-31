@@ -1,5 +1,5 @@
 {
-  "name": "@measure/react-native",
+  "name": "@measuresh/react-native",
   "version": "0.1.0",
   "react-native": "src/index.tsx",
   "description": "Open source tool to monitor mobile apps",
@@ -33,8 +33,8 @@
     "!**/.*"
   ],
   "scripts": {
-    "exampleExpo": "yarn workspace @measure/react-native-example",
-    "exampleRn": "yarn workspace @measure/rnexample",
+    "exampleExpo": "yarn workspace @measuresh/react-native-example",
+    "exampleRn": "yarn workspace @measuresh/rnexample",
     "test": "jest",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
@@ -52,11 +52,8 @@
     "ios",
     "android"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/measure-sh/measure.git.git"
-  },
-  "author": "Measure.sh <adwin@measure.sh> (https://www.measure.sh/)",
+  "repository": "https://github.com/measure-sh/measure",
+  "author": "measure.sh <adwin@measure.sh> (https://measure.sh/)",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/measure-sh/measure.git/issues"

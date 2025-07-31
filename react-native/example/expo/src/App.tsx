@@ -1,5 +1,5 @@
 import { Text, View, StyleSheet, Button, Alert } from 'react-native';
-import { initialize } from '@measure/react-native';
+import { initialize } from '@measuresh/react-native';
 import React from 'react';
 
 export default function App() {

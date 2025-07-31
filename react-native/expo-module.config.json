@@ -1,5 +1,5 @@
 {
-  "name": "@measure/react-native",
+  "name": "@measuresh/react-native",
   "platforms": ["android", "ios"],
   "android": {
     "modulesClassNames": ["sh.measurern.MeasurePackage"]

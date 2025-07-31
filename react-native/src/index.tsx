@@ -1,7 +1,7 @@
 import { NativeModules, Platform } from 'react-native';
 
 const LINKING_ERROR =
-  `The package '@measure/react-native' doesn't seem to be linked properly.` +
+  `The package '@measuresh/react-native' doesn't seem to be linked properly.` +
   (Platform.OS === 'ios'
     ? `\n\nMake sure you have run 'pod install' in the iOS directory.`
     : `\n\nMake sure you've rebuilt the app after installing the package.`);
