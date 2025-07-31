@@ -57,6 +57,7 @@ struct Config: InternalConfig, MeasureConfig {
     let screenshotMaskLevel: ScreenshotMaskLevel
     let requestHeadersProvider: MsrRequestHeadersProvider?
     let disallowedCustomHeaders: [String]
+    let lifecycleViewControllerExcludeList: [String]
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
@@ -122,5 +123,23 @@ struct Config: InternalConfig, MeasureConfig {
         self.accelerometerUpdateInterval = 0.1
         self.requestHeadersProvider = requestHeadersProvider
         self.disallowedCustomHeaders = DefaultConfig.disallowedCustomHeaders
+        self.lifecycleViewControllerExcludeList = [
+            "UIHostingController",
+            "UIKitNavigationController",
+            "NavigationStackHostingController",
+            "NotifyingMulticolumnSplitViewController",
+            "StyleContextSplitViewController",
+            "UISystemAssistantViewController",
+            "UISystemKeyboardDockController",
+            "UIEditingOverlayViewController",
+            "UIInputWindowContoller",
+            "PrewarmingViewController",
+            "UIInputViewController",
+            "UICompactibilityInputViewController",
+            "UICompactibilityInputViewController",
+            "UIPredictionViewController",
+            "_UICursorAccessoryViewController",
+            "UIMultiscriptCandidateViewController"
+        ]
     }
 }

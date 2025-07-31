@@ -9,6 +9,7 @@ import Foundation
 @testable import Measure
 
 final class MockConfigProvider: ConfigProvider {
+    var lifecycleViewControllerExcludeList: [String]
     var cpuTrackingIntervalMs: UnsignedNumber
     var memoryTrackingIntervalMs: UnsignedNumber
     var maxSessionDurationMs: Number
@@ -149,6 +150,24 @@ final class MockConfigProvider: ConfigProvider {
         self.accelerometerUpdateInterval = accelerometerUpdateInterval
         self.requestHeadersProvider = requestHeadersProvider
         self.disallowedCustomHeaders = disallowedCustomHeaders
+        self.lifecycleViewControllerExcludeList = [
+            "UIHostingController",
+            "UIKitNavigationController",
+            "NavigationStackHostingController",
+            "NotifyingMulticolumnSplitViewController",
+            "StyleContextSplitViewController",
+            "UISystemAssistantViewController",
+            "UISystemKeyboardDockController",
+            "UIEditingOverlayViewController",
+            "UIInputWindowContoller",
+            "PrewarmingViewController",
+            "UIInputViewController",
+            "UICompactibilityInputViewController",
+            "UICompactibilityInputViewController",
+            "UIPredictionViewController",
+            "_UICursorAccessoryViewController",
+            "UIMultiscriptCandidateViewController"
+        ]
     }
 
     func loadNetworkConfig() {}
