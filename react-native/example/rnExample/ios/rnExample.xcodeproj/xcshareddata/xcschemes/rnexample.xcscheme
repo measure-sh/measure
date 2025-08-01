@@ -15,8 +15,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "rnExample.app"
-               BlueprintName = "rnExample"
+               BuildableName = "rnexample.app"
+               BlueprintName = "rnexample"
                ReferencedContainer = "container:rnExample.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -33,8 +33,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "rnExampleTests.xctest"
-               BlueprintName = "rnExampleTests"
+               BuildableName = "rnexampleTests.xctest"
+               BlueprintName = "rnexampleTests"
                ReferencedContainer = "container:rnExample.xcodeproj">
             </BuildableReference>
          </TestableReference>
@@ -55,8 +55,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "rnExample.app"
-            BlueprintName = "rnExample"
+            BuildableName = "rnexample.app"
+            BlueprintName = "rnexample"
             ReferencedContainer = "container:rnExample.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -72,8 +72,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "rnExample.app"
-            BlueprintName = "rnExample"
+            BuildableName = "rnexample.app"
+            BlueprintName = "rnexample"
             ReferencedContainer = "container:rnExample.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
