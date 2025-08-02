@@ -8,6 +8,8 @@
 import React from 'react';
 import type {PropsWithChildren} from 'react';
 import {
+  Alert,
+  Button,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -24,6 +26,8 @@ import {
   LearnMoreLinks,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
+
+import { initialize, add } from '@measuresh/react-native';
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -58,6 +62,19 @@ function Section({children, title}: SectionProps): React.JSX.Element {
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
 
+  const result = add(5, 3);
+  console.log('Result of add(5, 3):', result);
+  const handleInitialize = async () => {
+    try {
+      const message = await initialize('msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c');
+      console.log('✅ Measure SDK initialized:', message);
+      Alert.alert('Success', `Measure SDK initialized:\n${message}`);
+    } catch (err) {
+      console.error('❌ Failed to initialize Measure SDK:', err);
+      Alert.alert('Error', 'Failed to initialize Measure SDK');
+    }
+  };
+
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
@@ -76,6 +93,7 @@ function App(): React.JSX.Element {
           style={{
             backgroundColor: isDarkMode ? Colors.black : Colors.white,
           }}>
+          <Button title="Initialize SDK" onPress={handleInitialize} />
           <Section title="Step One">
             Edit <Text style={styles.highlight}>App.tsx</Text> to change this
             screen and then come back to see your edits.

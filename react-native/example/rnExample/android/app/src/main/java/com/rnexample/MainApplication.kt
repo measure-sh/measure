@@ -11,6 +11,8 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.flipper.ReactNativeFlipper
 import com.facebook.soloader.SoLoader
+import sh.measurern.MeasurePackage
+
 
 class MainApplication : Application(), ReactApplication {
 
@@ -19,7 +21,9 @@ class MainApplication : Application(), ReactApplication {
         override fun getPackages(): List<ReactPackage> {
           // Packages that cannot be autolinked yet can be added manually here, for example:
           // packages.add(new MyReactNativePackage());
-          return PackageList(this).packages
+          val packages = PackageList(this).packages.toMutableList()
+          packages.add(MeasurePackage())
+          return packages // ✅ this includes your custom package
         }
 
         override fun getJSMainModuleName(): String = "index"

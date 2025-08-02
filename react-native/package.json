@@ -34,7 +34,7 @@
   ],
   "scripts": {
     "exampleExpo": "yarn workspace @measuresh/react-native-example",
-    "exampleRn": "yarn workspace @measuresh/rnexample",
+    "exampleRn": "yarn workspace @measuresh/rnExample",
     "test": "jest",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",

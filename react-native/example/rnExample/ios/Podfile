@@ -25,8 +25,11 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
-target 'rnexample' do
+target 'rnExample' do
   config = use_native_modules!
+
+  pod 'MeasureReactNative', :path => '../../..'
+  pod 'measure-sh', :path => '../../../..'
 
   use_react_native!(
     :path => config[:reactNativePath],
@@ -39,7 +42,7 @@ target 'rnexample' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
-  target 'rnexampleTests' do
+  target 'rnExampleTests' do
     inherit! :complete
     # Pods for testing
   end

@@ -31,3 +31,7 @@ export function initialize(apiKey: string) {
   // Optional: fallback for dev mode
   return Promise.resolve();
 }
+
+export function add(a: number, b: number): number {
+  return a + b;
+}
