@@ -2932,6 +2932,7 @@ __metadata:
     prettier: 2.8.8
     react: 18.2.0
     react-native: 0.73.0
+    react-native-monorepo-config: ^0.1.9
     react-test-renderer: 18.2.0
     typescript: 5.0.4
   languageName: unknown

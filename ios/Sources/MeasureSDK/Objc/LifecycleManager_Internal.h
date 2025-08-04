@@ -8,8 +8,8 @@
 #import <UIKit/UIKit.h>
 #if __has_include(<Measure/Measure-Swift.h>)
 #import <Measure/Measure-Swift.h>
-#elif __has_include("Measure.h")
-#import "Measure.h"
+#elif __has_include("Measure-Swift.h")
+#import <Measure-Swift.h>
 #else
 #warning "Measure.h not found. Ensure the Swift interface header is correctly exposed."
 #endif
