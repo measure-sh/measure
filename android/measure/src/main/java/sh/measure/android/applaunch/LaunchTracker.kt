@@ -183,7 +183,7 @@ internal class LaunchTracker : ActivityLifecycleAdapter {
                 if (callbacks != null) {
                     callbacks?.onColdLaunch(
                         coldLaunchData = coldLaunchData,
-                        coldLaunchTime = System.currentTimeMillis(),
+                        coldLaunchTime = SystemClock.elapsedRealtime(),
                     )
                 } else {
                     this@LaunchTracker.coldLaunchData = coldLaunchData
@@ -216,7 +216,7 @@ internal class LaunchTracker : ActivityLifecycleAdapter {
                     is_lukewarm = false,
                 )
                 if (callbacks != null) {
-                    callbacks?.onWarmLaunch(warmLaunchData, System.currentTimeMillis())
+                    callbacks?.onWarmLaunch(warmLaunchData, SystemClock.elapsedRealtime())
                 } else {
                     this@LaunchTracker.warmLaunchData = warmLaunchData
                 }
@@ -235,7 +235,7 @@ internal class LaunchTracker : ActivityLifecycleAdapter {
                     is_lukewarm = true,
                 )
                 if (callbacks != null) {
-                    callbacks?.onWarmLaunch(warmLaunchData, System.currentTimeMillis())
+                    callbacks?.onWarmLaunch(warmLaunchData, SystemClock.elapsedRealtime())
                 } else {
                     this@LaunchTracker.warmLaunchData = warmLaunchData
                 }
