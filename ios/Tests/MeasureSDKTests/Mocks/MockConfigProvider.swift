@@ -53,6 +53,8 @@ final class MockConfigProvider: ConfigProvider {
     var accelerometerUpdateInterval: TimeInterval
     var requestHeadersProvider: MsrRequestHeadersProvider?
     var disallowedCustomHeaders: [String]
+    var maxDiskUsageInMb: Int
+    var estimatedEventSizeInKb: Int
 
     init(enableLogging: Bool = false,
          trackScreenshotOnCrash: Bool = true,
@@ -106,7 +108,9 @@ final class MockConfigProvider: ConfigProvider {
          shakeMinTimeIntervalMs: Number = 1500,
          accelerometerUpdateInterval: TimeInterval = 0.1,
          requestHeadersProvider: MsrRequestHeadersProvider? = nil,
-         disallowedCustomHeaders: [String] = ["Content-Type", "msr-req-id", "Authorization", "Content-Length"]) {
+         disallowedCustomHeaders: [String] = ["Content-Type", "msr-req-id", "Authorization", "Content-Length"],
+         maxDiskUsageInMb: Int = 50,
+         estimatedEventSizeInKb: Int = 10) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
@@ -168,6 +172,8 @@ final class MockConfigProvider: ConfigProvider {
             "_UICursorAccessoryViewController",
             "UIMultiscriptCandidateViewController"
         ]
+        self.maxDiskUsageInMb = maxDiskUsageInMb
+        self.estimatedEventSizeInKb = estimatedEventSizeInKb
     }
 
     func loadNetworkConfig() {}

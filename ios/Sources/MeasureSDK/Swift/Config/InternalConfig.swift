@@ -101,4 +101,7 @@ protocol InternalConfig {
 
     /// List of ViewController names that should not be tracked by LifecycleCollector
     var lifecycleViewControllerExcludeList: [String] { get }
+
+    /// The estimated size of one event on disk (in kilobytes).
+    var estimatedEventSizeInKb: Int { get }
 }

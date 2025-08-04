@@ -15,8 +15,9 @@ final class DataCleanupServiceTests: XCTestCase {
     var eventStore: EventStore!
     var spanStore: SpanStore!
     var sessionStore: SessionStore!
-    var dataCleanupService: DataCleanupService!
+    var dataCleanupService: BaseDataCleanupService!
     var sessionManager: SessionManager!
+    var configProvider: MockConfigProvider!
 
     override func setUp() {
         super.setUp()
@@ -26,11 +27,13 @@ final class DataCleanupServiceTests: XCTestCase {
         spanStore = BaseSpanStore(coreDataManager: coreDataManager, logger: logger)
         sessionStore = BaseSessionStore(coreDataManager: coreDataManager, logger: logger)
         sessionManager = MockSessionManager(sessionId: "currentSession")
+        configProvider = MockConfigProvider()
         dataCleanupService = BaseDataCleanupService(eventStore: eventStore,
                                                     spanStore: spanStore,
                                                     sessionStore: sessionStore,
                                                     logger: logger,
-                                                    sessionManager: sessionManager)
+                                                    sessionManager: sessionManager,
+                                                    configProvider: configProvider)
     }
 
     override func tearDown() {
@@ -161,5 +164,38 @@ final class DataCleanupServiceTests: XCTestCase {
         }
 
         wait(for: [expectation], timeout: 2.0)
+    }
+
+    func testDeletesOldestSessionIfDiskLimitBreached() {
+        let expectation = expectation(description: "Oldest session deleted when disk limit breached")
+
+        configProvider.maxDiskUsageInMb = 25
+        configProvider.estimatedEventSizeInKb = 25000
+
+        let session1 = SessionEntity(sessionId: "session1", pid: 123, createdAt: 1, needsReporting: true, crashed: false)
+        let session2 = SessionEntity(sessionId: "session2", pid: 124, createdAt: 2, needsReporting: true, crashed: false)
+        let session3 = SessionEntity(sessionId: "currentSession", pid: 125, createdAt: 3, needsReporting: true, crashed: false)
+
+        sessionStore.insertSession(session1) {
+            self.sessionStore.insertSession(session2) {
+                self.sessionStore.insertSession(session3) {
+                    let event1 = TestDataGenerator.generateEvents(id: "event1", sessionId: "session1", needsReporting: false)
+                    let span1 = TestDataGenerator.generateSpans(name: "span1", sessionId: "session2")
+                    
+                    self.eventStore.insertEvent(event: event1) {
+                        self.spanStore.insertSpan(span: span1)
+                        self.dataCleanupService.clearStaleData {
+                            self.sessionStore.getAllSessions { sessions in
+                                let remaining = sessions?.map { $0.sessionId }
+                                XCTAssertEqual(remaining?.sorted(), ["currentSession", "session2"])
+                                expectation.fulfill()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        wait(for: [expectation], timeout: 5.0)
     }
 }

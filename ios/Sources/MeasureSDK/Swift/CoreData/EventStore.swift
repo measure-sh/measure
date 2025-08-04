@@ -18,6 +18,7 @@ protocol EventStore {
     func getUnBatchedEventsWithAttachmentSize(eventCount: Number, ascending: Bool, sessionId: String?, completion: @escaping ([String: Number]) -> Void)
     func updateBatchId(_ batchId: String, for events: [String])
     func updateNeedsReportingForAllEvents(sessionId: String, needsReporting: Bool)
+    func getEventsCount(completion: @escaping (Int) -> Void)
 }
 
 final class BaseEventStore: EventStore {
@@ -147,7 +148,7 @@ final class BaseEventStore: EventStore {
             }
 
             let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "sessionId IN %@ AND needsReporting == %d", sessionIds, false)
+            fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
 
             do {
                 let events = try context.fetch(fetchRequest)
@@ -247,6 +248,26 @@ final class BaseEventStore: EventStore {
                 try context.saveIfNeeded()
             } catch {
                 logger.internalLog(level: .error, message: "Failed to update needsReporting for sessionId: \(sessionId)", error: error, data: nil)
+            }
+        }
+    }
+
+    func getEventsCount(completion: @escaping (Int) -> Void) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else {
+                completion(0)
+                return
+            }
+
+            let fetchRequest: NSFetchRequest<NSNumber> = NSFetchRequest(entityName: "EventOb")
+            fetchRequest.resultType = .countResultType
+
+            do {
+                let countResult = try context.count(for: fetchRequest)
+                completion(countResult)
+            } catch {
+                logger.internalLog(level: .error, message: "Failed to fetch event count.", error: error, data: nil)
+                completion(0)
             }
         }
     }

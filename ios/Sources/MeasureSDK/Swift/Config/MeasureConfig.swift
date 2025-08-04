@@ -21,6 +21,7 @@ protocol MeasureConfig {
     var trackViewControllerLoadTime: Bool { get }
     var screenshotMaskLevel: ScreenshotMaskLevel { get }
     var requestHeadersProvider: MsrRequestHeadersProvider? { get }
+    var maxDiskUsageInMb: Int { get }
 }
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -101,6 +102,24 @@ protocol MeasureConfig {
     /// This is useful only for self-hosted clients who may require additional headers for requests in their infrastructure.
     let requestHeadersProvider: MsrRequestHeadersProvider?
 
+    /// Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use.
+    ///
+    /// This is useful to control the amount of disk space used by the SDK for storing session data,
+    /// crash reports, and other collected information.
+    ///
+    /// Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`. Any value outside this
+    /// range will be clamped to the nearest limit.
+    ///
+    /// All Measure SDKs store data to disk and upload it to the server in batches. While the app is
+    /// in foreground, the data is synced periodically and usually the disk space used by the SDK is
+    /// low. However, if the device is offline or the server is unreachable, the SDK will continue to
+    /// store data on disk until it reaches the maximum disk usage limit.
+    ///
+    /// Note that the storage usage is not exact and works on estimates and typically the SDK will
+    /// use much less disk space than the configured limit. When the SDK reaches the maximum disk
+    /// usage limit, it will start deleting the oldest data to make space for new data.
+    let maxDiskUsageInMb: Int
+
     public required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
@@ -116,6 +135,7 @@ protocol MeasureConfig {
         trackViewControllerLoadTime = try container.decodeIfPresent(Bool.self, forKey: .trackViewControllerLoadTime) ?? DefaultConfig.trackViewControllerLoadTime
         screenshotMaskLevel = try container.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
         requestHeadersProvider = nil // requestHeadersProvider is not encodable
+        maxDiskUsageInMb = try container.decodeIfPresent(Int.self, forKey: .maxDiskUsageInMb) ?? DefaultConfig.maxEstimatedDiskUsageInMb
 
         super.init()
     }
@@ -133,6 +153,7 @@ protocol MeasureConfig {
         case trackViewControllerLoadTime
         case screenshotMaskLevel
         // requestHeadersProvider is not encodable
+        case maxDiskUsageInMb
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -148,6 +169,7 @@ protocol MeasureConfig {
         try container.encode(httpUrlAllowlist, forKey: .httpUrlAllowlist)
         try container.encode(trackViewControllerLoadTime, forKey: .trackViewControllerLoadTime)
         try container.encode(screenshotMaskLevel, forKey: .screenshotMaskLevel)
+        try container.encode(maxDiskUsageInMb, forKey: .maxDiskUsageInMb)
     }
 
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -178,8 +200,8 @@ protocol MeasureConfig {
     ///   - autoStart: Set this to false to delay starting the SDK, by default initializing the SDK also starts tracking.
     ///   - trackViewControllerLoadTime: Enables or disables automatic collection of ViewController load time. Defaults to `true`.
     ///   - screenshotMaskLevel: Allows changing the masking level of screenshots to prevent sensitive information from leaking. Defaults to [ScreenshotMaskLevel.allTextAndMedia].
-    ///   - enableShakeToLaunchBugReport: Enable or disable shake to automatically launch the bug report flow. Defaults to `false`.
     ///   - requestHeadersProvider: Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
+    ///   - maxDiskUsageInMb: Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use. Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`.
     public init(enableLogging: Bool? = nil,
                 samplingRateForErrorFreeSessions: Float? = nil,
                 traceSamplingRate: Float? = nil,
@@ -191,7 +213,8 @@ protocol MeasureConfig {
                 autoStart: Bool? = nil,
                 trackViewControllerLoadTime: Bool? = nil,
                 screenshotMaskLevel: ScreenshotMaskLevel? = nil,
-                requestHeadersProvider: MsrRequestHeadersProvider? = nil) {
+                requestHeadersProvider: MsrRequestHeadersProvider? = nil,
+                maxDiskUsageInMb: Int? = nil) {
         self.enableLogging = enableLogging ?? DefaultConfig.enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions ?? DefaultConfig.sessionSamplingRate
         self.traceSamplingRate = traceSamplingRate ?? DefaultConfig.traceSamplingRate
@@ -204,6 +227,7 @@ protocol MeasureConfig {
         self.trackViewControllerLoadTime = trackViewControllerLoadTime ?? DefaultConfig.trackViewControllerLoadTime
         self.screenshotMaskLevel = screenshotMaskLevel ?? DefaultConfig.screenshotMaskLevel
         self.requestHeadersProvider = requestHeadersProvider
+        self.maxDiskUsageInMb = maxDiskUsageInMb ?? DefaultConfig.maxEstimatedDiskUsageInMb
 
         if !(0.0...1.0).contains(self.samplingRateForErrorFreeSessions) {
             debugPrint("Session sampling rate must be between 0.0 and 1.0")
@@ -242,8 +266,8 @@ protocol MeasureConfig {
     ///   - autoStart: Set this to false to delay starting the SDK, by default initializing the SDK also starts tracking.
     ///   - trackViewControllerLoadTime: Enables or disables automatic collection of ViewController load time. Defaults to `true`.
     ///   - screenshotMaskLevel: Allows changing the masking level of screenshots to prevent sensitive information from leaking. Defaults to [ScreenshotMaskLevel.allTextAndMedia].
-    ///   - enableShakeToLaunchBugReport: Enable or disable shake to automatically launch the bug report flow. Defaults to `false`.
     ///   - requestHeadersProvider: Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
+    ///   - maxDiskUsageInMb: Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use. Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`.
     @objc public convenience init(enableLogging: Bool,
                                   samplingRateForErrorFreeSessions: Float,
                                   traceSamplingRate: Float,
@@ -255,7 +279,8 @@ protocol MeasureConfig {
                                   autoStart: Bool,
                                   trackViewControllerLoadTime: Bool,
                                   screenshotMaskLevel: ScreenshotMaskLevelObjc,
-                                  requestHeadersProvider: MsrRequestHeadersProvider?) {
+                                  requestHeadersProvider: MsrRequestHeadersProvider?,
+                                  maxDiskUsageInMb: NSNumber?) {
         self.init(enableLogging: enableLogging,
                   samplingRateForErrorFreeSessions: samplingRateForErrorFreeSessions,
                   traceSamplingRate: traceSamplingRate,
@@ -267,6 +292,7 @@ protocol MeasureConfig {
                   autoStart: autoStart,
                   trackViewControllerLoadTime: trackViewControllerLoadTime,
                   screenshotMaskLevel: screenshotMaskLevel.toSwiftValue(),
-                  requestHeadersProvider: requestHeadersProvider)
+                  requestHeadersProvider: requestHeadersProvider,
+                  maxDiskUsageInMb: maxDiskUsageInMb?.intValue)
     }
 }
