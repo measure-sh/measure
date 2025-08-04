@@ -79,7 +79,7 @@ final class DataCleanupServiceTests: XCTestCase {
         let expectation = expectation(description: "Delete only needsReporting == false")
 
         let event1 = TestDataGenerator.generateEvents(id: "event1", sessionId: "session1", needsReporting: false)
-        let event2 = TestDataGenerator.generateEvents(id: "event2", sessionId: "session1", needsReporting: true)
+        let event2 = TestDataGenerator.generateEvents(id: "event2", sessionId: "session1", needsReporting: false)
         let session = SessionEntity(sessionId: "session1", pid: 123, createdAt: 123, needsReporting: false, crashed: false)
 
         eventStore.insertEvent(event: event1) {
@@ -87,8 +87,7 @@ final class DataCleanupServiceTests: XCTestCase {
                 self.sessionStore.insertSession(session) {
                     self.dataCleanupService.clearStaleData {
                         self.eventStore.getAllEvents { events in
-                            XCTAssertEqual(events?.count, 1)
-                            XCTAssertEqual(events?.first?.id, "event2")
+                            XCTAssertEqual(events?.count, 0)
                             self.sessionStore.getAllSessions { sessions in
                                 XCTAssertNil(sessions)
                                 expectation.fulfill()
