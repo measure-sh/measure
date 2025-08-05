@@ -322,7 +322,9 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
   }
 
   const selectEventAndMoveSeekBar = (eventIndex: number) => {
-    // If no events, no need to select event or move seek bar
+    setSelectedEventIndex(eventIndex)
+
+    // If no events, no need to move seek bar
     if (!graphContainerRef.current || firstEventTime === null || lastEventTime === null) {
       return
     }
@@ -333,9 +335,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
     const percentage = elapsedTime.toMillis() / duration.toMillis()
     const scrollPercentage = Math.max(0, Math.min(percentage, 1))
 
-    console.log("scrollPercentage", scrollPercentage)
     setSeekBarValue(scrollPercentage * 100)
-    setSelectedEventIndex(eventIndex)
   }
 
   const handleEventsScroll = () => {
