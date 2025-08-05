@@ -60,7 +60,7 @@ const (
 	maxNavigationToChars                      = 128
 	maxNavigationFromChars                    = 128
 	maxNavigationSourceChars                  = 128
-	maxScreenViewNameChars                    = 128
+	maxScreenViewNameChars                    = 1024
 	maxUserDefAttrsCount                      = 100
 	maxUserDefAttrsKeyChars                   = 256
 	maxUserDefAttrsValsChars                  = 256
