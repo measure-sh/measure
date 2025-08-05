@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**frontend**): Prevent span cutoff by @anupcowkur in #2483
 - (**frontend**): Select timeline event even when no graph is present by @anupcowkur in #2482
 - (**frontend**): Add tick rotation to fix overview sessions vs exceptions graph date overlap by @anupcowkur in #2458
 
