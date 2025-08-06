@@ -318,6 +318,12 @@ final childSpan = Measure.instance.startSpan("child-span").setParent(parentSpan)
 
 Attributes are key-value pairs that can be attached to a span. Attributes are used to add additional context to a span.
 
+> [!NOTE]
+> - Attribute keys must be strings with a maximum length of `256` characters.
+> - Attribute keys must only contain alphabets, numbers, hyphens and underscores.
+> - Attribute values must be one of the primitive types: `int`, `long`, `double`, `float`, or `boolean`.
+> - String attribute values can have a maximum length of `256` characters.
+
 To add attributes to a span, use `setAttribute`.
 
 <details>
