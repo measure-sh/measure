@@ -57,6 +57,7 @@ A custom event can also contain attributes, which are key-value pairs.
 
 > [!NOTE]
 > - Attribute keys must be strings with a maximum length of `256` characters.
+> - Attribute keys must only contain alphabets, numbers, hyphens and underscores.
 > - Attribute values must be one of the primitive types: `int`, `long`, `double`, `float`, or `boolean`.
 > - String attribute values can have a maximum length of `256` characters.
 
