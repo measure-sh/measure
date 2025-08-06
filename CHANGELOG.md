@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**backend**): Add faq on updating environment variables (#2484) by @detj in #2484
 - Update configuration options documentation (#2446) by @abhaysood in #2446
 
 ## [0.8.2] - 2025-07-22
