@@ -120,8 +120,10 @@ abstract class BuildUploadTask : DefaultTask() {
         val request: Request = getRequest(url, manifestData, requestBody)
         try {
             val response = client.newCall(request).execute()
-            if (!response.isSuccessful) {
-                logError(response)
+            response.use {
+                if (!response.isSuccessful) {
+                    logError(response)
+                }
             }
         } catch (e: IOException) {
             logger.error("[ERROR]: Failed to upload mapping file to Measure, ${e.message}")
