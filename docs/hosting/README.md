@@ -28,6 +28,7 @@ measure.sh is designed from the ground up for easy self-hosting. Follow along to
   - [Q. How to perform healthcheck of Measure services?](#q-how-to-perform-healthcheck-of-measure-services)
   - [Q. Can I host Measure behind a VPN?](#q-can-i-host-measure-behind-a-vpn)
   - [Q. I'm using nginx as a reverse proxy. What configurations should I change?](#q-im-using-nginx-as-a-reverse-proxy-what-configurations-should-i-change)
+  - [Q. How to add or update environment variables?](#q-how-to-add-or-update-environment-variables)
   - [Q. Why does ClickHouse consume high amount of CPU or memory?](#q-why-does-clickhouse-consume-high-amount-of-cpu-or-memory)
 
 ## Objectives
@@ -454,6 +455,30 @@ http {
 
   # other configuration
 }
+```
+
+### Q. How to add or update environment variables?
+
+There are 2 dotenv files that define all environment variables.
+
+- **`self-host/.env`** Contains all backend service envionment variables
+- **`frontend/dashboard/.env.local`** Contains nextjs environment variables
+
+You would need to shutdown existing compose services and then start them again for the updated environment variables to take effect.
+
+To do that, run from inside the `self-host` directory.
+
+```sh
+sudo docker compose -f compose.yml -f compose.prod.yml \
+  --profile init \
+  --profile migrate \
+  down
+```
+
+Then run the `./install.sh` script.
+
+```sh
+sudo ./install.sh
 ```
 
 ### Q. Why does ClickHouse consume high amount of CPU or memory?
