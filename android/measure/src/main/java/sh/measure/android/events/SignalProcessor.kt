@@ -246,6 +246,9 @@ internal class SignalProcessorImpl(
     }
 
     private fun <T> onEventTracked(event: Event<T>) {
+        if (logger.enabled) {
+            logger.log(LogLevel.Debug, "${event.type}, ${event.data}")
+        }
         sessionManager.onEventTracked(event)
     }
 
