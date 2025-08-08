@@ -194,7 +194,7 @@ describe('TracesOverview Component', () => {
         expect(screen.getByText('12:00 AM')).toBeInTheDocument()
         expect(screen.getByText('5s')).toBeInTheDocument()
         expect(screen.getByText('Okay')).toBeInTheDocument()
-        expect(screen.getByText('v1.0(1), iOS 15, Apple iPhone 12')).toBeInTheDocument()
+        expect(screen.getByText('1.0(1), iOS 15, Apple iPhone 12')).toBeInTheDocument()
     })
 
     it('does not update filters if they remain unchanged', async () => {

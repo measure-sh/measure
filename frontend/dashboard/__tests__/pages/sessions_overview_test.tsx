@@ -170,7 +170,7 @@ describe('SessionsOverview Component', () => {
         expect(screen.getByText('12:00 AM')).toBeInTheDocument()
         expect(screen.getByText('1s')).toBeInTheDocument()
         expect(screen.getByText('Matched dummyMatch')).toBeInTheDocument()
-        expect(screen.getByText('v1.0(1), iOS 15, Apple iPhone 12')).toBeInTheDocument()
+        expect(screen.getByText('1.0(1), iOS 15, Apple iPhone 12')).toBeInTheDocument()
     })
 
     it('does not update filters if they remain unchanged', async () => {
