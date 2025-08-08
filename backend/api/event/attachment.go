@@ -150,8 +150,6 @@ func (a *Attachment) PreSignURL(ctx context.Context) (err error) {
 			return
 		}
 
-		fmt.Printf("Pre-signed URL: %s\n", url)
-
 		a.Location = url
 		return
 	}
@@ -160,25 +158,7 @@ func (a *Attachment) PreSignURL(ctx context.Context) (err error) {
 		shouldProxy = false
 	}
 
-	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
-		return aws.Credentials{
-			AccessKeyID:     config.AttachmentsAccessKey,
-			SecretAccessKey: config.AttachmentsSecretAccessKey,
-		}, nil
-	}
-
-	awsConfig := &aws.Config{
-		Region:      config.AttachmentsBucketRegion,
-		Credentials: credentialsProvider,
-	}
-
-	client := s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
-		endpoint := config.AWSEndpoint
-		if endpoint != "" {
-			o.BaseEndpoint = aws.String(endpoint)
-			o.UsePathStyle = *aws.Bool(true)
-		}
-	})
+	client := objstore.CreateS3Client(ctx, config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, config.AttachmentsBucketRegion, config.AWSEndpoint)
 
 	presignClient := s3.NewPresignClient(client, func(o *s3.PresignOptions) {
 		o.Expires = expires

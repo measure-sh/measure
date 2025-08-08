@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"backend/api/codec"
+	"backend/api/measure"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -141,7 +141,7 @@ func ValidateFlags() bool {
 func IngestSerial(apps *app.Apps, origin string) {
 	startTime := time.Now()
 	eventURL := fmt.Sprintf("%s/events", origin)
-	buildURL := fmt.Sprintf("%s/builds", origin)
+	buildURL := fmt.Sprintf("%s/builds-next", origin)
 	virtualizer := NewVirtualizer()
 
 	for _, app := range apps.Items {
@@ -202,7 +202,7 @@ func IngestSerial(apps *app.Apps, origin string) {
 func IngestParallel(apps *app.Apps, origin string) {
 	startTime := time.Now()
 	eventURL := fmt.Sprintf("%s/events", origin)
-	buildURL := fmt.Sprintf("%s/builds", origin)
+	buildURL := fmt.Sprintf("%s/builds-next", origin)
 
 	var logResults = func(results *[]string) {
 		for _, result := range *results {
@@ -296,95 +296,93 @@ func IngestParallel(apps *app.Apps, origin string) {
 
 // UploadBuilds prepares & sends the request to
 // upload mapping file & build info.
-func UploadBuilds(url, apiKey string, app app.App) (string, error) {
+func UploadBuilds(url, apiKey string, app app.App) (status string, err error) {
+	status = http.StatusText(http.StatusOK)
+
 	if dryRun {
-		return http.StatusText(http.StatusOK), nil
+		return
 	}
+
 	attribute, err := app.Attribute()
 	if err != nil {
-		return "", err
+		return
 	}
+
 	headers := map[string]string{
-		"Content-Type": fmt.Sprintf("multipart/form-data; boundary=%s", multipartBoundary),
+		"Content-Type": "application/json",
 	}
 
-	for code, build := range app.Builds {
-		var buff bytes.Buffer
-		w := multipart.NewWriter(&buff)
-		w.SetBoundary(multipartBoundary)
+	for code, appbuild := range app.Builds {
+		var build measure.Build
 
-		fw, err := w.CreateFormField("version_name")
+		build.VersionName = attribute.AppVersion
+		build.VersionCode = code
+		build.Size = int(appbuild.BuildInfo.Size)
+		build.Type = appbuild.BuildInfo.Type
+
+		mappingFilesMap := make(map[string]string)
+
+		for index, mappingType := range appbuild.MappingTypes {
+			filename := filepath.Base(appbuild.MappingFiles[index])
+			mappingFilesMap[filename] = appbuild.MappingFiles[index]
+
+			build.Mappings = append(build.Mappings, &measure.Mapping{
+				Type:     mappingType,
+				Filename: filename,
+			})
+		}
+
+		data, err := json.Marshal(build)
 		if err != nil {
-			return "", err
-		}
-		fw.Write([]byte(attribute.AppVersion))
-
-		fw, err = w.CreateFormField("version_code")
-		if err != nil {
-			return "", err
-		}
-		fw.Write([]byte(code))
-
-		for index, mappingType := range build.MappingTypes {
-			mappingFile := build.MappingFiles[index]
-			f, err := os.Open(mappingFile)
-			if err != nil {
-				return "", err
-			}
-
-			switch mappingType {
-			case "dsym":
-				if err := codec.IsTarGz(f); err != nil {
-					return "", err
-				}
-			}
-
-			fw, err = w.CreateFormField("mapping_type")
-			if err != nil {
-				return "", err
-			}
-			fw.Write([]byte(mappingType))
-
-			fw, err = w.CreateFormFile("mapping_file", filepath.Base(mappingFile))
-			if err != nil {
-				return "", err
-			}
-
-			if _, err := io.Copy(fw, f); err != nil {
-				return "", err
-			}
-
-			f.Close()
+			return http.StatusText(http.StatusInternalServerError), err
 		}
 
-		fw, err = w.CreateFormField("platform")
-		if err != nil {
-			return "", err
-		}
-		fw.Write([]byte(attribute.Platform))
-
-		fw, err = w.CreateFormField("build_size")
-		if err != nil {
-			return "", err
-		}
-		fw.Write([]byte(build.BuildInfo.GetSize()))
-
-		fw, err = w.CreateFormField("build_type")
-		if err != nil {
-			return "", err
-		}
-		fw.Write([]byte(build.BuildInfo.Type))
-		w.Close()
-		status, err := sendRequest(url, apiKey, headers, buff.Bytes())
-
+		status, bodyBytes, err := sendRequest(url, apiKey, headers, data)
 		if err != nil {
 			return status, err
 		}
 
-		metrics.bumpBuild()
+		buildres := measure.BuildResponse{}
+		if err := json.Unmarshal(bodyBytes, &buildres); err != nil {
+			return http.StatusText(http.StatusInternalServerError), err
+		}
+
+		for _, mapping := range buildres.Mappings {
+			mappingFilePath := mappingFilesMap[mapping.Filename]
+
+			file, err := os.Open(mappingFilePath)
+			if err != nil {
+				return http.StatusText(http.StatusInternalServerError), err
+			}
+			defer file.Close()
+
+			content, err := io.ReadAll(file)
+			if err != nil {
+				return http.StatusText(http.StatusInternalServerError), err
+			}
+
+			req, err := http.NewRequest("PUT", mapping.UploadURL, bytes.NewReader(content))
+			if err != nil {
+				return http.StatusText(http.StatusInternalServerError), err
+			}
+
+			// set metadata headers
+			req.Header.Set("x-amz-meta-mapping_id", mapping.ID.String())
+			req.Header.Set("x-amz-meta-original_file_name", mapping.Filename)
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return http.StatusText(http.StatusInternalServerError), err
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
+				return http.StatusText(http.StatusInternalServerError), fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+			}
+		}
 	}
 
-	return http.StatusText(http.StatusOK), nil
+	return
 }
 
 // prepareEventsAndSpansAndSpans prepares request for events.
@@ -540,12 +538,14 @@ func UploadEventsAndSpans(url, apiKey, reqId string, data []byte) (status string
 		"Content-Type": fmt.Sprintf("multipart/form-data; boundary=%s", multipartBoundary),
 	}
 
-	return sendRequest(url, apiKey, headers, data)
+	status, _, err = sendRequest(url, apiKey, headers, data)
+
+	return status, err
 }
 
 // sendRequest prepares a request and sends a put
 // request to the given url.
-func sendRequest(url, apiKey string, headers map[string]string, data []byte) (status string, err error) {
+func sendRequest(url, apiKey string, headers map[string]string, data []byte) (status string, bodyBytes []byte, err error) {
 	reader := bytes.NewReader(data)
 	req, err := http.NewRequest("PUT", url, reader)
 	if err != nil {
@@ -580,6 +580,11 @@ func sendRequest(url, apiKey string, headers map[string]string, data []byte) (st
 		} else {
 			err = errors.New(`request failed with no content`)
 		}
+		return
+	}
+
+	bodyBytes, err = io.ReadAll(resp.Body)
+	if err != nil {
 		return
 	}
 

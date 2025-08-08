@@ -459,7 +459,6 @@ start_docker_compose() {
 
   $DOCKER_COMPOSE_CMD \
     --progress plain \
-    --profile init \
     --profile migrate \
     --file compose.yml \
     --file compose.prod.yml \
@@ -494,9 +493,9 @@ update_env_variable() {
 }
 
 # ------------------------------------------------------------------------------
-# cleanup detects and removes unused resources.
+# remove_symbolicator_android removes `symbolicator-android` image.
 # ------------------------------------------------------------------------------
-cleanup() {
+function remove_symbolicator_android() {
   # detect and remove `symbolicator-android` image.
   local image_ids
   image_ids=$(docker images --format '{{.Repository}} {{.ID}}' | awk '$1 ~ /symbolicator-android$/ {print $2}')
@@ -509,6 +508,32 @@ cleanup() {
     echo "Removing image ID: $id"
     docker rmi "$id"
   done
+}
+
+# ------------------------------------------------------------------------------
+# remove_minio_mc_image detects and removes `minio/mc` image.
+# ------------------------------------------------------------------------------
+function remove_minio_mc_image() {
+  # detect and remove `minio/mc` image.
+  local image_ids
+  image_ids=$(docker images --format '{{.Repository}} {{.ID}}' | awk '$1 ~ /minio\/mc$/ {print $2}')
+
+  if [ -z "$image_ids" ]; then
+    return 0
+  fi
+
+  for id in $image_ids; do
+    echo "Removing image ID: $id"
+    docker rmi "$id"
+  done
+}
+
+# ------------------------------------------------------------------------------
+# cleanup detects and removes unused resources.
+# ------------------------------------------------------------------------------
+cleanup() {
+  remove_symbolicator_android
+  remove_minio_mc_image
 }
 
 # ------------------------------------------------------------------------------

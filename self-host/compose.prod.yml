@@ -64,13 +64,6 @@ services:
         max-size: 10m
         max-file: 5
 
-  mc:
-    logging:
-      driver: local
-      options:
-        max-size: 10m
-        max-file: 5
-
   dbmate-postgres:
     logging:
       driver: local

@@ -112,9 +112,6 @@ services:
       migrator:
         condition: service_completed_successfully
         required: false
-      mc:
-        condition: service_completed_successfully
-        required: false
 
   cleanup:
     build:
@@ -160,9 +157,6 @@ services:
       migrator:
         condition: service_completed_successfully
         required: false
-      mc:
-        condition: service_completed_successfully
-        required: false
 
   migrator:
     profiles:
@@ -190,9 +184,6 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      mc:
-        condition: service_completed_successfully
-        required: false
     volumes:
       - migrator-volume:/data
     command: ["migrate"]
@@ -218,28 +209,32 @@ services:
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-    command: server /data --console-address ":9001"
+      - MINIO_NOTIFY_WEBHOOK_ENABLE_SYMBOLS=on
+      - MINIO_NOTIFY_WEBHOOK_ENDPOINT_SYMBOLS=${API_BASE_URL}/receive-symbols
+    entrypoint: >
+      bash -c "
+      minio server /data --console-address ":9001" &
+
+      until curl -sf http://127.0.0.1:9000/minio/health/live; do
+        echo 'Waiting for MinIO server to start...';
+        sleep 3;
+      done;
+
+      mc alias set msr-minio http://127.0.0.1:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+
+      mc mb --ignore-existing msr-minio/${SYMBOLS_S3_BUCKET} msr-minio/${ATTACHMENTS_S3_BUCKET};
+
+      mc event add msr-minio/${SYMBOLS_S3_BUCKET} arn:minio:sqs::SYMBOLS:webhook --ignore-existing --event put --prefix incoming/;
+
+      wait %1
+      "
     healthcheck:
-      test: timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:9000/minio/health/live"]
       interval: 3s
       timeout: 10s
       retries: 5
     volumes:
       - minio-data:/data
-
-  mc:
-    image: minio/mc
-    profiles:
-      - init
-    depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set msr-minio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
-      mc mb --ignore-existing msr-minio/${SYMBOLS_S3_BUCKET} msr-minio/${ATTACHMENTS_S3_BUCKET};
-      exit 0;
-      "
 
   dbmate-postgres:
     image: ghcr.io/amacneil/dbmate

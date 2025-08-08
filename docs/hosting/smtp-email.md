@@ -23,7 +23,6 @@ If you are upgrading from v0.7.x, you would need to manually configure the SMTP 
     sudo docker compose \
       -f compose.yml \
       -f compose.prod.yml \
-      --profile init \
       --profile migrate \
       down
     ```

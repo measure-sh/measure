@@ -58,6 +58,8 @@ func main() {
 		c.String(http.StatusOK, "pong")
 	})
 
+	r.POST("/receive-symbols", measure.ProcessSymbolNotification)
+
 	r.GET("/test", func(c *gin.Context) {
 		ctx := c.Request.Context()
 
@@ -171,6 +173,7 @@ func main() {
 	// SDK routes
 	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
 	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuild)
+	r.PUT("/builds-next", measure.ValidateAPIKey(), measure.PutBuildNext)
 
 	// Dashboard routes
 

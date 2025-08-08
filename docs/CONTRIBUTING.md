@@ -55,10 +55,10 @@ This will start the configuration wizard and prepre all the environment variable
 
 ### Start services
 
-Once configuration is complete, run the following docker compose command to start all services. For starting for the first time, provide `--profile init` and `--profile migrate` as this will trigger creation of minio buckets and perform database migrations.
+Once configuration is complete, run the following docker compose command to start all services. For starting for the first time, provide `--profile migrate` to trigger database migrations.
 
 ```sh
-docker compose --profile init --profile migrate up
+docker compose --profile migrate up
 ```
 
 > [!NOTE]
@@ -71,7 +71,7 @@ Alternatively, you could build and up the containers in separate steps, like thi
 
 ```sh
 docker compose build
-docker compose --profile init --profile migrate up
+docker compose --profile migrate up
 ```
 
 For automatic file watching using docker compose, run:
@@ -87,8 +87,8 @@ docker compose up --watch
 To stop all services and to remove all containers, run.
 
 ```sh
-docker compose --profile init --profile migrate stop
-docker compose --profile init --profile migrate down
+docker compose --profile migrate stop
+docker compose --profile migrate down
 ```
 
 ## Troubleshooting
@@ -104,7 +104,7 @@ docker compose down --rmi all --remove-orphans --volumes
 And rerun.
 
 ```sh
-docker compose --profile init --profile migrate up
+docker compose --profile migrate up
 ```
 
 ## Writing commit messages

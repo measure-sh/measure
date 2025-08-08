@@ -42,8 +42,8 @@ shutdown_measure_services() {
     $DOCKER_COMPOSE \
       --file compose.yml \
       --file compose.prod.yml \
-      --profile migrate \
       --profile init \
+      --profile migrate \
       down
   fi
 }
@@ -189,7 +189,18 @@ migrate_clickhouse_database() {
   local tables
   echo "Migrating clickhouse database..."
   start_clickhouse_service
-  docker compose exec clickhouse clickhouse-client --query="CREATE DATABASE IF NOT EXISTS measure;"
+
+  local admin_user
+  local admin_password
+  local dbname
+
+  admin_user=$(get_env_variable CLICKHOUSE_ADMIN_USER)
+  admin_password=$(get_env_variable CLICKHOUSE_ADMIN_PASSWORD)
+  dbname=measure
+
+  docker compose exec clickhouse clickhouse-client --query="create user if not exists $admin_user identified with sha256_password by '$admin_password';"
+  docker compose exec clickhouse clickhouse-client --query="grant all on *.* to '$admin_user' with grant option;"
+  docker compose exec clickhouse clickhouse-client --query="create database if not exists $dbname;"
   tables=$(docker compose exec clickhouse clickhouse-client --query="select name from system.tables where database = 'default';" --format=TabSeparatedRaw)
 
   if [[ -z $tables ]]; then
@@ -208,9 +219,6 @@ migrate_clickhouse_database() {
     fi
   done
 
-  # by this point, the .env file should be
-  # containing the updated environment variables
-  # for clickhouse.
   local operator_user
   local operator_password
   local reader_user
@@ -221,7 +229,7 @@ migrate_clickhouse_database() {
   reader_user=$(get_env_variable CLICKHOUSE_READER_USER)
   reader_password=$(get_env_variable CLICKHOUSE_READER_PASSWORD)
 
-  if ! docker compose exec clickhouse clickhouse-client \
+  if ! docker compose exec clickhouse clickhouse-client --user "$admin_user" --password "$admin_password" \
     --query="create role if not exists operator;" \
     --query="create role if not exists reader;" \
     --query="grant select, insert on measure.* to operator;" \

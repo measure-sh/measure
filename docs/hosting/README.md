@@ -353,7 +353,6 @@ To start the containers in production mode, run.
 
 ```sh
 docker compose -f compose.yml -f compose.prod.yml \
-  --profile init \
   --profile migrate \
   up --build
 ```
