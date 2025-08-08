@@ -65,7 +65,7 @@ jest.mock('@/app/api/api_calls', () => ({
                             device_low_power_mode: false,
                             device_thermal_throttling_enabled: false,
                             device_cpu_arch: 'arm64',
-                            os_name: 'iOS',
+                            os_name: 'ios',
                             os_version: '15.0',
                             os_page_size: 4096,
                             network_type: 'wifi',
@@ -275,7 +275,7 @@ describe('BugReportsOverview Component', () => {
                             attribute: {
                                 app_version: '1.0',
                                 app_build: '1',
-                                os_name: 'iOS',
+                                os_name: 'ios',
                                 os_version: '15.0',
                                 device_manufacturer: 'Apple',
                                 device_model: 'iPhone 12'
@@ -420,7 +420,7 @@ describe('BugReportsOverview Component', () => {
                             attribute: {
                                 app_version: '1.0',
                                 app_build: '1',
-                                os_name: 'iOS',
+                                os_name: 'ios',
                                 os_version: '15.0',
                                 device_manufacturer: 'Apple',
                                 device_model: 'iPhone 12'
@@ -478,7 +478,7 @@ describe('BugReportsOverview Component', () => {
                             attribute: {
                                 app_version: '1.0',
                                 app_build: '1',
-                                os_name: 'iOS',
+                                os_name: 'ios',
                                 os_version: '15.0',
                                 device_manufacturer: 'Apple',
                                 device_model: 'iPhone 12'
