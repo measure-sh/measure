@@ -176,7 +176,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                                             <div className="pointer-events-none p-4">
                                                 <p className='truncate select-none'>ID: {session_id}</p>
                                                 <div className='py-1' />
-                                                <p className='text-xs truncate text-gray-500 select-none'>{attribute.app_version + "(" + attribute.app_build + "), " + attribute.os_name + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
+                                                <p className='text-xs truncate text-gray-500 select-none'>{attribute.app_version + "(" + attribute.app_build + "), " + (attribute.os_name === 'android' ? 'Android API Level' : attribute.os_name === 'ios' ? 'iOS' : attribute.os_name === 'ipados' ? 'iPadOS' : attribute.os_name) + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
                                                 {matched_free_text !== "" && <p className='p-1 mt-2 text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
                                             </div>
                                         </TableCell>

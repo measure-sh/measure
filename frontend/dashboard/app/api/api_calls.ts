@@ -469,14 +469,14 @@ export const emptySessionsOverviewResponse = {
     duration: string
     matched_free_text: string
     attribute: {
-      app_version: ""
-      app_build: ""
-      user_id: ""
-      device_name: ""
-      device_model: ""
-      device_manufacturer: ""
-      os_name: ""
-      os_version: ""
+      app_version: string
+      app_build: string
+      user_id: string
+      device_name: string
+      device_model: string
+      device_manufacturer: string
+      os_name: string
+      os_version: string
     }
   }[],
 }
@@ -1010,7 +1010,7 @@ export class OsVersion {
   constructor(name: string, version: string) {
     this.name = name
     this.version = version
-    this.displayName = this.name + " " + this.version
+    this.displayName = (name === 'android' ? 'Android API Level' : name === "ios" ? "iOS" : name === "ipados" ? "iPadOS" : name) + " " + this.version
   }
 }
 

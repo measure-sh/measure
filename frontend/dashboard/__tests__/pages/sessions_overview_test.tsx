@@ -48,7 +48,7 @@ jest.mock('@/app/api/api_calls', () => ({
                             device_name: 'iPhone',
                             device_model: 'iPhone 12',
                             device_manufacturer: 'Apple',
-                            os_name: 'iOS',
+                            os_name: 'ios',
                             os_version: '15',
                         }
                     }
@@ -359,7 +359,7 @@ describe('SessionsOverview Component', () => {
                                 device_name: 'iPhone',
                                 device_model: 'iPhone 12',
                                 device_manufacturer: 'Apple',
-                                os_name: 'iOS',
+                                os_name: 'ios',
                                 os_version: '15',
                             }
                         }
