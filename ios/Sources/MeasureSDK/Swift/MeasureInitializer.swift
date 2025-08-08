@@ -216,7 +216,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                    autoStart: config.autoStart,
                                    trackViewControllerLoadTime: config.trackViewControllerLoadTime,
                                    screenshotMaskLevel: config.screenshotMaskLevel,
-                                   requestHeadersProvider: config.requestHeadersProvider)
+                                   requestHeadersProvider: config.requestHeadersProvider,
+                                   maxDiskUsageInMb: config.maxDiskUsageInMb)
 
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig,
                                                  configLoader: BaseConfigLoader())
@@ -378,7 +379,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          spanStore: spanStore,
                                                          sessionStore: sessionStore,
                                                          logger: logger,
-                                                         sessionManager: sessionManager)
+                                                         sessionManager: sessionManager,
+        configProvider: configProvider)
         self.client = client
         self.httpEventValidator = BaseHttpEventValidator()
         self.httpEventCollector = BaseHttpEventCollector(logger: logger,

@@ -21,4 +21,5 @@ struct DefaultConfig {
     static let trackViewControllerLoadTime = true
     static let screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia
     static let disallowedCustomHeaders = ["Content-Type", "msr-req-id", "Authorization", "Content-Length"]
+    static let maxEstimatedDiskUsageInMb = 50 // 50MB
 }
