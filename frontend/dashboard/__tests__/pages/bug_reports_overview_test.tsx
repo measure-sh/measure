@@ -192,7 +192,7 @@ describe('BugReportsOverview Component', () => {
         expect(screen.getByText('Open')).toBeInTheDocument()
         expect(screen.getByText('ID: bug1')).toBeInTheDocument()
         expect(screen.getByText('Matched error')).toBeInTheDocument()
-        expect(screen.getByText('v1.0(1), iOS 15.0, Apple iPhone 12')).toBeInTheDocument()
+        expect(screen.getByText('1.0(1), iOS 15.0, Apple iPhone 12')).toBeInTheDocument()
     })
 
     it('does not update filters if they remain unchanged', async () => {
