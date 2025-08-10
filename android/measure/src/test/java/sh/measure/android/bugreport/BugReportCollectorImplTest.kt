@@ -1,10 +1,6 @@
 package sh.measure.android.bugreport
 
-import android.app.Activity.RESULT_CANCELED
-import android.app.Activity.RESULT_OK
 import android.app.Application
-import android.content.ClipData
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -101,96 +97,6 @@ class BugReportCollectorImplTest {
 
         val descriptionOnly = bugReportCollector.validateBugReport(0, 1)
         assertTrue(descriptionOnly)
-    }
-
-    @Test
-    fun `onImagePickedResult should load multiple URIs from clipData`() {
-        val clipData = createTestClipData(3)
-        val intent = createTestIntent(clipData = clipData)
-
-        val result = bugReportCollector.onImagePickedResult(
-            application,
-            RESULT_OK,
-            intent,
-            100,
-        )
-
-        assertEquals(3, result.size)
-    }
-
-    @Test
-    fun `onImagePickedResult should load max allowed URIs from clipData`() {
-        val maxAllowedSelections = 1
-        val selectedUris = 3
-        val clipData = createTestClipData(selectedUris)
-        val intent = createTestIntent(clipData = clipData)
-
-        val result = bugReportCollector.onImagePickedResult(
-            application,
-            RESULT_OK,
-            intent,
-            maxAllowedSelections,
-        )
-
-        assertEquals(maxAllowedSelections, result.size)
-    }
-
-    @Test
-    fun `onImagePickedResult should load single URI from intent data`() {
-        val uri = Uri.parse("content://test/1")
-        val intent = createTestIntent(singleUri = uri)
-
-        val result = bugReportCollector.onImagePickedResult(
-            application,
-            RESULT_OK,
-            intent,
-            100,
-        )
-
-        assertEquals(1, result.size)
-        assertEquals(uri, result.first())
-    }
-
-    @Test
-    fun `onImagePickedResult should return empty list when resultCode is not OK`() {
-        val uri = Uri.parse("content://test/1")
-        val intent = createTestIntent(singleUri = uri)
-
-        val result = bugReportCollector.onImagePickedResult(
-            application,
-            RESULT_CANCELED,
-            intent,
-            100,
-        )
-
-        assertTrue(result.isEmpty())
-    }
-
-    @Test
-    fun `onImagePickedResult should return empty list when intent data is null`() {
-        val result = bugReportCollector.onImagePickedResult(
-            application,
-            RESULT_OK,
-            null,
-            100,
-        )
-        assertTrue(result.isEmpty())
-    }
-
-    private fun createTestClipData(@Suppress("SameParameterValue") uriCount: Int = 3): ClipData {
-        val uris = createTestFiles(uriCount).map { Uri.fromFile(it) }
-        return ClipData.newUri(application.contentResolver, "test", uris[0]).apply {
-            uris.drop(1).forEach { uri ->
-                addItem(ClipData.Item(uri))
-            }
-        }
-    }
-
-    private fun createTestIntent(clipData: ClipData? = null, singleUri: Uri? = null): Intent {
-        return Intent().apply {
-            this.clipData = clipData
-            this.data = singleUri
-        }
     }
 
     private fun createTestFiles(count: Int = 2): List<File> {

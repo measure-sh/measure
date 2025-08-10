@@ -53,7 +53,6 @@ internal class FakeConfigProvider : ConfigProvider {
     override var screenshotCompressionQuality: Int = 100
     override var eventTypeExportAllowList: List<EventType> = emptyList()
     override val autoStart: Boolean = true
-    override var maxSignalsInDatabase: Int = 50000
     override val maxSpanNameLength: Int = 64
     override val maxCheckpointNameLength: Int = 64
     override val maxCheckpointsPerSpan: Int = 100
@@ -65,7 +64,9 @@ internal class FakeConfigProvider : ConfigProvider {
     override val shakeMinTimeIntervalMs: Long = 1000
     override val shakeSlop: Int = 2
     override val disallowedCustomHeaders: List<String> = mutableListOf()
+    override val estimatedEventSizeInKb: Int = 10
     override val trackActivityLoadTime: Boolean = true
     override val trackFragmentLoadTime: Boolean = true
+    override val maxDiskUsageInMb: Int = 50
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null
 }
