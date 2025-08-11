@@ -207,8 +207,8 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         userAttributeProcessor.clearUserId()
     }
 
-    fun trackScreenView(screenName: String) {
-        userTriggeredEventCollector.trackScreenView(screenName)
+    fun trackScreenView(screenName: String, attributes: Map<String, AttributeValue>) {
+        userTriggeredEventCollector.trackScreenView(screenName, attributes)
     }
 
     fun trackHandledException(throwable: Throwable) {

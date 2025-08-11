@@ -160,11 +160,14 @@ object Measure {
      * ```kotlin
      * Measure.trackScreenView("Home")
      * ```
+     *
+     * @param screenName The name of the screen being viewed.
+     * @param attributes Optional key-value pairs providing additional context to the event.
      */
     @JvmStatic
-    fun trackScreenView(screenName: String) {
+    fun trackScreenView(screenName: String, attributes: Map<String, AttributeValue> = emptyMap()) {
         if (isInitialized.get()) {
-            measure.trackScreenView(screenName)
+            measure.trackScreenView(screenName, attributes)
         }
     }
 

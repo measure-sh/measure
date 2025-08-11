@@ -8,6 +8,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
+import sh.measure.android.attributes.StringAttr
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeProcessInfoProvider
@@ -37,11 +38,25 @@ class UserTriggeredEventCollectorImplTest {
     fun `tracks screen view event`() {
         val screenName = "screen-name"
         userTriggeredEventCollector.register()
-        userTriggeredEventCollector.trackScreenView(screenName)
+        userTriggeredEventCollector.trackScreenView(screenName, emptyMap())
         verify(signalProcessor).trackUserTriggered(
             data = ScreenViewData(name = screenName),
             type = EventType.SCREEN_VIEW,
             timestamp = timeProvider.now(),
+        )
+    }
+
+    @Test
+    fun `tracks screen view event with user-defined attributes`() {
+        val screenName = "screen-name"
+        val attributes = mapOf("key" to StringAttr("value"))
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackScreenView(screenName, attributes)
+        verify(signalProcessor).trackUserTriggered(
+            data = ScreenViewData(name = screenName),
+            type = EventType.SCREEN_VIEW,
+            timestamp = timeProvider.now(),
+            userDefinedAttributes = attributes,
         )
     }
 
