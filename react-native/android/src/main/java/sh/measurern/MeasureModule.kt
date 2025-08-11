@@ -14,7 +14,7 @@ import sh.measure.rn.MapUtil
 
 class MeasureModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
-  override fun getName(): String = "MeasureModule"
+  override fun getName(): String = ModuleConstants.MODULE_NAME
 
   @ReactMethod
   fun initialize(clientMap: ReadableMap, configMap: ReadableMap, promise: Promise) {
@@ -31,9 +31,9 @@ class MeasureModule(private val reactContext: ReactApplicationContext) : ReactCo
         val config = MeasureConfig.fromJson(configMapParsed)
 
         Measure.init(context, measureConfig = config, clientInfo = clientInfo)
-        promise.resolve("Android SDK initialized with key: ${clientInfo.apiKey}")
+        promise.resolve("Native Measure SDK initialized successfully")
     } catch (e: Exception) {
-        promise.reject("INIT_ERROR", "Failed to initialize Measure SDK", e)
+        promise.reject(ModuleConstants.INIT_ERROR, "Failed to initialize Measure SDK", e)
     }
   }
 

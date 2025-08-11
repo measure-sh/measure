@@ -1,0 +1,9 @@
+package sh.measure.rn
+
+object ModuleConstants {
+    const val MODULE_NAME = "MeasureModule"
+}
+
+object ErrorCode {
+    const val INIT_ERROR = "initialize_error"
+}

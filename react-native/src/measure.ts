@@ -56,7 +56,7 @@ export const Measure = {
 
     _initializationPromise = new Promise((resolve, reject) => {
       try {
-        console.info('Initializing Measure SDK with client:', client, config);
+        console.info('Initializing Measure SDK ...');
 
         _measureInitializer = new BaseMeasureInitializer(client);
         _measureInternal = new MeasureInternal(_measureInitializer);
