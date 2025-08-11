@@ -10,6 +10,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
+import sh.measure.android.attributes.StringAttr
 import sh.measure.android.exporter.ExceptionExporter
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
@@ -432,5 +433,65 @@ internal class SignalProcessorTest {
 
         // Then
         assertTrue(signalStore.trackedSpans.contains(spanData))
+    }
+
+    @Test
+    fun `should drop event when user defined attributes exceed maximum count`() {
+        // Given
+        val attributes = (0..configProvider.maxUserDefinedAttributesPerEvent).associate {
+            "key$it" to StringAttr("value")
+        }
+        val exceptionData = TestData.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.EXCEPTION
+
+        // When
+        signalProcessor.track(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+            userDefinedAttributes = attributes,
+        )
+
+        assertEquals(0, signalStore.trackedEvents.size)
+    }
+
+    @Test
+    fun `should drop event when user defined attribute key exceeds maximum length`() {
+        val longKey = "k".repeat(configProvider.maxUserDefinedAttributeKeyLength + 1)
+        val attributes = mapOf(longKey to StringAttr("value"))
+        val exceptionData = TestData.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.EXCEPTION
+
+        // When
+        signalProcessor.track(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+            userDefinedAttributes = attributes,
+        )
+
+        assertEquals(0, signalStore.trackedEvents.size)
+    }
+
+    @Test
+    fun `should drop event when user defined string attribute value exceeds maximum length`() {
+        val invalidAttributeValue =
+            "v".repeat(configProvider.maxUserDefinedAttributeValueLength + 1)
+        val attributes = mapOf("key" to StringAttr(invalidAttributeValue))
+        val exceptionData = TestData.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.EXCEPTION
+
+        // When
+        signalProcessor.track(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+            userDefinedAttributes = attributes,
+        )
+
+        assertEquals(0, signalStore.trackedEvents.size)
     }
 }

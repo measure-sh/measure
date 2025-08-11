@@ -95,32 +95,6 @@ class CustomEventCollectorTest {
     }
 
     @Test
-    fun `trackEvent should drop event when attributes exceed maximum count`() {
-        val attributes = (0..configProvider.maxUserDefinedAttributesPerEvent).associate {
-            "key$it" to StringAttr("value")
-        }
-        collector.trackEvent("validEvent", attributes, null)
-        verifyNoInteractions(signalProcessor)
-    }
-
-    @Test
-    fun `trackEvent should drop event when attribute key exceeds maximum length`() {
-        val longKey = "k".repeat(configProvider.maxUserDefinedAttributeKeyLength + 1)
-        val attributes = mapOf(longKey to StringAttr("value"))
-        collector.trackEvent("event", attributes, null)
-        verifyNoInteractions(signalProcessor)
-    }
-
-    @Test
-    fun `trackEvent should drop event when string attribute value exceeds maximum length`() {
-        val invalidAttributeValue =
-            "v".repeat(configProvider.maxUserDefinedAttributeValueLength + 1)
-        val attributes = mapOf("key" to StringAttr(invalidAttributeValue))
-        collector.trackEvent("event", attributes, null)
-        verifyNoInteractions(signalProcessor)
-    }
-
-    @Test
     fun `trackEvent should process event with non-string attribute values without length validation`() {
         val attributes = mapOf(
             "key1" to IntAttr(123),
