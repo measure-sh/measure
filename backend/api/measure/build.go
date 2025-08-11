@@ -1901,8 +1901,6 @@ func PutBuildNext(c *gin.Context) {
 				fmt.Sprintf("x-goog-meta-original_file_name: %s", mapping.Filename),
 			}
 
-			fmt.Println("service account email", config.ServiceAccountEmail)
-
 			signOptions := &storage.SignedURLOptions{
 				GoogleAccessID: config.ServiceAccountEmail,
 				SignBytes:      signBytes,
