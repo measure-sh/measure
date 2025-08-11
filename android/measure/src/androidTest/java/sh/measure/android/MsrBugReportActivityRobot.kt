@@ -107,8 +107,4 @@ internal class MsrBugReportActivityRobot {
         }
         device.waitForIdle()
     }
-
-    fun shakeDevice() {
-        shakeDetector.getShakeListener()?.onShake()
-    }
 }

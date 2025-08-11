@@ -1,21 +1,12 @@
 package sh.measure.android.bugreport
 
-import android.Manifest
 import android.app.Activity
-import android.app.Activity.RESULT_OK
-import android.content.ActivityNotFoundException
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.os.Build
-import android.widget.Toast
 import sh.measure.android.SessionManager
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportCollector.Companion.MAX_OUTPUT_IMAGE_WIDTH
-import sh.measure.android.bugreport.BugReportCollector.Companion.PICK_IMAGES_REQUEST
-import sh.measure.android.bugreport.BugReportCollector.Companion.READ_IMAGES_PERMISSION_REQUEST
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.EventType
@@ -38,8 +29,6 @@ import sh.measure.android.events.Attachment as EventAttachment
 
 internal interface BugReportCollector {
     companion object {
-        const val PICK_IMAGES_REQUEST = 1
-        const val READ_IMAGES_PERMISSION_REQUEST = 2
         const val INITIAL_SCREENSHOT_EXTRA = "msr_br_screenshot"
         const val MAX_ATTACHMENTS_EXTRA = "msr_br_max_attachments"
         const val MAX_DESCRIPTION_LENGTH = "msr_br_description_length"
@@ -50,14 +39,6 @@ internal interface BugReportCollector {
         takeScreenshot: Boolean = true,
         attributes: MutableMap<String, AttributeValue>? = null,
     )
-
-    fun launchImagePicker(activity: Activity, maxAllowedSelections: Int)
-    fun onImagePickedResult(
-        context: Context,
-        resultCode: Int,
-        data: Intent?,
-        maxAllowedSelections: Int,
-    ): List<Uri>
 
     fun track(
         context: Context,
@@ -122,77 +103,6 @@ internal class BugReportCollectorImpl internal constructor(
         isBugReportFlowActive.compareAndSet(true, false)
     }
 
-    override fun launchImagePicker(activity: Activity, maxAllowedSelections: Int) {
-        when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
-                checkPermissionAndLaunchImagePicker(
-                    activity,
-                    Manifest.permission.READ_MEDIA_IMAGES,
-                )
-            }
-
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> {
-                checkPermissionAndLaunchImagePicker(
-                    activity,
-                    Manifest.permission.READ_EXTERNAL_STORAGE,
-                )
-            }
-
-            else -> {
-                launchImagePickerIntent(activity)
-            }
-        }
-    }
-
-    override fun onImagePickedResult(
-        context: Context,
-        resultCode: Int,
-        data: Intent?,
-        maxAllowedSelections: Int,
-    ): List<Uri> {
-        if (resultCode == RESULT_OK) {
-            val selectedUris = mutableListOf<Uri>()
-            val clipData = data?.clipData
-            if (clipData != null) {
-                for (i in 0 until minOf(clipData.itemCount, maxAllowedSelections)) {
-                    val uri = clipData.getItemAt(i).uri
-                    try {
-                        context.contentResolver.takePersistableUriPermission(
-                            uri,
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                        )
-                        selectedUris.add(uri)
-                    } catch (e: SecurityException) {
-                        logger.log(
-                            LogLevel.Error,
-                            "Failed to read image: permission missing for URI $uri",
-                            e,
-                        )
-                    }
-                }
-            } else {
-                val uri = data?.data
-                if (uri != null) {
-                    try {
-                        context.contentResolver.takePersistableUriPermission(
-                            uri,
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                        )
-                        selectedUris.add(uri)
-                    } catch (e: SecurityException) {
-                        logger.log(
-                            LogLevel.Error,
-                            "Failed to read image: permission missing for URI $uri",
-                            e,
-                        )
-                    }
-                }
-            }
-            return selectedUris
-        }
-        return listOf()
-    }
-
     override fun track(
         context: Context,
         description: String,
@@ -232,20 +142,6 @@ internal class BugReportCollectorImpl internal constructor(
 
     override fun validateBugReport(attachments: Int, descriptionLength: Int): Boolean {
         return attachments > 0 || descriptionLength > 0
-    }
-
-    private fun launchImagePickerIntent(activity: Activity) {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            type = "image/*"
-            addCategory(Intent.CATEGORY_OPENABLE)
-            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-        }
-        try {
-            activity.startActivityForResult(intent, PICK_IMAGES_REQUEST)
-        } catch (_: ActivityNotFoundException) {
-            Toast.makeText(activity, "No app available to open images", Toast.LENGTH_LONG).show()
-        }
     }
 
     private fun captureScreenshot(
@@ -294,26 +190,6 @@ internal class BugReportCollectorImpl internal constructor(
                 }
             },
         )
-    }
-
-    private fun checkPermissionAndLaunchImagePicker(
-        activity: Activity,
-        permission: String,
-        requestCode: Int = READ_IMAGES_PERMISSION_REQUEST,
-    ) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            when {
-                activity.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED -> {
-                    launchImagePickerIntent(activity)
-                }
-
-                else -> {
-                    activity.requestPermissions(arrayOf(permission), requestCode)
-                }
-            }
-        } else {
-            launchImagePickerIntent(activity)
-        }
     }
 
     private fun List<ParcelableAttachment>.toEventAttachments(): List<EventAttachment> {
