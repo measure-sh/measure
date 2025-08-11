@@ -1,0 +1,41 @@
+import type { Client } from './config/clientInfo';
+import { DefaultConfig } from './config/defaultConfig';
+import { BaseMeasureConfig } from './config/measureConfig';
+import type { MeasureInitializer } from './measureInitializer';
+import { initializeNativeSDK, start, stop } from './native/measureBridge';
+
+export class MeasureInternal {
+  private measureInitializer: MeasureInitializer;
+
+  constructor(measureInitializer: MeasureInitializer) {
+    this.measureInitializer = measureInitializer;
+  }
+
+  init(client: Client, config: BaseMeasureConfig | null) {
+    initializeNativeSDK(
+      client,
+      config ??
+        new BaseMeasureConfig(
+          DefaultConfig.enableLogging,
+          DefaultConfig.sessionSamplingRate,
+          DefaultConfig.traceSamplingRate,
+          DefaultConfig.trackHttpHeaders,
+          DefaultConfig.trackHttpBody,
+          DefaultConfig.httpHeadersBlocklist,
+          DefaultConfig.httpUrlBlocklist,
+          DefaultConfig.httpUrlAllowlist,
+          DefaultConfig.autoStart,
+          DefaultConfig.trackViewControllerLoadTime
+        ),
+      this.measureInitializer.logger
+    );
+  }
+
+  start = (): void => {
+    start();
+  };
+
+  stop = (): void => {
+    stop();
+  };
+}

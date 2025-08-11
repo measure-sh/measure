@@ -13,12 +13,34 @@ class MeasureModule: NSObject, RCTBridgeModule {
     }
     
     @objc
-    func initialize(_ apiKey: String,
+    func initialize(_ clientDict: NSDictionary,
+                    configDict: NSDictionary,
                     resolver resolve: @escaping RCTPromiseResolveBlock,
                     rejecter reject: @escaping RCTPromiseRejectBlock) {
-        let clientInfo = ClientInfo(apiKey: apiKey, apiUrl: "http://localhost:8080")
-        let config = BaseMeasureConfig(enableLogging: true)
+        guard let apiKey = clientDict["apiKey"] as? String,
+              let apiUrl = clientDict["apiUrl"] as? String else {
+            reject("invalid_args", "Missing or invalid client properties", nil)
+            return
+        }
+        
+        guard let config = configDict.decoded(as: BaseMeasureConfig.self) else {
+            reject("invalid_args", "Could not decode configDict", nil)
+            return
+        }
+        
+        let clientInfo = ClientInfo(apiKey: apiKey, apiUrl: apiUrl)
+        
         Measure.initialize(with: clientInfo, config: config)
-        resolve("Swift module received API key: \(apiKey)")
+        resolve("Swift module initialized with API key: \(apiKey)")
+    }
+    
+    @objc
+    func start() {
+        Measure.start()
+    }
+    
+    @objc
+    func stop() {
+        Measure.stop()
     }
 }
