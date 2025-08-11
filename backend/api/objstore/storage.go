@@ -8,7 +8,6 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"google.golang.org/api/option"
 )
 
 // CreateS3Client creates a new S3 client using AWS SDK Go v2
@@ -35,8 +34,8 @@ func CreateS3Client(ctx context.Context, accessKey, secretAccessKey, region, end
 	return
 }
 
-func CreateGCSClient(ctx context.Context, opts ...option.ClientOption) (client *storage.Client, err error) {
-	return storage.NewClient(ctx, opts...)
+func CreateGCSClient(ctx context.Context) (client *storage.Client, err error) {
+	return storage.NewClient(ctx)
 }
 
 func CreateS3PUTPreSignedURL(ctx context.Context, client *s3.Client, params *s3.PutObjectInput, optFns ...func(*s3.PresignOptions)) (url string, err error) {
