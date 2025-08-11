@@ -14,14 +14,30 @@ class MeasureOkHttpApplicationInterceptor internal constructor(
     private val okHttpEventCollector: OkHttpEventCollector?,
 ) : Interceptor {
 
-    constructor() : this(Measure.getOkHttpEventCollector())
+    /**
+     * Default constructor for production use and ASM bytecode transformation.
+     *
+     * Passes null to force lazy evaluation of the collector in intercept().
+     * This prevents issues where Measure.getOkHttpEventCollector() returns null
+     * during early initialization but becomes available later.
+     *
+     * The ASM transformation in OkHttpMethodVisitor calls this no-arg constructor
+     * when injecting the interceptor into OkHttpClient.Builder.
+     */
+    constructor() : this(null)
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val call = chain.call()
         val request: Request = chain.request()
-        okHttpEventCollector?.request(call, request)
+
+        // Use injected collector if provided (for tests), otherwise get it fresh each time.
+        // This lazy evaluation ensures we get the collector even if it wasn't available
+        // when this interceptor was constructed.
+        val collector = okHttpEventCollector ?: Measure.getOkHttpEventCollector()
+
+        collector?.request(call, request)
         val response: Response = chain.proceed(request)
-        okHttpEventCollector?.response(call, request, response)
+        collector?.response(call, request, response)
         return response
     }
 
