@@ -52,6 +52,7 @@ type ClickhouseConfig struct {
 type ServerConfig struct {
 	PG                         PostgresConfig
 	CH                         ClickhouseConfig
+	ServiceAccountEmail        string
 	SymbolsBucket              string
 	SymbolsBucketRegion        string
 	SymbolsAccessKey           string
@@ -93,6 +94,17 @@ func NewConfig() *ServerConfig {
 	cloudEnv := false
 	if os.Getenv("K_SERVICE") != "" && os.Getenv("K_REVISION") != "" {
 		cloudEnv = true
+	}
+
+	// capture google service account email when running in
+	// cloud. need this to create signed PUT URLs for uploading
+	// symbol files.
+	var serviceAccountEmail string
+	if cloudEnv {
+		serviceAccountEmail = os.Getenv("GOOGLE_SERVICE_ACCOUNT_EMAIL")
+		if serviceAccountEmail == "" {
+			log.Println("GOOGLE_SERVICE_ACCOUNT_EMAIL env var not set")
+		}
 	}
 
 	symbolsBucket := os.Getenv("SYMBOLS_S3_BUCKET")
@@ -242,6 +254,7 @@ func NewConfig() *ServerConfig {
 			DSN:       clickhouseDSN,
 			ReaderDNS: clickhouseReaderDSN,
 		},
+		ServiceAccountEmail:        serviceAccountEmail,
 		SymbolsBucket:              symbolsBucket,
 		SymbolsBucketRegion:        symbolsBucketRegion,
 		SymbolsAccessKey:           symbolsAccessKey,

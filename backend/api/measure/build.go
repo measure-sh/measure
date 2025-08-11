@@ -22,6 +22,8 @@ import (
 	"backend/api/server"
 	"backend/api/symbol"
 
+	credentials "cloud.google.com/go/iam/credentials/apiv1"
+	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
 	"cloud.google.com/go/storage"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -1862,6 +1864,34 @@ func PutBuildNext(c *gin.Context) {
 			return
 		}
 
+		// for creating signed URLs, we need to tie the service account
+		// identity along with the credentials. otherwise, the signed
+		// URLs can't be generated and won't work as expected.
+		iamClient, err := credentials.NewIamCredentialsClient(ctx)
+		if err != nil {
+			msg := fmt.Sprintf("failed to create IAM client: %v", err)
+
+			fmt.Println(msg)
+
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+
+			return
+		}
+		defer iamClient.Close()
+
+		signBytes := func(b []byte) ([]byte, error) {
+			resp, err := iamClient.SignBlob(ctx, &credentialspb.SignBlobRequest{
+				Name:    "projects/-/serviceAccounts" + config.ServiceAccountEmail,
+				Payload: b,
+			})
+			if err != nil {
+				return nil, err
+			}
+			return resp.SignedBlob, nil
+		}
+
 		for _, mapping := range build.Mappings {
 			ext := filepath.Ext(mapping.Filename)
 			key := fmt.Sprintf("incoming/%s%s", mapping.ID.String(), ext)
@@ -1872,11 +1902,12 @@ func PutBuildNext(c *gin.Context) {
 			}
 
 			signOptions := &storage.SignedURLOptions{
-				// GoogleAccessID: config.GoogleAccessID,
-				Scheme:  storage.SigningSchemeV4,
-				Method:  "PUT",
-				Expires: expiry,
-				Headers: metadata,
+				GoogleAccessID: config.ServiceAccountEmail,
+				SignBytes:      signBytes,
+				Scheme:         storage.SigningSchemeV4,
+				Method:         "PUT",
+				Expires:        expiry,
+				Headers:        metadata,
 			}
 
 			url, err := objstore.CreateGCSPUTPreSignedURL(client, config.SymbolsBucket, key, signOptions)
