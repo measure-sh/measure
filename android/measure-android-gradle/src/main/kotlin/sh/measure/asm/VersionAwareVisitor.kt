@@ -28,6 +28,7 @@ interface VersionAwareVisitor<T : TransformerParameters> : AsmClassVisitorFactor
         return if (isVersionCompatible(versions, minVersion, maxVersion)) {
             createClassVisitor(nextClassVisitor)
         } else {
+            println("[Measure] ASM instrumentation skipped for ${classContext.currentClassData.className} - version compatibility check failed")
             nextClassVisitor
         }
     }

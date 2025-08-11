@@ -36,6 +36,9 @@ abstract class OkHttpVisitorFactory :
     }
 
     override fun createClassVisitor(nextClassVisitor: ClassVisitor): ClassVisitor {
+        val versions = parameters.get().versions.get().get()
+        val okHttpVersion = versions[ModuleInfo("com.squareup.okhttp3", "okhttp")]
+        println("[Measure] OkHttp transformer creating visitor (okhttp3 version: $okHttpVersion)")
         return OkHttpClassVisitor(nextClassVisitor)
     }
 

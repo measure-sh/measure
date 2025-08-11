@@ -36,6 +36,9 @@ abstract class NavigationVisitorFactory :
     }
 
     override fun createClassVisitor(nextClassVisitor: ClassVisitor): ClassVisitor {
+        val versions = parameters.get().versions.get().get()
+        val navigationVersion = versions[ModuleInfo("androidx.navigation", "navigation-compose")]
+        println("[Measure] Navigation transformer creating visitor (navigation-compose version: $navigationVersion)")
         return NavigationClassVisitor(nextClassVisitor)
     }
 
