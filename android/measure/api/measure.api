@@ -40,7 +40,8 @@ public final class sh/measure/android/Measure {
 	public static synthetic fun trackBugReport$default (Lsh/measure/android/Measure;Ljava/lang/String;Ljava/util/List;Ljava/util/Map;ILjava/lang/Object;)V
 	public final fun trackEvent (Ljava/lang/String;Ljava/util/Map;Ljava/lang/Long;)V
 	public static synthetic fun trackEvent$default (Lsh/measure/android/Measure;Ljava/lang/String;Ljava/util/Map;Ljava/lang/Long;ILjava/lang/Object;)V
-	public static final fun trackHandledException (Ljava/lang/Throwable;)V
+	public static final fun trackHandledException (Ljava/lang/Throwable;Ljava/util/Map;)V
+	public static synthetic fun trackHandledException$default (Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
 	public static final fun trackScreenView (Ljava/lang/String;Ljava/util/Map;)V
 	public static synthetic fun trackScreenView$default (Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
 }

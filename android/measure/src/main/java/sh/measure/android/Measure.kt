@@ -187,12 +187,17 @@ object Measure {
      *    Measure.trackHandledException(e)
      *  }
      * ```
+     *
      * @param throwable The exception that was caught and handled.
+     * @param attributes Optional key-value pairs providing additional context to the event.
      */
     @JvmStatic
-    fun trackHandledException(throwable: Throwable) {
+    fun trackHandledException(
+        throwable: Throwable,
+        attributes: Map<String, AttributeValue> = emptyMap(),
+    ) {
         if (isInitialized.get()) {
-            measure.trackHandledException(throwable)
+            measure.trackHandledException(throwable, attributes)
         }
     }
 

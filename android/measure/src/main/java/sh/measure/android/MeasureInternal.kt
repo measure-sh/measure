@@ -211,8 +211,8 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         userTriggeredEventCollector.trackScreenView(screenName, attributes)
     }
 
-    fun trackHandledException(throwable: Throwable) {
-        userTriggeredEventCollector.trackHandledException(throwable)
+    fun trackHandledException(throwable: Throwable, attributes: Map<String, AttributeValue>) {
+        userTriggeredEventCollector.trackHandledException(throwable, attributes)
     }
 
     fun createSpan(name: String): SpanBuilder? {
