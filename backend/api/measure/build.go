@@ -1871,7 +1871,15 @@ func PutBuildNext(c *gin.Context) {
 				fmt.Sprintf("x-goog-meta-original_file_name: %s", mapping.Filename),
 			}
 
-			url, err := objstore.CreateGCSPUTPreSignedURL(client, config.SymbolsBucket, key, metadata, expiry)
+			signOptions := &storage.SignedURLOptions{
+				// GoogleAccessID: config.GoogleAccessID,
+				Scheme:  storage.SigningSchemeV4,
+				Method:  "PUT",
+				Expires: expiry,
+				Headers: metadata,
+			}
+
+			url, err := objstore.CreateGCSPUTPreSignedURL(client, config.SymbolsBucket, key, signOptions)
 			if err != nil {
 				msg := fmt.Sprintf("failed to create PUT pre-signed URL for %v: %v", mapping.Filename, err)
 
