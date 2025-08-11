@@ -38,7 +38,11 @@ func main() {
 		c.String(http.StatusOK, "pong")
 	})
 
-	r.POST("/receive-symbols", ProcessSymbolNotification)
+	if config.IsCloud() {
+		r.POST("/receive-symbols", ProcessGCSSymbolNotification)
+	} else {
+		r.POST("/receive-symbols", ProcessSymbolNotification)
+	}
 
 	// listen and serve on 0.0.0.0:${PORT}
 	port := os.Getenv("PORT")

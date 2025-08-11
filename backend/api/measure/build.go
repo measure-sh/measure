@@ -1848,6 +1848,60 @@ func PutBuildNext(c *gin.Context) {
 
 	config := server.Server.Config
 
+	if config.IsCloud() {
+		client, err := objstore.CreateGCSClient(ctx)
+		if err != nil {
+			msg := fmt.Sprintf("failed to create GCS client: %v", err)
+
+			fmt.Println(msg)
+
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+
+			return
+		}
+
+		for _, mapping := range build.Mappings {
+			ext := filepath.Ext(mapping.Filename)
+			key := fmt.Sprintf("incoming/%s%s", mapping.ID.String(), ext)
+			expiry := time.Now().Add(time.Hour)
+			metadata := []string{
+				fmt.Sprintf("x-goog-meta-mapping_id: %s", mapping.ID.String()),
+				fmt.Sprintf("x-goog-meta-original_file_name: %s", mapping.Filename),
+			}
+
+			url, err := objstore.CreateGCSPUTPreSignedURL(client, config.SymbolsBucket, key, metadata, expiry)
+			if err != nil {
+				msg := fmt.Sprintf("failed to create PUT pre-signed URL for %v: %v", mapping.Filename, err)
+
+				fmt.Println(msg)
+
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
+
+				return
+			}
+
+			mapping.UploadURL = url
+			mapping.ExpiresAt = expiry
+		}
+
+		if !build.hasMapping() {
+			c.JSON(http.StatusOK, gin.H{
+				"ok": "build info updated",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"mappings": build.Mappings,
+		})
+
+		return
+	}
+
 	client := objstore.CreateS3Client(ctx, config.SymbolsAccessKey, config.SymbolsSecretAccessKey, config.SymbolsBucketRegion, "http://localhost:9119")
 
 	// process build mappings

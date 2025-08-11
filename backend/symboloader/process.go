@@ -555,6 +555,10 @@ type SymbolNotification struct {
 	Records   []S3EventNotificationRecord `json:"records"`
 }
 
+type GCSSymbolNotification struct {
+	Name string `json:"name"`
+}
+
 func (nr S3EventNotificationRecord) validate() (err error) {
 	if nr.S3.Bucket.Name == "" {
 		err = errors.New("bucket name is empty")
@@ -581,6 +585,67 @@ func (nr S3EventNotificationRecord) validate() (err error) {
 	}
 
 	return
+}
+
+func ProcessGCSSymbolNotification(c *gin.Context) {
+	// ctx := c.Request.Context()
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		msg := fmt.Sprintf("Unable to read symbol notification request body: %v", err)
+		fmt.Println(msg)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	fmt.Println("headers", c.Request.Header)
+	fmt.Println("body", string(bodyBytes))
+
+	// Schema of event container payload
+	//
+	// ```typescript
+	// {
+	//   "kind": string,
+	//   "id": string,
+	//   "selfLink": string,
+	//   "name": string,
+	//   "bucket": string,
+	//   "generation": string,
+	//   "metageneration": string,
+	//   "contentType": string,
+	//   "timeCreated": string,
+	//   "updated": string,
+	//   "storageClass": string,
+	//   "timeStorageClassUpdated": string,
+	//   "size": string,
+	//   "md5Hash": string,
+	//   "mediaLink": string,
+	//   "crc32c": string,
+	//   "etag": string,
+	// }
+	// ```
+
+	var symbolNotif GCSSymbolNotification
+	err = json.Unmarshal(bodyBytes, &symbolNotif)
+	if err != nil {
+		msg := fmt.Sprintf("error unmarshaling symbol notification: %v", err)
+		fmt.Println(msg)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	fmt.Println("symbol notif", symbolNotif)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "symbol notification processed successfully",
+	})
 }
 
 func ProcessSymbolNotification(c *gin.Context) {

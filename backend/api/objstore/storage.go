@@ -3,6 +3,7 @@ package objstore
 import (
 	"context"
 	"io"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -47,6 +48,21 @@ func CreateS3PUTPreSignedURL(ctx context.Context, client *s3.Client, params *s3.
 	}
 
 	url = req.URL
+	return
+}
+
+func CreateGCSPUTPreSignedURL(client *storage.Client, bucket, object string, headers []string, expires time.Time) (url string, err error) {
+	opts := &storage.SignedURLOptions{
+		Method:  "PUT",
+		Expires: expires,
+		Headers: headers,
+	}
+
+	url, err = storage.SignedURL(bucket, object, opts)
+	if err != nil {
+		return
+	}
+
 	return
 }
 
