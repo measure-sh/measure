@@ -65,13 +65,29 @@ class UserTriggeredEventCollectorImplTest {
         val exception = Exception()
 
         userTriggeredEventCollector.register()
-        userTriggeredEventCollector.trackHandledException(exception)
+        userTriggeredEventCollector.trackHandledException(exception, emptyMap())
         verify(signalProcessor).trackUserTriggered(
             data = any<ExceptionData>(),
             timestamp = eq(timeProvider.now()),
             type = eq(EventType.EXCEPTION),
             attachments = eq(mutableListOf()),
-            userDefinedAttributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(mapOf()),
+        )
+    }
+
+    @Test
+    fun `tracks handled exception event with attributes`() {
+        val exception = Exception()
+
+        userTriggeredEventCollector.register()
+        val attributes = mapOf("key" to StringAttr("value"))
+        userTriggeredEventCollector.trackHandledException(exception, attributes)
+        verify(signalProcessor).trackUserTriggered(
+            data = any<ExceptionData>(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.EXCEPTION),
+            attachments = eq(mutableListOf()),
+            userDefinedAttributes = eq(attributes),
         )
     }
 
@@ -119,7 +135,7 @@ class UserTriggeredEventCollectorImplTest {
     fun `disables collection on unregistered`() {
         val exception = Exception()
         userTriggeredEventCollector.unregister()
-        userTriggeredEventCollector.trackHandledException(exception)
+        userTriggeredEventCollector.trackHandledException(exception, emptyMap())
         verify(signalProcessor, never()).trackUserTriggered(
             any<ExceptionData>(),
             any(),

@@ -14,7 +14,7 @@ import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface UserTriggeredEventCollector {
-    fun trackHandledException(throwable: Throwable)
+    fun trackHandledException(throwable: Throwable, attributes: Map<String, AttributeValue>)
     fun trackScreenView(screenName: String, attributes: Map<String, AttributeValue>)
     fun register()
     fun unregister()
@@ -65,7 +65,10 @@ internal class UserTriggeredEventCollectorImpl(
         logger.log(LogLevel.Debug, "Bug report event received")
     }
 
-    override fun trackHandledException(throwable: Throwable) {
+    override fun trackHandledException(
+        throwable: Throwable,
+        attributes: Map<String, AttributeValue>,
+    ) {
         if (!enabled.get()) {
             return
         }
@@ -80,6 +83,7 @@ internal class UserTriggeredEventCollectorImpl(
             ),
             timestamp = timeProvider.now(),
             type = EventType.EXCEPTION,
+            userDefinedAttributes = attributes,
         )
         logger.log(LogLevel.Debug, "Unhandled exception event received")
     }
