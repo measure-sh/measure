@@ -1883,7 +1883,7 @@ func PutBuildNext(c *gin.Context) {
 
 		signBytes := func(b []byte) ([]byte, error) {
 			resp, err := iamClient.SignBlob(ctx, &credentialspb.SignBlobRequest{
-				Name:    "projects/-/serviceAccounts" + config.ServiceAccountEmail,
+				Name:    "projects/-/serviceAccounts/" + config.ServiceAccountEmail,
 				Payload: b,
 			})
 			if err != nil {
@@ -1900,6 +1900,8 @@ func PutBuildNext(c *gin.Context) {
 				fmt.Sprintf("x-goog-meta-mapping_id: %s", mapping.ID.String()),
 				fmt.Sprintf("x-goog-meta-original_file_name: %s", mapping.Filename),
 			}
+
+			fmt.Println("service account email", config.ServiceAccountEmail)
 
 			signOptions := &storage.SignedURLOptions{
 				GoogleAccessID: config.ServiceAccountEmail,

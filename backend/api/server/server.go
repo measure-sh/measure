@@ -102,6 +102,7 @@ func NewConfig() *ServerConfig {
 	var serviceAccountEmail string
 	if cloudEnv {
 		serviceAccountEmail = os.Getenv("GOOGLE_SERVICE_ACCOUNT_EMAIL")
+		fmt.Println("service account email", serviceAccountEmail)
 		if serviceAccountEmail == "" {
 			log.Println("GOOGLE_SERVICE_ACCOUNT_EMAIL env var not set")
 		}
