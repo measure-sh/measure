@@ -23,6 +23,24 @@ try {
 }
 ```
 
+From version `0.12.0` onwards you can also add attributes to the tracked exception, which can be useful for
+providing additional context about the error.
+
+- Attribute keys must be strings with a maximum length of 256 characters.
+- Attribute values must be one of the primitive types: `int`, `long`, `double`, `float`, or `boolean`.
+- String attribute values can have a maximum length of 256 characters.
+
+```kotlin
+try {
+    methodThatThrows()
+} catch (e: Exception) {
+    val attributes = AttributesBuilder().put("screen", "Login")
+        .put("retryCount", 2)
+        .build()
+    Measure.trackHandledException(e, attributes)
+}
+```
+
 #### iOS
 
 To track handled errors or exceptions, use the `trackError` method with either a native Swift Error or an NSError.
@@ -35,7 +53,11 @@ do {
 }
 ```
 
-You can optionally include metadata and enable stack trace collection.
+You can optionally include attributes and enable stack trace collection.
+
+- Attribute keys must be strings with a maximum length of 256 characters.
+- Attribute values must be one of the primitive types: `int`, `long`, `double`, `float`, or `boolean`.
+- String attribute values can have a maximum length of 256 characters.
 
 ```swift
 Measure.trackError(error, attributes: [

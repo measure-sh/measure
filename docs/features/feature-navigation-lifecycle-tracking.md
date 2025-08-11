@@ -143,6 +143,22 @@ when you want to track specific screens or views that are not automatically trac
 Measure.trackScreenView("Screen Name")
 ```
 
+From version `0.12.0` onwards, you can also add attributes to the tracked screen view, which can be useful for
+providing additional context about the screen.
+
+- Attribute keys must be strings with a maximum length of 256 characters.
+- Attribute values must be one of the primitive types: `int`, `long`, `double`, `float`, or `boolean`.
+- String attribute values can have a maximum length of 256 characters.
+
+
+```kotlin
+Measure.trackScreenView(
+    "TrackOrder",
+    AttributesBuilder().put("order-id", "12345")
+        .build()
+)
+```
+
 #### iOS
 
 Using Swift:
