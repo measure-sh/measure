@@ -1,36 +1,48 @@
 import React, { useEffect } from 'react';
 import { SafeAreaView } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from './HomeScreen';
-import { Measure, ClientInfo, BaseMeasureConfig } from '@measuresh/react-native';
+import ComponentScreen from './ComponentScreen'; // Create this screen if not already
+import {
+  Measure,
+  ClientInfo,
+  BaseMeasureConfig,
+} from '@measuresh/react-native';
+
+export type RootStackParamList = {
+  HomeScreen: undefined;
+  ComponentScreen: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   const initializeMeasure = async () => {
-    const clientInfo = new ClientInfo(
-      'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
-      'https://api.measure.sh'
-    );
+    try {
+      const clientInfo = new ClientInfo(
+        'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
+        'https://api.measure.sh'
+      );
 
-    const measureConfig = new BaseMeasureConfig(
-      true,  // enableLogging
-      0.7,   // samplingRateForErrorFreeSessions
-      0.1,   // traceSamplingRate
-      false, // trackHttpHeaders
-      false, // trackHttpBody
-      [],    // httpHeadersBlocklist
-      [],    // httpUrlBlocklist
-      [],    // httpUrlAllowlist
-      false, // autoStart
-      true   // trackViewControllerLoadTime
-    );
+      const measureConfig = new BaseMeasureConfig(
+        true, // enableLogging
+        0.7, // samplingRateForErrorFreeSessions
+        0.1, // traceSamplingRate
+        false, // trackHttpHeaders
+        false, // trackHttpBody
+        [], // httpHeadersBlocklist
+        [], // httpUrlBlocklist
+        [], // httpUrlAllowlist
+        false, // autoStart
+        true // trackViewControllerLoadTime
+      );
 
-    // Measure.init(clientInfo, measureConfig);
-    const [result1, result2, result3, result4, result5] = await Promise.all([
-      Measure.init(clientInfo, measureConfig),
-      Measure.init(clientInfo, measureConfig),
-      Measure.init(clientInfo, measureConfig),
-      Measure.init(clientInfo, measureConfig),
-      Measure.init(clientInfo, measureConfig),
-    ]);
+      // Initialize Measure SDK
+      Measure.init(clientInfo, measureConfig);
+    } catch (error) {
+      console.error('Failed to initialize Measure:', error);
+    }
   };
 
   useEffect(() => {
@@ -38,8 +50,13 @@ export default function App() {
   }, []);
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <HomeScreen />
-    </SafeAreaView>
+    <NavigationContainer>
+      <SafeAreaView style={{ flex: 1 }}>
+        <Stack.Navigator initialRouteName="HomeScreen">
+          <Stack.Screen name="HomeScreen" component={HomeScreen} />
+          <Stack.Screen name="ComponentScreen" component={ComponentScreen} />
+        </Stack.Navigator>
+      </SafeAreaView>
+    </NavigationContainer>
   );
 }

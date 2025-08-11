@@ -7,52 +7,55 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Measure } from '@measuresh/react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from './AppNavigator';
 
-const sections = [
-  {
-    title: 'Session & Init',
-    data: [
-      {
-        id: 'start',
-        title: 'Start SDK',
-        onPress: () => startMeasure(),
-      },
-      {
-        id: 'stop',
-        title: 'Stop SDK',
-        onPress: () => stopMeasure(),
-      },
-    ],
-  },
-  {
-    title: 'User Actions',
-    data: [
-      {
-        id: 'event',
-        title: 'Track Custom Event',
-        onPress: () => console.log('Event pressed'),
-      },
-      {
-        id: 'crash',
-        title: 'Simulate Crash',
-        onPress: () => console.log('Crash pressed'),
-      },
-    ],
-  },
-];
+type HomeScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'Home'
+>;
 
 const stopMeasure = () => {
   Measure.stop();
-}
+};
 
 const startMeasure = () => {
   Measure.start();
 };
 
 export default function HomeScreen() {
+  const navigation = useNavigation<HomeScreenNavigationProp>();
+
+  const navigateToComponentScreen = () => {
+    navigation.navigate('ComponentScreen');
+  };
+
+  const sections = [
+    {
+      title: 'Session & Init',
+      data: [
+        { id: 'start', title: 'Start SDK', onPress: startMeasure },
+        { id: 'stop', title: 'Stop SDK', onPress: stopMeasure },
+      ],
+    },
+    {
+      title: 'User Actions',
+      data: [
+        { id: 'event', title: 'Track Custom Event', onPress: () => console.log('Event pressed') },
+        { id: 'crash', title: 'Simulate Crash', onPress: () => console.log('Crash pressed') },
+      ],
+    },
+    {
+      title: 'Navigation',
+      data: [
+        { id: 'navigate', title: 'Navigate to component Screen', onPress: navigateToComponentScreen },
+      ],
+    },
+  ];
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Measure SDK Actions</Text>
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
