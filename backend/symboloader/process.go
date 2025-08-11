@@ -556,7 +556,37 @@ type SymbolNotification struct {
 }
 
 type GCSSymbolNotification struct {
-	Name string `json:"name"`
+	Name     string            `json:"name"`
+	Size     int64             `json:"size"`
+	Metadata map[string]string `json:"metadata"`
+}
+
+func (g GCSSymbolNotification) validate() (err error) {
+	if g.Name == "" {
+		err = errors.New("name is empty")
+	}
+
+	if g.Size == 0 {
+		err = errors.New("size is zero")
+	}
+
+	if len(g.Metadata) == 0 {
+		err = errors.New("metadata is empty")
+	}
+
+	if _, ok := g.Metadata["mapping_id"]; !ok {
+		err = errors.New("mapping id is missing in metadata")
+	}
+
+	if _, ok := g.Metadata["mapping_id"]; !ok {
+		err = errors.New("mapping_id is missing in metadata")
+	}
+
+	if _, ok := g.Metadata["original_file_name"]; !ok {
+		err = errors.New("original_file_name is missing in metadata")
+	}
+
+	return
 }
 
 func (nr S3EventNotificationRecord) validate() (err error) {
@@ -588,7 +618,7 @@ func (nr S3EventNotificationRecord) validate() (err error) {
 }
 
 func ProcessGCSSymbolNotification(c *gin.Context) {
-	// ctx := c.Request.Context()
+	ctx := c.Request.Context()
 	bodyBytes, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		msg := fmt.Sprintf("Unable to read symbol notification request body: %v", err)
@@ -600,9 +630,6 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 
 		return
 	}
-
-	fmt.Println("headers", c.Request.Header)
-	fmt.Println("body", string(bodyBytes))
 
 	// Schema of event container payload
 	//
@@ -623,6 +650,7 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 	//   "size": string,
 	//   "md5Hash": string,
 	//   "mediaLink": string,
+	//   "metadata": {},
 	//   "crc32c": string,
 	//   "etag": string,
 	// }
@@ -641,7 +669,171 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("symbol notif", symbolNotif)
+	// if the notification is not from "incoming/*",
+	// just ignore.
+	if !strings.HasPrefix(symbolNotif.Name, "incoming/") {
+		c.JSON(http.StatusOK, gin.H{
+			"ok": true,
+		})
+
+		return
+	}
+
+	if err := symbolNotif.validate(); err != nil {
+		msg := fmt.Sprintf("invalid symbol notification: %v", err)
+		fmt.Println(msg)
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	id := symbolNotif.Metadata["mapping_id"]
+	originalFileName := symbolNotif.Metadata["original_file_name"]
+
+	mappingId, err := uuid.Parse(id)
+	if err != nil {
+		msg := fmt.Sprintf("error parsing uuid %q: %v", id, err)
+		fmt.Println(msg)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	var build Build
+	if err := build.load(ctx, mappingId); err != nil {
+		msg := fmt.Sprintf("error loading build for mapping id %q: %v", mappingId, err)
+		fmt.Println(msg)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	config := server.Server.Config
+
+	gcsClient, err := objstore.CreateGCSClient(ctx)
+	if err != nil {
+		msg := fmt.Sprintf("error creating GCS client: %v", err)
+		fmt.Println(msg)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	body, err := objstore.DownloadGCSObject(ctx, gcsClient, config.SymbolsBucket, symbolNotif.Name)
+	if err != nil {
+		msg := fmt.Sprintf("error downloading mapping file for mapping id %q: %v", mappingId, err)
+		fmt.Println(msg)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	defer body.Close()
+
+	content, err := io.ReadAll(body)
+	if err != nil {
+		msg := fmt.Sprintf("error reading build bytes for mapping id %q: %v", mappingId, err)
+		fmt.Println(msg)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	// compute checksum of the freshly
+	// downloaded mapping object
+	reader := bytes.NewReader(content)
+	checksum, err := cipher.ChecksumFnv1(reader)
+	if err != nil {
+		msg := fmt.Sprintf("failed to compute checksum for mapping id %q: %v", mappingId, err)
+		fmt.Println(msg)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	for _, mapping := range build.Mappings {
+		if mapping.ID != mappingId {
+			continue
+		}
+
+		// if the checksums match, no need to do anything
+		if mapping.hasChecksum() && mapping.Checksum == checksum {
+			continue
+		}
+
+		// at this point, we know this mapping
+		// is a new one
+		mapping.ShouldUpload = true
+		mapping.Checksum = checksum
+		mapping.Filename = originalFileName
+		mapping.File = content
+		mapping.Size = int64(len(content))
+
+		if err := mapping.extractDif(); err != nil {
+			msg := fmt.Sprintf("error extracting diff for mapping id %q: %v", mappingId, err)
+			fmt.Println(msg)
+
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+
+			return
+		}
+
+		fmt.Println("checksum:", mapping.Checksum)
+		fmt.Println("filename", mapping.Filename)
+		fmt.Println("size", mapping.Size)
+	}
+
+	if err := build.upload(ctx); err != nil {
+		msg := fmt.Sprintf("error uploading build for mapping id %q: %v", mappingId, err)
+		fmt.Println(msg)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	if err := build.update(ctx); err != nil {
+		msg := fmt.Sprintf("error updating build for mapping id %q: %v", mappingId, err)
+		fmt.Println(msg)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	// cleanup to remove the incoming file always
+	defer func() {
+		if err := objstore.DeleteGCSObject(ctx, gcsClient, config.SymbolsBucket, symbolNotif.Name); err != nil {
+			fmt.Println("error deleting symbol object:", err)
+		}
+	}()
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "symbol notification processed successfully",
@@ -661,9 +853,6 @@ func ProcessSymbolNotification(c *gin.Context) {
 
 		return
 	}
-
-	fmt.Println("headers", c.Request.Header)
-	fmt.Println("body", string(bodyBytes))
 
 	// Schema of event container payload.
 	//
