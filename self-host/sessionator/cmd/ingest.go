@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"sessionator/app"
 	"sessionator/config"
+	"strings"
 	"sync"
 	"time"
 
@@ -366,9 +367,15 @@ func UploadBuilds(url, apiKey string, app app.App) (status string, err error) {
 				return http.StatusText(http.StatusInternalServerError), err
 			}
 
-			// set metadata headers
-			req.Header.Set("x-amz-meta-mapping_id", mapping.ID.String())
-			req.Header.Set("x-amz-meta-original_file_name", mapping.Filename)
+			// set metadata headers based on host
+			// of url.
+			if strings.HasPrefix(mapping.UploadURL, "https://storage.googleapis.com") {
+				req.Header.Set("x-goog-meta-mapping_id", mapping.ID.String())
+				req.Header.Set("x-goog-meta-original_file_name", mapping.Filename)
+			} else {
+				req.Header.Set("x-amz-meta-mapping_id", mapping.ID.String())
+				req.Header.Set("x-amz-meta-original_file_name", mapping.Filename)
+			}
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
