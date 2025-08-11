@@ -633,7 +633,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Ingest lifecycle events (#134) by @abhaysood in #134
 - (**backend**): Upload session attachments (#124) by @detj in #124
 - (**backend**): Implement symbolicator with retrace (#126) by @abhaysood in #126
-- (**backend**): Add symbolication (#79) by @detj in #79
+- (**backend**): Add symbolication (#79) by @detj
 - (**webapp**): Enable retention period app setting by @anupcowkur
 - (**webapp**): Add date selection presets to filters by @anupcowkur in #968
 - (**webapp**): Update exceptions overview list format by @anupcowkur in #937
@@ -825,14 +825,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Use correct column name in query to get mapping key by @abhaysood in #217
 - (**backend**): Validate all events (#142) by @detj in #142
 - (**backend**): Resolve go-staticcheck warnings (#116) by @detj in #116
-- (**backend**): Partial symbolication should work (#113) by @detj in #113
-- (**backend**): Separate anrs (#110) by @detj in #110
-- (**backend**): Issues with types (#107) by @detj in #107
-- (**backend**): Fix schema for gestures (#101) by @abhaysood in #101
-- (**backend**): Accept session if no mapping file (#97) by @detj in #97
-- (**backend**): Retrace symbolication algorithm (#93) by @detj in #93
-- (**backend**): App_exit symbolication (#91) by @detj in #91
-- (**backend**): Change names of exception columns (#52) by @detj in #52
+- (**backend**): Partial symbolication should work (#113) by @detj
+- (**backend**): Separate anrs (#110) by @detj
+- (**backend**): Issues with types (#107) by @detj
+- (**backend**): Fix schema for gestures (#101) by @abhaysood
+- (**backend**): Accept session if no mapping file (#97) by @detj
+- (**backend**): Retrace symbolication algorithm (#93) by @detj
+- (**backend**): App_exit symbolication (#91) by @detj
+- (**backend**): Change names of exception columns (#52) by @detj
 - (**frontend**): Use node env for auth.ts jest test by @anupcowkur in #1060
 - (**webapp**): Remove env checks causing vercel build failure by @anupcowkur in #983
 - (**webapp**): Import lottie dynamically to fix ssr error by @anupcowkur in #963
@@ -917,8 +917,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Save date filter state in crash details page by @anupcowkur in #182
 - (**webapp**): Change env var name (#165) by @detj in #165
 - (**webapp**): Fix comment syntax by @anupcowkur
-- (**webapp**): Change text to black on side nav button on focus visible by @anupcowkur in #86
-- (**webapp**): Set header z-index so it's always on top by @anupcowkur in #66
+- (**webapp**): Change text to black on side nav button on focus visible by @anupcowkur
+- (**webapp**): Set header z-index so it's always on top by @anupcowkur
 - (**webapp**): Center align section headers on small screens by @anupcowkur
 
 ### :hammer: Misc
@@ -1557,11 +1557,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update supabase config (#216) by @detj in #216
 - Move docker compose by @detj
 - Streamline self-host by @detj
-- Change commitlint config (#54) by @detj in #54
-- Add husky & commitlint (#36) by @detj in #36
-- Improve landing page copy by @anupcowkur in #37
-- Expose clickhouse http port by @detj in #33
-- Remove unused imports by @anupcowkur in #28
+- Change commitlint config (#54) by @detj
+- Add husky & commitlint (#36) by @detj
+- Improve landing page copy by @anupcowkur
+- Expose clickhouse http port by @detj
+- Remove unused imports by @anupcowkur
 - Link contribution guidelines in README by @anupcowkur
 - Improve security by @detj
 - Add docker-compose script by @detj
@@ -1850,14 +1850,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Add user flow diagram to overview by @anupcowkur in #117
 - (**webapp**): Reduce text size for delta value in info circles by @anupcowkur
 - (**webapp**): Add version users & total users for to adoption info circle by @anupcowkur
-- (**webapp**): Add info circles to overview by @anupcowkur in #111
-- (**webapp**): Add high level filters for ovrview page by @anupcowkur in #102
+- (**webapp**): Add info circles to overview by @anupcowkur
+- (**webapp**): Add high level filters for ovrview page by @anupcowkur
 - (**webapp**): Add team switcher to side nav by @anupcowkur
 - (**webapp**): Change z-index and bg color for dropdown component by @anupcowkur
 - (**webapp**): Change side nav selected button color to neutral-950 by @anupcowkur
-- (**webapp**): Add side nav with dashboard page links by @anupcowkur in #83
-- (**webapp**): Adjust landing page spacing by @anupcowkur in #65
-- (**webapp**): Add hero animation to landing page by @anupcowkur in #63
+- (**webapp**): Add side nav with dashboard page links by @anupcowkur
+- (**webapp**): Adjust landing page spacing by @anupcowkur
+- (**webapp**): Add hero animation to landing page by @anupcowkur
 
 ### :recycle: Refactor
 
@@ -2104,9 +2104,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update self-host readme by @detj
 - Update docs by @detj
 - Update api docs (#191) by @detj in #191
-- Talk about session idempotency (#61) by @detj in #61
-- Throw some light on tailing clickhouse logs (#60) by @detj in #60
-- Update contribution guide (#53) by @detj in #53
+- Talk about session idempotency (#61) by @detj
+- Throw some light on tailing clickhouse logs (#60) by @detj
+- Update contribution guide (#53) by @detj
 - Improve self hosting guide by @detj
 - Improve self hosting docs by @detj
 - Wrote basic self hosting guide by @detj
