@@ -597,6 +597,7 @@ func ProcessSymbolNotification(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("headers", c.Request.Header)
 	fmt.Println("body", string(bodyBytes))
 
 	// Schema of event container payload.
