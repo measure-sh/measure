@@ -557,17 +557,12 @@ type SymbolNotification struct {
 
 type GCSSymbolNotification struct {
 	Name     string            `json:"name"`
-	Size     int64             `json:"size"`
 	Metadata map[string]string `json:"metadata"`
 }
 
 func (g GCSSymbolNotification) validate() (err error) {
 	if g.Name == "" {
 		err = errors.New("name is empty")
-	}
-
-	if g.Size == 0 {
-		err = errors.New("size is zero")
 	}
 
 	if len(g.Metadata) == 0 {
@@ -745,6 +740,13 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 
 	defer body.Close()
 
+	// cleanup to remove the incoming file always
+	defer func() {
+		if err := objstore.DeleteGCSObject(ctx, gcsClient, config.SymbolsBucket, symbolNotif.Name); err != nil {
+			fmt.Println("error deleting symbol object:", err)
+		}
+	}()
+
 	content, err := io.ReadAll(body)
 	if err != nil {
 		msg := fmt.Sprintf("error reading build bytes for mapping id %q: %v", mappingId, err)
@@ -827,13 +829,6 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 
 		return
 	}
-
-	// cleanup to remove the incoming file always
-	defer func() {
-		if err := objstore.DeleteGCSObject(ctx, gcsClient, config.SymbolsBucket, symbolNotif.Name); err != nil {
-			fmt.Println("error deleting symbol object:", err)
-		}
-	}()
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "symbol notification processed successfully",
