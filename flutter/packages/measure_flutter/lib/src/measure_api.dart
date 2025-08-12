@@ -24,7 +24,11 @@ abstract class MeasureApi {
 
   Future<void> stop();
 
-  void trackHandledError(Object error, StackTrace stack);
+  void trackHandledError(
+    Object error,
+    StackTrace stack, {
+    Map<String, AttributeValue> attributes,
+  });
 
   void triggerNativeCrash();
 

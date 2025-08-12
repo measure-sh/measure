@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/bug_report/attachment_processing.dart';
 import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
@@ -15,8 +16,7 @@ import '../utils/noop_logger.dart';
 import '../utils/test_clock.dart';
 
 // Mock the isolate function
-Future<FileProcessingResult> mockCompressAndSaveInIsolate(
-    CompressAndSaveParams params) async {
+Future<FileProcessingResult> mockCompressAndSaveInIsolate(CompressAndSaveParams params) async {
   return FileProcessingResult(
     filePath: '/mock/path/screenshot.jpg',
     compressedSize: 1024,
@@ -120,6 +120,7 @@ void main() {
       collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
         handled: false,
+        attributes: {},
       );
 
       expect(signalProcessor.trackedExceptions.length, 1);
@@ -176,6 +177,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
       collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
         handled: false,
+        attributes: {},
       );
 
       expect(signalProcessor.trackedExceptions.length, 1);
@@ -242,6 +244,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
       await collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
         handled: false,
+        attributes: {},
       );
 
       expect(signalProcessor.trackedEvents.length, 1);
@@ -251,6 +254,30 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
         signalProcessor.trackedExceptions[0].toJson(),
         exceptionData.toJson(),
         reason: 'Exception data does not match',
+      );
+    });
+
+    test('tracks exception with attributes', () async {
+      final error = Object();
+      final stackTrace = StackTrace.fromString([
+        '#0      _MyAppState._throwException (package:measure_flutter_example/main.dart:84:5)',
+        '#1      _InkResponseState.handleTap (package:flutter/src/material/ink_well.dart:1176:21)',
+        '#2     _invoke1 (dart:ui/hooks.dart:330:10)',
+      ].join('\n'));
+      final attributes = {"key": StringAttr("value")};
+
+      collector.register();
+      collector.trackError(
+        FlutterErrorDetails(exception: error, stack: stackTrace),
+        handled: false,
+        attributes: attributes,
+      );
+
+      expect(signalProcessor.trackedExceptions.length, 1);
+      expect(
+        signalProcessor.trackedEvents[0].userDefinedAttrs,
+        attributes,
+        reason: 'User defined attributes do not match',
       );
     });
   });

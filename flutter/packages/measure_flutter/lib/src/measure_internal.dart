@@ -88,8 +88,9 @@ final class MeasureInternal {
   Future<void> trackError(
     FlutterErrorDetails details, {
     required bool handled,
+    Map<String, AttributeValue> attributes = const {},
   }) {
-    return _exceptionCollector.trackError(details, handled: handled);
+    return _exceptionCollector.trackError(details, handled: handled, attributes: attributes);
   }
 
   void triggerNativeCrash() {

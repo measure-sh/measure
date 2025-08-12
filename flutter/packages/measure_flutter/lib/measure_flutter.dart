@@ -533,10 +533,14 @@ class Measure implements MeasureApi {
   /// **Note:** Unhandled exceptions are automatically tracked by the SDK.
   /// Only use this method for exceptions you explicitly catch.
   @override
-  Future<void> trackHandledError(Object error, StackTrace stack) {
+  Future<void> trackHandledError(
+    Object error,
+    StackTrace stack, {
+    Map<String, AttributeValue> attributes = const {},
+  }) {
     if (_isInitialized) {
       final details = FlutterErrorDetails(exception: error, stack: stack);
-      return _measure.trackError(details, handled: true);
+      return _measure.trackError(details, handled: true, attributes: attributes);
     }
     return Future.value();
   }
@@ -866,8 +870,7 @@ class Measure implements MeasureApi {
         attributes: attributes,
       );
     } else {
-      developer
-          .log('Failed to open bug report, Measure SDK is not initialized');
+      developer.log('Failed to open bug report, Measure SDK is not initialized');
       return SizedBox.shrink(key: key);
     }
   }
@@ -1083,10 +1086,10 @@ class Measure implements MeasureApi {
   }
 
   void _logInitializationFailure(
-      bool enableLogging,
-      Object error,
-      StackTrace stackTrace,
-      ) {
+    bool enableLogging,
+    Object error,
+    StackTrace stackTrace,
+  ) {
     if (enableLogging) {
       developer.log(
         'Failed to initialize measure-flutter',
@@ -1098,8 +1101,7 @@ class Measure implements MeasureApi {
     }
   }
 
-  void _logInputConfig(bool enableLogging, Map<String, dynamic> jsonConfig,
-      Map<String, String> jsonClientInfo) {
+  void _logInputConfig(bool enableLogging, Map<String, dynamic> jsonConfig, Map<String, String> jsonClientInfo) {
     if (enableLogging) {
       developer.log(
         'Initializing measure-flutter with config: $jsonConfig',
