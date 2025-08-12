@@ -1,7 +1,6 @@
 package sh.measure.android.events
 
 import sh.measure.android.attributes.AttributeValue
-import sh.measure.android.attributes.StringAttr
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -32,9 +31,7 @@ internal class CustomEventCollector(
         if (!validateName(name)) {
             return
         }
-        if (!validateAttributes(name, attributes)) {
-            return
-        }
+
         val data = CustomEventData(name)
         signalProcessor.track(
             timestamp = timestamp ?: timeProvider.now(),
@@ -68,44 +65,5 @@ internal class CustomEventCollector(
         }
 
         return true
-    }
-
-    private fun validateAttributes(name: String, attributes: Map<String, AttributeValue>): Boolean {
-        if (attributes.size > configProvider.maxUserDefinedAttributesPerEvent) {
-            logger.log(
-                LogLevel.Error,
-                "Invalid event($name): exceeds maximum of ${configProvider.maxUserDefinedAttributesPerEvent} attributes",
-            )
-            return false
-        }
-
-        return attributes.all { (key, value) ->
-            val isKeyValid = isKeyValid(key)
-            val isValueValid = isValueValid(value)
-            if (!isKeyValid) {
-                logger.log(
-                    LogLevel.Error,
-                    "Invalid event($name): invalid attribute key: $key",
-                )
-            }
-            if (!isValueValid) {
-                logger.log(
-                    LogLevel.Error,
-                    "Invalid event($name): invalid attribute value: $value",
-                )
-            }
-            isKeyValid && isValueValid
-        }
-    }
-
-    private fun isKeyValid(key: String): Boolean {
-        return key.length <= configProvider.maxUserDefinedAttributeKeyLength
-    }
-
-    private fun isValueValid(value: AttributeValue): Boolean {
-        return when (value) {
-            is StringAttr -> value.value.length <= configProvider.maxUserDefinedAttributeValueLength
-            else -> true
-        }
     }
 }
