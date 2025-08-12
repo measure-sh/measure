@@ -327,32 +327,24 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
         {/* spans column */}
         <div className='flex flex-col w-[800px] overflow-x-auto select-none'>
 
-          {/* timing indicator */}
+          {/* timing indicator - values */}
+          <div className='w-full flex flex-row justify-between px-[8px] pt-[8px]'>
+            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(0)}</p>
+            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(trace.duration * 0.2)}</p>
+            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(trace.duration * 0.4)}</p>
+            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(trace.duration * 0.6)}</p>
+            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(trace.duration * 0.8)}</p>
+            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(trace.duration)}</p>
+          </div>
+
+          {/* timing indicator - markers */}
           <div className='w-full flex flex-row justify-between p-[8px]'>
-            <div className='flex flex-col items-start'>
-              <p className='text-[10px]'>0ms</p>
-              <div className='w-[0.5px] h-2 bg-neutral-950' />
-            </div>
-            <div className='flex flex-col items-start'>
-              <p className='text-[10px]'>{(trace.duration * 0.2 / 1000).toPrecision(2)}s</p>
-              <div className='w-[0.5px] h-2 bg-neutral-950' />
-            </div>
-            <div className='flex flex-col items-start'>
-              <p className='text-[10px]'>{(trace.duration * 0.4 / 1000).toPrecision(2)}s</p>
-              <div className='w-[0.5px] h-2 bg-neutral-950' />
-            </div>
-            <div className='flex flex-col items-start'>
-              <p className='text-[10px]'>{(trace.duration * 0.6 / 1000).toPrecision(2)}s</p>
-              <div className='w-[0.5px] h-2 bg-neutral-950' />
-            </div>
-            <div className='flex flex-col items-start'>
-              <p className='text-[10px]'>{(trace.duration * 0.8 / 1000).toPrecision(2)}s</p>
-              <div className='w-[0.5px] h-2 bg-neutral-950' />
-            </div>
-            <div className='flex flex-col items-start'>
-              <p className='text-[10px]'>{(trace.duration / 1000).toPrecision(2)}s</p>
-              <div className='w-[0.5px] h-2 bg-neutral-950' />
-            </div>
+            <div className='w-[0.5px] h-2 bg-neutral-950' />
+            <div className='w-[0.5px] h-2 bg-neutral-950' />
+            <div className='w-[0.5px] h-2 bg-neutral-950' />
+            <div className='w-[0.5px] h-2 bg-neutral-950' />
+            <div className='w-[0.5px] h-2 bg-neutral-950' />
+            <div className='w-[0.5px] h-2 bg-neutral-950' />
           </div>
 
           {trace.spans.filter((span) => span.visibility !== SpanVisibility.Hidden).map((span, spanIndex) => (
@@ -364,7 +356,7 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
                   style={{
                     marginLeft: `${span.leftOffset}px`,
                   }}>
-                  {span.duration}ms
+                  {formatMillisToHumanReadable(span.duration)}
                 </p>
 
                 {/* span */}
