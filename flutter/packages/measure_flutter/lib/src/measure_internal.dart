@@ -81,8 +81,7 @@ final class MeasureInternal {
     _gestureCollector.unregister();
   }
 
-  void trackCustomEvent(String name, int? timestamp,
-      Map<String, AttributeValue> attributes) {
+  void trackCustomEvent(String name, int? timestamp, Map<String, AttributeValue> attributes) {
     _customEventCollector.trackCustomEvent(name, timestamp, attributes);
   }
 
@@ -99,10 +98,14 @@ final class MeasureInternal {
 
   void trackScreenViewEvent({
     required String name,
+    required Map<String, AttributeValue> attributes,
     bool userTriggered = true,
   }) {
     _navigationCollector.trackScreenViewEvent(
-        name: name, userTriggered: userTriggered);
+      name: name,
+      userTriggered: userTriggered,
+      attributes: attributes,
+    );
   }
 
   void trackHttpEvent({
@@ -173,8 +176,7 @@ final class MeasureInternal {
     return methodChannel.getSessionId();
   }
 
-  void trackBugReport(String description, List<MsrAttachment> attachments,
-      Map<String, AttributeValue> attributes) {
+  void trackBugReport(String description, List<MsrAttachment> attachments, Map<String, AttributeValue> attributes) {
     _bugReportCollector.trackBugReport(description, attachments, attributes);
   }
 
@@ -193,8 +195,7 @@ final class MeasureInternal {
     required BugReportTheme theme,
     required Map<String, AttributeValue>? attributes,
   }) {
-    return _bugReportCollector.createBugReport(
-        key: key, screenshot: screenshot, theme: theme, attributes: attributes);
+    return _bugReportCollector.createBugReport(key: key, screenshot: screenshot, theme: theme, attributes: attributes);
   }
 
   void setShakeListener(Function? onShake) {

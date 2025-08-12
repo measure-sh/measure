@@ -31,6 +31,9 @@ class Config implements InternalConfig, IMeasureConfig {
     this.maxEventNameLength = DefaultConfig.maxEventNameLength,
     this.customEventNameRegex = DefaultConfig.customEventNameRegex,
     this.maxDiskUsageInMb = DefaultConfig.maxDiskUsageInMb,
+    this.maxUserDefinedAttributeKeyLength = DefaultConfig.maxUserDefinedAttributeKeyLength,
+    this.maxUserDefinedAttributeValueLength = DefaultConfig.maxUserDefinedAttributeValueLength,
+    this.maxUserDefinedAttributesPerEvent = DefaultConfig.maxUserDefinedAttributesPerEvent,
   });
 
   @override
@@ -81,6 +84,12 @@ class Config implements InternalConfig, IMeasureConfig {
   final String customEventNameRegex;
   @override
   final int maxDiskUsageInMb;
+  @override
+  final int maxUserDefinedAttributesPerEvent;
+  @override
+  final int maxUserDefinedAttributeKeyLength;
+  @override
+  final int maxUserDefinedAttributeValueLength;
 
   @override
   List<String> get defaultHttpContentTypeAllowlist =>

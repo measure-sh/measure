@@ -1,10 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:measure_flutter/src/attribute_builder.dart';
 import 'package:measure_flutter/src/attribute_value.dart';
+import 'package:measure_flutter/src/config/config_provider.dart';
 import 'package:measure_flutter/src/events/custom_event_data.dart';
 import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 
+import '../utils/fake_config_provider.dart';
 import '../utils/noop_logger.dart';
 import '../utils/test_method_channel.dart';
 
@@ -12,11 +14,13 @@ void main() {
   late NoopLogger logger;
   late TestMethodChannel channel;
   late SignalProcessor signalProcessor;
+  late ConfigProvider configProvider;
 
   setUp(() {
     logger = NoopLogger();
     channel = TestMethodChannel();
-    signalProcessor = DefaultSignalProcessor(logger: logger, channel: channel);
+    configProvider = FakeConfigProvider();
+    signalProcessor = DefaultSignalProcessor(logger: logger, channel: channel, configProvider: configProvider);
   });
 
   group('trackEvent', () {

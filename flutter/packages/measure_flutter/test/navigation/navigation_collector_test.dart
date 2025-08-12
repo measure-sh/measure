@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/navigation/navigation_collector.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 
@@ -31,6 +32,7 @@ void main() {
         await navigationCollector.trackScreenViewEvent(
           name: screenName,
           userTriggered: userTriggered,
+          attributes: {},
         );
 
         // Assert
@@ -38,6 +40,25 @@ void main() {
 
         final trackedEvent = fakeSignalProcessor.trackedScreenViewEvents.first;
         expect(trackedEvent.name, equals(screenName));
+      });
+
+      test('should track screen view event with attributes', () async {
+        // Arrange
+        const screenName = 'HomeScreen';
+        const userTriggered = true;
+        final attributes = { "key": StringAttr("value") };
+
+        // Act
+        await navigationCollector.trackScreenViewEvent(
+          name: screenName,
+          userTriggered: userTriggered,
+          attributes: attributes,
+        );
+
+        // Assert
+        expect(fakeSignalProcessor.trackedScreenViewEvents.length, equals(1));
+        final trackedEvent = fakeSignalProcessor.trackedEvents.first;
+        expect(trackedEvent.userDefinedAttrs, equals(attributes));
       });
     });
   });
