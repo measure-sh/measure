@@ -16,9 +16,8 @@ import org.robolectric.shadows.ShadowSensor
 import org.robolectric.shadows.ShadowSensorManager
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.fakes.FakeConfigProvider
-import sh.measure.android.utils.AndroidTimeProvider
+import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.TestClock
-import sh.measure.android.utils.TimeProvider
 import java.time.Duration
 
 @RunWith(RobolectricTestRunner::class)
@@ -30,10 +29,9 @@ class AccelerometerShakeDetectorTest {
         addSensor(testSensor)
     }
     private val testClock = TestClock.create()
-    private val timeProvider: TimeProvider = AndroidTimeProvider(testClock)
     private val configProvider: ConfigProvider = FakeConfigProvider()
     private val shakeDetector: AccelerometerShakeDetector =
-        AccelerometerShakeDetector(sensorManager, timeProvider, configProvider)
+        AccelerometerShakeDetector(sensorManager, configProvider, NoopLogger())
     private val baseTime = 1000L
 
     @Test
@@ -61,35 +59,26 @@ class AccelerometerShakeDetectorTest {
 
     @Test
     fun `detects shake and notifies via listener`() {
-        // Start the detector
         shakeDetector.start()
-        var listenerCount = 0
+        var shakeCount = 0
         shakeDetector.setShakeListener(object : ShakeDetector.Listener {
             override fun onShake() {
-                listenerCount++
+                shakeCount++
             }
         })
 
-        // Create a sensor event simulator method
-        val createValues = { x: Float, y: Float, z: Float ->
-            floatArrayOf(x, y, z)
+        // Use values that exceed the threshold (29.43)
+        // Magnitude = sqrt(18² + 18² + 18²) = 31.18, which is > 29.43
+        val shakeValues = floatArrayOf(18.0f, 18.0f, 18.0f)
+
+        // Generate many significant movements (only need 2 now)
+        repeat(configProvider.shakeSlop * 10) {
+            fireSensorEvent(shakeValues)
+            testClock.advance(Duration.ofMillis(50))
         }
 
-        // Set initial times
-        testClock.setTime(baseTime)
-
-        // First shake movement
-        fireSensorEvent(createValues(25.0f, 25.0f, 25.0f))
-
-        // Second shake movement
-        testClock.advance(Duration.ofMillis(100))
-        fireSensorEvent(createValues(45.0f, 45.0f, 45.0f))
-
-        testClock.advance(Duration.ofMillis(100))
-        fireSensorEvent(createValues(65.0f, 65.0f, 65.0f))
-
-        // Verify shake was detected
-        assertEquals(1, listenerCount)
+        // assert the callback is called just once
+        assertEquals(1, shakeCount)
     }
 
     @Test
@@ -101,21 +90,16 @@ class AccelerometerShakeDetectorTest {
                 listenerCount++
             }
         })
-        val createValues = { x: Float, y: Float, z: Float ->
-            floatArrayOf(x, y, z)
-        }
 
-        // First shake movement
         testClock.setTime(baseTime)
-        fireSensorEvent(createValues(5.0f, 5.0f, 5.0f))
+        val strongShake = floatArrayOf(18.0f, 18.0f, 18.0f) // Above threshold (31.18 > 29.43)
 
-        // Second shake movement
-        testClock.advance(Duration.ofMillis(100))
-        fireSensorEvent(createValues(10.0f, 10.0f, 10.0f))
+        // Generate 1 movement, then wait too long before the 2nd
+        fireSensorEvent(strongShake)
 
-        // Third shake movement after timeout
-        testClock.advance(Duration.ofMillis(100 + configProvider.shakeMinTimeIntervalMs))
-        fireSensorEvent(createValues(15.0f, 15.0f, 15.0f))
+        // Advance beyond the 5-second time window so movements expire
+        testClock.advance(Duration.ofSeconds(6))
+        fireSensorEvent(strongShake)
 
         assertEquals(0, listenerCount)
     }
@@ -129,24 +113,29 @@ class AccelerometerShakeDetectorTest {
                 listenerCount++
             }
         })
-        val createValues = { x: Float, y: Float, z: Float ->
-            floatArrayOf(x, y, z)
-        }
 
-        // Set time
         testClock.setTime(baseTime)
 
-        // Process events with small changes that won't exceed threshold
-        repeat(configProvider.shakeSlop + 1) {
-            fireSensorEvent(createValues(0.1f, 0.1f, 0.1f))
+        // Use values below threshold (29.43)
+        // Magnitude = sqrt(10² + 10² + 10²) = 17.32, which is below the threshold
+        val weakShake = floatArrayOf(10.0f, 10.0f, 10.0f)
+
+        // Generate many events, but all below threshold
+        repeat(configProvider.shakeSlop * 2) {
+            fireSensorEvent(weakShake)
+            testClock.advance(Duration.ofMillis(50))
         }
 
-        // Verify no shake was detected
         assertEquals(0, listenerCount)
     }
 
     private fun fireSensorEvent(values: FloatArray) {
-        val event = SensorEventBuilder.newBuilder().setSensor(testSensor).setValues(values).build()
+        val timestampNanos = testClock.epochTime() * 1_000_000L // Convert millis to nanos
+        val event = SensorEventBuilder.newBuilder()
+            .setSensor(testSensor)
+            .setValues(values)
+            .setTimestamp(timestampNanos)
+            .build()
         shakeDetector.onSensorChanged(event)
     }
 }
