@@ -30,4 +30,13 @@ abstract class InternalConfig {
 
   /// The regex to validate a custom event name.
   String get customEventNameRegex;
+
+  /// The maximum number of user defined attributes for an event. Defaults to 100.
+  int get maxUserDefinedAttributesPerEvent;
+
+  /// The maximum length of user defined attribute key. Defaults to 256 chars.
+  int get maxUserDefinedAttributeKeyLength;
+
+  /// The maximum length of a user defined attribute value. Defaults to 256 chars.
+  int get maxUserDefinedAttributeValueLength;
 }

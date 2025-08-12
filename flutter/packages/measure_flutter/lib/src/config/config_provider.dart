@@ -105,6 +105,15 @@ class ConfigProviderImpl implements ConfigProvider {
   int get maxDiskUsageInMb => _defaultConfig.maxDiskUsageInMb;
 
   @override
+  int get maxUserDefinedAttributeValueLength => _defaultConfig.maxUserDefinedAttributeValueLength;
+
+  @override
+  int get maxUserDefinedAttributeKeyLength => _defaultConfig.maxUserDefinedAttributeKeyLength;
+
+  @override
+  int get maxUserDefinedAttributesPerEvent => _defaultConfig.maxUserDefinedAttributesPerEvent;
+
+  @override
   bool shouldTrackHttpBody(String url, String? contentType) {
     if (!trackHttpBody) {
       return false;

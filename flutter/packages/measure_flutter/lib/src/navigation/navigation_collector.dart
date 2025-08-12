@@ -3,6 +3,8 @@ import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 import 'package:measure_flutter/src/navigation/screen_view_data.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 
+import '../../measure_flutter.dart';
+
 class NavigationCollector {
   final SignalProcessor signalProcessor;
   final TimeProvider timeProvider;
@@ -24,6 +26,7 @@ class NavigationCollector {
   Future<void> trackScreenViewEvent({
     required String name,
     required bool userTriggered,
+    required Map<String, AttributeValue> attributes,
   }) async {
     if (!_enabled) {
       return;
@@ -33,7 +36,7 @@ class NavigationCollector {
       data: data,
       type: EventType.screenView,
       timestamp: timeProvider.now(),
-      userDefinedAttrs: {},
+      userDefinedAttrs: attributes,
       userTriggered: userTriggered,
     );
   }

@@ -382,12 +382,14 @@ class Measure implements MeasureApi {
   @override
   void trackScreenViewEvent({
     required String name,
+    Map<String, AttributeValue> attributes = const {},
     bool userTriggered = true,
   }) {
     if (_isInitialized) {
       _measure.trackScreenViewEvent(
         name: name,
         userTriggered: userTriggered,
+        attributes: attributes,
       );
     }
   }
