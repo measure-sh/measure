@@ -47,7 +47,7 @@ internal class OkHttpEventCollectorImpl(
         if (configProvider.shouldTrackHttpUrl(url)) {
             httpDataBuilders[key] =
                 HttpData.Builder().url(url).startTime(timeProvider.elapsedRealtime)
-                    .method(request.method.lowercase()).startTime(timeProvider.elapsedRealtime)
+                    .method(request.method.lowercase())
                     .client(HttpClientName.OK_HTTP)
         }
     }
@@ -115,7 +115,11 @@ internal class OkHttpEventCollectorImpl(
     }
 
     override fun request(call: Call, request: Request) {
-        if (configProvider.trackHttpBody) {
+        if (configProvider.shouldTrackHttpBody(
+                request.url.toString(),
+                request.headers["Content-Type"],
+            )
+        ) {
             val key = getIdentityHash(call)
             val builder = httpDataBuilders[key]
             val requestBody = getRequestBodyByteArray(request)
@@ -125,7 +129,11 @@ internal class OkHttpEventCollectorImpl(
     }
 
     override fun response(call: Call, request: Request, response: Response) {
-        if (configProvider.trackHttpBody) {
+        if (configProvider.shouldTrackHttpBody(
+                request.url.toString(),
+                response.headers["Content-Type"],
+            )
+        ) {
             val key = getIdentityHash(call)
             val builder = httpDataBuilders[key]
             val responseBody = getResponseBodyByteString(response)
@@ -156,10 +164,15 @@ internal class OkHttpEventCollectorImpl(
      */
     private fun getResponseBodyByteString(response: Response): ByteString? {
         response.body?.let { responseBody ->
-            val source = responseBody.source()
-            source.request(Int.MAX_VALUE.toLong())
-            return source.buffer.use {
-                it.snapshot()
+            try {
+                val source = responseBody.source()
+                val maxBufferSize = 1024 * 1024L // 1MB limit
+                source.request(minOf(maxBufferSize, responseBody.contentLength()))
+                return source.buffer.use {
+                    it.snapshot()
+                }
+            } catch (e: IOException) {
+                logger.log(LogLevel.Debug, "Failed to read response body", e)
             }
         }
         return null
