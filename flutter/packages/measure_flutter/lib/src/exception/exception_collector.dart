@@ -47,6 +47,7 @@ final class ExceptionCollector {
   Future<void> trackError(
     FlutterErrorDetails details, {
     required bool handled,
+    required Map<String, AttributeValue> attributes,
   }) async {
     if (!_enabled) return;
     final ExceptionData? exceptionData =
@@ -65,7 +66,7 @@ final class ExceptionCollector {
       data: exceptionData,
       type: EventType.exception,
       timestamp: timeProvider.now(),
-      userDefinedAttrs: {},
+      userDefinedAttrs: attributes,
       userTriggered: false,
       threadName: Isolate.current.debugName,
       attachments: attachments,

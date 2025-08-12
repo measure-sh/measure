@@ -29,7 +29,11 @@ class FakeMeasure implements MeasureApi {
   }
 
   @override
-  Future<void> trackHandledError(Object error, StackTrace stack) async {
+  Future<void> trackHandledError(
+    Object error,
+    StackTrace stack, {
+    Map<String, AttributeValue> attributes = const {},
+  }) async {
     throw UnimplementedError();
   }
 
