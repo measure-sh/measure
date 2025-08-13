@@ -1,8 +1,8 @@
 import { DefaultConfig } from './defaultConfig';
 import type { InternalConfig } from './internalConfig';
-import type { MeasureConfig } from './measureConfig';
+import type { MeasureConfigInterface } from './measureConfig';
 
-export class Config implements InternalConfig, MeasureConfig {
+export class Config implements InternalConfig, MeasureConfigInterface {
   maxEventNameLength: number;
   enableLogging: boolean;
   samplingRateForErrorFreeSessions: number;

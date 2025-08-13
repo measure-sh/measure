@@ -7,7 +7,7 @@ import ComponentScreen from './ComponentScreen'; // Create this screen if not al
 import {
   Measure,
   ClientInfo,
-  BaseMeasureConfig,
+  MeasureConfig,
 } from '@measuresh/react-native';
 
 export type RootStackParamList = {
@@ -27,7 +27,7 @@ export default function App() {
       );
 
       
-      const measureConfig = new BaseMeasureConfig(
+      const measureConfig = new MeasureConfig(
         true, // enableLogging
         0.7, // samplingRateForErrorFreeSessions
         0.1, // traceSamplingRate

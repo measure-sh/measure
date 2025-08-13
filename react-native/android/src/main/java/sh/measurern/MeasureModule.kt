@@ -67,6 +67,7 @@ class MeasureModule(private val reactContext: ReactApplicationContext) : ReactCo
       return
     }
     Measure.stop()
+    isStarted = false
     promise.resolve("Measure SDK stopped successfully")
   }
 }

@@ -64,6 +64,7 @@ class MeasureModule: NSObject, RCTBridgeModule {
             return
         }
         Measure.stop()
+        isStarted = false
         resolve("Measure SDK stopped successfully")
     }
 }

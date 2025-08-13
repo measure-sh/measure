@@ -1,6 +1,6 @@
 import type { Client } from './config/clientInfo';
 import { DefaultConfig } from './config/defaultConfig';
-import { BaseMeasureConfig } from './config/measureConfig';
+import { MeasureConfig } from './config/measureConfig';
 import type { MeasureInitializer } from './measureInitializer';
 import { initializeNativeSDK, start, stop } from './native/measureBridge';
 
@@ -11,11 +11,11 @@ export class MeasureInternal {
     this.measureInitializer = measureInitializer;
   }
 
-  init(client: Client, config: BaseMeasureConfig | null): Promise<any> {
+  init(client: Client, config: MeasureConfig | null): Promise<any> {
     return initializeNativeSDK(
       client,
       config ??
-        new BaseMeasureConfig(
+        new MeasureConfig(
           DefaultConfig.enableLogging,
           DefaultConfig.sessionSamplingRate,
           DefaultConfig.traceSamplingRate,
