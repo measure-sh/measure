@@ -2,7 +2,6 @@
 
 import com.diffplug.gradle.spotless.SpotlessExtension
 import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
-import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     alias(libs.plugins.android.library)
@@ -19,7 +18,7 @@ private val artifactId = properties["MEASURE_ARTIFACT_ID"] as String
 
 mavenPublishing {
     coordinates(groupId, artifactId, measureSdkVersion)
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
+    publishToMavenCentral(automaticRelease = true)
 
     configure(
         AndroidSingleVariantLibrary(
