@@ -235,6 +235,12 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
   }
 }
 @objc public class MsrAttachment : ObjectiveC.NSObject, Swift.Codable {
+  final public let name: Swift.String
+  final public let type: Measure.AttachmentType
+  public var bytes: Foundation.Data?
+  public var path: Swift.String?
+  public var size: Swift.Int64
+  public var id: Swift.String
   public init(name: Swift.String, type: Measure.AttachmentType, size: Swift.Int64, id: Swift.String, bytes: Foundation.Data? = nil, path: Swift.String? = nil)
   @objc deinit
   public func encode(to encoder: any Swift.Encoder) throws
