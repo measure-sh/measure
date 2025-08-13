@@ -11,15 +11,17 @@ class MeasureModule: NSObject, RCTBridgeModule {
     static func requiresMainQueueSetup() -> Bool {
         return false
     }
+
+    var isInitialized = false
+    var isStarted = false
     
     @objc
     func initialize(_ clientDict: NSDictionary,
                     configDict: NSDictionary,
                     resolver resolve: @escaping RCTPromiseResolveBlock,
                     rejecter reject: @escaping RCTPromiseRejectBlock) {
-        guard let apiKey = clientDict[MethodConstants.apiKey] as? String, // use JSON deserialization to decode
-              let apiUrl = clientDict[MethodConstants.apiUrl] as? String else {
-            reject(ErrorMessages.invalidArguments, "Missing or invalid client properties", nil)
+        guard let clientInfo = clientDict.decoded(as: ClientInfo.self) else {
+            reject(ErrorMessages.invalidArguments, "Could not decode clientDict", nil)
             return
         }
         
@@ -28,19 +30,40 @@ class MeasureModule: NSObject, RCTBridgeModule {
             return
         }
         
-        let clientInfo = ClientInfo(apiKey: apiKey, apiUrl: apiUrl)
-        
         Measure.initialize(with: clientInfo, config: config)
+        isInitialized = true
+        isStarted = config.autoStart
         resolve("Native Measure SDK initialized successfully")
     }
     
     @objc
-    func start() {
-        Measure.start() // TODO: make these asynchronous
+    func start(_ resolve: @escaping RCTPromiseResolveBlock,
+               rejecter reject: @escaping RCTPromiseRejectBlock) {
+        guard isInitialized else {
+            reject(ErrorMessages.sdkUninitialized, "Measure SDK is not initialized. Call initialize() first.", nil)
+            return
+        }
+        guard !isStarted else {
+            reject(ErrorMessages.sdkNotStarted, "Measure SDK is already started.", nil)
+            return
+        }
+        Measure.start()
+        isStarted = true
+        resolve("Measure SDK started successfully")
     }
     
     @objc
-    func stop() {
+    func stop(_ resolve: @escaping RCTPromiseResolveBlock,
+              rejecter reject: @escaping RCTPromiseRejectBlock) {
+        guard isInitialized else {
+            reject(ErrorMessages.sdkUninitialized, "Measure SDK is not initialized. Call initialize() first.", nil)
+            return
+        }
+        guard isStarted else {
+            reject(ErrorMessages.sdkNotStarted, "Measure SDK is not started. Call start() first.", nil)
+            return
+        }
         Measure.stop()
+        resolve("Measure SDK stopped successfully")
     }
 }

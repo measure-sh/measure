@@ -11,8 +11,8 @@ export class MeasureInternal {
     this.measureInitializer = measureInitializer;
   }
 
-  init(client: Client, config: BaseMeasureConfig | null) {
-    initializeNativeSDK(
+  init(client: Client, config: BaseMeasureConfig | null): Promise<any> {
+    return initializeNativeSDK(
       client,
       config ??
         new BaseMeasureConfig(
@@ -31,11 +31,11 @@ export class MeasureInternal {
     );
   }
 
-  start = (): void => {
-    start();
+  start = (): Promise<any> => {
+    return start();
   };
 
-  stop = (): void => {
-    stop();
+  stop = (): Promise<any> => {
+    return stop();
   };
 }

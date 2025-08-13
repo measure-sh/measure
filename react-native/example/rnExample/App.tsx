@@ -30,6 +30,7 @@ const App = (): React.JSX.Element => {
   const initializeMeasure = () => {
     const clientInfo = new ClientInfo(
       'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
+      'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
       'https://api.measure.sh',
     );
 

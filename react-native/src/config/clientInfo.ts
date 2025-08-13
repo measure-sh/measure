@@ -7,8 +7,11 @@ const FALLBACK_API_URL = 'https://api.measure.sh';
  * Interface defining the required client information.
  */
 export interface Client {
-  /** The API key assigned to your project. Available in the Measure dashboard. */
-  apiKey: string;
+  /** The API key assigned to your iOS project. Available in the Measure dashboard. */
+  apiKeyIos: string;
+
+  /** The API key assigned to your Android project. Available in the Measure dashboard. */
+  apiKeyAndroid: string;
   
   /** 
    * The backend URL where data will be sent. For self-host users this is available 
@@ -26,25 +29,28 @@ export interface Client {
  * @example
  * ```typescript
  * const clientInfo = new ClientInfo(
- *   apiKey: "your-api-key",
+ *   apiKeyIos: "your-ios-api-key",
+ *   apiKeyAndroid: "your-android-api-key",
  *   apiUrl: "https://localhost:8080"
  * );
  * ```
  */
-export class ClientInfo implements Client {
-  apiKey: string;
+class ClientInfo implements Client {
+  apiKeyIos: string;
+  apiKeyAndroid: string;
   apiUrl: string;
 
   /**
    * Creates a new ClientInfo instance.
    * 
-   * @param apiKey - The API key assigned to your project
+   * @param apiKeyIos - The API key assigned to your iOS project
+   * @param apiKeyAndroid - The API key assigned to your Android project
    * @param apiUrl - The backend URL where data will be sent (optional, defaults to api.measure.sh)
    * @throws Will log a debug message if apiKey is missing
    * @throws Will fall back to default API URL if provided URL is invalid
    */
-  constructor(apiKey: string, apiUrl: string) {
-    if (!apiKey) {
+  constructor(apiKeyIos: string, apiKeyAndroid: string, apiUrl: string) {
+    if (!apiKeyIos || !apiKeyAndroid) {
       console.debug('Measure apiKey is missing, skipping initialization.');
     }
 
@@ -53,10 +59,23 @@ export class ClientInfo implements Client {
       new URL(apiUrl);
       this.apiUrl = apiUrl;
     } catch (e) {
-      console.debug('Measure apiUrl is invalid, falling back to default.');
+      console.debug('Measure apiUrl is invalid, falling back to default.', apiUrl);
       this.apiUrl = FALLBACK_API_URL;
     }
 
-    this.apiKey = apiKey;
+    this.apiKeyIos = apiKeyIos;
+    this.apiKeyAndroid = apiKeyAndroid;
   }
 }
+
+class ClientInfoInternal {
+    apiKey: string;
+    apiUrl: string;
+
+    constructor(apiKey: string, apiUrl: string) {
+      this.apiKey = apiKey;
+      this.apiUrl = apiUrl;
+    }
+  }
+
+export { ClientInfo, ClientInfoInternal };

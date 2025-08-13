@@ -17,11 +17,21 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 >;
 
 const stopMeasure = () => {
-  Measure.stop();
+  Measure.stop().then(() => {
+    console.log('Measure SDK stopped successfully');
+  }).catch((error) => {
+    console.error('Failed to stop Measure SDK:', error);
+  }
+  );
 };
 
 const startMeasure = () => {
-  Measure.start();
+  Measure.start().then(() => {
+    console.log('Measure SDK started successfully');
+  }).catch((error) => {
+    console.error('Failed to start Measure SDK:', error);
+  }
+  );
 };
 
 export default function HomeScreen() {

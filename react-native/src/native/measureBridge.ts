@@ -1,6 +1,6 @@
 import { NativeModules, Platform } from 'react-native';
 import type { Logger } from '../utils/logger';
-import type { Client } from '../config/clientInfo';
+import { ClientInfoInternal, type Client } from '../config/clientInfo';
 import type { BaseMeasureConfig } from '../config/measureConfig';
 
 const LINKING_ERROR =
@@ -20,36 +20,42 @@ const MeasureModule = NativeModules.MeasureModule
       }
     );
 
-export function initializeNativeSDK(
-  client: Client,
-  config: BaseMeasureConfig,
-  logger: Logger
-): void {
+export function initializeNativeSDK(client: Client, config: BaseMeasureConfig, logger: Logger): Promise<any> {
   if (MeasureModule.initialize) {
-    logger.log(
-      'debug',
-      '[MeasureBridge] Calling native initialize with API key: ' + client.apiKey // TODO: Remove this log in production
-    );
-
-    MeasureModule.initialize(client, config)
-      .then((result: any) => {
-        logger.log(
-          'info',
-          '[MeasureBridge] Native initialize returned: ' + result
-        );
-      })
-      .catch((err: any) => {
-        logger.log('error', '[MeasureBridge] Native initialize failed: ' + err);
-      });
+    let clientInfo: ClientInfoInternal;
+    if (Platform.OS === 'ios') {
+      clientInfo = new ClientInfoInternal(client.apiKeyIos, client.apiUrl);
+    } else {
+      clientInfo = new ClientInfoInternal(client.apiKeyAndroid, client.apiUrl);
+    }
+    return initNativeSDK(clientInfo, config, logger);
   } else {
     logger.log('error', '[MeasureBridge] Native module not found.');
+    return Promise.reject(
+      new Error('[MeasureBridge] Native module not found.')
+    );
   }
 }
 
-export const start = (): void => {
-  MeasureModule.start(); // TODO: add MeasureModule native check
+function initNativeSDK(client: ClientInfoInternal, config: BaseMeasureConfig, logger: Logger): Promise<any> {
+  return MeasureModule.initialize(client, config)
+    .then((result: any) => {
+      logger.log(
+        'info',
+        '[MeasureBridge] Native initialize returned: ' + result
+      );
+      return result;
+    })
+    .catch((err: any) => {
+      logger.log('error', '[MeasureBridge] Native initialize failed: ' + err);
+      throw err;
+    });
+}
+
+export function start(): Promise<any> {
+  return MeasureModule.start();
 };
 
-export const stop = (): void => {
-  MeasureModule.stop(); // TODO: add MeasureModule native check
+export function stop(): Promise<any> {
+  return MeasureModule.stop();
 };

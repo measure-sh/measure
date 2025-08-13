@@ -11,4 +11,6 @@ enum MethodConstants {
 
 enum ErrorMessages {
     static let invalidArguments = "invalidArgs"
+    static let sdkUninitialized = "sdkUninitialized"
+    static let sdkNotStarted = "sdkNotStarted"
 }
