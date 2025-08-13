@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"sessionator/app"
 	"sessionator/config"
-	"strings"
 	"sync"
 	"time"
 
@@ -348,13 +347,6 @@ func UploadBuilds(url, apiKey string, app app.App) (status string, err error) {
 			return http.StatusText(http.StatusInternalServerError), err
 		}
 
-		// log all the mapping details
-		for _, mapping := range buildres.Mappings {
-			fmt.Println("id", mapping.ID)
-			fmt.Println("type", mapping.Type)
-			fmt.Println("filename", mapping.Filename)
-		}
-
 		for _, mapping := range buildres.Mappings {
 			mappingFilePath := mappingFilesMap[mapping.Filename]
 
@@ -364,24 +356,14 @@ func UploadBuilds(url, apiKey string, app app.App) (status string, err error) {
 			}
 			defer file.Close()
 
-			// content, err := io.ReadAll(file)
-			// if err != nil {
-			// 	return http.StatusText(http.StatusInternalServerError), err
-			// }
-
 			req, err := http.NewRequest("PUT", mapping.UploadURL, file)
 			if err != nil {
 				return http.StatusText(http.StatusInternalServerError), err
 			}
 
-			// set metadata headers based on host
-			// of url.
-			if strings.HasPrefix(mapping.UploadURL, "https://storage.googleapis.com") {
-				req.Header.Set("x-goog-meta-mapping_id", mapping.ID.String())
-				req.Header.Set("x-goog-meta-original_file_name", mapping.Filename)
-			} else {
-				req.Header.Set("x-amz-meta-mapping_id", mapping.ID.String())
-				req.Header.Set("x-amz-meta-original_file_name", mapping.Filename)
+			// set metadata headers
+			for key, val := range mapping.Headers {
+				req.Header.Set(key, val)
 			}
 
 			resp, err := http.DefaultClient.Do(req)
