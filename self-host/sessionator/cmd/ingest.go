@@ -348,6 +348,13 @@ func UploadBuilds(url, apiKey string, app app.App) (status string, err error) {
 			return http.StatusText(http.StatusInternalServerError), err
 		}
 
+		// log all the mapping details
+		for _, mapping := range buildres.Mappings {
+			fmt.Println("id", mapping.ID)
+			fmt.Println("type", mapping.Type)
+			fmt.Println("filename", mapping.Filename)
+		}
+
 		for _, mapping := range buildres.Mappings {
 			mappingFilePath := mappingFilesMap[mapping.Filename]
 
@@ -357,12 +364,12 @@ func UploadBuilds(url, apiKey string, app app.App) (status string, err error) {
 			}
 			defer file.Close()
 
-			content, err := io.ReadAll(file)
-			if err != nil {
-				return http.StatusText(http.StatusInternalServerError), err
-			}
+			// content, err := io.ReadAll(file)
+			// if err != nil {
+			// 	return http.StatusText(http.StatusInternalServerError), err
+			// }
 
-			req, err := http.NewRequest("PUT", mapping.UploadURL, bytes.NewReader(content))
+			req, err := http.NewRequest("PUT", mapping.UploadURL, file)
 			if err != nil {
 				return http.StatusText(http.StatusInternalServerError), err
 			}

@@ -1478,7 +1478,6 @@ func (b *Build) update(ctx context.Context) (err error) {
 }
 
 type Build struct {
-	ID          uuid.UUID
 	AppID       uuid.UUID
 	VersionName string     `json:"version_name" binding:"required"`
 	VersionCode string     `json:"version_code" binding:"required"`
@@ -1784,8 +1783,6 @@ func PutBuildNext(c *gin.Context) {
 
 		return
 	}
-
-	fmt.Println("build id", build.ID)
 
 	build.AppID = appId
 
