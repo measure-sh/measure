@@ -1,5 +1,6 @@
 package sh.measure.android.config
 
+import android.hardware.SensorManager
 import sh.measure.android.events.EventType
 
 internal data class Config(
@@ -57,8 +58,8 @@ internal data class Config(
     override val inMemorySignalsQueueFlushRateMs: Long = 3000
     override val maxAttachmentsInBugReport: Int = 5
     override val maxDescriptionLengthInBugReport: Int = 4000
-    override val shakeAccelerationThreshold: Float = 20f
-    override val shakeMinTimeIntervalMs: Long = 1500
-    override val shakeSlop: Int = 3
+    override val shakeAccelerationThreshold: Float = 2.5f * SensorManager.GRAVITY_EARTH
+    override val shakeMinTimeIntervalMs: Long = 5000
+    override val shakeSlop: Int = 2
     override val estimatedEventSizeInKb: Int = 10 // 10KB
 }

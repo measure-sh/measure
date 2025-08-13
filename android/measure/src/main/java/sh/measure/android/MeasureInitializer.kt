@@ -446,8 +446,8 @@ internal class MeasureInitializerImpl(
     override val shakeBugReportCollector: ShakeBugReportCollector = ShakeBugReportCollector(
         shakeDetector = AccelerometerShakeDetector(
             sensorManager = systemServiceProvider.sensorManager,
-            timeProvider = timeProvider,
             configProvider = configProvider,
+            logger = logger,
         ),
     ),
     override val internalSignalCollector: InternalSignalCollector = InternalSignalCollector(

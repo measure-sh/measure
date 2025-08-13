@@ -122,17 +122,18 @@ internal interface InternalConfig {
     val maxDescriptionLengthInBugReport: Int
 
     /**
-     * The force threshold to trigger a shake (higher = less sensitive). Defaults to 20.
+     * The force threshold to trigger a shake (higher = less sensitive).
+     * Defaults to 2.5 * GRAVITY_EARTH ≈ 24.5 m/s².
      */
     val shakeAccelerationThreshold: Float
 
     /**
-     *  Minimum time between shake detections in milliseconds. Defaults to 1500 ms.
+     *  Minimum time between shake detections in milliseconds. Defaults to 5000 ms.
      */
     val shakeMinTimeIntervalMs: Long
 
     /**
-     * Number of movements required before considering a shake. Defaults to 3.
+     * Number of movements required before considering a shake. Defaults to 2.
      */
     val shakeSlop: Int
 
