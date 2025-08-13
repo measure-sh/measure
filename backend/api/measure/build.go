@@ -634,26 +634,6 @@ func (bm *BuildMapping) upload(ctx context.Context) (err error) {
 		s3Client = objstore.CreateS3Client(ctx, config.SymbolsAccessKey, config.SymbolsSecretAccessKey, config.SymbolsBucketRegion, config.AWSEndpoint)
 	}
 
-	// var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
-	// 	return aws.Credentials{
-	// 		AccessKeyID:     config.SymbolsAccessKey,
-	// 		SecretAccessKey: config.SymbolsSecretAccessKey,
-	// 	}, nil
-	// }
-
-	// awsConfig := &aws.Config{
-	// 	Region:      config.SymbolsBucketRegion,
-	// 	Credentials: credentialsProvider,
-	// }
-
-	// client := s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
-	// 	endpoint := config.AWSEndpoint
-	// 	if endpoint != "" {
-	// 		o.BaseEndpoint = aws.String(endpoint)
-	// 		o.UsePathStyle = *aws.Bool(true)
-	// 	}
-	// })
-
 	metadata := map[string]string{
 		"app_id":       bm.AppID.String(),
 		"version_name": bm.VersionName,
