@@ -25,7 +25,10 @@ export const Measure = {
    *
    * @param client - A Client object containing the API key and API URL.
    * @param config - (Optional) A BaseMeasureConfig object to customize SDK behavior.
-   *
+   * @returns A promise that resolves once the SDK is fully initialized.
+   * Subsequent calls made while initialization is in progress or already complete
+   * will return the same promise. If initialization fails, the promise will reject
+   * with the encountered error.
    * @example
    * ts
    * import { Measure, Client, BaseMeasureConfig } from '@measure/react-native';
@@ -48,21 +51,24 @@ export const Measure = {
    * Measure.init(client, measureConfig);
    *
    */
-  init(client: Client, config: BaseMeasureConfig | null): Promise<void> {
+  init(client: Client, config: BaseMeasureConfig | null): Promise<any> {
     if (_initializationPromise) {
       console.warn('Measure SDK is already initialized or being initialized.');
       return _initializationPromise;
     }
 
-    _initializationPromise = new Promise((resolve, reject) => {
+    _initializationPromise = new Promise((_resolve, reject) => {
       try {
         console.info('Initializing Measure SDK ...');
 
         _measureInitializer = new BaseMeasureInitializer(client);
         _measureInternal = new MeasureInternal(_measureInitializer);
-        _measureInternal.init(client, config);
-
-        resolve();
+        _initializationPromise = _measureInternal
+          .init(client, config)
+          .catch((error) => {
+            _initializationPromise = null;
+            reject(error);
+          });
       } catch (error) {
         _initializationPromise = null;
         reject(error);
@@ -75,14 +81,20 @@ export const Measure = {
   /**
    * Start the Measure SDK manually (if `autoStart` is false).
    */
-  start() {
-    _measureInternal.start();
+  start(): Promise<any> {
+    if (!_measureInternal) {
+      return Promise.reject(new Error('Measure is not initialized. Call init() first.'));
+    }
+    return _measureInternal.start();
   },
 
   /**
    * Stop the Measure SDK.
    */
-  stop() {
-    _measureInternal.stop();
+  stop(): Promise<any> {
+    if (!_measureInternal) {
+      return Promise.reject(new Error('Measure is not initialized. Call init() first.'));
+    }
+    return _measureInternal.stop();
   },
 };

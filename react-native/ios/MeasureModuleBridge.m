@@ -6,7 +6,10 @@ RCT_EXTERN_METHOD(initialize:(NSDictionary *)clientDict
                   configDict:(NSDictionary *)configDict
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(start)
-RCT_EXTERN_METHOD(stop)
+RCT_EXTERN_METHOD(start:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(stop:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
 
 @end
