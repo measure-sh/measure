@@ -1,5 +1,5 @@
 import type { Client } from './config/clientInfo';
-import { BaseMeasureConfig } from './config/measureConfig';
+import { MeasureConfig } from './config/measureConfig';
 import {
   BaseMeasureInitializer,
   type MeasureInitializer,
@@ -35,7 +35,7 @@ export const Measure = {
    *
    * const client = new Client('your-api-key', 'https://api.measure.sh');
    *
-   * const measureConfig = new BaseMeasureConfig(
+   * const measureConfig = new MeasureConfig(
    * true,   // enableLogging
    * 0.7,    // samplingRateForErrorFreeSessions
    * 0.1,    // traceSamplingRate
@@ -51,7 +51,7 @@ export const Measure = {
    * Measure.init(client, measureConfig);
    *
    */
-  init(client: Client, config: BaseMeasureConfig | null): Promise<any> {
+  init(client: Client, config: MeasureConfig | null): Promise<any> {
     if (_initializationPromise) {
       console.warn('Measure SDK is already initialized or being initialized.');
       return _initializationPromise;

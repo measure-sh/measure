@@ -3,7 +3,7 @@ import { DefaultConfig } from "./defaultConfig";
 /**
  * Configuration for the Measure SDK. Used to customize the behavior of the SDK on initialization.
  */
-export interface MeasureConfig {
+export interface MeasureConfigInterface {
   /**
    * Whether to enable internal SDK logging.
    * Defaults to `false`.
@@ -99,9 +99,9 @@ export interface MeasureConfig {
 }
 
 /**
- * Default implementation of the MeasureConfig interface.
+ * Default implementation of the MeasureConfigInterface.
  */
-export class BaseMeasureConfig implements MeasureConfig {
+export class MeasureConfig implements MeasureConfigInterface {
   enableLogging: boolean;
   samplingRateForErrorFreeSessions: number;
   traceSamplingRate: number;

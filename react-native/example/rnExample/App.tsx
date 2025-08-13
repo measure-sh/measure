@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
-import {Measure, ClientInfo, BaseMeasureConfig} from '@measuresh/react-native';
+import {Measure, ClientInfo, MeasureConfig} from '@measuresh/react-native';
 
 type ActionItem = {
   id: string;
@@ -34,7 +34,7 @@ const App = (): React.JSX.Element => {
       'https://api.measure.sh',
     );
 
-    const measureConfig = new BaseMeasureConfig(
+    const measureConfig = new MeasureConfig(
       true, // enableLogging
       0.7, // samplingRateForErrorFreeSessions
       0.1, // traceSamplingRate

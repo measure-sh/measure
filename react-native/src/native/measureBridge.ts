@@ -1,7 +1,7 @@
 import { NativeModules, Platform } from 'react-native';
 import type { Logger } from '../utils/logger';
 import { ClientInfoInternal, type Client } from '../config/clientInfo';
-import type { BaseMeasureConfig } from '../config/measureConfig';
+import type { MeasureConfig } from '../config/measureConfig';
 
 const LINKING_ERROR =
   `The package '@measuresh/react-native' doesn't seem to be linked properly.` +
@@ -20,7 +20,7 @@ const MeasureModule = NativeModules.MeasureModule
       }
     );
 
-export function initializeNativeSDK(client: Client, config: BaseMeasureConfig, logger: Logger): Promise<any> {
+export function initializeNativeSDK(client: Client, config: MeasureConfig, logger: Logger): Promise<any> {
   if (MeasureModule.initialize) {
     let clientInfo: ClientInfoInternal;
     if (Platform.OS === 'ios') {
@@ -37,7 +37,7 @@ export function initializeNativeSDK(client: Client, config: BaseMeasureConfig, l
   }
 }
 
-function initNativeSDK(client: ClientInfoInternal, config: BaseMeasureConfig, logger: Logger): Promise<any> {
+function initNativeSDK(client: ClientInfoInternal, config: MeasureConfig, logger: Logger): Promise<any> {
   return MeasureModule.initialize(client, config)
     .then((result: any) => {
       logger.log(

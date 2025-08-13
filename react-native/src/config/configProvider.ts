@@ -2,14 +2,14 @@
 
 import { Config } from './config';
 import type { ConfigLoader } from './configLoader';
-import type { MeasureConfig } from './measureConfig';
+import type { MeasureConfigInterface } from './measureConfig';
 import type { InternalConfig } from './internalConfig';
 
 /**
  * Configuration Provider for the Measure SDK.
  * See `BaseConfigProvider` for details.
  */
-export interface ConfigProvider extends MeasureConfig, InternalConfig {
+export interface ConfigProvider extends MeasureConfigInterface, InternalConfig {
   loadNetworkConfig(): void;
 }
 
