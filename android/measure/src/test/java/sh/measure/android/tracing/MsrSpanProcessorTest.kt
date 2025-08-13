@@ -73,6 +73,26 @@ class MsrSpanProcessorTest {
     }
 
     @Test
+    fun `discards span if name is empty`() {
+        val spanProcessor = MsrSpanProcessor(logger, signalProcessor, emptyList(), configProvider)
+        TestData.getSpan(
+            logger = logger,
+            timeProvider = timeProvider,
+            spanProcessor = spanProcessor,
+            name = "",
+        ).end()
+
+        TestData.getSpan(
+            logger = logger,
+            timeProvider = timeProvider,
+            spanProcessor = spanProcessor,
+            name = "    ",
+        ).end()
+
+        verify(signalProcessor, never()).trackSpan(any())
+    }
+
+    @Test
     fun `discards span if it exceeds max length`() {
         val spanProcessor = MsrSpanProcessor(logger, signalProcessor, emptyList(), configProvider)
         TestData.getSpan(
