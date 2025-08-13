@@ -135,7 +135,6 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
                 UITextField.self,
                 UIImageView.self,
                 WKWebView.self,
-                UIWebView.self,
                 AVPlayerViewController().view.classForCoder
             ].compactMap { $0 as? UIView.Type }
 
