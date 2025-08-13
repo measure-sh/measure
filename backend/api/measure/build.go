@@ -1125,19 +1125,20 @@ func PutBuild(c *gin.Context) {
 }
 
 type Mapping struct {
-	ID             uuid.UUID     `json:"id"`
-	Type           string        `json:"type" binding:"required,oneof=proguard dsym elf_debug"`
-	Key            string        `json:"key,omitempty"`
-	Location       string        `json:"location,omitempty"`
-	Checksum       string        `json:"checksum,omitempty"`
-	Size           int64         `json:"size,omitempty"`
-	Filename       string        `json:"filename" binding:"required"`
-	UploadURL      string        `json:"upload_url,omitempty"`
-	ExpiresAt      time.Time     `json:"expires_at"`
-	File           []byte        `json:"file,omitempty"`
-	Difs           []*symbol.Dif `json:"difs,omitempty"`
-	ShouldUpload   bool          `json:"should_upload,omitempty"`
-	UploadComplete bool          `json:"upload_complete,omitempty"`
+	ID             uuid.UUID         `json:"id"`
+	Type           string            `json:"type" binding:"required,oneof=proguard dsym elf_debug"`
+	Key            string            `json:"key,omitempty"`
+	Location       string            `json:"location,omitempty"`
+	Checksum       string            `json:"checksum,omitempty"`
+	Size           int64             `json:"size,omitempty"`
+	Filename       string            `json:"filename" binding:"required"`
+	UploadURL      string            `json:"upload_url,omitempty"`
+	ExpiresAt      time.Time         `json:"expires_at"`
+	Headers        map[string]string `json:"headers"`
+	File           []byte            `json:"file,omitempty"`
+	Difs           []*symbol.Dif     `json:"difs,omitempty"`
+	ShouldUpload   bool              `json:"should_upload,omitempty"`
+	UploadComplete bool              `json:"upload_complete,omitempty"`
 }
 
 func (m Mapping) isEmpty() bool {
@@ -1925,6 +1926,9 @@ func PutBuildNext(c *gin.Context) {
 
 			mapping.UploadURL = url
 			mapping.ExpiresAt = expiry
+			mapping.Headers = make(map[string]string)
+			mapping.Headers["x-goog-meta-mapping_id"] = mapping.ID.String()
+			mapping.Headers["x-goog-meta-original_file_name"] = mapping.Filename
 		}
 
 		if !build.hasMapping() {
@@ -1969,6 +1973,9 @@ func PutBuildNext(c *gin.Context) {
 
 		mapping.UploadURL = url
 		mapping.ExpiresAt = time.Now().Add(time.Hour)
+		mapping.Headers = make(map[string]string)
+		mapping.Headers["x-amz-meta-mapping_id"] = mapping.ID.String()
+		mapping.Headers["x-amz-meta-original_file_name"] = mapping.Filename
 	}
 
 	if !build.hasMapping() {
