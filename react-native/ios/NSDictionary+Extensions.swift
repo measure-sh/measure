@@ -9,7 +9,7 @@ extension NSDictionary {
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
-            print("Decoding error: \(error)")
+            print("Decoding error: \(error)") // TODO: Make log more descriptive
             return nil
         }
     }
