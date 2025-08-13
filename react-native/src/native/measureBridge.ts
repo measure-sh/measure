@@ -28,7 +28,7 @@ export function initializeNativeSDK(
   if (MeasureModule.initialize) {
     logger.log(
       'debug',
-      '[MeasureBridge] Calling native initialize with API key: ' + client.apiKey
+      '[MeasureBridge] Calling native initialize with API key: ' + client.apiKey // TODO: Remove this log in production
     );
 
     MeasureModule.initialize(client, config)
@@ -47,9 +47,9 @@ export function initializeNativeSDK(
 }
 
 export const start = (): void => {
-  MeasureModule.start();
+  MeasureModule.start(); // TODO: add MeasureModule native check
 };
 
 export const stop = (): void => {
-  MeasureModule.stop();
+  MeasureModule.stop(); // TODO: add MeasureModule native check
 };

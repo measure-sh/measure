@@ -17,7 +17,7 @@ class MeasureModule: NSObject, RCTBridgeModule {
                     configDict: NSDictionary,
                     resolver resolve: @escaping RCTPromiseResolveBlock,
                     rejecter reject: @escaping RCTPromiseRejectBlock) {
-        guard let apiKey = clientDict[MethodConstants.apiKey] as? String,
+        guard let apiKey = clientDict[MethodConstants.apiKey] as? String, // use JSON deserialization to decode
               let apiUrl = clientDict[MethodConstants.apiUrl] as? String else {
             reject(ErrorMessages.invalidArguments, "Missing or invalid client properties", nil)
             return
@@ -36,7 +36,7 @@ class MeasureModule: NSObject, RCTBridgeModule {
     
     @objc
     func start() {
-        Measure.start()
+        Measure.start() // TODO: make these asynchronous
     }
     
     @objc
