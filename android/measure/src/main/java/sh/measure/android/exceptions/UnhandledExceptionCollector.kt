@@ -45,7 +45,7 @@ internal class UnhandledExceptionCollector(
                 ),
                 timestamp = timeProvider.now(),
                 type = EventType.EXCEPTION,
-                takeScreenshot = false,
+                takeScreenshot = true,
             )
         } catch (e: Throwable) {
             // Prevent an infinite loop of exceptions if the above code fails.

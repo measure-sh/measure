@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.text.InputFilter
+import android.util.Log
 import android.view.View
 import android.widget.EditText
 import android.widget.HorizontalScrollView
@@ -164,10 +165,15 @@ internal class MsrBugReportActivity : ComponentActivity() {
 
     private fun sendBugReport() {
         val isValid =
-            bugReportCollector.validateBugReport(attachments.size, etDescription.text.length)
+            bugReportCollector.validateBugReport(totalAttachments, etDescription.text.length)
         if (isValid) {
             trackBugReport()
             finish()
+        } else {
+            Log.e(
+                "Measure",
+                "Failed to send bug report, either description or attachments must be set",
+            )
         }
     }
 
@@ -249,6 +255,24 @@ internal class MsrBugReportActivity : ComponentActivity() {
         } else {
             val maxAllowed = maxAttachments - totalAttachments
             val newUris = selectedUris.filter { it !in uris }.take(maxAllowed)
+
+            // Take persistent URI permissions to prevent SecurityException when reading the image.
+            newUris.forEach { uri ->
+                try {
+                    contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                    )
+                } catch (e: Exception) {
+                    // Some URIs may not support persistent permissions, this is expected and
+                    // should not prevent processing
+                    Log.e(
+                        "Measure",
+                        "Failed to take persistent URI permission for $uri, attachment will be skipped",
+                    )
+                }
+            }
+
             uris.addAll(newUris)
             showSelectedImages(newUris)
         }
