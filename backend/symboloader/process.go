@@ -24,6 +24,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
+	"go.opentelemetry.io/otel"
 )
 
 // MetaMappingIDKey is the name of the metadata
@@ -35,6 +36,10 @@ const MetaMappingIDKey = "X-Amz-Meta-Mapping_id"
 // metadata header for representing the original file
 // name of the mapping file.
 const MetaMappingOriginalFilenameKey = "X-Amz-Meta-Original_file_name"
+
+// processTracer is the tracer to trace the symbol
+// process operation.
+var processTracer = otel.Tracer("symboloader-process")
 
 type Mapping struct {
 	ID             uuid.UUID     `json:"id"`
@@ -700,6 +705,9 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 		return
 	}
 
+	traceCtx, span := processTracer.Start(ctx, "process-gcs-symbol-records")
+	defer span.End()
+
 	var build Build
 	if err := build.load(ctx, mappingId); err != nil {
 		msg := fmt.Sprintf("error loading build for mapping id %q: %v", mappingId, err)
@@ -726,6 +734,9 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 		return
 	}
 
+	_, downloadSpan := processTracer.Start(traceCtx, "download-symbol")
+	defer downloadSpan.End()
+
 	body, err := objstore.DownloadGCSObject(ctx, gcsClient, config.SymbolsBucket, symbolNotif.Name)
 	if err != nil {
 		msg := fmt.Sprintf("error downloading mapping file for mapping id %q: %v", mappingId, err)
@@ -735,8 +746,12 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 			"error": msg,
 		})
 
+		downloadSpan.End()
+
 		return
 	}
+
+	downloadSpan.End()
 
 	defer body.Close()
 
@@ -792,6 +807,9 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 		mapping.File = content
 		mapping.Size = int64(len(content))
 
+		_, difSpan := processTracer.Start(traceCtx, "extract-diff")
+		defer difSpan.End()
+
 		if err := mapping.extractDif(); err != nil {
 			msg := fmt.Sprintf("error extracting diff for mapping id %q: %v", mappingId, err)
 			fmt.Println(msg)
@@ -800,13 +818,20 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 				"error": msg,
 			})
 
+			difSpan.End()
+
 			return
 		}
 
 		fmt.Println("checksum:", mapping.Checksum)
 		fmt.Println("filename", mapping.Filename)
 		fmt.Println("size", mapping.Size)
+
+		difSpan.End()
 	}
+
+	_, uploadSpan := processTracer.Start(traceCtx, "upload-symbol")
+	defer uploadSpan.End()
 
 	if err := build.upload(ctx); err != nil {
 		msg := fmt.Sprintf("error uploading build for mapping id %q: %v", mappingId, err)
@@ -816,8 +841,15 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 			"error": msg,
 		})
 
+		uploadSpan.End()
+
 		return
 	}
+
+	uploadSpan.End()
+
+	_, updateSpan := processTracer.Start(traceCtx, "update-build")
+	defer updateSpan.End()
 
 	if err := build.update(ctx); err != nil {
 		msg := fmt.Sprintf("error updating build for mapping id %q: %v", mappingId, err)
@@ -827,8 +859,12 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 			"error": msg,
 		})
 
+		updateSpan.End()
+
 		return
 	}
+
+	updateSpan.End()
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "symbol notification processed successfully",
@@ -926,6 +962,9 @@ func ProcessSymbolNotification(c *gin.Context) {
 
 		return
 	}
+
+	traceCtx, span := processTracer.Start(ctx, "process-s3-symbol-records")
+	defer span.End()
 
 	for _, record := range symbolNotif.Records {
 		key, err := url.QueryUnescape(record.S3.Object.Key)
@@ -1072,6 +1111,9 @@ func ProcessSymbolNotification(c *gin.Context) {
 			mapping.File = content
 			mapping.Size = int64(len(content))
 
+			_, span := processTracer.Start(traceCtx, "extract-dif")
+			defer span.End()
+
 			if err := mapping.extractDif(); err != nil {
 				msg := fmt.Sprintf("error extracting diff for mapping id %q: %v", mappingId, err)
 				fmt.Println(msg)
@@ -1080,13 +1122,20 @@ func ProcessSymbolNotification(c *gin.Context) {
 					"error": msg,
 				})
 
+				span.End()
+
 				return
 			}
 
 			fmt.Println("checksum:", mapping.Checksum)
 			fmt.Println("filename", mapping.Filename)
 			fmt.Println("size", mapping.Size)
+
+			span.End()
 		}
+
+		_, uploadSpan := processTracer.Start(traceCtx, "upload-symbol")
+		defer uploadSpan.End()
 
 		if err := build.upload(ctx); err != nil {
 			msg := fmt.Sprintf("error uploading build for mapping id %q: %v", mappingId, err)
@@ -1096,8 +1145,13 @@ func ProcessSymbolNotification(c *gin.Context) {
 				"error": msg,
 			})
 
+			uploadSpan.End()
+
 			return
 		}
+
+		_, updateSpan := processTracer.Start(traceCtx, "update-build")
+		defer updateSpan.End()
 
 		if err := build.update(ctx); err != nil {
 			msg := fmt.Sprintf("error updating build for mapping id %q: %v", mappingId, err)
@@ -1106,6 +1160,8 @@ func ProcessSymbolNotification(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": msg,
 			})
+
+			updateSpan.End()
 
 			return
 		}
