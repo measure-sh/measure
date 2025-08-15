@@ -1495,10 +1495,6 @@ func (b Build) hasMapping() bool {
 	return len(b.Mappings) > 0
 }
 
-func (b Build) validate() (err error) {
-	return
-}
-
 func (b Build) upsertSize(ctx context.Context, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.
 		InsertInto(`build_sizes`).
