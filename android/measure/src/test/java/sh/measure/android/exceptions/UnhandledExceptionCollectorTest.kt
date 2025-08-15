@@ -68,7 +68,7 @@ internal class UnhandledExceptionCollectorTest {
             userDefinedAttributes = eq(mutableMapOf()),
             attachments = eq(mutableListOf()),
             threadName = eq(null),
-            takeScreenshot = eq(false),
+            takeScreenshot = eq(true),
         )
     }
 
