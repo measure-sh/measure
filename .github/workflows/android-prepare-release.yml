@@ -49,6 +49,15 @@ jobs:
         run: |
           sed -i "s/MEASURE_VERSION_NAME=.*/MEASURE_VERSION_NAME=${{ inputs.version }}/" gradle.properties
 
+      - name: Update version in libs.versions.toml
+        run: |
+          sed -i "s/measure-android = \".*\"/measure-android = \"${{ inputs.version }}\"/" gradle/libs.versions.toml
+
+      - name: Generate changelog
+        run: |
+          cd ..
+          git cliff --output android/CHANGELOG.md --tag android-v${{ inputs.version }}
+
       - name: Update version in README
         run: |
           cd ../docs
@@ -75,6 +84,8 @@ jobs:
 
             Changes:
             - Updated version to ${{ inputs.version }} in gradle.properties
+            - Updated version to ${{ inputs.version }} in libs.versions.toml
+            - Generated changelog for version ${{ inputs.version }}
             - Updated version in README.md
           base: main
           labels: android

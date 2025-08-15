@@ -58,6 +58,9 @@ jobs:
           cache: 'gradle'
       - name: Publish to maven local
         run: ./gradlew :measure:publishToMavenLocal
+        env:
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_ARTIFACT_SIGNING_PASSWORD }}
       - name: Run Gradle plugin checks
         run: ./gradlew :measure-android-gradle:test --no-daemon --no-parallel --no-configuration-cache --stacktrace
 
