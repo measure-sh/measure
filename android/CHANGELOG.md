@@ -1,205 +1,284 @@
-# measure-android
+# Changelog
 
-# 0.10.0
+All notable changes to this project will be documented in this file.
 
-#### Important notes
-* This version of the SDK *must* be paired with v0.6.0 version of the server or higher. Older server versions will 
-drop events.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-#### Features
+## [android-v0.12.0] - 2025-08-15
 
-* feat(android): add attributes to spans by @abhaysood in https://github.com/measure-sh/measure/pull/1848
-* feat(android): auto track activity TTID spans by @abhaysood in https://github.com/measure-sh/measure/pull/1868
-* feat(android): auto track fragment ttid by @abhaysood in https://github.com/measure-sh/measure/pull/1889
+### :sparkles: New features
 
-#### Fixes
+- (**android**): Add custom attributes to trackHandledException (#2510) by @abhaysood in #2510
+- (**android**): Add custom attributes to trackScreenView (#2509) by @abhaysood in #2509
+- (**android**): Support 2.9.2 androidx compose navigation instrumentation (#2455) by @abhaysood in #2455
+- (**android**): Provide configurable storage limits (#2444) by @abhaysood in #2444
 
-* fix(android): support java 11 by @abhaysood in https://github.com/measure-sh/measure/pull/1735
-* chore(android): upgrade AGP and downgrade androidx.core by @abhaysood in https://github.com/measure-sh/measure/pull/1925
+### :bug: Bug fixes
 
-#### Others
+- (**android**): Take persistable permission for uris (#2549) by @abhaysood in #2549
+- (**android**): Improve shake detection (#2535) by @abhaysood in #2535
+- (**android**): Resolve http event tracking issues (#2515) by @abhaysood in #2515
+- (**android**): Remove need for READ_MEDIA_IMAGES permission (#2503) by @abhaysood in #2503
+- (**android**): Use correct timestamp for launch metric calculation (#2473) by @abhaysood in #2473
 
-* docs(android): improve android readme by @abhaysood in https://github.com/measure-sh/measure/pull/1793
-* chore(android): update robolectric by @abhaysood in https://github.com/measure-sh/measure/pull/1820
-* fix(android): truncate TTID span names to fit max span length by @abhaysood in https://github.com/measure-sh/measure/pull/1952
+### :hammer: Misc
 
-# 0.9.0
+- (**android**): Prepare sdk release 0.12.0
+- (**android**): Discard spans with empty name (#2541) by @abhaysood in #2541
+- (**android**): Centralize user defined attributes validation (#2520) by @abhaysood in #2520
+- (**android**): Add event logging (#2487) by @abhaysood in #2487
+- (**android**): Prepare next development version 0.12.0-SNAPSHOT (#2424) by @abhaysood in #2424
 
-#### Important notes
+## [android-v0.11.0] - 2025-07-21
 
-* This version of the SDK *must* be paired with v0.5.0 version of the server or higher. Older server versions will 
-drop events.
-* Breaking changes:
-  * Deprecated `Measure.trackNavigation` method has been removed. Use `Measure.trackScreenView` instead.
-  * Config `sessionSamplingRate` renamed to `samplingRateForErrorFreeSessions` to be more precise.
-* Dependency updates:
-  * chore(android): upgrade AGP version by @abhaysood in https://github.com/measure-sh/measure/pull/1672
-  * chore(android): bump up curtains to 1.2.5 by @abhaysood in https://github.com/measure-sh/measure/pull/1536
+### :sparkles: New features
 
-#### Features
+- (**android**): Add support for custom headers (#2343) by @kamalnayan04 in #2343
 
-* feat(android): add low power and thermal throttling attributes by @abhaysood in https://github.com/measure-sh/measure/pull/1525
-* feat(android): expose APIs to start/stop SDK by @abhaysood in https://github.com/measure-sh/measure/pull/1533
-* feat(android): attach layout snapshots with gesture click events by @abhaysood in https://github.com/measure-sh/measure/pull/1551
-* feat(android): implement tracing for Android by @abhaysood in https://github.com/measure-sh/measure/pull/1405
-* feat(android): expose API to get current session ID by @abhaysood in https://github.com/measure-sh/measure/pull/1634
-* feat(android): support custom events and attributes by @abhaysood in https://github.com/measure-sh/measure/pull/1616
+### :bug: Bug fixes
 
+- (**android**): Reliably track events when sdk is initialized late (#2386) by @abhaysood in #2386
+- (**android**): Missing classes error in network client (#2371) by @abhaysood in #2371
 
-#### Fixes
+### :hammer: Misc
 
-* fix(android): initialization issues by @abhaysood in https://github.com/measure-sh/measure/pull/1538
-* fix(android): revert usage of reentrant lock for heartbeat and SDK initialization by @abhaysood in https://github.com/measure-sh/measure/pull/1539
-* fix(android): add keep rule for AndroidComposeView by @abhaysood in https://github.com/measure-sh/measure/pull/1540
-* fix(android): serialize numbers as numbers instead of string in user def attrs by @abhaysood in https://github.com/measure-sh/measure/pull/1667
-* fix(android): remove unneeded view id prefix in gesture events by @abhaysood in https://github.com/measure-sh/measure/pull/1673
-* chore(android): apply spotless to gradle plugin module by @abhaysood in https://github.com/measure-sh/measure/pull/1671
+- (**android**): Prepare sdk release 0.11.0 (#2405) by @abhaysood in #2405
+- (**android**): Hide config serialization from public api (#2388) by @abhaysood in #2388
+- (**android**): Remove shake to launch bug report config (#2359) by @abhaysood in #2359
+- (**android**): Remove event transformer (#2298) by @abhaysood in #2298
+- (**android**): Upgrade dependencies (#2194) by @abhaysood in #2194
+- (**android**): Upload flutter symbols using gradle plugin (#2081) by @abhaysood in #2081
+- (**android**): Convert event type to enum (#2046) by @abhaysood in #2046
+- (**android**): Improve logging (#2022) by @abhaysood in #2022
+- (**android**): Reformat by @abhaysood in #2019
+- (**android**): Test app exit table version insertion by @abhaysood
+- (**android**): Add v3 to v4 migration test by @abhaysood
+- (**android**): Add version to app exit table by @abhaysood
+- (**android**): Handle app exit in signal processor by @abhaysood
+- (**android**): Extract attribute keys by @abhaysood
+- (**android**): Add db migration tests by @abhaysood in #2009
+- (**android**): Prepare next development version of android SDK by @abhaysood in #1990
 
+### :recycle: Refactor
 
-#### Others
+- (**android**): Decouple activity ttid from launch tracking (#2391) by @abhaysood in #2391
 
-* docs(android): update benchmarks & related information in README by @abhaysood in https://github.com/measure-sh/measure/pull/1537
-* refactor(android): implement batch insertions of events and spans in db by @abhaysood in https://github.com/measure-sh/measure/pull/1659
-* refactor(android): avoid accessing thermal status change for older APIs by @abhaysood in https://github.com/measure-sh/measure/pull/1661
-* docs(android): add minimum version compatibility by @abhaysood in https://github.com/measure-sh/measure/pull/1670
+### :books: Documentation
 
+- Improve SDK documentation (#2256) by @abhaysood in #2256
 
-# 0.8.2
+## [android-v0.10.0] - 2025-03-28
 
-#### Features
+### :sparkles: New features
 
-chore(android): Collect only launch & journey events for non-crashed sessions by @abhaysood in https://github.com/measure-sh/measure/pull/1482
-All events for crashed sessions continue to be reported. Non-crashed sessions are not reported by default, only launch and lifecycle events
-are reported.
+- (**android**): Track fragment ttid span (#1889) by @abhaysood in #1889
+- (**android**): Auto track activity TTID spans (#1868) by @abhaysood in #1868
+- (**android**): Add attributes to spans (#1848) by @abhaysood in #1848
+- (**android**): Implement bug reporting (#1780) by @abhaysood in #1780
 
+### :bug: Bug fixes
 
-# 0.8.1
+- (**android**): Truncate TTID span names to fit max span length (#1952) by @abhaysood in #1952
+- (**android**): Support java 11 by @abhaysood in #1735
 
-#### Fixes
+### :hammer: Misc
 
-* fix(android): create new session if previous session crashed by @abhaysood in https://github.com/measure-sh/measure/pull/1439
-* fix(android): use uptime millis for cold launch instead of realtime elapsed by @abhaysood in https://github.com/measure-sh/measure/pull/1438
+- (**android**): Prepare android sdk release 0.10.0 by @abhaysood
+- (**android**): Prepare android gradle plugin release 0.8.0 (#1989) by @abhaysood in #1989
+- (**android**): Add platform to builds API request (#1986) by @abhaysood in #1986
+- (**android**): Upgrade AGP and downgrade androidx.core (#1925) by @abhaysood in #1925
+- (**android**): Record a sample session with user ID (#1865) by @abhaysood in #1865
+- (**android**): Update robolectric & fix instrumentation test crash (#1820) by @abhaysood in #1820
+- (**android**): Prepare next development version for gradle plugin by @abhaysood in #1775
+- (**android**): Prepare gradle plugin release 0.7.0 by @abhaysood
+- (**android**): Prepare next development version of SDK by @abhaysood in #1695
 
-# 0.8.0
-#### Features
+## [android-v0.9.0] - 2025-01-06
 
-* feat(android): add screen view event & deprecate navigation event by @abhaysood in https://github.com/measure-sh/measure/pull/1265
-* feat(android): improve session management by @abhaysood in https://github.com/measure-sh/measure/pull/1372
+### :sparkles: New features
 
-#### Fixes
+- (**android**): Remove deprecated navigation event by @abhaysood in #1665
+- (**android**): Implement custom events with user defined attrs by @abhaysood
+- (**android**): Expose API to get current session ID by @abhaysood in #1634
+- (**android**): Implement core API for perf tracing by @abhaysood
+- (**android**): Attach SVG layout snapshots to click gestures by @abhaysood
+- (**android**): Expose APIs to allow start/stop of SDK by @abhaysood in #1533
+- (**android**): Add low power and thermal throttling attributes by @abhaysood
 
-* fix(android): track fragment lifecycle events when r8 is enabled by @abhaysood in https://github.com/measure-sh/measure/pull/1327
-* fix(android): ignore duplicate inserts to app exit by @abhaysood in https://github.com/measure-sh/measure/pull/1379
-* chore(android): remove unnecessary logs for launch tracking by @abhaysood in https://github.com/measure-sh/measure/pull/1382
-* chore(android): support latest stable compose-navigation by @abhaysood in https://github.com/measure-sh/measure/pull/1383
-* chore(android): remove low memory event by @abhaysood in https://github.com/measure-sh/measure/pull/1384
-* chore(android): add max session duration config by @abhaysood in https://github.com/measure-sh/measure/pull/1392
-* fix(android): handle session management when elapsed time gets reset by @abhaysood in https://github.com/measure-sh/measure/pull/1394
-* refactor(android): use monotonic clock to get time by @abhaysood in https://github.com/measure-sh/measure/pull/1402
+### :bug: Bug fixes
 
-**Full Changelog**: https://github.com/measure-sh/measure/compare/android-v0.7.0...0.8.0](https://github.com/measure-sh/measure/pull/1265)
+- (**android**): Remove unneeded view id prefix in gesture events by @abhaysood in #1673
+- (**android**): Serialize numbers as numbers instead of string by @abhaysood in #1667
+- (**android**): Add keep rule for AndroidComposeView by @abhaysood in #1540
+- (**android**): Revert usage of reentrant lock for heartbeat and SDK initialization by @abhaysood in #1539
+- (**android**): Initialization issues by @abhaysood in #1538
 
-# 0.7.0
-#### Features
+### :hammer: Misc
 
-* feat(android): report activity launched with saved state as warm launch by @abhaysood in https://github.com/measure-sh/measure/pull/1247
-* feat(android): handle warm launches that are lukewarm by @abhaysood in https://github.com/measure-sh/measure/pull/1268
-* feat(android): add parent fragment to fragment lifecycle events by @abhaysood in https://github.com/measure-sh/measure/pull/1262
+- (**android**): Prepare sdk release 0.9.0 by @abhaysood
+- (**android**): Upgrade agp to 8.7.3 by @abhaysood in #1672
+- (**android**): Apply spotless to gradle plugin module by @abhaysood
+- (**android**): Remove uneeded log for SVG by @abhaysood in #1662
+- (**android**): Bump up curtains to 1.2.5 by @abhaysood in #1536
+- (**android**): Prepare next development version of SDK by @abhaysood in #1483
 
-#### Fixes
+### :recycle: Refactor
 
-* fix(android): make sdk 16KB page size compliant by @abhaysood in https://github.com/measure-sh/measure/pull/1211
-* fix(android): blank screenshots for Android 15 by @abhaysood in https://github.com/measure-sh/measure/pull/1233
-* fix(android): incorrect URL parsing by @abhaysood in https://github.com/measure-sh/measure/pull/1272
+- (**android**): Avoid accessing thermal status change for older APIs by @abhaysood in #1661
+- (**android**): Implement batch insertions of events and spans in db by @abhaysood in #1659
 
-### Others
-* chore(android): update sdk version to 35 and agp to 8.6 by @abhaysood in https://github.com/measure-sh/measure/pull/1253
-  
-**Full Changelog**: https://github.com/measure-sh/measure/compare/android-v0.6.1...v0.7.0
+### :books: Documentation
 
-## 0.6.1
-#### Fixes
+- (**android**): Update benchmarks & related information in README by @abhaysood in #1537
 
-* fix(android): handle exceptions when loading native library by @abhaysood in https://github.com/measure-sh/measure/pull/1179
-* fix(android): NPE when app visible time isn't available to calculate launch time by @abhaysood in https://github.com/measure-sh/measure/pull/1183
-* refactor(android): remove usage of double bang operator by @abhaysood in https://github.com/measure-sh/measure/pull/1185 
+## [android-v0.8.2] - 2024-11-05
 
-## 0.6.0
-#### Fixes
+### :bug: Bug fixes
 
-* Resolve crash when OkHttp is not a runtime dependency by @abhaysood in https://github.com/measure-sh/measure/pull/1067
-* Make Android tests more reliable by @abhaysood in https://github.com/measure-sh/measure/pull/1070
+- (**android**): Revert to use uptime millis for launch tracking by @abhaysood in #1438
+- (**android**): Use shared prefs commit to update recent session by @abhaysood in #1439
 
-**Full Changelog**: https://github.com/measure-sh/measure/compare/android-v0.5.0...0.6.0
+### :hammer: Misc
 
-## 0.5.0
-#### Features
-* Allow configuring http urls for which to enable collection of http events. This configuration is simpler to setup 
-than finding out all URLs to block by @abhaysood in https://github.com/measure-sh/measure/pull/1020
+- (**android**): Prepare sdk release 0.8.2 by @abhaysood
+- (**android**): Always collect events required for journey by @abhaysood in #1482
+- (**android**): Change default sampling rate to 0 by @abhaysood
+- (**android**): Prepare next development version of SDK by @abhaysood in #1442
+- (**android**): Prepare sdk release 0.8.1 by @abhaysood
+- (**android**): Prepare next development version of SDK by @abhaysood in #1419
 
-#### Fixes
-* fix(android): gracefully handle session and event insertion failures by @abhaysood in https://github.com/measure-sh/measure/pull/1008
-* fix(android): overflow due to incorrect data type for time by @abhaysood in https://github.com/measure-sh/measure/pull/1014
+## [android-v0.8.0] - 2024-10-29
 
-**Full Changelog**: https://github.com/measure-sh/measure/compare/android-v0.4.0...0.5.0
+### :sparkles: New features
 
-## 0.4.0
-#### Features
-* Add ability to turn on logs for the SDK, logs are disabled by default by @abhaysood in https://github.com/measure-sh/measure/pull/925
-* Add ability to configure sampling rate for non-crashed sessions by @abhaysood in https://github.com/measure-sh/measure/pull/955
+- (**android**): Improve session management by @abhaysood in #1372
+- (**android**): Add screen view event by @abhaysood
 
-#### Fixes
-* Fix network provider attribute key name by @abhaysood in https://github.com/measure-sh/measure/pull/929
-* Fix calculation of CPU & memory usage by @abhaysood in https://github.com/measure-sh/measure/pull/946
-* Use process death time instead of current time for AppExit timestamp by @abhaysood in https://github.com/measure-sh/measure/pull/954
-* Guard executor submit blocks with try-catch blocks by @abhaysood in https://github.com/measure-sh/measure/pull/961
-* Add indexes to database by @abhaysood in https://github.com/measure-sh/measure/pull/966
-* Make OkHttp a compile time dependency for the SDK by @abhaysood in https://github.com/measure-sh/measure/pull/980
+### :bug: Bug fixes
 
-## 0.3.0
+- (**android**): Create new session if app version changed since last by @abhaysood in #1422
+- (**android**): Handle session management when elapsed time gets reset by @abhaysood in #1394
+- (**android**): Ignore duplicate inserts to app exit by @abhaysood in #1379
+- (**android**): Track fragment lifecycle events when r8 is enabled by @abhaysood in #1327
 
-Initial release to maven.
+### :hammer: Misc
 
-* Better session management. A new session is created when the app is launched after a certain
-  period of inactivity. Prior to this, a new session was created during cold start by @abhaysood in https://github.com/measure-sh/measure/pull/793.
-* Improved export logic for better session replay during crashes. Earlier, exceptions were at times
-  exported without events that occurred just before the crash, leading to incomplete session replay by @abhaysood in https://github.com/measure-sh/measure/pull/755.
-* Improved executor services usage. Does not have any impact on the SDK usage by @abhaysood in https://github.com/measure-sh/measure/pull/849.
-* Network attributes are now non-nullable. Does not have any impact on the SDK usage by @abhaysood in https://github.com/measure-sh/measure/pull/726.
-* Using `vanniktech/gradle-maven-publish-plugin` for publishing to maven by @abhaysood in https://github.com/measure-sh/measure/pull/862.
+- (**android**): Prepare sdk release 0.8.0 by @abhaysood
+- (**android**): Add max session duration config by @abhaysood in #1392
+- (**android**): Remove low memory event by @abhaysood in #1384
+- (**android**): Support latest stable navigation compose version by @abhaysood in #1383
+- (**android**): Remove unnecessary logs for launch tracking by @abhaysood in #1382
+- (**android**): Auto-track screen view event for androidx fragment-navigation by @abhaysood
+- (**android**): Prepare next development version by @abhaysood in #1301
+- (**android**): Prepare gradle plugin release 0.6.1 by @abhaysood in #1285
 
-# measure-android-gradle
+### :recycle: Refactor
 
-## 0.8.0
-* chore(android): add platform to builds API request by @abhaysood in https://github.com/measure-sh/measure/pull/1986
+- (**android**): Use monotonic clock to get time by @abhaysood in #1402
 
-## 0.7.0
-* fix(android): support java 11 by @abhaysood in https://github.com/measure-sh/measure/pull/1735
+## [android-v0.7.0] - 2024-09-25
 
-## 0.6.1
-* fix(android): incorrect URL parsing by @abhaysood in https://github.com/measure-sh/measure/pull/1272
+### :sparkles: New features
 
-## 0.6.0
-#### Features
+- (**android**): Add parent fragment to fragment lifecycle events (#1262) by @abhaysood in #1262
+- (**android**): Add lukewarm launch by @abhaysood
 
-* Apply bytecode transformation only for supported dependency versions by @abhaysood in https://github.com/measure-sh/measure/pull/1087
+### :bug: Bug fixes
 
-## 0.5.0
-#### Features
-* Add version constraints for bytecode transformation to ensure bytecode transformation is applied only to library
-  versions which are compatible by @abhaysood in https://github.com/measure-sh/measure/pull/1053
+- (**android**): Lukewarm time duration calculation by @abhaysood
+- (**android**): Incorrect URL parsing by @abhaysood
+- (**android**): Report activity launched with saved state as warm launch by @abhaysood in #1247
+- (**android**): Fix blank screenshots for Android 15 by @abhaysood in #1233
+- (**android**): Support 16KB page size and add it to attibutes by @abhaysood
 
-#### Fixes
-* fix(android): plugin does not break configuration cache by @abhaysood in https://github.com/measure-sh/measure/pull/986
+### :hammer: Misc
 
-## 0.4.0
-#### Fixes
-* Fix for plugin breaking the configuration cache by @abhaysood in https://github.com/measure-sh/measure/pull/986
+- (**android**): Prepare sdk release 0.7.0 by @abhaysood in #1283
+- (**android**): Run benchmarks for 0.7.0 version by @abhaysood in #1286
+- (**android**): Update tests by @abhaysood
+- (**android**): Log instead of throw when URL is incorrect by @abhaysood in #1272
+- (**android**): Improve logs by @abhaysood
+- (**android**): Log request URL and method by @abhaysood
+- (**android**): Update sdk version to 35 and agp to 8.6 by @abhaysood in #1253
+- (**android**): Prepare next development version of SDK by @abhaysood in #1191
 
-## 0.3.0
+## [android-v0.6.1] - 2024-09-04
 
-Initial release to maven.
+### :sparkles: New features
 
-* Using `vanniktech/gradle-maven-publish-plugin` for publishing to maven by @abhaysood in https://github.com/measure-sh/measure/pull/862.
-* Add `measure` extension to allow configuring the plugin by @abhaysood in https://github.com/measure-sh/measure/pull/912.
-* Missing API key or URL in manifest does not fail builds by @abhaysood in https://github.com/measure-sh/measure/pull/911.
+- (**android**): Apply bytecode transformation only for supported dependency versions by @abhaysood in #1087
+- (**android**): Enable automaticRelease to maven central by @abhaysood in #1071
+
+### :bug: Bug fixes
+
+- (**android**): Crash when app visible time isn't available to calculate launch time by @abhaysood
+- (**android**): Handle exceptions when loading native library by @abhaysood in #1179
+- (**android**): Update gradle plugin group id by @abhaysood
+- (**android**): Make Android tests more reliable by @abhaysood in #1070
+- (**android**): Resolve crash when OkHttp is not a runtime dependency by @abhaysood in #1067
+
+### :hammer: Misc
+
+- (**android**): Prepare sdk release 0.6.1 by @abhaysood in #1186
+- (**android**): Prepare next development version for gradle plugin by @abhaysood in #1091
+- (**android**): Prepare gradle plugin release 0.6.0 by @abhaysood
+- (**android**): Prepare next development version of SDK by @abhaysood in #1089
+- (**android**): Prepare sdk release 0.6.0 by @abhaysood
+- (**android**): Enable publishing on gradle plugin portal by @abhaysood
+- (**android**): Prepare next development version for gradle plugin by @abhaysood
+- (**android**): Prepare gradle plugin release 0.5.0 by @abhaysood
+- (**android**): Prepare next development version of SDK by @abhaysood
+
+### :recycle: Refactor
+
+- (**android**): Remove usage of double bang operator by @abhaysood in #1185
+- (**android**): Replace throw with a error log by @abhaysood in #1183
+- (**android**): Fix potential exception in launch tracker by @abhaysood
+
+## [android-v0.5.0] - 2024-08-19
+
+### :sparkles: New features
+
+- (**android**): Configure http urls to collect events for by @abhaysood
+
+### :bug: Bug fixes
+
+- (**android**): Respect http configs for trackHttpBody and trackHttpHeaders by @abhaysood in #1020
+- (**android**): Overflow due to incorrect data type for time by @abhaysood in #1014
+- (**android**): Use same thread for session and event insertion by @abhaysood
+
+### :hammer: Misc
+
+- (**android**): Prepare sdk release 0.5.0 by @abhaysood
+- (**android**): Update docs and min-max supported versions for bytecode transformations by @abhaysood in #1053
+- (**android**): Add dependencies block config in plugin fixture by @abhaysood
+- (**android**): Add version checks to apply asm transformations by @abhaysood
+- (**android**): Include semver source code and implement serializable by @abhaysood
+- (**android**): Add end to end tests for event collection by @abhaysood in #1039
+- (**android**): Remove existing android tests by @abhaysood
+- (**android**): Disabling measure plugin disables all features by @abhaysood in #1018
+- (**android**): Read and log http response body by @abhaysood in #1011
+- (**android**): Add log to warn when mapping file is not found by @abhaysood in #1012
+- (**android**): Add gitignore for gradle plugin by @abhaysood
+- (**android**): Add todo for handling event insertion failures for early crashes by @abhaysood in #1008
+- (**android**): Improve error handling for event insertion failures by @abhaysood
+- (**android**): Create new session before any collectors are registered by @abhaysood
+- (**android**): Implement versioning for sample app by @abhaysood in #1003
+- (**android**): Update references to path measure-android to android by @abhaysood in #988
+- (**android**): Rename measure-android directory to android by @abhaysood
+
+### :books: Documentation
+
+- Move android docs by @abhaysood
+
+[android-v0.12.0]: https://github.com/measure-sh/measure/compare/android-v0.11.0..android-v0.12.0
+[android-v0.11.0]: https://github.com/measure-sh/measure/compare/android-v0.10.0..android-v0.11.0
+[android-v0.10.0]: https://github.com/measure-sh/measure/compare/android-v0.9.0..android-v0.10.0
+[android-v0.9.0]: https://github.com/measure-sh/measure/compare/android-v0.8.2..android-v0.9.0
+[android-v0.8.2]: https://github.com/measure-sh/measure/compare/android-v0.8.0..android-v0.8.2
+[android-v0.8.0]: https://github.com/measure-sh/measure/compare/android-v0.7.0..android-v0.8.0
+[android-v0.7.0]: https://github.com/measure-sh/measure/compare/android-v0.6.1..android-v0.7.0
+[android-v0.6.1]: https://github.com/measure-sh/measure/compare/android-v0.5.0..android-v0.6.1
+[android-v0.5.0]: https://github.com/measure-sh/measure/compare/android-v0.4.0..android-v0.5.0
+
