@@ -6,7 +6,7 @@ import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.appexit.AppExitProvider
 import sh.measure.android.appexit.AppExitProviderImpl
 import sh.measure.android.applaunch.AppLaunchCollector
-import sh.measure.android.applaunch.LaunchState
+import sh.measure.android.applaunch.LaunchTracker
 import sh.measure.android.attributes.AppAttributeProcessor
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.DeviceAttributeProcessor
@@ -404,11 +404,16 @@ internal class MeasureInitializerImpl(
     override val spanCollector: SpanCollector = SpanCollector(
         tracer = tracer,
     ),
+    private val launchTracker: LaunchTracker = LaunchTracker(
+        logger,
+        timeProvider,
+        configProvider,
+    ),
     override val appLaunchCollector: AppLaunchCollector = AppLaunchCollector(
+        application = application,
         timeProvider = timeProvider,
         signalProcessor = signalProcessor,
-        configProvider = configProvider,
-        launchTracker = LaunchState.launchTracker,
+        launchTracker = launchTracker,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
         logger = logger,
@@ -446,8 +451,8 @@ internal class MeasureInitializerImpl(
     override val shakeBugReportCollector: ShakeBugReportCollector = ShakeBugReportCollector(
         shakeDetector = AccelerometerShakeDetector(
             sensorManager = systemServiceProvider.sensorManager,
-            configProvider = configProvider,
             logger = logger,
+            configProvider = configProvider,
         ),
     ),
     override val internalSignalCollector: InternalSignalCollector = InternalSignalCollector(

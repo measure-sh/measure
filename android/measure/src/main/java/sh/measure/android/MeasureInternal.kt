@@ -25,6 +25,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     val logger by lazy { measureInitializer.logger }
     val signalProcessor by lazy { measureInitializer.signalProcessor }
     val httpEventCollector by lazy { measureInitializer.httpEventCollector }
+    val processInfoProvider by lazy { measureInitializer.processInfoProvider }
     val timeProvider by lazy { measureInitializer.timeProvider }
     val bugReportCollector by lazy { measureInitializer.bugReportCollector }
     private val spanCollector by lazy { measureInitializer.spanCollector }

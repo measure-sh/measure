@@ -617,6 +617,7 @@ class EventsTest {
 
     @Test
     fun tracksCustomEvent() {
+        Log.d("Test", "Starting tracksCustomEvent test")
         try {
             // Given
             robot.initializeMeasure(MeasureConfig(enableLogging = true))
@@ -705,7 +706,6 @@ class EventsTest {
         Assert.assertTrue(body.containsEvent(eventType))
     }
 
-    @Suppress("SameParameterValue")
     private fun assertEventNotTracked(eventType: EventType) {
         val body = getLastRequestBody()
         Assert.assertFalse(body.containsEvent(eventType))
