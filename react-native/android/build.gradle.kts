@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "sh.measurern"
+    namespace = "sh.measure.rn"
     compileSdk = 35
 
     defaultConfig {

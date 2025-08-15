@@ -1,13 +1,13 @@
 {
   "name": "@measuresh/react-native",
   "version": "0.1.0",
-  "react-native": "src/index.tsx",
+  "react-native": "src/index.ts",
   "description": "Open source tool to monitor mobile apps",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
   "exports": {
     ".": {
-      "source": "./src/index.tsx",
+      "source": "./src/index.ts",
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"
     },
