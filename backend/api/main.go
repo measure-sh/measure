@@ -146,30 +146,6 @@ func main() {
 		c.JSON(http.StatusOK, users)
 	})
 
-	r.GET("/symbolicate", func(c *gin.Context) {
-		origin := server.Server.Config.SymbolicatorOrigin
-		if origin == "" {
-			err := fmt.Errorf("symbolicator origin %s is empty", origin)
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
-
-		// send a GET request at /healthcheck endpoint
-		resp, err := http.Get(origin + "/healthcheck")
-		if err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	})
-
 	// SDK routes
 	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
 	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuild)
