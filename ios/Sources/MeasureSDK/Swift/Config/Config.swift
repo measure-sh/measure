@@ -143,7 +143,12 @@ struct Config: InternalConfig, MeasureConfig {
             "UICompactibilityInputViewController",
             "UIPredictionViewController",
             "_UICursorAccessoryViewController",
-            "UIMultiscriptCandidateViewController"
+            "UIMultiscriptCandidateViewController",
+            "_UIContextMenuActionsOnlyViewController",
+            "_UIAlertControllerTextFieldViewController",
+            "UIInputWindowController",
+            "UICompatibilityInputViewController",
+            "UISystemInputAssistantViewController"
         ]
         self.estimatedEventSizeInKb = 10 // 10 KB
     }
