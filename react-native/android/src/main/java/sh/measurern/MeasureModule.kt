@@ -5,12 +5,13 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
-import org.json.JSONObject
+
 import sh.measure.android.Measure
 import sh.measure.android.config.ClientInfo
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.config.ScreenshotMaskLevel
-import sh.measure.rn.MapUtil
+
+import sh.measure.rn.MapUtils
 
 class MeasureModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
@@ -23,14 +24,11 @@ class MeasureModule(private val reactContext: ReactApplicationContext) : ReactCo
     try {
         val context = reactContext.applicationContext
 
-        val clientJson = MapUtil.toJSONObject(clientMap)
-        val configJson = MapUtil.toJSONObject(configMap)
+        val clientJson = MapUtils.toStringMap(clientMap)
+        val configJson = MapUtils.toMap(configMap)
 
-        val clientInfoMap = MapUtil.toStringMap(clientJson)
-        val configMapParsed = MapUtil.toMap(configJson)
-
-        val clientInfo = ClientInfo.fromJson(clientInfoMap)
-        val config = MeasureConfig.fromJson(configMapParsed)
+        val clientInfo = ClientInfo.fromJson(clientJson)
+        val config = MeasureConfig.fromJson(configJson)
 
         Measure.init(context, measureConfig = config, clientInfo = clientInfo)
         isInitialized = true
