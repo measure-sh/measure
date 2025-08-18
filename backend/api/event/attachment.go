@@ -177,7 +177,7 @@ func (a *Attachment) PreSignURL(ctx context.Context) (err error) {
 	urlStr := req.URL
 
 	if shouldProxy {
-		endpoint, err := url.JoinPath(config.APIOrigin, "attachments")
+		endpoint, err := url.JoinPath(config.APIOrigin, "proxy", "attachments")
 		if err != nil {
 			return err
 		}

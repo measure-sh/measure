@@ -151,10 +151,11 @@ func main() {
 	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuild)
 	r.PUT("/builds-next", measure.ValidateAPIKey(), measure.PutBuildNext)
 
-	// Dashboard routes
-
-	// Proxy route
-	r.GET("/attachments", measure.ProxyAttachment)
+	// Proxy routes
+	r.GET("/proxy/attachments", measure.ProxyAttachment)
+	if !config.IsCloud() {
+		r.PUT("/proxy/symbols", measure.ProxySymbol)
+	}
 
 	// Auth routes
 	auth := r.Group("/auth")
@@ -165,6 +166,8 @@ func main() {
 		auth.GET("session", measure.ValidateAccessToken(), measure.GetAuthSession)
 		auth.DELETE("signout", measure.ValidateRefreshToken(), measure.Signout)
 	}
+
+	// Dashboard routes
 
 	apps := r.Group("/apps", measure.ValidateAccessToken())
 	{

@@ -4,6 +4,7 @@ go 1.24.1
 
 require (
 	cloud.google.com/go/cloudsqlconn v1.17.1
+	cloud.google.com/go/iam v1.5.2
 	cloud.google.com/go/storage v1.55.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.35.0
 	github.com/aws/aws-sdk-go-v2 v1.36.3
@@ -34,7 +35,6 @@ require (
 	cloud.google.com/go/auth v0.16.3 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.7.0 // indirect
-	cloud.google.com/go/iam v1.5.2 // indirect
 	cloud.google.com/go/monitoring v1.24.2 // indirect
 	github.com/ClickHouse/ch-go v0.66.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.29.0 // indirect

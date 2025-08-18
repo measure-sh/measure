@@ -9,6 +9,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -1918,13 +1919,13 @@ func PutBuildNext(c *gin.Context) {
 		return
 	}
 
-	client := objstore.CreateS3Client(ctx, config.SymbolsAccessKey, config.SymbolsSecretAccessKey, config.SymbolsBucketRegion, "http://localhost:9119")
+	client := objstore.CreateS3Client(ctx, config.SymbolsAccessKey, config.SymbolsSecretAccessKey, config.SymbolsBucketRegion, config.AWSEndpoint)
 
 	// process build mappings
 	for _, mapping := range build.Mappings {
 		ext := filepath.Ext(mapping.Filename)
 		key := fmt.Sprintf("incoming/%s%s", mapping.ID.String(), ext)
-		url, err := objstore.CreateS3PUTPreSignedURL(ctx, client, &s3.PutObjectInput{
+		signedUrl, err := objstore.CreateS3PUTPreSignedURL(ctx, client, &s3.PutObjectInput{
 			Bucket: aws.String(config.SymbolsBucket),
 			Key:    aws.String(key),
 			Metadata: map[string]string{
@@ -1944,7 +1945,10 @@ func PutBuildNext(c *gin.Context) {
 			return
 		}
 
-		mapping.UploadURL = url
+		// proxy the url
+		proxyUrl := fmt.Sprintf("%s/proxy/symbols?payload=%s", config.APIOrigin, url.QueryEscape(signedUrl))
+
+		mapping.UploadURL = proxyUrl
 		mapping.ExpiresAt = time.Now().Add(time.Hour)
 		mapping.Headers = make(map[string]string)
 		mapping.Headers["x-amz-meta-mapping_id"] = mapping.ID.String()
@@ -2318,4 +2322,64 @@ func ProcessSymbolNotification(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"ok": true,
 	})
+}
+
+// ProxySymbol proxies presigned S3 URLs to an S3-like
+// server.
+//
+// We parse the payload from the incoming request's query
+// string, then construct a new URL by replacing the S3 origin.
+// Next, we create a reverse proxy and configure it to pipe
+// response back to the original caller.
+//
+// The original S3 origin used when constructing the presigned
+// URL must match the proxied presigned URL.
+func ProxySymbol(c *gin.Context) {
+	payload := c.Query("payload")
+	if payload == "" {
+		msg := `need payload for proxying to object store`
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	config := server.Server.Config
+	presignedUrl := payload
+
+	// if the payload already contains origin, then
+	// don't prepend the origin.
+	if !strings.HasPrefix(payload, config.AWSEndpoint) {
+		presignedUrl = config.AWSEndpoint + payload
+	}
+
+	parsed, err := url.Parse(presignedUrl)
+	if err != nil {
+		msg := "failed to parse reconstructed presigned url"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(parsed)
+	proxy.Director = func(req *http.Request) {
+		req.URL.Scheme = parsed.Scheme
+		req.URL.Host = parsed.Host
+		req.URL.Path = parsed.Path
+		req.URL.RawQuery = parsed.RawQuery
+		req.Host = parsed.Host
+
+		req.Header = c.Request.Header
+	}
+
+	proxy.ModifyResponse = func(resp *http.Response) error {
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("Symbol proxy http status: %s\n", resp.Status)
+		}
+		return nil
+	}
+
+	proxy.ServeHTTP(c.Writer, c.Request)
 }
