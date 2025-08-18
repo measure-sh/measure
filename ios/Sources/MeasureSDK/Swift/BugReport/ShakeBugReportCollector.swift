@@ -30,4 +30,12 @@ final class ShakeBugReportCollector: ShakeDetectorListener {
     func onShake() {
         shakeHandler?()
     }
+
+    func pause() {
+        shakeDetector.stop()
+    }
+
+    func resume() {
+        _ = shakeDetector.start()
+    }
 }
