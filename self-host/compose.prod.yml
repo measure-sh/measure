@@ -34,6 +34,17 @@ services:
         max-size: 10m
         max-file: 5
 
+  symboloader:
+    environment:
+      - GIN_MODE=release
+    develop: !reset null
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
   migrator:
     develop: !reset null
     logging:

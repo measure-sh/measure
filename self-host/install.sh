@@ -432,10 +432,17 @@ detect_compose_command() {
 }
 
 # ------------------------------------------------------------------------------
-# update_symbolicator_origin updates value of a variable in .env file.
+# update_symbolicator_origin updates value of symbolicator origin in .env file.
 # ------------------------------------------------------------------------------
 update_symbolicator_origin() {
   update_env_variable SYMBOLICATOR_ORIGIN "http://symbolicator:3021"
+}
+
+# ------------------------------------------------------------------------------
+# add_symboloader_origin appends value of symboloader origin in .env file.
+# ------------------------------------------------------------------------------
+add_symboloader_origin() {
+  add_env_variable SYMBOLOADER_ORIGIN "http://symboloader:8084"
 }
 
 # ------------------------------------------------------------------------------
@@ -468,6 +475,22 @@ start_docker_compose() {
     --detach \
     --remove-orphans \
     --wait
+}
+
+# ------------------------------------------------------------------------------
+# add_env_variable appends an .env file key with value.
+# ------------------------------------------------------------------------------
+add_env_variable() {
+  local key="$1"
+  local value="$2"
+  local env_file="./.env"
+
+  if [ ! -f "$env_file" ]; then
+    warn ".env file not found, cannot update .env file automatically"
+    return
+  fi
+
+  echo "${key}=${value}" >> "$env_file"
 }
 
 # ------------------------------------------------------------------------------
@@ -636,5 +659,6 @@ start_docker
 ensure_config
 detect_compose_command
 update_symbolicator_origin
+add_symboloader_origin
 start_docker_compose
 cleanup

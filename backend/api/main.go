@@ -58,8 +58,6 @@ func main() {
 		c.String(http.StatusOK, "pong")
 	})
 
-	r.POST("/receive-symbols", measure.ProcessSymbolNotification)
-
 	r.GET("/test", func(c *gin.Context) {
 		ctx := c.Request.Context()
 

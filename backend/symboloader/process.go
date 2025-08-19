@@ -974,7 +974,6 @@ func ProcessSymbolNotification(c *gin.Context) {
 			continue
 		}
 
-		fmt.Println("record:", record)
 		fmt.Println("key:", key)
 		fmt.Println("size:", record.S3.Object.Size)
 		fmt.Println("etag:", record.S3.Object.Etag)
@@ -987,7 +986,7 @@ func ProcessSymbolNotification(c *gin.Context) {
 		}
 
 		if err := record.validate(); err != nil {
-			msg := fmt.Sprintf("error validating record for key %q: %v", record.S3.Object.Key, err)
+			msg := fmt.Sprintf("failed to validate record for key %q: %v", record.S3.Object.Key, err)
 			fmt.Println(msg)
 			continue
 		}

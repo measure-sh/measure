@@ -32,6 +32,7 @@ func CreateS3Client(ctx context.Context, accessKey, secretAccessKey, region, end
 	return
 }
 
+// DownloadS3Object downloads the object from S3 bucket.
 func DownloadS3Object(ctx context.Context, client *s3.Client, params *s3.GetObjectInput) (body io.ReadCloser, err error) {
 	req, err := client.GetObject(ctx, params)
 	if err != nil {
@@ -43,6 +44,7 @@ func DownloadS3Object(ctx context.Context, client *s3.Client, params *s3.GetObje
 	return
 }
 
+// DeleteS3Object deletes the object from the S3 bucket.
 func DeleteS3Object(ctx context.Context, client *s3.Client, params *s3.DeleteObjectInput) (output *s3.DeleteObjectOutput, err error) {
 	return client.DeleteObject(ctx, params)
 }
