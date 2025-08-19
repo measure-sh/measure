@@ -7,7 +7,6 @@ WORKDIR /go/src/app
 COPY ["go.mod", "go.sum", "./"]
 RUN go get -v ./...
 COPY . .
-# RUN go build -o /go/bin/app -v ./...
 RUN --mount=type=cache,target=/go/pkg/mod \
   --mount=type=cache,target=/root/.cache/go-build \
   GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /go/bin/app -v .
