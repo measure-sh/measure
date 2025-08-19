@@ -287,6 +287,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleCollector.applicationDidEnterBackground()
         self.cpuUsageCollector.pause()
         self.memoryUsageCollector.pause()
+        self.shakeBugReportCollector.pause()
         self.dataCleanupService.clearStaleData {}
     }
 
@@ -298,6 +299,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleCollector.applicationWillEnterForeground()
         self.cpuUsageCollector.resume()
         self.memoryUsageCollector.resume()
+        self.shakeBugReportCollector.resume()
     }
 
     private func applicationWillTerminate() {
