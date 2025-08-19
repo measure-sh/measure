@@ -1,25 +1,25 @@
-"use client";
+"use client"
 
-import { measureAuth } from "@/app/auth/measure_auth";
-import { Button } from "@/app/components/button";
+import { measureAuth } from "@/app/auth/measure_auth"
+import { Button } from "@/app/components/button"
 
 async function doGitHubLogin() {
-  const { origin } = new URL(window.location.href);
+  const { origin } = new URL(window.location.href)
   const { url, error } = await measureAuth.oAuthSignin({
     clientId: process?.env?.NEXT_PUBLIC_OAUTH_GITHUB_KEY,
     options: {
       redirectTo: `${origin}/auth/callback/github`,
       next: "",
     },
-  });
+  })
 
   if (error) {
-    console.error(`failed to login using GitHub`, error);
-    return;
+    console.error(`failed to login using GitHub`, error)
+    return
   }
 
   if (url) {
-    window.location.assign(url);
+    window.location.assign(url)
   }
 }
 
@@ -39,7 +39,7 @@ function GitHubLogo() {
         fill="#24292f"
       />
     </svg>
-  );
+  )
 }
 
 export default function GitHubSignIn() {
@@ -53,5 +53,5 @@ export default function GitHubSignIn() {
       <GitHubLogo />
       <span> Sign in with GitHub</span>
     </Button>
-  );
+  )
 }

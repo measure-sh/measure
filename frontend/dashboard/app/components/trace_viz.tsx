@@ -91,6 +91,7 @@ const borderColors = [
 ]
 
 const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
+
   const childrenMap = new Map<string, Span[]>()
   inputTrace.spans.forEach(span => {
     if (span.parent_id) {
@@ -129,6 +130,7 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
 
   const traceStartTime = DateTime.fromISO(inputTrace.start_time)
   const vizWidth = 800
+  const minSpanWidth = 8
   const margin = 8
 
   const orderedSpans: Span[] = []
@@ -137,7 +139,7 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
 
     const spanStart = DateTime.fromISO(span.start_time)
     span.leftOffset = (spanStart.diff(traceStartTime).milliseconds / inputTrace.duration) * vizWidth + margin
-    span.width = (span.duration / inputTrace.duration) * vizWidth - margin * 2
+    span.width = Math.max((span.duration / inputTrace.duration) * vizWidth - margin * 2, minSpanWidth)
     span.visibility = SpanVisibility.Expanded
 
     span.checkpoints?.forEach((c) => {
@@ -216,34 +218,6 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
   return (
     <div className="flex flex-col w-[1100px] h-[600px] relative font-body text-black border border-black rounded-md overflow-hidden">
 
-      {/* timing indicator */}
-      <div className='w-[800px] ml-[300px] flex flex-row justify-between p-[8px]'>
-        <div className='flex flex-col items-start'>
-          <p className='text-[10px]'>0ms</p>
-          <div className='w-[0.5px] h-2 bg-neutral-950' />
-        </div>
-        <div className='flex flex-col items-start'>
-          <p className='text-[10px]'>{(trace.duration * 0.2 / 1000).toPrecision(2)}s</p>
-          <div className='w-[0.5px] h-2 bg-neutral-950' />
-        </div>
-        <div className='flex flex-col items-start'>
-          <p className='text-[10px]'>{(trace.duration * 0.4 / 1000).toPrecision(2)}s</p>
-          <div className='w-[0.5px] h-2 bg-neutral-950' />
-        </div>
-        <div className='flex flex-col items-start'>
-          <p className='text-[10px]'>{(trace.duration * 0.6 / 1000).toPrecision(2)}s</p>
-          <div className='w-[0.5px] h-2 bg-neutral-950' />
-        </div>
-        <div className='flex flex-col items-start'>
-          <p className='text-[10px]'>{(trace.duration * 0.8 / 1000).toPrecision(2)}s</p>
-          <div className='w-[0.5px] h-2 bg-neutral-950' />
-        </div>
-        <div className='flex flex-col items-start'>
-          <p className='text-[10px]'>{(trace.duration / 1000).toPrecision(2)}s</p>
-          <div className='w-[0.5px] h-2 bg-neutral-950' />
-        </div>
-      </div>
-
       {/* Panel */}
       <div
         className={`absolute overflow-auto z-50 top-0 left-0 h-full w-1/4 bg-neutral-800 p-4 text-white text-xs break-words transform transition-transform duration-300 ease-in-out ${selectedSpan !== undefined ? 'translate-x-0' : '-translate-x-full'
@@ -321,7 +295,7 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
       <div className="flex flex-row w-full h-full items-start pt-4 pb-8 overflow-x-hidden overflow-y-auto">
 
         {/* span names column */}
-        <div className='flex flex-col w-[300px] pl-2 overflow-x-auto select-none'>
+        <div className='flex flex-col w-[300px] pl-2 mt-12 overflow-x-auto select-none'>
           {trace.spans.filter((span) => span.visibility !== SpanVisibility.Hidden).map((span, index) => (
             <button key={span.span_id} className={`flex flex-row items-center h-12 w-fit min-w-[300px] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] ${index % 2 === 0 ? 'bg-zinc-50' : ''} ${span.numberOfChildren! > 0 ? 'hover:bg-zinc-100' : ''}`}
               onClick={() => toggleSpanVisibility(span.span_id)} >
@@ -351,17 +325,38 @@ const TraceViz: React.FC<TraceVizProps> = ({ inputTrace }) => {
         </div>
 
         {/* spans column */}
-        <div className='flex flex-col w-[800px] select-none'>
+        <div className='flex flex-col w-[800px] overflow-x-auto select-none'>
+
+          {/* timing indicator - values */}
+          <div className='w-full flex flex-row justify-between px-[8px] pt-[8px]'>
+            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(0)}</p>
+            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(trace.duration * 0.2)}</p>
+            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(trace.duration * 0.4)}</p>
+            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(trace.duration * 0.6)}</p>
+            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(trace.duration * 0.8)}</p>
+            <p className='text-[10px] max-w-1/6 truncate'>{formatMillisToHumanReadable(trace.duration)}</p>
+          </div>
+
+          {/* timing indicator - markers */}
+          <div className='w-full flex flex-row justify-between p-[8px]'>
+            <div className='w-[0.5px] h-2 bg-neutral-950' />
+            <div className='w-[0.5px] h-2 bg-neutral-950' />
+            <div className='w-[0.5px] h-2 bg-neutral-950' />
+            <div className='w-[0.5px] h-2 bg-neutral-950' />
+            <div className='w-[0.5px] h-2 bg-neutral-950' />
+            <div className='w-[0.5px] h-2 bg-neutral-950' />
+          </div>
+
           {trace.spans.filter((span) => span.visibility !== SpanVisibility.Hidden).map((span, spanIndex) => (
             <div key={span.span_id} className={`w-full h-12 ${spanIndex % 2 === 0 ? 'bg-zinc-50' : ''}`}>
               {/* span and duration container */}
-              <div>
+              <div className='w-fit'>
                 {/* duration */}
                 <p className={`text-xs mt-1 pr-1 overflow-x-auto`} tabIndex={-1}
                   style={{
                     marginLeft: `${span.leftOffset}px`,
                   }}>
-                  {span.duration}ms
+                  {formatMillisToHumanReadable(span.duration)}
                 </p>
 
                 {/* span */}

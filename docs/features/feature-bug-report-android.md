@@ -4,6 +4,7 @@ Bug reports enable users to report issues directly from the app. Measure SDK pro
 
 * [Built-in Experience](#built-in-experience)
     * [Theming](#theming)
+    * [Permissions](#permissions)
 * [Custom Experience](#custom-experience)
     * [Attachments](#attachments)
 * [Add Attributes](#add-attributes)
@@ -35,6 +36,24 @@ Measure.launchBugReportActivity(activity, takeScreenshot = false)
 You can apply a custom theme by overriding any of the values in the theme: [themes.xml](https://github.com/measure-sh/measure/tree/main/android/measure/src/main/res/values/themes.xml).
 
 For more details on customizing themes, refer to the Android documentation on [theming](https://developer.android.com/develop/ui/views/theming/themes#CustomizeTheme).
+
+
+### Permissions
+
+Users can add images from gallery to report bugs. We rely on
+the `androidx-activity` [photo picker](https://developer.android.com/training/data-storage/shared/photo-picker#device-availability).
+This requires **no additional permissions** to be declared in the app's manifest.
+
+The new photo picker UI is only available on Android 11 (API level 30) and above. For devices running Android 10 (API
+level 29) and below, this falls back to using `ACTION_OPEN_DOCUMENT` to select images from the gallery. Optionally, to 
+achieve a consistent experience across all Android versions, you can follow the instructions in the
+official [documentation](https://developer.android.com/training/data-storage/shared/photo-picker#device-availability) to
+install a back-ported version of the photo picker.
+
+> [!NOTE]
+> If you are using Measure SDK version `0.11.0` or earlier, you'll need the `READ_MEDIA_IMAGES` permission
+> to allow users to select images from the gallery. Without this permission, the button to select images
+> from gallery will not be visible.
 
 ## Custom Experience
 

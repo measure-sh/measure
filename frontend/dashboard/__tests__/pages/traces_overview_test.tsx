@@ -45,7 +45,7 @@ jest.mock('@/app/api/api_calls', () => ({
                         duration: 5000,
                         app_version: '1.0',
                         app_build: '1',
-                        os_name: 'iOS',
+                        os_name: 'ios',
                         os_version: '15',
                         device_manufacturer: 'Apple',
                         device_model: 'iPhone 12',
@@ -177,7 +177,7 @@ describe('TracesOverview Component', () => {
                         duration: 5000,
                         app_version: '1.0',
                         app_build: '1',
-                        os_name: 'iOS',
+                        os_name: 'ios',
                         os_version: '15',
                         device_manufacturer: 'Apple',
                         device_model: 'iPhone 12',
@@ -194,7 +194,7 @@ describe('TracesOverview Component', () => {
         expect(screen.getByText('12:00 AM')).toBeInTheDocument()
         expect(screen.getByText('5s')).toBeInTheDocument()
         expect(screen.getByText('Okay')).toBeInTheDocument()
-        expect(screen.getByText('v1.0(1), iOS 15, Apple iPhone 12')).toBeInTheDocument()
+        expect(screen.getByText('1.0(1), iOS 15, Apple iPhone 12')).toBeInTheDocument()
     })
 
     it('does not update filters if they remain unchanged', async () => {
@@ -379,7 +379,7 @@ describe('TracesOverview Component', () => {
                             duration: 5000,
                             app_version: '1.0',
                             app_build: '1',
-                            os_name: 'iOS',
+                            os_name: 'ios',
                             os_version: '15',
                             device_manufacturer: 'Apple',
                             device_model: 'iPhone 12',

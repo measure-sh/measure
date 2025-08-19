@@ -179,7 +179,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                                                 <div className='py-1' />
                                                 <p className='truncate select-none'>{span_name}</p>
                                                 <div className='py-1' />
-                                                <p className='text-xs truncate text-gray-500 select-none'>{`v${app_version}(${app_build}), ${os_name} ${os_version}, ${device_manufacturer} ${device_model}`}</p>
+                                                <p className='text-xs truncate text-gray-500 select-none'>{`${app_version}(${app_build}), ${(os_name === 'android' ? 'Android API Level' : os_name === 'ios' ? 'iOS' : os_name === 'ipados' ? 'iPadOS' : os_name)} ${os_version}, ${device_manufacturer} ${device_model}`}</p>
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[20%] text-center relative p-0">

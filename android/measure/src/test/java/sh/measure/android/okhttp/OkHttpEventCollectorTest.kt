@@ -384,7 +384,7 @@ class OkHttpEventCollectorTest {
                     .header("Content-Type", "application/json").get().build(),
             ).execute()
             response.body!!.source().readByteString()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // ignore
         }
 
@@ -537,7 +537,7 @@ class OkHttpEventCollectorTest {
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<EventType>()
         configProvider.trackHttpHeaders = true
-        configProvider.httpHeadersBlocklist = listOf<String>("x-custom-header")
+        configProvider.httpHeadersBlocklist = listOf("x-custom-header")
         okHttpEventCollector.register()
 
         // When
@@ -566,11 +566,11 @@ class OkHttpEventCollectorTest {
     }
 
     @Test
-    fun `does not track request and response body if trackHttpBody is false`() {
+    fun `does not track request and response body if shouldTrackHttpBody returns false`() {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<EventType>()
-        configProvider.trackHttpBody = false
+        configProvider.shouldTrackHttpBody = false
         okHttpEventCollector.register()
 
         // When
@@ -642,7 +642,7 @@ class OkHttpEventCollectorTest {
                     .header("Content-Type", "application/json").get().build(),
             ).execute()
             response.body!!.source().readByteString()
-        } catch (e: ConnectException) {
+        } catch (_: ConnectException) {
             // ignore
         }
     }

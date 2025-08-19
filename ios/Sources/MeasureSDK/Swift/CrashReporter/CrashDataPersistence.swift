@@ -72,6 +72,7 @@ final class BaseCrashDataPersistence: CrashDataPersistence {
                 let fileDescriptor = open(crashFilePath.path, O_WRONLY | O_TRUNC)
                 if fileDescriptor != -1 {
                     close(fileDescriptor)
+                    prepareCrashFile()
                     logger.internalLog(level: .info, message: "Crash data file cleared at \(crashFilePath.path)", error: nil, data: nil)
                 } else {
                     logger.internalLog(level: .error, message: "Failed to open crash log file for truncation at \(crashFilePath.path)", error: nil, data: nil)

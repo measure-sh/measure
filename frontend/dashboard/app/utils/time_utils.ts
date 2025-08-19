@@ -5,35 +5,43 @@ export function getTimeZoneForServer(): string {
 }
 
 export function formatMillisToHumanReadable(millis: number) {
-  if (millis <= 0) {
-    return '0ms'
+  if (millis <= 0) return '0ms'
+
+  // Round ms for sub-second values
+  if (millis < 1000) return `${Math.round(millis)}ms`
+
+  const msPerSecond = 1000
+  const secPerMinute = 60
+  const minPerHour = 60
+  const hrPerDay = 24
+
+  let remaining = millis
+
+  const days = Math.floor(remaining / (msPerSecond * secPerMinute * minPerHour * hrPerDay))
+  remaining %= msPerSecond * secPerMinute * minPerHour * hrPerDay
+
+  const hours = Math.floor(remaining / (msPerSecond * secPerMinute * minPerHour))
+  remaining %= msPerSecond * secPerMinute * minPerHour
+
+  const minutes = Math.floor(remaining / (msPerSecond * secPerMinute))
+  remaining %= msPerSecond * secPerMinute
+
+  // For exact minute/hour/day, don't show seconds
+  const seconds = remaining / msPerSecond
+
+  const parts: string[] = []
+  if (days > 0) parts.push(`${days}d`)
+  if (hours > 0) parts.push(`${hours}h`)
+  if (minutes > 0) parts.push(`${minutes}m`)
+
+  // Only show seconds if not an exact minute/hour/day
+  if (seconds > 0 || parts.length === 0) {
+    // Remove trailing zeros for decimals, but always show up to 3 decimals if needed
+    const secStr = seconds % 1 === 0 ? seconds.toFixed(0) : seconds.toFixed(3).replace(/\.?0+$/, '')
+    parts.push(`${secStr}s`)
   }
 
-  const millisecondsPerSecond = 1000
-  const secondsPerMinute = 60
-  const minutesPerHour = 60
-  const hoursPerDay = 24
-
-  const days = Math.floor(millis / (millisecondsPerSecond * secondsPerMinute * minutesPerHour * hoursPerDay))
-  millis %= millisecondsPerSecond * secondsPerMinute * minutesPerHour * hoursPerDay
-
-  const hours = Math.floor(millis / (millisecondsPerSecond * secondsPerMinute * minutesPerHour))
-  millis %= millisecondsPerSecond * secondsPerMinute * minutesPerHour
-
-  const minutes = Math.floor(millis / (millisecondsPerSecond * secondsPerMinute))
-  millis %= millisecondsPerSecond * secondsPerMinute
-
-  const seconds = Math.floor(millis / millisecondsPerSecond)
-  millis %= millisecondsPerSecond
-
-  let output = ''
-  if (days > 0) output += `${days}d, `
-  if (hours > 0) output += `${hours}h, `
-  if (minutes > 0) output += `${minutes}min, `
-  if (seconds > 0) output += `${seconds}s, `
-  if (millis > 0) output += `${Math.round(millis)}ms`
-
-  return output.trim().replace(/,\s*$/, '') // Remove trailing comma if any
+  return parts.join(' ')
 }
 
 export function formatDateToHumanReadableDateTime(timestamp: string): string {

@@ -2,7 +2,7 @@ name: measure_dio
 repository: https://github.com/measure-sh/measure/tree/main/flutter/packages/measure_dio
 issue_tracker: https://github.com/measure-sh/measure/issues
 description: Provides interceptors for monitoring http requests made using Dio library using measure.sh.
-version: 0.1.0
+version: 0.1.1
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -12,7 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
   dio: ^5.3.4
-  measure_flutter: ^0.1.0
+  measure_flutter: ^0.1.2
 
 dependency_overrides:
   measure_flutter:
@@ -21,6 +21,6 @@ dependency_overrides:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
   mocktail: ^1.0.4
   http_mock_adapter: ^0.6.1

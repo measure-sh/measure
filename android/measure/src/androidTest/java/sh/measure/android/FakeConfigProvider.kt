@@ -1,5 +1,6 @@
 package sh.measure.android
 
+import android.hardware.SensorManager
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.MsrRequestHeadersProvider
 import sh.measure.android.config.ScreenshotMaskLevel
@@ -53,7 +54,6 @@ internal class FakeConfigProvider : ConfigProvider {
     override var screenshotCompressionQuality: Int = 100
     override var eventTypeExportAllowList: List<EventType> = emptyList()
     override val autoStart: Boolean = true
-    override var maxSignalsInDatabase: Int = 50000
     override val maxSpanNameLength: Int = 64
     override val maxCheckpointNameLength: Int = 64
     override val maxCheckpointsPerSpan: Int = 100
@@ -61,11 +61,13 @@ internal class FakeConfigProvider : ConfigProvider {
     override val inMemorySignalsQueueFlushRateMs: Long = 3000
     override val maxAttachmentsInBugReport: Int = 5
     override val maxDescriptionLengthInBugReport: Int = 15
-    override val shakeAccelerationThreshold: Float = 3.5f
-    override val shakeMinTimeIntervalMs: Long = 1000
+    override val shakeAccelerationThreshold: Float = 2.5f * SensorManager.GRAVITY_EARTH
+    override val shakeMinTimeIntervalMs: Long = 5000
     override val shakeSlop: Int = 2
     override val disallowedCustomHeaders: List<String> = mutableListOf()
+    override val estimatedEventSizeInKb: Int = 10
     override val trackActivityLoadTime: Boolean = true
     override val trackFragmentLoadTime: Boolean = true
+    override val maxDiskUsageInMb: Int = 50
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null
 }

@@ -71,16 +71,7 @@ final class BaseLifecycleCollector: LifecycleCollector {
 
         let className = String(describing: type(of: viewController))
 
-        // Filter out internal UIKit controllers we don't want to trace
-        let excludedClassNames = [
-            "UIHostingController",
-            "UIKitNavigationController",
-            "NavigationStackHostingController",
-            "NotifyingMulticolumnSplitViewController",
-            "StyleContextSplitViewController"
-        ]
-
-        guard !excludedClassNames.contains(where: { className.contains($0) }) else { return }
+        guard !configProvider.lifecycleViewControllerExcludeList.contains(where: { className.contains($0) }) else { return }
 
         trackEvent(VCLifecycleData(type: vcLifecycleType.stringValue, className: className), type: .lifecycleViewController)
 

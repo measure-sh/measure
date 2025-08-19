@@ -5,6 +5,7 @@ import sh.measure.android.appexit.AppExit
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
+import sh.measure.android.attributes.StringAttr
 import sh.measure.android.attributes.appendAttributes
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.exceptions.ExceptionData
@@ -152,7 +153,7 @@ internal class SignalProcessorImpl(
                             userTriggered = userTriggered,
                             userDefinedAttributes = userDefinedAttributes,
                             sessionId = sessionId,
-                        )
+                        ) ?: return@trace
                         applyAttributes(attributes, event, resolvedThreadName)
                         InternalTrace.trace(label = { "msr-store-event" }, block = {
                             signalStore.store(event)
@@ -194,7 +195,7 @@ internal class SignalProcessorImpl(
                     userTriggered = false,
                     userDefinedAttributes = mutableMapOf(),
                     sessionId = sessionId,
-                )
+                ) ?: return@trace
                 applyAttributes(attributes, event, threadName)
                 event.updateVersionAttribute(appVersion, appBuild)
                 InternalTrace.trace(label = { "msr-store-event" }, block = {
@@ -223,7 +224,7 @@ internal class SignalProcessorImpl(
             attributes = attributes,
             userTriggered = false,
             userDefinedAttributes = userDefinedAttributes,
-        )
+        ) ?: return
         if (configProvider.trackScreenshotOnCrash && takeScreenshot) {
             addScreenshotAsAttachment(event)
         }
@@ -246,6 +247,9 @@ internal class SignalProcessorImpl(
     }
 
     private fun <T> onEventTracked(event: Event<T>) {
+        if (logger.enabled) {
+            logger.log(LogLevel.Debug, "${event.type}, ${event.data}")
+        }
         sessionManager.onEventTracked(event)
     }
 
@@ -258,7 +262,10 @@ internal class SignalProcessorImpl(
         userDefinedAttributes: Map<String, AttributeValue> = mutableMapOf(),
         userTriggered: Boolean,
         sessionId: String? = null,
-    ): Event<T> {
+    ): Event<T>? {
+        if (!validateUserDefinedAttributes(type.value, userDefinedAttributes)) {
+            return null
+        }
         val id = idProvider.uuid()
         val resolvedSessionId = sessionId ?: sessionManager.getSessionId()
         return Event(
@@ -313,6 +320,45 @@ internal class SignalProcessorImpl(
         }
         if (appBuild != null) {
             attributes[Attribute.APP_BUILD_KEY] = appBuild
+        }
+    }
+
+    private fun validateUserDefinedAttributes(event: String, attributes: Map<String, AttributeValue>): Boolean {
+        if (attributes.size > configProvider.maxUserDefinedAttributesPerEvent) {
+            logger.log(
+                LogLevel.Error,
+                "Invalid event($event): exceeds maximum of ${configProvider.maxUserDefinedAttributesPerEvent} attributes",
+            )
+            return false
+        }
+
+        return attributes.all { (key, value) ->
+            val isKeyValid = isKeyValid(key)
+            val isValueValid = isValueValid(value)
+            if (!isKeyValid) {
+                logger.log(
+                    LogLevel.Error,
+                    "Invalid event($event): invalid attribute key: $key",
+                )
+            }
+            if (!isValueValid) {
+                logger.log(
+                    LogLevel.Error,
+                    "Invalid event($event): invalid attribute value: $value",
+                )
+            }
+            isKeyValid && isValueValid
+        }
+    }
+
+    private fun isKeyValid(key: String): Boolean {
+        return key.length <= configProvider.maxUserDefinedAttributeKeyLength
+    }
+
+    private fun isValueValid(value: AttributeValue): Boolean {
+        return when (value) {
+            is StringAttr -> value.value.length <= configProvider.maxUserDefinedAttributeValueLength
+            else -> true
         }
     }
 }

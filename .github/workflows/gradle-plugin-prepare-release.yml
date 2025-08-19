@@ -29,7 +29,7 @@ jobs:
         with:
           ref: 'main'
           fetch-depth: 0
-          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+          token: ${{ secrets.SDK_RELEASE }}
 
       - name: Setup Git
         run: |
@@ -45,31 +45,32 @@ jobs:
             exit 1
           fi
 
-      - name: Create release branch
-        run: |
-          git checkout -b android-gradle-plugin-v${{ inputs.version }}
-
       - name: Update version in gradle.properties
         run: |
           sed -i "s/MEASURE_PLUGIN_VERSION_NAME=.*/MEASURE_PLUGIN_VERSION_NAME=${{ inputs.version }}/" measure-android-gradle/gradle.properties
 
+      - name: Generate changelog
+        run: |
+          cd ..
+          git cliff --output android/measure-android-gradle/CHANGELOG.md --tag android-gradle-plugin-v${{ inputs.version }}
+
       - name: Update version in README
         run: |
-          cd ../docs/android
+          cd ../docs
           # Update Kotlin plugin declaration
           KOTLIN_PATTERN='id("sh.measure.android.gradle") version ".*"'
           KOTLIN_REPLACEMENT='id("sh.measure.android.gradle") version "${{ inputs.version }}"'
-          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" README.md
+          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" sdk-integration-guide.md
           
           # Update Groovy plugin declaration
           GROOVY_PATTERN="id 'sh.measure.android.gradle' version '.*'"
           GROOVY_REPLACEMENT="id 'sh.measure.android.gradle' version '${{ inputs.version }}'"
-          sed -i "s/$GROOVY_PATTERN/$GROOVY_REPLACEMENT/" README.md
+          sed -i "s/$GROOVY_PATTERN/$GROOVY_REPLACEMENT/" sdk-integration-guide.md
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+          token: ${{ secrets.SDK_RELEASE }}
           commit-message: "chore(gradle): prepare plugin release ${{ inputs.version }}"
           branch: android-gradle-plugin-v${{ inputs.version }}
           delete-branch: false
@@ -79,6 +80,7 @@ jobs:
 
             Changes:
             - Updated version to ${{ inputs.version }} in measure-android-gradle/gradle.properties
+            - Generated changelog for version ${{ inputs.version }}
             - Updated version in README.md
           base: main
           labels: android

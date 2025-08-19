@@ -290,7 +290,8 @@ final class MockMeasureInitializer: MeasureInitializer {  // swiftlint:disable:t
                                                                                spanStore: self.spanStore,
                                                                                sessionStore: self.sessionStore,
                                                                                logger: self.logger,
-                                                                               sessionManager: self.sessionManager)
+                                                                               sessionManager: self.sessionManager,
+                                                                               configProvider: self.configProvider)
         self.httpEventValidator = httpEventValidator ?? BaseHttpEventValidator()
         self.httpEventCollector = httpEventCollector ?? BaseHttpEventCollector(logger: self.logger,
                                                                                signalProcessor: self.signalProcessor,

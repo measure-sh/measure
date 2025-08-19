@@ -56,6 +56,15 @@ internal class MsrSpanProcessor(
             return false
         }
 
+        // discard span if it is empty
+        if (name.isBlank()) {
+            logger.log(
+                LogLevel.Error,
+                "Span name is does not contain any characters, span will be dropped",
+            )
+            return false
+        }
+
         // discard span if it exceeds max span name length
         if (name.length > configProvider.maxSpanNameLength) {
             logger.log(

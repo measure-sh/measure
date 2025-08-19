@@ -40,8 +40,10 @@ public final class sh/measure/android/Measure {
 	public static synthetic fun trackBugReport$default (Lsh/measure/android/Measure;Ljava/lang/String;Ljava/util/List;Ljava/util/Map;ILjava/lang/Object;)V
 	public final fun trackEvent (Ljava/lang/String;Ljava/util/Map;Ljava/lang/Long;)V
 	public static synthetic fun trackEvent$default (Lsh/measure/android/Measure;Ljava/lang/String;Ljava/util/Map;Ljava/lang/Long;ILjava/lang/Object;)V
-	public static final fun trackHandledException (Ljava/lang/Throwable;)V
-	public static final fun trackScreenView (Ljava/lang/String;)V
+	public static final fun trackHandledException (Ljava/lang/Throwable;Ljava/util/Map;)V
+	public static synthetic fun trackHandledException$default (Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
+	public static final fun trackScreenView (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun trackScreenView$default (Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
 }
 
 public final class sh/measure/android/MsrAttachment {
@@ -191,13 +193,14 @@ public final class sh/measure/android/config/MeasureConfig : sh/measure/android/
 	public static final field $stable I
 	public static final field Companion Lsh/measure/android/config/MeasureConfig$Companion;
 	public fun <init> ()V
-	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZLsh/measure/android/config/MsrRequestHeadersProvider;)V
-	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZLsh/measure/android/config/MsrRequestHeadersProvider;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZILsh/measure/android/config/MsrRequestHeadersProvider;)V
+	public synthetic fun <init> (ZZLsh/measure/android/config/ScreenshotMaskLevel;ZZLjava/util/List;Ljava/util/List;Ljava/util/List;ZFZFZZILsh/measure/android/config/MsrRequestHeadersProvider;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun getAutoStart ()Z
 	public fun getEnableLogging ()Z
 	public fun getHttpHeadersBlocklist ()Ljava/util/List;
 	public fun getHttpUrlAllowlist ()Ljava/util/List;
 	public fun getHttpUrlBlocklist ()Ljava/util/List;
+	public fun getMaxDiskUsageInMb ()I
 	public fun getRequestHeadersProvider ()Lsh/measure/android/config/MsrRequestHeadersProvider;
 	public fun getSamplingRateForErrorFreeSessions ()F
 	public fun getScreenshotMaskLevel ()Lsh/measure/android/config/ScreenshotMaskLevel;

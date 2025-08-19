@@ -69,4 +69,8 @@ final class MockEventStore: EventStore {
             completion()
         }
     }
+
+    func getEventsCount(completion: @escaping (Int) -> Void) {
+        completion(events.count)
+    }
 }

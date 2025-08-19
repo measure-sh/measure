@@ -126,7 +126,7 @@ Add the following plugin to your project.
 
 ```kotlin
 plugins {
-    id("sh.measure.android.gradle") version "0.8.0"
+    id("sh.measure.android.gradle") version "0.10.0"
 }
 ```
 
@@ -134,7 +134,7 @@ or, use the following if you're using `build.gradle`.
 
 ```groovy
 plugins {
-    id 'sh.measure.android.gradle' version '0.8.0'
+    id 'sh.measure.android.gradle' version '0.10.0'
 }
 ```
 
@@ -181,13 +181,13 @@ measure {
 Add the following to your app's `build.gradle.kts` file.
 
 ```kotlin
-implementation("sh.measure:measure-android:0.10.0")
+implementation("sh.measure:measure-android:0.12.0")
 ```
 
 or, add the following to your app's `build.gradle` file.
 
 ```groovy
-implementation 'sh.measure:measure-android:0.10.0'
+implementation 'sh.measure:measure-android:0.12.0'
 ```
 
 ### Initialize the SDK
@@ -195,9 +195,8 @@ implementation 'sh.measure:measure-android:0.10.0'
 Add the following to your app's Application class `onCreate` method.
 
 > [!IMPORTANT]
-> To be able to detect early crashes initialize the SDK as soon as possible in Application `onCreate` method. Also, note
-> a content provider `MsrInitProvider` is used to capture launch state of the app for reliably calculating cold/warm
-> launch events regardless of when the SDK is initialized.
+> To be able to detect early crashes and accurate launch time metrics, initialize the SDK as soon as possible in
+> Application `onCreate` method.
 
 ```kotlin
 Measure.init(
@@ -338,7 +337,7 @@ Add the following dependency to your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  measure_flutter: ^0.1.0
+  measure_flutter: ^0.1.2
 ```
 
 ### Initialize the SDK

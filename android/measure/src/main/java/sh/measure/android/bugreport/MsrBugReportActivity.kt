@@ -1,16 +1,12 @@
 package sh.measure.android.bugreport
 
-import android.Manifest.permission.READ_EXTERNAL_STORAGE
-import android.Manifest.permission.READ_MEDIA_IMAGES
-import android.Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.text.InputFilter
+import android.util.Log
 import android.view.View
 import android.widget.EditText
 import android.widget.HorizontalScrollView
@@ -18,6 +14,10 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.annotation.RequiresApi
 import androidx.core.content.IntentCompat
 import androidx.core.view.ViewCompat
@@ -28,11 +28,8 @@ import sh.measure.android.R
 import sh.measure.android.bugreport.BugReportCollector.Companion.INITIAL_SCREENSHOT_EXTRA
 import sh.measure.android.bugreport.BugReportCollector.Companion.MAX_ATTACHMENTS_EXTRA
 import sh.measure.android.bugreport.BugReportCollector.Companion.MAX_DESCRIPTION_LENGTH
-import sh.measure.android.bugreport.BugReportCollector.Companion.PICK_IMAGES_REQUEST
-import sh.measure.android.bugreport.BugReportCollector.Companion.READ_IMAGES_PERMISSION_REQUEST
-import sh.measure.android.utils.isPermissionDeclared
 
-internal class MsrBugReportActivity : Activity() {
+internal class MsrBugReportActivity : ComponentActivity() {
     private lateinit var etDescription: EditText
     private lateinit var slScreenshotsContainer: LinearLayout
     private lateinit var tvChooseImage: TextView
@@ -44,6 +41,15 @@ internal class MsrBugReportActivity : Activity() {
     private var uris: MutableSet<Uri> = mutableSetOf()
     private var attachments: MutableSet<ParcelableAttachment> = mutableSetOf()
     private val totalAttachments: Int get() = attachments.size + uris.size
+
+    private val pickMultipleMedia =
+        registerForActivityResult(PickMultipleVisualMedia()) { selectedUris ->
+            handleSelectedUris(selectedUris)
+        }
+
+    private val pickSingleMedia = registerForActivityResult(PickVisualMedia()) { uri ->
+        uri?.let { handleSelectedUris(listOf(it)) }
+    }
 
     companion object {
         private const val PARCEL_SCREENSHOTS = "parcel_screenshots"
@@ -89,48 +95,10 @@ internal class MsrBugReportActivity : Activity() {
         outState.putParcelableArray(PARCEL_URIS, uris.toTypedArray())
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        when (requestCode) {
-            PICK_IMAGES_REQUEST -> {
-                val maxAllowedSelections = maxAttachments - totalAttachments
-                val selectedUris = bugReportCollector.onImagePickedResult(
-                    this,
-                    resultCode,
-                    data,
-                    maxAllowedSelections,
-                )
-                handleSelectedUris(selectedUris)
-            }
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray,
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        when (requestCode) {
-            READ_IMAGES_PERMISSION_REQUEST -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    val maxAllowedSelections = maxAttachments - totalAttachments
-                    bugReportCollector.launchImagePicker(this, maxAllowedSelections)
-                } else {
-                    Toast.makeText(
-                        this,
-                        "Photos access needed to attach screenshots",
-                        Toast.LENGTH_LONG,
-                    ).show()
-                }
-            }
-        }
-    }
-
     private fun setupInitialState(savedInstanceState: Bundle?) {
         bugReportCollector = Measure.getBugReportCollector()
         maxAttachments = intent.getIntExtra(MAX_ATTACHMENTS_EXTRA, 1)
-        tvChooseImage.visibility = if (canAccessGalleryImages()) View.VISIBLE else View.GONE
+        tvChooseImage.visibility = View.VISIBLE
         if (savedInstanceState == null) {
             showInitialScreenshot()
         } else {
@@ -197,10 +165,15 @@ internal class MsrBugReportActivity : Activity() {
 
     private fun sendBugReport() {
         val isValid =
-            bugReportCollector.validateBugReport(attachments.size, etDescription.text.length)
+            bugReportCollector.validateBugReport(totalAttachments, etDescription.text.length)
         if (isValid) {
             trackBugReport()
             finish()
+        } else {
+            Log.e(
+                "Measure",
+                "Failed to send bug report, either description or attachments must be set",
+            )
         }
     }
 
@@ -282,6 +255,24 @@ internal class MsrBugReportActivity : Activity() {
         } else {
             val maxAllowed = maxAttachments - totalAttachments
             val newUris = selectedUris.filter { it !in uris }.take(maxAllowed)
+
+            // Take persistent URI permissions to prevent SecurityException when reading the image.
+            newUris.forEach { uri ->
+                try {
+                    contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                    )
+                } catch (e: Exception) {
+                    // Some URIs may not support persistent permissions, this is expected and
+                    // should not prevent processing
+                    Log.e(
+                        "Measure",
+                        "Failed to take persistent URI permission for $uri, attachment will be skipped",
+                    )
+                }
+            }
+
             uris.addAll(newUris)
             showSelectedImages(newUris)
         }
@@ -306,8 +297,16 @@ internal class MsrBugReportActivity : Activity() {
                 showMaxAttachmentsToast()
             } else {
                 val maxAllowedSelections = maxAttachments - totalAttachments
-                bugReportCollector.launchImagePicker(this, maxAllowedSelections)
+                launchImagePicker(maxAllowedSelections)
             }
+        }
+    }
+
+    private fun launchImagePicker(maxAllowedSelections: Int) {
+        if (maxAllowedSelections == 1) {
+            pickSingleMedia.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
+        } else {
+            pickMultipleMedia.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
         }
     }
 
@@ -318,18 +317,5 @@ internal class MsrBugReportActivity : Activity() {
             attachments.toList(),
             uris.toList(),
         )
-    }
-
-    private fun canAccessGalleryImages(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            isPermissionDeclared(
-                this,
-                READ_MEDIA_VISUAL_USER_SELECTED,
-            ) || isPermissionDeclared(this, READ_MEDIA_IMAGES)
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            isPermissionDeclared(this, READ_MEDIA_IMAGES)
-        } else {
-            isPermissionDeclared(this, READ_EXTERNAL_STORAGE)
-        }
     }
 }

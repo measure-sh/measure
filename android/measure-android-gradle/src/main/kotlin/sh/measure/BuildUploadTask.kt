@@ -23,7 +23,7 @@ import java.io.IOException
 import java.net.URI
 import java.net.URL
 
-private const val HEADER_AUTHORIZATION = "Authorization"
+internal const val HEADER_AUTHORIZATION = "Authorization"
 private const val VERSION_CODE = "version_code"
 private const val APP_UNIQUE_ID = "app_unique_id"
 private const val VERSION_NAME = "version_name"
@@ -120,8 +120,10 @@ abstract class BuildUploadTask : DefaultTask() {
         val request: Request = getRequest(url, manifestData, requestBody)
         try {
             val response = client.newCall(request).execute()
-            if (!response.isSuccessful) {
-                logError(response)
+            response.use {
+                if (!response.isSuccessful) {
+                    logError(response)
+                }
             }
         } catch (e: IOException) {
             logger.error("[ERROR]: Failed to upload mapping file to Measure, ${e.message}")
@@ -133,8 +135,8 @@ abstract class BuildUploadTask : DefaultTask() {
         url: URL, manifestData: ManifestData, requestBody: RequestBody
     ): Request {
         val requestBuilder = Request.Builder()
-        requestBuilder.url(url).header(HEADER_AUTHORIZATION, "Bearer ${manifestData.apiKey}")
         requestBuilder.headers(sanitizedCustomHeaders())
+        requestBuilder.url(url).header(HEADER_AUTHORIZATION, "Bearer ${manifestData.apiKey}")
         requestBuilder.put(requestBody)
         return requestBuilder.build()
     }

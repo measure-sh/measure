@@ -16,6 +16,7 @@ protocol SpanStore {
     func getUnBatchedSpans(spanCount: Int64, ascending: Bool, completion: @escaping ([String]) -> Void)
     func updateBatchId(_ batchId: String, for spans: [String])
     func deleteSpans(sessionIds: [String], completion: @escaping () -> Void)
+    func getSpansCount(completion: @escaping (Int) -> Void)
 }
 
 final class BaseSpanStore: SpanStore {
@@ -182,6 +183,26 @@ final class BaseSpanStore: SpanStore {
             }
 
             completion()
+        }
+    }
+
+    func getSpansCount(completion: @escaping (Int) -> Void) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else {
+                completion(0)
+                return
+            }
+
+            let fetchRequest: NSFetchRequest<NSNumber> = NSFetchRequest(entityName: "SpanOb")
+            fetchRequest.resultType = .countResultType
+
+            do {
+                let count = try context.count(for: fetchRequest)
+                completion(count)
+            } catch {
+                logger.internalLog(level: .error, message: "Failed to count spans", error: error, data: nil)
+                completion(0)
+            }
         }
     }
 }

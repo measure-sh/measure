@@ -22,6 +22,7 @@ import sh.measure.android.Measure.startSpan
 import sh.measure.android.Measure.stop
 import sh.measure.android.Measure.trackBugReport
 import sh.measure.android.Measure.trackEvent
+import sh.measure.android.applaunch.LaunchState
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.bugreport.BugReportCollector
@@ -81,6 +82,7 @@ object Measure {
                     val initializer =
                         MeasureInitializerImpl(application, inputConfig = measureConfig)
                     measure = MeasureInternal(initializer)
+                    storeProcessImportanceState()
                     measure.init(clientInfo)
                 },
             )
@@ -160,11 +162,14 @@ object Measure {
      * ```kotlin
      * Measure.trackScreenView("Home")
      * ```
+     *
+     * @param screenName The name of the screen being viewed.
+     * @param attributes Optional key-value pairs providing additional context to the event.
      */
     @JvmStatic
-    fun trackScreenView(screenName: String) {
+    fun trackScreenView(screenName: String, attributes: Map<String, AttributeValue> = emptyMap()) {
         if (isInitialized.get()) {
-            measure.trackScreenView(screenName)
+            measure.trackScreenView(screenName, attributes)
         }
     }
 
@@ -184,12 +189,17 @@ object Measure {
      *    Measure.trackHandledException(e)
      *  }
      * ```
+     *
      * @param throwable The exception that was caught and handled.
+     * @param attributes Optional key-value pairs providing additional context to the event.
      */
     @JvmStatic
-    fun trackHandledException(throwable: Throwable) {
+    fun trackHandledException(
+        throwable: Throwable,
+        attributes: Map<String, AttributeValue> = emptyMap(),
+    ) {
         if (isInitialized.get()) {
-            measure.trackHandledException(throwable)
+            measure.trackHandledException(throwable, attributes)
         }
     }
 
@@ -667,5 +677,17 @@ object Measure {
             attachments = attachments,
             takeScreenshot = false,
         )
+    }
+
+    private fun storeProcessImportanceState() {
+        try {
+            LaunchState.processImportanceOnInit = measure.processInfoProvider.getProcessImportance()
+        } catch (e: Throwable) {
+            measure.logger.log(
+                LogLevel.Debug,
+                "Failed to get process importance during initialization.",
+                e,
+            )
+        }
     }
 }

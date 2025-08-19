@@ -33,6 +33,18 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var maxDiskUsageInMb: Int {
+        return getMergedConfig(\.maxDiskUsageInMb)
+    }
+
+    var estimatedEventSizeInKb: Int {
+        return getMergedConfig(\.estimatedEventSizeInKb)
+    }
+
+    var lifecycleViewControllerExcludeList: [String] {
+        return getMergedConfig(\.lifecycleViewControllerExcludeList)
+    }
+
     var disallowedCustomHeaders: [String] {
         return getMergedConfig(\.disallowedCustomHeaders)
     }

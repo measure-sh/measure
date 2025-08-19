@@ -75,6 +75,7 @@ type ServerConfig struct {
 	SmtpPort                   string
 	SmtpUser                   string
 	SmtpPassword               string
+	EmailDomain                string
 	TxEmailAddress             string
 	OtelServiceName            string
 	CloudEnv                   bool
@@ -157,13 +158,6 @@ func NewConfig() *ServerConfig {
 		log.Fatal("SITE_ORIGIN env var not set. Authentication and emails might not work.")
 	}
 
-	var txEmailAddress string = ""
-	parsedSiteOrigin, err := url.Parse(siteOrigin)
-	if err != nil {
-		log.Fatalf("Error parsing SITE_ORIGIN: %v\n", err)
-	}
-	txEmailAddress = "noreply@" + parsedSiteOrigin.Hostname()
-
 	apiOrigin := os.Getenv("API_ORIGIN")
 	if apiOrigin == "" {
 		// log.Fatal("API_ORIGIN env var not set. Need for proxying session attachments.")
@@ -239,6 +233,22 @@ func NewConfig() *ServerConfig {
 		log.Println("SMTP_PASSWORD env var is not set, emails will not work")
 	}
 
+	emailDomain := os.Getenv("EMAIL_DOMAIN")
+	if emailDomain == "" {
+		log.Println("EMAIL_DOMAIN env var is not set, emails will use SITE_ORIGIN as domain")
+	}
+
+	var txEmailAddress string
+	if emailDomain != "" {
+		txEmailAddress = "noreply@" + emailDomain
+	} else {
+		parsedSiteOrigin, err := url.Parse(siteOrigin)
+		if err != nil {
+			log.Fatalf("Error parsing SITE_ORIGIN: %v\n", err)
+		}
+		txEmailAddress = "noreply@" + parsedSiteOrigin.Hostname()
+	}
+
 	otelServiceName := os.Getenv("OTEL_SERVICE_NAME")
 	if otelServiceName == "" {
 		log.Println("OTEL_SERVICE_NAME env var is not set, o11y will not work")
@@ -277,6 +287,7 @@ func NewConfig() *ServerConfig {
 		SmtpPort:                   smtpPort,
 		SmtpUser:                   smtpUser,
 		SmtpPassword:               smtpPassword,
+		EmailDomain:                emailDomain,
 		TxEmailAddress:             txEmailAddress,
 		OtelServiceName:            otelServiceName,
 		CloudEnv:                   cloudEnv,

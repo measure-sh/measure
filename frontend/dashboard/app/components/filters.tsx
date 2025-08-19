@@ -1,14 +1,14 @@
-"use client";
+"use client"
 
-import { DateTime } from "luxon";
-import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { DateTime } from "luxon"
+import Link from "next/link"
+import { usePathname, useSearchParams } from "next/navigation"
 import React, {
   forwardRef,
   useEffect,
   useImperativeHandle,
   useState,
-} from "react";
+} from "react"
 import {
   App,
   AppsApiStatus,
@@ -24,17 +24,17 @@ import {
   SessionType,
   SpanStatus,
   UserDefAttr,
-} from "../api/api_calls";
+} from "../api/api_calls"
 import {
   formatDateToHumanReadableDateTime,
   formatIsoDateForDateTimeInputField,
   isValidTimestamp,
-} from "../utils/time_utils";
-import DebounceTextInput from "./debounce_text_input";
-import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
-import FilterPill from "./filter_pill";
-import LoadingSpinner from "./loading_spinner";
-import UserDefAttrSelector, { UdAttrMatcher } from "./user_def_attr_selector";
+} from "../utils/time_utils"
+import DebounceTextInput from "./debounce_text_input"
+import DropdownSelect, { DropdownSelectType } from "./dropdown_select"
+import FilterPill from "./filter_pill"
+import LoadingSpinner from "./loading_spinner"
+import UserDefAttrSelector, { UdAttrMatcher } from "./user_def_attr_selector"
 
 export enum AppVersionsInitialSelectionType {
   Latest,
@@ -42,33 +42,33 @@ export enum AppVersionsInitialSelectionType {
 }
 
 interface FiltersProps {
-  ref?: React.RefObject<HTMLDivElement>;
-  teamId: string;
-  appId?: string;
-  filterSource: FilterSource;
-  appVersionsInitialSelectionType: AppVersionsInitialSelectionType;
-  showNoData: boolean;
-  showNotOnboarded: boolean;
-  showAppSelector: boolean;
-  showDates: boolean;
-  showAppVersions: boolean;
-  showOsVersions: boolean;
-  showSessionType: boolean;
-  showCountries: boolean;
-  showNetworkProviders: boolean;
-  showNetworkTypes: boolean;
-  showNetworkGenerations: boolean;
-  showLocales: boolean;
-  showDeviceManufacturers: boolean;
-  showDeviceNames: boolean;
-  showBugReportStatus: boolean;
-  showUdAttrs: boolean;
-  showFreeText: boolean;
-  freeTextPlaceholder?: string;
-  onFiltersChanged: (filters: Filters) => void;
+  ref?: React.RefObject<HTMLDivElement>
+  teamId: string
+  appId?: string
+  filterSource: FilterSource
+  appVersionsInitialSelectionType: AppVersionsInitialSelectionType
+  showNoData: boolean
+  showNotOnboarded: boolean
+  showAppSelector: boolean
+  showDates: boolean
+  showAppVersions: boolean
+  showOsVersions: boolean
+  showSessionType: boolean
+  showCountries: boolean
+  showNetworkProviders: boolean
+  showNetworkTypes: boolean
+  showNetworkGenerations: boolean
+  showLocales: boolean
+  showDeviceManufacturers: boolean
+  showDeviceNames: boolean
+  showBugReportStatus: boolean
+  showUdAttrs: boolean
+  showFreeText: boolean
+  freeTextPlaceholder?: string
+  onFiltersChanged: (filters: Filters) => void
 }
 
-const defaultFreeTextPlaceholder = "Search anything...";
+const defaultFreeTextPlaceholder = "Search anything..."
 
 enum DateRange {
   Last15Mins = "Last 15 Minutes",
@@ -88,56 +88,56 @@ enum DateRange {
 }
 
 export type Filters = {
-  ready: boolean;
-  app: App | null;
-  rootSpanName: string;
-  startDate: string;
-  endDate: string;
-  versions: AppVersion[];
-  sessionType: SessionType;
-  spanStatuses: SpanStatus[];
-  bugReportStatuses: BugReportStatus[];
-  osVersions: OsVersion[];
-  countries: string[];
-  networkProviders: string[];
-  networkTypes: string[];
-  networkGenerations: string[];
-  locales: string[];
-  deviceManufacturers: string[];
-  deviceNames: string[];
-  udAttrMatchers: UdAttrMatcher[];
-  freeText: string;
-  serialisedFilters: string | null;
-};
+  ready: boolean
+  app: App | null
+  rootSpanName: string
+  startDate: string
+  endDate: string
+  versions: AppVersion[]
+  sessionType: SessionType
+  spanStatuses: SpanStatus[]
+  bugReportStatuses: BugReportStatus[]
+  osVersions: OsVersion[]
+  countries: string[]
+  networkProviders: string[]
+  networkTypes: string[]
+  networkGenerations: string[]
+  locales: string[]
+  deviceManufacturers: string[]
+  deviceNames: string[]
+  udAttrMatchers: UdAttrMatcher[]
+  freeText: string
+  serialisedFilters: string | null
+}
 
 type SessionPersistedFilters = {
-  app: App;
-  dateRange: string;
-  startDate: string;
-  endDate: string;
-};
+  app: App
+  dateRange: string
+  startDate: string
+  endDate: string
+}
 
 type URLFilters = {
-  appId?: string;
-  rootSpanName?: string;
-  startDate?: string;
-  endDate?: string;
-  dateRange?: DateRange;
-  versions?: number[];
-  sessionType?: SessionType;
-  spanStatuses?: SpanStatus[];
-  bugReportStatuses?: BugReportStatus[];
-  osVersions?: number[];
-  countries?: number[];
-  networkProviders?: number[];
-  networkTypes?: number[];
-  networkGenerations?: number[];
-  locales?: number[];
-  deviceManufacturers?: number[];
-  deviceNames?: number[];
-  udAttrMatchers?: UdAttrMatcher[];
-  freeText?: string;
-};
+  appId?: string
+  rootSpanName?: string
+  startDate?: string
+  endDate?: string
+  dateRange?: DateRange
+  versions?: number[]
+  sessionType?: SessionType
+  spanStatuses?: SpanStatus[]
+  bugReportStatuses?: BugReportStatus[]
+  osVersions?: number[]
+  countries?: number[]
+  networkProviders?: number[]
+  networkTypes?: number[]
+  networkGenerations?: number[]
+  locales?: number[]
+  deviceManufacturers?: number[]
+  deviceNames?: number[]
+  udAttrMatchers?: UdAttrMatcher[]
+  freeText?: string
+}
 
 export const defaultFilters: Filters = {
   ready: false,
@@ -160,7 +160,7 @@ export const defaultFilters: Filters = {
   udAttrMatchers: [],
   freeText: "",
   serialisedFilters: null,
-};
+}
 
 const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
   (
@@ -211,111 +211,111 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
       deviceNames: "dn",
       udAttrMatchers: "ud",
       freeText: "ft",
-    };
+    }
 
     function compressArrayToRanges(arr: number[]): string {
-      if (arr.length === 0) return "";
-      const sorted = [...new Set(arr)].sort((a, b) => a - b);
-      let ranges: string[] = [];
-      let start = sorted[0];
-      let current = start;
+      if (arr.length === 0) return ""
+      const sorted = [...new Set(arr)].sort((a, b) => a - b)
+      let ranges: string[] = []
+      let start = sorted[0]
+      let current = start
 
       for (let i = 1; i < sorted.length; i++) {
         if (sorted[i] === current + 1) {
-          current = sorted[i];
+          current = sorted[i]
         } else {
-          ranges.push(start === current ? `${start}` : `${start}-${current}`);
-          start = sorted[i];
-          current = start;
+          ranges.push(start === current ? `${start}` : `${start}-${current}`)
+          start = sorted[i]
+          current = start
         }
       }
-      ranges.push(start === current ? `${start}` : `${start}-${current}`);
-      return ranges.join(",");
+      ranges.push(start === current ? `${start}` : `${start}-${current}`)
+      return ranges.join(",")
     }
 
     function expandRangesToArray(str: string): number[] {
-      if (!str) return [];
-      const parts = str.split(",");
-      const result: number[] = [];
+      if (!str) return []
+      const parts = str.split(",")
+      const result: number[] = []
       for (const part of parts) {
         if (part.includes("-")) {
-          const [start, end] = part.split("-").map(Number);
+          const [start, end] = part.split("-").map(Number)
           for (let i = start; i <= end; i++) {
-            result.push(i);
+            result.push(i)
           }
         } else {
-          const num = Number(part);
-          if (!isNaN(num)) result.push(num);
+          const num = Number(part)
+          if (!isNaN(num)) result.push(num)
         }
       }
-      return result;
+      return result
     }
 
     function serializeUrlFilters(urlFilters: URLFilters): string {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams()
 
       Object.entries(urlFilters).forEach(([key, value]) => {
         const minifiedKey =
-          urlFiltersKeyMap[key as keyof typeof urlFiltersKeyMap];
-        if (!minifiedKey || value === undefined || value === null) return;
+          urlFiltersKeyMap[key as keyof typeof urlFiltersKeyMap]
+        if (!minifiedKey || value === undefined || value === null) return
 
-        let serializedValue: string;
+        let serializedValue: string
 
         // only add keys whose show flags are true
         switch (key) {
           case "versions":
-            if (!showAppVersions) return;
-            break;
+            if (!showAppVersions) return
+            break
           case "osVersions":
-            if (!showOsVersions) return;
-            break;
+            if (!showOsVersions) return
+            break
           case "sessionType":
-            if (!showSessionType) return;
-            break;
+            if (!showSessionType) return
+            break
           case "countries":
-            if (!showCountries) return;
-            break;
+            if (!showCountries) return
+            break
           case "networkProviders":
-            if (!showNetworkProviders) return;
-            break;
+            if (!showNetworkProviders) return
+            break
           case "networkTypes":
-            if (!showNetworkTypes) return;
-            break;
+            if (!showNetworkTypes) return
+            break
           case "networkGenerations":
-            if (!showNetworkGenerations) return;
-            break;
+            if (!showNetworkGenerations) return
+            break
           case "locales":
-            if (!showLocales) return;
-            break;
+            if (!showLocales) return
+            break
           case "deviceManufacturers":
-            if (!showDeviceManufacturers) return;
-            break;
+            if (!showDeviceManufacturers) return
+            break
           case "deviceNames":
-            if (!showDeviceNames) return;
-            break;
+            if (!showDeviceNames) return
+            break
           case "bugReportStatuses":
-            if (!showBugReportStatus) return;
-            break;
+            if (!showBugReportStatus) return
+            break
           case "udAttrMatchers":
-            if (!showUdAttrs) return;
-            break;
+            if (!showUdAttrs) return
+            break
           case "freeText":
-            if (!showFreeText) return;
-            break;
+            if (!showFreeText) return
+            break
           case "startDate":
           case "endDate":
           case "dateRange":
-            if (!showDates) return;
-            break;
+            if (!showDates) return
+            break
           case "appId":
-            if (!showAppSelector) return;
-            break;
+            if (!showAppSelector) return
+            break
           case "rootSpanName":
           case "spanStatuses":
-            if (filterSource !== FilterSource.Spans) return;
-            break;
+            if (filterSource !== FilterSource.Spans) return
+            break
           default:
-            break;
+            break
         }
 
         switch (key) {
@@ -328,59 +328,59 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
           case "locales":
           case "deviceManufacturers":
           case "deviceNames":
-            if ((value as number[]).length === 0) return;
-            serializedValue = compressArrayToRanges(value as number[]);
-            break;
+            if ((value as number[]).length === 0) return
+            serializedValue = compressArrayToRanges(value as number[])
+            break
 
           case "udAttrMatchers":
             const validMatchers = (value as UdAttrMatcher[]).filter(
               (m) => m?.key && m?.type && m?.op && m.value !== undefined,
-            );
-            if (validMatchers.length === 0) return;
+            )
+            if (validMatchers.length === 0) return
             serializedValue = validMatchers
               .map(
                 (m) =>
                   `${encodeURIComponent(m.key)}~${encodeURIComponent(m.type)}~${encodeURIComponent(m.op)}~${encodeURIComponent(m.value)}`,
               )
-              .join("|");
-            break;
+              .join("|")
+            break
 
           case "spanStatuses":
           case "bugReportStatuses":
-            if ((value as string[]).length === 0) return;
-            serializedValue = (value as string[]).join(",");
-            break;
+            if ((value as string[]).length === 0) return
+            serializedValue = (value as string[]).join(",")
+            break
 
           case "sessionType":
-            if (value === SessionType.All) return;
-            serializedValue = value.toString();
-            break;
+            if (value === SessionType.All) return
+            serializedValue = value.toString()
+            break
 
           case "dateRange":
-            if (value === DateRange.Last6Hours) return; // Or your default date range
-            serializedValue = value.toString();
-            break;
+            if (value === DateRange.Last6Hours) return // Or your default date range
+            serializedValue = value.toString()
+            break
 
           default:
-            if (value === "") return;
-            serializedValue = value.toString();
+            if (value === "") return
+            serializedValue = value.toString()
         }
 
-        if (serializedValue) params.set(minifiedKey, serializedValue);
-      });
+        if (serializedValue) params.set(minifiedKey, serializedValue)
+      })
 
-      return params.toString();
+      return params.toString()
     }
 
     function deserializeUrlFilters(queryString: string): URLFilters {
-      const params = new URLSearchParams(queryString);
-      const result: URLFilters = {};
+      const params = new URLSearchParams(queryString)
+      const result: URLFilters = {}
 
       for (const [minifiedKey, value] of params.entries()) {
         const originalKey = Object.entries(urlFiltersKeyMap).find(
           ([_, v]) => v === minifiedKey,
-        )?.[0] as keyof URLFilters;
-        if (!originalKey) continue;
+        )?.[0] as keyof URLFilters
+        if (!originalKey) continue
 
         try {
           switch (originalKey) {
@@ -393,8 +393,8 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
             case "locales":
             case "deviceManufacturers":
             case "deviceNames":
-              result[originalKey] = expandRangesToArray(value);
-              break;
+              result[originalKey] = expandRangesToArray(value)
+              break
 
             case "udAttrMatchers":
               result[originalKey] = value
@@ -403,52 +403,52 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                 .map((part) => {
                   const [key, type, op, val] = part
                     .split("~")
-                    .map(decodeURIComponent);
-                  return { key, type, op, value: val } as UdAttrMatcher;
+                    .map(decodeURIComponent)
+                  return { key, type, op, value: val } as UdAttrMatcher
                 })
-                .filter((m) => m.key && m.type && m.op && m.value);
-              break;
+                .filter((m) => m.key && m.type && m.op && m.value)
+              break
 
             case "spanStatuses":
               result[originalKey] = value
                 .split(",")
                 .filter((s): s is SpanStatus =>
                   Object.values(SpanStatus).includes(s as SpanStatus),
-                );
-              break;
+                )
+              break
 
             case "bugReportStatuses":
               result[originalKey] = value
                 .split(",")
                 .filter((s): s is BugReportStatus =>
                   Object.values(BugReportStatus).includes(s as BugReportStatus),
-                );
-              break;
+                )
+              break
 
             case "sessionType":
-              result[originalKey] = getSessionTypeFromString(value);
-              break;
+              result[originalKey] = getSessionTypeFromString(value)
+              break
 
             case "dateRange":
               result[originalKey] = Object.values(DateRange).includes(
                 value as DateRange,
               )
                 ? (value as DateRange)
-                : undefined;
-              break;
+                : undefined
+              break
 
             default:
               if (isStringKey(originalKey)) {
-                result[originalKey] = value;
+                result[originalKey] = value
               }
-              break;
+              break
           }
         } catch (error) {
-          console.warn(`Failed to parse ${originalKey}`, error);
+          console.warn(`Failed to parse ${originalKey}`, error)
         }
       }
 
-      return result;
+      return result
     }
 
     // Type guard for string-based URLFilter keys
@@ -461,159 +461,159 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
         "startDate",
         "endDate",
         "freeText",
-      ].includes(key);
+      ].includes(key)
     }
 
     function getSessionTypeFromString(value: string): SessionType {
-      const enumValues = Object.values(SessionType) as string[];
+      const enumValues = Object.values(SessionType) as string[]
       const enumKeys = Object.keys(SessionType) as Array<
         keyof typeof SessionType
-      >;
+      >
 
-      const index = enumValues.indexOf(value);
+      const index = enumValues.indexOf(value)
       if (index !== -1) {
-        return SessionType[enumKeys[index]];
+        return SessionType[enumKeys[index]]
       }
 
-      throw "Invalid string cannot be mapped to SessionType: " + value;
+      throw "Invalid string cannot be mapped to SessionType: " + value
     }
 
     function mapDateRangeToDate(dateRange: string) {
-      let today = DateTime.now();
+      let today = DateTime.now()
 
       switch (dateRange) {
         case DateRange.Last15Mins:
-          return today.minus({ minutes: 15 });
+          return today.minus({ minutes: 15 })
         case DateRange.Last30Mins:
-          return today.minus({ minutes: 30 });
+          return today.minus({ minutes: 30 })
         case DateRange.LastHour:
-          return today.minus({ hours: 1 });
+          return today.minus({ hours: 1 })
         case DateRange.Last3Hours:
-          return today.minus({ hours: 3 });
+          return today.minus({ hours: 3 })
         case DateRange.Last6Hours:
-          return today.minus({ hours: 6 });
+          return today.minus({ hours: 6 })
         case DateRange.Last12Hours:
-          return today.minus({ hours: 12 });
+          return today.minus({ hours: 12 })
         case DateRange.Last24Hours:
-          return today.minus({ hours: 24 });
+          return today.minus({ hours: 24 })
         case DateRange.LastWeek:
-          return today.minus({ days: 7 });
+          return today.minus({ days: 7 })
         case DateRange.Last15Days:
-          return today.minus({ days: 15 });
+          return today.minus({ days: 15 })
         case DateRange.LastMonth:
-          return today.minus({ months: 1 });
+          return today.minus({ months: 1 })
         case DateRange.Last3Months:
-          return today.minus({ months: 3 });
+          return today.minus({ months: 3 })
         case DateRange.Last6Months:
-          return today.minus({ months: 6 });
+          return today.minus({ months: 6 })
         case DateRange.LastYear:
-          return today.minus({ years: 1 });
+          return today.minus({ years: 1 })
         case DateRange.Custom:
-          throw Error("Custom date range cannot be mapped to date");
+          throw Error("Custom date range cannot be mapped to date")
       }
     }
 
     const customDateInputStyle =
-      "font-display border border-black rounded-md p-1.5 text-sm transition-all outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]";
+      "font-display border border-black rounded-md p-1.5 text-sm transition-all outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
 
-    const searchParams = useSearchParams();
-    const pathName = usePathname();
+    const searchParams = useSearchParams()
+    const pathName = usePathname()
 
-    const urlFilters = deserializeUrlFilters(searchParams.toString());
-    const sessionPersistedFiltersKey = "sessionPersistedFilters";
+    const urlFilters = deserializeUrlFilters(searchParams.toString())
+    const sessionPersistedFiltersKey = "sessionPersistedFilters"
     const sessionPersistedFilters: SessionPersistedFilters | null =
       typeof window !== "undefined" &&
-      sessionStorage.getItem(sessionPersistedFiltersKey) !== null
+        sessionStorage.getItem(sessionPersistedFiltersKey) !== null
         ? JSON.parse(sessionStorage.getItem(sessionPersistedFiltersKey)!)
-        : null;
+        : null
 
-    const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading);
+    const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading)
     const [rootSpanNamesApiStatus, setRootSpanNamesApiStatus] = useState(
       RootSpanNamesApiStatus.Loading,
-    );
+    )
     const [filtersApiStatus, setFiltersApiStatus] = useState(
       FiltersApiStatus.Loading,
-    );
+    )
 
-    const [apps, setApps] = useState<App[]>([]);
-    const [selectedApp, setSelectedApp] = useState<App | null>(null);
+    const [apps, setApps] = useState<App[]>([])
+    const [selectedApp, setSelectedApp] = useState<App | null>(null)
 
-    const [rootSpanNames, setRootSpanNames] = useState([] as string[]);
-    const [selectedRootSpanName, setSelectedRootSpanName] = useState("");
+    const [rootSpanNames, setRootSpanNames] = useState([] as string[])
+    const [selectedRootSpanName, setSelectedRootSpanName] = useState("")
 
     const [selectedSpanStatuses, setSelectedSpanStatuses] = useState(
       filterSource === FilterSource.Spans
         ? [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error]
         : [],
-    );
+    )
 
     const [selectedBugReportStatuses, setSelectedBugReportStatuses] = useState([
       BugReportStatus.Open,
-    ]);
+    ])
 
-    const [versions, setVersions] = useState([] as AppVersion[]);
+    const [versions, setVersions] = useState([] as AppVersion[])
     const [selectedVersions, setSelectedVersions] = useState(
       [] as AppVersion[],
-    );
+    )
 
     const [selectedSessionType, setSelectedSessionType] = useState(
       SessionType.All,
-    );
+    )
 
-    const [osVersions, setOsVersions] = useState([] as OsVersion[]);
+    const [osVersions, setOsVersions] = useState([] as OsVersion[])
     const [selectedOsVersions, setSelectedOsVersions] = useState(
       [] as OsVersion[],
-    );
+    )
 
-    const [countries, setCountries] = useState([] as string[]);
-    const [selectedCountries, setSelectedCountries] = useState([] as string[]);
+    const [countries, setCountries] = useState([] as string[])
+    const [selectedCountries, setSelectedCountries] = useState([] as string[])
 
-    const [networkProviders, setNetworkProviders] = useState([] as string[]);
+    const [networkProviders, setNetworkProviders] = useState([] as string[])
     const [selectedNetworkProviders, setSelectedNetworkProviders] = useState(
       [] as string[],
-    );
+    )
 
-    const [networkTypes, setNetworkTypes] = useState([] as string[]);
+    const [networkTypes, setNetworkTypes] = useState([] as string[])
     const [selectedNetworkTypes, setSelectedNetworkTypes] = useState(
       [] as string[],
-    );
+    )
 
     const [networkGenerations, setNetworkGenerations] = useState(
       [] as string[],
-    );
+    )
     const [selectedNetworkGenerations, setSelectedNetworkGenerations] =
-      useState([] as string[]);
+      useState([] as string[])
 
-    const [locales, setLocales] = useState([] as string[]);
-    const [selectedLocales, setSelectedLocales] = useState([] as string[]);
+    const [locales, setLocales] = useState([] as string[])
+    const [selectedLocales, setSelectedLocales] = useState([] as string[])
 
     const [deviceManufacturers, setDeviceManufacturers] = useState(
       [] as string[],
-    );
+    )
     const [selectedDeviceManufacturers, setSelectedDeviceManufacturers] =
-      useState([] as string[]);
+      useState([] as string[])
 
-    const [deviceNames, setDeviceNames] = useState([] as string[]);
+    const [deviceNames, setDeviceNames] = useState([] as string[])
     const [selectedDeviceNames, setSelectedDeviceNames] = useState(
       [] as string[],
-    );
+    )
 
-    const [userDefAttrs, setUserDefAttrs] = useState([] as UserDefAttr[]);
+    const [userDefAttrs, setUserDefAttrs] = useState([] as UserDefAttr[])
     const [userDefAttrOps, setUserDefAttrOps] = useState<Map<string, string[]>>(
       new Map(),
-    );
+    )
     const [selectedUdAttrMatchers, setSelectedUdAttrMatchers] = useState<
       UdAttrMatcher[]
-    >([]);
+    >([])
 
-    const [selectedFreeText, setSelectedFreeText] = useState("");
+    const [selectedFreeText, setSelectedFreeText] = useState("")
 
     const initDateRange = urlFilters.dateRange
       ? urlFilters.dateRange
       : sessionPersistedFilters
         ? sessionPersistedFilters.dateRange
-        : DateRange.Last6Hours;
-    const [selectedDateRange, setSelectedDateRange] = useState(initDateRange);
+        : DateRange.Last6Hours
+    const [selectedDateRange, setSelectedDateRange] = useState(initDateRange)
     const [selectedStartDate, setSelectedStartDate] = useState(
       urlFilters.startDate
         ? urlFilters.startDate
@@ -622,7 +622,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
             ? sessionPersistedFilters.startDate
             : mapDateRangeToDate(initDateRange)!.toISO()
           : DateTime.now().minus({ hours: 6 }).toISO(),
-    );
+    )
     const [selectedEndDate, setSelectedEndDate] = useState(
       urlFilters.endDate
         ? urlFilters.endDate
@@ -631,112 +631,112 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
             ? sessionPersistedFilters.endDate
             : DateTime.now().toISO()
           : DateTime.now().toISO(),
-    );
+    )
 
     const getApps = async (appIdToSelect?: string) => {
-      setAppsApiStatus(AppsApiStatus.Loading);
+      setAppsApiStatus(AppsApiStatus.Loading)
 
-      const result = await fetchAppsFromServer(teamId);
+      const result = await fetchAppsFromServer(teamId)
 
       switch (result.status) {
         case AppsApiStatus.NoApps:
-          setAppsApiStatus(AppsApiStatus.NoApps);
-          break;
+          setAppsApiStatus(AppsApiStatus.NoApps)
+          break
         case AppsApiStatus.Error:
-          setAppsApiStatus(AppsApiStatus.Error);
-          break;
+          setAppsApiStatus(AppsApiStatus.Error)
+          break
         case AppsApiStatus.Success:
-          setAppsApiStatus(AppsApiStatus.Success);
-          setApps(result.data);
+          setAppsApiStatus(AppsApiStatus.Success)
+          setApps(result.data)
           // Prefer app from function call, then url filters, then provided appId from props, then global persisted filters and finally first one in list
           if (appIdToSelect !== undefined) {
             let appFromGivenId = result.data.find(
               (e: App) => e.id === appIdToSelect,
-            );
+            )
             if (appFromGivenId === undefined) {
               throw Error(
                 "Invalid app Id: " +
-                  appIdToSelect +
-                  " provided to getApps function",
-              );
+                appIdToSelect +
+                " provided to getApps function",
+              )
             } else {
-              setSelectedApp(appFromGivenId);
+              setSelectedApp(appFromGivenId)
             }
           } else if (urlFilters.appId) {
             let appFromUrlFilters = result.data.find(
               (e: App) => e.id === urlFilters.appId,
-            );
+            )
             if (appFromUrlFilters === undefined) {
               throw Error(
                 "Invalid app Id: " + urlFilters.appId + " provided in URL",
-              );
+              )
             } else {
-              setSelectedApp(appFromUrlFilters);
+              setSelectedApp(appFromUrlFilters)
             }
-            break;
+            break
           } else if (appId !== undefined) {
-            let appFromGivenId = result.data.find((e: App) => e.id === appId);
+            let appFromGivenId = result.data.find((e: App) => e.id === appId)
             if (appFromGivenId === undefined) {
               throw Error(
                 "Invalid app Id: " + appId + " provided to filters component",
-              );
+              )
             } else {
-              setSelectedApp(appFromGivenId);
+              setSelectedApp(appFromGivenId)
             }
           } else if (sessionPersistedFilters) {
             let appFromSessionPersistedFilters = result.data.find(
               (e: App) => e.id === sessionPersistedFilters.app.id,
-            );
+            )
             if (appFromSessionPersistedFilters === undefined) {
-              setSelectedApp(result.data[0]);
+              setSelectedApp(result.data[0])
             } else {
-              setSelectedApp(appFromSessionPersistedFilters);
+              setSelectedApp(appFromSessionPersistedFilters)
             }
           } else {
-            setSelectedApp(result.data[0]);
+            setSelectedApp(result.data[0])
           }
-          break;
+          break
       }
-    };
+    }
 
     useEffect(() => {
-      getApps();
-    }, []);
+      getApps()
+    }, [])
 
     function refresh(appIdToSelect?: string) {
-      getApps(appIdToSelect);
+      getApps(appIdToSelect)
     }
 
     useImperativeHandle(ref, () => ({
       refresh,
-    }));
+    }))
 
     const getRootSpanNames = async () => {
-      setRootSpanNamesApiStatus(RootSpanNamesApiStatus.Loading);
+      setRootSpanNamesApiStatus(RootSpanNamesApiStatus.Loading)
 
-      const result = await fetchRootSpanNamesFromServer(selectedApp!);
+      const result = await fetchRootSpanNamesFromServer(selectedApp!)
 
       switch (result.status) {
         case RootSpanNamesApiStatus.NoData:
-          setRootSpanNamesApiStatus(RootSpanNamesApiStatus.NoData);
-          break;
+          setRootSpanNamesApiStatus(RootSpanNamesApiStatus.NoData)
+          break
         case RootSpanNamesApiStatus.Error:
-          setRootSpanNamesApiStatus(RootSpanNamesApiStatus.Error);
-          break;
+          setRootSpanNamesApiStatus(RootSpanNamesApiStatus.Error)
+          break
         case RootSpanNamesApiStatus.Success:
-          setRootSpanNamesApiStatus(RootSpanNamesApiStatus.Success);
+          setRootSpanNamesApiStatus(RootSpanNamesApiStatus.Success)
 
           if (
             JSON.stringify(rootSpanNames) !==
             JSON.stringify(result.data.results)
           ) {
-            setRootSpanNames(result.data.results);
-            setSelectedRootSpanName(result.data.results[0]);
+            setRootSpanNames(result.data.results)
+            setSelectedRootSpanName(result.data.results[0])
           }
 
           if (result.data.results !== null) {
-            const parsedRootSpanNames = result.data.results;
-            setRootSpanNames(parsedRootSpanNames);
+            const parsedRootSpanNames = result.data.results
+            setRootSpanNames(parsedRootSpanNames)
 
             if (
               urlFilters.appId === selectedApp!.id &&
@@ -744,80 +744,80 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
             ) {
               const selectedRootSpanName = parsedRootSpanNames.find(
                 (name: string) => name === urlFilters.rootSpanName,
-              );
+              )
               if (selectedRootSpanName === undefined) {
-                setSelectedRootSpanName(parsedRootSpanNames[0]);
+                setSelectedRootSpanName(parsedRootSpanNames[0])
               } else {
-                setSelectedRootSpanName(selectedRootSpanName);
+                setSelectedRootSpanName(selectedRootSpanName)
               }
             } else {
-              setSelectedRootSpanName(parsedRootSpanNames[0]);
+              setSelectedRootSpanName(parsedRootSpanNames[0])
             }
           }
-          break;
+          break
       }
-    };
+    }
 
     const clearFiltersOnFilterApiFail = () => {
-      console.log("Filters API failed, clearing filters");
-      setSelectedVersions(defaultFilters.versions);
-      setSelectedSessionType(defaultFilters.sessionType);
-      setSelectedOsVersions(defaultFilters.osVersions);
-      setSelectedCountries(defaultFilters.countries);
-      setSelectedNetworkProviders(defaultFilters.networkProviders);
-      setSelectedNetworkTypes(defaultFilters.networkTypes);
-      setSelectedNetworkGenerations(defaultFilters.networkGenerations);
-      setSelectedLocales(defaultFilters.locales);
-      setSelectedDeviceManufacturers(defaultFilters.deviceManufacturers);
-      setSelectedDeviceNames(defaultFilters.deviceNames);
-      setSelectedFreeText(defaultFilters.freeText);
-      setSelectedSpanStatuses(defaultFilters.spanStatuses);
-      setSelectedRootSpanName(defaultFilters.rootSpanName);
-      setSelectedBugReportStatuses(defaultFilters.bugReportStatuses);
-      setSelectedUdAttrMatchers(defaultFilters.udAttrMatchers);
-    };
+      console.log("Filters API failed, clearing filters")
+      setSelectedVersions(defaultFilters.versions)
+      setSelectedSessionType(defaultFilters.sessionType)
+      setSelectedOsVersions(defaultFilters.osVersions)
+      setSelectedCountries(defaultFilters.countries)
+      setSelectedNetworkProviders(defaultFilters.networkProviders)
+      setSelectedNetworkTypes(defaultFilters.networkTypes)
+      setSelectedNetworkGenerations(defaultFilters.networkGenerations)
+      setSelectedLocales(defaultFilters.locales)
+      setSelectedDeviceManufacturers(defaultFilters.deviceManufacturers)
+      setSelectedDeviceNames(defaultFilters.deviceNames)
+      setSelectedFreeText(defaultFilters.freeText)
+      setSelectedSpanStatuses(defaultFilters.spanStatuses)
+      setSelectedRootSpanName(defaultFilters.rootSpanName)
+      setSelectedBugReportStatuses(defaultFilters.bugReportStatuses)
+      setSelectedUdAttrMatchers(defaultFilters.udAttrMatchers)
+    }
 
     const getFilters = async () => {
-      setFiltersApiStatus(FiltersApiStatus.Loading);
+      setFiltersApiStatus(FiltersApiStatus.Loading)
 
-      const result = await fetchFiltersFromServer(selectedApp!, filterSource);
+      const result = await fetchFiltersFromServer(selectedApp!, filterSource)
 
       switch (result.status) {
         case FiltersApiStatus.NotOnboarded:
-          setFiltersApiStatus(FiltersApiStatus.NotOnboarded);
-          clearFiltersOnFilterApiFail();
-          break;
+          setFiltersApiStatus(FiltersApiStatus.NotOnboarded)
+          clearFiltersOnFilterApiFail()
+          break
         case FiltersApiStatus.NoData:
-          setFiltersApiStatus(FiltersApiStatus.NoData);
-          clearFiltersOnFilterApiFail();
-          break;
+          setFiltersApiStatus(FiltersApiStatus.NoData)
+          clearFiltersOnFilterApiFail()
+          break
         case FiltersApiStatus.Error:
-          setFiltersApiStatus(FiltersApiStatus.Error);
-          clearFiltersOnFilterApiFail();
-          break;
+          setFiltersApiStatus(FiltersApiStatus.Error)
+          clearFiltersOnFilterApiFail()
+          break
         case FiltersApiStatus.Success:
-          setFiltersApiStatus(FiltersApiStatus.Success);
+          setFiltersApiStatus(FiltersApiStatus.Success)
 
           if (result.data.versions !== null) {
             const parsedVersions = result.data.versions.map(
               (v: { name: string; code: string }) =>
                 new AppVersion(v.name, v.code),
-            );
+            )
 
-            setVersions(parsedVersions);
+            setVersions(parsedVersions)
 
             if (urlFilters.appId === selectedApp!.id && urlFilters.versions) {
               const selectedVersions = urlFilters.versions
                 .filter((index) => index >= 0 && index < parsedVersions.length)
-                .map((index) => parsedVersions[index]);
-              setSelectedVersions(selectedVersions);
+                .map((index) => parsedVersions[index])
+              setSelectedVersions(selectedVersions)
             } else if (
               appVersionsInitialSelectionType ===
               AppVersionsInitialSelectionType.All
             ) {
-              setSelectedVersions(parsedVersions);
+              setSelectedVersions(parsedVersions)
             } else {
-              setSelectedVersions(parsedVersions.slice(0, 1));
+              setSelectedVersions(parsedVersions.slice(0, 1))
             }
           }
 
@@ -825,39 +825,39 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
             const parsedOsVersions = result.data.os_versions.map(
               (v: { name: string; version: string }) =>
                 new OsVersion(v.name, v.version),
-            );
+            )
 
-            setOsVersions(parsedOsVersions);
+            setOsVersions(parsedOsVersions)
 
             if (urlFilters.appId === selectedApp!.id && urlFilters.osVersions) {
               const selectedOsVersions = urlFilters.osVersions
                 .filter(
                   (index) => index >= 0 && index < parsedOsVersions.length,
                 )
-                .map((index) => parsedOsVersions[index]);
-              setSelectedOsVersions(selectedOsVersions);
+                .map((index) => parsedOsVersions[index])
+              setSelectedOsVersions(selectedOsVersions)
             } else {
-              setSelectedOsVersions(parsedOsVersions);
+              setSelectedOsVersions(parsedOsVersions)
             }
           }
 
           if (result.data.countries !== null) {
-            const parsedCountries = result.data.countries;
-            setCountries(parsedCountries);
+            const parsedCountries = result.data.countries
+            setCountries(parsedCountries)
 
             if (urlFilters.appId === selectedApp!.id && urlFilters.countries) {
               const selectedCountries = urlFilters.countries
                 .filter((index) => index >= 0 && index < parsedCountries.length)
-                .map((index) => parsedCountries[index]);
-              setSelectedCountries(selectedCountries);
+                .map((index) => parsedCountries[index])
+              setSelectedCountries(selectedCountries)
             } else {
-              setSelectedCountries(parsedCountries);
+              setSelectedCountries(parsedCountries)
             }
           }
 
           if (result.data.network_providers !== null) {
-            const parsedNetworkProviders = result.data.network_providers;
-            setNetworkProviders(parsedNetworkProviders);
+            const parsedNetworkProviders = result.data.network_providers
+            setNetworkProviders(parsedNetworkProviders)
 
             if (
               urlFilters.appId === selectedApp!.id &&
@@ -868,16 +868,16 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                   (index) =>
                     index >= 0 && index < parsedNetworkProviders.length,
                 )
-                .map((index) => parsedNetworkProviders[index]);
-              setSelectedNetworkProviders(selectedNetworkProviders);
+                .map((index) => parsedNetworkProviders[index])
+              setSelectedNetworkProviders(selectedNetworkProviders)
             } else {
-              setSelectedNetworkProviders(parsedNetworkProviders);
+              setSelectedNetworkProviders(parsedNetworkProviders)
             }
           }
 
           if (result.data.network_types !== null) {
-            const parsedNetworkTypes = result.data.network_types;
-            setNetworkTypes(parsedNetworkTypes);
+            const parsedNetworkTypes = result.data.network_types
+            setNetworkTypes(parsedNetworkTypes)
 
             if (
               urlFilters.appId === selectedApp!.id &&
@@ -887,16 +887,16 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                 .filter(
                   (index) => index >= 0 && index < parsedNetworkTypes.length,
                 )
-                .map((index) => parsedNetworkTypes[index]);
-              setSelectedNetworkTypes(selectedNetworkTypes);
+                .map((index) => parsedNetworkTypes[index])
+              setSelectedNetworkTypes(selectedNetworkTypes)
             } else {
-              setSelectedNetworkTypes(parsedNetworkTypes);
+              setSelectedNetworkTypes(parsedNetworkTypes)
             }
           }
 
           if (result.data.network_generations !== null) {
-            const parsedNetworkGenerations = result.data.network_generations;
-            setNetworkGenerations(parsedNetworkGenerations);
+            const parsedNetworkGenerations = result.data.network_generations
+            setNetworkGenerations(parsedNetworkGenerations)
 
             if (
               urlFilters.appId === selectedApp!.id &&
@@ -907,30 +907,30 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                   (index) =>
                     index >= 0 && index < parsedNetworkGenerations.length,
                 )
-                .map((index) => parsedNetworkGenerations[index]);
-              setSelectedNetworkGenerations(selectedNetworkGenerations);
+                .map((index) => parsedNetworkGenerations[index])
+              setSelectedNetworkGenerations(selectedNetworkGenerations)
             } else {
-              setSelectedNetworkGenerations(parsedNetworkGenerations);
+              setSelectedNetworkGenerations(parsedNetworkGenerations)
             }
           }
 
           if (result.data.locales !== null) {
-            const parsedLocales = result.data.locales;
-            setLocales(parsedLocales);
+            const parsedLocales = result.data.locales
+            setLocales(parsedLocales)
 
             if (urlFilters.appId === selectedApp!.id && urlFilters.locales) {
               const selectedLocales = urlFilters.locales
                 .filter((index) => index >= 0 && index < parsedLocales.length)
-                .map((index) => parsedLocales[index]);
-              setSelectedLocales(selectedLocales);
+                .map((index) => parsedLocales[index])
+              setSelectedLocales(selectedLocales)
             } else {
-              setSelectedLocales(parsedLocales);
+              setSelectedLocales(parsedLocales)
             }
           }
 
           if (result.data.device_manufacturers !== null) {
-            const parsedDeviceManufacturers = result.data.device_manufacturers;
-            setDeviceManufacturers(parsedDeviceManufacturers);
+            const parsedDeviceManufacturers = result.data.device_manufacturers
+            setDeviceManufacturers(parsedDeviceManufacturers)
 
             if (
               urlFilters.appId === selectedApp!.id &&
@@ -941,16 +941,16 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                   (index) =>
                     index >= 0 && index < parsedDeviceManufacturers.length,
                 )
-                .map((index) => parsedDeviceManufacturers[index]);
-              setSelectedDeviceManufacturers(selectedDeviceManufacturers);
+                .map((index) => parsedDeviceManufacturers[index])
+              setSelectedDeviceManufacturers(selectedDeviceManufacturers)
             } else {
-              setSelectedDeviceManufacturers(parsedDeviceManufacturers);
+              setSelectedDeviceManufacturers(parsedDeviceManufacturers)
             }
           }
 
           if (result.data.device_names !== null) {
-            const parsedDeviceNames = result.data.device_names;
-            setDeviceNames(parsedDeviceNames);
+            const parsedDeviceNames = result.data.device_names
+            setDeviceNames(parsedDeviceNames)
 
             if (
               urlFilters.appId === selectedApp!.id &&
@@ -960,10 +960,10 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                 .filter(
                   (index) => index >= 0 && index < parsedDeviceNames.length,
                 )
-                .map((index) => parsedDeviceNames[index]);
-              setSelectedDeviceNames(selectedDeviceNames);
+                .map((index) => parsedDeviceNames[index])
+              setSelectedDeviceNames(selectedDeviceNames)
             } else {
-              setSelectedDeviceNames(parsedDeviceNames);
+              setSelectedDeviceNames(parsedDeviceNames)
             }
           }
 
@@ -972,13 +972,13 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
             result.data.ud_attrs.key_types !== null &&
             result.data.ud_attrs.operator_types !== null
           ) {
-            const parsedUserDefAttrs = result.data.ud_attrs.key_types;
+            const parsedUserDefAttrs = result.data.ud_attrs.key_types
             const parsedUserDefAttrOps = new Map<string, string[]>(
               Object.entries(result.data.ud_attrs.operator_types),
-            );
+            )
 
-            setUserDefAttrs(parsedUserDefAttrs);
-            setUserDefAttrOps(parsedUserDefAttrOps);
+            setUserDefAttrs(parsedUserDefAttrs)
+            setUserDefAttrOps(parsedUserDefAttrOps)
 
             if (
               urlFilters.appId === selectedApp!.id &&
@@ -989,23 +989,23 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                   // Find the attribute definition for this matcher
                   const attr = parsedUserDefAttrs.find(
                     (attr: UserDefAttr) => attr.key === m.key,
-                  );
-                  if (!attr) return false;
+                  )
+                  if (!attr) return false
                   // Use the type from the attribute definition and check if the op is valid for this type
-                  const ops = parsedUserDefAttrOps.get(attr.type);
-                  const opExists = ops ? ops.includes(m.op) : false;
+                  const ops = parsedUserDefAttrOps.get(attr.type)
+                  const opExists = ops ? ops.includes(m.op) : false
                   // Accept if key exists, op exists for the type, and value is not undefined
-                  return opExists && m.value !== undefined;
+                  return opExists && m.value !== undefined
                 },
-              );
-              setSelectedUdAttrMatchers(selectedUdAttrMatchers);
+              )
+              setSelectedUdAttrMatchers(selectedUdAttrMatchers)
             } else {
-              setSelectedUdAttrMatchers([]);
+              setSelectedUdAttrMatchers([])
             }
           } else {
-            setUserDefAttrs([]);
-            setUserDefAttrOps(new Map<string, string[]>());
-            setSelectedUdAttrMatchers([]);
+            setUserDefAttrs([])
+            setUserDefAttrOps(new Map<string, string[]>())
+            setSelectedUdAttrMatchers([])
           }
 
           if (urlFilters.appId === selectedApp!.id && urlFilters.spanStatuses) {
@@ -1013,14 +1013,14 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
               .filter((s: string) =>
                 Object.values(SpanStatus).includes(s as SpanStatus),
               )
-              .map((s: string) => s as SpanStatus);
-            setSelectedSpanStatuses(selectedSpanStatuses);
+              .map((s: string) => s as SpanStatus)
+            setSelectedSpanStatuses(selectedSpanStatuses)
           } else {
             setSelectedSpanStatuses(
               filterSource === FilterSource.Spans
                 ? [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error]
                 : [],
-            );
+            )
           }
 
           if (
@@ -1031,53 +1031,53 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
               .filter((s: string) =>
                 Object.values(BugReportStatus).includes(s as BugReportStatus),
               )
-              .map((s: string) => s as BugReportStatus);
-            setSelectedBugReportStatuses(selectedBugReportStatuses);
+              .map((s: string) => s as BugReportStatus)
+            setSelectedBugReportStatuses(selectedBugReportStatuses)
           } else {
-            setSelectedBugReportStatuses([BugReportStatus.Open]);
+            setSelectedBugReportStatuses([BugReportStatus.Open])
           }
 
           if (urlFilters.appId === selectedApp!.id && urlFilters.sessionType) {
-            setSelectedSessionType(urlFilters.sessionType);
+            setSelectedSessionType(urlFilters.sessionType)
           } else {
-            setSelectedSessionType(SessionType.All);
+            setSelectedSessionType(SessionType.All)
           }
 
           if (urlFilters.appId === selectedApp!.id && urlFilters.freeText) {
-            setSelectedFreeText(urlFilters.freeText);
+            setSelectedFreeText(urlFilters.freeText)
           } else {
-            setSelectedFreeText("");
+            setSelectedFreeText("")
           }
 
-          break;
+          break
       }
-    };
+    }
 
     useEffect(() => {
       if (!selectedApp) {
-        return;
+        return
       }
 
-      getFilters();
+      getFilters()
 
       if (filterSource === FilterSource.Spans) {
-        getRootSpanNames();
+        getRootSpanNames()
       }
-    }, [selectedApp]);
+    }, [selectedApp])
 
     useEffect(() => {
       if (!selectedApp) {
-        return;
+        return
       }
 
-      let ready = false;
+      let ready = false
       if (showNoData && showNotOnboarded) {
         ready =
           AppsApiStatus.Success &&
           ((filterSource === FilterSource.Spans &&
             rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
             filterSource !== FilterSource.Spans) &&
-          filtersApiStatus === FiltersApiStatus.Success;
+          filtersApiStatus === FiltersApiStatus.Success
       } else if (showNoData) {
         ready =
           AppsApiStatus.Success &&
@@ -1085,7 +1085,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
             rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
             filterSource !== FilterSource.Spans) &&
           (filtersApiStatus === FiltersApiStatus.Success ||
-            filtersApiStatus === FiltersApiStatus.NotOnboarded);
+            filtersApiStatus === FiltersApiStatus.NotOnboarded)
       } else if (showNotOnboarded) {
         ready =
           AppsApiStatus.Success &&
@@ -1093,7 +1093,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
             rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
             filterSource !== FilterSource.Spans) &&
           (filtersApiStatus === FiltersApiStatus.Success ||
-            filtersApiStatus === FiltersApiStatus.NoData);
+            filtersApiStatus === FiltersApiStatus.NoData)
       } else {
         ready =
           AppsApiStatus.Success &&
@@ -1102,7 +1102,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
             filterSource !== FilterSource.Spans) &&
           (filtersApiStatus === FiltersApiStatus.Success ||
             filtersApiStatus === FiltersApiStatus.NoData ||
-            filtersApiStatus === FiltersApiStatus.NotOnboarded);
+            filtersApiStatus === FiltersApiStatus.NotOnboarded)
       }
 
       const updatedUrlFilters: URLFilters = {
@@ -1145,7 +1145,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
         deviceNames: selectedDeviceNames.map((dn) => deviceNames.indexOf(dn)),
         udAttrMatchers: selectedUdAttrMatchers,
         freeText: selectedFreeText,
-      };
+      }
 
       const updatedSelectedFilters: Filters = {
         ready: ready,
@@ -1168,7 +1168,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
         udAttrMatchers: selectedUdAttrMatchers,
         freeText: selectedFreeText,
         serialisedFilters: serializeUrlFilters(updatedUrlFilters),
-      };
+      }
 
       // update global persisted filters
       const updatedSessionPersistedFilters: SessionPersistedFilters = {
@@ -1176,14 +1176,14 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
         dateRange: selectedDateRange,
         startDate: selectedStartDate,
         endDate: selectedEndDate,
-      };
+      }
       sessionStorage.setItem(
         sessionPersistedFiltersKey,
         JSON.stringify(updatedSessionPersistedFilters),
-      );
+      )
 
       // fire callback
-      onFiltersChanged(updatedSelectedFilters);
+      onFiltersChanged(updatedSelectedFilters)
     }, [
       filtersApiStatus,
       selectedStartDate,
@@ -1203,7 +1203,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
       selectedRootSpanName,
       selectedSpanStatuses,
       selectedBugReportStatuses,
-    ]);
+    ])
 
     return (
       <div>
@@ -1218,7 +1218,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
         )}
         {appsApiStatus === AppsApiStatus.NoApps && (
           <p className="font-body text-sm">
-            Looks like you don&apos;t have any apps yet. Get started by{" "}
+            Looks like you don&apost have any apps yet. Get started by{" "}
             {pathName.includes("apps") ? (
               "creating your first app!"
             ) : (
@@ -1363,24 +1363,24 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                       items={Object.values(DateRange)}
                       initialSelected={selectedDateRange}
                       onChangeSelected={(item) => {
-                        const range = item as string;
+                        const range = item as string
 
                         // do nothing if same range is selected
                         if (range === selectedDateRange) {
-                          return;
+                          return
                         }
 
                         if (range === DateRange.Custom) {
-                          setSelectedDateRange(range);
-                          return;
+                          setSelectedDateRange(range)
+                          return
                         }
 
-                        let today = DateTime.now();
-                        let newDate = mapDateRangeToDate(range);
+                        let today = DateTime.now()
+                        let newDate = mapDateRangeToDate(range)
 
-                        setSelectedStartDate(newDate!.toISO());
-                        setSelectedEndDate(today.toISO());
-                        setSelectedDateRange(range);
+                        setSelectedStartDate(newDate!.toISO())
+                        setSelectedEndDate(today.toISO())
+                        setSelectedDateRange(range)
                       }}
                     />
                   )}
@@ -1399,7 +1399,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                         if (isValidTimestamp(e.target.value)) {
                           setSelectedStartDate(
                             DateTime.fromISO(e.target.value).toISO()!,
-                          );
+                          )
                         }
                       }}
                     />
@@ -1429,12 +1429,12 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
                           ) {
                             setSelectedEndDate(
                               DateTime.fromISO(e.target.value).toISO()!,
-                            );
+                            )
                           } else {
                             e.target.value =
                               formatIsoDateForDateTimeInputField(
                                 selectedEndDate,
-                              );
+                              )
                           }
                         }
                       }}
@@ -1688,9 +1688,9 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
             </div>
           )}
       </div>
-    );
+    )
   },
-);
+)
 
-Filters.displayName = "Filters";
-export default Filters;
+Filters.displayName = "Filters"
+export default Filters

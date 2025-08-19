@@ -82,4 +82,8 @@ final class MockSpanStore: SpanStore {
             spans[spanId] = span
         }
     }
+
+    func getSpansCount(completion: @escaping (Int) -> Void) {
+        completion(spans.count)
+    }
 }

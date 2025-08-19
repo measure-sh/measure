@@ -35,6 +35,8 @@ abstract class IMeasureConfig {
   bool get trackFragmentLoadTime;
 
   bool get trackViewControllerLoadTime;
+
+  int get maxDiskUsageInMb;
 }
 
 /// Configuration class for Measure SDK
@@ -191,6 +193,26 @@ class MeasureConfig implements IMeasureConfig {
   @override
   final bool trackViewControllerLoadTime;
 
+  /// Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use.
+  ///
+  /// This is useful to control the amount of disk space used by the SDK for storing session data,
+  /// crash reports, and other collected information.
+  ///
+  /// Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`. Any value outside this
+  /// range will be clamped to the nearest limit.
+  /// All Measure SDKs store data to disk and upload it to the server in batches. While the app is
+  /// in foreground, the data is synced periodically and usually the disk space used by the SDK is
+  /// low. However, if the device is offline or the server is unreachable, the SDK will continue to
+  /// store data on disk until it reaches the maximum disk usage limit.
+  ///
+  /// Note that the storage usage is not exact and works on estimates and typically the SDK will
+  /// use much less disk space than the configured limit.
+  ///
+  /// When the SDK reaches the maximum disk usage limit, it will start deleting the oldest data
+  /// to make space for new data.
+  @override
+  final int maxDiskUsageInMb;
+
   /// Creates a new MeasureConfig instance
   const MeasureConfig({
     this.enableLogging = DefaultConfig.enableLogging,
@@ -207,6 +229,7 @@ class MeasureConfig implements IMeasureConfig {
     this.traceSamplingRate = DefaultConfig.traceSamplingRate,
     this.trackActivityLoadTime = DefaultConfig.trackActivityLoadTime,
     this.trackFragmentLoadTime = DefaultConfig.trackFragmentLoadTime,
+    this.maxDiskUsageInMb = DefaultConfig.maxDiskUsageInMb,
     this.trackViewControllerLoadTime =
         DefaultConfig.trackViewControllerLoadTime,
   })  : assert(
@@ -214,7 +237,9 @@ class MeasureConfig implements IMeasureConfig {
                 samplingRateForErrorFreeSessions <= 1.0,
             'session sampling rate must be between 0.0 and 1.0'),
         assert(traceSamplingRate >= 0.0 && traceSamplingRate <= 1.0,
-            'Trace sampling rate must be between 0.0 and 1.0');
+            'Trace sampling rate must be between 0.0 and 1.0'),
+        assert(maxDiskUsageInMb >= 20 && maxDiskUsageInMb <= 1500,
+            'maxDiskUsageInMb must be between 20 - 1500');
 
   /// Creates a new MeasureConfig instance from a JSON map
   factory MeasureConfig.fromJson(Map<String, dynamic> json) =>

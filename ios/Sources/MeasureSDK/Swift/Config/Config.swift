@@ -15,6 +15,7 @@ import Foundation
 /// - Note: If no values are provided during initialization, the struct will use default values specified in `DefaultConfig` where applicable.
 ///
 struct Config: InternalConfig, MeasureConfig {
+    let maxDiskUsageInMb: Int
     let enableLogging: Bool
     let samplingRateForErrorFreeSessions: Float
     let traceSamplingRate: Float
@@ -57,6 +58,8 @@ struct Config: InternalConfig, MeasureConfig {
     let screenshotMaskLevel: ScreenshotMaskLevel
     let requestHeadersProvider: MsrRequestHeadersProvider?
     let disallowedCustomHeaders: [String]
+    let lifecycleViewControllerExcludeList: [String]
+    let estimatedEventSizeInKb: Int
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
@@ -69,7 +72,8 @@ struct Config: InternalConfig, MeasureConfig {
                   autoStart: Bool = DefaultConfig.autoStart,
                   trackViewControllerLoadTime: Bool = DefaultConfig.trackViewControllerLoadTime,
                   screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel,
-                  requestHeadersProvider: MsrRequestHeadersProvider? = nil) {
+                  requestHeadersProvider: MsrRequestHeadersProvider? = nil,
+                  maxDiskUsageInMb: Int = DefaultConfig.maxEstimatedDiskUsageInMb) {
         self.enableLogging = enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
         self.traceSamplingRate = traceSamplingRate
@@ -81,6 +85,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.autoStart = autoStart
         self.trackViewControllerLoadTime = trackViewControllerLoadTime
         self.screenshotMaskLevel = screenshotMaskLevel
+        self.maxDiskUsageInMb = maxDiskUsageInMb
         self.eventsBatchingIntervalMs = 30000 // 30 seconds
         self.maxEventsInBatch = 500
         self.sessionEndLastEventThresholdMs = 20 * 60 * 1000 // 20 minitues
@@ -122,5 +127,24 @@ struct Config: InternalConfig, MeasureConfig {
         self.accelerometerUpdateInterval = 0.1
         self.requestHeadersProvider = requestHeadersProvider
         self.disallowedCustomHeaders = DefaultConfig.disallowedCustomHeaders
+        self.lifecycleViewControllerExcludeList = [
+            "UIHostingController",
+            "UIKitNavigationController",
+            "NavigationStackHostingController",
+            "NotifyingMulticolumnSplitViewController",
+            "StyleContextSplitViewController",
+            "UISystemAssistantViewController",
+            "UISystemKeyboardDockController",
+            "UIEditingOverlayViewController",
+            "UIInputWindowContoller",
+            "PrewarmingViewController",
+            "UIInputViewController",
+            "UICompactibilityInputViewController",
+            "UICompactibilityInputViewController",
+            "UIPredictionViewController",
+            "_UICursorAccessoryViewController",
+            "UIMultiscriptCandidateViewController"
+        ]
+        self.estimatedEventSizeInKb = 10 // 10 KB
     }
 }

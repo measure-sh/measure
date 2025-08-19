@@ -9,6 +9,7 @@ import Foundation
 @testable import Measure
 
 final class MockConfigProvider: ConfigProvider {
+    var lifecycleViewControllerExcludeList: [String]
     var cpuTrackingIntervalMs: UnsignedNumber
     var memoryTrackingIntervalMs: UnsignedNumber
     var maxSessionDurationMs: Number
@@ -52,6 +53,8 @@ final class MockConfigProvider: ConfigProvider {
     var accelerometerUpdateInterval: TimeInterval
     var requestHeadersProvider: MsrRequestHeadersProvider?
     var disallowedCustomHeaders: [String]
+    var maxDiskUsageInMb: Int
+    var estimatedEventSizeInKb: Int
 
     init(enableLogging: Bool = false,
          trackScreenshotOnCrash: Bool = true,
@@ -105,7 +108,9 @@ final class MockConfigProvider: ConfigProvider {
          shakeMinTimeIntervalMs: Number = 1500,
          accelerometerUpdateInterval: TimeInterval = 0.1,
          requestHeadersProvider: MsrRequestHeadersProvider? = nil,
-         disallowedCustomHeaders: [String] = ["Content-Type", "msr-req-id", "Authorization", "Content-Length"]) {
+         disallowedCustomHeaders: [String] = ["Content-Type", "msr-req-id", "Authorization", "Content-Length"],
+         maxDiskUsageInMb: Int = 50,
+         estimatedEventSizeInKb: Int = 10) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
@@ -149,6 +154,26 @@ final class MockConfigProvider: ConfigProvider {
         self.accelerometerUpdateInterval = accelerometerUpdateInterval
         self.requestHeadersProvider = requestHeadersProvider
         self.disallowedCustomHeaders = disallowedCustomHeaders
+        self.lifecycleViewControllerExcludeList = [
+            "UIHostingController",
+            "UIKitNavigationController",
+            "NavigationStackHostingController",
+            "NotifyingMulticolumnSplitViewController",
+            "StyleContextSplitViewController",
+            "UISystemAssistantViewController",
+            "UISystemKeyboardDockController",
+            "UIEditingOverlayViewController",
+            "UIInputWindowContoller",
+            "PrewarmingViewController",
+            "UIInputViewController",
+            "UICompactibilityInputViewController",
+            "UICompactibilityInputViewController",
+            "UIPredictionViewController",
+            "_UICursorAccessoryViewController",
+            "UIMultiscriptCandidateViewController"
+        ]
+        self.maxDiskUsageInMb = maxDiskUsageInMb
+        self.estimatedEventSizeInKb = estimatedEventSizeInKb
     }
 
     func loadNetworkConfig() {}

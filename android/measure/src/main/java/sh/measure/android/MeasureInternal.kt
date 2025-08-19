@@ -25,6 +25,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     val logger by lazy { measureInitializer.logger }
     val signalProcessor by lazy { measureInitializer.signalProcessor }
     val httpEventCollector by lazy { measureInitializer.httpEventCollector }
+    val processInfoProvider by lazy { measureInitializer.processInfoProvider }
     val timeProvider by lazy { measureInitializer.timeProvider }
     val bugReportCollector by lazy { measureInitializer.bugReportCollector }
     private val spanCollector by lazy { measureInitializer.spanCollector }
@@ -207,12 +208,12 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         userAttributeProcessor.clearUserId()
     }
 
-    fun trackScreenView(screenName: String) {
-        userTriggeredEventCollector.trackScreenView(screenName)
+    fun trackScreenView(screenName: String, attributes: Map<String, AttributeValue>) {
+        userTriggeredEventCollector.trackScreenView(screenName, attributes)
     }
 
-    fun trackHandledException(throwable: Throwable) {
-        userTriggeredEventCollector.trackHandledException(throwable)
+    fun trackHandledException(throwable: Throwable, attributes: Map<String, AttributeValue>) {
+        userTriggeredEventCollector.trackHandledException(throwable, attributes)
     }
 
     fun createSpan(name: String): SpanBuilder? {

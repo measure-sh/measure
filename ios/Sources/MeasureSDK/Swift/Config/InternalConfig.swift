@@ -98,4 +98,10 @@ protocol InternalConfig {
 
     /// List of custom headers that should not be included.
     var disallowedCustomHeaders: [String] { get }
+
+    /// List of ViewController names that should not be tracked by LifecycleCollector
+    var lifecycleViewControllerExcludeList: [String] { get }
+
+    /// The estimated size of one event on disk (in kilobytes).
+    var estimatedEventSizeInKb: Int { get }
 }

@@ -9,22 +9,22 @@ import Foundation
 
 public class MsrAttachment: NSObject, Codable {
     /// The name of the attachment, e.g. "screenshot.png".
-    let name: String
+    public let name: String
 
     /// The type of the attachment.
-    let type: AttachmentType
+    public let type: AttachmentType
 
     /// An optional byte array representing the attachment (not encoded).
-    var bytes: Data?
+    public var bytes: Data?
 
     /// An optional path to the attachment (not encoded).
-    var path: String?
+    public var path: String?
 
     /// Size of the attachment in bytes
-    var size: Int64
+    public var size: Int64
 
     /// A unique id for the image
-    var id: String
+    public var id: String
 
     public init(name: String,
                 type: AttachmentType,

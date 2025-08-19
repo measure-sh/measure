@@ -24,6 +24,12 @@ class FakeConfigProvider implements ConfigProvider {
   int _maxAttachmentsInBugReport = 5;
   int _maxDescriptionLengthInBugReport = 1000;
   int _screenshotCompressionQuality = 20;
+  int _maxEventNameLength = 64;
+  String _customEventNameRegex = '^[a-zA-Z0-9_-]+\$';
+  int _maxDiskUsageInMb = 50;
+  int _maxUserDefinedAttributeValueLength = 100;
+  int _maxUserDefinedAttributeKeyLength = 256;
+  int _maxUserDefinedAttributesPerEvent = 256;
 
   // Getters
   @override
@@ -94,6 +100,24 @@ class FakeConfigProvider implements ConfigProvider {
   @override
   int get screenshotCompressionQuality => _screenshotCompressionQuality;
 
+  @override
+  int get maxEventNameLength => _maxEventNameLength;
+
+  @override
+  String get customEventNameRegex => _customEventNameRegex;
+
+  @override
+  int get maxDiskUsageInMb => _maxDiskUsageInMb;
+
+  @override
+  int get maxUserDefinedAttributeValueLength => _maxUserDefinedAttributeValueLength;
+
+  @override
+  int get maxUserDefinedAttributeKeyLength => _maxUserDefinedAttributeKeyLength;
+
+  @override
+  int get maxUserDefinedAttributesPerEvent => _maxUserDefinedAttributesPerEvent;
+
   // Setters
   set autoInitializeNativeSDK(bool value) => _autoInitializeNativeSDK = value;
 
@@ -150,6 +174,18 @@ class FakeConfigProvider implements ConfigProvider {
 
   set screenshotCompressionQuality(int value) =>
       _screenshotCompressionQuality = value;
+
+  set customEventNameRegex(String value) => _customEventNameRegex = value;
+
+  set maxEventNameLength(int value) => _maxEventNameLength = value;
+
+  set maxDiskUsageInMb(int value) => _maxDiskUsageInMb = value;
+
+  set maxUserDefinedAttributeValueLength(int value) => _maxUserDefinedAttributeValueLength = value;
+
+  set maxUserDefinedAttributeKeyLength(int value) => _maxUserDefinedAttributeKeyLength = value;
+
+  set maxUserDefinedAttributesPerEvent(int value) => _maxUserDefinedAttributesPerEvent = value;
 
   // Methods
   @override

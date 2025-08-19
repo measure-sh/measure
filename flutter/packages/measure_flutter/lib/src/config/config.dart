@@ -28,6 +28,12 @@ class Config implements InternalConfig, IMeasureConfig {
         DefaultConfig.maxDescriptionLengthInBugReport,
     this.screenshotCompressionQuality =
         DefaultConfig.screenshotCompressionQuality,
+    this.maxEventNameLength = DefaultConfig.maxEventNameLength,
+    this.customEventNameRegex = DefaultConfig.customEventNameRegex,
+    this.maxDiskUsageInMb = DefaultConfig.maxDiskUsageInMb,
+    this.maxUserDefinedAttributeKeyLength = DefaultConfig.maxUserDefinedAttributeKeyLength,
+    this.maxUserDefinedAttributeValueLength = DefaultConfig.maxUserDefinedAttributeValueLength,
+    this.maxUserDefinedAttributesPerEvent = DefaultConfig.maxUserDefinedAttributesPerEvent,
   });
 
   @override
@@ -72,6 +78,18 @@ class Config implements InternalConfig, IMeasureConfig {
   final int maxDescriptionLengthInBugReport;
   @override
   final int screenshotCompressionQuality;
+  @override
+  final int maxEventNameLength;
+  @override
+  final String customEventNameRegex;
+  @override
+  final int maxDiskUsageInMb;
+  @override
+  final int maxUserDefinedAttributesPerEvent;
+  @override
+  final int maxUserDefinedAttributeKeyLength;
+  @override
+  final int maxUserDefinedAttributeValueLength;
 
   @override
   List<String> get defaultHttpContentTypeAllowlist =>
@@ -100,6 +118,7 @@ class Config implements InternalConfig, IMeasureConfig {
     double? traceSamplingRate,
     bool? trackActivityLoadTime,
     bool? trackFragmentLoadTime,
+    int? maxDiskUsageInMb,
   }) {
     return Config(
       enableLogging: enableLogging ?? this.enableLogging,
@@ -119,6 +138,7 @@ class Config implements InternalConfig, IMeasureConfig {
           trackActivityLoadTime ?? this.trackActivityLoadTime,
       trackFragmentLoadTime:
           trackFragmentLoadTime ?? this.trackFragmentLoadTime,
+      maxDiskUsageInMb: maxDiskUsageInMb ?? this.maxDiskUsageInMb,
     );
   }
 }

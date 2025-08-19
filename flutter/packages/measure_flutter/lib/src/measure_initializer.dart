@@ -113,7 +113,7 @@ final class MeasureInitializer {
     _idProvider = IdProviderImpl(randomizer);
     _methodChannelCallbacks = MethodChannelCallbacks(_methodChannel, _logger);
     _signalProcessor =
-        DefaultSignalProcessor(logger: logger, channel: _methodChannel);
+        DefaultSignalProcessor(logger: logger, channel: _methodChannel, configProvider: _configProvider);
     _screenshotCollector = DefaultScreenshotCollector(
       logger: logger,
       idProvider: _idProvider,
@@ -123,6 +123,7 @@ final class MeasureInitializer {
       logger: logger,
       signalProcessor: signalProcessor,
       timeProvider: timeProvider,
+      configProvider: configProvider,
     );
     _fileStorage = FileStorage(methodChannel, logger);
     _exceptionCollector = ExceptionCollector(

@@ -726,6 +726,54 @@ func GetValidInvitesForEmail(ctx context.Context, email string) ([]Invite, error
 	return invites, err
 }
 
+func formatTeamEmailBody(title, message, url, cta string) string {
+	return fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <title>%s</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Space Mono', monospace; line-height: 1.6; color: #333; background-color: #f8f9fa;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
+        <!-- Header -->
+        <div style="background-color: #000000; color: #ffffff; padding: 20px; display: flex; align-items: center; gap: 16px;">
+            <img src="https://www.measure.sh/images/measure_logo.svg" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
+            <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; margin-top: 3px;">%s</h1>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 40px 30px;">
+            
+            <!-- Message -->
+            <div style="margin-bottom: 32px; font-size: 16px; line-height: 1.6; color: #4a5568;">
+                %s
+            </div>
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin: 32px 0;">
+                <a href="%s" style="display: inline-block; background-color: #000000; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; font-size: 16px; transition: background-color 0.2s ease; font-family: 'Josefin Sans', sans-serif;">
+                    %s
+                </a>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background-color: #f8f9fa; padding: 20px 30px; border-top: 1px solid #e2e8f0; text-align: center;">
+            <p style="margin: 0; font-size: 14px; color: #718096;">
+                This notification was sent from <a href="https://measure.sh" style="text-decoration: none; color: inherit; cursor: pointer;"><strong>measure.sh</strong></a>
+            </p>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: #a0aec0;">
+                open source tool to monitor mobile apps
+            </p>
+        </div>
+    </div>
+</body>
+</html>`, title, title, message, url, cta)
+}
+
 func InviteMembers(c *gin.Context) {
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
@@ -885,12 +933,17 @@ func InviteMembers(c *gin.Context) {
 
 		// Send emails to exisiting invitees
 		for _, invitee := range existingInvitees {
+			title := "Added to Measure team"
+			msg := fmt.Sprintf("You have been added to team <b>%s</b> as <b>%s</b> by <b>%s</b>", *team.Name, invitee.Role, *user.Email)
+			url := server.Server.Config.SiteOrigin + "/" + teamId.String() + "/overview"
+			body := formatTeamEmailBody(title, msg, url, "Go to Dashboard")
+
 			emailInfo := &email.EmailInfo{
 				From:        server.Server.Config.TxEmailAddress,
 				To:          invitee.Email,
-				Subject:     "Added to Measure team",
+				Subject:     title,
 				ContentType: mail.TypeTextHTML,
-				Body:        fmt.Sprintf("You have been added to team <b>%s</b> as <b>%s</b> by <b>%s</b><br><br><a href=\"%s\">Go to Dashboard</a>", *team.Name, invitee.Role, *user.Email, server.Server.Config.SiteOrigin+"/"+teamId.String()+"/overview"),
+				Body:        body,
 			}
 
 			email.SendEmail(*emailInfo)
@@ -910,12 +963,16 @@ func InviteMembers(c *gin.Context) {
 
 		// Send emails to new invitees
 		for _, invitee := range newInvitees {
+			title := "Invitation to join Measure"
+			msg := fmt.Sprintf("You have been invited by <b>%s</b> as <b>%s</b> in team <b>%s</b>!", *user.Email, invitee.Role, *team.Name)
+			url := server.Server.Config.SiteOrigin + "/auth/login"
+			body := formatTeamEmailBody(title, msg, url, "Join Team")
 			emailInfo := &email.EmailInfo{
 				From:        server.Server.Config.TxEmailAddress,
 				To:          invitee.Email,
-				Subject:     "Invitation to join Measure",
+				Subject:     title,
 				ContentType: mail.TypeTextHTML,
-				Body:        fmt.Sprintf("You have been invited by <b>%s</b> to join <b>Measure</b>!<br><br> Sign up at the link below to become <b>%s</b> in <b>%s</b> .<br><br><a href=\"%s\">Sign Up</a><br><br>Note: Please use the current email while signing up.", *user.Email, invitee.Role, *team.Name, server.Server.Config.SiteOrigin+"/auth/login"),
+				Body:        body,
 			}
 
 			email.SendEmail(*emailInfo)
@@ -1129,12 +1186,17 @@ func ResendInvite(c *gin.Context) {
 		fmt.Println(msg, err)
 	}
 
+	title := "Invitation to join Measure"
+	msg := fmt.Sprintf("You have been invited by <b>%s</b> as <b>%s</b> in team <b>%s</b>!", *user.Email, invite.InvitedAsRole, *team.Name)
+	url := server.Server.Config.SiteOrigin + "/auth/login"
+	body := formatTeamEmailBody(title, msg, url, "Join Team")
+
 	emailInfo := &email.EmailInfo{
 		From:        server.Server.Config.TxEmailAddress,
 		To:          invite.Email,
-		Subject:     "Invitation to join Measure",
+		Subject:     title,
 		ContentType: mail.TypeTextHTML,
-		Body:        fmt.Sprintf("You have been invited by <b>%s</b> to join <b>Measure</b>!<br><br> Sign up at the link below to become <b>%s</b> in <b>%s</b> .<br><br><a href=\"%s\">Sign Up</a><br><br>Note: Please use the current email while signing up.", *user.Email, invite.InvitedAsRole, *team.Name, server.Server.Config.SiteOrigin+"/auth/login"),
+		Body:        body,
 	}
 
 	email.SendEmail(*emailInfo)
@@ -1579,13 +1641,18 @@ func RemoveTeamMember(c *gin.Context) {
 		fmt.Println(msg, err)
 	}
 
-	// Send email to removed member
+	title := "Removed from Measure team"
+	message := fmt.Sprintf("You have been removed from team <b>%s</b> by <b>%s</b>", *team.Name, *user.Email)
+	url := server.Server.Config.SiteOrigin + "/" + memberOwnTeam.ID.String() + "/overview"
+	cta := "Go to Dashboard"
+	body := formatTeamEmailBody(title, message, url, cta)
+
 	emailInfo := &email.EmailInfo{
 		From:        server.Server.Config.TxEmailAddress,
 		To:          *memberUser.Email,
-		Subject:     "Removed from Measure team",
+		Subject:     title,
 		ContentType: mail.TypeTextHTML,
-		Body:        fmt.Sprintf("You have been removed from team <b>%s</b> by <b>%s</b><br><br><a href=\"%s\">Go to Dashboard</a>", *team.Name, *user.Email, server.Server.Config.SiteOrigin+"/"+memberOwnTeam.ID.String()+"/overview"),
+		Body:        body,
 	}
 
 	email.SendEmail(*emailInfo)
@@ -1733,13 +1800,17 @@ func ChangeMemberRole(c *gin.Context) {
 		fmt.Println(msg, err)
 	}
 
-	// Send email to role changed member
+	title := "Role changed in Measure team"
+	message := fmt.Sprintf("Your role has been changed to <b>%s</b> by <b>%s</b> in team <b>%s</b>", *member.Role, *user.Email, *team.Name)
+	url := server.Server.Config.SiteOrigin + "/" + team.ID.String() + "/overview"
+	cta := "Go to Dashboard"
+	body := formatTeamEmailBody(title, message, url, cta)
 	emailInfo := &email.EmailInfo{
 		From:        server.Server.Config.TxEmailAddress,
 		To:          *memberUser.Email,
-		Subject:     "Role changed in Measure team",
+		Subject:     title,
 		ContentType: mail.TypeTextHTML,
-		Body:        fmt.Sprintf("Your role has been changed to <b>%s</b> by <b>%s</b> in team <b>%s</b><br><br><a href=\"%s\">Go to Dashboard</a>", *member.Role, *user.Email, *team.Name, server.Server.Config.SiteOrigin+"/"+team.ID.String()+"/overview"),
+		Body:        body,
 	}
 
 	email.SendEmail(*emailInfo)

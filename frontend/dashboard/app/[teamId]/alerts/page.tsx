@@ -1,207 +1,200 @@
 "use client"
 
-import { App, AppsApiStatus, FetchAlertPrefsApiStatus, UpdateAlertPrefsApiStatus, emptyAlertPrefs, fetchAlertPrefsFromServer, fetchAppsFromServer, updateAlertPrefsFromServer } from '@/app/api/api_calls'
-import { Button } from '@/app/components/button'
-import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
-import LoadingSpinner from '@/app/components/loading_spinner'
-import Link from 'next/link'
-import React, { useEffect, useState } from 'react'
+import { AlertsOverviewApiStatus, emptyAlertsOverviewResponse, fetchAlertsOverviewFromServer, FilterSource } from '@/app/api/api_calls'
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
+import LoadingBar from '@/app/components/loading_bar'
+import Paginator from '@/app/components/paginator'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 
-export default function Overview({ params }: { params: { teamId: string } }) {
-  const [appsApiStatus, setAppsApiStatus] = useState(AppsApiStatus.Loading)
-  const [fetchAlertPrefsApiStatus, setFetchAlertPrefsApiStatus] = useState(FetchAlertPrefsApiStatus.Loading)
-  const [updateAlertPrefsApiStatus, setUpdateAlertPrefsApiStatus] = useState(UpdateAlertPrefsApiStatus.Init)
+import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
-  const [apps, setApps] = useState([] as App[])
-  const [selectedApp, setSelectedApp] = useState<App | null>(null)
+interface PageState {
+    alertsOverviewApiStatus: AlertsOverviewApiStatus
+    filters: typeof defaultFilters
+    alertsOverview: typeof emptyAlertsOverviewResponse
+    paginationOffset: number
+}
 
-  const [alertPrefs, setAlertPrefs] = useState(emptyAlertPrefs)
-  const [updatedAlertPrefs, setUpdatedAlertPrefs] = useState(emptyAlertPrefs)
+const paginationLimit = 5
+const paginationOffsetUrlKey = "po"
 
-  const [updatePrefsMsg, setUpdatePrefsMsg] = useState("")
+export default function AlertsOverview({ params }: { params: { teamId: string } }) {
+    const router = useRouter()
+    const searchParams = useSearchParams()
 
-  interface AlertState {
-    email: boolean
-  }
+    const initialState: PageState = {
+        alertsOverviewApiStatus: AlertsOverviewApiStatus.Loading,
+        filters: defaultFilters,
+        alertsOverview: emptyAlertsOverviewResponse,
+        paginationOffset: searchParams.get(paginationOffsetUrlKey) ? parseInt(searchParams.get(paginationOffsetUrlKey)!) : 0
+    }
 
-  interface UpdatedAlertsState {
-    crash_rate_spike: AlertState
-    anr_rate_spike: AlertState
-    launch_time_spike: AlertState
-  }
+    const [pageState, setPageState] = useState<PageState>(initialState)
 
-  interface AlertRowProps {
-    rowTitle: string
-    emailChecked: boolean
-    handleEmailChange: () => void
-  }
+    const updatePageState = (newState: Partial<PageState>) => {
+        setPageState(prevState => {
+            const updatedState = { ...prevState, ...newState }
+            return updatedState
+        })
+    }
 
-  const handleEmailChange = (alertKey: keyof UpdatedAlertsState) => {
-    setUpdatedAlertPrefs((prevAlertPrefs) => ({
-      ...prevAlertPrefs,
-      [alertKey]: {
-        ...prevAlertPrefs[alertKey],
-        email: !prevAlertPrefs[alertKey].email,
-      },
-    }))
-  }
+    const getAlertsOverview = async () => {
+        updatePageState({ alertsOverviewApiStatus: AlertsOverviewApiStatus.Loading })
 
-  const AlertRow: React.FC<AlertRowProps> = ({
-    rowTitle,
-    emailChecked,
-    handleEmailChange,
-  }) => {
+        const result = await fetchAlertsOverviewFromServer(pageState.filters, paginationLimit, pageState.paginationOffset)
 
-    const checkboxStyle = "appearance-none border-black rounded-xs font-display checked:bg-neutral-950 checked:hover:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:focus:bg-neutral-950"
+        switch (result.status) {
+            case AlertsOverviewApiStatus.Error:
+                updatePageState({ alertsOverviewApiStatus: AlertsOverviewApiStatus.Error })
+                break
+            case AlertsOverviewApiStatus.Success:
+                updatePageState({
+                    alertsOverviewApiStatus: AlertsOverviewApiStatus.Success,
+                    alertsOverview: result.data
+                })
+                break
+        }
+    }
+
+    const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
+        // update filters only if they have changed
+        if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
+            updatePageState({
+                filters: updatedFilters,
+                // Reset pagination on filters change if previous filters were not default filters
+                paginationOffset: pageState.filters.serialisedFilters && searchParams.get(paginationOffsetUrlKey) ? 0 : pageState.paginationOffset
+            })
+        }
+    }
+
+    const handleNextPage = () => {
+        updatePageState({ paginationOffset: pageState.paginationOffset + paginationLimit })
+    }
+
+    const handlePrevPage = () => {
+        updatePageState({ paginationOffset: Math.max(0, pageState.paginationOffset - paginationLimit) })
+    }
+
+    useEffect(() => {
+        if (!pageState.filters.ready) {
+            return
+        }
+
+        // update url
+        router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(pageState.paginationOffset)}&${pageState.filters.serialisedFilters!}`, { scroll: false })
+
+        getAlertsOverview()
+    }, [pageState.paginationOffset, pageState.filters])
 
     return (
-      <div className="table-row-group">
-        <div className="table-cell py-2">{rowTitle}</div>
-        <div className='table-cell px-12 py-2'>
-          <input
-            type="checkbox"
-            className={checkboxStyle}
-            value="Email"
-            checked={emailChecked}
-            onChange={handleEmailChange}
-          />
+        <div className="flex flex-col selection:bg-yellow-200/75 items-start">
+            <p className="font-display text-4xl max-w-6xl text-center">Alerts</p>
+            <div className="py-4" />
+
+            <Filters
+                teamId={params.teamId}
+                filterSource={FilterSource.Events}
+                appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
+                showNoData={true}
+                showNotOnboarded={true}
+                showAppSelector={true}
+                showAppVersions={false}
+                showDates={true}
+                showSessionType={false}
+                showOsVersions={false}
+                showCountries={false}
+                showNetworkTypes={false}
+                showNetworkProviders={false}
+                showNetworkGenerations={false}
+                showLocales={false}
+                showDeviceManufacturers={false}
+                showDeviceNames={false}
+                showBugReportStatus={false}
+                showUdAttrs={false}
+                showFreeText={false}
+                freeTextPlaceholder='Search User ID, Session Id, Bug Report ID or description..'
+                onFiltersChanged={handleFiltersChanged} />
+            <div className="py-4" />
+
+            {/* Error state for alerts fetch */}
+            {pageState.filters.ready
+                && pageState.alertsOverviewApiStatus === AlertsOverviewApiStatus.Error
+                && <p className="text-lg font-display">Error fetching list of alerts, please change filters, refresh page or select a different app to try again</p>}
+
+            {/* Main alerts list UI */}
+            {pageState.filters.ready
+                && (pageState.alertsOverviewApiStatus === AlertsOverviewApiStatus.Success || pageState.alertsOverviewApiStatus === AlertsOverviewApiStatus.Loading) &&
+                <div className="flex flex-col items-center w-full">
+                    <div className='self-end'>
+                        <Paginator
+                            prevEnabled={pageState.alertsOverviewApiStatus === AlertsOverviewApiStatus.Loading ? false : pageState.alertsOverview.meta.previous}
+                            nextEnabled={pageState.alertsOverviewApiStatus === AlertsOverviewApiStatus.Loading ? false : pageState.alertsOverview.meta.next}
+                            displayText=''
+                            onNext={handleNextPage}
+                            onPrev={handlePrevPage}
+                        />
+                    </div>
+                    <div className={`py-1 w-full ${pageState.alertsOverviewApiStatus === AlertsOverviewApiStatus.Loading ? 'visible' : 'invisible'}`}>
+                        <LoadingBar />
+                    </div>
+                    <div className="py-4" />
+                    <Table className="font-display">
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[60%]">Alert</TableHead>
+                                <TableHead className="w-[20%] text-center">Time</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {pageState.alertsOverview.results?.map(({ id, team_id, app_id, entity_id, type, message, url, created_at, updated_at }, idx) => {
+                                return (
+                                    <TableRow
+                                        key={`${idx}-${id}`}
+                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault()
+                                                router.push(url)
+                                            }
+                                        }}
+                                    >
+                                        <TableCell className="w-[60%] relative p-0">
+                                            <a
+                                                href={url}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-label={`ID: ${id}`}
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                <p className="truncate text-xs text-gray-500 select-none">ID: {id}</p>
+                                                <div className='py-1' />
+                                                <p className='truncate select-none'>{message}</p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="w-[20%] text-center relative p-0">
+                                            <a
+                                                href={url}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-hidden="true"
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                <p className='truncate select-none'>{formatDateToHumanReadableDate(created_at)}</p>
+                                                <div className='py-1' />
+                                                <p className='text-xs truncate select-none'>{formatDateToHumanReadableTime(created_at)}</p>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>}
         </div>
-      </div>
     )
-  }
-
-  const areAlertPrefsSame = (a: typeof emptyAlertPrefs, b: typeof emptyAlertPrefs) => {
-    if (a.anr_rate_spike.email != b.anr_rate_spike.email) {
-      return false
-    }
-    if (a.crash_rate_spike.email != b.crash_rate_spike.email) {
-      return false
-    }
-    if (a.launch_time_spike.email != b.launch_time_spike.email) {
-      return false
-    }
-    return true
-  }
-
-  const getApps = async () => {
-    setAppsApiStatus(AppsApiStatus.Loading)
-
-    const result = await fetchAppsFromServer(params.teamId)
-
-    switch (result.status) {
-      case AppsApiStatus.NoApps:
-        setAppsApiStatus(AppsApiStatus.NoApps)
-        break
-      case AppsApiStatus.Error:
-        setAppsApiStatus(AppsApiStatus.Error)
-        break
-      case AppsApiStatus.Success:
-        setAppsApiStatus(AppsApiStatus.Success)
-        setApps(result.data)
-        setSelectedApp(result.data[0])
-        break
-    }
-  }
-
-  useEffect(() => {
-    getApps()
-  }, [])
-
-  const getAlertPrefs = async () => {
-    setFetchAlertPrefsApiStatus(FetchAlertPrefsApiStatus.Loading)
-
-    const result = await fetchAlertPrefsFromServer(selectedApp!.id)
-
-    switch (result.status) {
-      case FetchAlertPrefsApiStatus.Error:
-        setFetchAlertPrefsApiStatus(FetchAlertPrefsApiStatus.Error)
-        break
-      case FetchAlertPrefsApiStatus.Success:
-        setFetchAlertPrefsApiStatus(FetchAlertPrefsApiStatus.Success)
-        setAlertPrefs(result.data)
-        setUpdatedAlertPrefs(result.data)
-        break
-    }
-  }
-
-  useEffect(() => {
-    getAlertPrefs()
-    setUpdatePrefsMsg("")
-  }, [selectedApp])
-
-  const saveAlertPrefs = async () => {
-    setUpdateAlertPrefsApiStatus(UpdateAlertPrefsApiStatus.Loading)
-    setUpdatePrefsMsg("Saving...")
-
-    const result = await updateAlertPrefsFromServer(selectedApp!.id, updatedAlertPrefs)
-
-    switch (result.status) {
-      case UpdateAlertPrefsApiStatus.Error:
-        setUpdateAlertPrefsApiStatus(UpdateAlertPrefsApiStatus.Error)
-        setUpdatePrefsMsg(result.error)
-        break
-      case UpdateAlertPrefsApiStatus.Success:
-        setUpdateAlertPrefsApiStatus(UpdateAlertPrefsApiStatus.Success)
-        setUpdatePrefsMsg("Alert preferences saved!")
-        setAlertPrefs(updatedAlertPrefs)
-        break
-    }
-  }
-
-  return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
-      <p className="font-display text-4xl max-w-6xl text-center">Alerts</p>
-      <div className="py-4" />
-
-      {/* Error states for apps fetch */}
-      {appsApiStatus === AppsApiStatus.Error && <p className="font-body text-sm">Error fetching apps, please check if Team ID is valid or refresh page to try again</p>}
-      {appsApiStatus === AppsApiStatus.NoApps && <p className='font-body text-sm'>Looks like you don&apos;t have any apps yet. Get started by <Link className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href={`apps`}>creating your first app!</Link></p>}
-
-      {/* Main UI */}
-      {appsApiStatus === AppsApiStatus.Success &&
-        <div className="flex flex-col items-start">
-          <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={apps.map((e) => e.name)} initialSelected={apps[0].name} onChangeSelected={(item) => setSelectedApp(apps.find((e) => e.name === item)!)} />
-          <div className="py-4" />
-
-          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Loading && <LoadingSpinner />}
-          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Error && <p className='font-body text-sm'> Failed to fetch alert preferences. Please change selected app or refresh page to try again</p>}
-          {fetchAlertPrefsApiStatus === FetchAlertPrefsApiStatus.Success &&
-            <div>
-              <div className="table font-body">
-                <div className="table-header-group ">
-                  <div className="table-row">
-                    <div className="table-cell py-2 font-display">Alert type</div>
-                    <div className="table-cell px-8 py-2 font-display text-center">Email</div>
-                  </div>
-                </div>
-                <AlertRow
-                  rowTitle="Crash Rate Spike"
-                  emailChecked={updatedAlertPrefs.crash_rate_spike.email}
-                  handleEmailChange={() => handleEmailChange('crash_rate_spike')}
-                />
-                <AlertRow
-                  rowTitle="ANR Rate Spike"
-                  emailChecked={updatedAlertPrefs.anr_rate_spike.email}
-                  handleEmailChange={() => handleEmailChange('anr_rate_spike')}
-                />
-                <AlertRow
-                  rowTitle="Launch Time Spike"
-                  emailChecked={updatedAlertPrefs.launch_time_spike.email}
-                  handleEmailChange={() => handleEmailChange('launch_time_spike')}
-                />
-              </div>
-              <div className="py-4" />
-              <Button
-                variant="outline"
-                disabled={areAlertPrefsSame(alertPrefs, updatedAlertPrefs) || updateAlertPrefsApiStatus === UpdateAlertPrefsApiStatus.Loading}
-                className="flex justify-center font-display border border-black select-none"
-                onClick={saveAlertPrefs}>
-                Save
-              </Button>
-              <div className="py-1" />
-              {updateAlertPrefsApiStatus !== UpdateAlertPrefsApiStatus.Init && <p className="text-sm font-body">{updatePrefsMsg}</p>}
-            </div>}
-        </div>}
-    </div>
-  )
 }
