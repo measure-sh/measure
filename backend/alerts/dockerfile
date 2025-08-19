@@ -16,4 +16,4 @@ FROM public.ecr.aws/docker/library/alpine:latest
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /go/bin/app /app
 ENTRYPOINT ["/app"]
-EXPOSE 8081
+EXPOSE 8082
