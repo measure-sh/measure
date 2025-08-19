@@ -159,41 +159,6 @@ services:
         condition: service_completed_successfully
         required: false
 
-  symboloader:
-    build:
-      dockerfile: dockerfile
-      context: ../backend/symboloader
-    ports:
-      - "8084:8084"
-    environment:
-      - POSTGRES_DSN=${POSTGRES_DSN}
-      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
-      - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
-      - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
-      - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
-      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
-      - API_ORIGIN=${NEXT_PUBLIC_API_BASE_URL}
-      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
-      - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
-    develop:
-      watch:
-        - path: ../backend/symboloader
-          action: rebuild
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8084/ping"]
-      interval: 5s
-      timeout: 10s
-      retries: 5
-    depends_on:
-      postgres:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      dbmate-postgres:
-        condition: service_completed_successfully
-        required: false
-  
   alerts:
     build:
       dockerfile: dockerfile
@@ -203,6 +168,7 @@ services:
     environment:
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
       - SITE_ORIGIN=${NEXT_PUBLIC_SITE_URL}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
@@ -232,10 +198,39 @@ services:
       dbmate-clickhouse:
         condition: service_completed_successfully
         required: false
-      migrator:
-        condition: service_completed_successfully
-        required: false
-      mc:
+
+  symboloader:
+    build:
+      dockerfile: dockerfile
+      context: ../backend/symboloader
+    ports:
+      - "8083:8083"
+    environment:
+      - POSTGRES_DSN=${POSTGRES_DSN}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
+      - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
+      - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
+      - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
+      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
+      - API_ORIGIN=${NEXT_PUBLIC_API_BASE_URL}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
+      - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+    develop:
+      watch:
+        - path: ../backend/symboloader
+          action: rebuild
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8083/ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      dbmate-postgres:
         condition: service_completed_successfully
         required: false
 

@@ -33,7 +33,7 @@ services:
       options:
         max-size: 10m
         max-file: 5
-  
+
   alerts:
     environment:
       - GIN_MODE=release

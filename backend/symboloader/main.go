@@ -47,7 +47,7 @@ func main() {
 	// listen and serve on 0.0.0.0:${PORT}
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8084"
+		port = "8083"
 	}
 	if err := r.Run(":" + port); err != nil {
 		fmt.Printf("Failed to listen and serve on 0.0.0.0:%s\n", port)

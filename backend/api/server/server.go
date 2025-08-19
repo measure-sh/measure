@@ -46,7 +46,7 @@ type PostgresConfig struct {
 type ClickhouseConfig struct {
 	/* connection string of the clickhouse instance */
 	DSN       string
-	ReaderDNS string
+	ReaderDSN string
 }
 
 type ServerConfig struct {
@@ -262,7 +262,7 @@ func NewConfig() *ServerConfig {
 		},
 		CH: ClickhouseConfig{
 			DSN:       clickhouseDSN,
-			ReaderDNS: clickhouseReaderDSN,
+			ReaderDSN: clickhouseReaderDSN,
 		},
 		ServiceAccountEmail:        serviceAccountEmail,
 		SymbolsBucket:              symbolsBucket,
@@ -361,7 +361,7 @@ func Init(config *ServerConfig) {
 		log.Printf("Unable to parse CH connection string: %v\n", err)
 	}
 
-	rChOpts, err := clickhouse.ParseDSN(config.CH.ReaderDNS)
+	rChOpts, err := clickhouse.ParseDSN(config.CH.ReaderDSN)
 	if err != nil {
 		log.Printf("unable to parse reader CH connection string %v\n", err)
 	}

@@ -442,7 +442,7 @@ update_symbolicator_origin() {
 # add_symboloader_origin appends value of symboloader origin in .env file.
 # ------------------------------------------------------------------------------
 add_symboloader_origin() {
-  add_env_variable SYMBOLOADER_ORIGIN "http://symboloader:8084"
+  add_env_variable SYMBOLOADER_ORIGIN "http://symboloader:8083"
 }
 
 # ------------------------------------------------------------------------------

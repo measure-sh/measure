@@ -469,7 +469,7 @@ func deleteAttachments(ctx context.Context, attachments []Attachment) (err error
 // app's retention threshold.
 func deleteStaleAlerts(ctx context.Context, retentions []AppRetention) {
 	for _, retention := range retentions {
-		stmt := sqlf.PostgreSQL.DeleteFrom("public.alerts").
+		stmt := sqlf.PostgreSQL.DeleteFrom("alerts").
 			Where("app_id = ?", retention.AppID).
 			Where("created_at < ?", retention.Threshold)
 
@@ -487,7 +487,7 @@ func deleteStaleAlerts(ctx context.Context, retentions []AppRetention) {
 // app's retention threshold.
 func deleteStalePendingAlertMessages(ctx context.Context, retentions []AppRetention) {
 	for _, retention := range retentions {
-		stmt := sqlf.PostgreSQL.DeleteFrom("public.pending_alert_messages").
+		stmt := sqlf.PostgreSQL.DeleteFrom("pending_alert_messages").
 			Where("app_id = ?", retention.AppID).
 			Where("created_at < ?", retention.Threshold)
 

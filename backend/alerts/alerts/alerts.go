@@ -171,7 +171,7 @@ func getTeams(ctx context.Context) ([]Team, error) {
 	teams := []Team{}
 	stmt := sqlf.PostgreSQL.
 		Select("id").
-		From("public.teams")
+		From("teams")
 	defer stmt.Close()
 	rows, err := server.Server.PgPool.Query(ctx, stmt.String())
 	if err != nil {
@@ -193,7 +193,7 @@ func getAppsForTeam(ctx context.Context, teamID uuid.UUID) ([]App, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("id").
 		Select("team_id").
-		From("public.apps").
+		From("apps").
 		Where("team_id = ?", teamID)
 	defer stmt.Close()
 	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -214,7 +214,7 @@ func getAppsForTeam(ctx context.Context, teamID uuid.UUID) ([]App, error) {
 func getAppNameByID(ctx context.Context, appID uuid.UUID) (string, error) {
 	appNameStmt := sqlf.PostgreSQL.
 		Select("app_name").
-		From("public.apps").
+		From("apps").
 		Where("id = ?", appID)
 	defer appNameStmt.Close()
 	var appName string
@@ -242,7 +242,7 @@ func getDailySummaryData(ctx context.Context, date time.Time, appID uuid.UUID) (
                     quantileMerge(0.95)(cold_launch_p95) AS cold_launch_p95_ms,
                     quantileMerge(0.95)(warm_launch_p95) AS warm_launch_p95_ms,
                     quantileMerge(0.95)(hot_launch_p95) AS hot_launch_p95_ms
-                FROM default.app_metrics
+                FROM app_metrics
                 WHERE timestamp >= target_date - INTERVAL 1 DAY
                     AND timestamp < target_date + INTERVAL 1 DAY
                     AND app_id = ?
@@ -461,7 +461,7 @@ func getDailySummaryData(ctx context.Context, date time.Time, appID uuid.UUID) (
 func isInCooldown(ctx context.Context, teamID, appID uuid.UUID, entityID, alertType string, cooldown time.Duration) (bool, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("created_at").
-		From("public.alerts").
+		From("alerts").
 		Where("team_id = ?", teamID).
 		Where("app_id = ?", appID).
 		Where("entity_id = ?", entityID).
@@ -484,7 +484,7 @@ func isInCooldown(ctx context.Context, teamID, appID uuid.UUID, entityID, alertT
 func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message, url, appName string) {
 	memberStmt := sqlf.PostgreSQL.
 		Select("user_id").
-		From("public.team_membership").
+		From("team_membership").
 		Where("team_id = ?", alert.TeamID)
 	defer memberStmt.Close()
 
@@ -505,7 +505,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 		var emailAddr string
 		emailStmt := sqlf.PostgreSQL.
 			Select("email").
-			From("public.users").
+			From("users").
 			Where("id = ?", userID)
 		defer emailStmt.Close()
 
@@ -536,7 +536,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 		}
 
 		insertStmt := sqlf.PostgreSQL.
-			InsertInto("public.pending_alert_messages").
+			InsertInto("pending_alert_messages").
 			Set("id", uuid.New()).
 			Set("team_id", alert.TeamID).
 			Set("app_id", alert.AppID).
@@ -555,7 +555,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UUID, appId uuid.UUID, emailBody, url, appName string) {
 	memberStmt := sqlf.PostgreSQL.
 		Select("user_id").
-		From("public.team_membership").
+		From("team_membership").
 		Where("team_id = ?", teamId)
 	defer memberStmt.Close()
 
@@ -576,7 +576,7 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 		var emailAddr string
 		emailStmt := sqlf.PostgreSQL.
 			Select("email").
-			From("public.users").
+			From("users").
 			Where("id = ?", userID)
 		defer emailStmt.Close()
 
@@ -600,7 +600,7 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 		}
 
 		insertStmt := sqlf.PostgreSQL.
-			InsertInto("public.pending_alert_messages").
+			InsertInto("pending_alert_messages").
 			Set("id", uuid.New()).
 			Set("team_id", teamId).
 			Set("app_id", appId).
@@ -633,15 +633,15 @@ func formatAlertEmailBody(appName, title, message, url string) string {
             <img src="https://www.measure.sh/images/measure_logo.svg" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
             <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; margin-top: 3px;">%s</h1>
         </div>
-        
+
         <!-- Content -->
         <div style="padding: 40px 30px;">
-            
+
             <!-- Message -->
             <div style="margin-bottom: 32px; font-size: 16px; line-height: 1.6; color: #4a5568;">
                 %s
             </div>
-            
+
             <!-- CTA Button -->
             <div style="text-align: center; margin: 32px 0;">
                 <a href="%s" style="display: inline-block; background-color: #000000; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; font-size: 16px; transition: background-color 0.2s ease; font-family: 'Josefin Sans', sans-serif;">
@@ -649,7 +649,7 @@ func formatAlertEmailBody(appName, title, message, url string) string {
                 </a>
             </div>
         </div>
-        
+
         <!-- Footer -->
         <div style="background-color: #f8f9fa; padding: 20px 30px; border-top: 1px solid #e2e8f0; text-align: center;">
             <p style="margin: 0; font-size: 14px; color: #718096;">
@@ -711,22 +711,22 @@ func formatDailySummaryEmailBody(appName, dashboardURL string, date time.Time, m
             <img src="https://www.measure.sh/images/measure_logo.svg" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
             <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; margin-top: 3px;">%s Daily Summary</h1>
         </div>
-        
+
         <!-- Content -->
         <div style="padding: 40px 30px; background-color: #f8f9fa;">
-            
+
             <!-- Date Header -->
             <div style="text-align: center; margin-bottom: 32px;">
                 <h2 style="margin: 0; font-size: 18px; color: #2d3748; font-family: 'Josefin Sans', sans-serif; font-weight: 600;">
                     %s
                 </h2>
             </div>
-            
+
             <!-- Metrics Grid -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 32px;">
                 %s
             </div>
-            
+
             <!-- CTA Button -->
             <div style="text-align: center; margin: 32px 0;">
                 <a href="%s" style="display: inline-block; background-color: #000000; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; font-size: 16px; transition: background-color 0.2s ease; font-family: 'Josefin Sans', sans-serif;">
@@ -734,7 +734,7 @@ func formatDailySummaryEmailBody(appName, dashboardURL string, date time.Time, m
                 </a>
             </div>
         </div>
-        
+
         <!-- Footer -->
         <div style="background-color: #f8f9fa; padding: 20px 30px; border-top: 1px solid #e2e8f0; text-align: center;">
             <p style="margin: 0; font-size: 14px; color: #718096;">
@@ -826,7 +826,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 			fmt.Printf("Inserting alert for crash group %s\n", fingerprint)
 
 			alertID := uuid.New()
-			alertInsert := sqlf.PostgreSQL.InsertInto("public.alerts").
+			alertInsert := sqlf.PostgreSQL.InsertInto("alerts").
 				Set("id", alertID).
 				Set("team_id", team.ID).
 				Set("app_id", app.ID).
@@ -941,7 +941,7 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 			fmt.Printf("Inserting alert for anr group %s\n", fingerprint)
 
 			alertID := uuid.New()
-			alertInsert := sqlf.PostgreSQL.InsertInto("public.alerts").
+			alertInsert := sqlf.PostgreSQL.InsertInto("alerts").
 				Set("id", alertID).
 				Set("team_id", team.ID).
 				Set("app_id", app.ID).
