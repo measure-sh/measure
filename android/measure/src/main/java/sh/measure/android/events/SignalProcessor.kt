@@ -241,6 +241,12 @@ internal class SignalProcessorImpl(
                 { "msr-store-span" },
                 {
                     signalStore.store(spanData)
+                    if (logger.enabled) {
+                        logger.log(
+                            LogLevel.Debug,
+                            "Span processed: ${spanData.name}, ${spanData.duration}ms",
+                        )
+                    }
                 },
             )
         }
@@ -248,7 +254,7 @@ internal class SignalProcessorImpl(
 
     private fun <T> onEventTracked(event: Event<T>) {
         if (logger.enabled) {
-            logger.log(LogLevel.Debug, "${event.type}, ${event.data}")
+            logger.log(LogLevel.Debug, "Event processed: ${event.type}, ${event.data}")
         }
         sessionManager.onEventTracked(event)
     }
@@ -323,7 +329,10 @@ internal class SignalProcessorImpl(
         }
     }
 
-    private fun validateUserDefinedAttributes(event: String, attributes: Map<String, AttributeValue>): Boolean {
+    private fun validateUserDefinedAttributes(
+        event: String,
+        attributes: Map<String, AttributeValue>,
+    ): Boolean {
         if (attributes.size > configProvider.maxUserDefinedAttributesPerEvent) {
             logger.log(
                 LogLevel.Error,

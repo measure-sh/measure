@@ -50,6 +50,7 @@ internal data class Config(
         EventType.LIFECYCLE_ACTIVITY,
         EventType.LIFECYCLE_FRAGMENT,
         EventType.SCREEN_VIEW,
+        EventType.SESSION_START,
     )
     override val maxSpanNameLength: Int = 64
     override val maxCheckpointNameLength: Int = 64

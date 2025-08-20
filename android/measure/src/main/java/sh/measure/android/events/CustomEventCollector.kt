@@ -40,7 +40,6 @@ internal class CustomEventCollector(
             userTriggered = true,
             userDefinedAttributes = attributes,
         )
-        logger.log(LogLevel.Debug, "Custom event($name) received")
     }
 
     private fun validateName(name: String): Boolean {
