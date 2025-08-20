@@ -8,6 +8,7 @@ import (
 	"io"
 	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -423,13 +424,42 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 }
 
 func deleteAttachments(ctx context.Context, attachments []Attachment) (err error) {
+	config := server.Server.Config
+	if config.IsCloud() {
+		client, errStorage := storage.NewClient(ctx)
+		if errStorage != nil {
+			return
+		}
+
+		defer func() {
+			if err := client.Close(); err != nil {
+				fmt.Printf("Failed to close storage client: %v\n", err)
+			}
+		}()
+
+		bucket := client.Bucket(config.AttachmentsBucket)
+		var failed []string
+
+		for _, at := range attachments {
+			o := bucket.Object(at.Key)
+			if err := o.Delete(ctx); err != nil {
+				failed = append(failed, at.Key)
+			}
+		}
+
+		if len(failed) > 0 {
+			fmt.Printf("Failed to delete %d attachments: %v\n", len(failed), failed)
+		}
+
+		return
+	}
+
 	objectIds := []types.ObjectIdentifier{}
 
 	for _, at := range attachments {
 		objectIds = append(objectIds, types.ObjectIdentifier{
 			Key: aws.String(at.Key),
 		})
-
 	}
 
 	deleteObjectsInput := &s3.DeleteObjectsInput{

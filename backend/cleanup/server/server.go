@@ -67,27 +67,34 @@ func NewConfig() *ServerConfig {
 
 	attachmentsBucket := os.Getenv("ATTACHMENTS_S3_BUCKET")
 	if attachmentsBucket == "" {
-		log.Println("ATTACHMENTS_S3_BUCKET env var not set, event attachment uploads won't work")
+		log.Println("ATTACHMENTS_S3_BUCKET env var not set, event attachment removal won't work")
 	}
 
-	attachmentsBucketRegion := os.Getenv("ATTACHMENTS_S3_BUCKET_REGION")
-	if attachmentsBucketRegion == "" {
-		log.Println("ATTACHMENTS_S3_BUCKET_REGION env var not set, event attachment uploads won't work")
-	}
+	var attachmentsBucketRegion string
+	var attachmentsAccessKey string
+	var attachmentsSecretAccessKey string
+	var attachmentOrigin string
 
-	attachmentsAccessKey := os.Getenv("ATTACHMENTS_ACCESS_KEY")
-	if attachmentsAccessKey == "" {
-		log.Println("ATTACHMENTS_ACCESS_KEY env var not set, event attachment uploads won't work")
-	}
+	if !cloudEnv {
+		attachmentsBucketRegion = os.Getenv("ATTACHMENTS_S3_BUCKET_REGION")
+		if attachmentsBucketRegion == "" {
+			log.Println("ATTACHMENTS_S3_BUCKET_REGION env var not set, event attachment removal won't work")
+		}
 
-	attachmentsSecretAccessKey := os.Getenv("ATTACHMENTS_SECRET_ACCESS_KEY")
-	if attachmentsSecretAccessKey == "" {
-		log.Println("ATTACHMENTS_SECRET_ACCESS_KEY env var not set, event attachment uploads won't work")
-	}
+		attachmentsAccessKey = os.Getenv("ATTACHMENTS_ACCESS_KEY")
+		if attachmentsAccessKey == "" {
+			log.Println("ATTACHMENTS_ACCESS_KEY env var not set, event attachment removal won't work")
+		}
 
-	attachmentOrigin := os.Getenv("ATTACHMENTS_S3_ORIGIN")
-	if attachmentOrigin == "" {
-		log.Println("ATTACHMENTS_S3_ORIGIN env var not set, event attachment downloads won't work")
+		attachmentsSecretAccessKey = os.Getenv("ATTACHMENTS_SECRET_ACCESS_KEY")
+		if attachmentsSecretAccessKey == "" {
+			log.Println("ATTACHMENTS_SECRET_ACCESS_KEY env var not set, event attachment removal won't work")
+		}
+
+		attachmentOrigin = os.Getenv("ATTACHMENTS_S3_ORIGIN")
+		if attachmentOrigin == "" {
+			log.Println("ATTACHMENTS_S3_ORIGIN env var not set, event attachment removal won't work")
+		}
 	}
 
 	postgresDSN := os.Getenv("POSTGRES_DSN")
@@ -171,12 +178,10 @@ func Init(config *ServerConfig) {
 		}
 
 		oConfig.ConnConfig.DialFunc = func(ctx context.Context, network string, address string) (net.Conn, error) {
-			fmt.Printf(">>> Entering custom DialFunc: network: %s, address: %s\n", network, address)
 			return d.Dial(ctx, "modified-media-423607-u5:us-central1:s-csql-01", cloudsqlconn.WithPrivateIP())
 		}
 
 		rConfig.ConnConfig.DialFunc = func(ctx context.Context, network string, address string) (net.Conn, error) {
-			fmt.Printf(">>> Entering custom DialFunc: network: %s, address: %s\n", network, address)
 			return d.Dial(ctx, "modified-media-423607-u5:us-central1:s-csql-01", cloudsqlconn.WithPrivateIP())
 		}
 	}
