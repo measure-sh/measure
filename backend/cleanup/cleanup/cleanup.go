@@ -443,6 +443,7 @@ func deleteAttachments(ctx context.Context, attachments []Attachment) (err error
 		for _, at := range attachments {
 			o := bucket.Object(at.Key)
 			if err := o.Delete(ctx); err != nil {
+				fmt.Printf("Failed to delete attachment %q: %v\n", at.Key, err)
 				failed = append(failed, at.Key)
 			}
 		}
