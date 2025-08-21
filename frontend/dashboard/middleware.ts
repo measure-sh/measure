@@ -1,3 +1,4 @@
+import { INTERNALS } from "next/dist/server/web/spec-extension/request";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -7,7 +8,7 @@ export function middleware(request: NextRequest) {
     const apiOrigin = process.env.API_BASE_URL || "http://api:8080";
     const apiOriginUrl = new URL(apiOrigin);
 
-    let url = request.nextUrl.clone();
+    const url = request.nextUrl.clone();
     url.pathname = request.nextUrl.pathname.replace("/api", "");
     url.search = request.nextUrl.search;
     url.hostname = apiOriginUrl.hostname;
