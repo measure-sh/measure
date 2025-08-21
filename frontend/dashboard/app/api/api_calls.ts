@@ -321,6 +321,13 @@ export enum AlertsOverviewApiStatus {
   Cancelled,
 }
 
+export enum SamplingOverviewApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
