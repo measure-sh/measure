@@ -400,7 +400,10 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 		}
 
 		// Delete attachments from object storage
-		deleteAttachments(ctx, staleAttachments)
+		if err := deleteAttachments(ctx, staleAttachments); err != nil {
+			errCount += 1
+			fmt.Printf("Failed to delete attachments: %v\n", err)
+		}
 
 		// Delete stale events
 		stmt := sqlf.
