@@ -1,6 +1,5 @@
-import { INTERNALS } from "next/dist/server/web/spec-extension/request";
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
   // reverse proxy all API requests
