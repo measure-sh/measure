@@ -321,7 +321,7 @@ export enum AlertsOverviewApiStatus {
   Cancelled,
 }
 
-export enum SamplingOverviewApiStatus {
+export enum SamplingRulesApiStatus {
   Loading,
   Success,
   Error,
@@ -994,6 +994,16 @@ export const emptyAlertsOverviewResponse = {
     url: string
     created_at: string
     updated_at: string
+  }[],
+}
+
+export const emptySamplingRulesResponse = {
+  meta: {
+    next: false,
+    previous: false,
+  },
+  results: [] as {
+    app_id: string
   }[],
 }
 
@@ -2247,5 +2257,27 @@ export const fetchAlertsOverviewFromServer = async (
     return { status: AlertsOverviewApiStatus.Success, data: data }
   } catch {
     return { status: AlertsOverviewApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchSamplingRulesFromServer = async (
+  appId: String,
+  limit: number,
+  offset: number,
+) => {
+  const url = `/api/apps/${appId}/sampling-rules?limit=${limit}&offset=${offset}`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+
+    if (!res.ok) {
+      return { status: SamplingRulesApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: SamplingRulesApiStatus.Success, data: data }
+  } catch {
+    return { status: SamplingRulesApiStatus.Cancelled, data: null }
   }
 }
