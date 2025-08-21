@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  experimental: {
+    proxyTimeout: 90000,
+  },
   images: {
     remotePatterns: [
       {
