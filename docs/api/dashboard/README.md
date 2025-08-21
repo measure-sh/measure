@@ -194,6 +194,32 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-32)
     - [Response Body](#response-body-35)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-35)
+  - [GET `/apps/:id/sessionTargetingRules`](#get-appsidsessiontargetingrules)
+    - [Usage Notes](#usage-notes-35)
+    - [Authorization \& Content Type](#authorization--content-type-33)
+    - [Response Body](#response-body-35)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-35)
+  - [GET `/apps/:id/sessionTargetingRules/:ruleId`](#get-appsidsessiontargetingrulesruleid)
+    - [Usage Notes](#usage-notes-36)
+    - [Authorization \& Content Type](#authorization--content-type-34)
+    - [Response Body](#response-body-36)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-36) 
+  - [POST `/apps/:id/sessionTargetingRules`](#post-appsidsessiontargetingrules)
+    - [Usage Notes](#usage-notes-37)
+    - [Authorization \& Content Type](#authorization--content-type-35)
+    - [Response Body](#response-body-37)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-37)
+  - [PATCH `/apps/:id/sessionTargetingRules/:ruleId`](#patch-appsidsessiontargetingrulesruleid)
+    - [Usage Notes](#usage-notes-38)
+    - [Authorization \& Content Type](#authorization--content-type-36)
+    - [Response Body](#response-body-38)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-38)
+  - [GET `/apps/:id/sessionTargetingRules/config`](#get-appsidsessiontargetingrulesconfig)
+    - [Usage Notes](#usage-notes-39)
+    - [Authorization \& Content Type](#authorization--content-type-37)
+    - [Response Body](#response-body-39)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-39)
+
 - [Teams](#teams)
   - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-33)
@@ -756,6 +782,11 @@ List of HTTP status codes for success and failures.
 - [**GET `/apps/:id/bugReports/:bugReportId`**](#get-appsidbugreportsbugreportid) - Fetch a bug report.
 - [**PATCH `/apps/:id/bugReports/:bugReportId`**](#patch-appsidbugreportsbugreportid) - Update a bug report's status.
 - [**GET `/apps/:id/alerts`**](#get-appsidalerts) - Fetch an app's alerts with optional filters.
+- [**GET `/apps/:id/sessionTargetingRules`**](#get-appsidsessiontargetingrules) - Fetch an app's session targeting rules.
+- [**GET `/apps/:id/sessionTargetingRules/:ruleId`**](#get-appsidsessiontargetingruleruleid) - Fetch a session targeting rule by rule ID.
+- [**POST `/apps/:id/sessionTargetingRules/`**](#post-appsidsessiontargetingrules) - Creates a new session targeting rule.
+- [**PATCH `/apps/:id/sessionTargetingRules/:ruleId`**](#patch-appsidsessiontargetingrulesruleid) - Updates an existin targeting rule.
+- [**GET `/apps/:id/sessionTargetingRules/config`**](#get-appsidsessiontargetingrulesconfig) - Fetch an app's session targeting rules dashboard config.
 
 ### GET `/apps/:id/journey`
 
@@ -5219,6 +5250,452 @@ The required headers must be present in each request.
   ```
 
 #### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/sessionTargetingRules`
+
+#### Usage Notes
+
+
+Fetch an app's session targeting rules.
+
+- App's UUID must be passed in the URI
+- Accepts no query parameters
+- Pass `limit` and `offset` values to paginate results
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+    ```json
+    {
+      "meta": {
+          "next": false,
+          "previous": false
+      },
+      "results": [
+          {
+              "id": "c5ebde36-575f-4dcb-8eb0-495802a0154d",
+              "team_id": "e1977fdc-893e-4694-bbcd-8e7e10ee3b34",
+              "app_id": "3082f92d-f2ce-4477-a371-789911ab78ad",
+              "name": "Rule 2",
+              "status": 1,
+              "sampling_rate": 1.122123,
+              "rule": "(event_type == \"custom\" event.user_defined_attrs.boolean == false)",
+              "created_at": "2025-09-23T03:19:22.879673Z",
+              "created_by": "soodabhay23@gmail.com",
+              "updated_at": "2025-09-23T09:14:37.766358Z",
+              "updated_by": "soodabhay23@gmail.com"
+          },
+          {
+              "id": "1ead1ab4-03ba-434f-8928-1f3b908e0e2e",
+              "team_id": "e1977fdc-893e-4694-bbcd-8e7e10ee3b34",
+              "app_id": "3082f92d-f2ce-4477-a371-789911ab78ad",
+              "name": "Rule 1",
+              "status": 0,
+              "sampling_rate": 100,
+              "rule": "(event_type == \"anr\")",
+              "created_at": "2025-09-23T06:18:51.618236Z",
+              "created_by": "soodabhay23@gmail.com",
+              "updated_at": "2025-09-23T09:14:31.615099Z",
+              "updated_by": "soodabhay23@gmail.com"
+          }
+      ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/sessionTargetingRules/:ruleId`
+
+#### Usage Notes
+
+Fetch an app's session targeting rules.
+
+- App's UUID must be passed in the URI
+- Accepts no query parameters 
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+    ```json
+    {
+    "id": "c5ebde36-575f-4dcb-8eb0-495802a0154d",
+    "team_id": "e1977fdc-893e-4694-bbcd-8e7e10ee3b34",
+    "app_id": "3082f92d-f2ce-4477-a371-789911ab78ad",
+    "name": "Rule 2",
+    "status": 1,
+    "sampling_rate": 1.122123,
+    "rule": "(event_type == \"custom\" \u0026\u0026 event.user_defined_attrs.boolean == false)",
+    "created_at": "2025-09-23T03:19:22.879673Z",
+    "created_by": "foo@email.com",
+    "updated_at": "2025-09-23T09:14:37.766358Z",
+    "updated_by": "bar@email.com"
+    }
+    ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### POST `/apps/:id/sessionTargetingRules`
+
+#### Usage Notes
+
+Creates a new session targeting rule.
+
+- App's UUID must be passed in the URI
+- Accepts no query parameters
+- The request body must contain `name`, `status`, `sampling_rate` and `rule`
+  - `name` - the name of the rule
+  - `status` - represents whether the rule is active or not. Must be either 0 or 1
+  - `sampling_rate` - percentage sampling rate. Must be a value between 0 and 100.
+  - `rule` - must be a valid CEL expression.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+    ```json
+    {
+      "name": "Rule 2",
+      "status": 1,
+      "sampling_rate": 1.122123,
+      "rule": "(event_type == \"custom\" \u0026\u0026 event.user_defined_attrs.boolean == false)",
+    }
+    ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### PATCH `/apps/:id/sessionTargetingRules/:ruleId`
+
+#### Usage Notes
+
+Creates a new session targeting rule.
+
+- App's UUID must be passed in the URI
+- Rule ID must be passed in the URI
+- The request body may contain: `name`, `status`, `sampling_rate` and `rule`
+  - `name` - the name of the rule 
+  - `status` - represents whether the rule is active or not. Must be either 0 or 1
+  - `sampling_rate` - percentage sampling rate. Must be a value between 0 and 100.
+  - `rule` - must be a valid CEL expression.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+    ```json
+    {
+      "name": "Rule Name",
+      "status": 1,
+      "sampling_rate": 1.122123,
+      "rule": "(event_type == \"custom\" \u0026\u0026 event.user_defined_attrs.boolean == false)",
+    }
+    ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/sessionTargetingRules/config`
+
+#### Usage Notes
+
+Fetch an apps session targeting rule config.
+
+- App's UUID must be passed in the URI
+- Accepts no query parameters
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+    ```json
+    {
+    "result": {
+        "events": [
+            {
+                "type": "anr",
+                "attrs": [],
+                "has_ud_attrs": false
+            },
+            {
+                "type": "bug_report",
+                "attrs": [],
+                "has_ud_attrs": true
+            },
+            {
+                "type": "custom",
+                "attrs": [
+                    {
+                        "key": "name",
+                        "type": "string",
+                        "hint": "Enter custom event name"
+                    }
+                ],
+                "has_ud_attrs": true
+            }
+        ],
+        "session_attrs": [
+            {
+                "key": "app_build",
+                "type": "string",
+                "hint": "Enter your app's build number"
+            },
+            {
+                "key": "app_version",
+                "type": "string",
+                "hint": "Enter your app's version"
+            }
+        ],
+        "event_ud_attrs": [
+            {
+                "key": "long",
+                "type": "int64",
+            },
+            {
+                "key": "string",
+                "type": "string",
+            }
+        ],
+        "operator_types": {
+            "bool": [ "eq", "neq" ],
+            "float64": [ "eq", "neq", "gt", "lt", "gte", "lte" ],
+            "int64": [ "eq", "neq", "gt", "lt", "gte", "lte" ],
+            "string": [ "eq", "neq", "contains", "startsWith" ]
+        }
+      }
+    }
+    ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
 
 List of HTTP status codes for success and failures.
 

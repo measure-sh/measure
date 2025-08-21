@@ -59,6 +59,7 @@ func main() {
 	// SDK routes
 	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
 	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuilds)
+	r.GET("/config", measure.ValidateAPIKey(), measure.GetConfig)
 
 	// Proxy routes
 	r.GET("/proxy/attachments", measure.ProxyAttachment)
@@ -114,6 +115,11 @@ func main() {
 		apps.GET(":id/bugReports/:bugReportId", measure.GetBugReport)
 		apps.PATCH(":id/bugReports/:bugReportId", measure.UpdateBugReportStatus)
 		apps.GET(":id/alerts", measure.GetAlertsOverview)
+		apps.GET(":id/sessionTargetingRules", measure.GetSessionTargetingRules)
+		apps.GET(":id/sessionTargetingRules/:ruleId", measure.GetSessionTargetingRule)
+		apps.POST(":id/sessionTargetingRules", measure.CreateSessionTargetingRule)
+		apps.PATCH(":id/sessionTargetingRules/:ruleId", measure.UpdateSessionTargetingRule)
+		apps.GET(":id/sessionTargetingRules/config", measure.GetSessionTargetingDashboardConfig)
 	}
 
 	teams := r.Group("/teams", measure.ValidateAccessToken())

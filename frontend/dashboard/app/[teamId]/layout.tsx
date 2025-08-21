@@ -91,6 +91,16 @@ const initNavData = {
     {
       title: "Settings",
       items: [
+        /*
+        Hidden as the SDKs are yet to 
+        implement this feature.
+        {
+          title: "Session Targeting",
+          url: "session_targeting",
+          isActive: false,
+          external: false,
+        },
+        */
         {
           title: "Apps",
           url: "apps",

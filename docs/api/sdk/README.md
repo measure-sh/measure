@@ -18,6 +18,10 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [Request Body](#request-body-1)
       - [Mappings](#mappings)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-1)
+  - [GET `/config`](#get-config)
+    - [Authorization \& Content Type](#authorization--content-type-1)
+    - [Response Body](#response-body-2)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-2)
 - [References](#references)
   - [Attributes](#attributes)
   - [User Defined Attributes](#user-defined-attributes)
@@ -415,6 +419,61 @@ List of HTTP status codes for success and failures.
 | `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
 | `401 Unauthorized`          | Either the Measure API key is not present or has expired.                                                               |
 | `413 Content Too Large`     | Build/mapping file size exceeded maximum allowed limit.                                                                 |
+| `429 Too Many Requests`     | Rate limit has exceeded. Retry request respecting `Retry-After` response header.                                        |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                              |
+| `503 Service Unavailable`   | Measure server is temporarily unavailable. Retry request respecting `Retry-After` response header.                      |
+
+</details>
+
+### GET `/config`
+
+Provides a dynamic config to the SDK. 
+
+#### Usage Notes
+
+- Clients must respect the `Cache-control: max-age` header.   
+
+#### Authorization \& Content Type
+
+1. Set the Measure API key in `Authorization: Bearer <api-key>` format
+
+2. Set the content type as `Content-Type: application/json`.
+
+#### Response Body
+
+  ```json
+  {
+    "session_targeting": [
+      {
+        "id": "74d3e6af-91a3-4518-b0a6-8b4f97f73181",
+        "name": "Test",
+        "status": 1,
+        "sampling_rate": 100,
+        "rule": "(attribute.app_build == \"123\")"
+      },
+      {
+        "id": "c5ebde36-575f-4dcb-8eb0-495802a0154d",
+        "name": "Rule 2",
+        "status": 1,
+        "sampling_rate": 1.122123,
+        "rule": "(event_type == \"custom\" && event.user_defined_attrs.boolean == false)"
+      }
+    ]
+  }
+  ```
+
+#### Status Codes \& Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                             |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Build info uploaded                                                                                                     |
+| `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the Measure API key is not present or has expired.                                                               |
 | `429 Too Many Requests`     | Rate limit has exceeded. Retry request respecting `Retry-After` response header.                                        |
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                              |
 | `503 Service Unavailable`   | Measure server is temporarily unavailable. Retry request respecting `Retry-After` response header.                      |

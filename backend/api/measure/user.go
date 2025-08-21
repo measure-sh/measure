@@ -309,6 +309,50 @@ func FindUserByEmail(ctx context.Context, email string) (*User, error) {
 	return &user, nil
 }
 
+// GetEmails retrives email address for userIDs.
+func GetEmails(ctx context.Context, userIDs []uuid.UUID) (map[uuid.UUID]string, error) {
+    if len(userIDs) == 0 {
+        return make(map[uuid.UUID]string), nil
+    }
+
+    // Build the IN clause with quoted UUIDs
+    var idStrings []string
+    for _, id := range userIDs {
+        idStrings = append(idStrings, fmt.Sprintf("'%s'", id.String()))
+    }
+    idList := strings.Join(idStrings, ", ")
+
+    stmt := sqlf.PostgreSQL.
+        From("users").
+        Select("id").
+        Select("email").
+        Where(fmt.Sprintf("id IN (%s)", idList))
+
+    defer stmt.Close()
+
+    rows, err := server.Server.PgPool.Query(ctx, stmt.String())
+    if err != nil {
+        return nil, fmt.Errorf("failed to query user emails: %w", err)
+    }
+    defer rows.Close()
+
+    emailLUT := make(map[uuid.UUID]string)
+    for rows.Next() {
+        var userID uuid.UUID
+        var email string
+        if err := rows.Scan(&userID, &email); err != nil {
+            return nil, fmt.Errorf("failed to scan user email: %w", err)
+        }
+        emailLUT[userID] = email
+    }
+
+    if err := rows.Err(); err != nil {
+        return nil, fmt.Errorf("error iterating user email rows: %w", err)
+    }
+
+    return emailLUT, nil
+}
+
 // NewUser creates a new user from name
 // and email pair.
 func NewUser(name, email string) (user *User) {
