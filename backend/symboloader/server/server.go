@@ -153,14 +153,19 @@ func Init(config *ServerConfig) {
 			fmt.Println("Failed to dial postgress connection.")
 		}
 
+		csqlConnName := os.Getenv("CSQL_CONN_NAME")
+		if csqlConnName == "" {
+			fmt.Println("CSQL_CONN_NAME environment variable is not set.")
+		}
+
 		oConfig.ConnConfig.DialFunc = func(ctx context.Context, network string, address string) (net.Conn, error) {
-			fmt.Printf(">>> Entering custom DialFunc: network: %s, address: %s\n", network, address)
-			return d.Dial(ctx, "modified-media-423607-u5:us-central1:s-csql-01", cloudsqlconn.WithPrivateIP())
+			fmt.Printf("Dialing network: %s, address: %s\n", network, address)
+			return d.Dial(ctx, csqlConnName, cloudsqlconn.WithPrivateIP())
 		}
 
 		rConfig.ConnConfig.DialFunc = func(ctx context.Context, network string, address string) (net.Conn, error) {
-			fmt.Printf(">>> Entering custom DialFunc: network: %s, address: %s\n", network, address)
-			return d.Dial(ctx, "modified-media-423607-u5:us-central1:s-csql-01", cloudsqlconn.WithPrivateIP())
+			fmt.Printf("Dialing reader network: %s, address: %s\n", network, address)
+			return d.Dial(ctx, csqlConnName, cloudsqlconn.WithPrivateIP())
 		}
 	}
 
