@@ -1002,9 +1002,64 @@ export const emptySamplingRulesResponse = {
     next: false,
     previous: false,
   },
-  results: [] as {
-    app_id: string
+  results: [] as{
+    id: string,
+    type: string,
+    name: string,
+    status: number,
+    sampling_rate: number,
+    rule: {
+      conditions: string [],
+      expression: string
+    },
+    last_modified_at: string,
+    last_modified_by: string
   }[],
+}
+
+export const dummySamplingRulesResponse = {
+  meta: {
+    next: false,
+    previous: false,
+  },
+  results: [
+    {
+      id: "rule_identifier",
+      type: "session",
+      name: "Critical issues",
+      status: 0,
+      sampling_rate: 1,
+      rule: {
+        conditions: [
+          "event_type == \"exception\" && exception.handled == false",
+          "event_type == \"anr\"",
+          "event_type == \"bug_report\"",
+          "attribute.os_version == \"33\"",
+          "attribute.app_version == \"0.2.1\""
+        ],
+        expression: "(0 || 1 || 2) && (3 && 4)"
+      },
+      created_at: "2023-10-01T12:00:00Z",
+      created_by: "foo@email.com",
+      last_modified_at: "2023-10-02T12:00:00Z",
+      last_modified_by: "bar@email.com"
+    },
+    {
+      id: "rule_identifier",
+      type: "trace",
+      name: "/create-orders HTTP requests",
+      status: 1,
+      sampling_rate: 0.5,
+      rule: {
+        conditions: [
+          "span.name.startsWith(\"HTTP POST /create-orders\")"
+        ],
+        expression: "(0 || 1 || 2) && (3 && 4)"
+      },
+      last_modified_at: "2023-10-02T12:00:00Z",
+      last_modified_by: "foo@email.com"
+    }
+  ],
 }
 
 export class AppVersion {
@@ -2265,19 +2320,20 @@ export const fetchSamplingRulesFromServer = async (
   limit: number,
   offset: number,
 ) => {
-  const url = `/api/apps/${appId}/sampling-rules?limit=${limit}&offset=${offset}`
+  //const url = `/api/apps/${appId}/sampling-rules?limit=${limit}&offset=${offset}`
 
-  try {
-    const res = await measureAuth.fetchMeasure(url)
+  //try {
+    //const res = await measureAuth.fetchMeasure(url)
 
-    if (!res.ok) {
-      return { status: SamplingRulesApiStatus.Error, data: null }
-    }
+    //if (!res.ok) {
+    console.log("fetchSamplingRulesFromServer: Using dummy data", dummySamplingRulesResponse)
+      return { status: SamplingRulesApiStatus.Success, data: dummySamplingRulesResponse }
+    //}
 
-    const data = await res.json()
+    //const data = await res.json()
 
-    return { status: SamplingRulesApiStatus.Success, data: data }
-  } catch {
-    return { status: SamplingRulesApiStatus.Cancelled, data: null }
-  }
+  //   return { status: SamplingRulesApiStatus.Success, data: dummySamplingRulesResponse }
+  // } catch {
+  //   return { status: SamplingRulesApiStatus.Success, data: dummySamplingRulesResponse }
+  // }
 }
