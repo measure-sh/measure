@@ -2,13 +2,15 @@
 
 import { FilterSource, SamplingRulesApiStatus as SamplingRulesApiStatus, emptySamplingRulesResponse, fetchSamplingRulesFromServer } from "@/app/api/api_calls"
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters"
+import LoadingBar from "@/app/components/loading_bar"
+import Paginator from "@/app/components/paginator"
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from "react"
 
 interface PageState {
     samplingRulesApiStatus: SamplingRulesApiStatus
     filters: typeof defaultFilters
-    samplingOverview: typeof emptySamplingRulesResponse
+    samplingRules: typeof emptySamplingRulesResponse
     paginationOffset: number
 }
 
@@ -22,7 +24,7 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
     const initialState: PageState = {
         samplingRulesApiStatus: SamplingRulesApiStatus.Loading,
         filters: defaultFilters,
-        samplingOverview: emptySamplingRulesResponse,
+        samplingRules: emptySamplingRulesResponse,
         paginationOffset: searchParams.get(paginationOffsetUrlKey) ? parseInt(searchParams.get(paginationOffsetUrlKey)!) : 0
     }
 
@@ -47,7 +49,7 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
             case SamplingRulesApiStatus.Success:
                 updatePageState({
                     samplingRulesApiStatus: SamplingRulesApiStatus.Success,
-                    samplingOverview: result.data
+                    samplingRules: result.data
                 })
                 break
         }
@@ -62,6 +64,14 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
                 paginationOffset: pageState.filters.serialisedFilters && searchParams.get(paginationOffsetUrlKey) ? 0 : pageState.paginationOffset
             })
         }
+    }
+
+    const handleNextPage = () => {
+        updatePageState({ paginationOffset: pageState.paginationOffset + paginationLimit })
+    }
+
+    const handlePrevPage = () => {
+        updatePageState({ paginationOffset: Math.max(0, pageState.paginationOffset - paginationLimit) })
     }
 
     useEffect(() => {
@@ -106,6 +116,32 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
                 showUdAttrs={false}
                 showFreeText={false}
                 onFiltersChanged={handleFiltersChanged} />
+
+            {/* Error state for sampling rules fetch */}
+            {pageState.filters.ready
+                && pageState.samplingRulesApiStatus === SamplingRulesApiStatus.Error
+                && <p className="text-lg font-display">Error fetching sampling rules, please change filters, refresh page or select a different app to try again</p>}
+
+            {/* Main sampling rules UI */}
+            {pageState.filters.ready
+                && (pageState.samplingRulesApiStatus === SamplingRulesApiStatus.Success || pageState.samplingRulesApiStatus === SamplingRulesApiStatus.Loading) &&
+                <div className="flex flex-col items-center w-full">
+                    <div className='self-end'>
+                        <Paginator
+                            prevEnabled={pageState.samplingRulesApiStatus === SamplingRulesApiStatus.Loading ? false : pageState.samplingRules.meta.previous}
+                            nextEnabled={pageState.samplingRulesApiStatus === SamplingRulesApiStatus.Loading ? false : pageState.samplingRules.meta.next}
+                            displayText=''
+                            onNext={handleNextPage}
+                            onPrev={handlePrevPage}
+                        />
+                    </div>
+
+                    <div className={`py-1 w-full ${pageState.samplingRulesApiStatus === SamplingRulesApiStatus.Loading ? 'visible' : 'invisible'}`}>
+                        <LoadingBar />
+                    </div>
+
+                    <div className="py-4" />
+                </div>}
 
         </div>
     )
