@@ -637,7 +637,7 @@ func formatAlertEmailBody(appName, title, message, url string) string {
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
         <!-- Header -->
         <div style="background-color: #000000; color: #ffffff; padding: 20px; display: flex; align-items: center; gap: 16px;">
-            <img src="https://www.measure.sh/images/measure_logo.svg" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
+            <img src="https://www.measure.sh/images/measure_logo.png" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
             <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; margin-top: 3px;">%s</h1>
         </div>
 
@@ -715,7 +715,7 @@ func formatDailySummaryEmailBody(appName, dashboardURL string, date time.Time, m
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
         <!-- Header -->
         <div style="background-color: #000000; color: #ffffff; padding: 20px; display: flex; align-items: center; gap: 16px;">
-            <img src="https://www.measure.sh/images/measure_logo.svg" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
+            <img src="https://www.measure.sh/images/measure_logo.png" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
             <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; margin-top: 3px;">%s Daily Summary</h1>
         </div>
 

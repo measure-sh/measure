@@ -740,18 +740,18 @@ func formatTeamEmailBody(title, message, url, cta string) string {
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
         <!-- Header -->
         <div style="background-color: #000000; color: #ffffff; padding: 20px; display: flex; align-items: center; gap: 16px;">
-            <img src="https://www.measure.sh/images/measure_logo.svg" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
+            <img src="https://www.measure.sh/images/measure_logo.png" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
             <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; margin-top: 3px;">%s</h1>
         </div>
-        
+
         <!-- Content -->
         <div style="padding: 40px 30px;">
-            
+
             <!-- Message -->
             <div style="margin-bottom: 32px; font-size: 16px; line-height: 1.6; color: #4a5568;">
                 %s
             </div>
-            
+
             <!-- CTA Button -->
             <div style="text-align: center; margin: 32px 0;">
                 <a href="%s" style="display: inline-block; background-color: #000000; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; font-size: 16px; transition: background-color 0.2s ease; font-family: 'Josefin Sans', sans-serif;">
@@ -759,7 +759,7 @@ func formatTeamEmailBody(title, message, url, cta string) string {
                 </a>
             </div>
         </div>
-        
+
         <!-- Footer -->
         <div style="background-color: #f8f9fa; padding: 20px 30px; border-top: 1px solid #e2e8f0; text-align: center;">
             <p style="margin: 0; font-size: 14px; color: #718096;">
