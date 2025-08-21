@@ -92,6 +92,12 @@ const initNavData = {
       title: "Settings",
       items: [
         {
+          title: "Session Targeting",
+          url: "session_targeting",
+          isActive: false,
+          external: false,
+        },
+        {
           title: "Apps",
           url: "apps",
           isActive: false,
