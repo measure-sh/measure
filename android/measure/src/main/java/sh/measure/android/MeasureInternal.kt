@@ -8,6 +8,7 @@ import androidx.annotation.MainThread
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.MsrShakeListener
 import sh.measure.android.config.ClientInfo
+import sh.measure.android.events.EventType
 import sh.measure.android.lifecycle.AppLifecycleListener
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.tracing.Span
@@ -66,7 +67,13 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         }
 
         // initialize a session
-        sessionManager.init()
+        val sessionInitResult = sessionManager.init()
+
+        // All events are processed on a single thread in a queue.
+        // So, the first event will always be a session start event
+        // as we initialize all other collectors after this event
+        // is triggered.
+        trackSessionStart(sessionInitResult)
 
         // setup lifecycle state
         appLifecycleManager.addListener(this)
@@ -369,6 +376,30 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
 
     fun getAttachmentDirectory(): String? {
         return fileStorage.getAttachmentDirectory()
+    }
+
+    private fun trackSessionStart(sessionInitResult: SessionInitResult) {
+        when (sessionInitResult) {
+            is SessionInitResult.NewSessionCreated -> {
+                signalProcessor.track(
+                    SessionStartData,
+                    timestamp = timeProvider.now(),
+                    type = EventType.SESSION_START,
+                    sessionId = sessionInitResult.sessionId,
+                )
+                logger.log(
+                    LogLevel.Debug,
+                    "New session created with ID: ${sessionInitResult.sessionId}",
+                )
+            }
+
+            is SessionInitResult.SessionResumed -> {
+                logger.log(
+                    LogLevel.Debug,
+                    "Session resumed with ID: ${sessionInitResult.sessionId}",
+                )
+            }
+        }
     }
 
     private fun unregisterCollectors() {
