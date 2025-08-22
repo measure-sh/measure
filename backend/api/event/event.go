@@ -97,6 +97,7 @@ const TypeCPUUsage = "cpu_usage"
 const TypeNavigation = "navigation"
 const TypeScreenView = "screen_view"
 const TypeBugReport = "bug_report"
+const TypeSessionStart = "session_start"
 
 const NetworkGeneration2G = "2g"
 const NetworkGeneration3G = "3g"
@@ -163,6 +164,7 @@ var androidValidTypes = []string{
 	TypeString,
 	TypeCustom,
 	TypeBugReport,
+	TypeSessionStart,
 }
 
 // iOSValidTypes defines a whitelist for all
@@ -180,6 +182,7 @@ var iOSValidTypes = []string{
 	TypeString,
 	TypeCustom,
 	TypeBugReport,
+	TypeSessionStart,
 }
 
 // ValidLifecycleActivityTypes defines allowed
