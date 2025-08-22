@@ -13,7 +13,7 @@ final class MockSvgGenerator: SvgGenerator {
     var generatedData: Data?
     var frames: [SvgFrame]?
 
-    func generate(for frames: [SvgFrame]) -> Data? {
+    func generate(for frames: [SvgFrame], rootSize: CGSize) -> Data? {
         self.frames = frames
         return generatedData
     }

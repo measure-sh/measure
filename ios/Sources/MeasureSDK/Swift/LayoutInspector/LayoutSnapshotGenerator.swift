@@ -48,46 +48,20 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
             let targetView = window.hitTest(touchPoint, with: nil)
             let frames = collectSvgFrames(in: window, rootView: window, targetView: targetView)
 
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self,
-                      let layoutSnapshot = self.svgGenerator.generate(for: frames) else {
-                    completion(nil)
-                    return
-                }
-
-                let attachment = self.attachmentProcessor.getAttachmentObject(
-                    for: layoutSnapshot,
-                    name: layoutSnapshotName,
-                    storageType: .data,
-                    attachmentType: .layoutSnapshot
-                )
-                completion(attachment)
-            }
+            generateSvg(frames: frames, rootSize: window.frame.size, completion: completion)
         }
     }
 
     func generate(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
-        guard let rootView = viewController.view else {
-            completion(nil)
-            return
-        }
-
-        let frames = collectSvgFrames(in: rootView, rootView: rootView, targetView: nil)
-
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self,
-                  let layoutSnapshot = self.svgGenerator.generate(for: frames) else {
+        SignPost.trace(subcategory: "Attachment", label: "generateLayoutSnapshot") {
+            guard let rootView = viewController.view else {
                 completion(nil)
                 return
             }
 
-            let attachment = attachmentProcessor.getAttachmentObject(
-                for: layoutSnapshot,
-                name: layoutSnapshotName,
-                storageType: .data,
-                attachmentType: .layoutSnapshot
-            )
-            completion(attachment)
+            let frames = collectSvgFrames(in: rootView, rootView: rootView, targetView: nil)
+
+            generateSvg(frames: frames, rootSize: rootView.frame.size, completion: completion)
         }
     }
 
@@ -103,5 +77,23 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
         }
 
         return frames
+    }
+
+    private func generateSvg(frames: [SvgFrame], rootSize: CGSize, completion: @escaping (MsrAttachment?) -> Void) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self,
+                  let layoutSnapshot = self.svgGenerator.generate(for: frames, rootSize: rootSize) else {
+                completion(nil)
+                return
+            }
+
+            let attachment = attachmentProcessor.getAttachmentObject(
+                for: layoutSnapshot,
+                name: layoutSnapshotName,
+                storageType: .data,
+                attachmentType: .layoutSnapshot
+            )
+            completion(attachment)
+        }
     }
 }

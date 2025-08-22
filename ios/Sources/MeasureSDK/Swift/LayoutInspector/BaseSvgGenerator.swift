@@ -13,18 +13,17 @@ struct SvgFrame {
 }
 
 protocol SvgGenerator {
-    func generate(for frames: [SvgFrame]) -> Data?
+    func generate(for frames: [SvgFrame], rootSize: CGSize) -> Data?
 }
 
 final class BaseSvgGenerator: SvgGenerator {
-    func generate(for frames: [SvgFrame]) -> Data? {
-        guard let maxWidth = frames.map({ $0.frame.maxX }).max(),
-              let maxHeight = frames.map({ $0.frame.maxY }).max() else {
+    func generate(for frames: [SvgFrame], rootSize: CGSize) -> Data? {
+        let windowWidth = rootSize.width.safeInt
+        let windowHeight = rootSize.height.safeInt
+
+        if windowWidth == Int.max || windowWidth == Int.min || windowHeight == Int.max || windowHeight == Int.min {
             return nil
         }
-
-        let windowWidth = maxWidth.safeInt
-        let windowHeight = maxHeight.safeInt
 
         var svg = """
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 \(windowWidth) \(windowHeight)">
