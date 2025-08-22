@@ -585,6 +585,10 @@ type BugReport struct {
 	Description string `json:"description" binding:"required"`
 }
 
+type SessionStart struct {
+	// No fields are required for this event.
+}
+
 type EventField struct {
 	ID                      uuid.UUID                `json:"id"`
 	IPv4                    net.IP                   `json:"inet_ipv4"`
@@ -624,6 +628,7 @@ type EventField struct {
 	ScreenView              *ScreenView              `json:"screen_view,omitempty"`
 	BugReport               *BugReport               `json:"bug_report,omitempty"`
 	Custom                  *Custom                  `json:"custom,omitempty"`
+	SessionStart            *SessionStart            `json:"session_start,omitempty"`
 }
 
 // Compute computes the most accurate cold launch timing
