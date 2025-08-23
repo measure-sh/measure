@@ -16,8 +16,6 @@ import sh.measure.rn.MapUtils
 class MeasureModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
   override fun getName(): String = ModuleConstants.MODULE_NAME
-  var isInitialized = false
-  var isStarted = false
 
   @ReactMethod
   fun initialize(clientMap: ReadableMap, configMap: ReadableMap, promise: Promise) {
@@ -31,8 +29,6 @@ class MeasureModule(private val reactContext: ReactApplicationContext) : ReactCo
         val config = MeasureConfig.fromJson(configJson)
 
         Measure.init(context, measureConfig = config, clientInfo = clientInfo)
-        isInitialized = true
-        isStarted = config.autoStart
         promise.resolve("Native Measure SDK initialized successfully")
     } catch (e: Exception) {
         promise.reject(ErrorCode.INIT_ERROR, "Failed to initialize Measure SDK", e)
@@ -41,31 +37,13 @@ class MeasureModule(private val reactContext: ReactApplicationContext) : ReactCo
 
   @ReactMethod
   fun start(promise: Promise) {
-    if (!isInitialized) {
-      promise.reject(ErrorCode.SDK_UNINITIALIZED, "Measure SDK is not initialized. Call initialize() first.")
-      return
-    }
-    if (isStarted) {
-      promise.reject(ErrorCode.SDK_NOT_STARTED, "Measure SDK is already started.")
-      return
-    }
     Measure.start()
-    isStarted = true
     promise.resolve("Measure SDK started successfully")
   }
 
   @ReactMethod
   fun stop(promise: Promise) {
-    if (!isInitialized) {
-      promise.reject(ErrorCode.SDK_UNINITIALIZED, "Measure SDK is not initialized. Call initialize() first.")
-      return
-    }
-    if (!isStarted) {
-      promise.reject(ErrorCode.SDK_NOT_STARTED, "Measure SDK is not started. Call start() first.")
-      return
-    }
     Measure.stop()
-    isStarted = false
     promise.resolve("Measure SDK stopped successfully")
   }
 }

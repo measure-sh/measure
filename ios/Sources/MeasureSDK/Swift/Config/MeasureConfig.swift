@@ -37,7 +37,7 @@ protocol MeasureConfig {
     let traceSamplingRate: Float
 
     /// Set to false to delay starting the SDK, by default initializing the SDK also starts tracking. Defaults to true.
-    public let autoStart: Bool
+    let autoStart: Bool
 
     /// Whether to capture http headers of a network request and response. Defaults to `false`.
     let trackHttpHeaders: Bool
