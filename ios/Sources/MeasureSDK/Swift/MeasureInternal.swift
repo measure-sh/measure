@@ -154,7 +154,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         return measureInitializer.layoutSnapshotGenerator
     }
     private let lifecycleObserver: LifecycleObserver
-    private var isStarted: Bool = false
+    var isStarted: Bool = false
 
     init(_ measureInitializer: MeasureInitializer) {
         self.measureInitializer = measureInitializer

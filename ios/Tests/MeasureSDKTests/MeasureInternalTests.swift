@@ -104,4 +104,41 @@ final class MeasureInternalTests: XCTestCase {
         }
         XCTAssertTrue(logger.logs.contains("AppLaunchCollector enabled."))
     }
+
+    func testStart_setsIsStartedToTrue() {
+        measureInternal.start()
+        XCTAssertTrue(measureInternal.isStarted, "isStarted should be true after calling start()")
+    }
+    
+    func testStart_doesNothingIfAlreadyStarted() {
+        guard let logger = mockMeasureInitializer.logger as? MockLogger else {
+            XCTFail("Unexpected logger type.")
+            return
+        }
+        measureInternal.start()
+        logger.logs.removeAll()
+        measureInternal.start()
+        XCTAssertFalse(logger.logs.contains("Starting Measure SDK"), "start() should not log a message if already started")
+    }
+    
+    func testStop_setsIsStartedToFalse() {
+        measureInternal.start()
+        measureInternal.stop()
+        XCTAssertFalse(measureInternal.isStarted, "isStarted should be false after calling stop()")
+    }
+    
+    func testStop_doesNothingIfAlreadyStopped() {
+        guard let logger = mockMeasureInitializer.logger as? MockLogger else {
+            XCTFail("Unexpected logger type.")
+            return
+        }
+        XCTAssertTrue(logger.logs.contains("Initializing Measure SDK"))
+        measureInternal.stop()
+        XCTAssertFalse(logger.logs.contains("Stopping Measure SDK"), "stop() should not log a message if not started")
+        measureInternal.start()
+        measureInternal.stop()
+        logger.logs.removeAll()
+        measureInternal.stop()
+        XCTAssertFalse(logger.logs.contains("Stopping Measure SDK"), "stop() should not log a message if already stopped")
+    }
 }
