@@ -22,7 +22,8 @@ final class BaseBugReportCollectorTests: XCTestCase {
             signalProcessor: signalProcessor,
             timeProvider: timeProvider,
             sessionManager: sessionManager,
-            idProvider: idProvider
+            idProvider: idProvider,
+            logger: MockLogger()
         )
 
         let config = BugReportConfig.default
@@ -45,7 +46,8 @@ final class BaseBugReportCollectorTests: XCTestCase {
             signalProcessor: MockSignalProcessor(),
             timeProvider: MockTimeProvider(),
             sessionManager: MockSessionManager(),
-            idProvider: MockIdProvider()
+            idProvider: MockIdProvider(),
+            logger: MockLogger()
         )
 
         XCTAssertTrue(collector.validateBugReport(attachments: 1, descriptionLength: 0))
@@ -67,7 +69,8 @@ final class BaseBugReportCollectorTests: XCTestCase {
             signalProcessor: signalProcessor,
             timeProvider: timeProvider,
             sessionManager: sessionManager,
-            idProvider: idProvider
+            idProvider: idProvider,
+            logger: MockLogger()
         )
 
         let attachments = [MsrAttachment(name: "screenshot.png", type: .screenshot, size: 123, id: "attachmentId", bytes: Data("log".utf8), path: nil)]

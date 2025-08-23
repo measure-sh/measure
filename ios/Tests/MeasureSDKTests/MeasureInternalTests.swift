@@ -109,7 +109,7 @@ final class MeasureInternalTests: XCTestCase {
         measureInternal.start()
         XCTAssertTrue(measureInternal.isStarted, "isStarted should be true after calling start()")
     }
-    
+
     func testStart_doesNothingIfAlreadyStarted() {
         guard let logger = mockMeasureInitializer.logger as? MockLogger else {
             XCTFail("Unexpected logger type.")
@@ -120,13 +120,13 @@ final class MeasureInternalTests: XCTestCase {
         measureInternal.start()
         XCTAssertFalse(logger.logs.contains("Starting Measure SDK"), "start() should not log a message if already started")
     }
-    
+
     func testStop_setsIsStartedToFalse() {
         measureInternal.start()
         measureInternal.stop()
         XCTAssertFalse(measureInternal.isStarted, "isStarted should be false after calling stop()")
     }
-    
+
     func testStop_doesNothingIfAlreadyStopped() {
         guard let logger = mockMeasureInitializer.logger as? MockLogger else {
             XCTFail("Unexpected logger type.")
@@ -140,5 +140,63 @@ final class MeasureInternalTests: XCTestCase {
         logger.logs.removeAll()
         measureInternal.stop()
         XCTAssertFalse(logger.logs.contains("Stopping Measure SDK"), "stop() should not log a message if already stopped")
+    }
+
+    func testDependentFunctions_returnEarlyIfNotStarted() {
+        // Since `isStarted` is now internal, we can directly verify its state.
+        XCTAssertFalse(measureInternal.isStarted, "isStarted should be false initially")
+
+        let logger = mockMeasureInitializer.logger as! MockLogger // swiftlint:disable:this force_cast
+        logger.logs.removeAll()
+
+        // Test `trackEvent`
+        measureInternal.trackEvent(name: "TestEvent", attributes: [:], timestamp: nil)
+        XCTAssertFalse(logger.logs.contains(where: { $0.contains("Event processed") }), "trackEvent should not proceed if not started")
+
+        // Test `createSpan`
+        let spanBuilder = measureInternal.createSpan(name: "TestSpan")
+        XCTAssertNil(spanBuilder, "createSpan should return nil if not started")
+
+        // Test `startSpan`
+        let invalidSpan = measureInternal.startSpan(name: "TestSpan")
+        XCTAssertTrue(invalidSpan is InvalidSpan, "startSpan should return an InvalidSpan if not started")
+
+        // Test `getTraceParentHeaderValue`
+        let traceParentValue = measureInternal.getTraceParentHeaderValue(for: invalidSpan)
+        XCTAssertEqual(traceParentValue, "", "getTraceParentHeaderValue should return an empty string if not started")
+
+        // Test `getTraceParentHeaderKey`
+        let traceParentKey = measureInternal.getTraceParentHeaderKey()
+        XCTAssertEqual(traceParentKey, "", "getTraceParentHeaderKey should return an empty string if not started")
+
+        // Test `startBugReportFlow`
+        measureInternal.startBugReportFlow(takeScreenshot: false, bugReportConfig: .default)
+        XCTAssertFalse(logger.logs.contains("Bug Report Flow Started"), "startBugReportFlow should not proceed if not started")
+
+        // Test `trackBugReport`
+        measureInternal.trackBugReport(description: "Bug", attachments: [], attributes: [:])
+        XCTAssertFalse(logger.logs.contains(where: { $0.contains("Event processed") }), "trackBugReport should not proceed if not started")
+
+        // Test `captureScreenshot` and `captureLayoutSnapshot`
+        let viewController = UIViewController()
+        var screenshotAttachment: MsrAttachment?
+        measureInternal.captureScreenshot(for: viewController) { attachment in
+            screenshotAttachment = attachment
+        }
+        XCTAssertNil(screenshotAttachment, "captureScreenshot should not create an attachment if not started")
+
+        var layoutAttachment: MsrAttachment?
+        measureInternal.captureLayoutSnapshot(for: viewController) { attachment in
+            layoutAttachment = attachment
+        }
+        XCTAssertNil(layoutAttachment, "captureLayoutSnapshot should not create an attachment if not started")
+
+        // Test `trackError`
+        measureInternal.trackError(NSError(domain: "Test", code: 1), attributes: [:], collectStackTraces: false)
+        XCTAssertFalse(logger.logs.contains(where: { $0.contains("Event processed") }), "trackError should not proceed if not started")
+
+        // Test `getDocumentDirectoryPath`
+        let documentPath = measureInternal.getDocumentDirectoryPath()
+        XCTAssertNil(documentPath, "getDocumentDirectoryPath should return nil if not started")
     }
 }

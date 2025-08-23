@@ -36,7 +36,7 @@ final class BaseNetworkClient: NetworkClient {
                 for attachment in attachments {
                     if let bytes = attachment.bytes {
                         multipartData.append(.fileData(name: "blob-\(attachment.id)", filename: attachment.name, data: bytes))
-                    } else if let _ = attachment.path, let image = systemFileManager.retrieveFile(name: attachment.name, folderName: nil, directory: .documentDirectory) {
+                    } else if attachment.path != nil, let image = systemFileManager.retrieveFile(name: attachment.name, folderName: nil, directory: .documentDirectory) {
                         multipartData.append(.fileData(name: "blob-\(attachment.id)", filename: attachment.name, data: image))
                     }
                 }
