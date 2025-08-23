@@ -175,78 +175,104 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     }
 
     func start() {
-        if !isStarted {
-            self.logger.log(level: .info, message: "Starting Measure SDK", error: nil, data: nil)
-            registedCollectors()
-            isStarted = true
-        }
+        guard !isStarted else { return }
+
+        self.logger.log(level: .info, message: "Starting Measure SDK", error: nil, data: nil)
+        registedCollectors()
+        isStarted = true
     }
 
     func stop() {
-        if isStarted && !configProvider.autoStart {
-            self.logger.log(level: .info, message: "Stopping Measure SDK", error: nil, data: nil)
-            unregisterCollectors()
-            isStarted = false
-        }
+        guard isStarted && !configProvider.autoStart else { return }
+
+        self.logger.log(level: .info, message: "Stopping Measure SDK", error: nil, data: nil)
+        unregisterCollectors()
+        isStarted = false
     }
 
     func trackEvent(name: String, attributes: [String: AttributeValue], timestamp: Int64?) {
+        guard isStarted else { return }
+
         customEventCollector.trackEvent(name: name, attributes: attributes, timestamp: timestamp)
     }
 
     func trackEvent(_ name: String, attributes: [String: Any], timestamp: NSNumber?) {
+        guard isStarted else { return }
+
         let transformedAttributes = transformAttributes(attributes)
 
         customEventCollector.trackEvent(name: name, attributes: transformedAttributes, timestamp: timestamp?.int64Value)
     }
 
     func setUserId(_ userId: String) {
+        guard isStarted else { return }
+
         userAttributeProcessor.setUserId(userId)
     }
 
     func clearUserId() {
+        guard isStarted else { return }
+
         userAttributeProcessor.clearUserId()
     }
 
     func createSpan(name: String) -> SpanBuilder? {
+        guard isStarted else { return nil }
+
         return spanCollector.createSpan(name: name)
     }
 
     func startSpan(name: String, timestamp: Int64? = nil) -> Span {
+        guard isStarted else { return InvalidSpan() }
+
         return spanCollector.startSpan(name: name, timestamp: timestamp)
     }
 
     func getTraceParentHeaderValue(for span: Span) -> String {
+        guard isStarted else { return "" }
+
         return spanCollector.getTraceParentHeaderValue(for: span)
     }
 
     func getTraceParentHeaderKey() -> String {
+        guard isStarted else { return "" }
+
         return spanCollector.getTraceParentHeaderKey()
     }
 
     func startBugReportFlow(takeScreenshot: Bool = true,
                             bugReportConfig: BugReportConfig,
                             attributes: [String: AttributeValue]? = nil) {
+        guard isStarted else { return }
+
         bugReportCollector.startBugReportFlow(takeScreenshot: takeScreenshot, bugReportConfig: bugReportConfig, attributes: attributes)
     }
 
     func onShake(_ handler: (() -> Void)?) {
+        guard isStarted else { return }
+
         shakeBugReportCollector.setShakeHandler(handler)
     }
 
     func trackBugReport(description: String,
                         attachments: [MsrAttachment],
                         attributes: [String: AttributeValue]?) {
+        guard isStarted else { return }
+
         bugReportCollector.trackBugReport(description: description, attachments: attachments, attributes: attributes)
     }
 
     func captureScreenshot(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
+        guard isStarted else { return }
+
         screenshotGenerator.generate(viewController: viewController) { attachment in
             completion(attachment)
         }
     }
 
     func captureLayoutSnapshot(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
+        guard isStarted else { return }
+
         layoutSnapshotGenerator.generate(for: viewController) { attachment in
             completion(attachment)
         }
@@ -255,6 +281,8 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     func startBugReportFlow(takeScreenshot: Bool = true,
                             bugReportConfig: BugReportConfig,
                             attributes: [String: Any]? = nil) {
+        guard isStarted else { return }
+
         let transformedAttributes = transformAttributes(attributes)
         startBugReportFlow(takeScreenshot: takeScreenshot, bugReportConfig: bugReportConfig, attributes: transformedAttributes)
     }
@@ -262,20 +290,28 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     func trackBugReport(description: String,
                         attachments: [MsrAttachment] = [],
                         attributes: [String: Any]? = nil) {
+        guard isStarted else { return }
+
         let transformedAttributes = transformAttributes(attributes)
         trackBugReport(description: description, attachments: attachments, attributes: transformedAttributes)
     }
 
     func trackError(_ error: Error, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool) {
+        guard isStarted else { return }
+
         userTriggeredEventCollector.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
     }
 
     func trackError(_ error: NSError, attributes: [String: Any]? = nil, collectStackTraces: Bool) {
+        guard isStarted else { return }
+
         let transformedAttributes = transformAttributes(attributes)
         userTriggeredEventCollector.trackError(error, attributes: transformedAttributes, collectStackTraces: collectStackTraces)
     }
 
     func getDocumentDirectoryPath() -> String? {
+        guard isStarted else { return nil }
+
         return systemFileManager.getDirectoryPath(directory: FileManager.SearchPathDirectory.documentDirectory)
     }
 
