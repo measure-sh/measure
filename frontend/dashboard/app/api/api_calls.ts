@@ -328,6 +328,13 @@ export enum SamplingRulesApiStatus {
   Cancelled,
 }
 
+export enum SamplingRulesConfigApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
@@ -1002,19 +1009,23 @@ export const emptySamplingRulesResponse = {
     next: false,
     previous: false,
   },
-  results: [] as{
+  results: [] as {
     id: string,
     type: string,
     name: string,
     status: number,
     sampling_rate: number,
     rule: {
-      conditions: string [],
+      conditions: string[],
       expression: string
     },
     last_modified_at: string,
     last_modified_by: string
   }[],
+}
+
+export const emptySamplingRulesConfigResponse = {
+
 }
 
 export const dummySamplingRulesResponse = {
@@ -2323,17 +2334,25 @@ export const fetchSamplingRulesFromServer = async (
   //const url = `/api/apps/${appId}/sampling-rules?limit=${limit}&offset=${offset}`
 
   //try {
-    //const res = await measureAuth.fetchMeasure(url)
+  //const res = await measureAuth.fetchMeasure(url)
 
-    //if (!res.ok) {
-    console.log("fetchSamplingRulesFromServer: Using dummy data", dummySamplingRulesResponse)
-      return { status: SamplingRulesApiStatus.Success, data: dummySamplingRulesResponse }
-    //}
+  //if (!res.ok) {
+  console.log("fetchSamplingRulesFromServer: Using dummy data", dummySamplingRulesResponse)
+  return { status: SamplingRulesApiStatus.Success, data: dummySamplingRulesResponse }
+  //}
 
-    //const data = await res.json()
+  //const data = await res.json()
 
   //   return { status: SamplingRulesApiStatus.Success, data: dummySamplingRulesResponse }
   // } catch {
   //   return { status: SamplingRulesApiStatus.Success, data: dummySamplingRulesResponse }
   // }
+}
+
+export const fetchSamplingRulesConfigFromServer = async (
+  teamId: string,
+  appId: String,
+) => {
+  console.log("fetchSamplingRulesConfigFromServer: Using dummy data", emptySamplingRulesConfigResponse)
+  return { status: SamplingRulesConfigApiStatus.Success, data: emptySamplingRulesConfigResponse }
 }
