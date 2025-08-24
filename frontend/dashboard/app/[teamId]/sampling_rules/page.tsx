@@ -1,13 +1,14 @@
 "use client"
 
-import { FilterSource, SamplingRulesApiStatus, emptySamplingRulesResponse, fetchSamplingRulesFromServer } from "@/app/api/api_calls"
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters"
-import LoadingBar from "@/app/components/loading_bar"
-import Paginator from "@/app/components/paginator"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
-import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from "@/app/utils/time_utils"
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from "react"
+import { FilterSource, SamplingRulesApiStatus, emptySamplingRulesResponse, fetchSamplingRulesFromServer } from "@/app/api/api_calls";
+import CreateSamplingRule from "@/app/components/create_sampling_rule";
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters";
+import LoadingBar from "@/app/components/loading_bar";
+import Paginator from "@/app/components/paginator";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table';
+import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from "@/app/utils/time_utils";
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from "react";
 
 interface PageState {
     samplingRulesApiStatus: SamplingRulesApiStatus
@@ -41,7 +42,6 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
 
     const getSamplingRules = async () => {
         updatePageState({ samplingRulesApiStatus: SamplingRulesApiStatus.Loading })
-
         const result = await fetchSamplingRulesFromServer(pageState.filters.app!.id, paginationLimit, pageState.paginationOffset)
 
         switch (result.status) {
@@ -92,6 +92,9 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
             <div className="flex flex-row items-center gap-2 justify-between w-full">
                 <p className="font-display text-4xl max-w-6xl text-center">Sampling</p>
+                <CreateSamplingRule onSelect={(type) => {
+                    console.log("Selected rule type:", type);
+                }} />
             </div>
 
             <div className="py-4" />
