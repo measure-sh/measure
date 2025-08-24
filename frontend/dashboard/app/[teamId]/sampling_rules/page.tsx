@@ -173,16 +173,16 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
                                 >
                                     <TableCell className="w-[60%] relative p-0">
                                         <div className="pointer-events-none p-4">
+                                            <p className='truncate select-none flex-1'>{name}</p>
+                                            <div className='py-1' />
                                             <div className="flex items-center gap-2">
                                                 <p className="inline-block text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-md select-none capitalize flex-shrink-0">
                                                     {type}
                                                 </p>
-                                                <p className='truncate select-none flex-1'>{name}</p>
+                                                <p className="text-xs text-gray-500 select-none">
+                                                    Sampling rate: {sampling_rate * 100}%
+                                                </p>
                                             </div>
-                                            <div className='py-1' />
-                                            <p className="text-xs text-gray-500 select-none">
-                                                Sampling rate: {sampling_rate * 100}%
-                                            </p>
                                         </div>
                                     </TableCell>
                                     <TableCell className="w-[25%]">
