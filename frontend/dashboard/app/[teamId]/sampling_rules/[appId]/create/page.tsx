@@ -16,6 +16,7 @@ interface PageState {
 export default function CreateSamplingRule({ params }: { params: { teamId: string, appId: string } }) {
     const searchParams = useSearchParams()
     const type = searchParams.get(samplingRuleTypeKey)
+    
     const initialState: PageState = {
         samplingRulesConfigApiStatus: SamplingRulesConfigApiStatus.Loading,
         samplingRulesConfig: emptySamplingRulesConfigResponse,

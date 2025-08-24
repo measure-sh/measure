@@ -1025,7 +1025,190 @@ export const emptySamplingRulesResponse = {
 }
 
 export const emptySamplingRulesConfigResponse = {
+  result: {} as {
+    events: Array<{
+      "type": string,
+      "ud_attrs": boolean,
+      "attrs": Array<{
+        "key": string,
+        "type": string
+      }> | null
+    }>,
+    spans: Array<{
+      "name": string,
+      "type": string
+    }>,
+    event_ud_attrs: {
+      key_types: Array<{
+        key: string,
+        type: string,
+      }>
+    },
+    span_ud_attrs: {
+      key_types: Array<{
+        key: string,
+        type: string,
+      }>
+    },
+    session_attrs: {
+      "device_manufacturers": string[],
+      "device_names": string[],
+      "locales": string[],
+      "os_versions": Array<{
+        "name": string,
+        "version": string
+      }>
+    },
+    "operator_types": {
+      "bool": string[],
+      "float64": string[],
+      "int64": string[],
+      "string": string[]
+    }
+  }
+}
 
+export const dummySamplingRulesConfigResponse = {
+  result: {
+    events: [
+      {
+        "type": "anr",
+        "ud_attrs": false,
+        "attrs": null
+      },
+      {
+        "type": "exception",
+        "ud_attrs": false,
+        "attrs": null
+      },
+      {
+        "type": "bug_report",
+        "ud_attrs": true,
+        "attrs": null
+      },
+      {
+        "type": "custom",
+        "ud_attrs": true,
+        "attrs": [
+          {
+            "key": "name",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "type": "gesture_click",
+        "ud_attrs": false,
+        "attrs": [
+          {
+            "key": "target_id",
+            "type": "string"
+          },
+          {
+            "key": "target",
+            "type": "string"
+          }
+        ],
+      },
+      {
+        "type": "screen_view",
+        "ud_attrs": true,
+        "attrs": [
+          {
+            "key": "name",
+            "type": "string"
+          },
+        ],
+      },
+      {
+        "type": "lifecycle_activity",
+        "ud_attrs": false,
+        "attrs": [
+          {
+            "key": "class_name",
+            "type": "string"
+          }
+        ],
+      },
+      {
+        "type": "lifecycle_fragment",
+        "ud_attrs": false,
+        "attrs": [
+          {
+            "key": "class_name",
+            "type": "string"
+          }
+        ],
+      }
+    ],
+    spans: [
+      {
+        "name": "Activity TTID",
+        "type": "string"
+      }
+    ],
+    event_ud_attrs: {
+      key_types: [
+        {
+          key: "string",
+          type: "string",
+        },
+      ]
+    },
+    span_ud_attrs: {
+      key_types: [
+        {
+          key: "string",
+          type: "string",
+        },
+      ]
+    },
+    session_attrs: {
+      "device_manufacturers": [
+        "Google"
+      ],
+      "device_names": [
+        "sunfish"
+      ],
+      "locales": [
+        "en-US"
+      ],
+      "os_versions": [
+        {
+          "name": "android",
+          "version": "33"
+        }
+      ]
+    },
+    "operator_types": {
+      "bool": [
+        "eq",
+        "neq"
+      ],
+      "float64": [
+        "eq",
+        "neq",
+        "gt",
+        "lt",
+        "gte",
+        "lte"
+      ],
+      "int64": [
+        "eq",
+        "neq",
+        "gt",
+        "lt",
+        "gte",
+        "lte"
+      ],
+      "string": [
+        "eq",
+        "neq",
+        "contains",
+        "startsWith"
+      ]
+    }
+  }
 }
 
 export const dummySamplingRulesResponse = {
@@ -2353,6 +2536,6 @@ export const fetchSamplingRulesConfigFromServer = async (
   teamId: string,
   appId: String,
 ) => {
-  console.log("fetchSamplingRulesConfigFromServer: Using dummy data", emptySamplingRulesConfigResponse)
-  return { status: SamplingRulesConfigApiStatus.Success, data: emptySamplingRulesConfigResponse }
+  console.log("fetchSamplingRulesConfigFromServer: Using dummy data", dummySamplingRulesConfigResponse)
+  return { status: SamplingRulesConfigApiStatus.Success, data: dummySamplingRulesConfigResponse }
 }
