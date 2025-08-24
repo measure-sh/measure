@@ -53,7 +53,6 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
                     samplingRulesApiStatus: SamplingRulesApiStatus.Success,
                     samplingRules: result.data
                 })
-                console.log("Sampling rules fetched successfully", result.data)
                 break
         }
     }
@@ -93,7 +92,7 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
             <div className="flex flex-row items-center gap-2 justify-between w-full">
                 <p className="font-display text-4xl max-w-6xl text-center">Sampling</p>
                 <CreateSamplingRule onSelect={(type) => {
-                    console.log("Selected rule type:", type);
+                    router.push(`/${params.teamId}/sampling_rules/${pageState.filters.app!.id}/create?type=${type}`)
                 }} />
             </div>
 
