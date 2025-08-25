@@ -1,1 +1,1009 @@
-{"events":[{"id":"033904bc-7bf7-46c4-9079-420bd643bec7","session_id":"652a5721-2f2e-47f5-ab73-944263760dfa","user_triggered":true,"timestamp":"2025-05-26T11:10:30.38800000Z","type":"custom","custom":{"name":"custom-app-start"},"attachments":null,"attribute":{"thread_name":"main","platform":"android","user_id":null,"device_name":"sunfish","device_model":"Pixel 4a","device_manufacturer":"Google","device_type":"phone","device_is_foldable":false,"device_is_physical":true,"device_density_dpi":440,"device_width_px":1080,"device_height_px":2138,"device_density":2.75,"device_locale":"en-US","os_name":"android","os_version":"33","os_page_size":4,"app_version":"0.11.0-SNAPSHOT","app_build":"29137627","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.11.0-SNAPSHOT","installation_id":"1fefa265-9e6b-45d8-aa83-23b03070c06e","network_type":"wifi","network_generation":"unknown","network_provider":"unknown","device_low_power_mode":false,"device_thermal_throttling_enabled":false},"user_defined_attribute":{"string":"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in","integer":2147483647,"long":9223372036854775807,"double":1.7976931348623157E308,"float":3.4028235E38,"boolean":false}},{"id":"6d5b341b-9d8d-44e7-bfcd-5259f4dbcec5","session_id":"652a5721-2f2e-47f5-ab73-944263760dfa","user_triggered":false,"timestamp":"2025-05-26T11:10:30.42500000Z","type":"memory_usage","memory_usage":{"java_max_heap":262144,"java_total_heap":262144,"java_free_heap":259540,"total_pss":10628,"rss":103312,"native_total_heap":12612,"native_free_heap":1355,"interval":0},"attachments":null,"attribute":{"thread_name":"msr-default","platform":"android","user_id":null,"device_name":"sunfish","device_model":"Pixel 4a","device_manufacturer":"Google","device_type":"phone","device_is_foldable":false,"device_is_physical":true,"device_density_dpi":440,"device_width_px":1080,"device_height_px":2138,"device_density":2.75,"device_locale":"en-US","os_name":"android","os_version":"33","os_page_size":4,"app_version":"0.11.0-SNAPSHOT","app_build":"29137627","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.11.0-SNAPSHOT","installation_id":"1fefa265-9e6b-45d8-aa83-23b03070c06e","network_type":"wifi","network_generation":"unknown","network_provider":"unknown","device_low_power_mode":false,"device_thermal_throttling_enabled":false},"user_defined_attribute":null},{"id":"7514b680-83f9-4fbc-9f1b-86a6bb862e51","session_id":"652a5721-2f2e-47f5-ab73-944263760dfa","user_triggered":false,"timestamp":"2025-05-26T11:10:31.30200000Z","type":"exception","exception":{"exceptions":[{"type":"java.lang.StackOverflowError","message":"stack size 8188KB","frames":[{"class_name":"sh.measure.sample.ExceptionDemoActivity","method_name":"p","file_name":"SourceFile","line_num":1},{"class_name":"sh.measure.sample.ExceptionDemoActivity","method_name":"p","file_name":"SourceFile","line_num":1},{"class_name":"sh.measure.sample.ExceptionDemoActivity","method_name":"p","file_name":"SourceFile","line_num":1},{"class_name":"sh.measure.sample.ExceptionDemoActivity","method_name":"p","file_name":"SourceFile","line_num":1},{"class_name":"sh.measure.sample.ExceptionDemoActivity","method_name":"p","file_name":"SourceFile","line_num":1},{"class_name":"L3.n","method_name":"onClick","file_name":"SourceFile","line_num":53},{"class_name":"android.view.View","method_name":"performClick","file_name":"View.java","line_num":7542},{"class_name":"android.view.View","method_name":"performClickInternal","file_name":"View.java","line_num":7519},{"class_name":"android.view.View","method_name":"-$$Nest$mperformClickInternal","line_num":0},{"class_name":"android.view.View$PerformClick","method_name":"run","file_name":"View.java","line_num":29476},{"class_name":"android.os.Handler","method_name":"handleCallback","file_name":"Handler.java","line_num":942},{"class_name":"android.os.Handler","method_name":"dispatchMessage","file_name":"Handler.java","line_num":99},{"class_name":"android.os.Looper","method_name":"loopOnce","file_name":"Looper.java","line_num":201},{"class_name":"android.os.Looper","method_name":"loop","file_name":"Looper.java","line_num":288},{"class_name":"android.app.ActivityThread","method_name":"main","file_name":"ActivityThread.java","line_num":7918},{"class_name":"java.lang.reflect.Method","method_name":"invoke","file_name":"Method.java","line_num":-2},{"class_name":"com.android.internal.os.RuntimeInit$MethodAndArgsCaller","method_name":"run","file_name":"RuntimeInit.java","line_num":548},{"class_name":"com.android.internal.os.ZygoteInit","method_name":"main","file_name":"ZygoteInit.java","line_num":936}]}],"threads":[{"name":"queued-work-looper","frames":[{"class_name":"android.os.MessageQueue","method_name":"nativePollOnce","file_name":"MessageQueue.java","line_num":-2},{"class_name":"android.os.MessageQueue","method_name":"next","file_name":"MessageQueue.java","line_num":335},{"class_name":"android.os.Looper","method_name":"loopOnce","file_name":"Looper.java","line_num":161},{"class_name":"android.os.Looper","method_name":"loop","file_name":"Looper.java","line_num":288},{"class_name":"android.os.HandlerThread","method_name":"run","file_name":"HandlerThread.java","line_num":67}]},{"name":"FinalizerWatchdogDaemon","frames":[{"class_name":"java.lang.Object","method_name":"wait","file_name":"Object.java","line_num":-2},{"class_name":"java.lang.Object","method_name":"wait","file_name":"Object.java","line_num":405},{"class_name":"java.lang.Object","method_name":"wait","file_name":"Object.java","line_num":543},{"class_name":"java.lang.Daemons$FinalizerWatchdogDaemon","method_name":"sleepUntilNeeded","file_name":"Daemons.java","line_num":464},{"class_name":"java.lang.Daemons$FinalizerWatchdogDaemon","method_name":"runInternal","file_name":"Daemons.java","line_num":444},{"class_name":"java.lang.Daemons$Daemon","method_name":"run","file_name":"Daemons.java","line_num":131},{"class_name":"java.lang.Thread","method_name":"run","file_name":"Thread.java","line_num":1012}]},{"name":"msr-export","frames":[{"class_name":"jdk.internal.misc.Unsafe","method_name":"park","file_name":"Unsafe.java","line_num":-2},{"class_name":"java.util.concurrent.locks.LockSupport","method_name":"park","file_name":"LockSupport.java","line_num":341},{"class_name":"java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode","method_name":"block","file_name":"AbstractQueuedSynchronizer.java","line_num":506},{"class_name":"java.util.concurrent.ForkJoinPool","method_name":"unmanagedBlock","file_name":"ForkJoinPool.java","line_num":3466},{"class_name":"java.util.concurrent.ForkJoinPool","method_name":"managedBlock","file_name":"ForkJoinPool.java","line_num":3437},{"class_name":"java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject","method_name":"await","file_name":"AbstractQueuedSynchronizer.java","line_num":1623},{"class_name":"java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue","method_name":"take","file_name":"ScheduledThreadPoolExecutor.java","line_num":1176},{"class_name":"java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue","method_name":"take","file_name":"ScheduledThreadPoolExecutor.java","line_num":905},{"class_name":"java.util.concurrent.ThreadPoolExecutor","method_name":"getTask","file_name":"ThreadPoolExecutor.java","line_num":1071},{"class_name":"java.util.concurrent.ThreadPoolExecutor","method_name":"runWorker","file_name":"ThreadPoolExecutor.java","line_num":1131},{"class_name":"java.util.concurrent.ThreadPoolExecutor$Worker","method_name":"run","file_name":"ThreadPoolExecutor.java","line_num":644},{"class_name":"java.lang.Thread","method_name":"run","file_name":"Thread.java","line_num":1012}]},{"name":"OkHttp ConnectionPool","frames":[{"class_name":"java.lang.Object","method_name":"wait","file_name":"Object.java","line_num":-2},{"class_name":"com.android.okhttp.ConnectionPool$1","method_name":"run","file_name":"ConnectionPool.java","line_num":106},{"class_name":"java.util.concurrent.ThreadPoolExecutor","method_name":"runWorker","file_name":"ThreadPoolExecutor.java","line_num":1145},{"class_name":"java.util.concurrent.ThreadPoolExecutor$Worker","method_name":"run","file_name":"ThreadPoolExecutor.java","line_num":644},{"class_name":"java.lang.Thread","method_name":"run","file_name":"Thread.java","line_num":1012}]},{"name":"Okio Watchdog","frames":[{"class_name":"java.lang.Object","method_name":"wait","file_name":"Object.java","line_num":-2},{"class_name":"java.lang.Object","method_name":"wait","file_name":"Object.java","line_num":405},{"class_name":"java.lang.Object","method_name":"wait","file_name":"Object.java","line_num":543},{"class_name":"com.android.okhttp.okio.AsyncTimeout","method_name":"awaitTimeout","file_name":"AsyncTimeout.java","line_num":313},{"class_name":"com.android.okhttp.okio.AsyncTimeout","method_name":"access$000","file_name":"AsyncTimeout.java","line_num":42},{"class_name":"com.android.okhttp.okio.AsyncTimeout$Watchdog","method_name":"run","file_name":"AsyncTimeout.java","line_num":288}]},{"name":"ReferenceQueueDaemon","frames":[{"class_name":"java.lang.Object","method_name":"wait","file_name":"Object.java","line_num":-2},{"class_name":"java.lang.Object","method_name":"wait","file_name":"Object.java","line_num":405},{"class_name":"java.lang.Object","method_name":"wait","file_name":"Object.java","line_num":543},{"class_name":"java.lang.Daemons$ReferenceQueueDaemon","method_name":"runInternal","file_name":"Daemons.java","line_num":251},{"class_name":"java.lang.Daemons$Daemon","method_name":"run","file_name":"Daemons.java","line_num":131},{"class_name":"java.lang.Thread","method_name":"run","file_name":"Thread.java","line_num":1012}]}],"handled":false,"foreground":true},"attachments":[{"id":"00e04c97-3d6b-4528-a332-a0273aa41626","type":"screenshot","name":"screenshot.webp"}],"attribute":{"thread_name":"main","platform":"android","user_id":null,"device_name":"sunfish","device_model":"Pixel 4a","device_manufacturer":"Google","device_type":"phone","device_is_foldable":false,"device_is_physical":true,"device_density_dpi":440,"device_width_px":1080,"device_height_px":2138,"device_density":2.75,"device_locale":"en-US","os_name":"android","os_version":"33","os_page_size":4,"app_version":"0.11.0-SNAPSHOT","app_build":"29137627","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.11.0-SNAPSHOT","installation_id":"1fefa265-9e6b-45d8-aa83-23b03070c06e","network_type":"wifi","network_generation":"unknown","network_provider":"unknown","device_low_power_mode":false,"device_thermal_throttling_enabled":false},"user_defined_attribute":null},{"id":"79f731d1-36f1-4362-9c9a-20795094b218","session_id":"652a5721-2f2e-47f5-ab73-944263760dfa","user_triggered":false,"timestamp":"2025-05-26T11:10:30.46000000Z","type":"lifecycle_activity","lifecycle_activity":{"type":"resumed","class_name":"sh.measure.sample.ExceptionDemoActivity"},"attachments":null,"attribute":{"thread_name":"main","platform":"android","user_id":null,"device_name":"sunfish","device_model":"Pixel 4a","device_manufacturer":"Google","device_type":"phone","device_is_foldable":false,"device_is_physical":true,"device_density_dpi":440,"device_width_px":1080,"device_height_px":2138,"device_density":2.75,"device_locale":"en-US","os_name":"android","os_version":"33","os_page_size":4,"app_version":"0.11.0-SNAPSHOT","app_build":"29137627","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.11.0-SNAPSHOT","installation_id":"1fefa265-9e6b-45d8-aa83-23b03070c06e","network_type":"wifi","network_generation":"unknown","network_provider":"unknown","device_low_power_mode":false,"device_thermal_throttling_enabled":false},"user_defined_attribute":null},{"id":"7bce309f-db97-4c48-aa39-eb7472d43bde","session_id":"652a5721-2f2e-47f5-ab73-944263760dfa","user_triggered":false,"timestamp":"2025-05-26T11:10:30.45700000Z","type":"lifecycle_app","lifecycle_app":{"type":"foreground"},"attachments":null,"attribute":{"thread_name":"main","platform":"android","user_id":null,"device_name":"sunfish","device_model":"Pixel 4a","device_manufacturer":"Google","device_type":"phone","device_is_foldable":false,"device_is_physical":true,"device_density_dpi":440,"device_width_px":1080,"device_height_px":2138,"device_density":2.75,"device_locale":"en-US","os_name":"android","os_version":"33","os_page_size":4,"app_version":"0.11.0-SNAPSHOT","app_build":"29137627","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.11.0-SNAPSHOT","installation_id":"1fefa265-9e6b-45d8-aa83-23b03070c06e","network_type":"wifi","network_generation":"unknown","network_provider":"unknown","device_low_power_mode":false,"device_thermal_throttling_enabled":false},"user_defined_attribute":null},{"id":"84641f0a-ebe5-46dc-8fe8-1d9d98a77c1d","session_id":"652a5721-2f2e-47f5-ab73-944263760dfa","user_triggered":false,"timestamp":"2025-05-26T11:10:30.41000000Z","type":"lifecycle_activity","lifecycle_activity":{"type":"created","class_name":"sh.measure.sample.ExceptionDemoActivity"},"attachments":null,"attribute":{"thread_name":"main","platform":"android","user_id":null,"device_name":"sunfish","device_model":"Pixel 4a","device_manufacturer":"Google","device_type":"phone","device_is_foldable":false,"device_is_physical":true,"device_density_dpi":440,"device_width_px":1080,"device_height_px":2138,"device_density":2.75,"device_locale":"en-US","os_name":"android","os_version":"33","os_page_size":4,"app_version":"0.11.0-SNAPSHOT","app_build":"29137627","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.11.0-SNAPSHOT","installation_id":"1fefa265-9e6b-45d8-aa83-23b03070c06e","network_type":"wifi","network_generation":"unknown","network_provider":"unknown","device_low_power_mode":false,"device_thermal_throttling_enabled":false},"user_defined_attribute":null},{"id":"cfec0799-7a5b-449c-9f2c-500c48a8668e","session_id":"652a5721-2f2e-47f5-ab73-944263760dfa","user_triggered":false,"timestamp":"2025-05-26T11:10:31.16800000Z","type":"gesture_click","gesture_click":{"target":"com.google.android.material.textview.MaterialTextView","target_id":"btn_stack_overflow_exception","width":1080,"height":154,"x":725.0,"y":979.0,"touch_down_time":28853056,"touch_up_time":28853104},"attachments":[{"id":"58242774-0582-45e3-a6fe-1226da9e3621","type":"layout_snapshot","name":"snapshot.svg"}],"attribute":{"thread_name":"main","platform":"android","user_id":null,"device_name":"sunfish","device_model":"Pixel 4a","device_manufacturer":"Google","device_type":"phone","device_is_foldable":false,"device_is_physical":true,"device_density_dpi":440,"device_width_px":1080,"device_height_px":2138,"device_density":2.75,"device_locale":"en-US","os_name":"android","os_version":"33","os_page_size":4,"app_version":"0.11.0-SNAPSHOT","app_build":"29137627","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.11.0-SNAPSHOT","installation_id":"1fefa265-9e6b-45d8-aa83-23b03070c06e","network_type":"wifi","network_generation":"unknown","network_provider":"unknown","device_low_power_mode":false,"device_thermal_throttling_enabled":false},"user_defined_attribute":null},{"id":"e381b0b7-b2a2-4cdd-8420-c931af89738d","session_id":"652a5721-2f2e-47f5-ab73-944263760dfa","user_triggered":false,"timestamp":"2025-05-26T11:10:30.54100000Z","type":"cold_launch","cold_launch":{"process_start_uptime":28852263,"process_start_requested_uptime":28852213,"content_provider_attach_uptime":28852284,"on_next_draw_uptime":28852478,"launched_activity":"sh.measure.sample.ExceptionDemoActivity","has_saved_state":false,"intent_data":null},"attachments":null,"attribute":{"thread_name":"main","platform":"android","user_id":null,"device_name":"sunfish","device_model":"Pixel 4a","device_manufacturer":"Google","device_type":"phone","device_is_foldable":false,"device_is_physical":true,"device_density_dpi":440,"device_width_px":1080,"device_height_px":2138,"device_density":2.75,"device_locale":"en-US","os_name":"android","os_version":"33","os_page_size":4,"app_version":"0.11.0-SNAPSHOT","app_build":"29137627","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.11.0-SNAPSHOT","installation_id":"1fefa265-9e6b-45d8-aa83-23b03070c06e","network_type":"wifi","network_generation":"unknown","network_provider":"unknown","device_low_power_mode":false,"device_thermal_throttling_enabled":false},"user_defined_attribute":null},{"id":"f21f6526-3799-47fc-9b48-6adc4f426d1f","session_id":"652a5721-2f2e-47f5-ab73-944263760dfa","user_triggered":false,"timestamp":"2025-05-26T11:10:30.37500000Z","type":"cpu_usage","cpu_usage":{"num_cores":8,"clock_speed":100,"start_time":2885222,"uptime":28852312,"utime":3,"cutime":0,"cstime":0,"stime":2,"interval":0,"percentage_usage":0.0},"attachments":null,"attribute":{"thread_name":"msr-default","platform":"android","user_id":null,"device_name":"sunfish","device_model":"Pixel 4a","device_manufacturer":"Google","device_type":"phone","device_is_foldable":false,"device_is_physical":true,"device_density_dpi":440,"device_width_px":1080,"device_height_px":2138,"device_density":2.75,"device_locale":"en-US","os_name":"android","os_version":"33","os_page_size":4,"app_version":"0.11.0-SNAPSHOT","app_build":"29137627","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.11.0-SNAPSHOT","installation_id":"1fefa265-9e6b-45d8-aa83-23b03070c06e","network_type":"wifi","network_generation":"unknown","network_provider":"unknown","device_low_power_mode":false,"device_thermal_throttling_enabled":false},"user_defined_attribute":null}],"spans":[{"name":"activity.onCreate","trace_id":"8763e20ee8e7fc0171d34c07de6da393","span_id":"37119b835599f9b7","parent_id":null,"session_id":"652a5721-2f2e-47f5-ab73-944263760dfa","start_time":"2025-05-26T11:10:30.41000000Z","end_time":"2025-05-26T11:10:30.45500000Z","duration":45,"status":1,"attributes":{"thread_name":"main","user_id":null,"device_name":"sunfish","device_model":"Pixel 4a","device_manufacturer":"Google","device_locale":"en-US","os_name":"android","os_version":"33","platform":"android","app_version":"0.11.0-SNAPSHOT","app_build":"29137627","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.11.0-SNAPSHOT","installation_id":"1fefa265-9e6b-45d8-aa83-23b03070c06e","network_type":"wifi","network_generation":"unknown","network_provider":"unknown","device_low_power_mode":false,"device_thermal_throttling_enabled":false},"user_defined_attribute":{},"checkpoints":[]},{"name":"Measure.init","trace_id":"7211b8349de3603885300bbc6b2d9c85","span_id":"45dce1eaa3af3709","parent_id":"c4d868a7ebd3bf98","session_id":"652a5721-2f2e-47f5-ab73-944263760dfa","start_time":"2025-05-26T11:10:30.35300000Z","end_time":"2025-05-26T11:10:30.38700000Z","duration":34,"status":0,"attributes":{"thread_name":"main","user_id":null,"device_name":"sunfish","device_model":"Pixel 4a","device_manufacturer":"Google","device_locale":"en-US","os_name":"android","os_version":"33","platform":"android","app_version":"0.11.0-SNAPSHOT","app_build":"29137627","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.11.0-SNAPSHOT","installation_id":"1fefa265-9e6b-45d8-aa83-23b03070c06e","network_type":"wifi","network_generation":"unknown","network_provider":"unknown","device_low_power_mode":false,"device_thermal_throttling_enabled":false},"user_defined_attribute":{},"checkpoints":[]},{"name":"Activity TTID sh.measure.sample.ExceptionDemoActivity","trace_id":"bf1b62f91e61aaa7b5a9777f8d452eca","span_id":"7f4ae128df999b5c","parent_id":null,"session_id":"652a5721-2f2e-47f5-ab73-944263760dfa","start_time":"2025-05-26T11:10:30.40500000Z","end_time":"2025-05-26T11:10:30.54100000Z","duration":136,"status":1,"attributes":{"thread_name":"main","user_id":null,"device_name":"sunfish","device_model":"Pixel 4a","device_manufacturer":"Google","device_locale":"en-US","os_name":"android","os_version":"33","platform":"android","app_version":"0.11.0-SNAPSHOT","app_build":"29137627","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.11.0-SNAPSHOT","installation_id":"1fefa265-9e6b-45d8-aa83-23b03070c06e","network_type":"wifi","network_generation":"unknown","network_provider":"unknown","device_low_power_mode":false,"device_thermal_throttling_enabled":false},"user_defined_attribute":{"app_startup_first_activity":true},"checkpoints":[{"name":"activity_lifecycle_created","timestamp":"2025-05-26T11:10:30.40500000Z"},{"name":"activity_lifecycle_started","timestamp":"2025-05-26T11:10:30.45700000Z"},{"name":"activity_lifecycle_resumed","timestamp":"2025-05-26T11:10:30.46100000Z"}]},{"name":"SampleApp.onCreate","trace_id":"7211b8349de3603885300bbc6b2d9c85","span_id":"c4d868a7ebd3bf98","parent_id":null,"session_id":"652a5721-2f2e-47f5-ab73-944263760dfa","start_time":"2025-05-26T11:10:30.35300000Z","end_time":"2025-05-26T11:10:30.38800000Z","duration":35,"status":0,"attributes":{"thread_name":"main","user_id":null,"device_name":"sunfish","device_model":"Pixel 4a","device_manufacturer":"Google","device_locale":"en-US","os_name":"android","os_version":"33","platform":"android","app_version":"0.11.0-SNAPSHOT","app_build":"29137627","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.11.0-SNAPSHOT","installation_id":"1fefa265-9e6b-45d8-aa83-23b03070c06e","network_type":"wifi","network_generation":"unknown","network_provider":"unknown","device_low_power_mode":false,"device_thermal_throttling_enabled":false},"user_defined_attribute":{},"checkpoints":[]}]}
+{
+  "events": [
+    {
+      "id": "f21f6526-3799-47fc-9b48-6adc4f426d1f",
+      "session_id": "652a5721-2f2e-47f5-ab73-944263760dfa",
+      "user_triggered": false,
+      "timestamp": "2025-05-26T11:10:30.37500000Z",
+      "type": "cpu_usage",
+      "cpu_usage": {
+        "num_cores": 8,
+        "clock_speed": 100,
+        "start_time": 2885222,
+        "uptime": 28852312,
+        "utime": 3,
+        "cutime": 0,
+        "cstime": 0,
+        "stime": 2,
+        "interval": 0,
+        "percentage_usage": 0.0
+      },
+      "attachments": null,
+      "attribute": {
+        "thread_name": "msr-default",
+        "platform": "android",
+        "user_id": null,
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_type": "phone",
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_density_dpi": 440,
+        "device_width_px": 1080,
+        "device_height_px": 2138,
+        "device_density": 2.75,
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "os_page_size": 4,
+        "app_version": "0.11.0-SNAPSHOT",
+        "app_build": "29137627",
+        "app_unique_id": "sh.measure.sample",
+        "measure_sdk_version": "0.11.0-SNAPSHOT",
+        "installation_id": "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+        "network_type": "wifi",
+        "network_generation": "unknown",
+        "network_provider": "unknown",
+        "device_low_power_mode": false,
+        "device_thermal_throttling_enabled": false
+      },
+      "user_defined_attribute": null
+    },
+    {
+      "id": "3607a992-1840-4d45-affc-2bfe4f9542a6",
+      "session_id": "652a5721-2f2e-47f5-ab73-944263760dfa",
+      "user_triggered": false,
+      "timestamp": "2025-05-26T11:10:30.37500000Z",
+      "type": "session_start",
+      "session_start": {},
+      "attachments": null,
+      "attribute": {
+        "thread_name": "msr-default",
+        "platform": "android",
+        "user_id": null,
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_type": "phone",
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_density_dpi": 440,
+        "device_width_px": 1080,
+        "device_height_px": 2138,
+        "device_density": 2.75,
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "os_page_size": 4,
+        "app_version": "0.11.0-SNAPSHOT",
+        "app_build": "29137627",
+        "app_unique_id": "sh.measure.sample",
+        "measure_sdk_version": "0.11.0-SNAPSHOT",
+        "installation_id": "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+        "network_type": "wifi",
+        "network_generation": "unknown",
+        "network_provider": "unknown",
+        "device_low_power_mode": false,
+        "device_thermal_throttling_enabled": false
+      },
+      "user_defined_attribute": null
+    },
+    {
+      "id": "033904bc-7bf7-46c4-9079-420bd643bec7",
+      "session_id": "652a5721-2f2e-47f5-ab73-944263760dfa",
+      "user_triggered": true,
+      "timestamp": "2025-05-26T11:10:30.38800000Z",
+      "type": "custom",
+      "custom": {
+        "name": "custom-app-start"
+      },
+      "attachments": null,
+      "attribute": {
+        "thread_name": "main",
+        "platform": "android",
+        "user_id": null,
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_type": "phone",
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_density_dpi": 440,
+        "device_width_px": 1080,
+        "device_height_px": 2138,
+        "device_density": 2.75,
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "os_page_size": 4,
+        "app_version": "0.11.0-SNAPSHOT",
+        "app_build": "29137627",
+        "app_unique_id": "sh.measure.sample",
+        "measure_sdk_version": "0.11.0-SNAPSHOT",
+        "installation_id": "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+        "network_type": "wifi",
+        "network_generation": "unknown",
+        "network_provider": "unknown",
+        "device_low_power_mode": false,
+        "device_thermal_throttling_enabled": false
+      },
+      "user_defined_attribute": {
+        "string": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in",
+        "integer": 2147483647,
+        "long": 9223372036854775807,
+        "double": 1.7976931348623157E+308,
+        "float": 3.4028235E+38,
+        "boolean": false
+      }
+    },
+    {
+      "id": "84641f0a-ebe5-46dc-8fe8-1d9d98a77c1d",
+      "session_id": "652a5721-2f2e-47f5-ab73-944263760dfa",
+      "user_triggered": false,
+      "timestamp": "2025-05-26T11:10:30.41000000Z",
+      "type": "lifecycle_activity",
+      "lifecycle_activity": {
+        "type": "created",
+        "class_name": "sh.measure.sample.ExceptionDemoActivity"
+      },
+      "attachments": null,
+      "attribute": {
+        "thread_name": "main",
+        "platform": "android",
+        "user_id": null,
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_type": "phone",
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_density_dpi": 440,
+        "device_width_px": 1080,
+        "device_height_px": 2138,
+        "device_density": 2.75,
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "os_page_size": 4,
+        "app_version": "0.11.0-SNAPSHOT",
+        "app_build": "29137627",
+        "app_unique_id": "sh.measure.sample",
+        "measure_sdk_version": "0.11.0-SNAPSHOT",
+        "installation_id": "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+        "network_type": "wifi",
+        "network_generation": "unknown",
+        "network_provider": "unknown",
+        "device_low_power_mode": false,
+        "device_thermal_throttling_enabled": false
+      },
+      "user_defined_attribute": null
+    },
+    {
+      "id": "6d5b341b-9d8d-44e7-bfcd-5259f4dbcec5",
+      "session_id": "652a5721-2f2e-47f5-ab73-944263760dfa",
+      "user_triggered": false,
+      "timestamp": "2025-05-26T11:10:30.42500000Z",
+      "type": "memory_usage",
+      "memory_usage": {
+        "java_max_heap": 262144,
+        "java_total_heap": 262144,
+        "java_free_heap": 259540,
+        "total_pss": 10628,
+        "rss": 103312,
+        "native_total_heap": 12612,
+        "native_free_heap": 1355,
+        "interval": 0
+      },
+      "attachments": null,
+      "attribute": {
+        "thread_name": "msr-default",
+        "platform": "android",
+        "user_id": null,
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_type": "phone",
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_density_dpi": 440,
+        "device_width_px": 1080,
+        "device_height_px": 2138,
+        "device_density": 2.75,
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "os_page_size": 4,
+        "app_version": "0.11.0-SNAPSHOT",
+        "app_build": "29137627",
+        "app_unique_id": "sh.measure.sample",
+        "measure_sdk_version": "0.11.0-SNAPSHOT",
+        "installation_id": "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+        "network_type": "wifi",
+        "network_generation": "unknown",
+        "network_provider": "unknown",
+        "device_low_power_mode": false,
+        "device_thermal_throttling_enabled": false
+      },
+      "user_defined_attribute": null
+    },
+    {
+      "id": "7bce309f-db97-4c48-aa39-eb7472d43bde",
+      "session_id": "652a5721-2f2e-47f5-ab73-944263760dfa",
+      "user_triggered": false,
+      "timestamp": "2025-05-26T11:10:30.45700000Z",
+      "type": "lifecycle_app",
+      "lifecycle_app": {
+        "type": "foreground"
+      },
+      "attachments": null,
+      "attribute": {
+        "thread_name": "main",
+        "platform": "android",
+        "user_id": null,
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_type": "phone",
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_density_dpi": 440,
+        "device_width_px": 1080,
+        "device_height_px": 2138,
+        "device_density": 2.75,
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "os_page_size": 4,
+        "app_version": "0.11.0-SNAPSHOT",
+        "app_build": "29137627",
+        "app_unique_id": "sh.measure.sample",
+        "measure_sdk_version": "0.11.0-SNAPSHOT",
+        "installation_id": "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+        "network_type": "wifi",
+        "network_generation": "unknown",
+        "network_provider": "unknown",
+        "device_low_power_mode": false,
+        "device_thermal_throttling_enabled": false
+      },
+      "user_defined_attribute": null
+    },
+    {
+      "id": "79f731d1-36f1-4362-9c9a-20795094b218",
+      "session_id": "652a5721-2f2e-47f5-ab73-944263760dfa",
+      "user_triggered": false,
+      "timestamp": "2025-05-26T11:10:30.46000000Z",
+      "type": "lifecycle_activity",
+      "lifecycle_activity": {
+        "type": "resumed",
+        "class_name": "sh.measure.sample.ExceptionDemoActivity"
+      },
+      "attachments": null,
+      "attribute": {
+        "thread_name": "main",
+        "platform": "android",
+        "user_id": null,
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_type": "phone",
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_density_dpi": 440,
+        "device_width_px": 1080,
+        "device_height_px": 2138,
+        "device_density": 2.75,
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "os_page_size": 4,
+        "app_version": "0.11.0-SNAPSHOT",
+        "app_build": "29137627",
+        "app_unique_id": "sh.measure.sample",
+        "measure_sdk_version": "0.11.0-SNAPSHOT",
+        "installation_id": "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+        "network_type": "wifi",
+        "network_generation": "unknown",
+        "network_provider": "unknown",
+        "device_low_power_mode": false,
+        "device_thermal_throttling_enabled": false
+      },
+      "user_defined_attribute": null
+    },
+    {
+      "id": "e381b0b7-b2a2-4cdd-8420-c931af89738d",
+      "session_id": "652a5721-2f2e-47f5-ab73-944263760dfa",
+      "user_triggered": false,
+      "timestamp": "2025-05-26T11:10:30.54100000Z",
+      "type": "cold_launch",
+      "cold_launch": {
+        "process_start_uptime": 28852263,
+        "process_start_requested_uptime": 28852213,
+        "content_provider_attach_uptime": 28852284,
+        "on_next_draw_uptime": 28852478,
+        "launched_activity": "sh.measure.sample.ExceptionDemoActivity",
+        "has_saved_state": false,
+        "intent_data": null
+      },
+      "attachments": null,
+      "attribute": {
+        "thread_name": "main",
+        "platform": "android",
+        "user_id": null,
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_type": "phone",
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_density_dpi": 440,
+        "device_width_px": 1080,
+        "device_height_px": 2138,
+        "device_density": 2.75,
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "os_page_size": 4,
+        "app_version": "0.11.0-SNAPSHOT",
+        "app_build": "29137627",
+        "app_unique_id": "sh.measure.sample",
+        "measure_sdk_version": "0.11.0-SNAPSHOT",
+        "installation_id": "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+        "network_type": "wifi",
+        "network_generation": "unknown",
+        "network_provider": "unknown",
+        "device_low_power_mode": false,
+        "device_thermal_throttling_enabled": false
+      },
+      "user_defined_attribute": null
+    },
+    {
+      "id": "cfec0799-7a5b-449c-9f2c-500c48a8668e",
+      "session_id": "652a5721-2f2e-47f5-ab73-944263760dfa",
+      "user_triggered": false,
+      "timestamp": "2025-05-26T11:10:31.16800000Z",
+      "type": "gesture_click",
+      "gesture_click": {
+        "target": "com.google.android.material.textview.MaterialTextView",
+        "target_id": "btn_stack_overflow_exception",
+        "width": 1080,
+        "height": 154,
+        "x": 725.0,
+        "y": 979.0,
+        "touch_down_time": 28853056,
+        "touch_up_time": 28853104
+      },
+      "attachments": [
+        {
+          "id": "58242774-0582-45e3-a6fe-1226da9e3621",
+          "type": "layout_snapshot",
+          "name": "snapshot.svg"
+        }
+      ],
+      "attribute": {
+        "thread_name": "main",
+        "platform": "android",
+        "user_id": null,
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_type": "phone",
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_density_dpi": 440,
+        "device_width_px": 1080,
+        "device_height_px": 2138,
+        "device_density": 2.75,
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "os_page_size": 4,
+        "app_version": "0.11.0-SNAPSHOT",
+        "app_build": "29137627",
+        "app_unique_id": "sh.measure.sample",
+        "measure_sdk_version": "0.11.0-SNAPSHOT",
+        "installation_id": "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+        "network_type": "wifi",
+        "network_generation": "unknown",
+        "network_provider": "unknown",
+        "device_low_power_mode": false,
+        "device_thermal_throttling_enabled": false
+      },
+      "user_defined_attribute": null
+    },
+    {
+      "id": "7514b680-83f9-4fbc-9f1b-86a6bb862e51",
+      "session_id": "652a5721-2f2e-47f5-ab73-944263760dfa",
+      "user_triggered": false,
+      "timestamp": "2025-05-26T11:10:31.30200000Z",
+      "type": "exception",
+      "exception": {
+        "exceptions": [
+          {
+            "type": "java.lang.StackOverflowError",
+            "message": "stack size 8188KB",
+            "frames": [
+              {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "method_name": "p",
+                "file_name": "SourceFile",
+                "line_num": 1
+              },
+              {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "method_name": "p",
+                "file_name": "SourceFile",
+                "line_num": 1
+              },
+              {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "method_name": "p",
+                "file_name": "SourceFile",
+                "line_num": 1
+              },
+              {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "method_name": "p",
+                "file_name": "SourceFile",
+                "line_num": 1
+              },
+              {
+                "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                "method_name": "p",
+                "file_name": "SourceFile",
+                "line_num": 1
+              },
+              {
+                "class_name": "L3.n",
+                "method_name": "onClick",
+                "file_name": "SourceFile",
+                "line_num": 53
+              },
+              {
+                "class_name": "android.view.View",
+                "method_name": "performClick",
+                "file_name": "View.java",
+                "line_num": 7542
+              },
+              {
+                "class_name": "android.view.View",
+                "method_name": "performClickInternal",
+                "file_name": "View.java",
+                "line_num": 7519
+              },
+              {
+                "class_name": "android.view.View",
+                "method_name": "-$$Nest$mperformClickInternal",
+                "line_num": 0
+              },
+              {
+                "class_name": "android.view.View$PerformClick",
+                "method_name": "run",
+                "file_name": "View.java",
+                "line_num": 29476
+              },
+              {
+                "class_name": "android.os.Handler",
+                "method_name": "handleCallback",
+                "file_name": "Handler.java",
+                "line_num": 942
+              },
+              {
+                "class_name": "android.os.Handler",
+                "method_name": "dispatchMessage",
+                "file_name": "Handler.java",
+                "line_num": 99
+              },
+              {
+                "class_name": "android.os.Looper",
+                "method_name": "loopOnce",
+                "file_name": "Looper.java",
+                "line_num": 201
+              },
+              {
+                "class_name": "android.os.Looper",
+                "method_name": "loop",
+                "file_name": "Looper.java",
+                "line_num": 288
+              },
+              {
+                "class_name": "android.app.ActivityThread",
+                "method_name": "main",
+                "file_name": "ActivityThread.java",
+                "line_num": 7918
+              },
+              {
+                "class_name": "java.lang.reflect.Method",
+                "method_name": "invoke",
+                "file_name": "Method.java",
+                "line_num": -2
+              },
+              {
+                "class_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                "method_name": "run",
+                "file_name": "RuntimeInit.java",
+                "line_num": 548
+              },
+              {
+                "class_name": "com.android.internal.os.ZygoteInit",
+                "method_name": "main",
+                "file_name": "ZygoteInit.java",
+                "line_num": 936
+              }
+            ]
+          }
+        ],
+        "threads": [
+          {
+            "name": "queued-work-looper",
+            "frames": [
+              {
+                "class_name": "android.os.MessageQueue",
+                "method_name": "nativePollOnce",
+                "file_name": "MessageQueue.java",
+                "line_num": -2
+              },
+              {
+                "class_name": "android.os.MessageQueue",
+                "method_name": "next",
+                "file_name": "MessageQueue.java",
+                "line_num": 335
+              },
+              {
+                "class_name": "android.os.Looper",
+                "method_name": "loopOnce",
+                "file_name": "Looper.java",
+                "line_num": 161
+              },
+              {
+                "class_name": "android.os.Looper",
+                "method_name": "loop",
+                "file_name": "Looper.java",
+                "line_num": 288
+              },
+              {
+                "class_name": "android.os.HandlerThread",
+                "method_name": "run",
+                "file_name": "HandlerThread.java",
+                "line_num": 67
+              }
+            ]
+          },
+          {
+            "name": "FinalizerWatchdogDaemon",
+            "frames": [
+              {
+                "class_name": "java.lang.Object",
+                "method_name": "wait",
+                "file_name": "Object.java",
+                "line_num": -2
+              },
+              {
+                "class_name": "java.lang.Object",
+                "method_name": "wait",
+                "file_name": "Object.java",
+                "line_num": 405
+              },
+              {
+                "class_name": "java.lang.Object",
+                "method_name": "wait",
+                "file_name": "Object.java",
+                "line_num": 543
+              },
+              {
+                "class_name": "java.lang.Daemons$FinalizerWatchdogDaemon",
+                "method_name": "sleepUntilNeeded",
+                "file_name": "Daemons.java",
+                "line_num": 464
+              },
+              {
+                "class_name": "java.lang.Daemons$FinalizerWatchdogDaemon",
+                "method_name": "runInternal",
+                "file_name": "Daemons.java",
+                "line_num": 444
+              },
+              {
+                "class_name": "java.lang.Daemons$Daemon",
+                "method_name": "run",
+                "file_name": "Daemons.java",
+                "line_num": 131
+              },
+              {
+                "class_name": "java.lang.Thread",
+                "method_name": "run",
+                "file_name": "Thread.java",
+                "line_num": 1012
+              }
+            ]
+          },
+          {
+            "name": "msr-export",
+            "frames": [
+              {
+                "class_name": "jdk.internal.misc.Unsafe",
+                "method_name": "park",
+                "file_name": "Unsafe.java",
+                "line_num": -2
+              },
+              {
+                "class_name": "java.util.concurrent.locks.LockSupport",
+                "method_name": "park",
+                "file_name": "LockSupport.java",
+                "line_num": 341
+              },
+              {
+                "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode",
+                "method_name": "block",
+                "file_name": "AbstractQueuedSynchronizer.java",
+                "line_num": 506
+              },
+              {
+                "class_name": "java.util.concurrent.ForkJoinPool",
+                "method_name": "unmanagedBlock",
+                "file_name": "ForkJoinPool.java",
+                "line_num": 3466
+              },
+              {
+                "class_name": "java.util.concurrent.ForkJoinPool",
+                "method_name": "managedBlock",
+                "file_name": "ForkJoinPool.java",
+                "line_num": 3437
+              },
+              {
+                "class_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject",
+                "method_name": "await",
+                "file_name": "AbstractQueuedSynchronizer.java",
+                "line_num": 1623
+              },
+              {
+                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                "method_name": "take",
+                "file_name": "ScheduledThreadPoolExecutor.java",
+                "line_num": 1176
+              },
+              {
+                "class_name": "java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue",
+                "method_name": "take",
+                "file_name": "ScheduledThreadPoolExecutor.java",
+                "line_num": 905
+              },
+              {
+                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                "method_name": "getTask",
+                "file_name": "ThreadPoolExecutor.java",
+                "line_num": 1071
+              },
+              {
+                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                "method_name": "runWorker",
+                "file_name": "ThreadPoolExecutor.java",
+                "line_num": 1131
+              },
+              {
+                "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                "method_name": "run",
+                "file_name": "ThreadPoolExecutor.java",
+                "line_num": 644
+              },
+              {
+                "class_name": "java.lang.Thread",
+                "method_name": "run",
+                "file_name": "Thread.java",
+                "line_num": 1012
+              }
+            ]
+          },
+          {
+            "name": "OkHttp ConnectionPool",
+            "frames": [
+              {
+                "class_name": "java.lang.Object",
+                "method_name": "wait",
+                "file_name": "Object.java",
+                "line_num": -2
+              },
+              {
+                "class_name": "com.android.okhttp.ConnectionPool$1",
+                "method_name": "run",
+                "file_name": "ConnectionPool.java",
+                "line_num": 106
+              },
+              {
+                "class_name": "java.util.concurrent.ThreadPoolExecutor",
+                "method_name": "runWorker",
+                "file_name": "ThreadPoolExecutor.java",
+                "line_num": 1145
+              },
+              {
+                "class_name": "java.util.concurrent.ThreadPoolExecutor$Worker",
+                "method_name": "run",
+                "file_name": "ThreadPoolExecutor.java",
+                "line_num": 644
+              },
+              {
+                "class_name": "java.lang.Thread",
+                "method_name": "run",
+                "file_name": "Thread.java",
+                "line_num": 1012
+              }
+            ]
+          },
+          {
+            "name": "Okio Watchdog",
+            "frames": [
+              {
+                "class_name": "java.lang.Object",
+                "method_name": "wait",
+                "file_name": "Object.java",
+                "line_num": -2
+              },
+              {
+                "class_name": "java.lang.Object",
+                "method_name": "wait",
+                "file_name": "Object.java",
+                "line_num": 405
+              },
+              {
+                "class_name": "java.lang.Object",
+                "method_name": "wait",
+                "file_name": "Object.java",
+                "line_num": 543
+              },
+              {
+                "class_name": "com.android.okhttp.okio.AsyncTimeout",
+                "method_name": "awaitTimeout",
+                "file_name": "AsyncTimeout.java",
+                "line_num": 313
+              },
+              {
+                "class_name": "com.android.okhttp.okio.AsyncTimeout",
+                "method_name": "access$000",
+                "file_name": "AsyncTimeout.java",
+                "line_num": 42
+              },
+              {
+                "class_name": "com.android.okhttp.okio.AsyncTimeout$Watchdog",
+                "method_name": "run",
+                "file_name": "AsyncTimeout.java",
+                "line_num": 288
+              }
+            ]
+          },
+          {
+            "name": "ReferenceQueueDaemon",
+            "frames": [
+              {
+                "class_name": "java.lang.Object",
+                "method_name": "wait",
+                "file_name": "Object.java",
+                "line_num": -2
+              },
+              {
+                "class_name": "java.lang.Object",
+                "method_name": "wait",
+                "file_name": "Object.java",
+                "line_num": 405
+              },
+              {
+                "class_name": "java.lang.Object",
+                "method_name": "wait",
+                "file_name": "Object.java",
+                "line_num": 543
+              },
+              {
+                "class_name": "java.lang.Daemons$ReferenceQueueDaemon",
+                "method_name": "runInternal",
+                "file_name": "Daemons.java",
+                "line_num": 251
+              },
+              {
+                "class_name": "java.lang.Daemons$Daemon",
+                "method_name": "run",
+                "file_name": "Daemons.java",
+                "line_num": 131
+              },
+              {
+                "class_name": "java.lang.Thread",
+                "method_name": "run",
+                "file_name": "Thread.java",
+                "line_num": 1012
+              }
+            ]
+          }
+        ],
+        "handled": false,
+        "foreground": true
+      },
+      "attachments": [
+        {
+          "id": "00e04c97-3d6b-4528-a332-a0273aa41626",
+          "type": "screenshot",
+          "name": "screenshot.webp"
+        }
+      ],
+      "attribute": {
+        "thread_name": "main",
+        "platform": "android",
+        "user_id": null,
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_type": "phone",
+        "device_is_foldable": false,
+        "device_is_physical": true,
+        "device_density_dpi": 440,
+        "device_width_px": 1080,
+        "device_height_px": 2138,
+        "device_density": 2.75,
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "os_page_size": 4,
+        "app_version": "0.11.0-SNAPSHOT",
+        "app_build": "29137627",
+        "app_unique_id": "sh.measure.sample",
+        "measure_sdk_version": "0.11.0-SNAPSHOT",
+        "installation_id": "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+        "network_type": "wifi",
+        "network_generation": "unknown",
+        "network_provider": "unknown",
+        "device_low_power_mode": false,
+        "device_thermal_throttling_enabled": false
+      },
+      "user_defined_attribute": null
+    }
+  ],
+  "spans": [
+    {
+      "name": "activity.onCreate",
+      "trace_id": "8763e20ee8e7fc0171d34c07de6da393",
+      "span_id": "37119b835599f9b7",
+      "parent_id": null,
+      "session_id": "652a5721-2f2e-47f5-ab73-944263760dfa",
+      "start_time": "2025-05-26T11:10:30.41000000Z",
+      "end_time": "2025-05-26T11:10:30.45500000Z",
+      "duration": 45,
+      "status": 1,
+      "attributes": {
+        "thread_name": "main",
+        "user_id": null,
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "platform": "android",
+        "app_version": "0.11.0-SNAPSHOT",
+        "app_build": "29137627",
+        "app_unique_id": "sh.measure.sample",
+        "measure_sdk_version": "0.11.0-SNAPSHOT",
+        "installation_id": "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+        "network_type": "wifi",
+        "network_generation": "unknown",
+        "network_provider": "unknown",
+        "device_low_power_mode": false,
+        "device_thermal_throttling_enabled": false
+      },
+      "user_defined_attribute": {},
+      "checkpoints": []
+    },
+    {
+      "name": "Measure.init",
+      "trace_id": "7211b8349de3603885300bbc6b2d9c85",
+      "span_id": "45dce1eaa3af3709",
+      "parent_id": "c4d868a7ebd3bf98",
+      "session_id": "652a5721-2f2e-47f5-ab73-944263760dfa",
+      "start_time": "2025-05-26T11:10:30.35300000Z",
+      "end_time": "2025-05-26T11:10:30.38700000Z",
+      "duration": 34,
+      "status": 0,
+      "attributes": {
+        "thread_name": "main",
+        "user_id": null,
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "platform": "android",
+        "app_version": "0.11.0-SNAPSHOT",
+        "app_build": "29137627",
+        "app_unique_id": "sh.measure.sample",
+        "measure_sdk_version": "0.11.0-SNAPSHOT",
+        "installation_id": "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+        "network_type": "wifi",
+        "network_generation": "unknown",
+        "network_provider": "unknown",
+        "device_low_power_mode": false,
+        "device_thermal_throttling_enabled": false
+      },
+      "user_defined_attribute": {},
+      "checkpoints": []
+    },
+    {
+      "name": "Activity TTID sh.measure.sample.ExceptionDemoActivity",
+      "trace_id": "bf1b62f91e61aaa7b5a9777f8d452eca",
+      "span_id": "7f4ae128df999b5c",
+      "parent_id": null,
+      "session_id": "652a5721-2f2e-47f5-ab73-944263760dfa",
+      "start_time": "2025-05-26T11:10:30.40500000Z",
+      "end_time": "2025-05-26T11:10:30.54100000Z",
+      "duration": 136,
+      "status": 1,
+      "attributes": {
+        "thread_name": "main",
+        "user_id": null,
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "platform": "android",
+        "app_version": "0.11.0-SNAPSHOT",
+        "app_build": "29137627",
+        "app_unique_id": "sh.measure.sample",
+        "measure_sdk_version": "0.11.0-SNAPSHOT",
+        "installation_id": "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+        "network_type": "wifi",
+        "network_generation": "unknown",
+        "network_provider": "unknown",
+        "device_low_power_mode": false,
+        "device_thermal_throttling_enabled": false
+      },
+      "user_defined_attribute": {
+        "app_startup_first_activity": true
+      },
+      "checkpoints": [
+        {
+          "name": "activity_lifecycle_created",
+          "timestamp": "2025-05-26T11:10:30.40500000Z"
+        },
+        {
+          "name": "activity_lifecycle_started",
+          "timestamp": "2025-05-26T11:10:30.45700000Z"
+        },
+        {
+          "name": "activity_lifecycle_resumed",
+          "timestamp": "2025-05-26T11:10:30.46100000Z"
+        }
+      ]
+    },
+    {
+      "name": "SampleApp.onCreate",
+      "trace_id": "7211b8349de3603885300bbc6b2d9c85",
+      "span_id": "c4d868a7ebd3bf98",
+      "parent_id": null,
+      "session_id": "652a5721-2f2e-47f5-ab73-944263760dfa",
+      "start_time": "2025-05-26T11:10:30.35300000Z",
+      "end_time": "2025-05-26T11:10:30.38800000Z",
+      "duration": 35,
+      "status": 0,
+      "attributes": {
+        "thread_name": "main",
+        "user_id": null,
+        "device_name": "sunfish",
+        "device_model": "Pixel 4a",
+        "device_manufacturer": "Google",
+        "device_locale": "en-US",
+        "os_name": "android",
+        "os_version": "33",
+        "platform": "android",
+        "app_version": "0.11.0-SNAPSHOT",
+        "app_build": "29137627",
+        "app_unique_id": "sh.measure.sample",
+        "measure_sdk_version": "0.11.0-SNAPSHOT",
+        "installation_id": "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+        "network_type": "wifi",
+        "network_generation": "unknown",
+        "network_provider": "unknown",
+        "device_low_power_mode": false,
+        "device_thermal_throttling_enabled": false
+      },
+      "user_defined_attribute": {},
+      "checkpoints": []
+    }
+  ]
+}
