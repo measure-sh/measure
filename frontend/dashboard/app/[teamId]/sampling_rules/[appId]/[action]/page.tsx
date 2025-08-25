@@ -12,11 +12,11 @@ interface PageState {
     samplingRulesConfig: typeof emptySamplingRulesConfigResponse
 }
 
-
-export default function CreateSamplingRule({ params }: { params: { teamId: string, appId: string } }) {
+export default function CreateSamplingRule({ params }: { params: { teamId: string; appId: string; action: string } }) {
+    const isEditMode = params.action === 'edit'
     const searchParams = useSearchParams()
     const type = searchParams.get(samplingRuleTypeKey)
-    
+
     const initialState: PageState = {
         samplingRulesConfigApiStatus: SamplingRulesConfigApiStatus.Loading,
         samplingRulesConfig: emptySamplingRulesConfigResponse,
@@ -57,7 +57,7 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
             <div className="flex flex-row items-center gap-2 justify-between w-full">
                 <p className="font-display text-4xl max-w-6xl text-center capitalize">
-                    Create {type} sampling rule
+                    {isEditMode ? 'Edit' : 'Create'} {type} sampling rule
                 </p>
             </div>
             <div className="py-4" />
@@ -73,7 +73,6 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
                     <div className={`py-1 w-full ${pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Loading ? 'visible' : 'invisible'}`}>
                         <LoadingBar />
                     </div>
-
                     <div className="py-4" />
                 </div>}
         </div>
