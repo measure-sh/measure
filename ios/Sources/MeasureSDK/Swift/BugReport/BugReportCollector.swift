@@ -26,23 +26,27 @@ final class BaseBugReportCollector: BugReportCollector {
     private var userDefinedAttributes: [String: AttributeValue]?
     private let sessionManager: SessionManager
     private let idProvider: IdProvider
+    private let logger: Logger
 
     init(bugReportManager: BugReportManager,
          signalProcessor: SignalProcessor,
          timeProvider: TimeProvider,
          sessionManager: SessionManager,
-         idProvider: IdProvider) {
+         idProvider: IdProvider,
+         logger: Logger) {
         self.bugReportManager = bugReportManager
         self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.sessionManager = sessionManager
         self.idProvider = idProvider
+        self.logger = logger
         self.bugReportManager.setBugReportCollector(self)
     }
 
     func startBugReportFlow(takeScreenshot: Bool,
                             bugReportConfig: BugReportConfig,
                             attributes: [String: AttributeValue]?) {
+        logger.log(level: .info, message: "Bug Report Flow Started", error: nil, data: nil)
         self.userDefinedAttributes = attributes
         bugReportManager.setBugReportConfig(bugReportConfig)
         bugReportManager.openBugReporter([], takeScreenshot: takeScreenshot)

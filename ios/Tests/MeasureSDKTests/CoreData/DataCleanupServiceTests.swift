@@ -180,7 +180,7 @@ final class DataCleanupServiceTests: XCTestCase {
                 self.sessionStore.insertSession(session3) {
                     let event1 = TestDataGenerator.generateEvents(id: "event1", sessionId: "session1", needsReporting: false)
                     let span1 = TestDataGenerator.generateSpans(name: "span1", sessionId: "session2")
-                    
+
                     self.eventStore.insertEvent(event: event1) {
                         self.spanStore.insertSpan(span: span1)
                         self.dataCleanupService.clearStaleData {

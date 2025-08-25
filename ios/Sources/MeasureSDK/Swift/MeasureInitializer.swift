@@ -407,7 +407,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          signalProcessor: signalProcessor,
                                                          timeProvider: timeProvider,
                                                          sessionManager: sessionManager,
-                                                         idProvider: idProvider)
+                                                         idProvider: idProvider,
+                                                         logger: logger)
         self.shakeDetector = AccelerometerShakeDetector(configProvider: configProvider)
         self.shakeBugReportCollector = ShakeBugReportCollector(shakeDetector: shakeDetector)
     }
