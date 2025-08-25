@@ -48,6 +48,8 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [**`navigation`**](#navigation)
     - [**`screen_view`**](#screen_view)
     - [**`custom`**](#custom)
+    - [**`session_start`**](#session-start)
+
   - [Traces](#traces)
 
 ## Resources
@@ -862,6 +864,12 @@ Use the `custom` type for custom events.
 | Field  | Type   | Optional | Description                  |
 | ------ | ------ | -------- | ---------------------------- |
 | `name` | string | No       | The name of the custom event |
+
+#### **`session_start`**
+
+Use the `session_start` type to mark begining of a new session. This must be the first _event_ by time in a session.
+
+This event has no additional fields.
 
 ### Traces
 
