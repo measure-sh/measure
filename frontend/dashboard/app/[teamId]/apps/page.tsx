@@ -18,6 +18,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
   const [currentUserCanChangeAppSettings, setCurrentUserCanChangeAppSettings] = useState(false)
 
+  const [appRetentionPeriodConfirmationModalOpen, setAppRetentionPeriodConfirmationModalOpen] = useState(false)
   const [fetchAppSettingsApiStatus, setFetchAppSettingsApiStatus] = useState(FetchAppSettingsApiStatus.Loading)
   const [updateAppSettingsApiStatus, setUpdateAppSettingsApiStatus] = useState(UpdateAppSettingsApiStatus.Init)
   const [appSettings, setAppSettings] = useState(emptyAppSettings)
@@ -194,6 +195,15 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             onCancelAction={() => setAppNameConfirmationModalOpen(false)}
           />
 
+          {/* Modal for confirming app retention period change */}
+          <DangerConfirmationModal body={<p className="font-body">Are you sure you want to change the retention period for app <span className="font-display font-bold">{filters.app!.name}</span> to <span className="font-display font-bold">{updatedAppSettings.retention_period} days</span>? <br /> <br /> This change only affects new sessions, current sessions will retain their original retention period.</p>} open={appRetentionPeriodConfirmationModalOpen} affirmativeText="Yes, I'm sure" cancelText="Cancel"
+            onAffirmativeAction={() => {
+              setAppRetentionPeriodConfirmationModalOpen(false)
+              saveAppSettings()
+            }}
+            onCancelAction={() => setAppRetentionPeriodConfirmationModalOpen(false)}
+          />
+
           <div className="font-body">
             <div className="flex flex-col">
               {filters.app!.unique_identifier && filters.app!.os_name && <p className="font-display text-gray-500">Unique Identifier</p>}
@@ -247,7 +257,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                   className="m-4 font-display border border-black select-none"
                   disabled={!currentUserCanChangeAppSettings || updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading || appSettings.retention_period === updatedAppSettings.retention_period}
                   loading={updateAppSettingsApiStatus === UpdateAppSettingsApiStatus.Loading}
-                  onClick={() => saveAppSettings()}>
+                  onClick={() => setAppRetentionPeriodConfirmationModalOpen(true)}>
                   Save
                 </Button>
               }
