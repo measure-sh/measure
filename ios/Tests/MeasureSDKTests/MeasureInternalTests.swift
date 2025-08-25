@@ -161,14 +161,6 @@ final class MeasureInternalTests: XCTestCase {
         let invalidSpan = measureInternal.startSpan(name: "TestSpan")
         XCTAssertTrue(invalidSpan is InvalidSpan, "startSpan should return an InvalidSpan if not started")
 
-        // Test `getTraceParentHeaderValue`
-        let traceParentValue = measureInternal.getTraceParentHeaderValue(for: invalidSpan)
-        XCTAssertEqual(traceParentValue, "", "getTraceParentHeaderValue should return an empty string if not started")
-
-        // Test `getTraceParentHeaderKey`
-        let traceParentKey = measureInternal.getTraceParentHeaderKey()
-        XCTAssertEqual(traceParentKey, "", "getTraceParentHeaderKey should return an empty string if not started")
-
         // Test `startBugReportFlow`
         measureInternal.startBugReportFlow(takeScreenshot: false, bugReportConfig: .default)
         XCTAssertFalse(logger.logs.contains("Bug Report Flow Started"), "startBugReportFlow should not proceed if not started")
@@ -194,9 +186,5 @@ final class MeasureInternalTests: XCTestCase {
         // Test `trackError`
         measureInternal.trackError(NSError(domain: "Test", code: 1), attributes: [:], collectStackTraces: false)
         XCTAssertFalse(logger.logs.contains(where: { $0.contains("Event processed") }), "trackError should not proceed if not started")
-
-        // Test `getDocumentDirectoryPath`
-        let documentPath = measureInternal.getDocumentDirectoryPath()
-        XCTAssertNil(documentPath, "getDocumentDirectoryPath should return nil if not started")
     }
 }

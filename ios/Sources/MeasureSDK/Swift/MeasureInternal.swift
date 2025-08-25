@@ -205,14 +205,10 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     }
 
     func setUserId(_ userId: String) {
-        guard isStarted else { return }
-
         userAttributeProcessor.setUserId(userId)
     }
 
     func clearUserId() {
-        guard isStarted else { return }
-
         userAttributeProcessor.clearUserId()
     }
 
@@ -229,14 +225,10 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     }
 
     func getTraceParentHeaderValue(for span: Span) -> String {
-        guard isStarted else { return "" }
-
         return spanCollector.getTraceParentHeaderValue(for: span)
     }
 
     func getTraceParentHeaderKey() -> String {
-        guard isStarted else { return "" }
-
         return spanCollector.getTraceParentHeaderKey()
     }
 
@@ -310,8 +302,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     }
 
     func getDocumentDirectoryPath() -> String? {
-        guard isStarted else { return nil }
-
         return systemFileManager.getDirectoryPath(directory: FileManager.SearchPathDirectory.documentDirectory)
     }
 
