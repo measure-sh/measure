@@ -190,6 +190,10 @@ func rmAppResources(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
+	if err = j.rmIngestionMetrics(ctx); err != nil {
+		return
+	}
+
 	if err = j.rmShortFilters(ctx, &tx); err != nil {
 		return
 	}
@@ -324,6 +328,14 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 	}
 
 	if err = chconn.Exec(ctx, "truncate table app_metrics;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table ingestion_metrics;"); err != nil {
+		return
+	}
+
+	if _, err = pgconn.Exec(ctx, "truncate table metrics_reporting;"); err != nil {
 		return
 	}
 
@@ -570,6 +582,41 @@ func (j *janitor) rmEventReqs(ctx context.Context, tx *pgx.Tx) (err error) {
 	_, err = (*tx).Exec(ctx, deleteEventReqs, args...)
 	if err != nil {
 		return
+	}
+
+	return
+}
+
+// rmIngestionMetrics removes app's ingestion metrics for apps
+// in config.
+func (j *janitor) rmIngestionMetrics(ctx context.Context) (err error) {
+	deleteMetrics := `delete from ingestion_metrics where app_id = toUUID(@app_id);`
+
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing ingestion metrics")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteMetrics, namedAppId); err != nil {
+			return err
+		}
 	}
 
 	return

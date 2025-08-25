@@ -115,7 +115,6 @@ func main() {
 		teams.POST("", measure.CreateTeam)
 		teams.GET("", measure.GetTeams)
 		teams.GET(":id/apps", measure.GetTeamApps)
-		teams.GET(":id/usage", measure.GetUsage)
 		teams.GET(":id/apps/:appId", measure.GetTeamApp)
 		teams.POST(":id/apps", measure.CreateApp)
 		teams.GET(":id/invites", measure.GetValidTeamInvites)
@@ -127,6 +126,7 @@ func main() {
 		teams.GET(":id/authz", measure.GetAuthzRoles)
 		teams.GET(":id/members", measure.GetTeamMembers)
 		teams.DELETE(":id/members/:memberId", measure.RemoveTeamMember)
+		teams.GET(":id/usage", measure.GetUsage)
 	}
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080
