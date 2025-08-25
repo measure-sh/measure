@@ -156,47 +156,55 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {pageState.samplingRules.results?.map(({
-                                id, type, name, status, last_modified_at, last_modified_by, sampling_rate
-                            }, idx) => (
-                                <TableRow
-                                    key={`${idx}-${id}`}
-                                    className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
-                                    tabIndex={0}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault()
-                                            // navigate to rule details page
-                                        }
-                                    }}
-                                >
-                                    <TableCell className="w-[60%] relative p-0">
-                                        <div className="pointer-events-none p-4">
-                                            <p className='truncate select-none flex-1'>{name}</p>
-                                            <div className='py-1' />
-                                            <div className="flex items-center gap-2">
-                                                <p className="inline-block text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-md select-none capitalize flex-shrink-0">
-                                                    {type}
-                                                </p>
-                                                <p className="text-xs text-gray-500 select-none">
-                                                    Sampling rate: {sampling_rate * 100}%
+                            {pageState.samplingRules.results?.map(({ id, type, name, status, last_modified_at, last_modified_by, sampling_rate }, idx) => {
+                                const ruleHref = `/${params.teamId}/sampling_rules/${pageState.filters.app!.id}/edit?ruleId=${id}`
+                                return (
+                                    <TableRow
+                                        key={`${idx}-${id}`}
+                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault()
+                                                router.push(ruleHref)
+                                            }
+                                        }}
+                                    >
+                                        <TableCell className="w-[60%] relative p-0">
+                                             <a
+                                                href={ruleHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-label={`ID: ${id}`}
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                <p className='truncate select-none flex-1'>{name}</p>
+                                                <div className='py-1' />
+                                                <div className="flex items-center gap-2">
+                                                    <p className="inline-block text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-md select-none capitalize flex-shrink-0">
+                                                        {type}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 select-none">
+                                                        Sampling rate: {sampling_rate * 100}%
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="w-[25%]">
+                                            <p className='truncate select-none'>{formatDateToHumanReadableDate(last_modified_at)}, {formatDateToHumanReadableTime(last_modified_at)}</p>
+                                            <p className='truncate select-none'>{last_modified_by}</p>
+                                        </TableCell>
+                                        <TableCell className="w-[15%] p-4">
+                                            <div className="flex justify-center">
+                                                <p className={`w-20 px-1 py-1 rounded-full border text-sm font-body select-none text-center ${status === 1 ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>
+                                                    {status === 1 ? 'Enabled' : 'Disabled'}
                                                 </p>
                                             </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="w-[25%]">
-                                        <p className='truncate select-none'>{formatDateToHumanReadableDate(last_modified_at)}, {formatDateToHumanReadableTime(last_modified_at)}</p>
-                                        <p className='truncate select-none'>{last_modified_by}</p>
-                                    </TableCell>
-                                    <TableCell className="w-[15%] p-4">
-                                        <div className="flex justify-center">
-                                            <p className={`w-20 px-1 py-1 rounded-full border text-sm font-body select-none text-center ${status === 1 ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>
-                                                {status === 1 ? 'Enabled' : 'Disabled'}
-                                            </p>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
                         </TableBody>
                     </Table>
                 </div>}
