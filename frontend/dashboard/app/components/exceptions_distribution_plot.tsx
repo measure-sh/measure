@@ -17,12 +17,37 @@ type ExceptionsDistributionPlot = {
   [key: string]: number | string
 }[]
 
-const formatAttribute = (str: string): string => {
+const formatAttribute = (str: string, hasAndroidData: boolean = false): string => {
+  if (str === 'os_version' && hasAndroidData) {
+    return 'API Level'
+  }
+
   return str
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
 }
+
+const formatOsVersionKey = (key: string): string => {
+  // Extract OS name and version from the key (e.g., "android 27" -> "Android API Level 27")
+  const parts = key.toLowerCase().split(' ')
+  if (parts.length >= 2) {
+    const osName = parts[0]
+    const version = parts[1]
+
+    const displayName = osName === 'android'
+      ? 'Android API Level'
+      : osName === 'ios'
+        ? 'iOS'
+        : osName === 'ipados'
+          ? 'iPadOS'
+          : osName
+
+    return `${displayName} ${version}`
+  }
+  return key
+}
+
 
 const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({ exceptionsType, exceptionsGroupId, filters }) => {
   const [exceptionsDistributionPlotApiStatus, setExceptionsDistributionPlotApiStatus] = useState(ExceptionsDistributionPlotApiStatus.Loading)
@@ -52,15 +77,27 @@ const ExceptionsDistributionPlot: React.FC<ExceptionsDistributionPlotProps> = ({
         // map result data to chart format
         const parsedPlotKeys: string[] = []
         const parsedPlot = Object.entries(result.data).map(([attribute, values]) => {
-          Object.keys(values as { [key: string]: number }).forEach(key => {
-            if (!parsedPlotKeys.includes(key)) {
-              parsedPlotKeys.push(key)
+          const transformedValues: { [key: string]: number } = {}
+          let hasAndroidData = false
+
+          Object.entries(values as { [key: string]: number }).forEach(([key, value]) => {
+            // Check if this is Android data for os_version
+            if (attribute === 'os_version' && key.toLowerCase().startsWith('android')) {
+              hasAndroidData = true
+            }
+
+            // Transform OS version keys for better display
+            const transformedKey = attribute === 'os_version' ? formatOsVersionKey(key) : key
+            transformedValues[transformedKey] = value
+
+            if (!parsedPlotKeys.includes(transformedKey)) {
+              parsedPlotKeys.push(transformedKey)
             }
           })
 
           return {
-            attribute: formatAttribute(attribute),
-            ...(values as { [key: string]: number }),
+            attribute: formatAttribute(attribute, hasAndroidData),
+            ...transformedValues,
           }
         })
 
