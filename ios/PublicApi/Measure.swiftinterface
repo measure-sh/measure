@@ -278,7 +278,8 @@ extension Measure.Measure {
   public static func internalTrackSpan(name: Swift.String, traceId: Swift.String, spanId: Swift.String, parentId: Swift.String?, startTime: Swift.Int64, endTime: Swift.Int64, duration: Swift.Int64, status: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], checkpoints: [Swift.String : Swift.Int64], hasEnded: Swift.Bool, isSampled: Swift.Bool)
   public static func trackEvent(name: Swift.String, attributes: [Swift.String : Measure.AttributeValue], timestamp: Swift.Int64? = nil)
   @objc public static func trackEvent(_ name: Swift.String, attributes: [Swift.String : Any], timestamp: Foundation.NSNumber? = nil)
-  @objc public static func trackScreenView(_ screenName: Swift.String)
+  public static func trackScreenView(_ screenName: Swift.String, attributes: [Swift.String : Measure.AttributeValue]?)
+  @objc public static func trackScreenView(_ screenName: Swift.String, attributes: [Swift.String : Any]?)
   @objc public static func setUserId(_ userId: Swift.String)
   @objc public static func clearUserId()
   @objc public static func getCurrentTime() -> Swift.Int64

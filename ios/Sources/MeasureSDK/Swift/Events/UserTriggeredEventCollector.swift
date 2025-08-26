@@ -8,7 +8,7 @@
 import Foundation
 
 protocol UserTriggeredEventCollector {
-    func trackScreenView(_ screenName: String)
+    func trackScreenView(_ screenName: String, attributes: [String: AttributeValue]?)
     func trackError(_ error: Error, attributes: [String: AttributeValue]?, collectStackTraces: Bool)
     func trackError(_ error: NSError, attributes: [String: AttributeValue]?, collectStackTraces: Bool)
     func enable()
@@ -41,17 +41,17 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
         }
     }
 
-    func trackScreenView(_ screenName: String) {
+    func trackScreenView(_ screenName: String, attributes: [String: AttributeValue]?) {
         guard isEnabled.get() else { return }
 
-        track(ScreenViewData(name: screenName), type: .screenView)
+        track(ScreenViewData(name: screenName), type: .screenView, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes))
     }
 
     func trackError(_ error: Error, attributes: [String: AttributeValue]?, collectStackTraces: Bool) {
         guard isEnabled.get() else { return }
 
         if let exception = exceptionGenerator.generate(error as NSError, collectStackTraces: collectStackTraces) {
-            track(exception, type: .exception)
+            track(exception, type: .exception, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes))
         }
     }
 
@@ -59,18 +59,18 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
         guard isEnabled.get() else { return }
 
         if let exception = exceptionGenerator.generate(error, collectStackTraces: collectStackTraces) {
-            track(exception, type: .exception)
+            track(exception, type: .exception, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes))
         }
     }
 
-    private func track(_ data: Codable, type: EventType) {
+    private func track(_ data: Codable, type: EventType, userDefinedAttributes: String? = nil) {
         signalProcessor.trackUserTriggered(data: data,
                                            timestamp: timeProvider.now(),
                                            type: type,
                                            attributes: nil,
                                            sessionId: nil,
                                            attachments: nil,
-                                           userDefinedAttributes: nil,
+                                           userDefinedAttributes: userDefinedAttributes,
                                            threadName: nil)
     }
 }
