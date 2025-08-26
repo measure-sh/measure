@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Ingest session start event (#2581) by @abhaysood in #2581
 - (**backend**): Drop crash + anr groups tables from postgres by @anupcowkur in #2452
 - (**backend**): Implement alerts by @anupcowkur in #2418
+- (**frontend**): Show api level for Android in crash & anr distribution plots by @anupcowkur in #2596
 - (**frontend**): Update milis to human readable display format by @anupcowkur in #2529
 - (**frontend**): Improve os name & version display formatting by @anupcowkur in #2500
 - (**frontend**): Remove "v" prefix from app version by @anupcowkur in #2499
