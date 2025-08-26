@@ -356,6 +356,11 @@ func UploadBuilds(url, apiKey string, app app.App) (status string, err error) {
 			}
 			defer file.Close()
 
+			fileInfo, err := file.Stat()
+			if err != nil {
+				return http.StatusText(http.StatusInternalServerError), err
+			}
+
 			req, err := http.NewRequest("PUT", mapping.UploadURL, file)
 			if err != nil {
 				return http.StatusText(http.StatusInternalServerError), err
@@ -365,6 +370,10 @@ func UploadBuilds(url, apiKey string, app app.App) (status string, err error) {
 			for key, val := range mapping.Headers {
 				req.Header.Set(key, val)
 			}
+
+			// some S3 backends may reject the upload
+			// if content-length header is not set.
+			req.ContentLength = fileInfo.Size()
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
