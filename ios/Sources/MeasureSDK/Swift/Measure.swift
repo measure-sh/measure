@@ -142,10 +142,16 @@ import UIKit
         measureInternal.trackEvent(name, attributes: attributes, timestamp: timestamp)
     }
 
-    @objc func trackScreenView(_ screenName: String) {
-        guard let userTriggeredEventCollector = measureInternal?.userTriggeredEventCollector else { return }
+    func trackScreenView(_ screenName: String, attributes: [String: AttributeValue]?) {
+        guard let measureInternal = measureInternal else { return }
 
-        userTriggeredEventCollector.trackScreenView(screenName)
+        measureInternal.trackScreenView(screenName, attributes: attributes)
+    }
+
+    @objc func trackScreenView(_ screenName: String, attributes: [String: Any]?) {
+        guard let measureInternal = measureInternal else { return }
+
+        measureInternal.trackScreenView(screenName, attributes: attributes)
     }
 
     @objc func setUserId(_ userId: String) {
@@ -471,21 +477,39 @@ extension Measure {
     }
 
     /// Call when a screen is viewed by the user.
+    /// 
+    /// Measure SDK automatically collects screen view events for UIKit and SwiftUI navigation.
+    /// However, if your app uses a custom navigation system, you can use this method to track
+    /// screen view events and gain more context when debugging issues.
+    /// 
+    /// Example usage:
+    /// ```swift
+    /// Measure.trackScreenView("Home", attributes:["user_name": .string("Alice")])
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - screenName: The name of the screen being viewed.
+    ///   - attributes: Optional key-value pairs providing additional context to the event.
+    public static func trackScreenView(_ screenName: String, attributes: [String: AttributeValue]?) {
+        Measure.shared.trackScreenView(screenName, attributes: attributes)
+    }
+
+    /// Call when a screen is viewed by the user.
     ///
     /// Measure SDK automatically collects screen view events for UIKit and SwiftUI navigation.
     /// However, if your app uses a custom navigation system, you can use this method to track
     /// screen view events and gain more context when debugging issues.
     ///
     /// Example usage:
-    /// ```swift
-    /// Measure.trackScreenView("Home")
-    /// ```
     ///
     /// ```objc
-    /// [Measure trackScreenView:@"ObjcViewController"]
+    /// [Measure trackScreenView:@"ObjcViewController" attributes:@{@"user_name": @"Alice"}]
     /// ```
-    @objc public static func trackScreenView(_ screenName: String) {
-        Measure.shared.trackScreenView(screenName)
+    /// - Parameters:
+    ///   - screenName: The name of the screen being viewed.
+    ///   - attributes: Optional key-value pairs providing additional context to the event.
+    @objc public static func trackScreenView(_ screenName: String, attributes: [String: Any]?) {
+        Measure.shared.trackScreenView(screenName, attributes: attributes)
     }
 
     /// Sets the user ID for the current user.

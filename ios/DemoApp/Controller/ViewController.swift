@@ -70,7 +70,11 @@ import Measure
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        Measure.trackScreenView("Home")
+        let attributes: [String: AttributeValue] = ["user_name": .string("Alice"),
+                                                    "paid_user": .boolean(true),
+                                                    "credit_balance": .int(1000),
+                                                    "latitude": .double(30.2661403415387)]
+        Measure.trackScreenView("Home", attributes: attributes)
     }
 
     // MARK: - Table Header View with Buttons
