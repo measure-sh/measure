@@ -23,11 +23,7 @@ extension UIApplication {
     @objc func swizzled_sendEvent(_ event: UIEvent) {
         gestureCollector?.processEvent(event)
 
-        if let imp = SwizzlingUtility.originalIMP(for: UIApplication.self, selector: #selector(sendEvent(_:))) {
-            typealias SendEventFunc = @convention(c) (UIApplication, Selector, UIEvent) -> Void
-            let original = unsafeBitCast(imp, to: SendEventFunc.self)
-            original(self, #selector(sendEvent(_:)), event)
-        }
+        swizzled_sendEvent(event)
     }
 
     func setGestureCollector(_ collector: GestureCollector) {
@@ -39,7 +35,7 @@ extension UIApplication {
             for: UIApplication.self,
             originalSelector: #selector(sendEvent(_:)),
             swizzledSelector: #selector(swizzled_sendEvent(_:)),
-            strategy: .replace
+            strategy: .exchange
         )
     }
 }
