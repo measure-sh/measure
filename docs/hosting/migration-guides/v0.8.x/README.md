@@ -25,10 +25,10 @@ sudo ./install.sh
 
 ## 3. Run data backfills
 
-Perform this step to complete the migration. Certain features on the Measure dashboard like user defined attributes won't work otherwise.
+Perform this step to complete the migration. Certain features on the Measure dashboard like crashes and ANRs won't work otherwise.
 
 This may take some time. Make sure your SSH connection remains active until it completes.
 
 ```sh
-sudo ./migrations/v0.8.x-data-backfills.sh
+sudo ./migrations/v0.8.x-backfills.sh
 ```
