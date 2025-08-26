@@ -1218,7 +1218,7 @@ const Filters = forwardRef<{ refresh: () => void }, FiltersProps>(
         )}
         {appsApiStatus === AppsApiStatus.NoApps && (
           <p className="font-body text-sm">
-            Looks like you don&apost have any apps yet. Get started by{" "}
+            Looks like you don&apos;t have any apps yet. Get started by{" "}
             {pathName.includes("apps") ? (
               "creating your first app!"
             ) : (
