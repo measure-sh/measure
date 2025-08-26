@@ -22,7 +22,7 @@ internal interface SessionManager {
     /**
      * Creates a new session, to be used only when the SDK is initialized.
      */
-    fun init()
+    fun init(): SessionInitResult
 
     /**
      * Returns a session ID.
@@ -69,6 +69,11 @@ internal interface SessionManager {
     fun clearAppExitSessionsBefore(timestamp: Long)
 }
 
+internal sealed interface SessionInitResult {
+    data class NewSessionCreated(val sessionId: String) : SessionInitResult
+    data class SessionResumed(val sessionId: String) : SessionInitResult
+}
+
 /**
  * Manages creation of sessions.
  *
@@ -90,15 +95,20 @@ internal class SessionManagerImpl(
     private var currentSession: RecentSession? = null
     private var appBackgroundTime: Long = 0
 
-    override fun init() {
+    override fun init(): SessionInitResult {
         val recentSession = prefs.getRecentSession()
-        currentSession = when {
+        return when {
             recentSession != null && shouldContinue(recentSession) -> {
                 updateSessionPid(recentSession.id, processInfo.getPid(), recentSession.createdAt)
-                recentSession
+                currentSession = recentSession
+                SessionInitResult.SessionResumed(recentSession.id)
             }
 
-            else -> createNewSession()
+            else -> {
+                val newSession = createNewSession()
+                currentSession = newSession
+                SessionInitResult.NewSessionCreated(newSession.id)
+            }
         }
     }
 

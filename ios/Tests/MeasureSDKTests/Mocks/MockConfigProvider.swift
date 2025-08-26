@@ -56,7 +56,7 @@ final class MockConfigProvider: ConfigProvider {
     var maxDiskUsageInMb: Int
     var estimatedEventSizeInKb: Int
 
-    init(enableLogging: Bool = false,
+    init(enableLogging: Bool = false,  // swiftlint:disable:this function_body_length
          trackScreenshotOnCrash: Bool = true,
          samplingRateForErrorFreeSessions: Float = 1.0,
          eventsBatchingIntervalMs: Number = 30000,

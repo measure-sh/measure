@@ -317,7 +317,8 @@ final class MockMeasureInitializer: MeasureInitializer {  // swiftlint:disable:t
                                                          signalProcessor: self.signalProcessor,
                                                          timeProvider: self.timeProvider,
                                                          sessionManager: self.sessionManager,
-                                                         idProvider: self.idProvider)
+                                                         idProvider: self.idProvider,
+                                                         logger: self.logger)
         self.shakeDetector = AccelerometerShakeDetector(configProvider: self.configProvider)
         self.shakeBugReportCollector = ShakeBugReportCollector(shakeDetector: self.shakeDetector)
     }

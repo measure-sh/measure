@@ -6,9 +6,9 @@ const {
 
 const MEASURE_POD_TAG = `# @measure/react-native`;
 const MEASURE_POD_LINES = `
-${MEASURE_POD_TAG}
-  pod 'MeasureReactNative', :path => '../../..', :modular_headers => false
-  pod 'measure-sh', :path => '../../../..', :modular_headers => false
+  ${MEASURE_POD_TAG}
+  pod 'MeasureReactNative', :path => '../../..'
+  pod 'measure-sh', :path => '../../../..'
 `;
 
 function injectMeasurePods(contents) {
@@ -51,10 +51,10 @@ function withMeasureMainApplication(config) {
     let contents = mod.modResults.contents;
 
     // 1. Ensure the import is present
-    if (!contents.includes('import sh.measurern.MeasurePackage')) {
+    if (!contents.includes('import sh.measure.rn.MeasurePackage')) {
       contents = contents.replace(
         /(package .*?\n)/,
-        `$1import sh.measurern.MeasurePackage\n`
+        `$1import sh.measure.rn.MeasurePackage\n`
       );
     }
 

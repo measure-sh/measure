@@ -1255,6 +1255,30 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
 }
 
+func (e *eventreq) countMetrics() (sessionCount, eventCount, spanCount, traceCount, attachmentCount uint32) {
+	eventCount = uint32(len(e.events))
+
+	sessionCount = 0
+	for _, ev := range e.events {
+		if ev.Type == event.TypeSessionStart {
+			sessionCount++
+		}
+	}
+
+	attachmentCount = uint32(len(e.attachments))
+
+	traceCount = uint32(0)
+	for _, span := range e.spans {
+		if span.ParentID == "" {
+			traceCount++
+		}
+	}
+
+	spanCount = uint32(len(e.spans))
+
+	return sessionCount, eventCount, spanCount, traceCount, attachmentCount
+}
+
 // sessionCount counts and provides the number of
 // sessions in event request.
 func (e eventreq) sessionCount() (count int) {
@@ -2367,6 +2391,74 @@ func PutEvents(c *gin.Context) {
 
 	if err := eventReq.end(ctx, &tx); err != nil {
 		msg := `failed to save event request`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	// get team id from app id
+	var teamID string
+	teamIdForAppQuery := sqlf.PostgreSQL.From("apps").
+		Select("team_id").
+		Where("id = ?", app.ID)
+	defer teamIdForAppQuery.Close()
+
+	if err := server.Server.PgPool.QueryRow(ctx, teamIdForAppQuery.String(), teamIdForAppQuery.Args()...).Scan(&teamID); err != nil {
+		msg := `failed to get team id for app`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	// get retention period for app
+	var retentionPeriod int
+	retentionPeriodQuery := sqlf.PostgreSQL.From("app_settings").
+		Select("retention_period").
+		Where("app_id = ?", app.ID)
+	defer retentionPeriodQuery.Close()
+
+	if err := server.Server.PgPool.QueryRow(ctx, retentionPeriodQuery.String(), retentionPeriodQuery.Args()...).Scan(&retentionPeriod); err != nil {
+		msg := `failed to get app retention period`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	sessionCount, eventCount, spanCount, traceCount, attachmentCount := eventReq.countMetrics()
+	sessionCountDays := sessionCount * uint32(retentionPeriod)
+	eventCountDays := eventCount * uint32(retentionPeriod)
+	spanCountDays := spanCount * uint32(retentionPeriod)
+	traceCountDays := traceCount * uint32(retentionPeriod)
+	attachmentCountDays := attachmentCount * uint32(retentionPeriod)
+
+	// insert metrics into clickhouse table
+	insertMetricsIngestionSelectStmt := sqlf.
+		Select("? AS team_id", teamID).
+		Select("? AS app_id", app.ID).
+		Select("? AS timestamp", time.Now()).
+		Select("sumState(CAST(? AS UInt32)) AS session_count", sessionCount).
+		Select("sumState(CAST(? AS UInt32)) AS event_count", eventCount).
+		Select("sumState(CAST(? AS UInt32)) AS span_count", spanCount).
+		Select("sumState(CAST(? AS UInt32)) AS trace_count", traceCount).
+		Select("sumState(CAST(? AS UInt32)) AS attachment_count", attachmentCount).
+		Select("sumState(CAST(? AS UInt32)) AS session_count_days", sessionCountDays).
+		Select("sumState(CAST(? AS UInt32)) AS event_count_days", eventCountDays).
+		Select("sumState(CAST(? AS UInt32)) AS span_count_days", spanCountDays).
+		Select("sumState(CAST(? AS UInt32)) AS trace_count_days", traceCountDays).
+		Select("sumState(CAST(? AS UInt32)) AS attachment_count_days", attachmentCountDays)
+	selectSQL := insertMetricsIngestionSelectStmt.String()
+	args := insertMetricsIngestionSelectStmt.Args()
+	defer insertMetricsIngestionSelectStmt.Close()
+	insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
+
+	if err := server.Server.ChPool.Exec(ctx, insertMetricsIngestionFullStmt, args...); err != nil {
+		msg := `failed to insert metrics into clickhouse`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,

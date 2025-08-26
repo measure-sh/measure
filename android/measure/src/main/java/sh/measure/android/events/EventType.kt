@@ -22,6 +22,7 @@ internal enum class EventType(val value: String) {
     SCREEN_VIEW("screen_view"),
     CUSTOM("custom"),
     BUG_REPORT("bug_report"),
+    SESSION_START("session_start"),
     ;
 
     companion object {

@@ -20,7 +20,7 @@ final class ComputeOnceAttributeProcessorTests: XCTestCase {
         }
 
         let processor = TestComputeOnceAttributeProcessor()
-        var attributes = Attributes()
+        let attributes = Attributes()
 
         processor.appendAttributes(attributes)
         processor.appendAttributes(attributes)
