@@ -1097,20 +1097,6 @@ export const dummySamplingRulesConfigResponse = {
         ]
       },
       {
-        "type": "gesture_click",
-        "ud_attrs": false,
-        "attrs": [
-          {
-            "key": "target_id",
-            "type": "string"
-          },
-          {
-            "key": "target",
-            "type": "string"
-          }
-        ],
-      },
-      {
         "type": "screen_view",
         "ud_attrs": true,
         "attrs": [
@@ -1139,6 +1125,20 @@ export const dummySamplingRulesConfigResponse = {
             "type": "string"
           }
         ],
+      },
+      {
+        "type": "http",
+        "ud_attrs": false,
+        "attrs": [
+          {
+            "key": "url",
+            "type": "string"
+          },
+           {
+            "key": "status_code",
+            "type": "int64"
+          }
+        ],
       }
     ],
     spans: [
@@ -1150,7 +1150,27 @@ export const dummySamplingRulesConfigResponse = {
     event_ud_attrs: {
       key_types: [
         {
-          key: "string",
+          key: "is_premium_user",
+          type: "bool",
+        },
+        {
+          key: "campaign_id",
+          type: "string",
+        },
+        {
+          key: "referrer_url",
+          type: "string",
+        },
+        {
+          key: "load_time",
+          type: "float64",
+        },
+        {
+          key: "retry_count",
+          type: "int64",
+        },
+        {
+          key: "another_key_which_is_too_long",
           type: "string",
         },
       ]

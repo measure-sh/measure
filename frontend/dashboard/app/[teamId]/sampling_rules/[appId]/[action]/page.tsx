@@ -1,10 +1,12 @@
 "use client"
 
-import { emptySamplingRulesConfigResponse, fetchSamplingRulesConfigFromServer, SamplingRulesConfigApiStatus } from '@/app/api/api_calls';
+import { dummySamplingRulesConfigResponse, emptySamplingRulesConfigResponse, fetchSamplingRulesConfigFromServer, SamplingRulesConfigApiStatus } from '@/app/api/api_calls';
 import LoadingBar from '@/app/components/loading_bar';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import SamplingConditions from '@/app/components/sampling_conditions'; // Adjust the import path as needed
 
+export type SamplingRulesConfig = typeof emptySamplingRulesConfigResponse;
 const samplingRuleTypeKey = "type"
 
 interface PageState {
@@ -50,8 +52,7 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
 
     useEffect(() => {
         getSamplingRulesConfig()
-    }, [pageState.samplingRulesConfig])
-
+    }, [])
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
@@ -73,7 +74,9 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
                     <div className={`py-1 w-full ${pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Loading ? 'visible' : 'invisible'}`}>
                         <LoadingBar />
                     </div>
-                    <div className="py-4" />
+
+                    {/* Conditions Section */}
+                    <SamplingConditions samplingRulesConfig={pageState.samplingRulesConfig} />
                 </div>}
         </div>
     );
