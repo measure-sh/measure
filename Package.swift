@@ -16,9 +16,18 @@ let package = Package(
         .package(url: "https://github.com/microsoft/plcrashreporter.git", from: "1.11.2")
     ],
     targets: [
+        // ObjC target
+        .target(
+            name: "MeasureObjC",
+            path: "ios/Sources/MeasureSDK/ObjC",
+            publicHeadersPath: "include"
+        ),
+
+        // Swift target, depends on ObjC + CrashReporter
         .target(
             name: "Measure",
             dependencies: [
+                "MeasureObjC",
                 .product(name: "CrashReporter", package: "plcrashreporter")
             ],
             path: "ios/Sources/MeasureSDK/Swift",
@@ -27,6 +36,8 @@ let package = Package(
                 .copy("Resources/PrivacyInfo.xcprivacy")
             ]
         ),
+
+        // Tests
         .testTarget(
             name: "MeasureSDKTests",
             dependencies: ["Measure"],

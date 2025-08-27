@@ -251,6 +251,8 @@
 		CF48E3982E01866400FCD26D /* Error.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF48E3972E01866400FCD26D /* Error.swift */; };
 		CF4FE3942D913BAC0073D8AE /* Measure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* Measure.framework */; };
 		CF4FE3952D913BAC0073D8AE /* Measure.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* Measure.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		CF5AA0692E5ED97A008993F9 /* LifecycleEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = CF5AA0682E5ED97A008993F9 /* LifecycleEvent.h */; };
+		CF5AA0742E5EEE7B008993F9 /* LifecycleManagerInternalSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF5AA0732E5EEE7B008993F9 /* LifecycleManagerInternalSwift.swift */; };
 		CF7CAE4A2D940E4700E15CDB /* AppVersionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE492D940E4700E15CDB /* AppVersionInfo.swift */; };
 		CF7CAE4C2D940F2700E15CDB /* MockAppVersionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE4B2D940F2700E15CDB /* MockAppVersionInfo.swift */; };
 		CF7CAE552D952FA600E15CDB /* HttpEventValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */; };
@@ -611,6 +613,8 @@
 		CF4877402DEEB2C000311F57 /* UIWindow+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIWindow+Extension.swift"; sourceTree = "<group>"; };
 		CF48E3552DF95E8100FCD26D /* ExceptionGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExceptionGenerator.swift; sourceTree = "<group>"; };
 		CF48E3972E01866400FCD26D /* Error.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Error.swift; sourceTree = "<group>"; };
+		CF5AA0682E5ED97A008993F9 /* LifecycleEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LifecycleEvent.h; sourceTree = "<group>"; };
+		CF5AA0732E5EEE7B008993F9 /* LifecycleManagerInternalSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleManagerInternalSwift.swift; sourceTree = "<group>"; };
 		CF7CAE492D940E4700E15CDB /* AppVersionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersionInfo.swift; sourceTree = "<group>"; };
 		CF7CAE4B2D940F2700E15CDB /* MockAppVersionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAppVersionInfo.swift; sourceTree = "<group>"; };
 		CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidator.swift; sourceTree = "<group>"; };
@@ -731,14 +735,15 @@
 			path = include;
 			sourceTree = "<group>";
 		};
-		526D17952D5A1913009A2E90 /* Objc */ = {
+		526D17952D5A1913009A2E90 /* ObjC */ = {
 			isa = PBXGroup;
 			children = (
 				526D17932D5A1913009A2E90 /* include */,
 				526D17942D5A1913009A2E90 /* MSRViewController.m */,
+				CF5AA0682E5ED97A008993F9 /* LifecycleEvent.h */,
 				52B7F19B2D76B423001498BC /* LifecycleManager_Internal.h */,
 			);
-			path = Objc;
+			path = ObjC;
 			sourceTree = "<group>";
 		};
 		526D179A2D5A1913009A2E90 /* AppLaunch */ = {
@@ -914,6 +919,7 @@
 				526D17E92D5A1913009A2E90 /* LifecycleManager.swift */,
 				526D17EA2D5A1913009A2E90 /* MsrViewController.swift */,
 				526D17EB2D5A1913009A2E90 /* MsrMoniterView.swift */,
+				CF5AA0732E5EEE7B008993F9 /* LifecycleManagerInternalSwift.swift */,
 			);
 			path = Lifecycle;
 			sourceTree = "<group>";
@@ -1044,7 +1050,7 @@
 		526D181D2D5A1913009A2E90 /* MeasureSDK */ = {
 			isa = PBXGroup;
 			children = (
-				526D17952D5A1913009A2E90 /* Objc */,
+				526D17952D5A1913009A2E90 /* ObjC */,
 				526D181C2D5A1913009A2E90 /* Swift */,
 			);
 			path = MeasureSDK;
@@ -1408,6 +1414,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				52B7F19C2D76B423001498BC /* LifecycleManager_Internal.h in Headers */,
+				CF5AA0692E5ED97A008993F9 /* LifecycleEvent.h in Headers */,
 				526D18212D5A1913009A2E90 /* MSRViewController.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1716,6 +1723,7 @@
 				CF1BB4962DCC7FE300588506 /* BugReportCollector.swift in Sources */,
 				CFD88D0D2DA7968E0095115E /* SpanBuilder.swift in Sources */,
 				526D18342D5A1913009A2E90 /* DefaultConfig.swift in Sources */,
+				CF5AA0742E5EEE7B008993F9 /* LifecycleManagerInternalSwift.swift in Sources */,
 				69E4B4D32DA7581A00361E25 /* MeasureInitializer.swift in Sources */,
 				526D183F2D5A1913009A2E90 /* CrashDataFormatter.swift in Sources */,
 				CFD88D642DAE36D30095115E /* BatchOb+CoreDataClass.swift in Sources */,
