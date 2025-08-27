@@ -5,7 +5,7 @@ import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_se
 import SamplingAttributeRow from '@/app/components/sampling_attribute_row';
 import SamplingLogicalOperatorSelector from '@/app/components/sampling_logical_operator_selector';
 import { Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { emptySamplingRulesConfigResponse } from '../api/api_calls';
 
 const MAX_CONDITIONS = 5;
@@ -167,10 +167,38 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
         value: 100
     });
 
+    // Effect to set the first event type when eventTypes are available
+    useEffect(() => {
+        const eventTypes = getEventTypesFromResponse(samplingRulesConfig);
+        
+        if (eventTypes.length > 0) {
+            setEventConditionsState(prevState => {
+                // Only update if the first condition doesn't have a type set
+                if (prevState.conditions.length > 0 && prevState.conditions[0].type === null) {
+                    const updatedConditions = prevState.conditions.map((condition, index) =>
+                        index === 0 ? { ...condition, type: eventTypes[0] } : condition
+                    );
+                    return {
+                        ...prevState,
+                        conditions: updatedConditions
+                    };
+                }
+                return prevState;
+            });
+        }
+    }, [samplingRulesConfig]);
+
     // Event condition handlers
     const addEventCondition = () => {
         if (eventConditionsState.conditions.length < MAX_CONDITIONS) {
-            const newCondition = createEmptyEventCondition()
+            const eventTypes = getEventTypesFromResponse(samplingRulesConfig);
+            const newCondition = createEmptyEventCondition();
+            
+            // Set the first event type if available
+            if (eventTypes.length > 0) {
+                newCondition.type = eventTypes[0];
+            }
+            
             const newOperators = eventConditionsState.conditions.length > 0
                 ? [...eventConditionsState.operators, 'AND' as const]
                 : []
