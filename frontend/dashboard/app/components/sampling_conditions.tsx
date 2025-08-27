@@ -546,7 +546,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                                     </div>
 
                                     {index < eventConditionsState.conditions.length - 1 && (
-                                        <div className="py-3">
+                                        <div className="py-6 pl-3">
                                             <SamplingLogicalOperatorSelector
                                                 value={eventConditionsState.operators[index] || 'AND'}
                                                 onChange={(operator) => updateEventOperator(index, operator)}
@@ -620,7 +620,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                                 </div>
 
                                 {index < sessionConditionsState.conditions.length - 1 && (
-                                    <div className="py-3">
+                                    <div className="py-6 pl-3">
                                         <SamplingLogicalOperatorSelector
                                             value={sessionConditionsState.operators[index] || 'AND'}
                                             onChange={(operator) => updateSessionOperator(index, operator)}
