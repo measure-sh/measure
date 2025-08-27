@@ -167,6 +167,10 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
         value: 100
     });
 
+    const [samplingRuleName, setSamplingRuleName] = useState<string>();
+
+    const [samplingRuleStatus, setSamplingRuleStatus] = useState<'enabled' | 'disabled'>('enabled');
+
     // Effect to set the first event type when eventTypes are available
     useEffect(() => {
         const eventTypes = getEventTypesFromResponse(samplingRulesConfig);
@@ -478,6 +482,24 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
 
     return (
         <div className="w-full space-y-6">
+            {/* Sampling rule name */}
+            <div className="w-full">
+                <div className="flex items-center gap-2">
+                    <p className="font-display text-xl max-w-6xl">Rule name</p>
+                </div>
+                <input
+                    type="text"
+                    placeholder="Enter name for sampling rule"
+                    value={samplingRuleName}
+                    onChange={(e) => {
+                        setSamplingRuleName(e.target.value.trim());
+                    }}
+                    className="mt-4 w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
+                />
+            </div>
+
+            <div className="py-2" />
+
             {/* Event conditions */}
             <div className="w-full">
                 <div className="flex justify-start items-center gap-4">
