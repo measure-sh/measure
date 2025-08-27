@@ -2,11 +2,11 @@
 
 import { Button } from '@/app/components/button';
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select';
+import SamplingAttributeRow from '@/app/components/sampling_attribute_row';
+import SamplingLogicalOperatorSelector from '@/app/components/sampling_logical_operator_selector';
 import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { emptySamplingRulesConfigResponse } from '../api/api_calls';
-import SamplingLogicalOperatorSelector from '@/app/components/sampling_logical_operator_selector';
-import SamplingAttributeRow from '@/app/components/sampling_attribute_row';
 
 const MAX_CONDITIONS = 5;
 const MAX_ATTRIBUTES_PER_CONDITION = 5;
@@ -41,6 +41,11 @@ interface EventConditionsState {
 interface SessionConditionsState {
     conditions: SessionCondition[]
     operators: ('AND' | 'OR')[]
+}
+
+// Add sampling rate state interface
+interface SamplingRateState {
+    value: string | number;
 }
 
 interface SamplingConditionsProps {
@@ -136,6 +141,11 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
         conditions: [],
         operators: []
     })
+
+    // Add sampling rate state
+    const [samplingRateState, setSamplingRateState] = useState<SamplingRateState>({
+        value: 100
+    });
 
     // Event condition handlers
     const addEventCondition = () => {
@@ -554,6 +564,61 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                         ))}
                     </div>
                 )}
+            </div>
+
+            <div className="py-2" />
+
+            {/* Sampling rate */}
+            <div className="w-full">
+                <div className="flex justify-between">
+                    <div className="flex items-center gap-2">
+                        <p className="font-display text-xl max-w-6xl">Sampling rate</p>
+                    </div>
+                </div>
+
+                <div className="pt-4">
+                    <input
+                        id="change-team-name-input"
+                        type="number"
+                        placeholder="0-100%"
+                        value={samplingRateState.value}
+                        min={0}
+                        max={100}
+                        onChange={(e) => {
+                            setSamplingRateState({ value: e.target.value });
+                        }}
+                        onBlur={(e) => {
+                            const val = Number(e.target.value);
+                            setSamplingRateState({
+                                value: Math.max(0, Math.min(100, isNaN(val) ? 0 : val))
+                            });
+                        }}
+                        className="w-24 my-2 border border-black rounded-md outline-hidden text-xs focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-2 font-body placeholder:text-neutral-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    /> %
+                </div>
+            </div>
+
+            <div className="py-4" />
+
+            {/* Preview */}
+            <div className="w-full">
+                <div className="flex justify-between">
+                    <div className="flex items-center gap-2">
+                        <p className="font-display text-xl max-w-6xl">Preview</p>
+                    </div>
+                </div>
+
+                <div className="pt-4">
+                    <div className="whitespace-pre-wrap leading-5.5 bg-gray-50 p-4 text-xs font-mono">
+                        <pre>
+                            {JSON.stringify({
+                                event_conditions: eventConditionsState,
+                                session_conditions: sessionConditionsState,
+                                sampling_rate: samplingRateState.value
+                            }, null, 2)}
+                        </pre>
+                    </div>
+                </div>
             </div>
         </div>
     )
