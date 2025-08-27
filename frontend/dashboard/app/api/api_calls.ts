@@ -1171,7 +1171,7 @@ export const dummySamplingRulesConfigResponse = {
           type: "int64",
         },
         {
-          key: "another_key_which_is_too_long",
+          key: "another_key_which_is_too_long_and_may_not_even_fit_the_entire_width_lorem_ipsum_foo_bar",
           type: "string",
         },
       ]
