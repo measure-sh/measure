@@ -204,6 +204,20 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         customEventCollector.trackEvent(name: name, attributes: transformedAttributes, timestamp: timestamp?.int64Value)
     }
 
+    func trackScreenView(_ screenName: String, attributes: [String: AttributeValue]?) {
+        guard isStarted else { return }
+
+        userTriggeredEventCollector.trackScreenView(screenName, attributes: attributes)
+    }
+
+    func trackScreenView(_ screenName: String, attributes: [String: Any]?) {
+        guard isStarted else { return }
+
+        let transformedAttributes = transformAttributes(attributes)
+
+        userTriggeredEventCollector.trackScreenView(screenName, attributes: transformedAttributes)
+    }
+
     func setUserId(_ userId: String) {
         userAttributeProcessor.setUserId(userId)
     }

@@ -55,7 +55,7 @@
     [self setTitle:@"Objc View Controller"];
     
     [self.view addSubview:tableView];
-    [Measure trackScreenView:@"ObjcViewController"];
+    [Measure trackScreenView:@"ObjcViewController" attributes:userAttributes];
 }
 
 // MARK: - Create Table Header with Buttons
