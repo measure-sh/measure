@@ -27,7 +27,7 @@ const SamplingAttributeRow = ({
     onUpdateAttribute: (conditionIndex: number, attrIndex: number, field: 'key' | 'type' | 'value', value: any, attributeType: AttributeType) => void;
     onRemoveAttribute?: (conditionIndex: number, attrIndex: number, attributeType: AttributeType) => void;
     showDeleteButton?: boolean;
-    predefinedValues?: string[]; // Add this new prop for generic predefined values
+    predefinedValues?: string[];
 }) => {
     // Check if this attribute has predefined values
     const hasPredefinedValues = predefinedValues && predefinedValues.length > 0;

@@ -1206,11 +1206,6 @@ export const dummySamplingRulesConfigResponse = {
         values: ["Pixel 6", "Galaxy S21", "OnePlus 9", "Mi 11"]
       },
       {
-        key: "country",
-        type: "string",
-        values: ["US", "GB", "IN", "DE"]
-      },
-      {
         key: "network_type",
         type: "string",
         values: ["wifi", "cellular", "none"]

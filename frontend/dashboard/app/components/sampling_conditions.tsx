@@ -159,7 +159,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
     })
 
     const [sessionConditionsState, setSessionConditionsState] = useState<SessionConditionsState>({
-        conditions: [],
+        conditions: [createEmptySessionCondition()],
         operators: []
     })
 
@@ -170,7 +170,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
     // Effect to set the first event type when eventTypes are available
     useEffect(() => {
         const eventTypes = getEventTypesFromResponse(samplingRulesConfig);
-        
+
         if (eventTypes.length > 0) {
             setEventConditionsState(prevState => {
                 // Only update if the first condition doesn't have a type set
@@ -188,17 +188,46 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
         }
     }, [samplingRulesConfig]);
 
+    // Effect to set the first session attribute when session attributes are available
+    useEffect(() => {
+        const sessionAttrs = getSessionAttributes(samplingRulesConfig);
+
+        if (sessionAttrs.length > 0) {
+            setSessionConditionsState(prevState => {
+                // Only update if the first condition doesn't have attrs set
+                if (prevState.conditions.length > 0 && !prevState.conditions[0].attrs) {
+                    const firstAttr = sessionAttrs[0];
+                    const updatedConditions = prevState.conditions.map((condition, index) =>
+                        index === 0 ? {
+                            ...condition,
+                            attrs: [{
+                                key: firstAttr.key,
+                                type: firstAttr.type,
+                                value: firstAttr.type === 'bool' ? false : ''
+                            }]
+                        } : condition
+                    );
+                    return {
+                        ...prevState,
+                        conditions: updatedConditions
+                    };
+                }
+                return prevState;
+            });
+        }
+    }, [samplingRulesConfig]);
+
     // Event condition handlers
     const addEventCondition = () => {
         if (eventConditionsState.conditions.length < MAX_CONDITIONS) {
             const eventTypes = getEventTypesFromResponse(samplingRulesConfig);
             const newCondition = createEmptyEventCondition();
-            
+
             // Set the first event type if available
             if (eventTypes.length > 0) {
                 newCondition.type = eventTypes[0];
             }
-            
+
             const newOperators = eventConditionsState.conditions.length > 0
                 ? [...eventConditionsState.operators, 'AND' as const]
                 : []
@@ -619,6 +648,10 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                                                         const operatorTypes = getOperatorsForType(operatorTypesMapping, attr.type)
                                                         const availableSessionAttrKeys = sessionAttrs.map(a => a.key);
 
+                                                        // Find the session attribute definition to get predefined values
+                                                        const sessionAttrDef = sessionAttrs.find(a => a.key === attr.key);
+                                                        const predefinedValues = sessionAttrDef?.values?.map(val => String(val)) || [];
+
                                                         return (
                                                             <SamplingAttributeRow
                                                                 key={`session-attrs-${index}-${attrIndex}`}
@@ -629,6 +662,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                                                                 availableAttrKeys={availableSessionAttrKeys}
                                                                 operatorTypes={operatorTypes}
                                                                 onUpdateAttribute={updateSessionAttribute}
+                                                                predefinedValues={predefinedValues}
                                                                 showDeleteButton={false}
                                                             />
                                                         )
