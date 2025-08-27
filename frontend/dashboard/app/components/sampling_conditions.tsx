@@ -135,6 +135,23 @@ const getAvailableAttributes = (
     return [];
 };
 
+// Helper function to check if conditions are empty
+const areConditionsEmpty = (eventConditionsState: EventConditionsState, sessionConditionsState: SessionConditionsState): boolean => {
+    // Check event conditions - consider valid if there's a type selected OR attributes
+    const hasValidEventConditions = eventConditionsState.conditions.some(condition => {
+        return condition.type !== null || 
+            (condition.attrs && condition.attrs.length > 0) ||
+            (condition.udAttrs && condition.udAttrs.length > 0);
+    });
+
+    // Check session conditions
+    const hasValidSessionConditions = sessionConditionsState.conditions.some(condition => {
+        return condition.attrs && condition.attrs.length > 0;
+    });
+
+    return !hasValidEventConditions && !hasValidSessionConditions;
+};
+
 export default function SamplingConditions({ samplingRulesConfig }: SamplingConditionsProps) {
     const [eventConditionsState, setEventConditionsState] = useState<EventConditionsState>({
         conditions: [createEmptyEventCondition()],
@@ -406,6 +423,9 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
     const operatorTypesMapping = getOperatorTypesMapping(samplingRulesConfig);
     const sessionAttrs = getSessionAttributes(samplingRulesConfig);
 
+    // Check if conditions are empty for preview
+    const conditionsAreEmpty = areConditionsEmpty(eventConditionsState, sessionConditionsState);
+
     return (
         <div className="w-full space-y-6">
             {/* Event conditions */}
@@ -587,7 +607,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                                                         operatorTypes={operatorTypes}
                                                         onUpdateAttribute={updateSessionAttribute}
                                                         onRemoveAttribute={removeSessionAttribute}
-                                                        showDeleteButton={true}
+                                                        showDeleteButton={false}
                                                     />
                                                 )
                                             })}
@@ -652,13 +672,19 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
 
                 <div className="pt-4">
                     <div className="whitespace-pre-wrap leading-5.5 bg-gray-50 p-4 text-xs font-mono">
-                        <pre>
-                            {JSON.stringify({
-                                event_conditions: eventConditionsState,
-                                session_conditions: sessionConditionsState,
-                                sampling_rate: samplingRateState.value
-                            }, null, 2)}
-                        </pre>
+                        {conditionsAreEmpty ? (
+                            <div className="text-gray-500 font-sans text-sm">
+                                Please add event or session conditions to see the preview.
+                            </div>
+                        ) : (
+                            <pre>
+                                {JSON.stringify({
+                                    event_conditions: eventConditionsState,
+                                    session_conditions: sessionConditionsState,
+                                    sampling_rate: samplingRateState.value
+                                }, null, 2)}
+                            </pre>
+                        )}
                     </div>
                 </div>
             </div>
