@@ -1050,20 +1050,16 @@ export const emptySamplingRulesConfigResponse = {
         type: string,
       }>
     },
-    session_attrs: {
-      "device_manufacturers": string[],
-      "device_names": string[],
-      "locales": string[],
-      "os_versions": Array<{
-        "name": string,
-        "version": string
-      }>
-    },
-    "operator_types": {
-      "bool": string[],
-      "float64": string[],
-      "int64": string[],
-      "string": string[]
+    session_attrs: Array<{
+      key: string,
+      type: string,
+      values: string[] | number[]
+    }>,
+    operator_types: {
+      bool: string[],
+      float64: string[],
+      int64: string[],
+      string: string[]
     }
   }
 }
@@ -1134,7 +1130,7 @@ export const dummySamplingRulesConfigResponse = {
             "key": "url",
             "type": "string"
           },
-           {
+          {
             "key": "status_code",
             "type": "int64"
           }
@@ -1183,29 +1179,64 @@ export const dummySamplingRulesConfigResponse = {
         },
       ]
     },
-    session_attrs: {
-      "device_manufacturers": [
-        "Google"
-      ],
-      "device_names": [
-        "sunfish"
-      ],
-      "locales": [
-        "en-US"
-      ],
-      "os_versions": [
-        {
-          "name": "android",
-          "version": "33"
-        }
-      ]
-    },
-    "operator_types": {
-      "bool": [
+    session_attrs: [
+      {
+        key: "app_version",
+        type: "string",
+        values: ["0.1.0", "0.2.1", "0.2.2", "0.3.0"]
+      },
+      {
+        key: "os_version",
+        type: "string",
+        values: ["32", "33", "34"]
+      },
+      {
+        key: "device_manufacturer",
+        type: "string",
+        values: ["Google", "Samsung", "OnePlus", "Xiaomi"]
+      },
+      {
+        key: "device_model",
+        type: "string",
+        values: ["Pixel 6", "Galaxy S21", "OnePlus 9", "Mi 11"]
+      },
+      {
+        key: "country",
+        type: "string",
+        values: ["US", "GB", "IN", "DE"]
+      },
+      {
+        key: "network_type",
+        type: "string",
+        values: ["wifi", "cellular", "none"]
+      },
+      {
+        key: "network_generation",
+        type: "string",
+        values: ["2g", "3g", "4g", "5g"]
+      },
+      {
+        key: "network_provider",
+        type: "string",
+        values: ["Verizon", "AT&T", "T-Mobile"]
+      },
+      {
+        key: "locale",
+        type: "string",
+        values: ["en_US", "en_GB", "de_DE", "fr_FR"]
+      },
+      {
+        key: "is_device_foldable",
+        type: "bool",
+        values: ["true", "false"]
+      }
+    ],
+    operator_types: {
+      bool: [
         "eq",
         "neq"
       ],
-      "float64": [
+      float64: [
         "eq",
         "neq",
         "gt",
@@ -1213,7 +1244,7 @@ export const dummySamplingRulesConfigResponse = {
         "gte",
         "lte"
       ],
-      "int64": [
+      int64: [
         "eq",
         "neq",
         "gt",
@@ -1221,7 +1252,7 @@ export const dummySamplingRulesConfigResponse = {
         "gte",
         "lte"
       ],
-      "string": [
+      string: [
         "eq",
         "neq",
         "contains",
