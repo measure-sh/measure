@@ -8,19 +8,15 @@
 #import "MSRViewController.h"
 #import "LifecycleManager_Internal.h"
 
-@interface MSRViewController ()
-
-@end
-
 @implementation MSRViewController
 
 - (void)loadView {
     [super loadView];
-    [LifecycleManagerInternal.shared sendLifecycleEvent:VCLifecycleEventTypeLoadView for:self];
+    [LifecycleManagerInternal.shared sendLifecycleEvent:MSRVCLifecycleEventTypeLoadView for:self];
 }
 
 - (void)dealloc {
-    [LifecycleManagerInternal.shared sendLifecycleEvent:VCLifecycleEventTypeVcDeinit for:self];
+    [LifecycleManagerInternal.shared sendLifecycleEvent:MSRVCLifecycleEventTypeVcDeinit for:self];
 }
 
 @end
