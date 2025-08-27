@@ -51,8 +51,8 @@ const SamplingAttributeRow = ({
                 }}
             />
 
-            {/* Value Input */}
-            <div className="flex-1">
+            {/* Value Input with adjacent delete button */}
+            <div className="flex items-center gap-4 flex-1">
                 {attr.type === 'bool' ? (
                     <DropdownSelect
                         type={DropdownSelectType.SingleString}
@@ -75,22 +75,22 @@ const SamplingAttributeRow = ({
                                 e.target.value
                             onUpdateAttribute(conditionIndex, attrIndex, 'value', value, attributeType)
                         }}
-                        className="flex-1 min-w-0 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
+                        className="min-w-0 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
                     />
                 )}
-            </div>
 
-            {/* Remove Attribute Button - Only show when showDeleteButton is true */}
-            {showDeleteButton && onRemoveAttribute && (
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onRemoveAttribute(conditionIndex, attrIndex, attributeType)}
-                    className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
-                >
-                    <Trash2 className="h-3 w-3" />
-                </Button>
-            )}
+                {/* Remove Attribute Button - Now directly adjacent to value input */}
+                {showDeleteButton && onRemoveAttribute && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onRemoveAttribute(conditionIndex, attrIndex, attributeType)}
+                        className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600 flex-shrink-0"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                )}
+            </div>
         </div>
     )
 };
