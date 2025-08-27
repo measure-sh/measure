@@ -139,7 +139,7 @@ const getAvailableAttributes = (
 const areConditionsEmpty = (eventConditionsState: EventConditionsState, sessionConditionsState: SessionConditionsState): boolean => {
     // Check event conditions - consider valid if there's a type selected OR attributes
     const hasValidEventConditions = eventConditionsState.conditions.some(condition => {
-        return condition.type !== null || 
+        return condition.type !== null ||
             (condition.attrs && condition.attrs.length > 0) ||
             (condition.udAttrs && condition.udAttrs.length > 0);
     });
@@ -414,16 +414,9 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
         })
     }
 
-    const removeSessionAttribute = (conditionIndex: number, attrIndex: number) => {
-        // For session conditions, removing the attribute removes the entire condition
-        removeSessionCondition(conditionIndex);
-    }
-
     const eventTypes = getEventTypesFromResponse(samplingRulesConfig);
     const operatorTypesMapping = getOperatorTypesMapping(samplingRulesConfig);
     const sessionAttrs = getSessionAttributes(samplingRulesConfig);
-
-    // Check if conditions are empty for preview
     const conditionsAreEmpty = areConditionsEmpty(eventConditionsState, sessionConditionsState);
 
     return (
@@ -590,29 +583,40 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                         {sessionConditionsState.conditions.map((condition, index) => (
                             <div key={index}>
                                 <div className="bg-gray-50 p-3 space-y-6">
-                                    {sessionAttrs.length > 0 && condition.attrs && (
-                                        <div className="space-y-3">
-                                            {condition.attrs.map((attr, attrIndex) => {
-                                                const operatorTypes = getOperatorsForType(operatorTypesMapping, attr.type)
-                                                const availableSessionAttrKeys = sessionAttrs.map(a => a.key);
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex-1">
+                                            {sessionAttrs.length > 0 && condition.attrs && (
+                                                <div className="space-y-3">
+                                                    {condition.attrs.map((attr, attrIndex) => {
+                                                        const operatorTypes = getOperatorsForType(operatorTypesMapping, attr.type)
+                                                        const availableSessionAttrKeys = sessionAttrs.map(a => a.key);
 
-                                                return (
-                                                    <SamplingAttributeRow
-                                                        key={`session-attrs-${index}-${attrIndex}`}
-                                                        attr={attr}
-                                                        attrIndex={attrIndex}
-                                                        conditionIndex={index}
-                                                        attributeType="attrs"
-                                                        availableAttrKeys={availableSessionAttrKeys}
-                                                        operatorTypes={operatorTypes}
-                                                        onUpdateAttribute={updateSessionAttribute}
-                                                        onRemoveAttribute={removeSessionAttribute}
-                                                        showDeleteButton={false}
-                                                    />
-                                                )
-                                            })}
+                                                        return (
+                                                            <SamplingAttributeRow
+                                                                key={`session-attrs-${index}-${attrIndex}`}
+                                                                attr={attr}
+                                                                attrIndex={attrIndex}
+                                                                conditionIndex={index}
+                                                                attributeType="attrs"
+                                                                availableAttrKeys={availableSessionAttrKeys}
+                                                                operatorTypes={operatorTypes}
+                                                                onUpdateAttribute={updateSessionAttribute}
+                                                                showDeleteButton={false}
+                                                            />
+                                                        )
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => removeSessionCondition(index)}
+                                            className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </div>
                                 </div>
 
                                 {index < sessionConditionsState.conditions.length - 1 && (
@@ -666,7 +670,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
             <div className="w-full">
                 <div className="flex justify-between">
                     <div className="flex items-center gap-2">
-                         <p className="font-display text-gray-500">Preview</p>
+                        <p className="font-display text-gray-500">Preview</p>
                     </div>
                 </div>
 
