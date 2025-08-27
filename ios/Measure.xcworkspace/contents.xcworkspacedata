@@ -5,9 +5,12 @@
       location = "group:MeasureSDK.xcodeproj">
    </FileRef>
    <FileRef
+      location = "group:DemoAppSwiftUI/DemoAppSwiftUI.xcodeproj">
+   </FileRef>
+   <FileRef
       location = "group:DemoApp/DemoApp.xcodeproj">
    </FileRef>
    <FileRef
-      location = "group:DemoAppSwiftUI/DemoAppSwiftUI.xcodeproj">
+      location = "group:DemoApp/Pods/Pods.xcodeproj">
    </FileRef>
 </Workspace>

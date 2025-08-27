@@ -88,12 +88,6 @@ public protocol SpanBuilder {
   func startSpan() -> any Measure.Span
   func startSpan(_ timestamp: Swift.Int64) -> any Measure.Span
 }
-@_inheritsConvenienceInitializers @objc public class LifecycleManagerInternalSwift : ObjectiveC.NSObject {
-  @objc public static let shared: Measure.LifecycleManagerInternalSwift
-  @objc public func sendLifecycleEvent(_ event: Measure.VCLifecycleEventType, for viewController: UIKit.UIViewController)
-  @objc override dynamic public init()
-  @objc deinit
-}
 @_inheritsConvenienceInitializers @objc(BatchOb) public class BatchOb : CoreData.NSManagedObject {
   @objc override dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
   @objc deinit
