@@ -11,8 +11,8 @@ Pod::Spec.new do |spec|
   spec.static_framework = true
   spec.source       = { :git => "https://github.com/measure-sh/measure.git",
                         :tag => "ios-v#{spec.version}" }
-  spec.source_files = "ios/Sources/MeasureSDK/Swift/**/*.{swift}", "ios/Sources/MeasureSDK/Objc/**/*.{h,m}"
-  spec.public_header_files = "ios/Sources/MeasureSDK/Objc/include/**/*.h"
+  spec.source_files = "ios/Sources/MeasureSDK/Swift/**/*.{swift}", "ios/Sources/MeasureSDK/ObjC/**/*.{h,m}"
+  spec.public_header_files = "ios/Sources/MeasureSDK/ObjC/include/**/*.h"
   spec.pod_target_xcconfig = {
     "DEFINES_MODULE" => "YES"
   }
