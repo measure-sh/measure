@@ -1,10 +1,11 @@
 "use client"
 
-import { dummySamplingRulesConfigResponse, emptySamplingRulesConfigResponse, fetchSamplingRulesConfigFromServer, SamplingRulesConfigApiStatus } from '@/app/api/api_calls';
+import { emptySamplingRulesConfigResponse, fetchSamplingRulesConfigFromServer, SamplingRulesConfigApiStatus } from '@/app/api/api_calls';
+import { Button } from '@/app/components/button';
 import LoadingBar from '@/app/components/loading_bar';
+import SamplingConditions from '@/app/components/sampling_conditions';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import SamplingConditions from '@/app/components/sampling_conditions'; // Adjust the import path as needed
 
 export type SamplingRulesConfig = typeof emptySamplingRulesConfigResponse;
 const samplingRuleTypeKey = "type"
@@ -60,6 +61,13 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
                 <p className="font-display text-4xl max-w-6xl text-center capitalize">
                     {isEditMode ? 'Edit' : 'Create'} {type} sampling rule
                 </p>
+                <Button
+                    variant="outline"
+                    className="font-display border border-black select-none"
+                    onClick={() => console.log("Publish rule clicked")}
+                >
+                    Publish Rule
+                </Button>
             </div>
             <div className="py-4" />
 
