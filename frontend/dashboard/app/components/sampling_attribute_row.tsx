@@ -14,7 +14,8 @@ const SamplingAttributeRow = ({
     availableAttrKeys,
     operatorTypes,
     onUpdateAttribute,
-    onRemoveAttribute
+    onRemoveAttribute,
+    showDeleteButton = true
 }: {
     attr: { key: string; type: string; value: string | boolean | number };
     attrIndex: number;
@@ -23,7 +24,8 @@ const SamplingAttributeRow = ({
     availableAttrKeys: string[];
     operatorTypes: string[];
     onUpdateAttribute: (conditionIndex: number, attrIndex: number, field: 'key' | 'type' | 'value', value: any, attributeType: AttributeType) => void;
-    onRemoveAttribute: (conditionIndex: number, attrIndex: number, attributeType: AttributeType) => void;
+    onRemoveAttribute?: (conditionIndex: number, attrIndex: number, attributeType: AttributeType) => void;
+    showDeleteButton?: boolean;
 }) => {
     return (
         <div className="flex items-center gap-3">
@@ -78,15 +80,17 @@ const SamplingAttributeRow = ({
                 )}
             </div>
 
-            {/* Remove Attribute Button */}
-            <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onRemoveAttribute(conditionIndex, attrIndex, attributeType)}
-                className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
-            >
-                <Trash2 className="h-3 w-3" />
-            </Button>
+            {/* Remove Attribute Button - Only show when showDeleteButton is true */}
+            {showDeleteButton && onRemoveAttribute && (
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onRemoveAttribute(conditionIndex, attrIndex, attributeType)}
+                    className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
+                >
+                    <Trash2 className="h-3 w-3" />
+                </Button>
+            )}
         </div>
     )
 };
