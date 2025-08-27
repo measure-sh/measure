@@ -12,7 +12,7 @@ const MAX_CONDITIONS = 5;
 const MAX_ATTRIBUTES_PER_CONDITION = 5;
 
 export interface EventCondition {
-    eventType: string | null
+    type: string | null
     attrs: Array<{
         key: string,
         type: string,
@@ -54,7 +54,7 @@ interface SamplingConditionsProps {
 type AttributeType = 'attrs' | 'udAttrs';
 
 const createEmptyEventCondition = (): EventCondition => ({
-    eventType: null,
+    type: null,
     attrs: null,
     udAttrs: null
 })
@@ -183,12 +183,12 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
         })
     }
 
-    const updateEventCondition = (conditionIndex: number, eventType: string) => {
+    const updateEventCondition = (conditionIndex: number, type: string) => {
         if (conditionIndex < 0 || conditionIndex >= eventConditionsState.conditions.length) return
 
         const updatedConditions = eventConditionsState.conditions.map((condition, index) =>
             index === conditionIndex
-                ? { ...condition, eventType, attrs: null, udAttrs: null }
+                ? { ...condition, type, attrs: null, udAttrs: null }
                 : condition
         )
         setEventConditionsState({
@@ -208,9 +208,9 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
 
     const addAttribute = (conditionIndex: number, attributeType: AttributeType) => {
         const condition = eventConditionsState.conditions[conditionIndex]
-        if (!condition || !condition.eventType) return
+        if (!condition || !condition.type) return
 
-        const availableAttrs = getAvailableAttributes(samplingRulesConfig, condition.eventType, attributeType)
+        const availableAttrs = getAvailableAttributes(samplingRulesConfig, condition.type, attributeType)
         if (!canAddMoreAttributes(condition, availableAttrs, attributeType)) return
 
         const firstAttr = availableAttrs[0];
@@ -276,7 +276,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                     const updatedAttr = { ...attr, [field]: value }
 
                     if (field === 'key') {
-                        const availableAttrs = getAvailableAttributes(samplingRulesConfig, condition.eventType, attributeType)
+                        const availableAttrs = getAvailableAttributes(samplingRulesConfig, condition.type, attributeType)
                         const selectedAttr = availableAttrs.find(a => a.key === value)
                         if (selectedAttr) {
                             updatedAttr.type = selectedAttr.type
@@ -398,24 +398,8 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
     }
 
     const removeSessionAttribute = (conditionIndex: number, attrIndex: number) => {
-        setSessionConditionsState(prevState => {
-            const condition = prevState.conditions[conditionIndex]
-            const currentAttrs = condition?.attrs
-            if (!currentAttrs) return prevState
-
-            const updatedAttrs = currentAttrs.filter((_, index) => index !== attrIndex)
-
-            const updatedConditions = prevState.conditions.map((cond, index) =>
-                index === conditionIndex
-                    ? { ...cond, attrs: updatedAttrs.length > 0 ? updatedAttrs : null }
-                    : cond
-            )
-
-            return {
-                ...prevState,
-                conditions: updatedConditions
-            }
-        })
+        // For session conditions, removing the attribute removes the entire condition
+        removeSessionCondition(conditionIndex);
     }
 
     const eventTypes = getEventTypesFromResponse(samplingRulesConfig);
@@ -426,7 +410,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
         <div className="w-full space-y-6">
             {/* Event conditions */}
             <div className="w-full">
-                <div className="flex justify-between">
+                <div className="flex justify-start items-center gap-4">
                     <div className="flex items-center gap-2">
                         <p className="font-display text-xl max-w-6xl">Event conditions</p>
                     </div>
@@ -443,35 +427,36 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                 {eventConditionsState.conditions.length > 0 && (
                     <div className="pt-4">
                         {eventConditionsState.conditions.map((condition, index) => {
-                            const availableAttrs = condition.eventType ? getEventAttributes(samplingRulesConfig, condition.eventType) : []
+                            const availableAttrs = condition.type ? getEventAttributes(samplingRulesConfig, condition.type) : []
                             const canAddMoreRegularAttrs = canAddMoreAttributes(condition, availableAttrs, 'attrs')
                             const globalUserDefinedAttrs = getUserDefinedAttributes(samplingRulesConfig)
                             const canAddMoreUdAttrs = canAddMoreAttributes(condition, globalUserDefinedAttrs, 'udAttrs')
 
                             return (
                                 <div key={index}>
-                                    <div className="border border-gray-200 p-3 relative space-y-6">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => removeEventCondition(index)}
-                                            className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
-                                        >
-                                            <Trash2 className="h-3 w-3" />
-                                        </Button>
-
-                                        <div className="flex flex-row items-center">
-                                            <p className="text-sm">Event Type</p>
-                                            <div className="px-3" />
-                                            <DropdownSelect
-                                                type={DropdownSelectType.SingleString}
-                                                title="Select Event Type"
-                                                items={eventTypes}
-                                                initialSelected={condition.eventType || ""}
-                                                onChangeSelected={(selected) => {
-                                                    updateEventCondition(index, selected as string)
-                                                }}
-                                            />
+                                    <div className="bg-gray-50 p-3 space-y-6">
+                                        <div className="flex justify-between items-center">
+                                            <div className="flex flex-row items-center">
+                                                <p className="text-sm">Event Type</p>
+                                                <div className="px-3" />
+                                                <DropdownSelect
+                                                    type={DropdownSelectType.SingleString}
+                                                    title="Select Event Type"
+                                                    items={eventTypes}
+                                                    initialSelected={condition.type || ""}
+                                                    onChangeSelected={(selected) => {
+                                                        updateEventCondition(index, selected as string)
+                                                    }}
+                                                />
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => removeEventCondition(index)}
+                                                className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                            </Button>
                                         </div>
 
                                         {availableAttrs.length > 0 && (
@@ -510,7 +495,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                                             </div>
                                         )}
 
-                                        {condition.eventType && doesEventSupportUdAttrs(samplingRulesConfig, condition.eventType) && globalUserDefinedAttrs.length > 0 && (
+                                        {condition.type && doesEventSupportUdAttrs(samplingRulesConfig, condition.type) && globalUserDefinedAttrs.length > 0 && (
                                             <div className="space-y-3">
                                                 <div className="flex items-center gap-3">
                                                     <p className="text-sm">User-defined attributes</p>
@@ -564,9 +549,9 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
 
             <div className="py-2" />
 
-            {/* Session conditions */}
+            {/* Session conditions - Modified UI */}
             <div className="w-full">
-                <div className="flex justify-between">
+                <div className="flex justify-start items-center gap-4">
                     <div className="flex items-center gap-2">
                         <p className="font-display text-xl max-w-6xl">Session conditions</p>
                     </div>
@@ -584,16 +569,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                     <div className="pt-4">
                         {sessionConditionsState.conditions.map((condition, index) => (
                             <div key={index}>
-                                <div className="border border-gray-200 p-3 relative space-y-6">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => removeSessionCondition(index)}
-                                        className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
-                                    >
-                                        <Trash2 className="h-3 w-3" />
-                                    </Button>
-
+                                <div className="bg-gray-50 p-3 space-y-6">
                                     {sessionAttrs.length > 0 && condition.attrs && (
                                         <div className="space-y-3">
                                             {condition.attrs.map((attr, attrIndex) => {
@@ -610,7 +586,8 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                                                         availableAttrKeys={availableSessionAttrKeys}
                                                         operatorTypes={operatorTypes}
                                                         onUpdateAttribute={updateSessionAttribute}
-                                                        showDeleteButton={false} // Add this line
+                                                        onRemoveAttribute={removeSessionAttribute}
+                                                        showDeleteButton={true}
                                                     />
                                                 )
                                             })}
@@ -663,13 +640,13 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                 </div>
             </div>
 
-            <div className="py-4" />
+            <div className="py-1" />
 
             {/* Preview */}
             <div className="w-full">
                 <div className="flex justify-between">
                     <div className="flex items-center gap-2">
-                        <p className="font-display text-xl max-w-6xl">Preview</p>
+                         <p className="font-display text-gray-500">Preview</p>
                     </div>
                 </div>
 

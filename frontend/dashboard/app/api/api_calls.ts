@@ -1075,7 +1075,12 @@ export const dummySamplingRulesConfigResponse = {
       {
         "type": "exception",
         "ud_attrs": false,
-        "attrs": null
+        "attrs": [
+          {
+            "key": "handled",
+            "type": "bool"
+          }
+        ]
       },
       {
         "type": "bug_report",
