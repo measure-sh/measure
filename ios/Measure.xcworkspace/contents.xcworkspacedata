@@ -5,9 +5,6 @@
       location = "group:MeasureSDK.xcodeproj">
    </FileRef>
    <FileRef
-      location = "group:DemoAppSwiftUI/DemoAppSwiftUI.xcodeproj">
-   </FileRef>
-   <FileRef
       location = "group:DemoApp/DemoApp.xcodeproj">
    </FileRef>
    <FileRef
