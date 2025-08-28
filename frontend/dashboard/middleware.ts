@@ -8,6 +8,7 @@ export function middleware(request: NextRequest) {
     const apiOriginUrl = new URL(apiOrigin);
 
     const url = request.nextUrl.clone();
+    url.protocol = apiOriginUrl.protocol;
     url.pathname = request.nextUrl.pathname.replace("/api", "");
     url.search = request.nextUrl.search;
     url.hostname = apiOriginUrl.hostname;
