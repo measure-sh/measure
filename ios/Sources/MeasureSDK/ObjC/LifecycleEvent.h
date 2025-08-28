@@ -18,7 +18,6 @@ typedef NS_ENUM(NSInteger, MSRVCLifecycleEventType) {
 };
 
 // Forward declarations so ObjC knows they exist
-@class LifecycleManagerInternalSwift;
 @class LifecycleManagerInternal;
 
 NS_ASSUME_NONNULL_END
