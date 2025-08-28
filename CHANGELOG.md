@@ -1662,9 +1662,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Improve display of app metrics deltas by @anupcowkur in #807
 - (**webapp**): Remove unused component by @anupcowkur in #799
 - (**webapp**): Refactor 'crashOrAnr' to 'exceptions' by @anupcowkur in #798
-- (**webapp**): Use correct types for exception plots states by @anupcowkur in #792
+- (**webapp**): Use correct types for exception plots states by @anupcowkur
 - (**webapp**): Remove console.log statement by @anupcowkur
-- (**webapp**): Add app versions only if present in api calls by @anupcowkur in #791
+- (**webapp**): Add app versions only if present in api calls by @anupcowkur
 - (**webapp**): Update metrics tooltips & delta display by @anupcowkur
 - (**webapp**): Set exception title in session replay using updated api by @anupcowkur
 - (**webapp**): Select latest version only in overview on init by @anupcowkur

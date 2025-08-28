@@ -91,9 +91,7 @@ A cold launch refers to an app starting up from scratch. Cold launches occur whe
 
 Once a cold launch is done, for every subsequent launch, the app still needs to be spanned but the app is still in memory and some of the system-side services are already available. So this launch is a bit faster and a bit more consistent. This type of launch is referred to as the warm launch.
 
-In iOS 15 and later, the system may, depending on device conditions, **pre-warm** your app, launching non-running application processes to reduce the amount of time the user waits before the app is usable. Pre-warming executes an app’s launch sequence up until, but not including, when main() calls UIApplicationMain. This provides the system with an opportunity to build and cache any low-level structures it requires in anticipation of a full launch.
-
-After the system pre-warms your app, its launch sequence remains in a paused state until the app launches and the sequence resumes, or the system removes the pre-warmed app from memory to reclaim resources. The system can pre-warm your app after a device reboot, and periodically as system conditions allow.
+In iOS 15 and later, the system may, depending on device conditions, **pre-warm** your app, launching non-running application processes to reduce the amount of time the user waits before the app is usable. If a app is pre-warmed, we ignore the launch event.
 
 #### Hot Launch
 
