@@ -8,9 +8,9 @@ const SamplingLogicalOperatorSelector = ({
     onChange: (operator: 'AND' | 'OR') => void;
 }) => {
     return (
-        <div className="flex items-center relative py-4">
+        <div className="flex items-center justify-center relative py-4">
             {/* Top connecting line */}
-            <div className="absolute top-0 left-5 transform -translate-x-1/2 w-px h-4 bg-gray-300"></div>
+            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-px h-4 bg-gray-300"></div>
             
             {/* Circular toggle button */}
             <button
@@ -22,7 +22,7 @@ const SamplingLogicalOperatorSelector = ({
             </button>
             
             {/* Bottom connecting line */}
-            <div className="absolute bottom-0 left-5 transform -translate-x-1/2 w-px h-4 bg-gray-300"></div>
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-px h-4 bg-gray-300"></div>
         </div>
     );
 };
