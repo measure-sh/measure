@@ -620,8 +620,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add app settings read/write api by @anupcowkur
 - (**backend**): Add get usage stats api by @anupcowkur
 - (**backend**): Implement new schema for navigation event by @abhaysood
-- (**backend**): Migrate to self-hosted postgres by @anupcowkur in #651
-- (**backend**): Update alert perfs to be per user per app by @anupcowkur in #647
+- (**backend**): Migrate to self-hosted postgres by @anupcowkur
+- (**backend**): Update alert perfs to be per user per app by @anupcowkur
 - (**backend**): Add alert_prefs table with read+write APIs by @anupcowkur
 - (**backend**): Support http request and response body by @abhaysood
 - (**backend**): Add navigation event by @abhaysood
@@ -653,20 +653,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Hightlight path to hovered node in journey by @anupcowkur in #831
 - (**webapp**): Persist selected app & dates filters across pages by @anupcowkur in #806
 - (**webapp**): Update navigation event title by @abhaysood
-- (**webapp**): Add screenshots to exception details + session events by @anupcowkur in #783
-- (**webapp**): Add custom tooltip for crash/anr group details plot by @anupcowkur in #753
+- (**webapp**): Add screenshots to exception details + session events by @anupcowkur
+- (**webapp**): Add custom tooltip for crash/anr group details plot by @anupcowkur
 - (**webapp**): Update exceptions overview plot with api data by @anupcowkur
-- (**webapp**): Add detailed filters support for exception detail journey plot by @anupcowkur in #721
-- (**webapp**): Add exception detail journey plot by @anupcowkur in #717
-- (**webapp**): Make journey unidirectional by @anupcowkur in #707
-- (**webapp**): Update crash/anr group details plot with api data by @anupcowkur in #701
-- (**webapp**): Add multi app version select to overview page by @anupcowkur in #697
-- (**webapp**): Set journey min zoom by @anupcowkur in #682
-- (**webapp**): Add zoom buttons to journey map by @anupcowkur in #681
+- (**webapp**): Add detailed filters support for exception detail journey plot by @anupcowkur
+- (**webapp**): Add exception detail journey plot by @anupcowkur
+- (**webapp**): Make journey unidirectional by @anupcowkur
+- (**webapp**): Update crash/anr group details plot with api data by @anupcowkur
+- (**webapp**): Add multi app version select to overview page by @anupcowkur
+- (**webapp**): Set journey min zoom by @anupcowkur
+- (**webapp**): Add zoom buttons to journey map by @anupcowkur
 - (**webapp**): Remove hack to animate title in journey node by @anupcowkur
 - (**webapp**): Color journey bg reflecting issue contribution by @anupcowkur
-- (**webapp**): Change journey error node & contrib indicator colours by @anupcowkur in #664
-- (**webapp**): Update journey ui & data format by @anupcowkur in #660
+- (**webapp**): Change journey error node & contrib indicator colours by @anupcowkur
+- (**webapp**): Update journey ui & data format by @anupcowkur
 - (**webapp**): Remove slack from alert prefs UI by @anupcowkur
 - (**webapp**): Clear updatePrefsMsg on selected app change by @anupcowkur
 - (**webapp**): Integrate alert prefs APIs by @anupcowkur
@@ -759,21 +759,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Journey grap build (#803) by @detj in #803
 - (**backend**): Make from and source optional for navigation event by @abhaysood
 - (**backend**): Fix missing fields in session replay by @abhaysood
-- (**backend**): Use correct index when iterating exceptions and anrs by @abhaysood in #784
-- (**backend**): Fix network type validation by @abhaysood in #775
+- (**backend**): Use correct index when iterating exceptions and anrs by @abhaysood
+- (**backend**): Fix network type validation by @abhaysood
 - (**backend**): Modify session data to use non-nullable network properties by @abhaysood
-- (**backend**): Update session replay (#765) by @detj in #765
-- (**backend**): Metrics api errorneous 500 (#766) by @detj in #766
+- (**backend**): Update session replay (#765) by @detj
+- (**backend**): Metrics api errorneous 500 (#766) by @detj
 - (**backend**): Attachment processing by @detj
-- (**backend**): Anr overview plot query by @detj in #750
+- (**backend**): Anr overview plot query by @detj
 - (**backend**): Crash overview plot query by @detj
-- (**backend**): Response of anr plot by @detj in #705
+- (**backend**): Response of anr plot by @detj
 - (**backend**): Response of crash plot by @detj
-- (**backend**): Journey issue count (#679) by @detj in #679
+- (**backend**): Journey issue count (#679) by @detj
 - (**backend**): Format anr stacktrace by @detj
 - (**backend**): Modify stacktrace by @detj
-- (**backend**): Add authz in metrics (#658) by @detj in #658
-- (**backend**): Fix failing test by @anupcowkur in #601
+- (**backend**): Add authz in metrics (#658) by @detj
+- (**backend**): Fix failing test by @anupcowkur
 - (**backend**): No data for size by @detj
 - (**backend**): No data for perceived anr free by @detj
 - (**backend**): No data for perceived crash free by @detj
@@ -858,28 +858,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Decode title in exceptions details page by @anupcowkur in #827
 - (**webapp**): Use slices tooltips for exceptions plots by @anupcowkur in #813
 - (**webapp**): Fix typo in perceived anr free sessions metric tooltip by @anupcowkur in #801
-- (**webapp**): Use full width in exception pages by @anupcowkur in #786
-- (**webapp**): Handle null app size metrics by @anupcowkur in #770
+- (**webapp**): Use full width in exception pages by @anupcowkur
+- (**webapp**): Handle null app size metrics by @anupcowkur
 - (**webapp**): Remove session replay event timeline animation by @anupcowkur
 - (**webapp**): Fix area gradient opacity in cpu chart by @anupcowkur
 - (**webapp**): Rotate mem & cpu chart ticks to reduce overlap by @anupcowkur
 - (**webapp**): Set cpu graph max value to 100 and 5 ticks by @anupcowkur
 - (**webapp**): Remove decimal precision from memory graph tooltip by @anupcowkur
-- (**webapp**): Make filter end date include all day by @anupcowkur in #723
-- (**webapp**): Hide detail filters in exception overview page by @anupcowkur in #720
+- (**webapp**): Make filter end date include all day by @anupcowkur
+- (**webapp**): Hide detail filters in exception overview page by @anupcowkur
 - (**webapp**): Show crash or anr legend correctly in group details plot by @anupcowkur
-- (**webapp**): Handle invalid date input in date filters by @anupcowkur in #695
-- (**webapp**): Update UI to handle chained exceptions by @anupcowkur in #678
-- (**webapp**): Pick exception thread name correctly in crash/anr details by @anupcowkur in #669
-- (**webapp**): Improve messaging for no Crashes/ANRs by @anupcowkur in #668
-- (**webapp**): Fix date selectors allowing dates later than today by @anupcowkur in #666
-- (**webapp**): Append crash or anr query param to filters api by @anupcowkur in #645
-- (**webapp**): Handle null cpu & memory data in session replay by @anupcowkur in #642
+- (**webapp**): Handle invalid date input in date filters by @anupcowkur
+- (**webapp**): Update UI to handle chained exceptions by @anupcowkur
+- (**webapp**): Pick exception thread name correctly in crash/anr details by @anupcowkur
+- (**webapp**): Improve messaging for no Crashes/ANRs by @anupcowkur
+- (**webapp**): Fix date selectors allowing dates later than today by @anupcowkur
+- (**webapp**): Append crash or anr query param to filters api by @anupcowkur
+- (**webapp**): Handle null cpu & memory data in session replay by @anupcowkur
 - (**webapp**): Update api response handling by @anupcowkur
 - (**webapp**): Set mock timezone for time_utils tests by @anupcowkur
 - (**webapp**): Fix incorrect session replay event timestamp state format by @anupcowkur
 - (**webapp**): Fix chart datetime format by @anupcowkur
-- (**webapp**): Updated alert prefs not reflecting in UI by @anupcowkur in #604
+- (**webapp**): Updated alert prefs not reflecting in UI by @anupcowkur
 - (**webapp**): Set updatedAlertPrefs on fetch alert prefs API success by @anupcowkur
 - (**webapp**): Fix version and codes query params in metrics API call by @anupcowkur
 - (**webapp**): Fix change role being incorrectly enabled by @anupcowkur
@@ -1060,9 +1060,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Modify exception grouping by @detj
 - (**backend**): Modify unhandled exception groups table by @detj
 - (**backend**): Delta in metrics by @detj
-- (**backend**): Multi version filtering (#776) by @detj in #776
+- (**backend**): Multi version filtering (#776) by @detj
 - (**backend**): Record new events by @abhaysood
-- (**backend**): Validate network type & generation by @abhaysood in #726
+- (**backend**): Validate network type & generation by @abhaysood
 - (**backend**): Use non-nullable network properties by @abhaysood
 - (**backend**): Update session replay api by @detj
 - (**backend**): Update anr detail api by @detj
@@ -1072,15 +1072,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add attachments in response by @detj
 - (**backend**): Update server by @detj
 - (**backend**): Update .env.example by @detj
-- (**backend**): Update symbolicator-retrace docker by @detj in #740
-- (**backend**): Clickhouse:24 (#739) by @detj in #739
+- (**backend**): Update symbolicator-retrace docker by @detj
+- (**backend**): Clickhouse:24 (#739) by @detj
 - (**backend**): Anr overview plot instances route by @detj
 - (**backend**): Add anr plot instances method by @detj
 - (**backend**): Crash overview instance plot route by @detj
 - (**backend**): Add query function by @detj
 - (**backend**): Rename methods by @detj
 - (**backend**): Update dependencies in symbolicator by @abhaysood
-- (**backend**): Tidy go mod (#715) by @detj in #715
+- (**backend**): Tidy go mod (#715) by @detj
 - (**backend**): Remove unused route by @detj
 - (**backend**): Remove unused route by @detj
 - (**backend**): Anr detail journey plot api by @detj
@@ -1093,7 +1093,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add anr instance plot api by @detj
 - (**backend**): Add crash plot route by @detj
 - (**backend**): Add exceptions plot method by @detj
-- (**backend**): Fix typo by @detj in #676
+- (**backend**): Fix typo by @detj
 - (**backend**): Doc comments by @detj
 - (**backend**): Add doc comments by @detj
 - (**backend**): Remove hardcoded prefix by @detj
@@ -1103,7 +1103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add doc comment by @detj
 - (**backend**): Rename function by @detj
 - (**backend**): Organize method by @detj
-- (**backend**): Optimize journey events by @detj in #646
+- (**backend**): Optimize journey events by @detj
 - (**backend**): Add doc comment by @detj
 - (**backend**): Update get journey by @detj
 - (**backend**): New method in journey by @detj
@@ -1134,7 +1134,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add validate versions by @detj
 - (**backend**): Improve app metrics by @detj
 - (**backend**): Doc comments for app filter by @detj
-- (**backend**): Update dashboard api docs (#644) by @detj in #644
+- (**backend**): Update dashboard api docs (#644) by @detj
 - (**backend**): Update event validation by @detj
 - (**backend**): Fix app onboarding by @detj
 - (**backend**): Remove unused tables by @detj
@@ -1662,16 +1662,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Improve display of app metrics deltas by @anupcowkur in #807
 - (**webapp**): Remove unused component by @anupcowkur in #799
 - (**webapp**): Refactor 'crashOrAnr' to 'exceptions' by @anupcowkur in #798
-- (**webapp**): Use correct types for exception plots states by @anupcowkur in #792
+- (**webapp**): Use correct types for exception plots states by @anupcowkur
 - (**webapp**): Remove console.log statement by @anupcowkur
-- (**webapp**): Add app versions only if present in api calls by @anupcowkur in #791
-- (**webapp**): Update metrics tooltips & delta display by @anupcowkur in #787
-- (**webapp**): Set exception title in session replay using updated api by @anupcowkur in #772
-- (**webapp**): Select latest version only in overview on init by @anupcowkur in #769
+- (**webapp**): Add app versions only if present in api calls by @anupcowkur
+- (**webapp**): Update metrics tooltips & delta display by @anupcowkur
+- (**webapp**): Set exception title in session replay using updated api by @anupcowkur
+- (**webapp**): Select latest version only in overview on init by @anupcowkur
 - (**webapp**): Remove unused import by @anupcowkur
 - (**webapp**): Show app size metrics only on single app version selection by @anupcowkur
 - (**webapp**): Move app size metrics to last position by @anupcowkur
-- (**webapp**): Add custom tooltip to memory chart by @anupcowkur in #762
+- (**webapp**): Add custom tooltip to memory chart by @anupcowkur
 - (**webapp**): Remove semicolons by @anupcowkur
 - (**webapp**): Remove unused import by @anupcowkur
 - (**webapp**): Set mem & cpu chart precision to seconds instead of milliseconds by @anupcowkur
@@ -1683,38 +1683,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Add time util function to format chart format timestamp to human readable by @anupcowkur
 - (**webapp**): Set tick rotation to 90 in exceptions overview & details charts by @anupcowkur
 - (**webapp**): Remove cpu & mem chart animations by @anupcowkur
-- (**webapp**): Update exception details plot endpoint by @anupcowkur in #716
-- (**webapp**): Extract filters to a component by @anupcowkur in #711
-- (**webapp**): Adjust tick padding in crash or anr group details plot by @anupcowkur in #703
-- (**webapp**): Add Paginator component tests by @anupcowkur in #641
-- (**webapp**): Fix FilterPill test name by @anupcowkur in #640
-- (**webapp**): Add FilterPill component tests by @anupcowkur in #639
-- (**webapp**): Add TeamSwitcher component tests by @anupcowkur in #638
+- (**webapp**): Update exception details plot endpoint by @anupcowkur
+- (**webapp**): Extract filters to a component by @anupcowkur
+- (**webapp**): Adjust tick padding in crash or anr group details plot by @anupcowkur
+- (**webapp**): Add Paginator component tests by @anupcowkur
+- (**webapp**): Fix FilterPill test name by @anupcowkur
+- (**webapp**): Add FilterPill component tests by @anupcowkur
+- (**webapp**): Add TeamSwitcher component tests by @anupcowkur
 - (**webapp**): Decouple TeamSwitcher component from API by @anupcowkur
-- (**webapp**): Remove unused import by @anupcowkur in #628
+- (**webapp**): Remove unused import by @anupcowkur
 - (**webapp**): Add DangerConfirmationModal tests by @anupcowkur
-- (**webapp**): Add AlertDialogModal component tests by @anupcowkur in #627
-- (**webapp**): Fix accordion test file name by @anupcowkur in #626
-- (**webapp**): Add test for accordion component by @anupcowkur in #625
-- (**webapp**): Remove unused import in auth utils test by @anupcowkur in #621
+- (**webapp**): Add AlertDialogModal component tests by @anupcowkur
+- (**webapp**): Fix accordion test file name by @anupcowkur
+- (**webapp**): Add test for accordion component by @anupcowkur
+- (**webapp**): Remove unused import in auth utils test by @anupcowkur
 - (**webapp**): Add snapshot tests for accordion component by @anupcowkur
-- (**webapp**): Add webapp github action ci pipeline by @anupcowkur in #613
+- (**webapp**): Add webapp github action ci pipeline by @anupcowkur
 - (**webapp**): Add unit tests for scroll_utils by @anupcowkur
 - (**webapp**): Use scrollY insead of deprecated pageYOffset by @anupcowkur
-- (**webapp**): Add auth_utils unit tests by @anupcowkur in #612
+- (**webapp**): Add auth_utils unit tests by @anupcowkur
 - (**webapp**): Externalise supabase client dependency in auth_utils by @anupcowkur
-- (**webapp**): Update files to have correct ts extension by @anupcowkur in #611
-- (**webapp**): Add router utils unit tests by @anupcowkur in #610
-- (**webapp**): Enable vercel build to run tests by adding ts-node dev dependency by @anupcowkur in #609
-- (**webapp**): Use luxon for all datetime calculations by @anupcowkur in #608
-- (**webapp**): Add tests for formatTimestampToChartFormat in time_utils by @anupcowkur in #607
+- (**webapp**): Update files to have correct ts extension by @anupcowkur
+- (**webapp**): Add router utils unit tests by @anupcowkur
+- (**webapp**): Enable vercel build to run tests by adding ts-node dev dependency by @anupcowkur
+- (**webapp**): Use luxon for all datetime calculations by @anupcowkur
+- (**webapp**): Add tests for formatTimestampToChartFormat in time_utils by @anupcowkur
 - (**webapp**): Add tests for formatTimeToHumanReadable in time_utils by @anupcowkur
 - (**webapp**): Add tests for formatDateToHumanReadable in time_utils by @anupcowkur
 - (**webapp**): Throw error on invalid date in time_utils by @anupcowkur
 - (**webapp**): Add tests for formatMillisToHumanReadable in time_utils by @anupcowkur
 - (**webapp**): Use luxon lib to handle dates/times in time_utils by @anupcowkur
 - (**webapp**): Fix string_utils test file extension by @anupcowkur
-- (**webapp**): Add unit tests for utils/string_utils by @anupcowkur in #606
+- (**webapp**): Add unit tests for utils/string_utils by @anupcowkur
 - (**webapp**): Set up jest for testing with NextJs by @anupcowkur
 - (**webapp**): Remove unused state in journey component by @anupcowkur
 - (**webapp**): Handle no data cases in metrics API by @anupcowkur
@@ -1962,20 +1962,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update dashboard api by @detj in #802
 - (**backend**): Update dashboard api by @detj
 - (**backend**): Update dashboard api by @detj in #796
-- (**backend**): Update dashboard api by @detj in #758
 - (**backend**): Update dashboard api by @detj
 - (**backend**): Update dashboard api by @detj
-- (**backend**): Update dashboard api docs by @detj in #724
-- (**backend**): Update dashboard api docs by @detj in #709
+- (**backend**): Update dashboard api by @detj
 - (**backend**): Update dashboard api docs by @detj
 - (**backend**): Update dashboard api docs by @detj
-- (**backend**): Update dashboard api docs by @detj in #699
-- (**backend**): Update dashboard api docs by @detj in #690
-- (**backend**): Update dashboard api docs by @detj in #688
-- (**backend**): Udpate dashboard api docs by @detj in #675
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Update dashboard api docs by @detj
+- (**backend**): Udpate dashboard api docs by @detj
 - (**backend**): Update dashboard api docs by @detj
 - (**backend**): Crash group crashes by @detj
-- (**backend**): Update self host docs by @anupcowkur in #653
+- (**backend**): Update self host docs by @anupcowkur
 - (**backend**): Update dashboard api by @detj
 - (**backend**): Update dashboard api docs by @detj
 - (**backend**): Update dashboard api docs by @detj
@@ -2079,7 +2079,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add versioning guide by @anupcowkur in #883
 - Update self-host guide by @detj
 - Update sessionator docs (#833) by @detj in #833
-- Update self host guide by @detj in #662
+- Update self host guide by @detj
 - Update docker compose by @detj
 - Format sdk docs by @detj
 - Improve docs by @detj
