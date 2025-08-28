@@ -61,6 +61,7 @@ final class BaseLaunchTracker: LaunchTracker {
         } else if let willEnterForegroundTimestamp = self.willEnterForegroundTimestamp {
             generateHotLaunchData(appVisibleUptime: willEnterForegroundTimestamp, onNextDrawUptime: UnsignedNumber(timeProvider.millisTime))
         }
+        self.willEnterForegroundTimestamp = nil
     }
 
     @objc private func onWillEnterForeground(_ notification: Notification) {
@@ -74,22 +75,29 @@ final class BaseLaunchTracker: LaunchTracker {
             return
         }
 
+        guard !isActivePrewarm else {
+            logger.log(level: .error, message: "Skipping launch data collection as app is prewarmed.", error: nil, data: nil)
+            return
+        }
+
+        let now = UnsignedNumber(timeProvider.now())
         let currentLaunchData = LaunchData(appVersion: currentAppVersion, timeSinceLastBoot: currentSystemBootTime)
+
         // Mark a launch as cold launch if recent launch data is not available
         guard let recentLaunch = userDefaultStorage.getRecentLaunchData() else {
-            generateColdLaunchData(processStartUptime: processStart * 1_000, onNextDrawUptime: UnsignedNumber(Date().timeIntervalSince1970 * 1_000))
+            generateColdLaunchData(processStartUptime: processStart, onNextDrawUptime: now)
             userDefaultStorage.setRecentLaunchData(currentLaunchData)
             return
         }
 
         if recentLaunch.appVersion != currentAppVersion { // if app is updated, mark it as a cold launch
-            generateColdLaunchData(processStartUptime: processStart * 1_000, onNextDrawUptime: UnsignedNumber(Date().timeIntervalSince1970 * 1_000))
+            generateColdLaunchData(processStartUptime: processStart, onNextDrawUptime: now)
         } else if recentLaunch.timeSinceLastBoot == currentSystemBootTime { // if the device boot time is same as previous launch, mark it as a warm launch
-            generateWarmLaunchData(appVisibleUptime: processStart * 1_000, onNextDrawUptime: UnsignedNumber(Date().timeIntervalSince1970 * 1_000))
+            generateWarmLaunchData(appVisibleUptime: processStart, onNextDrawUptime: now)
         } else if currentSystemBootTime > recentLaunch.timeSinceLastBoot { // if the current device boot time is more recent than previous launch, mark it as a cold launch
-            generateColdLaunchData(processStartUptime: processStart * 1_000, onNextDrawUptime: UnsignedNumber(Date().timeIntervalSince1970 * 1_000))
+            generateColdLaunchData(processStartUptime: processStart, onNextDrawUptime: now)
         } else { // This else case will only be executed in case of clock skew.
-            generateColdLaunchData(processStartUptime: processStart * 1_000, onNextDrawUptime: UnsignedNumber(Date().timeIntervalSince1970 * 1_000))
+            generateColdLaunchData(processStartUptime: processStart, onNextDrawUptime: now)
         }
         userDefaultStorage.setRecentLaunchData(currentLaunchData)
     }
