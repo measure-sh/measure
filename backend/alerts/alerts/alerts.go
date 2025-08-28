@@ -110,15 +110,21 @@ func CreateCrashAndAnrAlerts(ctx context.Context) {
 				Where("app_id = ?", app.ID).
 				Where("timestamp >= ? and timestamp <= ?", from, to)
 
+			defer sessionCountStmt.Close()
+
 			sessionCountRows, err := server.Server.RchPool.Query(ctx, sessionCountStmt.String(), sessionCountStmt.Args()...)
 			if err == nil && sessionCountRows.Next() {
-				sessionCountRows.Scan(&sessionCount)
+				if err := sessionCountRows.Scan(&sessionCount); err != nil {
+					fmt.Printf("Error scanning session count for app %q: %v\n", app.ID, err)
+					continue
+				}
 			} else if err != nil {
-				fmt.Printf("Error querying session count for app %v: %v\n", app.ID, err)
+				fmt.Printf("Error querying session count for app %q: %v\n", app.ID, err)
+				continue
 			}
 			if sessionCountRows != nil {
 				if err := sessionCountRows.Close(); err != nil {
-					fmt.Printf("Error closing session count rows: %v\n", err)
+					fmt.Printf("Error closing session count rows for app %q: %v\n", app.ID, err)
 				}
 			}
 
