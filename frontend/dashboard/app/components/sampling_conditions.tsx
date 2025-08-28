@@ -11,28 +11,6 @@ import { emptySamplingRulesConfigResponse } from '../api/api_calls';
 const MAX_CONDITIONS = 5;
 const MAX_ATTRIBUTES_PER_CONDITION = 10;
 
-const FixedLogicalOperator = ({ topSpace = true }: { topSpace?: boolean }) => (
-    <div className={`flex flex-col items-center justify-center relative ${topSpace ? 'pt-4' : ''} h-16`}>
-        {/* Top connecting line */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-6 bg-gray-300"></div>
-        
-        {/* Circular "AND" element (non-interactive) */}
-        <div className="relative z-10 w-10 h-10 rounded-full border border-gray-300 bg-yellow-200 flex items-center justify-center text-sm font-body text-black">
-            AND
-        </div>
-        
-        {/* Bottom connecting line */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-px h-6 bg-gray-300"></div>
-    </div>
-);
-
-// A new component for the vertical line segment
-const ConnectorLine = () => (
-    <div className="h-full w-full flex justify-center">
-        <div className="w-px h-full bg-gray-300" />
-    </div>
-);
-
 export interface EventCondition {
     type: string | null
     attrs: Array<{
@@ -542,7 +520,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                 </div>
 
                 {eventConditionsState.conditions.length > 0 && (
-                    <div className="pt-4">
+                    <div className="pt-4 pl-8">
                         {eventConditionsState.conditions.map((condition, index) => {
                             const availableAttrs = condition.type ? getEventAttributes(samplingRulesConfig, condition.type) : []
                             const canAddMoreRegularAttrs = canAddMoreAttributes(condition, availableAttrs, 'attrs')
@@ -576,19 +554,32 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                                             </Button>
                                         </div>
 
-                                        {availableAttrs.length > 0 && (
+                                        {(availableAttrs.length > 0 || (condition.type && doesEventSupportUdAttrs(samplingRulesConfig, condition.type) && globalUserDefinedAttrs.length > 0)) && (
                                             <div className="space-y-3">
                                                 <div className="flex items-center gap-3">
                                                     <p className="text-sm">Attributes</p>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => addAttribute(index, 'attrs')}
-                                                        disabled={!canAddMoreRegularAttrs}
-                                                        className="text-xs"
-                                                    >
-                                                        + Add attribute
-                                                    </Button>
+                                                    {availableAttrs.length > 0 && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => addAttribute(index, 'attrs')}
+                                                            disabled={!canAddMoreRegularAttrs}
+                                                            className="text-xs"
+                                                        >
+                                                            + Add attribute
+                                                        </Button>
+                                                    )}
+                                                    {condition.type && doesEventSupportUdAttrs(samplingRulesConfig, condition.type) && globalUserDefinedAttrs.length > 0 && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => addAttribute(index, 'udAttrs')}
+                                                            disabled={!canAddMoreUdAttrs}
+                                                            className="text-xs"
+                                                        >
+                                                            + Add user-defined attribute
+                                                        </Button>
+                                                    )}
                                                 </div>
 
                                                 {condition.attrs && condition.attrs.map((attr, attrIndex) => {
@@ -609,23 +600,6 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                                                         />
                                                     )
                                                 })}
-                                            </div>
-                                        )}
-
-                                        {condition.type && doesEventSupportUdAttrs(samplingRulesConfig, condition.type) && globalUserDefinedAttrs.length > 0 && (
-                                            <div className="space-y-3">
-                                                <div className="flex items-center gap-3">
-                                                    <p className="text-sm">User-defined attributes</p>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => addAttribute(index, 'udAttrs')}
-                                                        disabled={!canAddMoreUdAttrs}
-                                                        className="text-xs"
-                                                    >
-                                                        + Add attribute
-                                                    </Button>
-                                                </div>
 
                                                 {condition.udAttrs && condition.udAttrs.map((udAttr, udAttrIndex) => {
                                                     const operatorTypes = getOperatorsForType(operatorTypesMapping, udAttr.type)
@@ -650,10 +624,12 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                                     </div>
 
                                     {index < eventConditionsState.conditions.length - 1 && (
-                                        <SamplingLogicalOperatorSelector
-                                            value={eventConditionsState.operators[index] || 'AND'}
-                                            onChange={(operator) => updateEventOperator(index, operator)}
-                                        />
+                                        <div className="flex justify-start">
+                                            <SamplingLogicalOperatorSelector
+                                                value={eventConditionsState.operators[index] || 'AND'}
+                                                onChange={(operator) => updateEventOperator(index, operator)}
+                                            />
+                                        </div>
                                     )}
                                 </div>
                             )
@@ -681,7 +657,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                 </div>
 
                 {sessionConditionsState.conditions.length > 0 && (
-                    <div className="pt-4">
+                    <div className="pt-4 pl-8">
                         {sessionConditionsState.conditions.map((condition, index) => (
                             <div key={index}>
                                 <div className="bg-gray-50 p-3 space-y-6 rounded-lg border">
@@ -727,10 +703,12 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                                 </div>
 
                                 {index < sessionConditionsState.conditions.length - 1 && (
-                                    <SamplingLogicalOperatorSelector
-                                        value={sessionConditionsState.operators[index] || 'AND'}
-                                        onChange={(operator) => updateSessionOperator(index, operator)}
-                                    />
+                                    <div className="flex justify-start">
+                                        <SamplingLogicalOperatorSelector
+                                            value={sessionConditionsState.operators[index] || 'AND'}
+                                            onChange={(operator) => updateSessionOperator(index, operator)}
+                                        />
+                                    </div>
                                 )}
                             </div>
                         ))}
@@ -770,33 +748,6 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
             </div>
 
             <div className="py-1" />
-
-            {/* Preview */}
-            <div className="w-full">
-                <div className="flex justify-between">
-                    <div className="flex items-center gap-2">
-                        <p className="font-display text-gray-500">Preview</p>
-                    </div>
-                </div>
-
-                <div className="pt-4">
-                    <div className="whitespace-pre-wrap leading-5.5 bg-gray-50 p-4 text-xs font-mono">
-                        {conditionsAreEmpty ? (
-                            <div className="text-gray-500 font-sans text-sm">
-                                Please add event or session conditions to see the preview.
-                            </div>
-                        ) : (
-                            <pre>
-                                {JSON.stringify({
-                                    event_conditions: eventConditionsState,
-                                    session_conditions: sessionConditionsState,
-                                    sampling_rate: samplingRateState.value
-                                }, null, 2)}
-                            </pre>
-                        )}
-                    </div>
-                </div>
-            </div>
         </div>
     )
 }
