@@ -6,6 +6,7 @@ import LoadingBar from '@/app/components/loading_bar';
 import SamplingConditions from '@/app/components/sampling_conditions';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { Edit2 } from 'lucide-react';
 
 export type SamplingRulesConfig = typeof emptySamplingRulesConfigResponse;
 const samplingRuleTypeKey = "type"
@@ -26,6 +27,8 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
     }
 
     const [pageState, setPageState] = useState<PageState>(initialState)
+    const [samplingRuleName, setSamplingRuleName] = useState<string>()
+    const [isEditingRuleName, setIsEditingRuleName] = useState<boolean>(false)
 
     const updatePageState = (newState: Partial<PageState>) => {
         setPageState(prevState => {
@@ -55,12 +58,65 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
         getSamplingRulesConfig()
     }, [])
 
+    const displayRuleName = samplingRuleName?.trim() || "New Sampling Rule";
+    
+    const handleEditClick = () => {
+        setIsEditingRuleName(true);
+    };
+
+    const handleRuleNameSubmit = (value: string) => {
+        setSamplingRuleName(value.trim());
+        setIsEditingRuleName(false);
+    };
+
+    const handleRuleNameCancel = () => {
+        setIsEditingRuleName(false);
+    };
+
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
             <div className="flex flex-row items-center gap-2 justify-between w-full">
-                <p className="font-display text-4xl max-w-6xl text-center capitalize">
-                    {isEditMode ? 'Edit' : 'Create'} {type} sampling rule
-                </p>
+                {!isEditingRuleName ? (
+                    <div className="flex items-center gap-3">
+                        <h1 className="font-display text-4xl first-letter:capitalize truncate max-w-2xl">{displayRuleName}</h1>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleEditClick}
+                            className="flex items-center gap-2 px-3 py-1 hover:bg-gray-100"
+                        >
+                            <Edit2 className="h-4 w-4" />
+                            <span className="text-sm">Edit rule name</span>
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2 py-2">
+                        <input
+                            type="text"
+                            placeholder="Enter rule name, e.g., Critical Issues"
+                            value={samplingRuleName || ""}
+                            maxLength={64}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1);
+                                setSamplingRuleName(capitalizedValue);
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleRuleNameSubmit(e.currentTarget.value);
+                                } else if (e.key === 'Escape') {
+                                    handleRuleNameCancel();
+                                }
+                            }}
+                            onBlur={(e) => handleRuleNameSubmit(e.target.value)}
+                            className="text-2xl font-display border border-black rounded-md outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-3 placeholder:text-neutral-400 placeholder:text-sm min-w-80"
+                            style={{
+                                width: `${Math.max(20, (samplingRuleName || "").length + 2)}ch`
+                            }}
+                            autoFocus
+                        />
+                    </div>
+                )}
                 {/* Only show Publish button when config is loaded */}
                 {pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Success && (
                     <Button

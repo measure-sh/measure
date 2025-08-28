@@ -159,7 +159,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
     })
 
     const [sessionConditionsState, setSessionConditionsState] = useState<SessionConditionsState>({
-        conditions: [createEmptySessionCondition()],
+        conditions: [],
         operators: []
     })
 
@@ -167,7 +167,6 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
         value: 100
     });
 
-    const [samplingRuleName, setSamplingRuleName] = useState<string>();
 
     const [samplingRuleStatus, setSamplingRuleStatus] = useState<'enabled' | 'disabled'>('enabled');
 
@@ -192,34 +191,6 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
         }
     }, [samplingRulesConfig]);
 
-    // Effect to set the first session attribute when session attributes are available
-    useEffect(() => {
-        const sessionAttrs = getSessionAttributes(samplingRulesConfig);
-
-        if (sessionAttrs.length > 0) {
-            setSessionConditionsState(prevState => {
-                // Only update if the first condition doesn't have attrs set
-                if (prevState.conditions.length > 0 && !prevState.conditions[0].attrs) {
-                    const firstAttr = sessionAttrs[0];
-                    const updatedConditions = prevState.conditions.map((condition, index) =>
-                        index === 0 ? {
-                            ...condition,
-                            attrs: [{
-                                key: firstAttr.key,
-                                type: firstAttr.type,
-                                value: firstAttr.type === 'bool' ? false : ''
-                            }]
-                        } : condition
-                    );
-                    return {
-                        ...prevState,
-                        conditions: updatedConditions
-                    };
-                }
-                return prevState;
-            });
-        }
-    }, [samplingRulesConfig]);
 
     // Event condition handlers
     const addEventCondition = () => {
@@ -482,16 +453,6 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
 
     return (
         <div className="w-full space-y-6">
-            <div className="flex flex-row items-center mt-2">
-                <input
-                    type="text"
-                    placeholder="Enter rule name, e.g., Critical Issues"
-                    value={samplingRuleName}
-                    onChange={(e) => setSamplingRuleName(e.target.value)}
-                    onBlur={(e) => setSamplingRuleName(e.target.value.trim())}
-                    className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
-                />
-            </div>
 
             {/* Sampling rate */}
             <div className="w-full">
