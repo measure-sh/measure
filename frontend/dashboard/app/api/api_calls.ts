@@ -1044,7 +1044,7 @@ export const dummySamplingRulesResponse = {
     {
       id: "rule_identifier_2",
       type: "trace",
-      name: "Activity TTID traces sampled to 50%",
+      name: "Activity TTID traces",
       status: 1,
       sampling_rate: 0.5,
       event_rule: null,

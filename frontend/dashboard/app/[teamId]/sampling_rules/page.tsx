@@ -208,7 +208,6 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
                         </TableBody>
                     </Table>
                 </div>}
-
         </div>
     )
 }

@@ -61,31 +61,41 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
                 <p className="font-display text-4xl max-w-6xl text-center capitalize">
                     {isEditMode ? 'Edit' : 'Create'} {type} sampling rule
                 </p>
-                <Button
-                    variant="outline"
-                    className="font-display border border-black select-none"
-                    onClick={() => console.log("Publish rule clicked")}
-                >
-                    Publish Rule
-                </Button>
+                {/* Only show Publish button when config is loaded */}
+                {pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Success && (
+                    <Button
+                        variant="outline"
+                        className="font-display border border-black select-none"
+                        onClick={() => console.log("Publish rule clicked")}
+                    >
+                        Publish Rule
+                    </Button>
+                )}
             </div>
             <div className="py-4" />
 
-            {/* Error state for sampling rules fetch */}
-            {pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Error
-                && <p className="text-lg font-display">Error fetching sampling rules, please change filters, refresh page or select a different app to try again</p>}
+            {/* Error state for sampling rules config fetch */}
+            {pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Error && (
+                <p className="text-lg font-display">
+                    Error fetching sampling rules configuration. Please refresh the page to try again.
+                </p>
+            )}
 
-            {/* Main sampling rules UI */}
-            {(pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Success || pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Loading) &&
+            {/* Loading state */}
+            {pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Loading && (
                 <div className="flex flex-col items-center w-full">
-
-                    <div className={`py-1 w-full ${pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Loading ? 'visible' : 'invisible'}`}>
+                    <div className="py-1 w-full">
                         <LoadingBar />
                     </div>
+                </div>
+            )}
 
-                    {/* Conditions Section */}
+            {/* Main sampling conditions UI - only show when config is successfully loaded */}
+            {pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Success && (
+                <div className="flex flex-col items-center w-full">
                     <SamplingConditions samplingRulesConfig={pageState.samplingRulesConfig} />
-                </div>}
+                </div>
+            )}
         </div>
     );
 }

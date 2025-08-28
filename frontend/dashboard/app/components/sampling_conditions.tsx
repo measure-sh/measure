@@ -9,7 +9,29 @@ import { useState, useEffect } from 'react';
 import { emptySamplingRulesConfigResponse } from '../api/api_calls';
 
 const MAX_CONDITIONS = 5;
-const MAX_ATTRIBUTES_PER_CONDITION = 5;
+const MAX_ATTRIBUTES_PER_CONDITION = 10;
+
+const FixedLogicalOperator = ({ topSpace = true }: { topSpace?: boolean }) => (
+    <div className={`flex flex-col items-center justify-center relative ${topSpace ? 'pt-4' : ''} h-16`}>
+        {/* Top connecting line */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-6 bg-gray-300"></div>
+        
+        {/* Circular "AND" element (non-interactive) */}
+        <div className="relative z-10 w-10 h-10 rounded-full border border-gray-300 bg-yellow-200 flex items-center justify-center text-sm font-body text-black">
+            AND
+        </div>
+        
+        {/* Bottom connecting line */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-px h-6 bg-gray-300"></div>
+    </div>
+);
+
+// A new component for the vertical line segment
+const ConnectorLine = () => (
+    <div className="h-full w-full flex justify-center">
+        <div className="w-px h-full bg-gray-300" />
+    </div>
+);
 
 export interface EventCondition {
     type: string | null
@@ -492,6 +514,9 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                     placeholder="Enter name for sampling rule"
                     value={samplingRuleName}
                     onChange={(e) => {
+                        setSamplingRuleName(e.target.value);
+                    }}
+                    onBlur={(e) => {
                         setSamplingRuleName(e.target.value.trim());
                     }}
                     className="mt-4 w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
@@ -526,7 +551,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
 
                             return (
                                 <div key={index}>
-                                    <div className="bg-gray-50 p-3 space-y-6">
+                                    <div className="bg-gray-50 p-3 space-y-6 rounded-lg border">
                                         <div className="flex justify-between items-center">
                                             <div className="flex flex-row items-center">
                                                 <p className="text-sm">Event Type</p>
@@ -625,12 +650,10 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                                     </div>
 
                                     {index < eventConditionsState.conditions.length - 1 && (
-                                        <div className="py-6 pl-3">
-                                            <SamplingLogicalOperatorSelector
-                                                value={eventConditionsState.operators[index] || 'AND'}
-                                                onChange={(operator) => updateEventOperator(index, operator)}
-                                            />
-                                        </div>
+                                        <SamplingLogicalOperatorSelector
+                                            value={eventConditionsState.operators[index] || 'AND'}
+                                            onChange={(operator) => updateEventOperator(index, operator)}
+                                        />
                                     )}
                                 </div>
                             )
@@ -641,7 +664,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
 
             <div className="py-2" />
 
-            {/* Session conditions - Modified UI */}
+            {/* Session conditions */}
             <div className="w-full">
                 <div className="flex justify-start items-center gap-4">
                     <div className="flex items-center gap-2">
@@ -661,7 +684,7 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                     <div className="pt-4">
                         {sessionConditionsState.conditions.map((condition, index) => (
                             <div key={index}>
-                                <div className="bg-gray-50 p-3 space-y-6">
+                                <div className="bg-gray-50 p-3 space-y-6 rounded-lg border">
                                     <div className="flex justify-between items-center">
                                         <div className="flex-1">
                                             {sessionAttrs.length > 0 && condition.attrs && (
@@ -704,12 +727,10 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                                 </div>
 
                                 {index < sessionConditionsState.conditions.length - 1 && (
-                                    <div className="py-6 pl-3">
-                                        <SamplingLogicalOperatorSelector
-                                            value={sessionConditionsState.operators[index] || 'AND'}
-                                            onChange={(operator) => updateSessionOperator(index, operator)}
-                                        />
-                                    </div>
+                                    <SamplingLogicalOperatorSelector
+                                        value={sessionConditionsState.operators[index] || 'AND'}
+                                        onChange={(operator) => updateSessionOperator(index, operator)}
+                                    />
                                 )}
                             </div>
                         ))}
