@@ -1015,13 +1015,45 @@ export const emptySamplingRulesResponse = {
     name: string,
     status: number,
     sampling_rate: number,
-    rule: {
-      conditions: string[],
-      expression: string
-    },
+    event_rule: string | null,
+    trace_rule: string | null,
+    session_rule: string | null,
     last_modified_at: string,
     last_modified_by: string
   }[],
+}
+
+export const dummySamplingRulesResponse = {
+  meta: {
+    next: false,
+    previous: false,
+  },
+  results: [
+    {
+      id: "rule_identifier_1",
+      type: "session",
+      name: "Critical issues",
+      status: 0,
+      sampling_rate: 1,
+      event_rule: "event_type == \"anr\" || (event_type == \"exception\" && exception.handled == false) || (event_type == \"bug_report\" && user_defined_attrs.is_user_premium == true)",
+      trace_rule: null,
+      session_rule: "attribute.app_version.startWith(\"1.0\")",
+      last_modified_at: "2023-10-02T12:00:00Z",
+      last_modified_by: "bar@email.com"
+    },
+    {
+      id: "rule_identifier_2",
+      type: "trace",
+      name: "Activity TTID traces sampled to 50%",
+      status: 1,
+      sampling_rate: 0.5,
+      event_rule: null,
+      trace_rule: "span.name.startWith(\"Activity TTID\")",
+      session_rule: "attribute.app_version.startWith(\"1.0\")",
+      last_modified_at: "2023-10-02T12:00:00Z",
+      last_modified_by: "foo@email.com"
+    }
+  ],
 }
 
 export const emptySamplingRulesConfigResponse = {
@@ -1260,51 +1292,6 @@ export const dummySamplingRulesConfigResponse = {
       ]
     }
   }
-}
-
-export const dummySamplingRulesResponse = {
-  meta: {
-    next: false,
-    previous: false,
-  },
-  results: [
-    {
-      id: "rule_identifier",
-      type: "session",
-      name: "Critical issues",
-      status: 0,
-      sampling_rate: 1,
-      rule: {
-        conditions: [
-          "event_type == \"exception\" && exception.handled == false",
-          "event_type == \"anr\"",
-          "event_type == \"bug_report\"",
-          "attribute.os_version == \"33\"",
-          "attribute.app_version == \"0.2.1\""
-        ],
-        expression: "(0 || 1 || 2) && (3 && 4)"
-      },
-      created_at: "2023-10-01T12:00:00Z",
-      created_by: "foo@email.com",
-      last_modified_at: "2023-10-02T12:00:00Z",
-      last_modified_by: "bar@email.com"
-    },
-    {
-      id: "rule_identifier",
-      type: "trace",
-      name: "/create-orders HTTP requests",
-      status: 1,
-      sampling_rate: 0.5,
-      rule: {
-        conditions: [
-          "span.name.startsWith(\"HTTP POST /create-orders\")"
-        ],
-        expression: "(0 || 1 || 2) && (3 && 4)"
-      },
-      last_modified_at: "2023-10-02T12:00:00Z",
-      last_modified_by: "foo@email.com"
-    }
-  ],
 }
 
 export class AppVersion {
