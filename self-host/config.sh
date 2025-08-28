@@ -116,10 +116,24 @@ prompt_value_manual() {
   fi
 
   while [[ -z "$value" ]]; do
-    read -p "$valprompt" value
+    read -r -p "$valprompt" value
   done
 
-  echo $value
+  echo "$value"
+}
+
+# Prompts for manual optional value entry
+prompt_optional_value_manual() {
+  local value
+  local valprompt="$1"
+
+  if ! validate_empty "$1"; then
+    valprompt="Enter the value: "
+  fi
+
+  read -r -p "$valprompt" value
+
+  echo "$value"
 }
 
 # Prompts for manual password entry
@@ -180,6 +194,7 @@ CLICKHOUSE_READER_USER=app_reader
 CLICKHOUSE_READER_PASSWORD=dummY_pa55w0rd
 CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
+CLICKHOUSE_MIGRATIONS_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
 
 ##################
 # Object Storage #
@@ -311,6 +326,7 @@ CLICKHOUSE_READER_USER=app_reader
 CLICKHOUSE_READER_PASSWORD=$CLICKHOUSE_READER_PASSWORD
 CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
+CLICKHOUSE_MIGRATIONS_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
 
 ##################
 # Object Storage #
@@ -428,7 +444,7 @@ END
 # first argument.
 ENVIRONMENT="$1"
 
-if [[ "$ENVIRONMENT" == "production" ]]; then
+if [[ "$ENVIRONMENT" == "production" || "$ENVIRONMENT" == "--production" ]]; then
   SETUP_ENV=production
 else
   SETUP_ENV=development
@@ -554,7 +570,7 @@ END
   SMTP_PORT=$(prompt_value_manual "Enter SMTP port: ")
   SMTP_USER=$(prompt_value_manual "Enter SMTP username: ")
   SMTP_PASSWORD=$(prompt_value_manual "Enter SMTP password: ")
-  EMAIL_DOMAIN=$(prompt_value_manual "Enter email domain: ")
+  EMAIL_DOMAIN=$(prompt_optional_value_manual "Enter email domain (optional): ")
 
   write_prod_env
   write_web_prod_env
