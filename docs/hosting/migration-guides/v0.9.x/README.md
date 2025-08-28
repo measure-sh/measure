@@ -17,7 +17,7 @@ Visit [Releases](https://github.com/measure-sh/measure/releases) page to capture
 ```sh
 cd ~/measure
 git reset --hard # only applies if you have local modifications
-git fetch
+git fetch --tags
 git checkout <git-tag>
 cd self-host
 sudo ./install.sh
