@@ -2,10 +2,9 @@
 FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
-RUN apk add --no-cache git
 WORKDIR /go/src/app
 COPY ["go.mod", "go.sum", "./"]
-RUN go get -v ./...
+RUN go mod download
 COPY . .
 RUN --mount=type=cache,target=/go/pkg/mod \
   --mount=type=cache,target=/root/.cache/go-build \

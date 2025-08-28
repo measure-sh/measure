@@ -1,27 +1,27 @@
-name: Migrator
+name: Metering
 on:
   pull_request:
     paths:
-      - .github/workflows/migrator.yml
-      - backend/migrator/dockerfile
-      - backend/migrator/**/*.go
-      - backend/migrator/**/*.mod
-      - backend/migrator/**/*.sum
+      - .github/workflows/metering.yml
+      - backend/metering/dockerfile
+      - backend/metering/**/*.go
+      - backend/metering/**/*.mod
+      - backend/metering/**/*.sum
   push:
     branches:
       - "main"
     paths:
-      - .github/workflows/migrator.yml
-      - backend/migrator/dockerfile
-      - backend/migrator/**/*.go
-      - backend/migrator/**/*.mod
-      - backend/migrator/**/*.sum
+      - .github/workflows/metering.yml
+      - backend/metering/dockerfile
+      - backend/metering/**/*.go
+      - backend/metering/**/*.mod
+      - backend/metering/**/*.sum
     tags:
       - "v*"
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: measure-sh/migrator
+  IMAGE_NAME: measure-sh/metering
 
 permissions:
   contents: read
@@ -35,7 +35,7 @@ jobs:
         go-version: ["1.24.x", "1.25.x"]
     defaults:
       run:
-        working-directory: backend/migrator
+        working-directory: backend/metering
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,7 +44,7 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
           check-latest: true
-          cache-dependency-path: backend/migrator/go.sum
+          cache-dependency-path: backend/metering/go.sum
       - name: Display go version
         run: go version
       - name: Install dependencies
@@ -60,7 +60,7 @@ jobs:
         go-version: ["1.24.x", "1.25.x"]
     defaults:
       run:
-        working-directory: backend/migrator
+        working-directory: backend/metering
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -69,7 +69,7 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
           check-latest: true
-          cache-dependency-path: backend/migrator/go.sum
+          cache-dependency-path: backend/metering/go.sum
       - name: Display go version
         run: go version
       - name: Install dependencies
@@ -108,13 +108,13 @@ jobs:
         id: push
         uses: docker/build-push-action@v6
         with:
-          context: backend/migrator
-          file: backend/migrator/dockerfile
+          context: backend/metering
+          file: backend/metering/dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
-            org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/backend/migrator/dockerfile
-            org.opencontainers.image.description=Measure Migrator Server
+            org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/backend/metering/dockerfile
+            org.opencontainers.image.description=Measure Metering Server
             org.opencontainers.image.licenses=Apache-2.0
 
       - name: Generate artifact attestation
