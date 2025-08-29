@@ -245,6 +245,7 @@
 		CF83E3212E0FF85C00FE7041 /* MsrRequestHeadersProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF83E3202E0FF85C00FE7041 /* MsrRequestHeadersProvider.swift */; };
 		CF86818F2DB6541F00C62DA5 /* SpanId.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF86818D2DB6541F00C62DA5 /* SpanId.swift */; };
 		CF8681902DB6541F00C62DA5 /* TraceId.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF86818E2DB6541F00C62DA5 /* TraceId.swift */; };
+		CF9D74C52E6169F3007D6D30 /* LifecycleManagerInternal.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9D74C42E6169F3007D6D30 /* LifecycleManagerInternal.swift */; };
 		CFB838212DAFEF780023592B /* SpanProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB838202DAFEF780023592B /* SpanProcessorTests.swift */; };
 		CFB8382C2DB1597B0023592B /* SpanOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB8382A2DB1597B0023592B /* SpanOb+CoreDataClass.swift */; };
 		CFB8382D2DB1597B0023592B /* SpanOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB8382B2DB1597B0023592B /* SpanOb+CoreDataProperties.swift */; };
@@ -576,6 +577,7 @@
 		CF83E3202E0FF85C00FE7041 /* MsrRequestHeadersProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrRequestHeadersProvider.swift; sourceTree = "<group>"; };
 		CF86818D2DB6541F00C62DA5 /* SpanId.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanId.swift; sourceTree = "<group>"; };
 		CF86818E2DB6541F00C62DA5 /* TraceId.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceId.swift; sourceTree = "<group>"; };
+		CF9D74C42E6169F3007D6D30 /* LifecycleManagerInternal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleManagerInternal.swift; sourceTree = "<group>"; };
 		CFB838202DAFEF780023592B /* SpanProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanProcessorTests.swift; sourceTree = "<group>"; };
 		CFB8382A2DB1597B0023592B /* SpanOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CFB8382B2DB1597B0023592B /* SpanOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
@@ -848,6 +850,7 @@
 			children = (
 				526D17E72D5A1913009A2E90 /* LifecycleCollector.swift */,
 				526D17E82D5A1913009A2E90 /* LifecycleEvents.swift */,
+				CF9D74C42E6169F3007D6D30 /* LifecycleManagerInternal.swift */,
 				526D17E92D5A1913009A2E90 /* LifecycleManager.swift */,
 				526D17EA2D5A1913009A2E90 /* MsrViewController.swift */,
 				526D17EB2D5A1913009A2E90 /* MsrMoniterView.swift */,
@@ -1614,6 +1617,7 @@
 				526D18352D5A1913009A2E90 /* InternalConfig.swift in Sources */,
 				526D18442D5A1913009A2E90 /* SystemCrashReporter.swift in Sources */,
 				CF86818F2DB6541F00C62DA5 /* SpanId.swift in Sources */,
+				CF9D74C52E6169F3007D6D30 /* LifecycleManagerInternal.swift in Sources */,
 				CF8681902DB6541F00C62DA5 /* TraceId.swift in Sources */,
 				CF1BB49E2DCDF99A00588506 /* ShakeBugReportCollector.swift in Sources */,
 				526D18402D5A1913009A2E90 /* CrashDataPersistence.swift in Sources */,

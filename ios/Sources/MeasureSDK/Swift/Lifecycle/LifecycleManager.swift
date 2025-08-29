@@ -8,7 +8,6 @@
 import Foundation
 import UIKit
 
-@objc(LifecycleManagerInternal)
 final class LifecycleManager: NSObject {
     @objc static let shared = LifecycleManager()
     private var lifecycleCollector: LifecycleCollector?

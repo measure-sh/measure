@@ -136,6 +136,12 @@ extension Measure.BatchOb {
   public func update(title: UIKit.UIFont? = nil, button: UIKit.UIFont? = nil, placeholder: UIKit.UIFont? = nil) -> Measure.MsrFonts
   @objc deinit
 }
+@_inheritsConvenienceInitializers @objc(LifecycleManagerInternal) public class LifecycleManagerInternal : ObjectiveC.NSObject {
+  @objc public static let shared: Measure.LifecycleManagerInternal
+  @objc public func sendLifecycleEvent(_ event: Measure.VCLifecycleEventType, for viewController: UIKit.UIViewController)
+  @objc override dynamic public init()
+  @objc deinit
+}
 public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterable {
   case allTextAndMedia
   case allText
