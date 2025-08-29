@@ -651,10 +651,6 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                                                         const operatorTypes = getOperatorsForType(operatorTypesMapping, attr.type)
                                                         const availableSessionAttrKeys = sessionAttrs.map(a => a.key);
 
-                                                        // Find the session attribute definition to get predefined values
-                                                        const sessionAttrDef = sessionAttrs.find(a => a.key === attr.key);
-                                                        const predefinedValues = sessionAttrDef?.values?.map(val => String(val)) || [];
-
                                                         return (
                                                             <SamplingAttributeRow
                                                                 key={`session-attrs-${index}-${attrIndex}`}
@@ -665,7 +661,6 @@ export default function SamplingConditions({ samplingRulesConfig }: SamplingCond
                                                                 availableAttrKeys={availableSessionAttrKeys}
                                                                 operatorTypes={operatorTypes}
                                                                 onUpdateAttribute={updateSessionAttribute}
-                                                                predefinedValues={predefinedValues}
                                                                 showDeleteButton={false}
                                                             />
                                                         )

@@ -1085,7 +1085,6 @@ export const emptySamplingRulesConfigResponse = {
     session_attrs: Array<{
       key: string,
       type: string,
-      values: string[] | number[]
     }>,
     operator_types: {
       bool: string[],
@@ -1220,47 +1219,42 @@ export const dummySamplingRulesConfigResponse = {
       {
         key: "app_version",
         type: "string",
-        values: ["0.1.0", "0.2.1", "0.2.2", "0.3.0"]
       },
       {
         key: "os_version",
         type: "string",
-        values: ["32", "33", "34"]
       },
       {
         key: "device_manufacturer",
         type: "string",
-        values: ["Google", "Samsung", "OnePlus", "Xiaomi"]
       },
       {
         key: "device_model",
         type: "string",
-        values: ["Pixel 6", "Galaxy S21", "OnePlus 9", "Mi 11"]
       },
       {
         key: "network_type",
         type: "string",
-        values: ["wifi", "cellular", "none"]
       },
       {
         key: "network_generation",
         type: "string",
-        values: ["2g", "3g", "4g", "5g"]
       },
       {
         key: "network_provider",
         type: "string",
-        values: ["Verizon", "AT&T", "T-Mobile"]
       },
       {
         key: "locale",
         type: "string",
-        values: ["en_US", "en_GB", "de_DE", "fr_FR"]
       },
       {
         key: "is_device_foldable",
         type: "bool",
-        values: ["true", "false"]
+      },
+      {
+        key: "user_id",
+        type: "string",
       }
     ],
     operator_types: {

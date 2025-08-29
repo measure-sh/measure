@@ -15,8 +15,7 @@ const SamplingAttributeRow = ({
     operatorTypes,
     onUpdateAttribute,
     onRemoveAttribute,
-    showDeleteButton = true,
-    predefinedValues
+    showDeleteButton = true
 }: {
     attr: { key: string; type: string; value: string | boolean | number };
     attrIndex: number;
@@ -27,10 +26,7 @@ const SamplingAttributeRow = ({
     onUpdateAttribute: (conditionIndex: number, attrIndex: number, field: 'key' | 'type' | 'value', value: any, attributeType: AttributeType) => void;
     onRemoveAttribute?: (conditionIndex: number, attrIndex: number, attributeType: AttributeType) => void;
     showDeleteButton?: boolean;
-    predefinedValues?: string[];
 }) => {
-    // Check if this attribute has predefined values
-    const hasPredefinedValues = predefinedValues && predefinedValues.length > 0;
 
     return (
         <div className="flex items-center gap-3">
@@ -57,24 +53,7 @@ const SamplingAttributeRow = ({
             />
 
             <div className="flex items-center gap-4 flex-1">
-                {hasPredefinedValues ? (
-                    <DropdownSelect
-                        type={DropdownSelectType.SingleString}
-                        title="Value"
-                        items={predefinedValues}
-                        initialSelected={String(attr.value) || predefinedValues[0]}
-                        onChangeSelected={(selected) => {
-                            // Convert to appropriate type based on attr type
-                            let convertedValue: string | boolean | number = selected as string;
-                            if (attr.type === 'bool') {
-                                convertedValue = selected === 'true';
-                            } else if (attr.type === 'number' || attr.type === 'int64' || attr.type === 'float64') {
-                                convertedValue = Number(selected);
-                            }
-                            onUpdateAttribute(conditionIndex, attrIndex, 'value', convertedValue, attributeType)
-                        }}
-                    />
-                ) : attr.type === 'bool' ? (
+                {attr.type === 'bool' ? (
                     <DropdownSelect
                         type={DropdownSelectType.SingleString}
                         title="Value"
