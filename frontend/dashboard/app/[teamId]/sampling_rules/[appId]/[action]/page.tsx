@@ -190,7 +190,7 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
     }
 
     const [pageState, setPageState] = useState<PageState>(initialState)
-    const [samplingRuleName, setSamplingRuleName] = useState<string>(nameFromParams || undefined)
+    const [samplingRuleName, setSamplingRuleName] = useState<string | null>(nameFromParams)
 
     const [eventConditionsState, setEventConditionsState] = useState<EventConditionsState>({
         conditions: [createEmptyEventCondition()],

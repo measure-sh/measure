@@ -1021,12 +1021,10 @@ export const emptySamplingRuleResponse = {
     event_rule: string | null,
     trace_rule: string | null,
     session_rule: string | null,
-    changelog: Array<[
-      {
-        modified_at: string,
-        modified_by: string,
-      }
-    ]>
+    changelog: Array<{
+      modified_at: string,
+      modified_by: string,
+    }>
   },
 }
 

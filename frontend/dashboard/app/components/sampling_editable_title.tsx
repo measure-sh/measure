@@ -5,7 +5,7 @@ import { Button } from '@/app/components/button';
 import { Edit2 } from 'lucide-react';
 
 interface SamplingEditableTitleProps {
-    initialValue?: string;
+    initialValue?: string | null;
     onTitleChange?: (title: string) => void;
     showEditButton?: boolean;
 }
@@ -16,12 +16,12 @@ const SamplingEditableTitle = ({ initialValue, onTitleChange, showEditButton = t
 
     // Update internal state when initialValue changes
     useEffect(() => {
-        if (initialValue !== undefined && initialValue !== title) {
+        if (initialValue && initialValue !== title) {
             setTitle(initialValue);
         }
-    }, [initialValue]);
+    }, [initialValue, title]);
 
-    const displayTitle = title?.trim() || "New Sampling Rule";
+    const displayTitle = title?.trim() || "Sampling Rule";
     
     const handleEditClick = () => {
         setIsEditing(true);
