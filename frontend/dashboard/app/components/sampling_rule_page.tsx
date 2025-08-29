@@ -7,7 +7,6 @@ import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_se
 import SamplingAttributeRow from '@/app/components/sampling_attribute_row';
 import SamplingLogicalOperatorSelector from '@/app/components/sampling_logical_operator_selector';
 import SamplingEditableTitle from '@/app/components/sampling_editable_title';
-import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 
@@ -38,6 +37,15 @@ export interface SessionCondition {
     }> | null
 }
 
+export interface TraceCondition {
+    spanName: string | null
+    udAttrs: Array<{
+        key: string,
+        type: string,
+        value: string | boolean | number
+    }> | null
+}
+
 interface EventConditionsState {
     conditions: EventCondition[]
     operators: ('AND' | 'OR')[]
@@ -45,6 +53,11 @@ interface EventConditionsState {
 
 interface SessionConditionsState {
     conditions: SessionCondition[]
+    operators: ('AND' | 'OR')[]
+}
+
+interface TraceConditionsState {
+    conditions: TraceCondition[]
     operators: ('AND' | 'OR')[]
 }
 
@@ -82,6 +95,11 @@ const createEmptySessionCondition = (): SessionCondition => ({
     attrs: null
 })
 
+const createEmptyTraceCondition = (): TraceCondition => ({
+    spanName: null,
+    udAttrs: null
+})
+
 export const getEventTypesFromResponse = (response: typeof emptySamplingRulesConfigResponse) => {
     return response.result?.events?.map(event => event.type) || [];
 };
@@ -102,6 +120,14 @@ const doesEventSupportUdAttrs = (response: typeof emptySamplingRulesConfigRespon
 
 const getUserDefinedAttributes = (response: typeof emptySamplingRulesConfigResponse) => {
     return response.result?.event_ud_attrs?.key_types || [];
+};
+
+const getSpanNamesFromResponse = (response: typeof emptySamplingRulesConfigResponse) => {
+    return response.result?.spans?.map(span => span.name) || [];
+};
+
+const getSpanUserDefinedAttributes = (response: typeof emptySamplingRulesConfigResponse) => {
+    return response.result?.span_ud_attrs?.key_types || [];
 };
 
 const getOperatorTypesMapping = (response: typeof emptySamplingRulesConfigResponse) => {
@@ -171,24 +197,41 @@ const isPageReady = (pageState: PageState, isEditMode: boolean): boolean => {
 };
 
 // Helper function to check if conditions are empty
-const areConditionsEmpty = (eventConditionsState: EventConditionsState, sessionConditionsState: SessionConditionsState): boolean => {
-    // Check event conditions - consider valid if there's a type selected OR attributes
-    const hasValidEventConditions = eventConditionsState.conditions.some(condition => {
-        return condition.type !== null ||
-            (condition.attrs && condition.attrs.length > 0) ||
-            (condition.udAttrs && condition.udAttrs.length > 0);
-    });
+const areConditionsEmpty = (
+    type: string,
+    eventConditionsState: EventConditionsState, 
+    sessionConditionsState: SessionConditionsState,
+    traceConditionsState?: TraceConditionsState
+): boolean => {
+    if (type === 'trace') {
+        // For trace rules, check trace conditions and session conditions
+        const hasValidTraceConditions = traceConditionsState?.conditions.some(condition => {
+            return condition.spanName !== null ||
+                (condition.udAttrs && condition.udAttrs.length > 0);
+        });
 
-    // Check session conditions
-    const hasValidSessionConditions = sessionConditionsState.conditions.some(condition => {
-        return condition.attrs && condition.attrs.length > 0;
-    });
+        const hasValidSessionConditions = sessionConditionsState.conditions.some(condition => {
+            return condition.attrs && condition.attrs.length > 0;
+        });
 
-    return !hasValidEventConditions && !hasValidSessionConditions;
+        return !hasValidTraceConditions && !hasValidSessionConditions;
+    } else {
+        // For event rules, check event conditions and session conditions  
+        const hasValidEventConditions = eventConditionsState.conditions.some(condition => {
+            return condition.type !== null ||
+                (condition.attrs && condition.attrs.length > 0) ||
+                (condition.udAttrs && condition.udAttrs.length > 0);
+        });
+
+        const hasValidSessionConditions = sessionConditionsState.conditions.some(condition => {
+            return condition.attrs && condition.attrs.length > 0;
+        });
+
+        return !hasValidEventConditions && !hasValidSessionConditions;
+    }
 };
 
 export default function SamplingRulePage({ params, isEditMode }: SamplingRulePageProps) {
-    const searchParams = useSearchParams()
     const type = params.type
     const nameFromParams = isEditMode && params.ruleName ? decodeURIComponent(params.ruleName) : null
 
@@ -209,6 +252,11 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
 
     const [sessionConditionsState, setSessionConditionsState] = useState<SessionConditionsState>({
         conditions: [],
+        operators: []
+    })
+
+    const [traceConditionsState, setTraceConditionsState] = useState<TraceConditionsState>({
+        conditions: [createEmptyTraceCondition()],
         operators: []
     })
 
@@ -298,7 +346,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
     useEffect(() => {
         const eventTypes = getEventTypesFromResponse(pageState.samplingRulesConfig);
 
-        if (eventTypes.length > 0) {
+        if (eventTypes.length > 0 && type !== 'trace') {
             setEventConditionsState(prevState => {
                 // Only update if the first condition doesn't have a type set
                 if (prevState.conditions.length > 0 && prevState.conditions[0].type === null) {
@@ -313,7 +361,28 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                 return prevState;
             });
         }
-    }, [pageState.samplingRulesConfig]);
+    }, [pageState.samplingRulesConfig, type]);
+
+    // Effect to set the first span name when span names are available
+    useEffect(() => {
+        const spanNames = getSpanNamesFromResponse(pageState.samplingRulesConfig);
+
+        if (spanNames.length > 0 && type === 'trace') {
+            setTraceConditionsState(prevState => {
+                // Only update if the first condition doesn't have a span name set
+                if (prevState.conditions.length > 0 && prevState.conditions[0].spanName === null) {
+                    const updatedConditions = prevState.conditions.map((condition, index) =>
+                        index === 0 ? { ...condition, spanName: spanNames[0] } : condition
+                    );
+                    return {
+                        ...prevState,
+                        conditions: updatedConditions
+                    };
+                }
+                return prevState;
+            });
+        }
+    }, [pageState.samplingRulesConfig, type]);
 
     const handleTitleChange = (title: string) => {
         setSamplingRuleName(title);
@@ -573,10 +642,169 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
         })
     }
 
+    // Trace condition handlers
+    const addTraceCondition = () => {
+        if (traceConditionsState.conditions.length < MAX_CONDITIONS) {
+            const spanNames = getSpanNamesFromResponse(pageState.samplingRulesConfig);
+            const newCondition = createEmptyTraceCondition();
+
+            // Set the first span name if available
+            if (spanNames.length > 0) {
+                newCondition.spanName = spanNames[0];
+            }
+
+            const newOperators = traceConditionsState.conditions.length > 0
+                ? [...traceConditionsState.operators, 'AND' as const]
+                : []
+
+            setTraceConditionsState({
+                conditions: [...traceConditionsState.conditions, newCondition],
+                operators: newOperators
+            })
+        }
+    }
+
+    const removeTraceCondition = (conditionIndex: number) => {
+        if (conditionIndex < 0 || conditionIndex >= traceConditionsState.conditions.length) return
+
+        const newConditions = traceConditionsState.conditions.filter((_, index) => index !== conditionIndex)
+        let newOperators = [...traceConditionsState.operators]
+
+        if (conditionIndex < newOperators.length) {
+            newOperators.splice(conditionIndex, 1)
+        } else if (conditionIndex > 0 && newOperators.length > 0) {
+            newOperators.splice(conditionIndex - 1, 1)
+        }
+
+        setTraceConditionsState({
+            conditions: newConditions,
+            operators: newOperators
+        })
+    }
+
+    const updateTraceCondition = (conditionIndex: number, spanName: string) => {
+        if (conditionIndex < 0 || conditionIndex >= traceConditionsState.conditions.length) return
+
+        const updatedConditions = traceConditionsState.conditions.map((condition, index) =>
+            index === conditionIndex
+                ? { ...condition, spanName, udAttrs: null }
+                : condition
+        )
+        setTraceConditionsState({
+            ...traceConditionsState,
+            conditions: updatedConditions
+        })
+    }
+
+    const updateTraceOperator = (operatorIndex: number, operator: 'AND' | 'OR') => {
+        const newOperators = [...traceConditionsState.operators]
+        newOperators[operatorIndex] = operator
+        setTraceConditionsState({
+            ...traceConditionsState,
+            operators: newOperators
+        })
+    }
+
+    const addTraceAttribute = (conditionIndex: number) => {
+        const condition = traceConditionsState.conditions[conditionIndex]
+        if (!condition || !condition.spanName) return
+
+        const availableAttrs = getSpanUserDefinedAttributes(pageState.samplingRulesConfig)
+        if (!availableAttrs.length) return
+
+        const firstAttr = availableAttrs[0];
+        if (!firstAttr) return;
+
+        const newAttr = {
+            key: firstAttr.key,
+            type: firstAttr.type,
+            value: firstAttr.type === 'boolean' ? false : ''
+        }
+
+        setTraceConditionsState(prevState => {
+            const updatedConditions = prevState.conditions.map((cond, index) =>
+                index === conditionIndex
+                    ? {
+                        ...cond,
+                        udAttrs: cond.udAttrs ? [...cond.udAttrs, newAttr] : [newAttr]
+                    }
+                    : cond
+            )
+            return {
+                ...prevState,
+                conditions: updatedConditions
+            }
+        })
+    }
+
+    const removeTraceAttribute = (conditionIndex: number, attrIndex: number) => {
+        setTraceConditionsState(prevState => {
+            const condition = prevState.conditions[conditionIndex]
+            const currentAttrs = condition?.udAttrs
+            if (!currentAttrs) return prevState
+
+            const updatedAttrs = currentAttrs.filter((_, index) => index !== attrIndex)
+
+            const updatedConditions = prevState.conditions.map((cond, index) =>
+                index === conditionIndex
+                    ? { ...cond, udAttrs: updatedAttrs.length > 0 ? updatedAttrs : null }
+                    : cond
+            )
+
+            return {
+                ...prevState,
+                conditions: updatedConditions
+            }
+        })
+    }
+
+    const updateTraceAttribute = (
+        conditionIndex: number,
+        attrIndex: number,
+        field: 'key' | 'type' | 'value',
+        value: any
+    ) => {
+        setTraceConditionsState(prevState => {
+            const condition = prevState.conditions[conditionIndex]
+            const currentAttrs = condition?.udAttrs
+            if (!currentAttrs) return prevState
+
+            const updatedAttrs = currentAttrs.map((attr, index) => {
+                if (index === attrIndex) {
+                    const updatedAttr = { ...attr, [field]: value }
+
+                    if (field === 'key') {
+                        const availableAttrs = getSpanUserDefinedAttributes(pageState.samplingRulesConfig)
+                        const selectedAttr = availableAttrs.find(a => a.key === value)
+                        if (selectedAttr) {
+                            updatedAttr.type = selectedAttr.type
+                            updatedAttr.value = selectedAttr.type === 'boolean' ? false : ''
+                        }
+                    }
+
+                    return updatedAttr
+                }
+                return attr
+            })
+
+            const updatedConditions = prevState.conditions.map((cond, index) =>
+                index === conditionIndex
+                    ? { ...cond, udAttrs: updatedAttrs }
+                    : cond
+            )
+
+            return {
+                ...prevState,
+                conditions: updatedConditions
+            }
+        })
+    }
+
     const eventTypes = getEventTypesFromResponse(pageState.samplingRulesConfig);
+    const spanNames = getSpanNamesFromResponse(pageState.samplingRulesConfig);
     const operatorTypesMapping = getOperatorTypesMapping(pageState.samplingRulesConfig);
     const sessionAttrs = getSessionAttributes(pageState.samplingRulesConfig);
-    const conditionsAreEmpty = areConditionsEmpty(eventConditionsState, sessionConditionsState);
+    const conditionsAreEmpty = areConditionsEmpty(type, eventConditionsState, sessionConditionsState, traceConditionsState);
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
@@ -584,7 +812,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                 <SamplingEditableTitle
                     initialValue={samplingRuleName}
                     onTitleChange={handleTitleChange}
-                    showEditButton={!isPageLoading(pageState, isEditMode)}
+                    showEditButton={isPageReady(pageState, isEditMode)}
                     isLoading={isPageLoading(pageState, isEditMode)}
                 />
                 {/* Only show Publish button when all required data is loaded */}
@@ -604,7 +832,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
             {/* Error state */}
             {hasPageError(pageState, isEditMode) && (
                 <p className="text-lg font-display">
-                    Error loading data. Please refresh the page to try again.
+                    Error loading rule. Please refresh the page to try again.
                 </p>
             )}
 
@@ -648,21 +876,22 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
 
                     <div className="py-2" />
 
-                    {/* Event conditions */}
-                    <div className="w-full">
-                        <div className="flex justify-start items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <p className="font-display text-xl max-w-6xl">Event conditions</p>
+                    {/* Event conditions - only show for non-trace rules */}
+                    {type !== 'trace' && (
+                        <div className="w-full">
+                            <div className="flex justify-start items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <p className="font-display text-xl max-w-6xl">Event conditions</p>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={addEventCondition}
+                                    disabled={eventConditionsState.conditions.length >= MAX_CONDITIONS}
+                                >
+                                    + Add condition
+                                </Button>
                             </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={addEventCondition}
-                                disabled={eventConditionsState.conditions.length >= MAX_CONDITIONS}
-                            >
-                                + Add condition
-                            </Button>
-                        </div>
 
                         {eventConditionsState.conditions.length > 0 && (
                             <div className="pt-4">
@@ -781,7 +1010,111 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                                 })}
                             </div>
                         )}
-                    </div>
+                        </div>
+                    )}
+
+                    {/* Trace conditions - only show for trace rules */}
+                    {type === 'trace' && (
+                        <div className="w-full">
+                            <div className="flex justify-start items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <p className="font-display text-xl max-w-6xl">Trace conditions</p>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={addTraceCondition}
+                                    disabled={traceConditionsState.conditions.length >= MAX_CONDITIONS}
+                                >
+                                    + Add condition
+                                </Button>
+                            </div>
+
+                            {traceConditionsState.conditions.length > 0 && (
+                                <div className="pt-4">
+                                    {traceConditionsState.conditions.map((condition, index) => {
+                                        const spanUdAttrs = getSpanUserDefinedAttributes(pageState.samplingRulesConfig);
+                                        const canAddMoreUdAttrs = condition.udAttrs ? condition.udAttrs.length < MAX_ATTRIBUTES_PER_CONDITION : true;
+
+                                        return (
+                                            <div key={index}>
+                                                <div className="bg-gray-50 p-3 space-y-6 rounded-lg border">
+                                                    <div className="flex justify-between items-center">
+                                                        <div className="flex flex-row items-center">
+                                                            <p className="text-sm">Span Name</p>
+                                                            <div className="px-3" />
+                                                            <DropdownSelect
+                                                                type={DropdownSelectType.SingleString}
+                                                                title="Select Span Name"
+                                                                items={spanNames}
+                                                                initialSelected={condition.spanName || ""}
+                                                                onChangeSelected={(selected) => {
+                                                                    updateTraceCondition(index, selected as string)
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => removeTraceCondition(index)}
+                                                            className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+
+                                                    {spanUdAttrs.length > 0 && (
+                                                        <div className="space-y-3">
+                                                            <div className="flex items-center gap-3">
+                                                                <p className="text-sm">User-defined Attributes</p>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => addTraceAttribute(index)}
+                                                                    disabled={!canAddMoreUdAttrs || !spanUdAttrs.length}
+                                                                    className="text-xs"
+                                                                >
+                                                                    + Add attribute
+                                                                </Button>
+                                                            </div>
+
+                                                            {condition.udAttrs && condition.udAttrs.map((udAttr, udAttrIndex) => {
+                                                                const operatorTypes = getOperatorsForType(operatorTypesMapping, udAttr.type)
+                                                                const availableUdAttrKeys = spanUdAttrs.map(a => a.key);
+
+                                                                return (
+                                                                    <SamplingAttributeRow
+                                                                        key={`trace-udAttrs-${index}-${udAttrIndex}`}
+                                                                        attr={udAttr}
+                                                                        attrIndex={udAttrIndex}
+                                                                        conditionIndex={index}
+                                                                        attributeType="udAttrs"
+                                                                        availableAttrKeys={availableUdAttrKeys}
+                                                                        operatorTypes={operatorTypes}
+                                                                        onUpdateAttribute={updateTraceAttribute}
+                                                                        onRemoveAttribute={removeTraceAttribute}
+                                                                    />
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {index < traceConditionsState.conditions.length - 1 && (
+                                                    <div className="flex justify-start">
+                                                        <SamplingLogicalOperatorSelector
+                                                            value={traceConditionsState.operators[index] || 'AND'}
+                                                            onChange={(operator) => updateTraceOperator(index, operator)}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="py-2" />
 
