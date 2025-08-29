@@ -83,10 +83,10 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
                             variant="ghost"
                             size="sm"
                             onClick={handleEditClick}
-                            className="flex items-center gap-2 px-3 py-1 hover:bg-gray-100"
+                            className="flex items-center gap-2 px-3 py-1 hover:bg-yellow-200"
                         >
                             <Edit2 className="h-4 w-4" />
-                            <span className="text-sm">Edit rule name</span>
+                            <span className="text-sm">Edit</span>
                         </Button>
                     </div>
                 ) : (
