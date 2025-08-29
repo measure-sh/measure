@@ -573,6 +573,7 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
                     <Button
                         variant="outline"
                         className="font-display border border-black select-none"
+                        disabled={conditionsAreEmpty}
                         onClick={() => console.log("Publish rule clicked")}
                     >
                         Publish Rule
