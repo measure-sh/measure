@@ -342,6 +342,14 @@ export enum SamplingRulesConfigApiStatus {
   Cancelled,
 }
 
+export enum CreateSamplingRuleApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
@@ -2624,4 +2632,39 @@ export const fetchSamplingRuleFromServer = async (
 ) => {
   console.log("fetchSamplingRuleFromServer: Using dummy data", dummySamplingRuleResponse)
   return { status: SamplingRuleApiStatus.Success, data: dummySamplingRuleResponse }
+}
+
+export const createSamplingRule = async (
+  teamId: string,
+  appId: string,
+  ruleData: {
+    type: string,
+    name: string,
+    status: number,
+    sampling_rate: number,
+    event_rule: string | null,
+    trace_rule: string | null,
+    session_rule: string | null,
+  }
+) => {
+  const opts = {
+    method: "POST",
+    body: JSON.stringify(ruleData),
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(
+      `/api/teams/${teamId}/apps/${appId}/sampling-rules`,
+      opts,
+    )
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { status: CreateSamplingRuleApiStatus.Error, error: data.error }
+    }
+
+    return { status: CreateSamplingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: CreateSamplingRuleApiStatus.Cancelled }
+  }
 }
