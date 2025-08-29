@@ -157,7 +157,7 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
                         </TableHeader>
                         <TableBody>
                             {pageState.samplingRules.results?.map(({ id, type, name, status, last_modified_at, last_modified_by, sampling_rate }, idx) => {
-                                const ruleHref = `/${params.teamId}/sampling_rules/${pageState.filters.app!.id}/edit?ruleId=${id}`
+                                const ruleHref = `/${params.teamId}/sampling_rules/${pageState.filters.app!.id}/edit?ruleId=${id}&name=${encodeURIComponent(name)}`
                                 return (
                                     <TableRow
                                         key={`${idx}-${id}`}

@@ -321,6 +321,13 @@ export enum AlertsOverviewApiStatus {
   Cancelled,
 }
 
+export enum SamplingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum SamplingRulesApiStatus {
   Loading,
   Success,
@@ -1003,6 +1010,46 @@ export const emptyAlertsOverviewResponse = {
     updated_at: string
   }[],
 }
+
+export const emptySamplingRuleResponse = {
+  results: {} as {
+    id: string,
+    type: string,
+    name: string,
+    status: number,
+    sampling_rate: number,
+    event_rule: string | null,
+    trace_rule: string | null,
+    session_rule: string | null,
+    changelog: Array<[
+      {
+        modified_at: string,
+        modified_by: string,
+      }
+    ]>
+  },
+}
+
+
+export const dummySamplingRuleResponse = {
+  results: {
+    id: "rule_identifier_1",
+    type: "session",
+    name: "Critical issues",
+    status: 0,
+    sampling_rate: 1,
+    event_rule: "event_type == \"anr\" || (event_type == \"exception\" && exception.handled == false) || (event_type == \"bug_report\" && user_defined_attrs.is_user_premium == true)",
+    trace_rule: null,
+    session_rule: "attribute.app_version.startWith(\"1.0\")",
+    changelog: [
+      {
+        modified_at: "2023-10-02T12:00:00Z",
+        modified_by: "bar@email.com"
+      }
+    ]
+  },
+}
+
 
 export const emptySamplingRulesResponse = {
   meta: {
@@ -2566,8 +2613,17 @@ export const fetchSamplingRulesFromServer = async (
 
 export const fetchSamplingRulesConfigFromServer = async (
   teamId: string,
-  appId: String,
+  appId: string,
 ) => {
   console.log("fetchSamplingRulesConfigFromServer: Using dummy data", dummySamplingRulesConfigResponse)
   return { status: SamplingRulesConfigApiStatus.Success, data: dummySamplingRulesConfigResponse }
+}
+
+export const fetchSamplingRuleFromServer = async (
+  teamId: string,
+  appId: string,
+  ruleId: string
+) => {
+  console.log("fetchSamplingRuleFromServer: Using dummy data", dummySamplingRuleResponse)
+  return { status: SamplingRuleApiStatus.Success, data: dummySamplingRuleResponse }
 }

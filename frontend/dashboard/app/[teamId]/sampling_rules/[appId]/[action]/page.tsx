@@ -1,14 +1,15 @@
 "use client"
 
-import { emptySamplingRulesConfigResponse, fetchSamplingRulesConfigFromServer, SamplingRulesConfigApiStatus } from '@/app/api/api_calls';
+import { emptySamplingRulesConfigResponse, fetchSamplingRulesConfigFromServer, SamplingRulesConfigApiStatus, fetchSamplingRuleFromServer, SamplingRuleApiStatus, emptySamplingRuleResponse } from '@/app/api/api_calls';
 import { Button } from '@/app/components/button';
-import LoadingBar from '@/app/components/loading_bar';
+import LoadingSpinner from '@/app/components/loading_spinner';
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select';
 import SamplingAttributeRow from '@/app/components/sampling_attribute_row';
 import SamplingLogicalOperatorSelector from '@/app/components/sampling_logical_operator_selector';
+import SamplingEditableTitle from '@/app/components/sampling_editable_title';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 
 export type SamplingRulesConfig = typeof emptySamplingRulesConfigResponse;
 const samplingRuleTypeKey = "type"
@@ -54,6 +55,8 @@ interface SamplingRateState {
 interface PageState {
     samplingRulesConfigApiStatus: SamplingRulesConfigApiStatus
     samplingRulesConfig: typeof emptySamplingRulesConfigResponse
+    samplingRuleApiStatus: SamplingRuleApiStatus
+    samplingRule: typeof emptySamplingRuleResponse
 }
 
 type AttributeType = 'attrs' | 'udAttrs';
@@ -140,6 +143,22 @@ const getAvailableAttributes = (
     return [];
 };
 
+// Loading state helper functions
+const isPageLoading = (pageState: PageState, isEditMode: boolean): boolean => {
+    return pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Loading || 
+           (isEditMode && pageState.samplingRuleApiStatus === SamplingRuleApiStatus.Loading);
+};
+
+const hasPageError = (pageState: PageState, isEditMode: boolean): boolean => {
+    return pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Error || 
+           (isEditMode && pageState.samplingRuleApiStatus === SamplingRuleApiStatus.Error);
+};
+
+const isPageReady = (pageState: PageState, isEditMode: boolean): boolean => {
+    return pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Success && 
+           (!isEditMode || pageState.samplingRuleApiStatus === SamplingRuleApiStatus.Success);
+};
+
 // Helper function to check if conditions are empty
 const areConditionsEmpty = (eventConditionsState: EventConditionsState, sessionConditionsState: SessionConditionsState): boolean => {
     // Check event conditions - consider valid if there's a type selected OR attributes
@@ -161,16 +180,18 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
     const isEditMode = params.action === 'edit'
     const searchParams = useSearchParams()
     const type = searchParams.get(samplingRuleTypeKey)
+    const nameFromParams = searchParams.get('name')
 
     const initialState: PageState = {
         samplingRulesConfigApiStatus: SamplingRulesConfigApiStatus.Loading,
         samplingRulesConfig: emptySamplingRulesConfigResponse,
+        samplingRuleApiStatus: SamplingRuleApiStatus.Loading,
+        samplingRule: emptySamplingRuleResponse,
     }
 
     const [pageState, setPageState] = useState<PageState>(initialState)
-    const [samplingRuleName, setSamplingRuleName] = useState<string>()
-    const [isEditingRuleName, setIsEditingRuleName] = useState<boolean>(false)
-    
+    const [samplingRuleName, setSamplingRuleName] = useState<string>(nameFromParams || undefined)
+
     const [eventConditionsState, setEventConditionsState] = useState<EventConditionsState>({
         conditions: [createEmptyEventCondition()],
         operators: []
@@ -211,9 +232,49 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
         }
     }
 
+    const getSamplingRule = async () => {
+        const ruleId = searchParams.get('ruleId')
+        if (!ruleId) return
+
+        updatePageState({ samplingRuleApiStatus: SamplingRuleApiStatus.Loading })
+        const result = await fetchSamplingRuleFromServer(params.teamId, params.appId, ruleId)
+
+        switch (result.status) {
+            case SamplingRuleApiStatus.Error:
+                updatePageState({ samplingRuleApiStatus: SamplingRuleApiStatus.Error })
+                break
+            case SamplingRuleApiStatus.Success:
+                updatePageState({
+                    samplingRuleApiStatus: SamplingRuleApiStatus.Success,
+                    samplingRule: result.data
+                })
+                break
+        }
+    }
+
     useEffect(() => {
         getSamplingRulesConfig()
     }, [])
+
+    useEffect(() => {
+        if (isEditMode && pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Success) {
+            getSamplingRule()
+        }
+    }, [isEditMode, pageState.samplingRulesConfigApiStatus])
+
+    // Effect to populate title and sampling rate when rule data is loaded
+    useEffect(() => {
+        if (isEditMode && pageState.samplingRuleApiStatus === SamplingRuleApiStatus.Success && pageState.samplingRule.results) {
+            const ruleData = pageState.samplingRule.results
+            
+            if (ruleData.name) {
+                setSamplingRuleName(ruleData.name)
+            }
+            if (typeof ruleData.sampling_rate === 'number') {
+                setSamplingRateState({ value: ruleData.sampling_rate * 100 })
+            }
+        }
+    }, [isEditMode, pageState.samplingRuleApiStatus, pageState.samplingRule])
 
     // Effect to set the first event type when eventTypes are available
     useEffect(() => {
@@ -236,19 +297,8 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
         }
     }, [pageState.samplingRulesConfig]);
 
-    const displayRuleName = samplingRuleName?.trim() || "New Sampling Rule";
-    
-    const handleEditClick = () => {
-        setIsEditingRuleName(true);
-    };
-
-    const handleRuleNameSubmit = (value: string) => {
-        setSamplingRuleName(value.trim());
-        setIsEditingRuleName(false);
-    };
-
-    const handleRuleNameCancel = () => {
-        setIsEditingRuleName(false);
+    const handleTitleChange = (title: string) => {
+        setSamplingRuleName(title);
     };
 
     // Event condition handlers
@@ -513,49 +563,13 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
             <div className="flex flex-row items-center gap-2 justify-between w-full">
-                {!isEditingRuleName ? (
-                    <div className="flex items-center gap-3">
-                        <h1 className="font-display text-4xl first-letter:capitalize truncate max-w-2xl">{displayRuleName}</h1>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleEditClick}
-                            className="flex items-center gap-2 px-3 py-1 hover:bg-yellow-200"
-                        >
-                            <Edit2 className="h-4 w-4" />
-                            <span className="text-sm">Edit</span>
-                        </Button>
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-2 py-2">
-                        <input
-                            type="text"
-                            placeholder="Enter rule name, e.g., Critical Issues"
-                            value={samplingRuleName || ""}
-                            maxLength={64}
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1);
-                                setSamplingRuleName(capitalizedValue);
-                            }}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    handleRuleNameSubmit(e.currentTarget.value);
-                                } else if (e.key === 'Escape') {
-                                    handleRuleNameCancel();
-                                }
-                            }}
-                            onBlur={(e) => handleRuleNameSubmit(e.target.value)}
-                            className="text-2xl font-display border border-black rounded-md outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-3 placeholder:text-neutral-400 placeholder:text-sm min-w-80"
-                            style={{
-                                width: `${Math.max(20, (samplingRuleName || "").length + 2)}ch`
-                            }}
-                            autoFocus
-                        />
-                    </div>
-                )}
-                {/* Only show Publish button when config is loaded */}
-                {pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Success && (
+                <SamplingEditableTitle
+                    initialValue={samplingRuleName}
+                    onTitleChange={handleTitleChange}
+                    showEditButton={!isPageLoading(pageState, isEditMode)}
+                />
+                {/* Only show Publish button when all required data is loaded */}
+                {isPageReady(pageState, isEditMode) && (
                     <Button
                         variant="outline"
                         className="font-display border border-black select-none"
@@ -567,24 +581,20 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
             </div>
             <div className="py-4" />
 
-            {/* Error state for sampling rules config fetch */}
-            {pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Error && (
+            {/* Error state */}
+            {hasPageError(pageState, isEditMode) && (
                 <p className="text-lg font-display">
-                    Error fetching sampling rules configuration. Please refresh the page to try again.
+                    Error loading data. Please refresh the page to try again.
                 </p>
             )}
 
             {/* Loading state */}
-            {pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Loading && (
-                <div className="flex flex-col items-center w-full">
-                    <div className="py-1 w-full">
-                        <LoadingBar />
-                    </div>
-                </div>
+            {isPageLoading(pageState, isEditMode) && (
+                <LoadingSpinner />
             )}
 
-            {/* Main sampling conditions UI - only show when config is successfully loaded */}
-            {pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Success && (
+            {/* Main sampling conditions UI */}
+            {isPageReady(pageState, isEditMode) && (
                 <div className="w-full space-y-6">
 
                     {/* Sampling rate */}
