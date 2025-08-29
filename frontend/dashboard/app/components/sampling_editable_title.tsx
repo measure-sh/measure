@@ -8,20 +8,20 @@ interface SamplingEditableTitleProps {
     initialValue?: string | null;
     onTitleChange?: (title: string) => void;
     showEditButton?: boolean;
+    isLoading?: boolean;
 }
 
-const SamplingEditableTitle = ({ initialValue, onTitleChange, showEditButton = true }: SamplingEditableTitleProps) => {
+const SamplingEditableTitle = ({ initialValue, onTitleChange, showEditButton = true, isLoading = false }: SamplingEditableTitleProps) => {
     const [title, setTitle] = useState<string>(initialValue || "");
     const [isEditing, setIsEditing] = useState<boolean>(false);
 
-    // Update internal state when initialValue changes
     useEffect(() => {
-        if (initialValue && initialValue !== title) {
+        if (initialValue && initialValue !== title && !isEditing) {
             setTitle(initialValue);
         }
-    }, [initialValue, title]);
+    }, [initialValue, isEditing]);
 
-    const displayTitle = title?.trim() || "Sampling Rule";
+    const displayTitle = isLoading ? "" : (title?.trim() || "New Sampling Rule");
     
     const handleEditClick = () => {
         setIsEditing(true);

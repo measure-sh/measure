@@ -59,6 +59,17 @@ interface PageState {
     samplingRule: typeof emptySamplingRuleResponse
 }
 
+interface SamplingRulePageProps {
+    params: {
+        teamId: string;
+        appId: string;
+        type: string; // "trace" or "session"
+        ruleId?: string; // Only present for edit mode
+        ruleName?: string; // Only present for edit mode
+    };
+    isEditMode: boolean;
+}
+
 type AttributeType = 'attrs' | 'udAttrs';
 
 const createEmptyEventCondition = (): EventCondition => ({
@@ -176,11 +187,10 @@ const areConditionsEmpty = (eventConditionsState: EventConditionsState, sessionC
     return !hasValidEventConditions && !hasValidSessionConditions;
 };
 
-export default function CreateSamplingRule({ params }: { params: { teamId: string; appId: string; action: string } }) {
-    const isEditMode = params.action === 'edit'
+export default function SamplingRulePage({ params, isEditMode }: SamplingRulePageProps) {
     const searchParams = useSearchParams()
-    const type = searchParams.get(samplingRuleTypeKey)
-    const nameFromParams = searchParams.get('name')
+    const type = params.type
+    const nameFromParams = isEditMode && params.ruleName ? decodeURIComponent(params.ruleName) : null
 
     const initialState: PageState = {
         samplingRulesConfigApiStatus: SamplingRulesConfigApiStatus.Loading,
@@ -233,11 +243,19 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
     }
 
     const getSamplingRule = async () => {
-        const ruleId = searchParams.get('ruleId')
-        if (!ruleId) return
+        if (!isEditMode) {
+            // For create mode, just mark as success
+            updatePageState({ samplingRuleApiStatus: SamplingRuleApiStatus.Success })
+            return
+        }
+
+        if (!params.ruleId) {
+            updatePageState({ samplingRuleApiStatus: SamplingRuleApiStatus.Error })
+            return
+        }
 
         updatePageState({ samplingRuleApiStatus: SamplingRuleApiStatus.Loading })
-        const result = await fetchSamplingRuleFromServer(params.teamId, params.appId, ruleId)
+        const result = await fetchSamplingRuleFromServer(params.teamId, params.appId, params.ruleId)
 
         switch (result.status) {
             case SamplingRuleApiStatus.Error:
@@ -567,6 +585,7 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
                     initialValue={samplingRuleName}
                     onTitleChange={handleTitleChange}
                     showEditButton={!isPageLoading(pageState, isEditMode)}
+                    isLoading={isPageLoading(pageState, isEditMode)}
                 />
                 {/* Only show Publish button when all required data is loaded */}
                 {isPageReady(pageState, isEditMode) && (
@@ -576,7 +595,7 @@ export default function CreateSamplingRule({ params }: { params: { teamId: strin
                         disabled={conditionsAreEmpty}
                         onClick={() => console.log("Publish rule clicked")}
                     >
-                        Publish Rule
+                        {isEditMode ? 'Update Rule' : 'Publish Rule'}
                     </Button>
                 )}
             </div>
