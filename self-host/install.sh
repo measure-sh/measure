@@ -594,10 +594,6 @@ ensure_config() {
     info "Ensure configuration is up to date"
     source ./config.sh "--production" "--ensure"
     set -u
-
-    # stop docker compose so that environment variable
-    # changes are picked up.
-    stop_docker_compose
   fi
 }
 
@@ -667,6 +663,7 @@ ensure_docker
 start_docker
 ensure_config
 detect_compose_command
+stop_docker_compose
 # update_symbolicator_origin
 # add_symboloader_origin
 start_docker_compose
