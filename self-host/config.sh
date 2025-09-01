@@ -574,7 +574,6 @@ END
 # Sync environment variables
 # ------------------------------------------------------------------------------
 ensure() {
-  echo "ensure all variables are up to date"
   # clickhouse_password=$(get_env_var "CLICKHOUSE_PASSWORD")
 
   local clickhouse_admin_user
@@ -587,6 +586,7 @@ ensure() {
   local clickhouse_migration_url
   local postgres_dsn
   local clickhouse_dsn
+  local clickhouse_reader_dsn
   local symbolicator_origin
   local symboloader_origin
 
@@ -597,6 +597,7 @@ ensure() {
   clickhouse_migration_url="clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure"
   postgres_dsn="postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=measure"
   clickhouse_dsn="clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_PASSWORD}@clickhouse:9000/measure"
+  clickouse_reader_dsn="clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure"
   symbolicator_origin="http://symbolicator:3021"
   symboloader_origin="http://symboloader:8083"
 
@@ -643,6 +644,10 @@ ensure() {
 
     if check_env_variable "CLICKHOUSE_DSN"; then
       update_env_variable "CLICKHOUSE_DSN" "$clickhouse_dsn"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_READER_DSN"; then
+      add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn"
     fi
   elif [[ "$SETUP_ENV" == "production" ]]; then
     clickhouse_admin_password=$(generate_password 24)

@@ -70,10 +70,14 @@ update_env_variable() {
     return
   fi
 
+   # Escape & and \ so sed won't expand them
+  local escaped_value
+  escaped_value=$(printf '%s' "$new_value" | sed -e 's/[&/\]/\\&/g')
+
   if [[ "$(uname)" == "Darwin" ]]; then
-    sed -i '' "s|^${key}=.*|${key}=${new_value}|" "$env_file"
+    sed -i '' "s|^${key}=.*|${key}=${escaped_value}|" "$env_file"
   else
-    sed -i "s|^${key}=.*|${key}=${new_value}|" "$env_file"
+    sed -i "s|^${key}=.*|${key}=${escaped_value}|" "$env_file"
   fi
 
   info "Updated ${key} in ${env_file} to ${new_value}"
