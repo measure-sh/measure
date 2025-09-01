@@ -693,6 +693,10 @@ ensure() {
     if check_env_variable "CLICKHOUSE_DSN"; then
       update_env_variable "CLICKHOUSE_DSN" "$clickhouse_dsn"
     fi
+
+    if ! check_env_variable "CLICKHOUSE_READER_DSN"; then
+      add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn"
+    fi
   fi
 
   # set the common variables across environments
