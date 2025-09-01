@@ -73,19 +73,19 @@ Signposts).
 > We recommend measuring impact in your specific app.
 > The following numbers serve as a reference baseline and are used internally to monitor regressions.
 
-### Benchmark Results (v0.3.1)
+### Benchmark Results (v0.6.0)
 
-Measure adds **21.9–27.8 ms (avg ~23.8 ms)** to app startup time (Time to Initial Display). Other
+Measure adds **21.03–25.7 ms (avg ~22.8 ms)** to app startup time (Time to Initial Display). Other
 key operations performed by the SDK can be found below:
 
 | Operation                 | p95       | Description                                                   |
 |---------------------------|-----------|---------------------------------------------------------------|
-| `trackEvent`              | 928.35 µs | Includes event collection, attribute enrichment, and queueing |
-| `appendAttributes`        | 144.33 µs | Dynamic attribute gathering (e.g., network, device state)     |
-| `trackBugReport`          | 23 ms     | Complete flow including screenshot, layout, and metadata      |
-| `trackEventUserTriggered` | 23 ms     | User-triggered event tracking                                 |
-| `trackSpanTriggered`      | 144.33 µs | When a trace event is emitted                                 |
-| `spanProcessorOnStarted`  | 52.79 µs  | Span construction                                             |
-| `spanProcessorOnEnded`    | 412.25 µs | Span serialization and buffering                              |
-| `generateScreenshot`      | 78.302 ms | Snapshotting and compression of UI                            |
-| `generateLayoutSnapshot`  | 15.06 ms  | Layout hierarchy capture                                      |
+| `trackEvent`              | 195 µs    | Includes event collection, attribute enrichment, and queueing |
+| `appendAttributes`        | 360 µs    | Dynamic attribute gathering (e.g., network, device state)     |
+| `trackBugReport`          | 120 µs    | Complete flow including screenshot, layout, and metadata      |
+| `trackEventUserTriggered` | 32 µs     | User-triggered event tracking                                 |
+| `trackSpanTriggered`      | 96 µs     | When a trace event is emitted                                 |
+| `spanProcessorOnStart`    | 105 µs    | Span construction                                             |
+| `spanProcessorOnEnded`    | 355 µs    | Span serialization and buffering                              |
+| `generateScreenshot`      | 80 ms     | Snapshotting and compression of UI                            |
+| `generateLayoutSnapshot`  | 7.5 ms    | Layout hierarchy capture                                      |

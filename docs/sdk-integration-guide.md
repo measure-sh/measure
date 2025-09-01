@@ -254,7 +254,7 @@ Add Measure as a dependency by adding `dependencies` value to your `Package.swif
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.5.1")
+    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.6.0")
 ]
 ```
 
