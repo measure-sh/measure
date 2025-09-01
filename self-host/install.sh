@@ -456,6 +456,8 @@ stop_docker_compose() {
     --file compose.yml \
     --file compose.prod.yml \
     down
+
+  exit 0
 }
 
 # ------------------------------------------------------------------------------
