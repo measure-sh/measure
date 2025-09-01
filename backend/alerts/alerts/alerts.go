@@ -226,7 +226,7 @@ func getAppNameByID(ctx context.Context, appID uuid.UUID) (string, error) {
 		Where("id = ?", appID)
 	defer appNameStmt.Close()
 	var appName string
-	err := server.Server.PgPool.QueryRow(ctx, appNameStmt.String(), appNameStmt.Args()...).Scan(&appName)
+	err := server.Server.RpgPool.QueryRow(ctx, appNameStmt.String(), appNameStmt.Args()...).Scan(&appName)
 	if err != nil {
 		return "", err
 	}
@@ -478,7 +478,7 @@ func isInCooldown(ctx context.Context, teamID, appID uuid.UUID, entityID, alertT
 		Limit(1)
 	defer stmt.Close()
 	var createdAt time.Time
-	row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
+	row := server.Server.RpgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
 	err := row.Scan(&createdAt)
 	if err != nil {
 		return false, nil // no previous alert
@@ -496,7 +496,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 		Where("team_id = ?", alert.TeamID)
 	defer memberStmt.Close()
 
-	memberRows, err := server.Server.PgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
+	memberRows, err := server.Server.RpgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
 	if err != nil {
 		fmt.Printf("Error fetching team members for team %v: %v\n", alert.TeamID, err)
 		return
@@ -517,7 +517,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 			Where("id = ?", userID)
 		defer emailStmt.Close()
 
-		err = server.Server.PgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
+		err = server.Server.RpgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
 		if err != nil {
 			fmt.Printf("Error fetching email for user %v: %v\n", userID, err)
 			continue
@@ -567,7 +567,7 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 		Where("team_id = ?", teamId)
 	defer memberStmt.Close()
 
-	memberRows, err := server.Server.PgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
+	memberRows, err := server.Server.RpgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
 	if err != nil {
 		fmt.Printf("Error fetching team members for team %v: %v\n", teamId, err)
 		return
@@ -588,7 +588,7 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 			Where("id = ?", userID)
 		defer emailStmt.Close()
 
-		err = server.Server.PgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
+		err = server.Server.RpgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
 		if err != nil {
 			fmt.Printf("Error fetching email for user %v: %v\n", userID, err)
 			continue
@@ -765,7 +765,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 		Where("exception.handled = false").
 		Where("timestamp >= ? and timestamp <= ?", from, to).
 		GroupBy("exception.fingerprint")
-	crashGroupRows, err := server.Server.ChPool.Query(ctx, crashGroupStmt.String(), crashGroupStmt.Args()...)
+	crashGroupRows, err := server.Server.RchPool.Query(ctx, crashGroupStmt.String(), crashGroupStmt.Args()...)
 	if err != nil {
 		fmt.Printf("Error fetching crash group stats for app %v: %v\n", app.ID, err)
 		return
@@ -807,7 +807,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 				Where("app_id = toUUID(?)", app.ID).
 				Where("id = ?", fingerprint)
 
-			groupInfoRow := server.Server.ChPool.QueryRow(ctx, groupInfoStmt.String(), groupInfoStmt.Args()...)
+			groupInfoRow := server.Server.RchPool.QueryRow(ctx, groupInfoStmt.String(), groupInfoStmt.Args()...)
 			err := groupInfoRow.Scan(&crashType, &fileName, &methodName, &message)
 			if err != nil {
 				fmt.Printf("Error fetching group info for %s: %v\n", fingerprint, err)
@@ -880,7 +880,7 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 		Where("type = 'anr'").
 		Where("timestamp >= ? and timestamp <= ?", from, to).
 		GroupBy("anr.fingerprint")
-	anrGroupRows, err := server.Server.ChPool.Query(ctx, anrGroupStmt.String(), anrGroupStmt.Args()...)
+	anrGroupRows, err := server.Server.RchPool.Query(ctx, anrGroupStmt.String(), anrGroupStmt.Args()...)
 	if err != nil {
 		fmt.Printf("Error fetching crash group stats for app %v: %v\n", app.ID, err)
 		return
@@ -922,7 +922,7 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 				Where("app_id = toUUID(?)", app.ID).
 				Where("id = ?", fingerprint)
 
-			groupInfoRow := server.Server.ChPool.QueryRow(ctx, groupInfoStmt.String(), groupInfoStmt.Args()...)
+			groupInfoRow := server.Server.RchPool.QueryRow(ctx, groupInfoStmt.String(), groupInfoStmt.Args()...)
 			err := groupInfoRow.Scan(&crashType, &fileName, &methodName, &message)
 			if err != nil {
 				fmt.Printf("Error fetching group info for %s: %v\n", fingerprint, err)
