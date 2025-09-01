@@ -14,6 +14,9 @@ Follow these steps when upgrading to `0.9.x`. There is some downtime involved. D
 
 ```sh
 cd ~/measure/self-host
+```
+
+```sh
 sudo docker compose -f compose.yml -f compose.prod.yml --profile init --profile migrate down --remove-orphans
 ```
 
@@ -23,8 +26,17 @@ Visit [Releases](https://github.com/measure-sh/measure/releases) page to capture
 
 ```sh
 cd ~/measure
+```
+
+```sh
 git reset --hard # only applies if you have local modifications
+```
+
+```sh
 git fetch --tags
+```
+
+```sh
 git checkout <git-tag>
 ```
 
@@ -32,6 +44,9 @@ git checkout <git-tag>
 
 ```sh
 cd self-host
+```
+
+```sh
 sudo ./config.sh --production --ensure
 ```
 
