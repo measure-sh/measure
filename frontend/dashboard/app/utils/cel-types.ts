@@ -3,12 +3,14 @@ export interface EventCondition {
     attrs: Array<{
         key: string,
         type: string,
-        value: string | boolean | number
+        value: string | boolean | number,
+        operator?: string
     }> | null,
     udAttrs: Array<{
         key: string,
         type: string,
-        value: string | boolean | number
+        value: string | boolean | number,
+        operator?: string
     }> | null
 }
 
@@ -16,7 +18,8 @@ export interface SessionCondition {
     attrs: Array<{
         key: string,
         type: string,
-        value: string | boolean | number
+        value: string | boolean | number,
+        operator?: string
     }> | null
 }
 
@@ -25,7 +28,8 @@ export interface TraceCondition {
     udAttrs: Array<{
         key: string,
         type: string,
-        value: string | boolean | number
+        value: string | boolean | number,
+        operator?: string
     }> | null
 }
 

@@ -17,13 +17,13 @@ const SamplingAttributeRow = ({
     onRemoveAttribute,
     showDeleteButton = true
 }: {
-    attr: { key: string; type: string; value: string | boolean | number };
+    attr: { key: string; type: string; value: string | boolean | number; operator?: string };
     attrIndex: number;
     conditionIndex: number;
     attributeType: AttributeType;
     availableAttrKeys: string[];
     operatorTypes: string[];
-    onUpdateAttribute: (conditionIndex: number, attrIndex: number, field: 'key' | 'type' | 'value', value: any, attributeType: AttributeType) => void;
+    onUpdateAttribute: (conditionIndex: number, attrIndex: number, field: 'key' | 'type' | 'value' | 'operator', value: any, attributeType: AttributeType) => void;
     onRemoveAttribute?: (conditionIndex: number, attrIndex: number, attributeType: AttributeType) => void;
     showDeleteButton?: boolean;
 }) => {
@@ -46,9 +46,9 @@ const SamplingAttributeRow = ({
                 type={DropdownSelectType.SingleString}
                 title="Condition"
                 items={operatorTypes}
-                initialSelected={operatorTypes[0] || 'eq'}
+                initialSelected={attr.operator || operatorTypes[0] || 'eq'}
                 onChangeSelected={(selected) => {
-                    console.log(`Updated ${attributeType} operator: `, selected)
+                    onUpdateAttribute(conditionIndex, attrIndex, 'operator', selected as string, attributeType)
                 }}
             />
 

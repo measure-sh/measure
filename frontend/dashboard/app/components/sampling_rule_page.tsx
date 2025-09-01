@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2 } from 'lucide-react';
 import { EventCondition, SessionCondition, TraceCondition, EventConditions, SessionConditions, TraceConditions } from '@/app/utils/cel-types';
-import { generateEventRuleCel, generateTraceRuleCel, generateSessionRuleCel } from '@/app/utils/cel-utils';
+import { generateEventRuleCel, generateTraceRuleCel, generateSessionRuleCel, getDefaultOperatorForType } from '@/app/utils/cel-utils';
 
 export type SamplingRulesConfig = typeof emptySamplingRulesConfigResponse;
 const MAX_CONDITIONS = 5;
@@ -201,27 +201,22 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
 
     const [pageState, setPageState] = useState<PageState>(initialState)
     const [samplingRuleName, setSamplingRuleName] = useState<string | null>(nameFromParams)
-
     const [eventConditionsState, setEventConditionsState] = useState<EventConditions>({
         conditions: [createEmptyEventCondition()],
         operators: []
     })
-
     const [sessionConditionsState, setSessionConditionsState] = useState<SessionConditions>({
         conditions: [],
         operators: []
     })
-
     const [traceConditionsState, setTraceConditionsState] = useState<TraceConditions>({
         conditions: [createEmptyTraceCondition()],
         operators: []
     })
-
     const [samplingRateState, setSamplingRateState] = useState<SamplingRateState>({
         value: 100
     });
-
-    const [samplingRuleStatus, setSamplingRuleStatus] = useState<'enabled' | 'disabled'>('enabled');
+    const [samplingRuleStatus, setSamplingRuleStatus] = useState<'enabled' | 'disabled'>('enabled'); // TODO: handle status change
 
     const updatePageState = (newState: Partial<PageState>) => {
         setPageState(prevState => {
@@ -421,7 +416,8 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
         const newAttr = {
             key: firstAttr.key,
             type: firstAttr.type,
-            value: firstAttr.type === 'bool' ? false : ''
+            value: firstAttr.type === 'bool' ? false : '',
+            operator: getDefaultOperatorForType(firstAttr.type)
         }
 
         setEventConditionsState(prevState => {
@@ -464,7 +460,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
     const updateAttribute = (
         conditionIndex: number,
         attrIndex: number,
-        field: 'key' | 'type' | 'value',
+        field: 'key' | 'type' | 'value' | 'operator',
         value: any,
         attributeType: AttributeType
     ) => {
@@ -483,6 +479,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                         if (selectedAttr) {
                             updatedAttr.type = selectedAttr.type
                             updatedAttr.value = selectedAttr.type === 'boolean' ? false : ''
+                            updatedAttr.operator = getDefaultOperatorForType(selectedAttr.type)
                         }
                     }
 
@@ -515,7 +512,8 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                 newCondition.attrs = [{
                     key: firstAttr.key,
                     type: firstAttr.type,
-                    value: firstAttr.type === 'bool' ? false : ''
+                    value: firstAttr.type === 'bool' ? false : '',
+                    operator: getDefaultOperatorForType(firstAttr.type)
                 }]
             }
 
@@ -560,7 +558,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
     const updateSessionAttribute = (
         conditionIndex: number,
         attrIndex: number,
-        field: 'key' | 'type' | 'value',
+        field: 'key' | 'type' | 'value' | 'operator',
         value: any
     ) => {
         setSessionConditionsState(prevState => {
@@ -578,6 +576,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                         if (selectedAttr) {
                             updatedAttr.type = selectedAttr.type
                             updatedAttr.value = selectedAttr.type === 'bool' ? false : ''
+                            updatedAttr.operator = getDefaultOperatorForType(selectedAttr.type)
                         }
                     }
 
@@ -675,7 +674,8 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
         const newAttr = {
             key: firstAttr.key,
             type: firstAttr.type,
-            value: firstAttr.type === 'bool' ? false : ''
+            value: firstAttr.type === 'bool' ? false : '',
+            operator: getDefaultOperatorForType(firstAttr.type)
         }
 
         setTraceConditionsState(prevState => {
@@ -718,7 +718,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
     const updateTraceAttribute = (
         conditionIndex: number,
         attrIndex: number,
-        field: 'key' | 'type' | 'value',
+        field: 'key' | 'type' | 'value' | 'operator',
         value: any
     ) => {
         setTraceConditionsState(prevState => {
@@ -736,6 +736,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                         if (selectedAttr) {
                             updatedAttr.type = selectedAttr.type
                             updatedAttr.value = selectedAttr.type === 'boolean' ? false : ''
+                            updatedAttr.operator = getDefaultOperatorForType(selectedAttr.type)
                         }
                     }
 
@@ -860,7 +861,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                         onClick={() => {
                             if (isEditMode) {
                                 // Update existing rule
-                                handleUpdateSamplingRule;
+                                handleUpdateSamplingRule();
                             } else {
                                 // Create new rule
                                 handleCreateSamplingRule();
