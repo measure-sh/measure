@@ -20,6 +20,8 @@ ENV_HEADER=$(
 EOF
 )
 
+source ./shared.sh
+
 # Generation timestamp
 ENV_TIMESTAMP=$(date)
 
