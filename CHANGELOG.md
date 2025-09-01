@@ -1961,7 +1961,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update dashboard api by @detj
 - (**backend**): Update dashboard api by @detj in #802
 - (**backend**): Update dashboard api by @detj
-- (**backend**): Update dashboard api by @detj in #796
+- (**backend**): Update dashboard api by @detj
 - (**backend**): Update dashboard api by @detj
 - (**backend**): Update dashboard api by @detj
 - (**backend**): Update dashboard api by @detj
