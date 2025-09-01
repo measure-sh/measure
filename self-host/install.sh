@@ -585,10 +585,15 @@ ensure_config() {
   if ! [[ -e "$ENV_FILE" ]]; then
     set +u
     info "Configuration file missing, starting wizard"
-    source ./config.sh "production"
+    source ./config.sh "--production" "--wizard"
     set -u
   else
     info "Configuration file found, skipping wizard"
+
+    set +u
+    info "Ensure configuration is up to date"
+    source ./config.sh "--production" "--ensure"
+    set -u
   fi
 }
 
@@ -658,7 +663,7 @@ ensure_docker
 start_docker
 ensure_config
 detect_compose_command
-update_symbolicator_origin
-add_symboloader_origin
+# update_symbolicator_origin
+# add_symboloader_origin
 start_docker_compose
 cleanup

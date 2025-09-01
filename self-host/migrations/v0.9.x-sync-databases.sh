@@ -3,6 +3,8 @@
 # exit on error
 set -e
 
+source ../shared.sh
+
 # Check if command is available
 has_command() {
   if command -v "$1" &>/dev/null; then
@@ -80,43 +82,6 @@ shutdown_clickhouse_service() {
     --file compose.prod.yml \
     down clickhouse
 }
-
-# Get value of an environment variable
-get_env_variable() {
-  local env_file=".env"
-  local var_name="$1"
-  local var_value
-
-  if [[ ! -f "$env_file" ]]; then
-    echo "Error: $env_file file not found"
-    return 1
-  fi
-
-  var_value=$(
-    # shellcheck source=../.env
-    source "$env_file" 2>/dev/null || exit 1
-
-    if [[ -n "${!var_name}" ]]; then
-      printf "%s" "${!var_name}"
-    else
-      exit 2
-    fi
-  )
-
-  local subshell_exit_code=$?
-
-  if [[ "$subshell_exit_code" -eq 2 ]]; then
-    echo "Error: Variable '${var_name}' not found in '${env_file}'." >&2
-    return 2
-  elif [[ "$subshell_exit_code" -ne 0 ]]; then
-    echo "Error: Failed to process '${var_name}' or extract variable '${var_name}'." >&2
-    return 3
-  fi
-
-  printf "%s" "$var_value"
-  return 0
-}
-
 
 # Migrate the Postgres database
 #
@@ -201,6 +166,9 @@ migrate_clickhouse_database() {
   echo "Migrating clickhouse database..."
   start_clickhouse_service
 
+  # local ensure
+  # ensure=$(get_env_variable ENSURE_IN_PROGRESS)
+
   local admin_user
   local admin_password
   local dbname
@@ -208,6 +176,14 @@ migrate_clickhouse_database() {
   admin_user=$(get_env_variable CLICKHOUSE_ADMIN_USER)
   admin_password=$(get_env_variable CLICKHOUSE_ADMIN_PASSWORD)
   dbname=measure
+
+  # if [[ $ensure == "true" ]]; then
+  #   local default_user
+  #   local default_password
+
+  #   default_user=$(get_env_variable CLICKHOUSE_USER)
+  #   default_password=$(get_env_variable CLICKHOUSE_PASSWORD)
+  # fi
 
   $DOCKER_COMPOSE exec clickhouse clickhouse-client --query="create user if not exists $admin_user identified with sha256_password by '$admin_password';"
   $DOCKER_COMPOSE exec clickhouse clickhouse-client --query="grant all on *.* to '$admin_user' with grant option;"
