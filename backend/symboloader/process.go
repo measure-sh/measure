@@ -478,31 +478,6 @@ type BuildResponse struct {
 	Mappings []*Mapping `json:"mappings"`
 }
 
-func (b Build) hasMapping() bool {
-	return len(b.Mappings) > 0
-}
-
-func (b Build) validate() (err error) {
-	return
-}
-
-func (b Build) upsertSize(ctx context.Context, tx *pgx.Tx) (err error) {
-	stmt := sqlf.PostgreSQL.
-		InsertInto(`build_sizes`).
-		Set(`app_id`, b.AppID).
-		Set(`version_name`, b.VersionName).
-		Set(`version_code`, b.VersionCode).
-		Set(`build_size`, b.Size).
-		Set(`build_type`, b.Type).
-		Clause(`on conflict (app_id, version_name, version_code, build_type) do update set build_size = excluded.build_size, updated_at = excluded.updated_at`)
-
-	defer stmt.Close()
-
-	_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-
-	return
-}
-
 // buildLocation constructs the location of the
 // mapping file object stored or to be stored
 // on the remote S3-like object store.
