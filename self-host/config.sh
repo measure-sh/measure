@@ -574,8 +574,6 @@ END
 # Sync environment variables
 # ------------------------------------------------------------------------------
 ensure() {
-  # clickhouse_password=$(get_env_var "CLICKHOUSE_PASSWORD")
-
   local clickhouse_admin_user
   local clickhouse_admin_password
   local clickhouse_operator_user

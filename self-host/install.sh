@@ -432,20 +432,6 @@ detect_compose_command() {
 }
 
 # ------------------------------------------------------------------------------
-# update_symbolicator_origin updates value of symbolicator origin in .env file.
-# ------------------------------------------------------------------------------
-update_symbolicator_origin() {
-  update_env_variable SYMBOLICATOR_ORIGIN "http://symbolicator:3021"
-}
-
-# ------------------------------------------------------------------------------
-# add_symboloader_origin appends value of symboloader origin in .env file.
-# ------------------------------------------------------------------------------
-add_symboloader_origin() {
-  add_env_variable SYMBOLOADER_ORIGIN "http://symboloader:8083"
-}
-
-# ------------------------------------------------------------------------------
 # stop_docker_compose stops services using docker compose.
 # ------------------------------------------------------------------------------
 stop_docker_compose() {
@@ -591,11 +577,6 @@ ensure_config() {
     set -u
   else
     info "Configuration file found, skipping wizard"
-
-    # set +u
-    # info "Ensure configuration is up to date"
-    # source ./config.sh "--production" "--ensure"
-    # set -u
   fi
 }
 
@@ -665,7 +646,5 @@ ensure_docker
 start_docker
 ensure_config
 detect_compose_command
-# update_symbolicator_origin
-# add_symboloader_origin
 start_docker_compose
 cleanup

@@ -167,9 +167,6 @@ migrate_clickhouse_database() {
   echo "Migrating clickhouse database..."
   start_clickhouse_service
 
-  # local ensure
-  # ensure=$(get_env_variable ENSURE_IN_PROGRESS)
-
   local admin_user
   local admin_password
   local dbname
@@ -177,14 +174,6 @@ migrate_clickhouse_database() {
   admin_user=$(get_env_variable CLICKHOUSE_ADMIN_USER)
   admin_password=$(get_env_variable CLICKHOUSE_ADMIN_PASSWORD)
   dbname=measure
-
-  # if [[ $ensure == "true" ]]; then
-  #   local default_user
-  #   local default_password
-
-  #   default_user=$(get_env_variable CLICKHOUSE_USER)
-  #   default_password=$(get_env_variable CLICKHOUSE_PASSWORD)
-  # fi
 
   $DOCKER_COMPOSE exec clickhouse clickhouse-client --query="create user if not exists $admin_user identified with sha256_password by '$admin_password';"
   $DOCKER_COMPOSE exec clickhouse clickhouse-client --query="grant all on *.* to '$admin_user' with grant option;"
