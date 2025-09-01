@@ -22,9 +22,8 @@ git reset --hard # only applies if you have local modifications
 git fetch --tags
 git checkout <git-tag>
 cd self-host
-./config.sh --production --ensure
-./migrations/v0.9.x-sync-databases.sh
-# sudo docker compose run --rm dbmate-clickhouse -e DBMATE_STRICT=false dbmate-clickhouse migrate
+sudo ./config.sh --production --ensure
+sudo ./migrations/v0.9.x-sync-databases.sh
 sudo ./install.sh
 ```
 

@@ -256,7 +256,7 @@ migrate_clickhouse_database() {
       continue
     fi
 
-    echo "Processing MV: $mv_name"
+    echo "  Moving materialized view: $mv_name"
 
     # Step 3: Modify MV create query: replace all default. with measure.
     new_mv_create=${create_query//default./measure.}
@@ -282,8 +282,6 @@ migrate_clickhouse_database() {
       echo "Error: Failed to recreate MV $mv_name"
       continue
     fi
-
-    echo "Migrated MV: $mv_name"
 
   done
 
