@@ -597,7 +597,7 @@ ensure() {
   clickhouse_migration_url="clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure"
   postgres_dsn="postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=measure"
   clickhouse_dsn="clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_PASSWORD}@clickhouse:9000/measure"
-  clickouse_reader_dsn="clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure"
+  clickhouse_reader_dsn="clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure"
   symbolicator_origin="http://symbolicator:3021"
   symboloader_origin="http://symboloader:8083"
 
