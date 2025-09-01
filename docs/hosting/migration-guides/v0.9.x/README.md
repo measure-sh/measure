@@ -10,27 +10,41 @@ Follow these steps when upgrading to `0.9.x`. There is some downtime involved. D
 
 ## 1. SSH into the VM where Measure is hosted
 
-## 2. Perform the upgrade
-
-Visit [Releases](https://github.com/measure-sh/measure/releases) page to capture the latest tag matching the `[MAJOR].[MINOR].[PATCH]` format.
+## 2. Shutdown all Measure services
 
 ```sh
 cd ~/measure/self-host
 sudo docker compose -f compose.yml -f compose.prod.yml --profile init --profile migrate down --remove-orphans
-cd ..
+```
+
+## 3. Perform the upgrade
+
+Visit [Releases](https://github.com/measure-sh/measure/releases) page to capture the latest tag matching the `[MAJOR].[MINOR].[PATCH]` format.
+
+```sh
+cd ~/measure
 git reset --hard # only applies if you have local modifications
 git fetch --tags
 git checkout <git-tag>
-cd self-host
-sudo ./config.sh --production --ensure
-sudo ./migrations/v0.9.x-sync-databases.sh
-sudo ./install.sh
 ```
 
-## 3. Run database synchronization script
+## 4. Migrate configurations
+
+```sh
+cd self-host
+sudo ./config.sh --production --ensure
+```
+
+## 5. Run database synchronization script
 
 Perform this step to complete the migration. Measure dashboard may not work properly until this step is completed.
 
 ```sh
 sudo ./migrations/v0.9.x-sync-databases.sh
+```
+
+## 6. Start Measure services
+
+```sh
+sudo ./install.sh
 ```
