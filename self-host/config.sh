@@ -607,7 +607,7 @@ ensure() {
     clickhouse_reader_password="dummY_pa55w0rd"
 
     if ! check_env_variable "CLICKHOUSE_ADMIN_USER"; then
-      add_env_variable "CLICKHOUSE_ADMIN_USER" "$clickhouse_admin_user" "CLICKHOUSE_DSN"
+      add_env_variable "CLICKHOUSE_ADMIN_USER" "$clickhouse_admin_user" "CLICKHOUSE_PASSWORD"
     fi
 
     if ! check_env_variable "CLICKHOUSE_ADMIN_PASSWORD"; then
@@ -655,7 +655,7 @@ ensure() {
     clickhouse_reader_password=$(generate_password 24)
 
     if ! check_env_variable "CLICKHOUSE_ADMIN_USER"; then
-      add_env_variable "CLICKHOUSE_ADMIN_USER" "$clickhouse_admin_user" "CLICKHOUSE_DSN"
+      add_env_variable "CLICKHOUSE_ADMIN_USER" "$clickhouse_admin_user" "CLICKHOUSE_PASSWORD"
     fi
 
     if ! check_env_variable "CLICKHOUSE_ADMIN_PASSWORD"; then
@@ -705,11 +705,11 @@ ensure() {
   fi
 
   if ! check_env_variable "SYMBOLICATOR_ORIGIN"; then
-    add_env_variable "SYMBOLICATOR_ORIGIN" "$symbolicator_origin"
+    add_env_variable "SYMBOLICATOR_ORIGIN" "$symbolicator_origin" "API_BASE_URL"
   fi
 
   if ! check_env_variable "SYMBOLOADER_ORIGIN"; then
-    add_env_variable "SYMBOLOADER_ORIGIN" "$symboloader_origin"
+    add_env_variable "SYMBOLOADER_ORIGIN" "$symboloader_origin" "API_BASE_URL"
   fi
 
   if ! check_env_variable "EMAIL_DOMAIN"; then

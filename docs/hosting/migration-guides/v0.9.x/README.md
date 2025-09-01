@@ -15,15 +15,16 @@ Follow these steps when upgrading to `0.9.x`. There is some downtime involved. D
 Visit [Releases](https://github.com/measure-sh/measure/releases) page to capture the latest tag matching the `[MAJOR].[MINOR].[PATCH]` format.
 
 ```sh
-cd ~/measure
+cd ~/measure/self-host
+sudo docker compose -f compose.yml -f compose.prod.yml --profile init --profile migrate down --remove-orphans
+cd ..
 git reset --hard # only applies if you have local modifications
 git fetch --tags
 git checkout <git-tag>
 cd self-host
-sudo docker compose -f compose.yml -f compose.prod.yml --profile init --profile migrate down
 ./config.sh --production --ensure
 ./migrations/v0.9.x-sync-databases.sh
-sudo docker compose run --rm dbmate-clickhouse -e DBMATE_STRICT=false dbmate-clickhouse migrate
+# sudo docker compose run --rm dbmate-clickhouse -e DBMATE_STRICT=false dbmate-clickhouse migrate
 sudo ./install.sh
 ```
 

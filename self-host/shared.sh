@@ -80,7 +80,7 @@ update_env_variable() {
     sed -i "s|^${key}=.*|${key}=${escaped_value}|" "$env_file"
   fi
 
-  info "Updated ${key} in ${env_file} to ${new_value}"
+  echo -e "INFO: Updated ${key} in ${env_file} to ${new_value}"
 }
 
 # ------------------------------------------------------------------------------
