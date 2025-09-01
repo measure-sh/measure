@@ -607,27 +607,27 @@ ensure() {
     clickhouse_reader_password="dummY_pa55w0rd"
 
     if ! check_env_variable "CLICKHOUSE_ADMIN_USER"; then
-      add_env_variable "CLICKHOUSE_ADMIN_USER" "$clickhouse_admin_user"
+      add_env_variable "CLICKHOUSE_ADMIN_USER" "$clickhouse_admin_user" "CLICKHOUSE_DSN"
     fi
 
     if ! check_env_variable "CLICKHOUSE_ADMIN_PASSWORD"; then
-      add_env_variable "CLICKHOUSE_ADMIN_PASSWORD" "$clickhouse_admin_password"
+      add_env_variable "CLICKHOUSE_ADMIN_PASSWORD" "$clickhouse_admin_password" "CLICKHOUSE_ADMIN_USER"
     fi
 
     if ! check_env_variable "CLICKHOUSE_OPERATOR_USER"; then
-      add_env_variable "CLICKHOUSE_OPERATOR_USER" "$clickhouse_operator_user"
+      add_env_variable "CLICKHOUSE_OPERATOR_USER" "$clickhouse_operator_user" "CLICKHOUSE_ADMIN_PASSWORD"
     fi
 
     if ! check_env_variable "CLICKHOUSE_OPERATOR_PASSWORD"; then
-      add_env_variable "CLICKHOUSE_OPERATOR_PASSWORD" "$clickhouse_operator_password"
+      add_env_variable "CLICKHOUSE_OPERATOR_PASSWORD" "$clickhouse_operator_password" "CLICKHOUSE_OPERATOR_USER"
     fi
 
     if ! check_env_variable "CLICKHOUSE_READER_USER"; then
-      add_env_variable "CLICKHOUSE_READER_USER" "$clickhouse_reader_user"
+      add_env_variable "CLICKHOUSE_READER_USER" "$clickhouse_reader_user" "CLICKHOUSE_OPERATOR_PASSWORD"
     fi
 
     if ! check_env_variable "CLICKHOUSE_READER_PASSWORD"; then
-      add_env_variable "CLICKHOUSE_READER_PASSWORD" "$clickhouse_reader_password"
+      add_env_variable "CLICKHOUSE_READER_PASSWORD" "$clickhouse_reader_password" "CLICKHOUSE_OPERATOR_PASSWORD"
     fi
 
     if check_env_variable "POSTGRES_MIGRATION_URL"; then
@@ -635,7 +635,7 @@ ensure() {
     fi
 
     if ! check_env_variable "CLICKHOUSE_MIGRATIONS_URL"; then
-      add_env_variable "CLICKHOUSE_MIGRATIONS_URL" "$clickhouse_migration_url"
+      add_env_variable "CLICKHOUSE_MIGRATIONS_URL" "$clickhouse_migration_url" "CLICKHOUSE_OPERATOR_PASSWORD"
     fi
 
     if check_env_variable "POSTGRES_DSN"; then
@@ -647,7 +647,7 @@ ensure() {
     fi
 
     if ! check_env_variable "CLICKHOUSE_READER_DSN"; then
-      add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn"
+      add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATIONS_URL"
     fi
   elif [[ "$SETUP_ENV" == "production" ]]; then
     clickhouse_admin_password=$(generate_password 24)
@@ -655,27 +655,27 @@ ensure() {
     clickhouse_reader_password=$(generate_password 24)
 
     if ! check_env_variable "CLICKHOUSE_ADMIN_USER"; then
-      add_env_variable "CLICKHOUSE_ADMIN_USER" "$clickhouse_admin_user"
+      add_env_variable "CLICKHOUSE_ADMIN_USER" "$clickhouse_admin_user" "CLICKHOUSE_DSN"
     fi
 
     if ! check_env_variable "CLICKHOUSE_ADMIN_PASSWORD"; then
-      add_env_variable "CLICKHOUSE_ADMIN_PASSWORD" "$clickhouse_admin_password"
+      add_env_variable "CLICKHOUSE_ADMIN_PASSWORD" "$clickhouse_admin_password" "CLICKHOUSE_ADMIN_USER"
     fi
 
     if ! check_env_variable "CLICKHOUSE_OPERATOR_USER"; then
-      add_env_variable "CLICKHOUSE_OPERATOR_USER" "$clickhouse_operator_user"
+      add_env_variable "CLICKHOUSE_OPERATOR_USER" "$clickhouse_operator_user" "CLICKHOUSE_ADMIN_PASSWORD"
     fi
 
     if ! check_env_variable "CLICKHOUSE_OPERATOR_PASSWORD"; then
-      add_env_variable "CLICKHOUSE_OPERATOR_PASSWORD" "$clickhouse_operator_password"
+      add_env_variable "CLICKHOUSE_OPERATOR_PASSWORD" "$clickhouse_operator_password" "CLICKHOUSE_OPERATOR_USER"
     fi
 
     if ! check_env_variable "CLICKHOUSE_READER_USER"; then
-      add_env_variable "CLICKHOUSE_READER_USER" "$clickhouse_reader_user"
+      add_env_variable "CLICKHOUSE_READER_USER" "$clickhouse_reader_user" "CLICKHOUSE_OPERATOR_PASSWORD"
     fi
 
     if ! check_env_variable "CLICKHOUSE_READER_PASSWORD"; then
-      add_env_variable "CLICKHOUSE_READER_PASSWORD" "$clickhouse_reader_password"
+      add_env_variable "CLICKHOUSE_READER_PASSWORD" "$clickhouse_reader_password" "CLICKHOUSE_READER_USER"
     fi
 
     if check_env_variable "POSTGRES_MIGRATION_URL"; then
@@ -683,7 +683,7 @@ ensure() {
     fi
 
     if ! check_env_variable "CLICKHOUSE_MIGRATIONS_URL"; then
-      add_env_variable "CLICKHOUSE_MIGRATIONS_URL" "$clickhouse_migration_url"
+      add_env_variable "CLICKHOUSE_MIGRATIONS_URL" "$clickhouse_migration_url" "CLICKHOUSE_READER_PASSWORD"
     fi
 
     if check_env_variable "POSTGRES_DSN"; then
@@ -695,7 +695,7 @@ ensure() {
     fi
 
     if ! check_env_variable "CLICKHOUSE_READER_DSN"; then
-      add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn"
+      add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATIONS_URL"
     fi
   fi
 
@@ -710,6 +710,10 @@ ensure() {
 
   if ! check_env_variable "SYMBOLOADER_ORIGIN"; then
     add_env_variable "SYMBOLOADER_ORIGIN" "$symboloader_origin"
+  fi
+
+  if ! check_env_variable "EMAIL_DOMAIN"; then
+    add_env_variable "EMAIL_DOMAIN" "" "SMTP_PASSWORD"
   fi
 }
 

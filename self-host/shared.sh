@@ -89,6 +89,7 @@ update_env_variable() {
 add_env_variable() {
   local key="$1"
   local value="$2"
+  local after_key="$3"
   local env_file="./.env"
 
   if [ ! -f "$env_file" ]; then
@@ -96,5 +97,21 @@ add_env_variable() {
     return
   fi
 
-  echo "${key}=${value}" >> "$env_file"
+  # Escape & and \ for sed replacement safety
+  local escaped_value
+  escaped_value=$(printf '%s' "$value" | sed -e 's/[&/\]/\\&/g')
+
+  if [[ -n "$after_key" ]] && grep -qE "^[[:space:]]*${after_key}=" "$env_file"; then
+    # Insert new line *after* the line matching after_key=
+    if [[ "$(uname)" == "Darwin" ]]; then
+      sed -i '' "/^[[:space:]]*${after_key}=.*/a\\
+${key}=${escaped_value}
+" "$env_file"
+    else
+      sed -i "/^[[:space:]]*${after_key}=.*/a ${key}=${escaped_value}" "$env_file"
+    fi
+  else
+    # Append at the end if no after_key provided or not found
+    echo "${key}=${value}" >> "$env_file"
+  fi
 }
