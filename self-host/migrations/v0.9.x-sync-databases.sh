@@ -3,7 +3,8 @@
 # exit on error
 set -e
 
-source ../shared.sh
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../shared.sh"
 
 # Check if command is available
 has_command() {
