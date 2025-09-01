@@ -350,6 +350,14 @@ export enum CreateSamplingRuleApiStatus {
   Cancelled,
 }
 
+export enum UpdateSamplingRuleApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
@@ -2666,5 +2674,41 @@ export const createSamplingRule = async (
     return { status: CreateSamplingRuleApiStatus.Success, data: data }
   } catch {
     return { status: CreateSamplingRuleApiStatus.Cancelled }
+  }
+}
+
+export const updateSamplingRule = async (
+  teamId: string,
+  appId: string,
+  ruleId: string,
+  ruleData: {
+    id: string,
+    type: string,
+    name: string,
+    status: number,
+    sampling_rate: number,
+    event_rule: string | null,
+    trace_rule: string | null,
+    session_rule: string | null,
+  }
+) => {
+  const opts = {
+    method: "PATCH",
+    body: JSON.stringify(ruleData),
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(
+      `/api/teams/${teamId}/apps/${appId}/sampling-rules/${ruleId}`,
+      opts,
+    )
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { status: UpdateSamplingRuleApiStatus.Error, error: data.error }
+    }
+    return { status: UpdateSamplingRuleApiStatus.Success }
+  } catch {
+    return { status: UpdateSamplingRuleApiStatus.Cancelled }
   }
 }

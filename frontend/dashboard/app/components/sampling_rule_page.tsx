@@ -1,6 +1,6 @@
 "use client"
 
-import { emptySamplingRulesConfigResponse, fetchSamplingRulesConfigFromServer, SamplingRulesConfigApiStatus, fetchSamplingRuleFromServer, SamplingRuleApiStatus, emptySamplingRuleResponse, createSamplingRule, CreateSamplingRuleApiStatus } from '@/app/api/api_calls';
+import { emptySamplingRulesConfigResponse, fetchSamplingRulesConfigFromServer, SamplingRulesConfigApiStatus, fetchSamplingRuleFromServer, SamplingRuleApiStatus, emptySamplingRuleResponse, createSamplingRule, CreateSamplingRuleApiStatus, updateSamplingRule, UpdateSamplingRuleApiStatus } from '@/app/api/api_calls';
 import { Button } from '@/app/components/button';
 import LoadingSpinner from '@/app/components/loading_spinner';
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select';
@@ -14,11 +14,8 @@ import { EventCondition, SessionCondition, TraceCondition, EventConditions, Sess
 import { generateEventRuleCel, generateTraceRuleCel, generateSessionRuleCel } from '@/app/utils/cel-utils';
 
 export type SamplingRulesConfig = typeof emptySamplingRulesConfigResponse;
-const samplingRuleTypeKey = "type"
 const MAX_CONDITIONS = 5;
 const MAX_ATTRIBUTES_PER_CONDITION = 10;
-
-
 
 interface SamplingRateState {
     value: string | number;
@@ -786,11 +783,52 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
 
         try {
             const result = await createSamplingRule(params.teamId, params.appId, ruleData);
-            
+
             if (result.status === CreateSamplingRuleApiStatus.Success) {
-                // Navigate to sampling rules list page
+                // TODO: Navigate to sampling rules list page
                 router.push(`/teams/${params.teamId}/apps/${params.appId}/sampling-rules`);
             } else {
+                // TODO: Show error
+                console.error('Failed to create sampling rule:', result.error);
+            }
+        } catch (error) {
+            console.error('Error creating sampling rule:', error);
+        }
+    }
+
+    const handleUpdateSamplingRule = async () => {
+        // Generate CEL expressions
+        let eventRuleCel = null;
+        let traceRuleCel = null;
+        let sessionRuleCel = null;
+
+        sessionRuleCel = generateSessionRuleCel(sessionConditionsState);
+        if (type === 'trace') {
+            traceRuleCel = generateTraceRuleCel(traceConditionsState, sessionConditionsState);
+        } else {
+            eventRuleCel = generateEventRuleCel(eventConditionsState, sessionConditionsState);
+        }
+
+        // Prepare rule data
+        const ruleData = {
+            id: params.ruleId || '', // TODO: add validation
+            type: type,
+            name: samplingRuleName || '', // TODO: add validation
+            status: 1,
+            sampling_rate: Number(samplingRateState.value) / 100, // Convert percentage to decimal
+            event_rule: eventRuleCel,
+            trace_rule: traceRuleCel,
+            session_rule: sessionRuleCel,
+        };
+
+        try {
+            const result = await updateSamplingRule(params.teamId, params.appId, ruleData.id, ruleData);
+
+            if (result.status === UpdateSamplingRuleApiStatus.Success) {
+                // TODO: Navigate to sampling rules list page
+                router.push(`/teams/${params.teamId}/apps/${params.appId}/sampling-rules`);
+            } else {
+                // TODO: Show error
                 console.error('Failed to create sampling rule:', result.error);
             }
         } catch (error) {
@@ -821,28 +859,8 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                         disabled={conditionsAreEmpty}
                         onClick={() => {
                             if (isEditMode) {
-                                // TODO: Handle update rule logic later
-                                // Generate CEL expressions for logging (existing behavior)
-                                let eventRuleCel = null;
-                                let traceRuleCel = null;
-                                let sessionRuleCel = null;
-
-                                sessionRuleCel = generateSessionRuleCel(sessionConditionsState);
-                                if (type === 'trace') {
-                                    traceRuleCel = generateTraceRuleCel(traceConditionsState, sessionConditionsState);
-                                } else {
-                                    eventRuleCel = generateEventRuleCel(eventConditionsState, sessionConditionsState);
-                                }
-
-                                if (eventRuleCel) {
-                                    console.log("Event Rule CEL:", eventRuleCel);
-                                }
-                                if (traceRuleCel) {
-                                    console.log("Trace Rule CEL:", traceRuleCel);
-                                }
-                                if (sessionRuleCel) {
-                                    console.log("Session Rule CEL:", sessionRuleCel);
-                                }
+                                // Update existing rule
+                                handleUpdateSamplingRule;
                             } else {
                                 // Create new rule
                                 handleCreateSamplingRule();
