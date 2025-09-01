@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.6.0] - 2025-09-01
+
+### :bug: Bug fixes
+
+
+- (**ios**): Add proper implementation for LifecycleManagerInternal (#2603)
+- (**ios**): Update process start time logic (#2597)
+- (**ios**): Add safe uiapplication swizzling (#2593)
+- (**ios**): Only call functions if sdk is started (#2583)
+- (**ios**): Fix blank svg generation (#2580)
+- (**ios**): Disable shake listener when app moves to background (#2566)
+- (**ios**): Remove deprecated UIWebView usage (#2538)
+- (**ios**): Prepare crash file if crash data is cleared (#2533)
+- (**ios**): Make MsrAttachment properties public (#2534)
+
+### :hammer: Misc
+
+
+- (**ios**): Update performance docs (#2605)
+- (**ios**): Update ios project structure (#2601)
+- (**ios**): Update package.swift to include objc code (#2599)
+- (**ios**): Add script to upload dsyms from xcarchive (#2585)
+- (**ios**): Add more view controllers to be ignored (#2565)
+- (**ios**): Add lifecycleViewControllerExcludeList to internal config (#2468)
+- (**ios**): Add more view controllers to be ignored (#2461)
+
+### :sparkles: New features
+
+
+- (**ios**): Add user defined attributes to screen view events (#2592)
+- (**ios**): Provide configurable storage limits (#2470)
+
+## [ios-v0.5.1] - 2025-07-11
+
+### :hammer: Misc
+
+
+- (**ios**): Prepare sdk release 0.5.1 (#2400)
+
 ## [ios-v0.5.0] - 2025-07-09
 
 ### :bug: Bug fixes
@@ -205,6 +244,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677)
 - (**ios**): Initial project setup  (#1034)
 
+[ios-v0.6.0]: https://github.com///compare/ios-v0.5.1..ios-v0.6.0
+[ios-v0.5.1]: https://github.com///compare/ios-v0.5.0..ios-v0.5.1
 [ios-v0.5.0]: https://github.com///compare/ios-v0.4.0..ios-v0.5.0
 [ios-v0.4.0]: https://github.com///compare/ios-v0.3.1..ios-v0.4.0
 [ios-v0.3.1]: https://github.com///compare/ios-v0.3.0..ios-v0.3.1
