@@ -372,7 +372,7 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 			Where("app_id = toUUID(?)", retention.AppID).
 			Where("timestamp < ?", retention.Threshold)
 
-		attachmentRows, err := server.Server.ChPool.Query(ctx, fetchAttachmentsStmt.String(), fetchAttachmentsStmt.Args()...)
+		attachmentRows, err := server.Server.RchPool.Query(ctx, fetchAttachmentsStmt.String(), fetchAttachmentsStmt.Args()...)
 		if err != nil {
 			fmt.Printf("Failed to fetch stale events from ClickHouse: %v\n", err)
 			continue
@@ -546,7 +546,7 @@ func fetchAppRetentions(ctx context.Context) (retentions []AppRetention, err err
 
 	defer stmt.Close()
 
-	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RpgPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
