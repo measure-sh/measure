@@ -30,7 +30,7 @@ describe('cel-utils', () => {
       }
       const sessionConditions = { conditions: [], operators: [] }
 
-      expect(generateEventRuleCel(eventConditions, sessionConditions)).toBe('(event_type == "exception" && handled == false)')
+      expect(generateEventRuleCel(eventConditions, sessionConditions)).toBe('(event_type == "exception" && exception.handled == false)')
     })
 
     it('should combine event and session conditions with AND', () => {
@@ -72,7 +72,7 @@ describe('cel-utils', () => {
       }
       const sessionConditions = { conditions: [], operators: [] }
 
-      expect(generateEventRuleCel(eventConditions, sessionConditions)).toBe('((event_type == "exception" && handled == false) && (event_type == "anr") || (event_type == "crash" && severity == "high"))')
+      expect(generateEventRuleCel(eventConditions, sessionConditions)).toBe('((event_type == "exception" && exception.handled == false) && (event_type == "anr") || (event_type == "crash" && crash.severity == "high"))')
     })
 
     it('should generate CEL for session conditions only', () => {
@@ -235,7 +235,7 @@ describe('cel-utils', () => {
       }
       const sessionConditions = { conditions: [], operators: [] }
 
-      expect(generateEventRuleCel(eventConditions, sessionConditions)).toBe('(event_type == "exception" && message.contains("error"))')
+      expect(generateEventRuleCel(eventConditions, sessionConditions)).toBe('(event_type == "exception" && exception.message.contains("error"))')
     })
 
     it('should generate startsWith operator for user defined attributes', () => {

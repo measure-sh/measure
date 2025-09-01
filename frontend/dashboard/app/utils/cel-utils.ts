@@ -34,15 +34,16 @@ function formatEventTypeCondition(eventType: string): string {
   return `event_type == "${eventType}"`
 }
 
-function formatEventAttributeCondition(attr: { key: string; type: string; value: string | boolean | number; operator?: string }): string {
+function formatEventAttributeCondition(attr: { key: string; type: string; value: string | boolean | number; operator?: string }, eventType?: string): string {
   const operator = attr.operator ? OPERATOR_TO_CEL[attr.operator as keyof typeof OPERATOR_TO_CEL] || '==' : '=='
   const value = formatValue(attr.value, attr.type)
+  const prefix = eventType ? `${eventType}.` : ''
   
   if (attr.type === 'string' && (operator === 'contains' || operator === 'startWith')) {
-    return `${attr.key}.${operator}(${value})`
+    return `${prefix}${attr.key}.${operator}(${value})`
   }
   
-  return `${attr.key} ${operator} ${value}`
+  return `${prefix}${attr.key} ${operator} ${value}`
 }
 
 function formatUserDefinedAttributeCondition(attr: { key: string; type: string; value: string | boolean | number; operator?: string }): string {
@@ -91,7 +92,7 @@ function formatEventCondition(condition: EventCondition): string[] {
   
   if (condition.attrs) {
     condition.attrs.forEach(attr => {
-      parts.push(formatEventAttributeCondition(attr))
+      parts.push(formatEventAttributeCondition(attr, condition.type))
     })
   }
   
