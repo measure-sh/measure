@@ -296,3 +296,71 @@ export function getDefaultOperatorForType(type: string): string {
       return 'eq'
   }
 }
+
+export function generateEventRuleCelArray(
+  eventConditions: EventConditions
+): { conditions: string[], operators: ('AND' | 'OR')[] } | null {
+  const eventConditionStrings: string[] = []
+  
+  // Process only event conditions
+  eventConditions.conditions.forEach(condition => {
+    const parts = formatEventCondition(condition)
+    if (parts.length > 0) {
+      eventConditionStrings.push(combineConditionParts(parts))
+    }
+  })
+  
+  if (eventConditionStrings.length === 0) {
+    return null
+  }
+  
+  return { 
+    conditions: eventConditionStrings, 
+    operators: eventConditions.operators 
+  }
+}
+
+export function generateTraceRuleCelArray(
+  traceConditions: TraceConditions
+): { conditions: string[], operators: ('AND' | 'OR')[] } | null {
+  const traceConditionStrings: string[] = []
+  
+  // Process only trace conditions
+  traceConditions.conditions.forEach(condition => {
+    const parts = formatTraceCondition(condition)
+    if (parts.length > 0) {
+      traceConditionStrings.push(combineConditionParts(parts))
+    }
+  })
+  
+  if (traceConditionStrings.length === 0) {
+    return null
+  }
+  
+  return { 
+    conditions: traceConditionStrings, 
+    operators: traceConditions.operators 
+  }
+}
+
+export function generateSessionRuleCelArray(
+  sessionConditions: SessionConditions
+): { conditions: string[], operators: ('AND' | 'OR')[] } | null {
+  const sessionConditionStrings: string[] = []
+  
+  sessionConditions.conditions.forEach(condition => {
+    const parts = formatSessionCondition(condition)
+    if (parts.length > 0) {
+      sessionConditionStrings.push(combineConditionParts(parts))
+    }
+  })
+  
+  if (sessionConditionStrings.length === 0) {
+    return null
+  }
+  
+  return { 
+    conditions: sessionConditionStrings, 
+    operators: sessionConditions.operators 
+  }
+}

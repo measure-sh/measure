@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2 } from 'lucide-react';
 import { EventCondition, SessionCondition, TraceCondition, EventConditions, SessionConditions, TraceConditions } from '@/app/utils/cel-types';
-import { generateEventRuleCel, generateTraceRuleCel, generateSessionRuleCel, getDefaultOperatorForType } from '@/app/utils/cel-utils';
+import { generateEventRuleCelArray, generateTraceRuleCelArray, generateSessionRuleCelArray, getDefaultOperatorForType } from '@/app/utils/cel-utils';
 
 export type SamplingRulesConfig = typeof emptySamplingRulesConfigResponse;
 const MAX_CONDITIONS = 5;
@@ -291,6 +291,18 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
             if (typeof ruleData.sampling_rate === 'number') {
                 setSamplingRateState({ value: ruleData.sampling_rate * 100 })
             }
+
+            // TODO: Parse conditions arrays back into UI state
+            // For now, we'll keep the existing empty state
+            // Future: Implement CEL parsing to populate:
+            // - eventConditionsState from ruleData.event_rule
+            // - traceConditionsState from ruleData.trace_rule  
+            // - sessionConditionsState from ruleData.session_rule
+            console.log('Rule data loaded for editing:', {
+                event_rule: ruleData.event_rule,
+                trace_rule: ruleData.trace_rule,
+                session_rule: ruleData.session_rule
+            });
         }
     }, [isEditMode, pageState.samplingRuleApiStatus, pageState.samplingRule])
 
@@ -759,16 +771,16 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
     }
 
     const handleCreateSamplingRule = async () => {
-        // Generate CEL expressions
+        // Generate CEL expressions as arrays
         let eventRuleCel = null;
         let traceRuleCel = null;
         let sessionRuleCel = null;
 
-        sessionRuleCel = generateSessionRuleCel(sessionConditionsState);
+        sessionRuleCel = generateSessionRuleCelArray(sessionConditionsState);
         if (type === 'trace') {
-            traceRuleCel = generateTraceRuleCel(traceConditionsState, sessionConditionsState);
+            traceRuleCel = generateTraceRuleCelArray(traceConditionsState);
         } else {
-            eventRuleCel = generateEventRuleCel(eventConditionsState, sessionConditionsState);
+            eventRuleCel = generateEventRuleCelArray(eventConditionsState);
         }
 
         // Prepare rule data
@@ -798,16 +810,16 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
     }
 
     const handleUpdateSamplingRule = async () => {
-        // Generate CEL expressions
+        // Generate CEL expressions as arrays
         let eventRuleCel = null;
         let traceRuleCel = null;
         let sessionRuleCel = null;
 
-        sessionRuleCel = generateSessionRuleCel(sessionConditionsState);
+        sessionRuleCel = generateSessionRuleCelArray(sessionConditionsState);
         if (type === 'trace') {
-            traceRuleCel = generateTraceRuleCel(traceConditionsState, sessionConditionsState);
+            traceRuleCel = generateTraceRuleCelArray(traceConditionsState);
         } else {
-            eventRuleCel = generateEventRuleCel(eventConditionsState, sessionConditionsState);
+            eventRuleCel = generateEventRuleCelArray(eventConditionsState);
         }
 
         // Prepare rule data
@@ -830,10 +842,10 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                 router.push(`/teams/${params.teamId}/apps/${params.appId}/sampling-rules`);
             } else {
                 // TODO: Show error
-                console.error('Failed to create sampling rule:', result.error);
+                console.error('Failed to update sampling rule:', result.error);
             }
         } catch (error) {
-            console.error('Error creating sampling rule:', error);
+            console.error('Error updating sampling rule:', error);
         }
     }
 
