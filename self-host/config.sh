@@ -196,7 +196,7 @@ CLICKHOUSE_READER_USER=app_reader
 CLICKHOUSE_READER_PASSWORD=dummY_pa55w0rd
 CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
-CLICKHOUSE_MIGRATIONS_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
+CLICKHOUSE_MIGRATION_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
 
 ##################
 # Object Storage #
@@ -328,7 +328,7 @@ CLICKHOUSE_READER_USER=app_reader
 CLICKHOUSE_READER_PASSWORD=$CLICKHOUSE_READER_PASSWORD
 CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
-CLICKHOUSE_MIGRATIONS_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
+CLICKHOUSE_MIGRATION_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
 
 ##################
 # Object Storage #
@@ -632,8 +632,8 @@ ensure() {
       update_env_variable "POSTGRES_MIGRATION_URL" "$postgres_migration_url"
     fi
 
-    if ! check_env_variable "CLICKHOUSE_MIGRATIONS_URL"; then
-      add_env_variable "CLICKHOUSE_MIGRATIONS_URL" "$clickhouse_migration_url" "CLICKHOUSE_OPERATOR_PASSWORD"
+    if ! check_env_variable "CLICKHOUSE_MIGRATION_URL"; then
+      add_env_variable "CLICKHOUSE_MIGRATION_URL" "$clickhouse_migration_url" "CLICKHOUSE_OPERATOR_PASSWORD"
     fi
 
     if check_env_variable "POSTGRES_DSN"; then
@@ -645,7 +645,7 @@ ensure() {
     fi
 
     if ! check_env_variable "CLICKHOUSE_READER_DSN"; then
-      add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATIONS_URL"
+      add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATION_URL"
     fi
   elif [[ "$SETUP_ENV" == "production" ]]; then
     clickhouse_admin_password=$(generate_password 24)
@@ -680,8 +680,8 @@ ensure() {
       update_env_variable "POSTGRES_MIGRATION_URL" "$postgres_migration_url"
     fi
 
-    if ! check_env_variable "CLICKHOUSE_MIGRATIONS_URL"; then
-      add_env_variable "CLICKHOUSE_MIGRATIONS_URL" "$clickhouse_migration_url" "CLICKHOUSE_READER_PASSWORD"
+    if ! check_env_variable "CLICKHOUSE_MIGRATION_URL"; then
+      add_env_variable "CLICKHOUSE_MIGRATION_URL" "$clickhouse_migration_url" "CLICKHOUSE_READER_PASSWORD"
     fi
 
     if check_env_variable "POSTGRES_DSN"; then
@@ -693,7 +693,7 @@ ensure() {
     fi
 
     if ! check_env_variable "CLICKHOUSE_READER_DSN"; then
-      add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATIONS_URL"
+      add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATION_URL"
     fi
   fi
 
