@@ -49,8 +49,6 @@ type Mapping struct {
 	Checksum       string        `json:"checksum,omitempty"`
 	Size           int64         `json:"size,omitempty"`
 	Filename       string        `json:"filename" binding:"required"`
-	UploadURL      string        `json:"upload_url,omitempty"`
-	ExpiresAt      time.Time     `json:"expires_at"`
 	File           []byte        `json:"file,omitempty"`
 	Difs           []*symbol.Dif `json:"difs,omitempty"`
 	ShouldUpload   bool          `json:"should_upload,omitempty"`
@@ -189,10 +187,6 @@ func (b *Build) upload(ctx context.Context) (err error) {
 	for index, mapping := range b.Mappings {
 		switch mapping.Type {
 		case symbol.TypeProguard.String():
-			// mf := bm.MappingFiles[index]
-			// if !mf.ShouldUpload {
-			// 	continue
-			// }
 			if !mapping.ShouldUpload {
 				continue
 			}
@@ -234,9 +228,6 @@ func (b *Build) upload(ctx context.Context) (err error) {
 			}
 		case symbol.TypeDsym.String():
 			mapping := b.Mappings[index]
-			// if !mf.ShouldUpload {
-			// 	continue
-			// }
 			if !mapping.ShouldUpload {
 				continue
 			}
@@ -309,9 +300,6 @@ func (b *Build) upload(ctx context.Context) (err error) {
 			}
 		case symbol.TypeElfDebug.String():
 			mapping := b.Mappings[index]
-			// if !mf.ShouldUpload {
-			// 	continue
-			// }
 			if !mapping.ShouldUpload {
 				continue
 			}
@@ -798,10 +786,6 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 			return
 		}
 
-		fmt.Println("checksum:", mapping.Checksum)
-		fmt.Println("filename", mapping.Filename)
-		fmt.Println("size", mapping.Size)
-
 		difSpan.End()
 	}
 
@@ -949,12 +933,6 @@ func ProcessSymbolNotification(c *gin.Context) {
 			continue
 		}
 
-		fmt.Println("key:", key)
-		fmt.Println("size:", record.S3.Object.Size)
-		fmt.Println("etag:", record.S3.Object.Etag)
-		fmt.Println("content type:", record.S3.Object.ContentType)
-		fmt.Println("user metadata:", record.S3.Object.UserMetadata)
-
 		// don't process if record is not of "incoming" prefix
 		if !strings.HasPrefix(record.S3.Object.Key, "incoming%2F") {
 			continue
@@ -1100,10 +1078,6 @@ func ProcessSymbolNotification(c *gin.Context) {
 
 				return
 			}
-
-			fmt.Println("checksum:", mapping.Checksum)
-			fmt.Println("filename", mapping.Filename)
-			fmt.Println("size", mapping.Size)
 
 			span.End()
 		}

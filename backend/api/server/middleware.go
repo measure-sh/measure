@@ -72,7 +72,6 @@ func CaptureErrorBody() gin.HandlerFunc {
 				attribute.String("http.response.body", responseBody),
 			)
 		}
-
 	}
 }
 
