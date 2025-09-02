@@ -65,7 +65,7 @@ docker compose --profile migrate up
 >
 > #### About Compose Profiles
 >
-> Both `init` and `migrate` profiles are idempotent in nature. You can use them everytime, though for subsequent runs you may choose to skip them.
+> The `migrate` profiles are idempotent in nature. You can use it everytime, though for subsequent runs you may choose to skip them.
 
 Alternatively, you could build and up the containers in separate steps, like this.
 
@@ -189,6 +189,51 @@ All commits landing in any branch are first linted in your local environment and
   this is a really really really long line that is
   exceeding the allowed limit of max characters per line
   ```
+
+## Managing databases
+
+When contributing to databases, please strictly follow the following guidelines.
+
+- Ensure every migration is backward compatible.
+- Optimize queries for performance and scalability.
+- Make sure all database migrations are in ALWAYS order.
+
+## Migrating codebase from <= v0.8.x
+
+1. Turn off all services
+
+    ```sh
+    # run from self-host directory
+    docker compose down
+    ```
+
+2. Migrate configurations
+
+    ```sh
+    ./config.sh --development --ensure
+    ```
+
+3. Synchronize databases
+
+    ```sh
+    ./migrations/v0.9.x-sync-databases.sh
+    ```
+
+4. Run database migrations
+
+    ```sh
+    docker compose run --rm dbmate-postgres migrate
+    ```
+
+    ```sh
+    docker compose run --rm dbmate-clickhouse migrate
+    ```
+
+5. Start development
+
+    ```sh
+    docker compose watch
+    ```
 
 ## Release process
 
