@@ -378,7 +378,7 @@ services:
       - DBMATE_MIGRATIONS_DIR=/opt/clickhouse
       - DBMATE_SCHEMA_FILE=/opt/clickhouse/schema.sql
       - DBMATE_WAIT=true
-      - DBMATE_STRICT=false
+      - DBMATE_STRICT=true
       - DBMATE_NO_DUMP_SCHEMA=true
     depends_on:
       clickhouse:
