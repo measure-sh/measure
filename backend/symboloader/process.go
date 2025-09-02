@@ -55,10 +55,6 @@ type Mapping struct {
 	UploadComplete bool          `json:"upload_complete,omitempty"`
 }
 
-func (m Mapping) isEmpty() bool {
-	return m.Key == "" && m.Location == "" && m.Checksum == ""
-}
-
 func (m Mapping) hasChecksum() bool {
 	return m.Checksum != ""
 }
@@ -79,8 +75,6 @@ func (m *Mapping) extractDif() (err error) {
 
 		ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("guardsquare.com"))
 		debugId := uuid.NewSHA1(ns, contents)
-
-		fmt.Println("proguard debug id", debugId)
 
 		m.Difs = append(m.Difs, &symbol.Dif{
 			Data: contents,
@@ -116,8 +110,6 @@ func (m *Mapping) extractDif() (err error) {
 		if errBuildID != nil {
 			return errBuildID
 		}
-
-		fmt.Println("elf debug id", debugID)
 
 		arch, errArch := symbol.GetArchFromELF(m.File)
 		if errArch != nil {
