@@ -2457,7 +2457,7 @@ func PutEvents(c *gin.Context) {
 	defer insertMetricsIngestionSelectStmt.Close()
 	insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
 
-	if err := server.Server.ChPool.Exec(ctx, insertMetricsIngestionFullStmt, args...); err != nil {
+	if err := server.Server.ChPool.AsyncInsert(ctx, insertMetricsIngestionFullStmt, false, args...); err != nil {
 		msg := `failed to insert metrics into clickhouse`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
