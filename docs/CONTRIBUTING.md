@@ -235,6 +235,13 @@ When contributing to databases, please strictly follow the following guidelines.
     docker compose watch
     ```
 
+6. Additionally, copy `postgres_dsn` and `clickhouse_dsn` variables in sessionator config.toml from [`config.toml.example`](../self-host/session-data/config.toml.example)
+
+    ```toml
+    postgres_dsn = "postgresql://..."
+    clickhouse_dsn = "clickhouse://..."
+    ```
+
 ## Release process
 
 To trigger a release, create a signed git tag using [git-cliff](https://git-cliff.org/) and push the tag. Here's a one liner.
