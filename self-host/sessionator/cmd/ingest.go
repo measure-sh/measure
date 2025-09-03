@@ -141,7 +141,7 @@ func ValidateFlags() bool {
 func IngestSerial(apps *app.Apps, origin string) {
 	startTime := time.Now()
 	eventURL := fmt.Sprintf("%s/events", origin)
-	buildURL := fmt.Sprintf("%s/builds-next", origin)
+	buildURL := fmt.Sprintf("%s/builds", origin)
 	virtualizer := NewVirtualizer()
 
 	for _, app := range apps.Items {
@@ -202,7 +202,7 @@ func IngestSerial(apps *app.Apps, origin string) {
 func IngestParallel(apps *app.Apps, origin string) {
 	startTime := time.Now()
 	eventURL := fmt.Sprintf("%s/events", origin)
-	buildURL := fmt.Sprintf("%s/builds-next", origin)
+	buildURL := fmt.Sprintf("%s/builds", origin)
 
 	var logResults = func(results *[]string) {
 		for _, result := range *results {
