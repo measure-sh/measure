@@ -30,7 +30,7 @@
 # object storage (like S3).
 
 postgres_dsn = "postgresql://postgres:postgres@127.0.0.1:5432/measure?search_path=measure"
-clickhouse_dsn = "clickhouse://default:@127.0.0.1:9000/measure"
+clickhouse_dsn = "clickhouse://app_admin:dummY_pa55w0rd@127.0.0.1:9000/measure"
 
 aws_endpoint_url = "http://127.0.0.1:9119"
 
