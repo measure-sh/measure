@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Update builds upload endpoint in sessionator (#2612) by @detj in #2612
 - (**frontend**): Fix typo by @anupcowkur in #2595
 - (**frontend**): Update span display to accomodate large values by @anupcowkur in #2527
 - (**frontend**): Prevent span cutoff by @anupcowkur in #2483
