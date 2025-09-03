@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  poweredByHeader: false,
+  experimental: {
+    proxyTimeout: 90000,
+  },
   images: {
     remotePatterns: [
       {
@@ -18,14 +22,6 @@ const nextConfig = {
       },
     ],
   },
-  rewrites: async () => {
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${process.env.API_BASE_URL}/:path*`,
-      },
-    ]
-  },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

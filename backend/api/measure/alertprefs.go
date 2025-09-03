@@ -69,7 +69,7 @@ func newAlertPref(appId uuid.UUID, userId uuid.UUID) *AlertPref {
 }
 
 func (pref *AlertPref) update() error {
-	stmt := sqlf.PostgreSQL.Update("public.alert_prefs").
+	stmt := sqlf.PostgreSQL.Update("alert_prefs").
 		Set("crash_rate_spike_email", pref.CrashRateSpikeEmail).
 		Set("anr_rate_spike_email", pref.AnrRateSpikeEmail).
 		Set("launch_time_spike_email", pref.LaunchTimeSpikeEmail).
@@ -98,7 +98,7 @@ func getAlertPref(appId uuid.UUID, userId uuid.UUID) (*AlertPref, error) {
 		Select("launch_time_spike_email").
 		Select("created_at").
 		Select("updated_at").
-		From("public.alert_prefs").
+		From("alert_prefs").
 		Where("app_id = ?", appId).
 		Where("user_id = ?", userId)
 	defer stmt.Close()
@@ -109,7 +109,7 @@ func getAlertPref(appId uuid.UUID, userId uuid.UUID) (*AlertPref, error) {
 	if err != nil && err == pgx.ErrNoRows {
 		pref = *newAlertPref(appId, userId)
 
-		stmt := sqlf.PostgreSQL.InsertInto("public.alert_prefs").
+		stmt := sqlf.PostgreSQL.InsertInto("alert_prefs").
 			Set("app_id", pref.AppId).
 			Set("user_id", pref.UserId).
 			Set("crash_rate_spike_email", pref.CrashRateSpikeEmail).

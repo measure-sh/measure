@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"backend/api/inet"
 	"backend/api/measure"
@@ -56,12 +58,13 @@ func main() {
 
 	// SDK routes
 	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
-	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuild)
+	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuilds)
 
-	// Dashboard routes
-
-	// Proxy route
-	r.GET("/attachments", measure.ProxyAttachment)
+	// Proxy routes
+	r.GET("/proxy/attachments", measure.ProxyAttachment)
+	if !config.IsCloud() {
+		r.PUT("/proxy/symbols", measure.ProxySymbol)
+	}
 
 	// Auth routes
 	auth := r.Group("/auth")
@@ -72,6 +75,8 @@ func main() {
 		auth.GET("session", measure.ValidateAccessToken(), measure.GetAuthSession)
 		auth.DELETE("signout", measure.ValidateRefreshToken(), measure.Signout)
 	}
+
+	// Dashboard routes
 
 	apps := r.Group("/apps", measure.ValidateAccessToken())
 	{
@@ -129,5 +134,12 @@ func main() {
 		teams.GET(":id/usage", measure.GetUsage)
 	}
 
-	r.Run(":8080") // listen and serve on 0.0.0.0:8080
+	// listen and serve on 0.0.0.0:${PORT}
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	if err := r.Run(":" + port); err != nil {
+		fmt.Printf("Failed to listen and serve on 0.0.0.0:%s\n", port)
+	}
 }

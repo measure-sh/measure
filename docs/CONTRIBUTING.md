@@ -55,23 +55,23 @@ This will start the configuration wizard and prepre all the environment variable
 
 ### Start services
 
-Once configuration is complete, run the following docker compose command to start all services. For starting for the first time, provide `--profile init` and `--profile migrate` as this will trigger creation of minio buckets and perform database migrations.
+Once configuration is complete, run the following docker compose command to start all services. For starting for the first time, provide `--profile migrate` to trigger database migrations.
 
 ```sh
-docker compose --profile init --profile migrate up
+docker compose --profile migrate up
 ```
 
 > [!NOTE]
 >
 > #### About Compose Profiles
 >
-> Both `init` and `migrate` profiles are idempotent in nature. You can use them everytime, though for subsequent runs you may choose to skip them.
+> The `migrate` profiles are idempotent in nature. You can use it everytime, though for subsequent runs you may choose to skip them.
 
 Alternatively, you could build and up the containers in separate steps, like this.
 
 ```sh
 docker compose build
-docker compose --profile init --profile migrate up
+docker compose --profile migrate up
 ```
 
 For automatic file watching using docker compose, run:
@@ -87,8 +87,8 @@ docker compose up --watch
 To stop all services and to remove all containers, run.
 
 ```sh
-docker compose --profile init --profile migrate stop
-docker compose --profile init --profile migrate down
+docker compose --profile migrate stop
+docker compose --profile migrate down
 ```
 
 ## Troubleshooting
@@ -104,7 +104,7 @@ docker compose down --rmi all --remove-orphans --volumes
 And rerun.
 
 ```sh
-docker compose --profile init --profile migrate up
+docker compose --profile migrate up
 ```
 
 ## Writing commit messages
@@ -189,6 +189,51 @@ All commits landing in any branch are first linted in your local environment and
   this is a really really really long line that is
   exceeding the allowed limit of max characters per line
   ```
+
+## Managing databases
+
+When contributing to databases, please strictly follow the following guidelines.
+
+- Ensure every migration is backward compatible.
+- Optimize queries for performance and scalability.
+- Make sure all database migrations are in ALWAYS order.
+
+## Migrating codebase from <= v0.8.x
+
+1. Turn off all services
+
+    ```sh
+    # run from self-host directory
+    docker compose down
+    ```
+
+2. Migrate configurations
+
+    ```sh
+    ./config.sh --development --ensure
+    ```
+
+3. Synchronize databases
+
+    ```sh
+    ./migrations/v0.9.x-sync-databases.sh
+    ```
+
+4. Run database migrations
+
+    ```sh
+    docker compose run --rm dbmate-postgres migrate
+    ```
+
+    ```sh
+    docker compose run --rm dbmate-clickhouse migrate
+    ```
+
+5. Start development
+
+    ```sh
+    docker compose watch
+    ```
 
 ## Release process
 

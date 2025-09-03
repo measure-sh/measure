@@ -22,4 +22,14 @@
 **/secrets.dev.yaml
 **/values.dev.yaml
 LICENSE
-README.md
+
+# ignore all markdown files
+**/*.md
+
+# ignore all go test files
+**/*_test.go
+
+# ignore test fixtures
+**/DemoApp
+**/*.tgz
+**/*.json

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -32,13 +33,18 @@ func main() {
 
 	alertsTracer := initTracer(config.OtelServiceName)
 
-	// close postres pool at shutdown
+	// close postgres pool at shutdown
 	defer server.Server.PgPool.Close()
+	defer server.Server.RpgPool.Close()
 
 	// close clickhouse connection pool at shutdown
 	defer func() {
 		if err := server.Server.ChPool.Close(); err != nil {
-			log.Fatalf("Unable to close clickhouse connection: %v", err)
+			log.Fatalf("Unable to close clickhouse operator connection: %v", err)
+		}
+
+		if err := server.Server.RchPool.Close(); err != nil {
+			log.Fatalf("Unable to close clickhouse reader connection: %v", err)
 		}
 	}()
 
@@ -61,7 +67,14 @@ func main() {
 		c.String(http.StatusOK, "pong")
 	})
 
-	r.Run(":8082") // listen and serve on 0.0.0.0:8082
+	// listen and serve on 0.0.0.0:${PORT}
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8082"
+	}
+	if err := r.Run(":" + port); err != nil {
+		fmt.Printf("Failed to listen and serve on 0.0.0.0:%s\n", port)
+	}
 }
 
 func initCron(ctx context.Context) *cron.Cron {

@@ -104,7 +104,7 @@ func NewAuthSession(userId uuid.UUID, provider string, meta json.RawMessage) (au
 // RemoveSession removes session from database.
 func RemoveSession(ctx context.Context, jti uuid.UUID, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.
-		DeleteFrom("public.auth_sessions").
+		DeleteFrom("auth_sessions").
 		Where("id = ?", jti)
 
 	defer stmt.Close()
@@ -122,7 +122,7 @@ func RemoveSession(ctx context.Context, jti uuid.UUID, tx *pgx.Tx) (err error) {
 // GetAuthSession finds an authentication session from its id.
 func GetAuthSession(ctx context.Context, id uuid.UUID) (authSession AuthSession, err error) {
 	stmt := sqlf.PostgreSQL.
-		From("public.auth_sessions").
+		From("auth_sessions").
 		Select("id").
 		Select("user_id").
 		Select("oauth_provider").
@@ -141,7 +141,7 @@ func GetAuthSession(ctx context.Context, id uuid.UUID) (authSession AuthSession,
 // Save saves the authentication session to database.
 func (au *AuthSession) Save(ctx context.Context, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.
-		InsertInto("public.auth_sessions").
+		InsertInto("auth_sessions").
 		Set("id", au.ID).
 		Set("user_id", au.UserID).
 		Set("oauth_provider", au.OAuthProvider).

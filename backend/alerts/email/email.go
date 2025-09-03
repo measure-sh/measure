@@ -25,12 +25,12 @@ type EmailInfo struct {
 // it logs the error but continues processing the next messages.
 func SendPendingAlertEmails(ctx context.Context) error {
 	fmt.Println("Checking pending alert emails...")
-	stmt := sqlf.From("public.pending_alert_messages").
+	stmt := sqlf.From("pending_alert_messages").
 		Select("id, data").
 		Where("channel = ?", "email").
 		OrderBy("created_at ASC").
 		Limit(250)
-	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RpgPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return fmt.Errorf("failed to query pending alert messages: %w", err)
 	}
@@ -67,7 +67,7 @@ func SendPendingAlertEmails(ctx context.Context) error {
 		}
 
 		// Delete after successful send
-		delStmt := sqlf.DeleteFrom("public.pending_alert_messages").Where("id = ?", msg.ID)
+		delStmt := sqlf.DeleteFrom("pending_alert_messages").Where("id = ?", msg.ID)
 		if _, err := server.Server.PgPool.Exec(ctx, delStmt.String(), delStmt.Args()...); err != nil {
 			fmt.Printf("failed to delete pending alert message id %s: %s\n", msg.ID, err)
 		}

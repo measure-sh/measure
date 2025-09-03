@@ -432,13 +432,6 @@ detect_compose_command() {
 }
 
 # ------------------------------------------------------------------------------
-# update_symbolicator_origin updates value of a variable in .env file.
-# ------------------------------------------------------------------------------
-update_symbolicator_origin() {
-  update_env_variable SYMBOLICATOR_ORIGIN "http://symbolicator:3021"
-}
-
-# ------------------------------------------------------------------------------
 # stop_docker_compose stops services using docker compose.
 # ------------------------------------------------------------------------------
 stop_docker_compose() {
@@ -449,6 +442,8 @@ stop_docker_compose() {
     --file compose.yml \
     --file compose.prod.yml \
     down
+
+  exit 0
 }
 
 # ------------------------------------------------------------------------------
@@ -459,7 +454,6 @@ start_docker_compose() {
 
   $DOCKER_COMPOSE_CMD \
     --progress plain \
-    --profile init \
     --profile migrate \
     --file compose.yml \
     --file compose.prod.yml \
@@ -469,6 +463,22 @@ start_docker_compose() {
     --detach \
     --remove-orphans \
     --wait
+}
+
+# ------------------------------------------------------------------------------
+# add_env_variable appends an .env file key with value.
+# ------------------------------------------------------------------------------
+add_env_variable() {
+  local key="$1"
+  local value="$2"
+  local env_file="./.env"
+
+  if [ ! -f "$env_file" ]; then
+    warn ".env file not found, cannot update .env file automatically"
+    return
+  fi
+
+  echo "${key}=${value}" >> "$env_file"
 }
 
 # ------------------------------------------------------------------------------
@@ -494,9 +504,9 @@ update_env_variable() {
 }
 
 # ------------------------------------------------------------------------------
-# cleanup detects and removes unused resources.
+# remove_symbolicator_android removes `symbolicator-android` image.
 # ------------------------------------------------------------------------------
-cleanup() {
+function remove_symbolicator_android() {
   # detect and remove `symbolicator-android` image.
   local image_ids
   image_ids=$(docker images --format '{{.Repository}} {{.ID}}' | awk '$1 ~ /symbolicator-android$/ {print $2}')
@@ -509,6 +519,32 @@ cleanup() {
     echo "Removing image ID: $id"
     docker rmi "$id"
   done
+}
+
+# ------------------------------------------------------------------------------
+# remove_minio_mc_image detects and removes `minio/mc` image.
+# ------------------------------------------------------------------------------
+function remove_minio_mc_image() {
+  # detect and remove `minio/mc` image.
+  local image_ids
+  image_ids=$(docker images --format '{{.Repository}} {{.ID}}' | awk '$1 ~ /minio\/mc$/ {print $2}')
+
+  if [ -z "$image_ids" ]; then
+    return 0
+  fi
+
+  for id in $image_ids; do
+    echo "Removing image ID: $id"
+    docker rmi "$id"
+  done
+}
+
+# ------------------------------------------------------------------------------
+# cleanup detects and removes unused resources.
+# ------------------------------------------------------------------------------
+cleanup() {
+  remove_symbolicator_android
+  remove_minio_mc_image
 }
 
 # ------------------------------------------------------------------------------
@@ -537,7 +573,7 @@ ensure_config() {
   if ! [[ -e "$ENV_FILE" ]]; then
     set +u
     info "Configuration file missing, starting wizard"
-    source ./config.sh "production"
+    source ./config.sh "--production" "--wizard"
     set -u
   else
     info "Configuration file found, skipping wizard"
@@ -610,6 +646,5 @@ ensure_docker
 start_docker
 ensure_config
 detect_compose_command
-update_symbolicator_origin
 start_docker_compose
 cleanup

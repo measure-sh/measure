@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,7 +32,13 @@ func ProxyAttachment(c *gin.Context) {
 	}
 
 	config := server.Server.Config
-	presignedUrl := config.AWSEndpoint + payload
+	presignedUrl := payload
+
+	// if the payload already contains origin, then
+	// don't prepend the origin.
+	if !strings.HasPrefix(payload, config.AWSEndpoint) {
+		presignedUrl = config.AWSEndpoint + payload
+	}
 
 	parsed, err := url.Parse(presignedUrl)
 	if err != nil {
@@ -52,12 +59,12 @@ func ProxyAttachment(c *gin.Context) {
 		req.Host = parsed.Host
 
 		req.Header = c.Request.Header
-
-		fmt.Printf("Attachment proxy target url: %s\n", req.URL.String())
 	}
 
 	proxy.ModifyResponse = func(resp *http.Response) error {
-		fmt.Printf("Attachment proxy http status: %s\n", resp.Status)
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("Attachment proxy http status: %s\n", resp.Status)
+		}
 		return nil
 	}
 

@@ -1,0 +1,125 @@
+name: Alerts
+on:
+  pull_request:
+    paths:
+      - .github/workflows/alerts.yml
+      - backend/alerts/dockerfile
+      - backend/alerts/**/*.go
+      - backend/alerts/**/*.mod
+      - backend/alerts/**/*.sum
+  push:
+    branches:
+      - "main"
+    paths:
+      - .github/workflows/alerts.yml
+      - backend/alerts/dockerfile
+      - backend/alerts/**/*.go
+      - backend/alerts/**/*.mod
+      - backend/alerts/**/*.sum
+    tags:
+      - "v*"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: measure-sh/alerts
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.24.x", "1.25.x"]
+    defaults:
+      run:
+        working-directory: backend/alerts
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          check-latest: true
+          cache-dependency-path: backend/alerts/go.sum
+      - name: Display go version
+        run: go version
+      - name: Install dependencies
+        run: go get .
+      - name: Build with ${{ matrix.go-version }}
+        run: go build -v ./...
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.24.x", "1.25.x"]
+    defaults:
+      run:
+        working-directory: backend/alerts
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          check-latest: true
+          cache-dependency-path: backend/alerts/go.sum
+      - name: Display go version
+        run: go version
+      - name: Install dependencies
+        run: go get .
+      - name: Test with ${{ matrix.go-version }}
+        run: go test ./...
+
+  push:
+    name: Build and push image
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
+    needs: [build, test]
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build and push OCI image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: backend/alerts
+          file: backend/alerts/dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/backend/alerts/dockerfile
+            org.opencontainers.image.description=Measure Alerts Server
+            org.opencontainers.image.licenses=Apache-2.0
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true

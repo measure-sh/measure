@@ -86,13 +86,13 @@ func (t *Team) getApps(ctx context.Context) ([]App, error) {
 		Select(`api_keys.created_at`, nil).
 		Select(`apps.created_at`, nil).
 		Select(`apps.updated_at`, nil).
-		From(`public.apps`).
-		LeftJoin(`public.api_keys`, `api_keys.app_Id = apps.id`).
+		From(`apps`).
+		LeftJoin(`api_keys`, `api_keys.app_Id = apps.id`).
 		Where(`apps.team_id = ?`, nil).
 		OrderBy(`apps.app_name`)
 
 	defer stmt.Close()
-	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), &t.ID)
+	rows, err := server.Server.RpgPool.Query(ctx, stmt.String(), &t.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -154,14 +154,14 @@ func (t *Team) getApps(ctx context.Context) ([]App, error) {
 }
 
 func (t *Team) getMembers(ctx context.Context) ([]*Member, error) {
-	stmt := sqlf.PostgreSQL.From("public.team_membership tm").
+	stmt := sqlf.PostgreSQL.From("team_membership tm").
 		Select("tm.user_id").
-		Select("public.users.name").
-		Select("public.users.email").
+		Select("users.name").
+		Select("users.email").
 		Select("tm.role").
-		Select("public.users.last_sign_in_at").
-		Select("public.users.created_at").
-		LeftJoin("public.users", "tm.user_id = public.users.id").
+		Select("users.last_sign_in_at").
+		Select("users.created_at").
+		LeftJoin("users", "tm.user_id = users.id").
 		Where("tm.team_id = $1").
 		OrderBy("tm.created_at")
 
@@ -187,7 +187,7 @@ func (t *Team) getMembers(ctx context.Context) ([]*Member, error) {
 }
 
 func (t *Team) getName(ctx context.Context) error {
-	stmt := sqlf.PostgreSQL.From("public.teams").
+	stmt := sqlf.PostgreSQL.From("teams").
 		Select("name").
 		Where("id = ?", nil)
 
@@ -274,15 +274,15 @@ func (t *Team) addInvites(ctx context.Context, userId string, invitees []Invitee
 }
 
 func (t *Team) getValidInvites(ctx context.Context) ([]*Invite, error) {
-	stmt := sqlf.PostgreSQL.From("public.invites inv").
+	stmt := sqlf.PostgreSQL.From("invites inv").
 		Select("inv.id").
 		Select("inv.invited_by_user_id").
-		Select("public.users.email").
+		Select("users.email").
 		Select("inv.invited_as_role").
 		Select("inv.email").
 		Select("inv.created_at").
 		Select("inv.updated_at").
-		LeftJoin("public.users", "invited_by_user_id = public.users.id").
+		LeftJoin("users", "invited_by_user_id = users.id").
 		Where("inv.invited_to_team_id = ?", nil).
 		Where("inv.updated_at > ?", nil)
 
@@ -311,15 +311,15 @@ func (t *Team) getValidInvites(ctx context.Context) ([]*Invite, error) {
 }
 
 func (t *Team) getInviteById(ctx context.Context, inviteId string) (*Invite, error) {
-	stmt := sqlf.PostgreSQL.From("public.invites inv").
+	stmt := sqlf.PostgreSQL.From("invites inv").
 		Select("inv.id").
 		Select("inv.invited_by_user_id").
-		Select("public.users.email").
+		Select("users.email").
 		Select("inv.invited_as_role").
 		Select("inv.email").
 		Select("inv.created_at").
 		Select("inv.updated_at").
-		LeftJoin("public.users", "invited_by_user_id = public.users.id").
+		LeftJoin("users", "invited_by_user_id = users.id").
 		Where("inv.invited_to_team_id = ?", nil).
 		Where("inv.id = ?", nil)
 
@@ -449,7 +449,7 @@ func (t *Team) create(ctx context.Context, u *User, tx *pgx.Tx) (err error) {
 	now := time.Now()
 
 	stmtTeam := sqlf.PostgreSQL.
-		InsertInto("public.teams").
+		InsertInto("teams").
 		Set("id", t.ID).
 		Set("name", t.Name).
 		Set("created_at", now).
@@ -463,7 +463,7 @@ func (t *Team) create(ctx context.Context, u *User, tx *pgx.Tx) (err error) {
 	}
 
 	stmtMembership := sqlf.PostgreSQL.
-		InsertInto("public.team_membership").
+		InsertInto("team_membership").
 		Set("team_id", t.ID).
 		Set("user_id", u.ID).
 		Set("role", roleMap["owner"]).
@@ -700,7 +700,7 @@ func GetTeamApp(c *gin.Context) {
 
 // GetValidInvitesForEmail retrieves valid invites for a given email address
 func GetValidInvitesForEmail(ctx context.Context, email string) ([]Invite, error) {
-	stmt := sqlf.PostgreSQL.From("public.invites").
+	stmt := sqlf.PostgreSQL.From("invites").
 		Select("id").
 		Select("invited_by_user_id").
 		Select("invited_to_team_id").
@@ -740,18 +740,18 @@ func formatTeamEmailBody(title, message, url, cta string) string {
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
         <!-- Header -->
         <div style="background-color: #000000; color: #ffffff; padding: 20px; display: flex; align-items: center; gap: 16px;">
-            <img src="https://www.measure.sh/images/measure_logo.svg" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
+            <img src="https://www.measure.sh/images/measure_logo.png" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
             <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; margin-top: 3px;">%s</h1>
         </div>
-        
+
         <!-- Content -->
         <div style="padding: 40px 30px;">
-            
+
             <!-- Message -->
             <div style="margin-bottom: 32px; font-size: 16px; line-height: 1.6; color: #4a5568;">
                 %s
             </div>
-            
+
             <!-- CTA Button -->
             <div style="text-align: center; margin: 32px 0;">
                 <a href="%s" style="display: inline-block; background-color: #000000; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; font-size: 16px; transition: background-color 0.2s ease; font-family: 'Josefin Sans', sans-serif;">
@@ -759,7 +759,7 @@ func formatTeamEmailBody(title, message, url, cta string) string {
                 </a>
             </div>
         </div>
-        
+
         <!-- Footer -->
         <div style="background-color: #f8f9fa; padding: 20px 30px; border-top: 1px solid #e2e8f0; text-align: center;">
             <p style="margin: 0; font-size: 14px; color: #718096;">

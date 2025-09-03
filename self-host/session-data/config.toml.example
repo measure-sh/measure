@@ -29,8 +29,8 @@
 # data in databases and objects in
 # object storage (like S3).
 
-postgres_dsn = "postgresql://postgres:postgres@127.0.0.1:5432/postgres"
-clickhouse_dsn = "clickhouse://default:@127.0.0.1:9000/default"
+postgres_dsn = "postgresql://postgres:postgres@127.0.0.1:5432/measure?search_path=measure"
+clickhouse_dsn = "clickhouse://default:@127.0.0.1:9000/measure"
 
 aws_endpoint_url = "http://127.0.0.1:9119"
 

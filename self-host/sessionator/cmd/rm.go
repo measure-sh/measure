@@ -456,7 +456,7 @@ func (j *janitor) getAttachmentsClient(options ...S3Options) (client *s3.Client)
 func (j *janitor) resolveAppIds(ctx context.Context, conn *pgx.Conn, apps []string) (err error) {
 	placeholders, args := parameterize(apps)
 
-	selectAppIds := fmt.Sprintf("select id from public.apps where unique_identifier in (%s) or app_name in (%s);", placeholders, placeholders)
+	selectAppIds := fmt.Sprintf("select id from apps where unique_identifier in (%s) or app_name in (%s);", placeholders, placeholders)
 
 	rows, err := conn.Query(ctx, selectAppIds, args...)
 	if err != nil {
@@ -532,9 +532,9 @@ func (j *janitor) rmApps(ctx context.Context, tx *pgx.Tx) (err error) {
 // in config.
 func (j *janitor) rmBuilds(ctx context.Context, tx *pgx.Tx) (err error) {
 	placeholders, args := parameterize(j.appIds)
-	selectBuildMappings := fmt.Sprintf("select key from public.build_mappings where app_id in (%s);", placeholders)
-	deleteBuildMappings := fmt.Sprintf("delete from public.build_mappings where app_id in (%s);", placeholders)
-	deleteBuildSizes := fmt.Sprintf("delete from public.build_sizes where app_id in (%s);", placeholders)
+	selectBuildMappings := fmt.Sprintf("select key from build_mappings where app_id in (%s);", placeholders)
+	deleteBuildMappings := fmt.Sprintf("delete from build_mappings where app_id in (%s);", placeholders)
+	deleteBuildSizes := fmt.Sprintf("delete from build_sizes where app_id in (%s);", placeholders)
 
 	fmt.Println("removing build mappings")
 	rows, err := (*tx).Query(ctx, selectBuildMappings, args...)
@@ -576,7 +576,7 @@ func (j *janitor) rmBuilds(ctx context.Context, tx *pgx.Tx) (err error) {
 // apps in config.
 func (j *janitor) rmEventReqs(ctx context.Context, tx *pgx.Tx) (err error) {
 	placeholders, args := parameterize(j.appIds)
-	deleteEventReqs := fmt.Sprintf("delete from public.event_reqs where app_id in (%s);", placeholders)
+	deleteEventReqs := fmt.Sprintf("delete from event_reqs where app_id in (%s);", placeholders)
 
 	fmt.Println("removing event requests")
 	_, err = (*tx).Exec(ctx, deleteEventReqs, args...)
@@ -710,8 +710,8 @@ func (j *janitor) rmEventMetrics(ctx context.Context) (err error) {
 // rmEvents removes events and its attachments
 // for apps in config.
 func (j *janitor) rmEvents(ctx context.Context) (err error) {
-	selectAttachments := `select attachments from default.events where app_id = @app_id;`
-	deleteEvents := `delete from default.events where app_id = @app_id;`
+	selectAttachments := `select attachments from events where app_id = @app_id;`
+	deleteEvents := `delete from events where app_id = @app_id;`
 
 	dsn := j.config.Storage["clickhouse_dsn"]
 	opts, err := clickhouse.ParseDSN(dsn)

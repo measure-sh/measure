@@ -248,11 +248,11 @@ Find out the suitable version from the [list of release tags](https://github.com
 > Always choose a tag matching the format `v[MAJOR].[MINOR].[PATCH]`, for example: `v1.2.3`.
 > These tags are tailored for self host deployments.
 
-Run `git fetch` to fetch all tags.
+Run `git fetch --tags` to fetch all tags.
 
 ```sh
 git reset --hard # reset local modifications, if any
-git fetch
+git fetch --tags
 ```
 
 Checkout to a particular git tag.
@@ -354,7 +354,6 @@ To start the containers in production mode, run.
 
 ```sh
 docker compose -f compose.yml -f compose.prod.yml \
-  --profile init \
   --profile migrate \
   up --build
 ```

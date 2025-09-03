@@ -24,7 +24,7 @@ type Alert struct {
 }
 
 func GetAlertsWithFilter(ctx context.Context, af *filter.AppFilter) (alerts []Alert, next, previous bool, err error) {
-	stmt := sqlf.PostgreSQL.From("public.alerts").
+	stmt := sqlf.PostgreSQL.From("alerts").
 		Select("id").
 		Select("team_id").
 		Select("app_id").

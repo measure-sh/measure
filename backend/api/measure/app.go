@@ -76,7 +76,7 @@ func (a App) MarshalJSON() ([]byte, error) {
 }
 
 func (a App) rename() error {
-	stmt := sqlf.PostgreSQL.Update("public.apps").
+	stmt := sqlf.PostgreSQL.Update("apps").
 		Set("app_name", a.AppName).
 		Set("updated_at", time.Now()).
 		Where("id = ?", a.ID)
@@ -543,7 +543,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (size *metrics.SizeMetric, err error) {
 	size = &metrics.SizeMetric{}
 	stmt := sqlf.Select("count(id) as count").
-		From("default.events").
+		From("events").
 		Where("app_id = ?", af.AppID).
 		Where("`attribute.app_version` = ? and `attribute.app_build` = ?", af.Versions[0], af.VersionCodes[0]).
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
@@ -563,7 +563,7 @@ func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions 
 	}
 
 	avgSizeStmt := sqlf.PostgreSQL.
-		From("public.build_sizes").
+		From("build_sizes").
 		Select("round(coalesce(avg(build_size), 2), 0) as average_size").
 		Where("app_id = ?", af.AppID)
 
@@ -589,7 +589,7 @@ func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions 
 		Select("t1.average_size as average_app_size").
 		Select("t2.build_size as selected_app_size").
 		Select("(t2.build_size - t1.average_size) as delta").
-		From("avg_size as t1, public.build_sizes as t2").
+		From("avg_size as t1, build_sizes as t2").
 		Where("app_id = ?", af.AppID).
 		Where("version_name = ?", af.Versions[0]).
 		Where("version_code = ?", af.VersionCodes[0])
@@ -929,7 +929,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	}
 
 	stmt := sqlf.
-		From(`default.events`).
+		From(`events`).
 		Select(`distinct id`).
 		Select(`toString(type)`).
 		Select(`timestamp`).
@@ -1126,7 +1126,7 @@ func (a *App) add() (*APIKey, error) {
 
 	defer tx.Rollback(context.Background())
 
-	_, err = tx.Exec(context.Background(), "insert into public.apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
+	_, err = tx.Exec(context.Background(), "insert into apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
 
 	if err != nil {
 		return nil, err
@@ -1181,8 +1181,8 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 
 	stmt := sqlf.PostgreSQL.
 		Select(strings.Join(cols, ",")).
-		From("public.apps").
-		LeftJoin("public.api_keys", "api_keys.app_id = apps.id").
+		From("apps").
+		LeftJoin("api_keys", "api_keys.app_id = apps.id").
 		Where("apps.id = ? and apps.team_id = ?", nil, nil)
 
 	defer stmt.Close()
@@ -1305,7 +1305,7 @@ func (a *App) Populate(ctx context.Context) (err error) {
 
 func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, osName, firstVersion string) error {
 	now := time.Now()
-	stmt := sqlf.PostgreSQL.Update("public.apps").
+	stmt := sqlf.PostgreSQL.Update("apps").
 		Set("onboarded", true).
 		Set("unique_identifier", uniqueIdentifier).
 		Set("os_name", osName).
@@ -1505,7 +1505,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		}...)
 	}
 
-	stmt := sqlf.From("default.events")
+	stmt := sqlf.From("events")
 	defer stmt.Close()
 
 	for i := range cols {
@@ -1985,7 +1985,7 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 		Select("unique_identifier").
 		Select("os_name").
 		Select("first_version").
-		From("public.apps").
+		From("apps").
 		Where("id = ?", id)
 
 	defer stmt.Close()

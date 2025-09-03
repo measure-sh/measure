@@ -11,8 +11,10 @@ import (
 	"slices"
 	"time"
 
+	"backend/api/objstore"
 	"backend/api/server"
 
+	"cloud.google.com/go/storage"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
@@ -51,25 +53,6 @@ func (a Attachment) Validate() error {
 // and returns the uploaded file's remote location.
 func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 	config := server.Server.Config
-	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
-		return aws.Credentials{
-			AccessKeyID:     config.AttachmentsAccessKey,
-			SecretAccessKey: config.AttachmentsSecretAccessKey,
-		}, nil
-	}
-
-	awsConfig := &aws.Config{
-		Region:      config.AttachmentsBucketRegion,
-		Credentials: credentialsProvider,
-	}
-
-	client := s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
-		endpoint := config.AWSEndpoint
-		if endpoint != "" {
-			o.BaseEndpoint = aws.String(endpoint)
-			o.UsePathStyle = *aws.Bool(true)
-		}
-	})
 
 	// set mime type from extension
 	ext := filepath.Ext(a.Key)
@@ -78,13 +61,45 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 		contentType = mime.TypeByExtension(ext)
 	}
 
+	metadata := map[string]string{
+		"original_file_name": a.Name,
+	}
+
+	if config.IsCloud() {
+		client, errStorage := storage.NewClient(ctx)
+		if errStorage != nil {
+			err = errStorage
+			return
+		}
+
+		defer client.Close()
+		obj := client.Bucket(config.AttachmentsBucket).Object(a.Key)
+		writer := obj.NewWriter(ctx)
+		writer.ContentType = contentType
+		writer.Metadata = metadata
+
+		if _, err = io.Copy(writer, a.Reader); err != nil {
+			fmt.Printf("failed to upload attachment key: %s bucket: %s: %v\n", a.Key, config.AttachmentsBucket, err)
+			return
+		}
+
+		if err = writer.Close(); err != nil {
+			fmt.Printf("failed to close storage writer key: %s bucket: %s: %v\n", a.Key, config.AttachmentsBucket, err)
+			return
+		}
+
+		location = fmt.Sprintf("https://storage.googleapis.com/%s/%s", config.AttachmentsBucket, obj.ObjectName())
+
+		return
+	}
+
+	s3Client := objstore.CreateS3Client(ctx, config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, config.AttachmentsBucketRegion, config.AWSEndpoint)
+
 	putObjectInput := &s3.PutObjectInput{
-		Bucket: aws.String(config.AttachmentsBucket),
-		Key:    aws.String(a.Key),
-		Body:   a.Reader,
-		Metadata: map[string]string{
-			"original_file_name": a.Name,
-		},
+		Bucket:      aws.String(config.AttachmentsBucket),
+		Key:         aws.String(a.Key),
+		Body:        a.Reader,
+		Metadata:    metadata,
 		ContentType: aws.String(contentType),
 	}
 
@@ -100,7 +115,7 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 
 	// ignore the putObjectOutput, don't need
 	// it for now
-	_, err = client.PutObject(ctx, putObjectInput)
+	_, err = s3Client.PutObject(ctx, putObjectInput)
 	if err != nil {
 		return
 	}
@@ -113,32 +128,40 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 func (a *Attachment) PreSignURL(ctx context.Context) (err error) {
 	config := server.Server.Config
 	shouldProxy := true
+	expires := 48 * time.Hour
+
+	if config.IsCloud() {
+		client, errStorage := storage.NewClient(ctx)
+		if errStorage != nil {
+			err = errStorage
+			return
+		}
+
+		defer client.Close()
+
+		url, errStorage := client.Bucket(config.AttachmentsBucket).SignedURL(a.Key, &storage.SignedURLOptions{
+			Scheme:  storage.SigningSchemeV4,
+			Method:  "GET",
+			Expires: time.Now().Add(expires),
+		})
+
+		if errStorage != nil {
+			err = errStorage
+			return
+		}
+
+		a.Location = url
+		return
+	}
+
 	if config.AttachmentOrigin != "" {
 		shouldProxy = false
 	}
 
-	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
-		return aws.Credentials{
-			AccessKeyID:     config.AttachmentsAccessKey,
-			SecretAccessKey: config.AttachmentsSecretAccessKey,
-		}, nil
-	}
-
-	awsConfig := &aws.Config{
-		Region:      config.AttachmentsBucketRegion,
-		Credentials: credentialsProvider,
-	}
-
-	client := s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
-		endpoint := config.AWSEndpoint
-		if endpoint != "" {
-			o.BaseEndpoint = aws.String(endpoint)
-			o.UsePathStyle = *aws.Bool(true)
-		}
-	})
+	client := objstore.CreateS3Client(ctx, config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, config.AttachmentsBucketRegion, config.AWSEndpoint)
 
 	presignClient := s3.NewPresignClient(client, func(o *s3.PresignOptions) {
-		o.Expires = 48 * time.Hour
+		o.Expires = expires
 	})
 
 	getObjectInput := &s3.GetObjectInput{
@@ -154,7 +177,7 @@ func (a *Attachment) PreSignURL(ctx context.Context) (err error) {
 	urlStr := req.URL
 
 	if shouldProxy {
-		endpoint, err := url.JoinPath(config.APIOrigin, "attachments")
+		endpoint, err := url.JoinPath(config.APIOrigin, "proxy", "attachments")
 		if err != nil {
 			return err
 		}

@@ -184,7 +184,9 @@ func GetMappings(
 		Select("key, mapping_type").
 		Where("app_id = ?", appId).
 		Where("version_name = ?", name).
-		Where("version_code = ?", code)
+		Where("version_code = ?", code).
+		Where("key != ''").
+		OrderBy("last_updated desc")
 
 	defer stmt.Close()
 

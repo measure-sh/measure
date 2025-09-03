@@ -20,6 +20,8 @@ ENV_HEADER=$(
 EOF
 )
 
+source ./shared.sh
+
 # Generation timestamp
 ENV_TIMESTAMP=$(date)
 
@@ -116,10 +118,24 @@ prompt_value_manual() {
   fi
 
   while [[ -z "$value" ]]; do
-    read -p "$valprompt" value
+    read -r -p "$valprompt" value
   done
 
-  echo $value
+  echo "$value"
+}
+
+# Prompts for manual optional value entry
+prompt_optional_value_manual() {
+  local value
+  local valprompt="$1"
+
+  if ! validate_empty "$1"; then
+    valprompt="Enter the value: "
+  fi
+
+  read -r -p "$valprompt" value
+
+  echo "$value"
 }
 
 # Prompts for manual password entry
@@ -169,12 +185,18 @@ $ENV_HEADER
 
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
-POSTGRES_MIGRATION_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/postgres?search_path=dbmate,public&sslmode=disable
-POSTGRES_DSN=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/postgres
+POSTGRES_MIGRATION_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=dbmate,measure&sslmode=disable
+POSTGRES_DSN=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=measure
 
-CLICKHOUSE_USER=default
-CLICKHOUSE_PASSWORD=
-CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_USER}:\${CLICKHOUSE_PASSWORD}@clickhouse:9000/default
+CLICKHOUSE_ADMIN_USER=app_admin
+CLICKHOUSE_ADMIN_PASSWORD=dummY_pa55w0rd
+CLICKHOUSE_OPERATOR_USER=app_operator
+CLICKHOUSE_OPERATOR_PASSWORD=dummY_pa55w0rd
+CLICKHOUSE_READER_USER=app_reader
+CLICKHOUSE_READER_PASSWORD=dummY_pa55w0rd
+CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_PASSWORD}@clickhouse:9000/measure
+CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
+CLICKHOUSE_MIGRATION_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
 
 ##################
 # Object Storage #
@@ -203,6 +225,7 @@ ATTACHMENTS_SECRET_ACCESS_KEY=minio123
 ####################
 
 SYMBOLICATOR_ORIGIN=http://symbolicator:3021
+SYMBOLOADER_ORIGIN=http://symboloader:8083
 
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
@@ -222,11 +245,11 @@ SESSION_REFRESH_SECRET=super-secret-for-jwt-token-with-at-least-32-characters
 # Email #
 #########
 
-SMTP_HOST=$SMTP_HOST
-SMTP_PORT=$SMTP_PORT
-SMTP_USER=$SMTP_USER
-SMTP_PASSWORD=$SMTP_PASSWORD
-EMAIL_DOMAIN=$EMAIL_DOMAIN
+SMTP_HOST=smtp.ethereal.email
+SMTP_PORT=587
+SMTP_USER=payton68@ethereal.email
+SMTP_PASSWORD=Bf1Qq34KhTpFV4AAu2
+EMAIL_DOMAIN=
 
 ########
 # OTEL #
@@ -294,12 +317,18 @@ $ENV_HEADER
 #############
 POSTGRES_USER=$POSTGRES_USER
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-POSTGRES_MIGRATION_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/postgres?search_path=dbmate,public&sslmode=disable
-POSTGRES_DSN=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/postgres
+POSTGRES_MIGRATION_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=dbmate,measure&sslmode=disable
+POSTGRES_DSN=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=measure
 
-CLICKHOUSE_USER=default
-CLICKHOUSE_PASSWORD=$CLICKHOUSE_PASSWORD
-CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_USER}:\${CLICKHOUSE_PASSWORD}@clickhouse:9000/default
+CLICKHOUSE_ADMIN_USER=app_admin
+CLICKHOUSE_ADMIN_PASSWORD=$CLICKHOUSE_ADMIN_PASSWORD
+CLICKHOUSE_OPERATOR_USER=app_operator
+CLICKHOUSE_OPERATOR_PASSWORD=$CLICKHOUSE_OPERATOR_PASSWORD
+CLICKHOUSE_READER_USER=app_reader
+CLICKHOUSE_READER_PASSWORD=$CLICKHOUSE_READER_PASSWORD
+CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_PASSWORD}@clickhouse:9000/measure
+CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
+CLICKHOUSE_MIGRATION_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
 
 ##################
 # Object Storage #
@@ -326,6 +355,7 @@ ATTACHMENTS_SECRET_ACCESS_KEY=$ATTACHMENTS_SECRET_ACCESS_KEY
 ####################
 
 SYMBOLICATOR_ORIGIN=http://symbolicator:3021
+SYMBOLOADER_ORIGIN=http://symboloader:8083
 
 NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
@@ -402,21 +432,294 @@ EOF
 # ------------------------------------------------------------------------------
 # Interactive wizard
 # ------------------------------------------------------------------------------
-cat <<END
-----------------------------
-Measure Configuration Wizard
-----------------------------
+wizard() {
+  cat <<END
+  ----------------------------
+  Measure Configuration Wizard
+  ----------------------------
 
-This interactive wizard helps you to setup Measure
-settings according to your chosen environment.
-
+  This interactive wizard helps you to setup Measure
+  settings according to your chosen environment.
 END
+
+  if [[ "$SETUP_ENV" == "development" ]]; then
+    NAMESPACE=$(create_ns "measure-dev")
+    OAUTH_GOOGLE_KEY="715065389756-0nejegfra6erco3u172vjgibot2a6p4v.apps.googleusercontent.com"
+    OAUTH_GITHUB_KEY=$(prompt_value_manual "Enter GitHub OAuth app key: ")
+    OAUTH_GITHUB_SECRET=$(prompt_password_manual "Enter GitHub OAuth app secret: ")
+    write_dev_env
+    write_web_dev_env
+  elif [[ "$SETUP_ENV" == "production" ]]; then
+    cat <<END
+
+  Enter a name for your company or team.
+
+  Example: acme-corp
+
+  Measure will use this as a namespace to identify
+  this installation instance.
+END
+
+    while true; do
+      echo -e "\nOnly lowercase alphabets and hyphens, no spaces"
+      read -p "Enter a name: " ANS_NAME
+
+      if validate_name "$ANS_NAME"; then
+        NAMESPACE=$(create_ns "$ANS_NAME")
+        echo -e "\nNamespace is set to [$NAMESPACE]"
+        break
+      else
+        echo -e "\nInvalid input. Please try again."
+      fi
+    done
+
+    POSTGRES_USER="postgres"
+    MINIO_ROOT_USER="minio"
+    MINIO_ROOT_PASSWORD=$(generate_password 24)
+    echo -e "Generated secure password for Minio root user"
+
+    if [[ $PROMPT_DB_PASSWORDS -eq 1 ]]; then
+      # Prompt for database passwords
+      echo -e "Set Postgres user's password"
+      POSTGRES_PASSWORD=$(prompt_password 24 "Enter password for Postgres user: ")
+
+      echo -e "Set ClickHouse admin user's password"
+      CLICKHOUSE_ADMIN_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
+
+      echo -e "Set ClickHouse operator user's password"
+      CLICKHOUSE_OPERATOR_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
+
+      echo -e "Set ClickHouse reader user's password"
+      CLICKHOUSE_READER_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
+    else
+      # Generate secure database passwords
+      echo -e "Generated secure password for Postgres user"
+      POSTGRES_PASSWORD=$(generate_password 24)
+
+      echo -e "Generated secure password for ClickHouse admin user"
+      CLICKHOUSE_ADMIN_PASSWORD=$(generate_password 24)
+
+      echo -e "Generated secure password for ClickHouse operator user"
+      CLICKHOUSE_OPERATOR_PASSWORD=$(generate_password 24)
+
+      echo -e "Generated secure password for ClickHouse reader user"
+      CLICKHOUSE_READER_PASSWORD=$(generate_password 24)
+    fi
+
+    if [[ $USE_EXTERNAL_BUCKETS -eq 1 ]]; then
+      echo -e "\nSet storage bucket for symbols"
+      SYMBOLS_S3_BUCKET=$(prompt_value_manual "Enter symbols S3 bucket name: ")
+      SYMBOLS_S3_BUCKET_REGION=$(prompt_value_manual "Enter symbols S3 bucket region: ")
+      SYMBOLS_ACCESS_KEY=$(prompt_value_manual "Enter symbols S3 bucket access key: ")
+      SYMBOLS_SECRET_ACCESS_KEY=$(prompt_password_manual "Enter symbols S3 bucket secret access key: ")
+
+      echo -e "\nSet storage bucket for attachments"
+      echo -e "Example: https://measure-attachments.yourcompany.com"
+      ATTACHMENTS_S3_ORIGIN=$(prompt_value_manual "Enter attachments S3 bucket origin: ")
+      ATTACHMENTS_S3_BUCKET=$(prompt_value_manual "Enter attachments S3 bucket name: ")
+      ATTACHMENTS_S3_BUCKET_REGION=$(prompt_value_manual "Enter attachments S3 bucket region: ")
+      ATTACHMENTS_ACCESS_KEY=$(prompt_value_manual "Enter attachments S3 bucket access key: ")
+      ATTACHMENTS_SECRET_ACCESS_KEY=$(prompt_value_manual "Enter attachments S3 bucket secret access key: ")
+    else
+      echo -e "Setting storage bucket for symbols"
+      SYMBOLS_S3_BUCKET="msr-$NAMESPACE-symbols"
+      SYMBOLS_S3_BUCKET_REGION="us-east-1"
+      SYMBOLS_ACCESS_KEY=$MINIO_ROOT_USER
+      SYMBOLS_SECRET_ACCESS_KEY=$MINIO_ROOT_PASSWORD
+
+      echo -e "Setting storage bucket for attachments"
+      ATTACHMENTS_S3_ORIGIN=""
+      ATTACHMENTS_S3_BUCKET="msr-$NAMESPACE-attachments"
+      ATTACHMENTS_S3_BUCKET_REGION="us-east-1"
+      ATTACHMENTS_ACCESS_KEY=$MINIO_ROOT_USER
+      ATTACHMENTS_SECRET_ACCESS_KEY=$MINIO_ROOT_PASSWORD
+    fi
+
+    echo -e "\nSet Measure dashboard URL"
+    echo -e "Example: https://measure.yourcompany.com"
+    NEXT_PUBLIC_SITE_URL=$(prompt_value_manual "Enter URL to access Measure dashboard: ")
+
+    echo -e "\nSet Measure service URL"
+    echo -e "Example: https://measure-api.yourcompany.com"
+    NEXT_PUBLIC_API_BASE_URL=$(prompt_value_manual "Enter URL to Measure API service: ")
+
+    echo -e "\nSet Google OAuth"
+    echo -e "To create a Google OAuth app, visit: https://support.google.com/cloud/answer/6158849?hl=en"
+    OAUTH_GOOGLE_KEY=$(prompt_value_manual "Enter Google OAuth app key: ")
+
+    echo -e "\nSet GitHub OAuth"
+    echo -e "To create a GitHub OAuth app, visit: https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app"
+    OAUTH_GITHUB_KEY=$(prompt_value_manual "Enter GitHub OAuth app key: ")
+    OAUTH_GITHUB_SECRET=$(prompt_password_manual "Enter GitHub OAuth app secret: ")
+    SESSION_ACCESS_SECRET=$(generate_password 44)
+    SESSION_REFRESH_SECRET=$(generate_password 44)
+
+    echo -e "\nSet Email SMTP credentials"
+    echo -e "Set up an email provider to get SMTP credentials. See https://github.com/measure-sh/measure/blob/main/docs/hosting/smtp-email.md for more details."
+    SMTP_HOST=$(prompt_value_manual "Enter SMTP host: ")
+    SMTP_PORT=$(prompt_value_manual "Enter SMTP port: ")
+    SMTP_USER=$(prompt_value_manual "Enter SMTP username: ")
+    SMTP_PASSWORD=$(prompt_value_manual "Enter SMTP password: ")
+    EMAIL_DOMAIN=$(prompt_optional_value_manual "Enter email domain (optional): ")
+
+    write_prod_env
+    write_web_prod_env
+  fi
+
+  echo -e "\nWrote config to $ENV_FILE"
+  echo -e "Wrote config to $ENV_WEB_FILE"
+}
+
+# ------------------------------------------------------------------------------
+# Sync environment variables
+# ------------------------------------------------------------------------------
+ensure() {
+  local clickhouse_admin_user
+  local clickhouse_admin_password
+  local clickhouse_operator_user
+  local clickhouse_operator_password
+  local clickhouse_reader_user
+  local clickhouse_reader_password
+  local postgres_migration_url
+  local clickhouse_migration_url
+  local postgres_dsn
+  local clickhouse_dsn
+  local clickhouse_reader_dsn
+  local symbolicator_origin
+  local symboloader_origin
+
+  clickhouse_admin_user="app_admin"
+  clickhouse_operator_user="app_operator"
+  clickhouse_reader_user="app_reader"
+  postgres_migration_url="postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=dbmate,measure&sslmode=disable"
+  clickhouse_migration_url="clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure"
+  postgres_dsn="postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=measure"
+  clickhouse_dsn="clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_PASSWORD}@clickhouse:9000/measure"
+  clickhouse_reader_dsn="clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure"
+  symbolicator_origin="http://symbolicator:3021"
+  symboloader_origin="http://symboloader:8083"
+
+  if [[ "$SETUP_ENV" == "development" ]]; then
+    clickhouse_admin_password="dummY_pa55w0rd"
+    clickhouse_operator_password="dummY_pa55w0rd"
+    clickhouse_reader_password="dummY_pa55w0rd"
+
+    if ! check_env_variable "CLICKHOUSE_ADMIN_USER"; then
+      add_env_variable "CLICKHOUSE_ADMIN_USER" "$clickhouse_admin_user" "CLICKHOUSE_PASSWORD"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_ADMIN_PASSWORD"; then
+      add_env_variable "CLICKHOUSE_ADMIN_PASSWORD" "$clickhouse_admin_password" "CLICKHOUSE_ADMIN_USER"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_OPERATOR_USER"; then
+      add_env_variable "CLICKHOUSE_OPERATOR_USER" "$clickhouse_operator_user" "CLICKHOUSE_ADMIN_PASSWORD"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_OPERATOR_PASSWORD"; then
+      add_env_variable "CLICKHOUSE_OPERATOR_PASSWORD" "$clickhouse_operator_password" "CLICKHOUSE_OPERATOR_USER"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_READER_USER"; then
+      add_env_variable "CLICKHOUSE_READER_USER" "$clickhouse_reader_user" "CLICKHOUSE_OPERATOR_PASSWORD"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_READER_PASSWORD"; then
+      add_env_variable "CLICKHOUSE_READER_PASSWORD" "$clickhouse_reader_password" "CLICKHOUSE_OPERATOR_PASSWORD"
+    fi
+
+    if check_env_variable "POSTGRES_MIGRATION_URL"; then
+      update_env_variable "POSTGRES_MIGRATION_URL" "$postgres_migration_url"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_MIGRATION_URL"; then
+      add_env_variable "CLICKHOUSE_MIGRATION_URL" "$clickhouse_migration_url" "CLICKHOUSE_OPERATOR_PASSWORD"
+    fi
+
+    if check_env_variable "POSTGRES_DSN"; then
+      update_env_variable "POSTGRES_DSN" "$postgres_dsn"
+    fi
+
+    if check_env_variable "CLICKHOUSE_DSN"; then
+      update_env_variable "CLICKHOUSE_DSN" "$clickhouse_dsn"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_READER_DSN"; then
+      add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATION_URL"
+    fi
+  elif [[ "$SETUP_ENV" == "production" ]]; then
+    clickhouse_admin_password=$(generate_password 24)
+    clickhouse_operator_password=$(generate_password 24)
+    clickhouse_reader_password=$(generate_password 24)
+
+    if ! check_env_variable "CLICKHOUSE_ADMIN_USER"; then
+      add_env_variable "CLICKHOUSE_ADMIN_USER" "$clickhouse_admin_user" "CLICKHOUSE_PASSWORD"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_ADMIN_PASSWORD"; then
+      add_env_variable "CLICKHOUSE_ADMIN_PASSWORD" "$clickhouse_admin_password" "CLICKHOUSE_ADMIN_USER"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_OPERATOR_USER"; then
+      add_env_variable "CLICKHOUSE_OPERATOR_USER" "$clickhouse_operator_user" "CLICKHOUSE_ADMIN_PASSWORD"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_OPERATOR_PASSWORD"; then
+      add_env_variable "CLICKHOUSE_OPERATOR_PASSWORD" "$clickhouse_operator_password" "CLICKHOUSE_OPERATOR_USER"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_READER_USER"; then
+      add_env_variable "CLICKHOUSE_READER_USER" "$clickhouse_reader_user" "CLICKHOUSE_OPERATOR_PASSWORD"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_READER_PASSWORD"; then
+      add_env_variable "CLICKHOUSE_READER_PASSWORD" "$clickhouse_reader_password" "CLICKHOUSE_READER_USER"
+    fi
+
+    if check_env_variable "POSTGRES_MIGRATION_URL"; then
+      update_env_variable "POSTGRES_MIGRATION_URL" "$postgres_migration_url"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_MIGRATION_URL"; then
+      add_env_variable "CLICKHOUSE_MIGRATION_URL" "$clickhouse_migration_url" "CLICKHOUSE_READER_PASSWORD"
+    fi
+
+    if check_env_variable "POSTGRES_DSN"; then
+      update_env_variable "POSTGRES_DSN" "$postgres_dsn"
+    fi
+
+    if check_env_variable "CLICKHOUSE_DSN"; then
+      update_env_variable "CLICKHOUSE_DSN" "$clickhouse_dsn"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_READER_DSN"; then
+      add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATION_URL"
+    fi
+  fi
+
+  # set the common variables across environments
+  if check_env_variable "SYMBOLICATOR_ORIGIN"; then
+    update_env_variable "SYMBOLICATOR_ORIGIN" "$symbolicator_origin"
+  fi
+
+  if ! check_env_variable "SYMBOLICATOR_ORIGIN"; then
+    add_env_variable "SYMBOLICATOR_ORIGIN" "$symbolicator_origin" "API_BASE_URL"
+  fi
+
+  if ! check_env_variable "SYMBOLOADER_ORIGIN"; then
+    add_env_variable "SYMBOLOADER_ORIGIN" "$symboloader_origin" "API_BASE_URL"
+  fi
+
+  if ! check_env_variable "EMAIL_DOMAIN"; then
+    add_env_variable "EMAIL_DOMAIN" "" "SMTP_PASSWORD"
+  fi
+}
 
 # Set the environment by accessing the
 # first argument.
 ENVIRONMENT="$1"
 
-if [[ "$ENVIRONMENT" == "production" ]]; then
+if [[ "$ENVIRONMENT" == "production" || "$ENVIRONMENT" == "--production" ]]; then
   SETUP_ENV=production
 else
   SETUP_ENV=development
@@ -424,117 +727,12 @@ fi
 
 echo -e "\nEnvironment is set to [$SETUP_ENV]"
 
-if [[ "$SETUP_ENV" == "development" ]]; then
-  NAMESPACE=$(create_ns "measure-dev")
-  OAUTH_GOOGLE_KEY="715065389756-0nejegfra6erco3u172vjgibot2a6p4v.apps.googleusercontent.com"
-  OAUTH_GITHUB_KEY=$(prompt_value_manual "Enter GitHub OAuth app key: ")
-  OAUTH_GITHUB_SECRET=$(prompt_password_manual "Enter GitHub OAuth app secret: ")
-  write_dev_env
-  write_web_dev_env
-elif [[ "$SETUP_ENV" == "production" ]]; then
-  cat <<END
-
-Enter a name for your company or team.
-
-Example: acme-corp
-
-Measure will use this as a namespace to identify
-this installation instance.
-END
-
-  while true; do
-    echo -e "\nOnly lowercase alphabets and hyphens, no spaces"
-    read -p "Enter a name: " ANS_NAME
-
-    if validate_name "$ANS_NAME"; then
-      NAMESPACE=$(create_ns "$ANS_NAME")
-      echo -e "\nNamespace is set to [$NAMESPACE]"
-      break
-    else
-      echo -e "\nInvalid input. Please try again."
-    fi
-  done
-
-  POSTGRES_USER="postgres"
-  MINIO_ROOT_USER="minio"
-  MINIO_ROOT_PASSWORD=$(generate_password 24)
-  echo -e "Generated secure password for Minio root user"
-
-  if [[ $PROMPT_DB_PASSWORDS -eq 1 ]]; then
-    # Prompt for database passwords
-    echo -e "Set Postgres user's password"
-    POSTGRES_PASSWORD=$(prompt_password 24 "Enter password for Postgres user: ")
-
-    echo -e "Set ClickHouse user's password"
-    CLICKHOUSE_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
-  else
-    # Generate secure database passwords
-    echo -e "Generated secure password for Postgres user"
-    POSTGRES_PASSWORD=$(generate_password 24)
-
-    echo -e "Generated secure password for ClickHouse user"
-    CLICKHOUSE_PASSWORD=$(generate_password 24)
-  fi
-
-  if [[ $USE_EXTERNAL_BUCKETS -eq 1 ]]; then
-    echo -e "\nSet storage bucket for symbols"
-    SYMBOLS_S3_BUCKET=$(prompt_value_manual "Enter symbols S3 bucket name: ")
-    SYMBOLS_S3_BUCKET_REGION=$(prompt_value_manual "Enter symbols S3 bucket region: ")
-    SYMBOLS_ACCESS_KEY=$(prompt_value_manual "Enter symbols S3 bucket access key: ")
-    SYMBOLS_SECRET_ACCESS_KEY=$(prompt_password_manual "Enter symbols S3 bucket secret access key: ")
-
-    echo -e "\nSet storage bucket for attachments"
-    echo -e "Example: https://measure-attachments.yourcompany.com"
-    ATTACHMENTS_S3_ORIGIN=$(prompt_value_manual "Enter attachments S3 bucket origin: ")
-    ATTACHMENTS_S3_BUCKET=$(prompt_value_manual "Enter attachments S3 bucket name: ")
-    ATTACHMENTS_S3_BUCKET_REGION=$(prompt_value_manual "Enter attachments S3 bucket region: ")
-    ATTACHMENTS_ACCESS_KEY=$(prompt_value_manual "Enter attachments S3 bucket access key: ")
-    ATTACHMENTS_SECRET_ACCESS_KEY=$(prompt_value_manual "Enter attachments S3 bucket secret access key: ")
-  else
-    echo -e "Setting storage bucket for symbols"
-    SYMBOLS_S3_BUCKET="msr-$NAMESPACE-symbols"
-    SYMBOLS_S3_BUCKET_REGION="us-east-1"
-    SYMBOLS_ACCESS_KEY=$MINIO_ROOT_USER
-    SYMBOLS_SECRET_ACCESS_KEY=$MINIO_ROOT_PASSWORD
-
-    echo -e "Setting storage bucket for attachments"
-    ATTACHMENTS_S3_ORIGIN=""
-    ATTACHMENTS_S3_BUCKET="msr-$NAMESPACE-attachments"
-    ATTACHMENTS_S3_BUCKET_REGION="us-east-1"
-    ATTACHMENTS_ACCESS_KEY=$MINIO_ROOT_USER
-    ATTACHMENTS_SECRET_ACCESS_KEY=$MINIO_ROOT_PASSWORD
-  fi
-
-  echo -e "\nSet Measure dashboard URL"
-  echo -e "Example: https://measure.yourcompany.com"
-  NEXT_PUBLIC_SITE_URL=$(prompt_value_manual "Enter URL to access Measure dashboard: ")
-
-  echo -e "\nSet Measure service URL"
-  echo -e "Example: https://measure-api.yourcompany.com"
-  NEXT_PUBLIC_API_BASE_URL=$(prompt_value_manual "Enter URL to Measure API service: ")
-
-  echo -e "\nSet Google OAuth"
-  echo -e "To create a Google OAuth app, visit: https://support.google.com/cloud/answer/6158849?hl=en"
-  OAUTH_GOOGLE_KEY=$(prompt_value_manual "Enter Google OAuth app key: ")
-
-  echo -e "\nSet GitHub OAuth"
-  echo -e "To create a GitHub OAuth app, visit: https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app"
-  OAUTH_GITHUB_KEY=$(prompt_value_manual "Enter GitHub OAuth app key: ")
-  OAUTH_GITHUB_SECRET=$(prompt_password_manual "Enter GitHub OAuth app secret: ")
-  SESSION_ACCESS_SECRET=$(generate_password 44)
-  SESSION_REFRESH_SECRET=$(generate_password 44)
-
-  echo -e "\nSet Email SMTP credentials"
-  echo -e "Set up an email provider to get SMTP credentials. See https://github.com/measure-sh/measure/blob/main/docs/hosting/smtp-email.md for more details."
-  SMTP_HOST=$(prompt_value_manual "Enter SMTP host: ")
-  SMTP_PORT=$(prompt_value_manual "Enter SMTP port: ")
-  SMTP_USER=$(prompt_value_manual "Enter SMTP username: ")
-  SMTP_PASSWORD=$(prompt_value_manual "Enter SMTP password: ")
-  EMAIL_DOMAIN=$(prompt_value_manual "Enter email domain: ")
-
-  write_prod_env
-  write_web_prod_env
+# Start wizard or sync existing environment
+# variables
+if [[ "$2" == "--wizard" ]]; then
+  wizard
 fi
 
-echo -e "\nWrote config to $ENV_FILE"
-echo -e "Wrote config to $ENV_WEB_FILE"
+if [[ "$2" == "--ensure" ]]; then
+  ensure
+fi

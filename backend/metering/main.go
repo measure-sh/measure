@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -60,7 +61,14 @@ func main() {
 		c.String(http.StatusOK, "pong")
 	})
 
-	r.Run(":8083") // listen and serve on 0.0.0.0:8083
+	// listen and serve on 0.0.0.0:${PORT}
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8084"
+	}
+	if err := r.Run(":" + port); err != nil {
+		fmt.Printf("Failed to listen and serve on 0.0.0.0:%s\n", port)
+	}
 }
 
 func initCron(ctx context.Context) *cron.Cron {

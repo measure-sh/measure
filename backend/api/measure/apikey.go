@@ -70,7 +70,7 @@ func NewAPIKey(appId uuid.UUID) (*APIKey, error) {
 }
 
 func (a *APIKey) saveTx(tx pgx.Tx) error {
-	_, err := tx.Exec(context.Background(), "insert into public.api_keys(app_id, key_prefix, key_value, checksum, created_at) values ($1, $2, $3, $4, $5);", a.appId, a.keyPrefix, a.keyValue, a.checksum, a.createdAt)
+	_, err := tx.Exec(context.Background(), "insert into api_keys(app_id, key_prefix, key_value, checksum, created_at) values ($1, $2, $3, $4, $5);", a.appId, a.keyPrefix, a.keyValue, a.checksum, a.createdAt)
 
 	if err != nil {
 		return err

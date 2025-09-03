@@ -2,10 +2,16 @@ services:
   dashboard:
     build:
       dockerfile: dockerfile.prod
+      args:
+        - NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED:-1}
+        - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+        - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+        - NEXT_PUBLIC_OAUTH_GOOGLE_KEY=${OAUTH_GOOGLE_KEY}
+        - NEXT_PUBLIC_OAUTH_GITHUB_KEY=${OAUTH_GITHUB_KEY}
     environment:
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
-    volumes: !reset null
+    develop: !reset null
     restart: unless-stopped
     logging:
       driver: local
@@ -33,7 +39,7 @@ services:
       options:
         max-size: 10m
         max-file: 5
-  
+
   alerts:
     environment:
       - GIN_MODE=release
@@ -44,8 +50,19 @@ services:
       options:
         max-size: 10m
         max-file: 5
-  
+
   metering:
+    environment:
+      - GIN_MODE=release
+    develop: !reset null
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
+  symboloader:
     environment:
       - GIN_MODE=release
     develop: !reset null
@@ -80,13 +97,6 @@ services:
 
   minio:
     restart: unless-stopped
-    logging:
-      driver: local
-      options:
-        max-size: 10m
-        max-file: 5
-
-  mc:
     logging:
       driver: local
       options:

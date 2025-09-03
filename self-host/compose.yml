@@ -57,6 +57,7 @@ services:
     environment:
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
       - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
       - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
@@ -84,6 +85,7 @@ services:
       - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
       - SYMBOLICATE_JVM_LAMBDA_REWRITE=true
+      - PORT=8080
     develop:
       watch:
         - path: ../backend/api
@@ -100,8 +102,6 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      symbolicator:
-        condition: service_healthy
       dbmate-postgres:
         condition: service_completed_successfully
         required: false
@@ -111,9 +111,12 @@ services:
       migrator:
         condition: service_completed_successfully
         required: false
-      mc:
-        condition: service_completed_successfully
-        required: false
+      symbolicator:
+        condition: service_healthy
+      symboloader:
+        condition: service_healthy
+      metering:
+        condition: service_healthy
 
   cleanup:
     build:
@@ -124,6 +127,7 @@ services:
     environment:
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
       - ATTACHMENTS_S3_ORIGIN=${ATTACHMENTS_S3_ORIGIN}
       - ATTACHMENTS_S3_BUCKET=${ATTACHMENTS_S3_BUCKET}
@@ -158,10 +162,7 @@ services:
       migrator:
         condition: service_completed_successfully
         required: false
-      mc:
-        condition: service_completed_successfully
-        required: false
-  
+
   alerts:
     build:
       dockerfile: dockerfile
@@ -171,6 +172,7 @@ services:
     environment:
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
       - SITE_ORIGIN=${NEXT_PUBLIC_SITE_URL}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
@@ -200,28 +202,27 @@ services:
       dbmate-clickhouse:
         condition: service_completed_successfully
         required: false
-      migrator:
-        condition: service_completed_successfully
-        required: false
-      mc:
-        condition: service_completed_successfully
-        required: false
-  
-  metering:
+
+  symboloader:
     build:
       dockerfile: dockerfile
-      context: ../backend/metering
+      context: ../backend/symboloader
     ports:
       - "8083:8083"
     environment:
       - POSTGRES_DSN=${POSTGRES_DSN}
-      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
+      - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
+      - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
+      - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
+      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
+      - API_ORIGIN=${NEXT_PUBLIC_API_BASE_URL}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
       - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
     develop:
       watch:
-        - path: ../backend/metering
+        - path: ../backend/symboloader
           action: rebuild
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8083/ping"]
@@ -231,20 +232,43 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      clickhouse:
-        condition: service_healthy
       minio:
         condition: service_healthy
       dbmate-postgres:
         condition: service_completed_successfully
         required: false
+
+  metering:
+    build:
+      dockerfile: dockerfile
+      context: ../backend/metering
+    ports:
+      - "8084:8084"
+    environment:
+      - POSTGRES_DSN=${POSTGRES_DSN}
+      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
+      - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+    develop:
+      watch:
+        - path: ../backend/metering
+          action: rebuild
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8084/ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      dbmate-postgres:
+        condition: service_completed_successfully
+        required: false
       dbmate-clickhouse:
-        condition: service_completed_successfully
-        required: false
-      migrator:
-        condition: service_completed_successfully
-        required: false
-      mc:
         condition: service_completed_successfully
         required: false
 
@@ -257,6 +281,7 @@ services:
     environment:
       - POSTGRES_DSN=${POSTGRES_DSN}
       - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
       - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
       - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
@@ -273,9 +298,6 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      mc:
-        condition: service_completed_successfully
-        required: false
     volumes:
       - migrator-volume:/data
     command: ["migrate"]
@@ -301,28 +323,32 @@ services:
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-    command: server /data --console-address ":9001"
+      - MINIO_NOTIFY_WEBHOOK_ENABLE_SYMBOLS=on
+      - MINIO_NOTIFY_WEBHOOK_ENDPOINT_SYMBOLS=${SYMBOLOADER_ORIGIN}/receive-symbols
+    entrypoint: >
+      bash -c "
+      minio server /data --console-address ":9001" &
+
+      until curl -sf http://127.0.0.1:9000/minio/health/live; do
+        echo 'Waiting for MinIO server to start...';
+        sleep 3;
+      done;
+
+      mc alias set msr-minio http://127.0.0.1:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+
+      mc mb --ignore-existing msr-minio/${SYMBOLS_S3_BUCKET} msr-minio/${ATTACHMENTS_S3_BUCKET};
+
+      mc event add msr-minio/${SYMBOLS_S3_BUCKET} arn:minio:sqs::SYMBOLS:webhook --ignore-existing --event put --prefix incoming/;
+
+      wait %1
+      "
     healthcheck:
-      test: timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:9000/minio/health/live"]
       interval: 3s
       timeout: 10s
       retries: 5
     volumes:
       - minio-data:/data
-
-  mc:
-    image: minio/mc
-    profiles:
-      - init
-    depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set msr-minio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
-      mc mb --ignore-existing msr-minio/${SYMBOLS_S3_BUCKET} msr-minio/${ATTACHMENTS_S3_BUCKET};
-      exit 0;
-      "
 
   dbmate-postgres:
     image: ghcr.io/amacneil/dbmate
@@ -348,7 +374,7 @@ services:
     profiles:
       - migrate
     environment:
-      - DATABASE_URL=${CLICKHOUSE_DSN}
+      - DATABASE_URL=${CLICKHOUSE_MIGRATION_URL}
       - DBMATE_MIGRATIONS_DIR=/opt/clickhouse
       - DBMATE_SCHEMA_FILE=/opt/clickhouse/schema.sql
       - DBMATE_WAIT=true
@@ -378,12 +404,17 @@ services:
       retries: 5
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./postgres/init-postgres.sh:/docker-entrypoint-initdb.d/init-postgres.sh
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.10-alpine
     environment:
-      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
-      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_ADMIN_USER=${CLICKHOUSE_ADMIN_USER}
+      - CLICKHOUSE_ADMIN_PASSWORD=${CLICKHOUSE_ADMIN_PASSWORD}
+      - CLICKHOUSE_OPERATOR_USER=${CLICKHOUSE_OPERATOR_USER}
+      - CLICKHOUSE_OPERATOR_PASSWORD=${CLICKHOUSE_OPERATOR_PASSWORD}
+      - CLICKHOUSE_READER_USER=${CLICKHOUSE_READER_USER}
+      - CLICKHOUSE_READER_PASSWORD=${CLICKHOUSE_READER_PASSWORD}
     ports:
       - "9000:9000/tcp"
       - "8123:8123"
@@ -397,9 +428,13 @@ services:
     volumes:
       - clickhouse-volume:/var/lib/clickhouse
       - clickhouse-volume:/var/log/clickhouse-server
+      - ./clickhouse/init-clickhouse.sh:/docker-entrypoint-initdb.d/init-clickhouse.sh
       - type: bind
         source: ./clickhouse/config/config.xml
         target: /etc/clickhouse-server/config.d/config.xml
+      - type: bind
+        source: ./clickhouse/config/users.xml
+        target: /etc/clickhouse-server/users.xml
 
 volumes:
   clickhouse-volume:

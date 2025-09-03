@@ -16,6 +16,7 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [Authorization \& Content Type](#authorization--content-type)
     - [Response Body](#response-body-1)
     - [Request Body](#request-body-1)
+      - [Mappings](#mappings)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-1)
 - [References](#references)
   - [Attributes](#attributes)
@@ -226,41 +227,40 @@ List of HTTP status codes for success and failures.
 
 Measure will use build information like mapping files, build sizes uploaded via this API for deobfuscation and to track app size changes.
 
+This API only accepts the build metadata and does not actually upload the files. It returns pre-signed URLs for uploading the files directly
+to the returned URLs. For uploading the files, you can issue a standard http request using cURL or any other way using the `upload_url` as the URL and `headers` as the headers for the upload request.
+
 #### Usage Notes
 
-List of all the fields of the multipart request.
-
-| Field          | Type   | Optional | Comment                                                                       |
-| -------------- | ------ | -------- | ----------------------------------------------------------------------------- |
-| `version_name` | string | No       | Version name of the build. Like "1.0"                                         |
-| `version_code` | string | No       | Version code of the build. Like "999"                                         |
-| `mapping_type` | string | Yes      | Type of the mapping file.<br />- `proguard` for Android<br />- `dsym` for iOS |
-| `mapping_file` | string | Yes      | File bytes of mapping file.<br />Can be repeated for each mapping file.       |
-| `build_size`   | string | No       | Size of app in bytes                                                          |
-| `build_type`   | string | No       | Type of the build.<br />- `aab` for Android<br />- `ipa` for iOS              |
-| `os_name`      | string | Yes      | Operating system.<br />- `android` for Android<br />- `ios` for iOS & iPadOS  |
-
-- `mapping_type` &amp; `mapping_file` are optional. Both need to be present for mapping file uploads to work.
-- `version_name`, `version_code`, `build_size` &amp; `build_type` are required and cannot be skipped.
-- There can be one or more `mapping_file` in the payload. Each mapping file must have a corresponding `mapping_type`. Mapping files are mapped to mapping types based on the order they appear.
-- Uploading a previously uploaded mapping file with exact contents for the same combination of `version_name`, `version_code`, `mapping_type` replaces the older mapping file(s).
 - Putting `build_size` for the same `version_name`, `version_code` and `build_type` combination replaces the last size with the latest size.
+- Depending on the platform, `build_type` can be `aab`, `apk` for Android or `ipa` for iOS.
 - Depending on the platform, `mapping_type` can be `proguard` for Android or `dsym` for iOS.
-- Depending on the platform, `build_type` can be `aab` for Android or `ipa` for iOS.
-- Multiple `mapping_file` is accepted. iOS builds will typically utilize multiple dSYM mapping files.
+- `mappings` is optional. When `mappings` array is not present, only the build size information will be updated.
 - Each mapping file for iOS must be gzipped tarball of `dSYM` bundles ending with a `.tgz` file extension.
+- For mapping filename, only provide the filename, not a path.
+- When `mappings` is present, the server returns a mappings array containing the pre-signed URL for uploading each mapping file.
+- Each pre-signed mapping file upload URL has an expiry set which is the same as the `expires_at` field.
+- Each mapping also contains a `headers` object containing all the headers key and value that should be added in the file upload request.
+- Make sure all the headers are included in the file upload request, otherwise your file upload request will fail.
+- File upload requests must use the **PUT** http method.
+
+Example of a file upload request:
+
+```sh
+curl -s -X PUT <upload_url> \
+  --header 'x-amz-meta-mapping_id: 77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc' \
+  --header 'x-amz-meta-original_file_name: somefile.tgz'
+```
 
 #### Authorization \& Content Type
 
 1. Set the Measure API key in `Authorization: Bearer <api-key>` format
 
-2. Set the content type as `Content-Type: multipart/form-data;boundary="<boundary>"` with a suitable boundary.
-
-3. Value of `<boundary>` can be any string, but make sure the value doesn't change in the same request.
+2. Set the content type as `Content-Type: application/json`.
 
 #### Response Body
 
-- For an unseen mapping file
+- For request without mappings.
 
   ```json
   {
@@ -268,45 +268,81 @@ List of all the fields of the multipart request.
   }
   ```
 
+- For request with mappings.
+
+  ```json
+  {
+    "mappings": [
+      {
+        "id": "e2bbcad8-0566-44ea-af43-9dd114c64e8c",
+        "type": "dsym",
+        "filename": "DemoApp.app.dSYM.tgz",
+        "upload_url": "http://localhost:9119/msr-symbols-sandbox/incoming/428f4448-080f-42d2-8b16-c74671a603a9.tgz?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20250813%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250813T005945Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host%3Bx-amz-meta-mapping_id%3Bx-amz-meta-original_file_name&x-id=PutObject&X-Amz-Signature=bc45a536a1660de12cb9056d6b6c978289e49b53fe6807b81662cd61c195caa1"
+        "expires_at": "2025-08-13T01:59:45.577889184Z",
+        "headers": {
+          "x-amz-meta-mapping_id": "e2bbcad8-0566-44ea-af43-9dd114c64e8c",
+          "x-amz-meta-original_file_name": "DemoApp.app.dSYM.tgz"
+        }
+      },
+      {
+        "id": "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc",
+        "type": "elf_debug",
+        "filename": "app.symbols",
+        "upload_url": "http://localhost:9119/msr-symbols-sandbox/incoming/77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc.tgz?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20250813%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250813T005945Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host%3Bx-amz-meta-mapping_id%3Bx-amz-meta-original_file_name&x-id=PutObject&X-Amz-Signature=7e2e47a5598d0fe9facf6a3fbf7da5cf93a36866b19d1ff236603015529b0bc7"
+        "expires_at": "2025-08-13T01:59:45.577980476Z",
+        "headers": {
+          "x-amz-meta-mapping_id": "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc",
+          "x-amz-meta-original_file_name": "app.symbols"
+        }
+      }
+    ]
+  }
+  ```
+
 #### Request Body
 
-Payload must be a `multipart/form-data` each field separated using `Content-Disposition` fields. Typically, you would use the facilities provided by your programming language's standard library or other third party request libraries to issue such requests.
+Payload must contain the app version info, build info and optional build mapping info.
 
 **Example payload**
 
 <details>
 <summary>Expand</summary>
 
+```json
+{
+  "version_name": "1.0",
+  "version_code": "10",
+  "build_size": 10241024,
+  "build_type": "ipa",
+  "mappings": [
+    {
+      "type": "dsym",
+      "filename": "DemoApp.app.dSYM.tgz"
+    },
+    {
+      "type": "elf_debug",
+      "filename": "app.symbols"
+    }
+  ]
+}
 ```
---boundary
-Content-Disposition: form-data; name="version_name"
 
-1.0
---boundary
-Content-Disposition: form-data; name="version_code"
+| Field          | Type   | Optional | Comment                                                                 |
+| -------------- | ------ | -------- | ----------------------------------------------------------------------- |
+| `version_name` | string | No       | Version name of the build. Like "1.0"                                   |
+| `version_code` | string | No       | Version code of the build. Like "999"                                   |
+| `build_size`   | string | No       | Size of app in bytes                                                    |
+| `build_type`   | string | No       | Type of the build.<br />- `aab`, `apk` for Android<br />- `ipa` for iOS |
+| `mappings`     | array  | Yes      | List of mapping files objects.                                          |
 
-1
---boundary
-Content-Disposition: form-data; name="mapping_file"; filename="mapping-file.txt"
+##### Mappings
 
-<...mapping file bytes...>
---boundary
-Content-Disposition: form-data; name="mapping_type"
+Each mapping object has the following shape.
 
-proguard
---boundary
-Content-Disposition: form-data; name="build_size"
-
-10241024
---boundary
-Content-Disposition: form-data; name="build_type"
-
-aab
---boundary
-Content-Disposition: form-data; name="platform"
-
-android
-```
+| Field      | Type   | Optional | Comment                                                             |
+| ---------- | ------ | -------- | ------------------------------------------------------------------- |
+| `type`     | string | No       | Type of the mapping file. Either `dsym`, `proguard` or `elf_debug`. |
+| `filename` | string | No       | Filename of the mapping file.                                       |
 
 </details>
 
