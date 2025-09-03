@@ -5,6 +5,9 @@ on:
     branches:
       - "deploy"
 
+permissions:
+  contents: read
+
 env:
   REGISTRY: ghcr.io
   API_IMAGE_NAME: measure-sh/api
