@@ -74,7 +74,7 @@ final class SessionManagerTests: XCTestCase {
     }
 
     func testSessionStart() {
-        sessionManager.start()
+        sessionManager.start() { _ in }
         XCTAssertEqual(sessionManager.sessionId, "test-session-id-1", "Expected session ID to be 'test-session-id-1' after initialisation.")
     }
 
@@ -87,7 +87,7 @@ final class SessionManagerTests: XCTestCase {
         timeProvider.current = lastEventTime + 1000
         configProvider.sessionEndLastEventThresholdMs = 10000
 
-        sessionManager.start()
+        sessionManager.start() { _ in }
         XCTAssertEqual(sessionManager.sessionId, "previous-session-id", "Expected a new session to be created when the framework version is updated.")
     }
 
@@ -100,13 +100,13 @@ final class SessionManagerTests: XCTestCase {
         timeProvider.current = lastEventTime + 1000
         configProvider.sessionEndLastEventThresholdMs = 10000
 
-        sessionManager.start()
+        sessionManager.start() { _ in }
         XCTAssertEqual(sessionManager.sessionId, "new-session-id", "Expected a new session to be created when the framework version is updated.")
     }
 
     func testSessionContinues_WhenEnteringForegroundBeforeThreshold() {
         timeProvider.millisTime = 1000
-        sessionManager.start()
+        sessionManager.start() { _ in }
         sessionManager.applicationDidEnterBackground()
 
         // simulate time passage
@@ -120,7 +120,7 @@ final class SessionManagerTests: XCTestCase {
 
     func testNewSessionCreated_WhenEnteringForegroundAfterThreshold() {
         timeProvider.millisTime = 1000
-        sessionManager.start()
+        sessionManager.start() { _ in }
         sessionManager.applicationDidEnterBackground()
 
         // simulate time passage
@@ -135,7 +135,7 @@ final class SessionManagerTests: XCTestCase {
     func testSessionStore() {
         let expectation = self.expectation(description: "Session should be inserted")
 
-        sessionManager.start()
+        sessionManager.start() { _ in }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             self.sessionStore.getAllSessions { sessions in
@@ -152,7 +152,7 @@ final class SessionManagerTests: XCTestCase {
         idProvider.uuId = expectedSessionId
         userDefaultStorage.recentSession = nil
 
-        sessionManager.start()
+        sessionManager.start() { _ in }
         let sessionId = sessionManager.sessionId
 
         XCTAssertEqual(sessionId, expectedSessionId, "Expected a new session to be created.")
@@ -167,7 +167,7 @@ final class SessionManagerTests: XCTestCase {
         timeProvider.current = lastEventTime + 5000
         configProvider.sessionEndLastEventThresholdMs = 1000
 
-        sessionManager.start()
+        sessionManager.start() { _ in }
         let sessionId = sessionManager.sessionId
 
         XCTAssertEqual(sessionId, expectedSessionId, "Expected a new session to be created after the threshold time.")
@@ -182,7 +182,7 @@ final class SessionManagerTests: XCTestCase {
         timeProvider.current = lastEventTime + 1000
         configProvider.sessionEndLastEventThresholdMs = 10000
 
-        sessionManager.start()
+        sessionManager.start() { _ in }
         let sessionId = sessionManager.sessionId
 
         XCTAssertEqual(sessionId, expectedSessionId, "Expected to continue the recent session within the threshold time.")
@@ -197,7 +197,7 @@ final class SessionManagerTests: XCTestCase {
         userDefaultStorage.recentSession = recentSession
         timeProvider.current = recentSessionCreatedAtTime + configProvider.maxSessionDurationMs
 
-        sessionManager.start()
+        sessionManager.start() { _ in }
         let sessionId = sessionManager.sessionId
 
         XCTAssertEqual(sessionId, expectedSessionId, "Expected a new session to be created after the max session duration was reached.")
@@ -207,7 +207,7 @@ final class SessionManagerTests: XCTestCase {
         userDefaultStorage.setRecentAppVersion("1.0.1")
         let newSessionId = "new-session-id"
         idProvider.uuId = newSessionId
-        sessionManager.start()
+        sessionManager.start() { _ in }
 
         XCTAssertEqual(sessionManager.sessionId, newSessionId, "Expected a new session to be created after the previous session crashed, even within the threshold time.")
     }
@@ -216,7 +216,7 @@ final class SessionManagerTests: XCTestCase {
         userDefaultStorage.setRecentBuildNumber("2")
         let newSessionId = "new-session-id"
         idProvider.uuId = newSessionId
-        sessionManager.start()
+        sessionManager.start() { _ in }
 
         XCTAssertEqual(sessionManager.sessionId, newSessionId, "Expected a new session to be created after the previous session crashed, even within the threshold time.")
     }
@@ -225,14 +225,14 @@ final class SessionManagerTests: XCTestCase {
         configProvider.sessionEndLastEventThresholdMs = 100000
         let sessionCreatedAt: Int64 = 1000
         timeProvider.current = sessionCreatedAt
-        sessionManager.start()
+        sessionManager.start() { _ in }
         let newSessionId = "new-session-id"
         idProvider.uuId = newSessionId
         let lastEventTime: Int64 = sessionCreatedAt + 1000
         timeProvider.current = lastEventTime + 1000
 
         sessionManager.setPreviousSessionCrashed(true)
-        sessionManager.start()
+        sessionManager.start() { _ in }
 
         XCTAssertEqual(sessionManager.sessionId, newSessionId, "Expected a new session to be created after the previous session crashed, even within the threshold time.")
     }

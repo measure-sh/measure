@@ -37,6 +37,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
     let customEvent: Data?
     var needsReporting: Bool
     let bugReport: Data?
+    let sessionStartData: Data?
 
     init<T: Codable>(_ event: Event<T>, needsReporting: Bool) { // swiftlint:disable:this cyclomatic_complexity function_body_length
         self.id = event.id
@@ -258,6 +259,17 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         } else {
             self.bugReport = nil
         }
+
+        if event.type == .sessionStart {
+            do {
+                let data = try JSONEncoder().encode(SessionStartData())
+                self.sessionStartData = data
+            } catch {
+                self.sessionStartData = nil
+            }
+        } else {
+            self.sessionStartData = nil
+        }
     }
 
     init(id: String,
@@ -288,6 +300,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
          customEvent: Data?,
          screenView: Data?,
          bugReport: Data?,
+         sessionStartData: Data?,
          needsReporting: Bool) {
         self.id = id
         self.sessionId = sessionId
@@ -318,6 +331,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.screenView = screenView
         self.needsReporting = needsReporting
         self.bugReport = bugReport
+        self.sessionStartData = sessionStartData
     }
 
     func getEvent<T: Codable>() -> Event<T> { // swiftlint:disable:this cyclomatic_complexity function_body_length
@@ -456,6 +470,14 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             if let bugReportData = self.bugReport {
                 do {
                     decodedData = try JSONDecoder().decode(T.self, from: bugReportData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .sessionStart:
+            if let sessionStartData = self.sessionStartData {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: sessionStartData)
                 } catch {
                     decodedData = nil
                 }

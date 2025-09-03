@@ -19,7 +19,7 @@ final class MockSessionManager: SessionManager {
         self.sessionId = sessionId
     }
 
-    func start() {}
+    func start(onNewSession: (String?) -> Void) {}
     func applicationDidEnterBackground() {}
     func applicationWillEnterForeground() {}
     func applicationWillTerminate() {}

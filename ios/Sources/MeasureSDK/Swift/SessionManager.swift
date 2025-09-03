@@ -11,7 +11,7 @@ import Foundation
 protocol SessionManager {
     var sessionId: String { get }
     var shouldReportSession: Bool { get }
-    func start()
+    func start(onNewSession: (String?) -> Void)
     func applicationDidEnterBackground()
     func applicationWillEnterForeground()
     func applicationWillTerminate()
@@ -159,21 +159,25 @@ final class BaseSessionManager: SessionManager {
         }
     }
 
-    func start() {
+    func start(onNewSession: (String?) -> Void) {
         if isAppVersionUpdated() || isAppBuildNumberUpdated() {
             logger.log(level: .info, message: "Ending previous session as app version or build number has been updated.", error: nil, data: nil)
             createNewSession()
+            onNewSession(currentSessionId)
         } else if isFrameworkVersionUpdated() {
             logger.log(level: .info, message: "Ending previous session as SDK version has been updated.", error: nil, data: nil)
             createNewSession()
+            onNewSession(currentSessionId)
         } else if isSessonDurationThreadholdReached() {
             logger.log(level: .info, message: "Ending previous session as maxSessionDurationMs threshold is reached.", error: nil, data: nil)
             createNewSession()
+            onNewSession(currentSessionId)
         } else if let recentSessionId = getRecentSessionId() {
             logger.log(level: .info, message: "Continuing previous session \(recentSessionId)", error: nil, data: nil)
             currentSessionId = recentSessionId
         } else {
             createNewSession()
+            onNewSession(currentSessionId)
         }
     }
 

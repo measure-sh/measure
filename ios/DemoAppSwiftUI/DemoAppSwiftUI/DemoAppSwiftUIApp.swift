@@ -11,7 +11,7 @@ import Measure
 @main
 struct DemoAppSwiftUIApp: App {
     init() {
-        let clientInfo = ClientInfo(apiKey: "msrsh_48153449fa6045685d605a6dcb684cbf42d5b1cdf780cd79bd58a4423ce8b23d_e6b33343",
+        let clientInfo = ClientInfo(apiKey: "msrsh_297eb17091394bdcb6e57718f3e7ae2b4448322b2583312bd492891844dc21d1_e9467a30",
                                     apiUrl: "http://localhost:8080")
         let config = BaseMeasureConfig(enableLogging: true,
                                        samplingRateForErrorFreeSessions: 1.0)
