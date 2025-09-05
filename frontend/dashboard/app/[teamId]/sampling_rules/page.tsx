@@ -90,7 +90,7 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
             <div className="flex flex-row items-center gap-2 justify-between w-full">
-                <p className="font-display text-4xl max-w-6xl text-center">Sampling</p>
+                <p className="font-display text-4xl max-w-6xl text-center">Session targeting</p>
                 <CreateSamplingRule onSelect={(type) => {
                     router.push(`/${params.teamId}/sampling_rules/${pageState.filters.app!.id}/${type}/create`)
                 }} />
