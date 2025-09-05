@@ -79,7 +79,7 @@ func main() {
 
 func initCron(ctx context.Context) *cron.Cron {
 	cron := cron.New()
-	cron.AddFunc("@hourly", func() { alerts.CreateCrashAndAnrAlerts(ctx) })
+	cron.AddFunc("0 0 * * * *", func() { alerts.CreateCrashAndAnrAlerts(ctx) })
 	cron.AddFunc("@daily", func() { alerts.CreateDailySummary(ctx) })
 	cron.AddFunc("@every 5m", func() { email.SendPendingAlertEmails(ctx) })
 	cron.Start()
