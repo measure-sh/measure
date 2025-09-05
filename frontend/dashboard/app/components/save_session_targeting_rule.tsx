@@ -2,7 +2,7 @@
 
 import { Button } from "./button";
 
-interface SaveSamplingRuleProps {
+interface SaveSessionTargetingProps {
     isEditMode: boolean;
     isReady: boolean;
     isDisabled: boolean;
@@ -10,13 +10,13 @@ interface SaveSamplingRuleProps {
     onUpdate: () => void;
 }
 
-const SaveSamplingRule = ({ 
+const SaveSessionTargetingRule = ({ 
     isEditMode, 
     isReady, 
     isDisabled, 
     onPublish, 
     onUpdate 
-}: SaveSamplingRuleProps) => {
+}: SaveSessionTargetingProps) => {
     if (!isReady) return null;
 
     const handleClick = () => {
@@ -39,4 +39,4 @@ const SaveSamplingRule = ({
     );
 };
 
-export default SaveSamplingRule;
+export default SaveSessionTargetingRule;

@@ -1,6 +1,6 @@
 "use client"
 
-import { FilterSource, SamplingRulesApiStatus, emptySamplingRulesResponse, fetchSamplingRulesFromServer } from "@/app/api/api_calls";
+import { FilterSource, SessionTargetingRulesApiStatus, emptySessionTargetingRulesResponse, fetchSessionTargetingRulesFromServer } from "@/app/api/api_calls";
 import CreateSamplingRule from "@/app/components/create_sampling_rule";
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters";
 import LoadingBar from "@/app/components/loading_bar";
@@ -11,23 +11,23 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from "react";
 
 interface PageState {
-    samplingRulesApiStatus: SamplingRulesApiStatus
+    targetingRulesApiStatus: SessionTargetingRulesApiStatus
     filters: typeof defaultFilters
-    samplingRules: typeof emptySamplingRulesResponse
+    targetingRules: typeof emptySessionTargetingRulesResponse
     paginationOffset: number
 }
 
 const paginationLimit = 10
 const paginationOffsetUrlKey = "po"
 
-export default function SamplingRules({ params }: { params: { teamId: string } }) {
+export default function SessionTargetingOverview({ params }: { params: { teamId: string } }) {
     const router = useRouter()
     const searchParams = useSearchParams()
 
     const initialState: PageState = {
-        samplingRulesApiStatus: SamplingRulesApiStatus.Loading,
+        targetingRulesApiStatus: SessionTargetingRulesApiStatus.Loading,
         filters: defaultFilters,
-        samplingRules: emptySamplingRulesResponse,
+        targetingRules: emptySessionTargetingRulesResponse,
         paginationOffset: searchParams.get(paginationOffsetUrlKey) ? parseInt(searchParams.get(paginationOffsetUrlKey)!) : 0
     }
 
@@ -40,18 +40,18 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
         })
     }
 
-    const getSamplingRules = async () => {
-        updatePageState({ samplingRulesApiStatus: SamplingRulesApiStatus.Loading })
-        const result = await fetchSamplingRulesFromServer(pageState.filters.app!.id, paginationLimit, pageState.paginationOffset)
+    const getTargetingRules = async () => {
+        updatePageState({ targetingRulesApiStatus: SessionTargetingRulesApiStatus.Loading })
+        const result = await fetchSessionTargetingRulesFromServer(pageState.filters.app!.id, paginationLimit, pageState.paginationOffset)
 
         switch (result.status) {
-            case SamplingRulesApiStatus.Error:
-                updatePageState({ samplingRulesApiStatus: SamplingRulesApiStatus.Error })
+            case SessionTargetingRulesApiStatus.Error:
+                updatePageState({ targetingRulesApiStatus: SessionTargetingRulesApiStatus.Error })
                 break
-            case SamplingRulesApiStatus.Success:
+            case SessionTargetingRulesApiStatus.Success:
                 updatePageState({
-                    samplingRulesApiStatus: SamplingRulesApiStatus.Success,
-                    samplingRules: result.data
+                    targetingRulesApiStatus: SessionTargetingRulesApiStatus.Success,
+                    targetingRules: result.data
                 })
                 break
         }
@@ -84,15 +84,15 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
         // update url
         router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(pageState.paginationOffset)}&${pageState.filters.serialisedFilters!}`, { scroll: false })
 
-        getSamplingRules()
+        getTargetingRules()
     }, [pageState.paginationOffset, pageState.filters])
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
             <div className="flex flex-row items-center gap-2 justify-between w-full">
                 <p className="font-display text-4xl max-w-6xl text-center">Session Targeting</p>
-                <CreateSamplingRule onSelect={(type) => {
-                    router.push(`/${params.teamId}/sampling_rules/${pageState.filters.app!.id}/${type}/create`)
+                <CreateSamplingRule onSelect={() => {
+                    router.push(`/${params.teamId}/session_targeting/${pageState.filters.app!.id}//create`)
                 }} />
             </div>
 
@@ -124,24 +124,24 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
 
             {/* Error state for sampling rules fetch */}
             {pageState.filters.ready
-                && pageState.samplingRulesApiStatus === SamplingRulesApiStatus.Error
+                && pageState.targetingRulesApiStatus === SessionTargetingRulesApiStatus.Error
                 && <p className="text-lg font-display">Error fetching sampling rules, please change filters, refresh page or select a different app to try again</p>}
 
             {/* Main sampling rules UI */}
             {pageState.filters.ready
-                && (pageState.samplingRulesApiStatus === SamplingRulesApiStatus.Success || pageState.samplingRulesApiStatus === SamplingRulesApiStatus.Loading) &&
+                && (pageState.targetingRulesApiStatus === SessionTargetingRulesApiStatus.Success || pageState.targetingRulesApiStatus === SessionTargetingRulesApiStatus.Loading) &&
                 <div className="flex flex-col items-center w-full">
                     <div className='self-end'>
                         <Paginator
-                            prevEnabled={pageState.samplingRulesApiStatus === SamplingRulesApiStatus.Loading ? false : pageState.samplingRules.meta.previous}
-                            nextEnabled={pageState.samplingRulesApiStatus === SamplingRulesApiStatus.Loading ? false : pageState.samplingRules.meta.next}
+                            prevEnabled={pageState.targetingRulesApiStatus === SessionTargetingRulesApiStatus.Loading ? false : pageState.targetingRules.meta.previous}
+                            nextEnabled={pageState.targetingRulesApiStatus === SessionTargetingRulesApiStatus.Loading ? false : pageState.targetingRules.meta.next}
                             displayText=''
                             onNext={handleNextPage}
                             onPrev={handlePrevPage}
                         />
                     </div>
 
-                    <div className={`py-1 w-full ${pageState.samplingRulesApiStatus === SamplingRulesApiStatus.Loading ? 'visible' : 'invisible'}`}>
+                    <div className={`py-1 w-full ${pageState.targetingRulesApiStatus === SessionTargetingRulesApiStatus.Loading ? 'visible' : 'invisible'}`}>
                         <LoadingBar />
                     </div>
 
@@ -156,8 +156,8 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {pageState.samplingRules.results?.map(({ id, type, name, status, last_modified_at, last_modified_by, sampling_rate }, idx) => {
-                                const ruleHref = `/${params.teamId}/sampling_rules/${pageState.filters.app!.id}/${type}/${id}/${encodeURIComponent(name)}/edit`
+                            {pageState.targetingRules.results?.map(({ id, name, status, last_modified_at, last_modified_by, sampling_rate }, idx) => {
+                                const ruleHref = `/${params.teamId}/session_targeting/${pageState.filters.app!.id}/${id}/${encodeURIComponent(name)}/edit`
                                 return (
                                     <TableRow
                                         key={`${idx}-${id}`}
@@ -182,9 +182,6 @@ export default function SamplingRules({ params }: { params: { teamId: string } }
                                                 <p className='truncate select-none flex-1'>{name}</p>
                                                 <div className='py-1' />
                                                 <div className="flex items-center gap-2">
-                                                    <p className="inline-block text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-md select-none capitalize flex-shrink-0">
-                                                        {type}
-                                                    </p>
                                                     <p className="text-xs text-gray-500 select-none">
                                                         Sampling rate: {sampling_rate * 100}%
                                                     </p>

@@ -2,7 +2,7 @@
 
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 import SamplingAttributeRow from "./sampling_attribute_row";
-import SamplingAddAttribute from "./sampling_add_attribute";
+import AddAttribute from "./sampling_add_attribute";
 import SamplingConditionContainer from "./sampling_condition_container";
 
 interface SamplingTraceConditionProps {
@@ -56,7 +56,7 @@ const SamplingTraceCondition = ({
 
                 {spanUdAttrs.length > 0 && (
                     <div className="space-y-4">
-                        <SamplingAddAttribute
+                        <AddAttribute
                             title="User-defined Attributes"
                             onAdd={() => onAddAttribute(index)}
                             disabled={!canAddMoreUdAttrs || !spanUdAttrs.length}

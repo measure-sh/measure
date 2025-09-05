@@ -321,28 +321,28 @@ export enum AlertsOverviewApiStatus {
   Cancelled,
 }
 
-export enum SamplingRuleApiStatus {
+export enum SessionTargetingRuleApiStatus {
   Loading,
   Success,
   Error,
   Cancelled,
 }
 
-export enum SamplingRulesApiStatus {
+export enum SessionTargetingRulesApiStatus {
   Loading,
   Success,
   Error,
   Cancelled,
 }
 
-export enum SamplingRulesConfigApiStatus {
+export enum SessionTargetingConfigApiStatus {
   Loading,
   Success,
   Error,
   Cancelled,
 }
 
-export enum CreateSamplingRuleApiStatus {
+export enum CreateSessionTargetingRuleApiStatus {
   Init,
   Loading,
   Success,
@@ -350,7 +350,7 @@ export enum CreateSamplingRuleApiStatus {
   Cancelled,
 }
 
-export enum UpdateSamplingRuleApiStatus {
+export enum UpdateSessionTargetingRuleApiStatus {
   Init,
   Loading,
   Success,
@@ -1019,7 +1019,6 @@ export const emptyAlertsOverviewResponse = {
     team_id: string
     app_id: string
     entity_id: string
-    type: string
     message: string
     url: string
     created_at: string
@@ -1030,7 +1029,6 @@ export const emptyAlertsOverviewResponse = {
 export const emptySamplingRuleResponse = {
   results: {} as {
     id: string,
-    type: string,
     name: string,
     status: number,
     sampling_rate: number,
@@ -1057,7 +1055,6 @@ export const emptySamplingRuleResponse = {
 export const dummySamplingRuleResponse = {
   results: {
     id: "rule_identifier_1",
-    type: "session",
     name: "Critical issues",
     status: 0,
     sampling_rate: 1,
@@ -1084,14 +1081,13 @@ export const dummySamplingRuleResponse = {
 }
 
 
-export const emptySamplingRulesResponse = {
+export const emptySessionTargetingRulesResponse = {
   meta: {
     next: false,
     previous: false,
   },
   results: [] as {
     id: string,
-    type: string,
     name: string,
     status: number,
     sampling_rate: number,
@@ -1112,7 +1108,7 @@ export const emptySamplingRulesResponse = {
   }[],
 }
 
-export const dummySamplingRulesResponse = {
+export const dummySessionTargetingResponse = {
   meta: {
     next: false,
     previous: false,
@@ -1120,7 +1116,6 @@ export const dummySamplingRulesResponse = {
   results: [
     {
       id: "rule_identifier_1",
-      type: "session",
       name: "Critical issues",
       status: 0,
       sampling_rate: 1,
@@ -1161,7 +1156,7 @@ export const dummySamplingRulesResponse = {
   ],
 }
 
-export const emptySamplingRulesConfigResponse = {
+export const emptySessionTargetingConfigResponse = {
   result: {} as {
     events: Array<{
       "type": string,
@@ -1171,22 +1166,12 @@ export const emptySamplingRulesConfigResponse = {
         "type": string
       }> | null
     }>,
-    spans: Array<{
-      "name": string,
-      "type": string
-    }>,
     event_ud_attrs: {
       key_types: Array<{
         key: string,
         type: string,
       }>
-    },
-    span_ud_attrs: {
-      key_types: Array<{
-        key: string,
-        type: string,
-      }>
-    },
+    }
     session_attrs: Array<{
       key: string,
       type: string,
@@ -1200,7 +1185,7 @@ export const emptySamplingRulesConfigResponse = {
   }
 }
 
-export const dummySamplingRulesConfigResponse = {
+export const dummySessionTargetingConfigResponse = {
   result: {
     events: [
       {
@@ -1278,12 +1263,6 @@ export const dummySamplingRulesConfigResponse = {
         ],
       }
     ],
-    spans: [
-      {
-        "name": "Activity TTID",
-        "type": "string"
-      }
-    ],
     event_ud_attrs: {
       key_types: [
         {
@@ -1308,14 +1287,6 @@ export const dummySamplingRulesConfigResponse = {
         },
         {
           key: "another_key_which_is_too_long_and_may_not_even_fit_the_entire_width_lorem_ipsum_foo_bar",
-          type: "string",
-        },
-      ]
-    },
-    span_ud_attrs: {
-      key_types: [
-        {
-          key: "string",
           type: "string",
         },
       ]
@@ -2646,7 +2617,7 @@ export const fetchAlertsOverviewFromServer = async (
   }
 }
 
-export const fetchSamplingRulesFromServer = async (
+export const fetchSessionTargetingRulesFromServer = async (
   appId: String,
   limit: number,
   offset: number,
@@ -2657,36 +2628,36 @@ export const fetchSamplingRulesFromServer = async (
   //const res = await measureAuth.fetchMeasure(url)
 
   //if (!res.ok) {
-  console.log("fetchSamplingRulesFromServer: Using dummy data", dummySamplingRulesResponse)
-  return { status: SamplingRulesApiStatus.Success, data: dummySamplingRulesResponse }
+  console.log("fetchSessionTargetingFromServer: Using dummy data", dummySessionTargetingResponse)
+  return { status: SessionTargetingRulesApiStatus.Success, data: dummySessionTargetingResponse }
   //}
 
   //const data = await res.json()
 
-  //   return { status: SamplingRulesApiStatus.Success, data: dummySamplingRulesResponse }
+  //   return { status: SessionTargetingApiStatus.Success, data: dummySessionTargetingResponse }
   // } catch {
-  //   return { status: SamplingRulesApiStatus.Success, data: dummySamplingRulesResponse }
+  //   return { status: SessionTargetingApiStatus.Success, data: dummySessionTargetingResponse }
   // }
 }
 
-export const fetchSamplingRulesConfigFromServer = async (
+export const fetchSessionTargetingConfigFromServer = async (
   teamId: string,
   appId: string,
 ) => {
-  console.log("fetchSamplingRulesConfigFromServer: Using dummy data", dummySamplingRulesConfigResponse)
-  return { status: SamplingRulesConfigApiStatus.Success, data: dummySamplingRulesConfigResponse }
+  console.log("fetchSessionTargetingConfigFromServer: Using dummy data", dummySessionTargetingConfigResponse)
+  return { status: SessionTargetingConfigApiStatus.Success, data: dummySessionTargetingConfigResponse }
 }
 
-export const fetchSamplingRuleFromServer = async (
+export const fetchSessionTargetingRuleFromServer = async (
   teamId: string,
   appId: string,
   ruleId: string
 ) => {
   console.log("fetchSamplingRuleFromServer: Using dummy data", dummySamplingRuleResponse)
-  return { status: SamplingRuleApiStatus.Success, data: dummySamplingRuleResponse }
+  return { status: SessionTargetingRuleApiStatus.Success, data: dummySamplingRuleResponse }
 }
 
-export const createSamplingRule = async (
+export const createSessionTargetingRule = async (
   teamId: string,
   appId: string,
   ruleData: {
@@ -2695,10 +2666,6 @@ export const createSamplingRule = async (
     status: number,
     sampling_rate: number,
     event_rule: {
-      conditions: string[],
-      operators: ('AND' | 'OR')[]
-    } | null,
-    trace_rule: {
       conditions: string[],
       operators: ('AND' | 'OR')[]
     } | null,
@@ -2721,16 +2688,16 @@ export const createSamplingRule = async (
     const data = await res.json()
 
     if (!res.ok) {
-      return { status: CreateSamplingRuleApiStatus.Error, error: data.error }
+      return { status: CreateSessionTargetingRuleApiStatus.Error, error: data.error }
     }
 
-    return { status: CreateSamplingRuleApiStatus.Success, data: data }
+    return { status: CreateSessionTargetingRuleApiStatus.Success, data: data }
   } catch {
-    return { status: CreateSamplingRuleApiStatus.Cancelled }
+    return { status: CreateSessionTargetingRuleApiStatus.Cancelled }
   }
 }
 
-export const updateSamplingRule = async (
+export const updateSessionTargetingRule = async (
   teamId: string,
   appId: string,
   ruleId: string,
@@ -2741,10 +2708,6 @@ export const updateSamplingRule = async (
     status: number,
     sampling_rate: number,
     event_rule: {
-      conditions: string[],
-      operators: ('AND' | 'OR')[]
-    } | null,
-    trace_rule: {
       conditions: string[],
       operators: ('AND' | 'OR')[]
     } | null,
@@ -2767,10 +2730,10 @@ export const updateSamplingRule = async (
     const data = await res.json()
 
     if (!res.ok) {
-      return { status: UpdateSamplingRuleApiStatus.Error, error: data.error }
+      return { status: UpdateSessionTargetingRuleApiStatus.Error, error: data.error }
     }
-    return { status: UpdateSamplingRuleApiStatus.Success }
+    return { status: UpdateSessionTargetingRuleApiStatus.Success }
   } catch {
-    return { status: UpdateSamplingRuleApiStatus.Cancelled }
+    return { status: UpdateSessionTargetingRuleApiStatus.Cancelled }
   }
 }

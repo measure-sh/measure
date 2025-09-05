@@ -1,21 +1,18 @@
 "use client"
 
-import { createSamplingRule, CreateSamplingRuleApiStatus, emptySamplingRuleResponse, emptySamplingRulesConfigResponse, fetchSamplingRuleFromServer, fetchSamplingRulesConfigFromServer, SamplingRuleApiStatus, SamplingRulesConfigApiStatus, updateSamplingRule, UpdateSamplingRuleApiStatus } from '@/app/api/api_calls';
-import { Button } from '@/app/components/button';
+import { createSessionTargetingRule, CreateSessionTargetingRuleApiStatus, emptySamplingRuleResponse, emptySessionTargetingConfigResponse, emptySessionTargetingRulesResponse, fetchSessionTargetingConfigFromServer, fetchSessionTargetingRuleFromServer, SessionTargetingConfigApiStatus, SessionTargetingRuleApiStatus, updateSessionTargetingRule, UpdateSessionTargetingRuleApiStatus } from '@/app/api/api_calls';
 import LoadingSpinner from '@/app/components/loading_spinner';
 import SamplingConditionSection from '@/app/components/sampling_condition_section';
-import SamplingEditableTitle from '@/app/components/sampling_editable_title';
 import SamplingEventCondition from '@/app/components/sampling_event_condition';
 import SamplingLogicalOperatorSelector from '@/app/components/sampling_logical_operator_selector';
-import SamplingSessionCondition from '@/app/components/sampling_session_condition';
-import SamplingTraceCondition from '@/app/components/sampling_trace_condition';
-import SaveSamplingRule from '@/app/components/save_sampling_rule';
+import SamplingSessionCondition from '@/app/components/session_condition';
+import SaveSessionTargetingRule from '@/app/components/save_session_targeting_rule';
 import { EventCondition, EventConditions, SessionCondition, SessionConditions, TraceCondition, TraceConditions } from '@/app/utils/cel-types';
 import { generateEventRuleCelArray, generateSessionRuleCelArray, generateTraceRuleCelArray, getDefaultOperatorForType } from '@/app/utils/cel-utils';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-export type SamplingRulesConfig = typeof emptySamplingRulesConfigResponse;
+export type SessionTargetingRulesConfig = typeof emptySessionTargetingRulesResponse;
 const MAX_CONDITIONS = 5;
 const MAX_ATTRIBUTES_PER_CONDITION = 10;
 
@@ -24,9 +21,9 @@ interface SamplingRateState {
 }
 
 interface PageState {
-    samplingRulesConfigApiStatus: SamplingRulesConfigApiStatus
-    samplingRulesConfig: typeof emptySamplingRulesConfigResponse
-    samplingRuleApiStatus: SamplingRuleApiStatus
+    sessionTargetingConfigApiStatus: SessionTargetingConfigApiStatus
+    sessionTargetingConfig: typeof emptySessionTargetingConfigResponse
+    samplingRuleApiStatus: SessionTargetingRuleApiStatus
     samplingRule: typeof emptySamplingRuleResponse
 }
 
@@ -53,42 +50,29 @@ const createEmptySessionCondition = (): SessionCondition => ({
     attrs: null
 })
 
-const createEmptyTraceCondition = (): TraceCondition => ({
-    spanName: null,
-    udAttrs: null
-})
-
-export const getEventTypesFromResponse = (response: typeof emptySamplingRulesConfigResponse) => {
+export const getEventTypesFromResponse = (response: typeof emptySessionTargetingConfigResponse) => {
     return response.result?.events?.map(event => event.type) || [];
 };
 
-const getEventAttributes = (response: typeof emptySamplingRulesConfigResponse, eventType: string) => {
+const getEventAttributes = (response: typeof emptySessionTargetingConfigResponse, eventType: string) => {
     const event = response.result?.events?.find(e => e.type === eventType);
     return event?.attrs || [];
 };
 
-const getSessionAttributes = (response: typeof emptySamplingRulesConfigResponse) => {
+const getSessionAttributes = (response: typeof emptySessionTargetingConfigResponse) => {
     return response.result?.session_attrs || [];
 };
 
-const doesEventSupportUdAttrs = (response: typeof emptySamplingRulesConfigResponse, eventType: string): boolean => {
+const doesEventSupportUdAttrs = (response: typeof emptySessionTargetingConfigResponse, eventType: string): boolean => {
     const event = response.result?.events?.find(e => e.type === eventType);
     return event?.ud_attrs === true;
 };
 
-const getUserDefinedAttributes = (response: typeof emptySamplingRulesConfigResponse) => {
+const getUserDefinedAttributes = (response: typeof emptySessionTargetingConfigResponse) => {
     return response.result?.event_ud_attrs?.key_types || [];
 };
 
-const getSpanNamesFromResponse = (response: typeof emptySamplingRulesConfigResponse) => {
-    return response.result?.spans?.map(span => span.name) || [];
-};
-
-const getSpanUserDefinedAttributes = (response: typeof emptySamplingRulesConfigResponse) => {
-    return response.result?.span_ud_attrs?.key_types || [];
-};
-
-const getOperatorTypesMapping = (response: typeof emptySamplingRulesConfigResponse) => {
+const getOperatorTypesMapping = (response: typeof emptySessionTargetingConfigResponse) => {
     return response.result?.operator_types || {};
 };
 
@@ -123,15 +107,15 @@ const canAddMoreAttributes = (
 };
 
 const getAvailableAttributes = (
-    samplingRulesConfig: typeof emptySamplingRulesConfigResponse,
+    SessionTargetingConfig: typeof emptySessionTargetingConfigResponse,
     eventType: string | null,
     attributeType: AttributeType
 ) => {
     if (attributeType === 'attrs' && eventType) {
-        return getEventAttributes(samplingRulesConfig, eventType);
+        return getEventAttributes(SessionTargetingConfig, eventType);
     } else if (attributeType === 'udAttrs' && eventType) {
-        if (doesEventSupportUdAttrs(samplingRulesConfig, eventType)) {
-            return getUserDefinedAttributes(samplingRulesConfig);
+        if (doesEventSupportUdAttrs(SessionTargetingConfig, eventType)) {
+            return getUserDefinedAttributes(SessionTargetingConfig);
         }
         return [];
     }
@@ -140,18 +124,18 @@ const getAvailableAttributes = (
 
 // Loading state helper functions
 const isPageLoading = (pageState: PageState, isEditMode: boolean): boolean => {
-    return pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Loading ||
-        (isEditMode && pageState.samplingRuleApiStatus === SamplingRuleApiStatus.Loading);
+    return pageState.sessionTargetingConfigApiStatus === SessionTargetingConfigApiStatus.Loading ||
+        (isEditMode && pageState.samplingRuleApiStatus === SessionTargetingRuleApiStatus.Loading);
 };
 
 const hasPageError = (pageState: PageState, isEditMode: boolean): boolean => {
-    return pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Error ||
-        (isEditMode && pageState.samplingRuleApiStatus === SamplingRuleApiStatus.Error);
+    return pageState.sessionTargetingConfigApiStatus === SessionTargetingConfigApiStatus.Error ||
+        (isEditMode && pageState.samplingRuleApiStatus === SessionTargetingRuleApiStatus.Error);
 };
 
 const isPageReady = (pageState: PageState, isEditMode: boolean): boolean => {
-    return pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Success &&
-        (!isEditMode || pageState.samplingRuleApiStatus === SamplingRuleApiStatus.Success);
+    return pageState.sessionTargetingConfigApiStatus === SessionTargetingConfigApiStatus.Success &&
+        (!isEditMode || pageState.samplingRuleApiStatus === SessionTargetingRuleApiStatus.Success);
 };
 
 // Helper function to check if conditions are empty
@@ -189,15 +173,15 @@ const areConditionsEmpty = (
     }
 };
 
-export default function SamplingRulePage({ params, isEditMode }: SamplingRulePageProps) {
+export default function SessionTargetingPage({ params, isEditMode }: SamplingRulePageProps) {
     const router = useRouter()
     const type = params.type
     const nameFromParams = isEditMode && params.ruleName ? decodeURIComponent(params.ruleName) : null
 
     const initialState: PageState = {
-        samplingRulesConfigApiStatus: SamplingRulesConfigApiStatus.Loading,
-        samplingRulesConfig: emptySamplingRulesConfigResponse,
-        samplingRuleApiStatus: SamplingRuleApiStatus.Loading,
+        sessionTargetingConfigApiStatus: SessionTargetingConfigApiStatus.Loading,
+        sessionTargetingConfig: emptySessionTargetingConfigResponse,
+        samplingRuleApiStatus: SessionTargetingRuleApiStatus.Loading,
         samplingRule: emptySamplingRuleResponse,
     }
 
@@ -218,7 +202,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
     const [samplingRateState, setSamplingRateState] = useState<SamplingRateState>({
         value: 100
     });
-    const [samplingRuleStatus, setSamplingRuleStatus] = useState<'enabled' | 'disabled'>('enabled'); // TODO: handle status change
+    const [SessionTargetingtatus, setSessionTargetingtatus] = useState<'enabled' | 'disabled'>('enabled'); // TODO: handle status change
 
     // Collapsible sections state
     const [eventSectionCollapsed, setEventSectionCollapsed] = useState(false);
@@ -232,18 +216,18 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
         })
     }
 
-    const getSamplingRulesConfig = async () => {
-        updatePageState({ samplingRulesConfigApiStatus: SamplingRulesConfigApiStatus.Loading })
-        const result = await fetchSamplingRulesConfigFromServer(params.teamId, params.appId)
+    const getSessionTargetingConfig = async () => {
+        updatePageState({ sessionTargetingConfigApiStatus: SessionTargetingConfigApiStatus.Loading })
+        const result = await fetchSessionTargetingConfigFromServer(params.teamId, params.appId)
 
         switch (result.status) {
-            case SamplingRulesConfigApiStatus.Error:
-                updatePageState({ samplingRulesConfigApiStatus: SamplingRulesConfigApiStatus.Error })
+            case SessionTargetingConfigApiStatus.Error:
+                updatePageState({ sessionTargetingConfigApiStatus: SessionTargetingConfigApiStatus.Error })
                 break
-            case SamplingRulesConfigApiStatus.Success:
+            case SessionTargetingConfigApiStatus.Success:
                 updatePageState({
-                    samplingRulesConfigApiStatus: SamplingRulesConfigApiStatus.Success,
-                    samplingRulesConfig: result.data
+                    sessionTargetingConfigApiStatus: SessionTargetingConfigApiStatus.Success,
+                    sessionTargetingConfig: result.data
                 })
                 break
         }
@@ -252,25 +236,25 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
     const getSamplingRule = async () => {
         if (!isEditMode) {
             // For create mode, just mark as success
-            updatePageState({ samplingRuleApiStatus: SamplingRuleApiStatus.Success })
+            updatePageState({ samplingRuleApiStatus: SessionTargetingRuleApiStatus.Success })
             return
         }
 
         if (!params.ruleId) {
-            updatePageState({ samplingRuleApiStatus: SamplingRuleApiStatus.Error })
+            updatePageState({ samplingRuleApiStatus: SessionTargetingRuleApiStatus.Error })
             return
         }
 
-        updatePageState({ samplingRuleApiStatus: SamplingRuleApiStatus.Loading })
-        const result = await fetchSamplingRuleFromServer(params.teamId, params.appId, params.ruleId)
+        updatePageState({ samplingRuleApiStatus: SessionTargetingRuleApiStatus.Loading })
+        const result = await fetchSessionTargetingRuleFromServer(params.teamId, params.appId, params.ruleId)
 
         switch (result.status) {
-            case SamplingRuleApiStatus.Error:
-                updatePageState({ samplingRuleApiStatus: SamplingRuleApiStatus.Error })
+            case SessionTargetingRuleApiStatus.Error:
+                updatePageState({ samplingRuleApiStatus: SessionTargetingRuleApiStatus.Error })
                 break
-            case SamplingRuleApiStatus.Success:
+            case SessionTargetingRuleApiStatus.Success:
                 updatePageState({
-                    samplingRuleApiStatus: SamplingRuleApiStatus.Success,
+                    samplingRuleApiStatus: SessionTargetingRuleApiStatus.Success,
                     samplingRule: result.data
                 })
                 break
@@ -278,18 +262,18 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
     }
 
     useEffect(() => {
-        getSamplingRulesConfig()
+        getSessionTargetingConfig()
     }, [])
 
     useEffect(() => {
-        if (isEditMode && pageState.samplingRulesConfigApiStatus === SamplingRulesConfigApiStatus.Success) {
+        if (isEditMode && pageState.sessionTargetingConfigApiStatus === SessionTargetingConfigApiStatus.Success) {
             getSamplingRule()
         }
-    }, [isEditMode, pageState.samplingRulesConfigApiStatus])
+    }, [isEditMode, pageState.sessionTargetingConfigApiStatus])
 
     // Effect to populate title and sampling rate when rule data is loaded
     useEffect(() => {
-        if (isEditMode && pageState.samplingRuleApiStatus === SamplingRuleApiStatus.Success && pageState.samplingRule.results) {
+        if (isEditMode && pageState.samplingRuleApiStatus === SessionTargetingRuleApiStatus.Success && pageState.samplingRule.results) {
             const ruleData = pageState.samplingRule.results
 
             if (ruleData.name) {
@@ -299,7 +283,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                 setSamplingRateState({ value: ruleData.sampling_rate * 100 })
             }
             if (typeof ruleData.status === 'number') {
-                setSamplingRuleStatus(ruleData.status === 1 ? 'enabled' : 'disabled')
+                setSessionTargetingtatus(ruleData.status === 1 ? 'enabled' : 'disabled')
             }
 
             // TODO: Parse conditions arrays back into UI state
@@ -318,7 +302,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
 
     // Effect to set the first event type when eventTypes are available
     useEffect(() => {
-        const eventTypes = getEventTypesFromResponse(pageState.samplingRulesConfig);
+        const eventTypes = getEventTypesFromResponse(pageState.sessionTargetingConfig);
 
         if (eventTypes.length > 0 && type !== 'trace') {
             setEventConditionsState(prevState => {
@@ -335,7 +319,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                 return prevState;
             });
         }
-    }, [pageState.samplingRulesConfig, type]);
+    }, [pageState.sessionTargetingConfig, type]);
 
 
     const handleTitleChange = (title: string) => {
@@ -345,7 +329,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
     // Event condition handlers
     const addEventCondition = () => {
         if (eventConditionsState.conditions.length < MAX_CONDITIONS) {
-            const eventTypes = getEventTypesFromResponse(pageState.samplingRulesConfig);
+            const eventTypes = getEventTypesFromResponse(pageState.sessionTargetingConfig);
             const newCondition = createEmptyEventCondition();
 
             // Set the first event type if available
@@ -409,7 +393,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
         const condition = eventConditionsState.conditions[conditionIndex]
         if (!condition || !condition.type) return
 
-        const availableAttrs = getAvailableAttributes(pageState.samplingRulesConfig, condition.type, attributeType)
+        const availableAttrs = getAvailableAttributes(pageState.sessionTargetingConfig, condition.type, attributeType)
         if (!canAddMoreAttributes(condition, availableAttrs, attributeType)) return
 
         const firstAttr = availableAttrs[0];
@@ -476,7 +460,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                     const updatedAttr = { ...attr, [field]: value }
 
                     if (field === 'key') {
-                        const availableAttrs = getAvailableAttributes(pageState.samplingRulesConfig, condition.type, attributeType)
+                        const availableAttrs = getAvailableAttributes(pageState.sessionTargetingConfig, condition.type, attributeType)
                         const selectedAttr = availableAttrs.find(a => a.key === value)
                         if (selectedAttr) {
                             updatedAttr.type = selectedAttr.type
@@ -506,7 +490,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
     // Session condition handlers
     const addSessionCondition = () => {
         if (sessionConditionsState.conditions.length < MAX_CONDITIONS) {
-            const sessionAttrs = getSessionAttributes(pageState.samplingRulesConfig)
+            const sessionAttrs = getSessionAttributes(pageState.sessionTargetingConfig)
             const newCondition = createEmptySessionCondition()
 
             if (sessionAttrs.length > 0) {
@@ -573,7 +557,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                     const updatedAttr = { ...attr, [field]: value }
 
                     if (field === 'key') {
-                        const sessionAttrs = getSessionAttributes(pageState.samplingRulesConfig)
+                        const sessionAttrs = getSessionAttributes(pageState.sessionTargetingConfig)
                         const selectedAttr = sessionAttrs.find(a => a.key === value)
                         if (selectedAttr) {
                             updatedAttr.type = selectedAttr.type
@@ -590,166 +574,6 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
             const updatedConditions = prevState.conditions.map((cond, index) =>
                 index === conditionIndex
                     ? { ...cond, attrs: updatedAttrs }
-                    : cond
-            )
-
-            return {
-                ...prevState,
-                conditions: updatedConditions
-            }
-        })
-    }
-
-    // Trace condition handlers
-    const addTraceCondition = () => {
-        if (traceConditionsState.conditions.length < MAX_CONDITIONS) {
-            const spanNames = getSpanNamesFromResponse(pageState.samplingRulesConfig);
-            const newCondition = createEmptyTraceCondition();
-
-            // Set the first span name if available
-            if (spanNames.length > 0) {
-                newCondition.spanName = spanNames[0];
-            }
-
-            const newOperators = traceConditionsState.conditions.length > 0
-                ? [...traceConditionsState.operators, 'AND' as const]
-                : []
-
-            setTraceConditionsState({
-                conditions: [...traceConditionsState.conditions, newCondition],
-                operators: newOperators
-            })
-        }
-    }
-
-    const removeTraceCondition = (conditionIndex: number) => {
-        if (conditionIndex < 0 || conditionIndex >= traceConditionsState.conditions.length) return
-
-        const newConditions = traceConditionsState.conditions.filter((_, index) => index !== conditionIndex)
-        let newOperators = [...traceConditionsState.operators]
-
-        if (conditionIndex < newOperators.length) {
-            newOperators.splice(conditionIndex, 1)
-        } else if (conditionIndex > 0 && newOperators.length > 0) {
-            newOperators.splice(conditionIndex - 1, 1)
-        }
-
-        setTraceConditionsState({
-            conditions: newConditions,
-            operators: newOperators
-        })
-    }
-
-    const updateTraceCondition = (conditionIndex: number, spanName: string) => {
-        if (conditionIndex < 0 || conditionIndex >= traceConditionsState.conditions.length) return
-
-        const updatedConditions = traceConditionsState.conditions.map((condition, index) =>
-            index === conditionIndex
-                ? { ...condition, spanName, udAttrs: null }
-                : condition
-        )
-        setTraceConditionsState({
-            ...traceConditionsState,
-            conditions: updatedConditions
-        })
-    }
-
-    const updateTraceOperator = (operatorIndex: number, operator: 'AND' | 'OR') => {
-        const newOperators = [...traceConditionsState.operators]
-        newOperators[operatorIndex] = operator
-        setTraceConditionsState({
-            ...traceConditionsState,
-            operators: newOperators
-        })
-    }
-
-    const addTraceAttribute = (conditionIndex: number) => {
-        const condition = traceConditionsState.conditions[conditionIndex]
-        if (!condition || !condition.spanName) return
-
-        const availableAttrs = getSpanUserDefinedAttributes(pageState.samplingRulesConfig)
-        if (!availableAttrs.length) return
-
-        const firstAttr = availableAttrs[0];
-        if (!firstAttr) return;
-
-        const newAttr = {
-            key: firstAttr.key,
-            type: firstAttr.type,
-            value: firstAttr.type === 'bool' ? false : '',
-            operator: getDefaultOperatorForType(firstAttr.type)
-        }
-
-        setTraceConditionsState(prevState => {
-            const updatedConditions = prevState.conditions.map((cond, index) =>
-                index === conditionIndex
-                    ? {
-                        ...cond,
-                        udAttrs: cond.udAttrs ? [...cond.udAttrs, newAttr] : [newAttr]
-                    }
-                    : cond
-            )
-            return {
-                ...prevState,
-                conditions: updatedConditions
-            }
-        })
-    }
-
-    const removeTraceAttribute = (conditionIndex: number, attrIndex: number) => {
-        setTraceConditionsState(prevState => {
-            const condition = prevState.conditions[conditionIndex]
-            const currentAttrs = condition?.udAttrs
-            if (!currentAttrs) return prevState
-
-            const updatedAttrs = currentAttrs.filter((_, index) => index !== attrIndex)
-
-            const updatedConditions = prevState.conditions.map((cond, index) =>
-                index === conditionIndex
-                    ? { ...cond, udAttrs: updatedAttrs.length > 0 ? updatedAttrs : null }
-                    : cond
-            )
-
-            return {
-                ...prevState,
-                conditions: updatedConditions
-            }
-        })
-    }
-
-    const updateTraceAttribute = (
-        conditionIndex: number,
-        attrIndex: number,
-        field: 'key' | 'type' | 'value' | 'operator',
-        value: any
-    ) => {
-        setTraceConditionsState(prevState => {
-            const condition = prevState.conditions[conditionIndex]
-            const currentAttrs = condition?.udAttrs
-            if (!currentAttrs) return prevState
-
-            const updatedAttrs = currentAttrs.map((attr, index) => {
-                if (index === attrIndex) {
-                    const updatedAttr = { ...attr, [field]: value }
-
-                    if (field === 'key') {
-                        const availableAttrs = getSpanUserDefinedAttributes(pageState.samplingRulesConfig)
-                        const selectedAttr = availableAttrs.find(a => a.key === value)
-                        if (selectedAttr) {
-                            updatedAttr.type = selectedAttr.type
-                            updatedAttr.value = selectedAttr.type === 'boolean' ? false : ''
-                            updatedAttr.operator = getDefaultOperatorForType(selectedAttr.type)
-                        }
-                    }
-
-                    return updatedAttr
-                }
-                return attr
-            })
-
-            const updatedConditions = prevState.conditions.map((cond, index) =>
-                index === conditionIndex
-                    ? { ...cond, udAttrs: updatedAttrs }
                     : cond
             )
 
@@ -777,7 +601,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
         const ruleData = {
             type: type,
             name: samplingRuleName || '', // TODO: add validation
-            status: samplingRuleStatus === 'enabled' ? 1 : 0,
+            status: SessionTargetingtatus === 'enabled' ? 1 : 0,
             sampling_rate: Number(samplingRateState.value) / 100, // Convert percentage to decimal
             event_rule: eventRuleCel,
             trace_rule: traceRuleCel,
@@ -785,9 +609,9 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
         };
 
         try {
-            const result = await createSamplingRule(params.teamId, params.appId, ruleData);
+            const result = await createSessionTargetingRule(params.teamId, params.appId, ruleData);
 
-            if (result.status === CreateSamplingRuleApiStatus.Success) {
+            if (result.status === CreateSessionTargetingRuleApiStatus.Success) {
                 // TODO: Navigate to sampling rules list page
                 router.push(`/teams/${params.teamId}/apps/${params.appId}/sampling-rules`);
             } else {
@@ -817,7 +641,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
             id: params.ruleId || '', // TODO: add validation
             type: type,
             name: samplingRuleName || '', // TODO: add validation
-            status: samplingRuleStatus === 'enabled' ? 1 : 0,
+            status: SessionTargetingtatus === 'enabled' ? 1 : 0,
             sampling_rate: Number(samplingRateState.value) / 100, // Convert percentage to decimal
             event_rule: eventRuleCel,
             trace_rule: traceRuleCel,
@@ -825,9 +649,9 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
         };
 
         try {
-            const result = await updateSamplingRule(params.teamId, params.appId, ruleData.id, ruleData);
+            const result = await updateSessionTargetingRule(params.teamId, params.appId, ruleData.id, ruleData);
 
-            if (result.status === UpdateSamplingRuleApiStatus.Success) {
+            if (result.status === UpdateSessionTargetingRuleApiStatus.Success) {
                 // TODO: Navigate to sampling rules list page
                 router.push(`/teams/${params.teamId}/apps/${params.appId}/sampling-rules`);
             } else {
@@ -839,10 +663,9 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
         }
     }
 
-    const eventTypes = getEventTypesFromResponse(pageState.samplingRulesConfig);
-    const spanNames = getSpanNamesFromResponse(pageState.samplingRulesConfig);
-    const operatorTypesMapping = getOperatorTypesMapping(pageState.samplingRulesConfig);
-    const sessionAttrs = getSessionAttributes(pageState.samplingRulesConfig);
+    const eventTypes = getEventTypesFromResponse(pageState.sessionTargetingConfig);
+    const operatorTypesMapping = getOperatorTypesMapping(pageState.sessionTargetingConfig);
+    const sessionAttrs = getSessionAttributes(pageState.sessionTargetingConfig);
     const conditionsAreEmpty = areConditionsEmpty(type, eventConditionsState, sessionConditionsState, traceConditionsState);
 
     return (
@@ -853,8 +676,8 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                     {isPageReady(pageState, isEditMode) && (
                         <>
                             <div className="py-2" />
-                            <span className={`w-fit px-2 py-1 rounded-full border text-sm font-body ${samplingRuleStatus === 'enabled' ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>
-                                {samplingRuleStatus === 'enabled' ? 'Enabled' : 'Disabled'}
+                            <span className={`w-fit px-2 py-1 rounded-full border text-sm font-body ${SessionTargetingtatus === 'enabled' ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>
+                                {SessionTargetingtatus === 'enabled' ? 'Enabled' : 'Disabled'}
                             </span>
                             <div className="py-4" />
                             <div className="grid gap-y-4 items-center max-w-2xl" style={{ gridTemplateColumns: '120px 1fr' }}>
@@ -892,7 +715,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                         </>
                     )}
                 </div>
-                <SaveSamplingRule
+                <SaveSessionTargetingRule
                     isEditMode={isEditMode}
                     isReady={isPageReady(pageState, isEditMode)}
                     isDisabled={conditionsAreEmpty}
@@ -939,9 +762,9 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                                 {eventConditionsState.conditions.length > 0 && (
                                     <div className="pt-1">
                                         {eventConditionsState.conditions.map((condition, index) => {
-                                            const availableAttrs = condition.type ? getEventAttributes(pageState.samplingRulesConfig, condition.type) : []
+                                            const availableAttrs = condition.type ? getEventAttributes(pageState.sessionTargetingConfig, condition.type) : []
                                             const canAddMoreRegularAttrs = canAddMoreAttributes(condition, availableAttrs, 'attrs')
-                                            const globalUserDefinedAttrs = getUserDefinedAttributes(pageState.samplingRulesConfig)
+                                            const globalUserDefinedAttrs = getUserDefinedAttributes(pageState.sessionTargetingConfig)
                                             const canAddMoreUdAttrs = canAddMoreAttributes(condition, globalUserDefinedAttrs, 'udAttrs')
 
                                             return (
@@ -956,7 +779,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                                                         canAddMoreRegularAttrs={canAddMoreRegularAttrs}
                                                         canAddMoreUdAttrs={canAddMoreUdAttrs}
                                                         doesEventSupportUdAttrs={doesEventSupportUdAttrs}
-                                                        pageConfig={pageState.samplingRulesConfig}
+                                                        pageConfig={pageState.sessionTargetingConfig}
                                                         onUpdateCondition={updateEventCondition}
                                                         onRemoveCondition={removeEventCondition}
                                                         onAddAttribute={addAttribute}

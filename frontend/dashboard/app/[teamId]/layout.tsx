@@ -93,7 +93,7 @@ const initNavData = {
       items: [
          {
           title: "Session Targeting",
-          url: "sampling_rules",
+          url: "session_targeting",
           isActive: false,
           external: false,
         },

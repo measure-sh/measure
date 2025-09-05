@@ -3,7 +3,7 @@
 import SamplingAttributeRow from "./sampling_attribute_row";
 import SamplingConditionContainer from "./sampling_condition_container";
 
-interface SamplingSessionConditionProps {
+interface SessionConditionProps {
     condition: any;
     index: number;
     sessionAttrs: any[];
@@ -21,7 +21,7 @@ const SamplingSessionCondition = ({
     onRemoveCondition,
     onUpdateAttribute,
     getOperatorsForType
-}: SamplingSessionConditionProps) => {
+}: SessionConditionProps) => {
     return (
         <SamplingConditionContainer
             index={index}

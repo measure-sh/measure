@@ -3,15 +3,13 @@
 import { Button } from "@/app/components/button";
 import { Plus } from "lucide-react";
 
-export type SamplingRuleType = "session" | "trace";
-
 interface CreateSamplingRuleProps {
-  onSelect?: (type: SamplingRuleType) => void;
+  onSelect?: () => void;
 }
 
 const CreateSamplingRule: React.FC<CreateSamplingRuleProps> = ({ onSelect }) => {
   const handleClick = () => {
-    if (onSelect) onSelect("session");
+    if (onSelect) onSelect();
   };
 
   return (
