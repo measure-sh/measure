@@ -920,16 +920,16 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
             {isPageReady(pageState, isEditMode) && (
                 <div className="w-full space-y-4">
                     <div className="w-full space-y-4">
-                        <h2 className="text-xl font-display">Configure conditions</h2>
+                        <h2 className="font-display text-xl">Configure Conditions</h2>
                         <p className="text-sm text-gray-600 mb-4">
-                            Target sessions by selecting specific events and session properties (device, user, app attributes).
+                            Target sessions by selecting specific events or session attributes like device, user, app attributes, etc.
                         </p>
 
                         {/* Event conditions - only show for non-trace rules */}
                         {type !== 'trace' && (
                             <SamplingConditionSection
                                 title="Event Conditions"
-                                description="Target sessions based on specific events that occurred during the session timeline. Example: collect timelines where a 'login_failed' event was triggered, an 'add_to_cart' action happened, or a custom event like 'payment_completed' was recorded."
+                                description="Target sessions where certain events occur."
                                 conditionCount={eventConditionsState.conditions.length}
                                 maxConditions={MAX_CONDITIONS}
                                 isCollapsed={eventSectionCollapsed}
@@ -984,7 +984,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                         {/* Session conditions */}
                         <SamplingConditionSection
                             title="Session Conditions"
-                            description="Target sessions based on user context, device characteristics, and application environment. Example: collect timelines from app version 1.2.0, iOS 16+ devices, specific user segments, or sessions from particular geographic regions or network conditions."
+                            description="Target sessions for certain users, devices, OS or app version."
                             conditionCount={sessionConditionsState.conditions.length}
                             maxConditions={MAX_CONDITIONS}
                             isCollapsed={sessionSectionCollapsed}

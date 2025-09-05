@@ -15,7 +15,7 @@ const SamplingConditionContainer = ({
     children
 }: SamplingConditionContainerProps) => {
     return (
-        <div className="group p-3 rounded-lg border mx-4">
+        <div className="group p-3 rounded-lg border border-gray-200 mx-4 hover:bg-gray-50 transition-colors duration-200">
             <div className="flex justify-between items-start">
                 <div className="flex-1">
                     {children}

@@ -13,7 +13,7 @@ const SamplingLogicalOperatorSelector = ({
     return (
         <div className="flex items-center justify-center relative py-10">
             {/* Top connecting line */}
-            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-px h-12 bg-gray-300"></div>
+            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-px h-12 bg-gray-200"></div>
             
             {/* Circular toggle button */}
             <button
@@ -25,7 +25,7 @@ const SamplingLogicalOperatorSelector = ({
             </button>
             
             {/* Bottom connecting line */}
-            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-px h-12 bg-gray-300"></div>
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-px h-12 bg-gray-200"></div>
         </div>
     );
 };

@@ -34,28 +34,20 @@ const SamplingConditionSection = ({
 
     return (
         <div className="py-2">
-            <div 
+            <div
                 className="flex items-center justify-between cursor-pointer select-none hover:bg-gray-50 p-2 rounded"
                 onClick={onToggleCollapse}
             >
                 <div className="flex items-center gap-2">
                     {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    <p className="font-display text-xl max-w-6xl leading-none">{title}</p>
+                    <p className="font-display text-gray-500 max-w-6xl leading-none">{title}</p>
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Info className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent side="bottom" align="start" className="font-display max-w-xs text-sm text-white fill-neutral-800 bg-neutral-800">
                             <div className="p-2">
-                                {description.split('. Example: ').map((part, index) => (
-                                    index === 0 ? (
-                                        <p key={index}>{part}.</p>
-                                    ) : (
-                                        <p key={index} className="mt-2 text-gray-300">
-                                            <span className="font-semibold">Example:</span> {part}
-                                        </p>
-                                    )
-                                ))}
+                                <p>{description}</p>
                             </div>
                         </TooltipContent>
                     </Tooltip>

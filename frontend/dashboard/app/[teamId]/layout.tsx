@@ -92,13 +92,13 @@ const initNavData = {
       title: "Data Control",
       items: [
          {
-          title: "Session targeting",
+          title: "Session Targeting",
           url: "sampling_rules",
           isActive: false,
           external: false,
         },
         {
-          title: "Trace sampling",
+          title: "Trace Sampling",
           url: "trace_sampling",
           isActive: false,
           external: false,
