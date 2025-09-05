@@ -976,56 +976,6 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                         </SamplingConditionSection>
                     )}
 
-
-                    {/* Trace conditions */}
-                    <SamplingConditionSection
-                        title="Trace Conditions"
-                        description="Target sessions based on application performance spans and trace data. Example: collect timelines where an 'Order Created' span took longer than 1000ms, a database query exceeded 500ms, or any network request had high latency."
-                        conditionCount={traceConditionsState.conditions.length}
-                        maxConditions={MAX_CONDITIONS}
-                        isCollapsed={traceSectionCollapsed}
-                        onToggleCollapse={() => setTraceSectionCollapsed(!traceSectionCollapsed)}
-                        onAddCondition={addTraceCondition}
-                    >
-                        {traceConditionsState.conditions.length > 0 && (
-                            <div className="pt-1">
-                                {traceConditionsState.conditions.map((condition, index) => {
-                                    const spanUdAttrs = getSpanUserDefinedAttributes(pageState.samplingRulesConfig);
-                                    const canAddMoreUdAttrs = condition.udAttrs ? condition.udAttrs.length < MAX_ATTRIBUTES_PER_CONDITION : true;
-
-                                    return (
-                                        <div key={index}>
-                                            <SamplingTraceCondition
-                                                condition={condition}
-                                                index={index}
-                                                spanNames={spanNames}
-                                                spanUdAttrs={spanUdAttrs}
-                                                operatorTypesMapping={operatorTypesMapping}
-                                                canAddMoreUdAttrs={canAddMoreUdAttrs}
-                                                onRemoveCondition={removeTraceCondition}
-                                                onAddAttribute={addTraceAttribute}
-                                                onUpdateSpanName={updateTraceCondition}
-                                                onUpdateAttribute={updateTraceAttribute}
-                                                onRemoveAttribute={removeTraceAttribute}
-                                                getOperatorsForType={getOperatorsForType}
-                                            />
-
-                                            {index < traceConditionsState.conditions.length - 1 && (
-                                                <div className="flex justify-center">
-                                                    <SamplingLogicalOperatorSelector
-                                                        value={traceConditionsState.operators[index] || 'AND'}
-                                                        onChange={(operator) => updateTraceOperator(index, operator)}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        )}
-                    </SamplingConditionSection>
-
-
                     {/* Session conditions */}
                     <SamplingConditionSection
                         title="Session Conditions"
