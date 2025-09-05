@@ -39,7 +39,7 @@ const CreateSamplingRule: React.FC<CreateSamplingRuleProps> = ({ onSelect }) => 
             tabIndex={0}
             onKeyDown={e => { if (e.key === 'Enter') { handleSelect("session") } }}
           >
-            Session sampling rule
+            Session targeting rule
           </li>
           <li
             className="cursor-pointer px-3 py-2 rounded hover:bg-yellow-200/75 font-display text-sm"

@@ -48,7 +48,7 @@ const SamplingEditableTitle = ({ initialValue, onTitleChange, showEditButton = t
                             variant="ghost"
                             size="sm"
                             onClick={handleEditClick}
-                            className="flex items-center gap-2 px-3 py-1 hover:bg-yellow-200"
+                            className="flex items-center gap-2 px-3 py-1 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
                         >
                             <Edit2 className="h-4 w-4" />
                             <span className="text-sm">Edit</span>

@@ -1,8 +1,8 @@
 "use client"
 
-import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select';
+import SamplingDropdownSelect from '@/app/components/sampling_dropdown_select';
 import { Button } from '@/app/components/button';
-import { Trash2 } from 'lucide-react';
+import { X } from 'lucide-react';
 
 type AttributeType = 'attrs' | 'udAttrs';
 
@@ -29,33 +29,35 @@ const SamplingAttributeRow = ({
 }) => {
 
     return (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center group">
             {/* Attribute Key Dropdown */}
-            <DropdownSelect
-                type={DropdownSelectType.SingleString}
-                title={"Attributes"}
-                items={availableAttrKeys}
-                initialSelected={attr.key}
-                onChangeSelected={(selected) => {
-                    onUpdateAttribute(conditionIndex, attrIndex, 'key', selected as string, attributeType)
-                }}
-            />
+            <div className="flex-[25] mr-3">
+                <SamplingDropdownSelect
+                    title="Attributes"
+                    items={availableAttrKeys}
+                    initialSelected={attr.key}
+                    onChangeSelected={(selected) => {
+                        onUpdateAttribute(conditionIndex, attrIndex, 'key', selected, attributeType)
+                    }}
+                />
+            </div>
 
             {/* Operator Dropdown */}
-            <DropdownSelect
-                type={DropdownSelectType.SingleString}
-                title="Condition"
-                items={operatorTypes}
-                initialSelected={attr.operator || operatorTypes[0] || 'eq'}
-                onChangeSelected={(selected) => {
-                    onUpdateAttribute(conditionIndex, attrIndex, 'operator', selected as string, attributeType)
-                }}
-            />
+            <div className="flex-[15] mr-3">
+                <SamplingDropdownSelect
+                    title="Condition"
+                    items={operatorTypes}
+                    initialSelected={attr.operator || operatorTypes[0] || 'eq'}
+                    onChangeSelected={(selected) => {
+                        onUpdateAttribute(conditionIndex, attrIndex, 'operator', selected, attributeType)
+                    }}
+                />
+            </div>
 
-            <div className="flex items-center gap-4 flex-1">
+            {/* Value section */}
+            <div className="flex-[38] mr-3">
                 {attr.type === 'bool' ? (
-                    <DropdownSelect
-                        type={DropdownSelectType.SingleString}
+                    <SamplingDropdownSelect
                         title="Value"
                         items={['true', 'false']}
                         initialSelected={attr.value ? 'true' : 'false'}
@@ -75,20 +77,25 @@ const SamplingAttributeRow = ({
                                 e.target.value
                             onUpdateAttribute(conditionIndex, attrIndex, 'value', value, attributeType)
                         }}
-                        className="min-w-0 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
+                        className="w-full border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
                     />
                 )}
+            </div>
 
-                {/* Remove Attribute Button - Now directly adjacent to value input */}
-                {showDeleteButton && onRemoveAttribute && (
+            {/* Remove Attribute Button */}
+            <div className="flex justify-start flex-[20]">
+                {showDeleteButton && onRemoveAttribute ? (
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => onRemoveAttribute(conditionIndex, attrIndex, attributeType)}
-                        className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600 flex-shrink-0"
+                        className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600 flex-shrink-0 
+                       opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                     >
-                        <Trash2 className="h-4 w-4" />
+                        <X className="h-4 w-4" />
                     </Button>
+                ) : (
+                    <div className="h-8 w-8"></div>
                 )}
             </div>
         </div>

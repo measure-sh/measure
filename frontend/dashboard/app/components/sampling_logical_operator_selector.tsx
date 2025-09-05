@@ -7,22 +7,25 @@ const SamplingLogicalOperatorSelector = ({
     value: 'AND' | 'OR';
     onChange: (operator: 'AND' | 'OR') => void;
 }) => {
+    // Color styles for AND/OR - using consistent green theme
+    const colorClasses = "bg-green-100 hover:bg-green-200 border-green-300 text-green-800";
+
     return (
-        <div className="flex items-center justify-center relative py-4">
+        <div className="flex items-center justify-center relative py-10">
             {/* Top connecting line */}
-            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-px h-4 bg-gray-300"></div>
+            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-px h-12 bg-gray-300"></div>
             
             {/* Circular toggle button */}
             <button
                 type="button"
                 onClick={() => onChange(value === 'AND' ? 'OR' : 'AND')}
-                className="relative z-10 w-10 h-10 rounded-full border border-gray-300 bg-yellow-200 hover:bg-yellow-300 transition-colors flex items-center justify-center text-sm font-body text-black"
+                className={`relative z-10 w-12 h-12 rounded-full border transition-colors flex items-center justify-center text-sm font-sans ${colorClasses}`}
             >
                 {value}
             </button>
             
             {/* Bottom connecting line */}
-            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-px h-4 bg-gray-300"></div>
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-px h-12 bg-gray-300"></div>
         </div>
     );
 };

@@ -1,17 +1,19 @@
 "use client"
 
-import { emptySamplingRulesConfigResponse, fetchSamplingRulesConfigFromServer, SamplingRulesConfigApiStatus, fetchSamplingRuleFromServer, SamplingRuleApiStatus, emptySamplingRuleResponse, createSamplingRule, CreateSamplingRuleApiStatus, updateSamplingRule, UpdateSamplingRuleApiStatus } from '@/app/api/api_calls';
+import { createSamplingRule, CreateSamplingRuleApiStatus, emptySamplingRuleResponse, emptySamplingRulesConfigResponse, fetchSamplingRuleFromServer, fetchSamplingRulesConfigFromServer, SamplingRuleApiStatus, SamplingRulesConfigApiStatus, updateSamplingRule, UpdateSamplingRuleApiStatus } from '@/app/api/api_calls';
 import { Button } from '@/app/components/button';
 import LoadingSpinner from '@/app/components/loading_spinner';
-import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select';
-import SamplingAttributeRow from '@/app/components/sampling_attribute_row';
-import SamplingLogicalOperatorSelector from '@/app/components/sampling_logical_operator_selector';
+import SamplingConditionSection from '@/app/components/sampling_condition_section';
 import SamplingEditableTitle from '@/app/components/sampling_editable_title';
-import { useEffect, useState } from 'react';
+import SamplingEventCondition from '@/app/components/sampling_event_condition';
+import SamplingLogicalOperatorSelector from '@/app/components/sampling_logical_operator_selector';
+import SamplingSessionCondition from '@/app/components/sampling_session_condition';
+import SamplingTraceCondition from '@/app/components/sampling_trace_condition';
+import SaveSamplingRule from '@/app/components/save_sampling_rule';
+import { EventCondition, EventConditions, SessionCondition, SessionConditions, TraceCondition, TraceConditions } from '@/app/utils/cel-types';
+import { generateEventRuleCelArray, generateSessionRuleCelArray, generateTraceRuleCelArray, getDefaultOperatorForType } from '@/app/utils/cel-utils';
 import { useRouter } from 'next/navigation';
-import { Trash2 } from 'lucide-react';
-import { EventCondition, SessionCondition, TraceCondition, EventConditions, SessionConditions, TraceConditions } from '@/app/utils/cel-types';
-import { generateEventRuleCelArray, generateTraceRuleCelArray, generateSessionRuleCelArray, getDefaultOperatorForType } from '@/app/utils/cel-utils';
+import { useEffect, useState } from 'react';
 
 export type SamplingRulesConfig = typeof emptySamplingRulesConfigResponse;
 const MAX_CONDITIONS = 5;
@@ -210,13 +212,18 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
         operators: []
     })
     const [traceConditionsState, setTraceConditionsState] = useState<TraceConditions>({
-        conditions: [createEmptyTraceCondition()],
+        conditions: [],
         operators: []
     })
     const [samplingRateState, setSamplingRateState] = useState<SamplingRateState>({
         value: 100
     });
     const [samplingRuleStatus, setSamplingRuleStatus] = useState<'enabled' | 'disabled'>('enabled'); // TODO: handle status change
+
+    // Collapsible sections state
+    const [eventSectionCollapsed, setEventSectionCollapsed] = useState(false);
+    const [traceSectionCollapsed, setTraceSectionCollapsed] = useState(false);
+    const [sessionSectionCollapsed, setSessionSectionCollapsed] = useState(false);
 
     const updatePageState = (newState: Partial<PageState>) => {
         setPageState(prevState => {
@@ -291,6 +298,9 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
             if (typeof ruleData.sampling_rate === 'number') {
                 setSamplingRateState({ value: ruleData.sampling_rate * 100 })
             }
+            if (typeof ruleData.status === 'number') {
+                setSamplingRuleStatus(ruleData.status === 1 ? 'enabled' : 'disabled')
+            }
 
             // TODO: Parse conditions arrays back into UI state
             // For now, we'll keep the existing empty state
@@ -327,26 +337,6 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
         }
     }, [pageState.samplingRulesConfig, type]);
 
-    // Effect to set the first span name when span names are available
-    useEffect(() => {
-        const spanNames = getSpanNamesFromResponse(pageState.samplingRulesConfig);
-
-        if (spanNames.length > 0 && type === 'trace') {
-            setTraceConditionsState(prevState => {
-                // Only update if the first condition doesn't have a span name set
-                if (prevState.conditions.length > 0 && prevState.conditions[0].spanName === null) {
-                    const updatedConditions = prevState.conditions.map((condition, index) =>
-                        index === 0 ? { ...condition, spanName: spanNames[0] } : condition
-                    );
-                    return {
-                        ...prevState,
-                        conditions: updatedConditions
-                    };
-                }
-                return prevState;
-            });
-        }
-    }, [pageState.samplingRulesConfig, type]);
 
     const handleTitleChange = (title: string) => {
         setSamplingRuleName(title);
@@ -787,7 +777,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
         const ruleData = {
             type: type,
             name: samplingRuleName || '', // TODO: add validation
-            status: 1,
+            status: samplingRuleStatus === 'enabled' ? 1 : 0,
             sampling_rate: Number(samplingRateState.value) / 100, // Convert percentage to decimal
             event_rule: eventRuleCel,
             trace_rule: traceRuleCel,
@@ -827,7 +817,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
             id: params.ruleId || '', // TODO: add validation
             type: type,
             name: samplingRuleName || '', // TODO: add validation
-            status: 1,
+            status: samplingRuleStatus === 'enabled' ? 1 : 0,
             sampling_rate: Number(samplingRateState.value) / 100, // Convert percentage to decimal
             event_rule: eventRuleCel,
             trace_rule: traceRuleCel,
@@ -857,32 +847,58 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
-            <div className="flex flex-row items-center gap-2 justify-between w-full">
-                <SamplingEditableTitle
-                    initialValue={samplingRuleName}
-                    onTitleChange={handleTitleChange}
-                    showEditButton={isPageReady(pageState, isEditMode)}
-                    isLoading={isPageLoading(pageState, isEditMode)}
+            <div className="flex flex-row items-start gap-2 justify-between w-full">
+                <div className="flex flex-col">
+                    <h1 className="font-display text-4xl">Session Targeting Rule</h1>
+                    {isPageReady(pageState, isEditMode) && (
+                        <>
+                            <div className="py-2" />
+                            <span className={`w-fit px-2 py-1 rounded-full border text-sm font-body ${samplingRuleStatus === 'enabled' ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>
+                                {samplingRuleStatus === 'enabled' ? 'Enabled' : 'Disabled'}
+                            </span>
+                            <div className="py-4" />
+                            <div className="grid gap-y-4 items-center max-w-2xl" style={{ gridTemplateColumns: '120px 1fr' }}>
+                                <p className="text-sm">Rule name</p>
+                                <input
+                                    type="text"
+                                    placeholder="Enter rule name"
+                                    value={samplingRuleName || ""}
+                                    maxLength={64}
+                                    onChange={(e) => setSamplingRuleName(e.target.value)}
+                                    className="border border-black rounded-md outline-none text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
+                                />
+                                <p className="text-sm">Sampling rate</p>
+                                <div className="flex items-center">
+                                    <input
+                                        type="number"
+                                        placeholder="0-100"
+                                        value={samplingRateState.value}
+                                        min={0}
+                                        max={100}
+                                        onChange={(e) => {
+                                            setSamplingRateState({ value: e.target.value });
+                                        }}
+                                        onBlur={(e) => {
+                                            const val = Number(e.target.value);
+                                            setSamplingRateState({
+                                                value: Math.max(0, Math.min(100, isNaN(val) ? 0 : val))
+                                            });
+                                        }}
+                                        className="w-20 border border-black rounded-md outline-none text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    />
+                                    <span className="text-sm ml-2">%</span>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+                <SaveSamplingRule
+                    isEditMode={isEditMode}
+                    isReady={isPageReady(pageState, isEditMode)}
+                    isDisabled={conditionsAreEmpty}
+                    onPublish={handleCreateSamplingRule}
+                    onUpdate={handleUpdateSamplingRule}
                 />
-                {/* Only show Publish button when all required data is loaded */}
-                {isPageReady(pageState, isEditMode) && (
-                    <Button
-                        variant="outline"
-                        className="font-display border border-black select-none"
-                        disabled={conditionsAreEmpty}
-                        onClick={() => {
-                            if (isEditMode) {
-                                // Update existing rule
-                                handleUpdateSamplingRule();
-                            } else {
-                                // Create new rule
-                                handleCreateSamplingRule();
-                            }
-                        }}
-                    >
-                        {isEditMode ? 'Update Rule' : 'Publish Rule'}
-                    </Button>
-                )}
             </div>
             <div className="py-4" />
 
@@ -900,58 +916,23 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
 
             {/* Main sampling conditions UI */}
             {isPageReady(pageState, isEditMode) && (
-                <div className="w-full space-y-6">
+                <div className="w-full space-y-4">
 
-                    {/* Sampling rate */}
-                    <div className="w-full">
-                        <div className="flex justify-between">
-                            <div className="flex items-center gap-2">
-                                <p className="font-display text-xl max-w-6xl">Sampling rate</p>
-                            </div>
-                        </div>
 
-                        <div className="pt-2">
-                            <input
-                                type="number"
-                                placeholder="0-100"
-                                value={samplingRateState.value}
-                                min={0}
-                                max={100}
-                                onChange={(e) => {
-                                    setSamplingRateState({ value: e.target.value });
-                                }}
-                                onBlur={(e) => {
-                                    const val = Number(e.target.value);
-                                    setSamplingRateState({
-                                        value: Math.max(0, Math.min(100, isNaN(val) ? 0 : val))
-                                    });
-                                }}
-                                className="w-16 my-2 border border-black rounded-md outline-hidden text-xs focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-2 font-body placeholder:text-neutral-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            /> %
-                        </div>
-                    </div>
-
-                    <div className="py-2" />
 
                     {/* Event conditions - only show for non-trace rules */}
                     {type !== 'trace' && (
-                        <div className="w-full">
-                            <div className="flex justify-start items-center gap-4">
-                                <div className="flex items-center gap-2">
-                                    <p className="font-display text-xl max-w-6xl">Event conditions</p>
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={addEventCondition}
-                                    disabled={eventConditionsState.conditions.length >= MAX_CONDITIONS}
-                                >
-                                    + Add condition
-                                </Button>
-                            </div>
-
+                        <SamplingConditionSection
+                            title="Event Conditions"
+                            description="Target sessions based on specific events that occurred during the session timeline. Example: collect timelines where a 'login_failed' event was triggered, an 'add_to_cart' action happened, or a custom event like 'payment_completed' was recorded."
+                            conditionCount={eventConditionsState.conditions.length}
+                            maxConditions={MAX_CONDITIONS}
+                            isCollapsed={eventSectionCollapsed}
+                            onToggleCollapse={() => setEventSectionCollapsed(!eventSectionCollapsed)}
+                            onAddCondition={addEventCondition}
+                        >
                             {eventConditionsState.conditions.length > 0 && (
-                                <div className="pt-4">
+                                <div className="pt-1">
                                     {eventConditionsState.conditions.map((condition, index) => {
                                         const availableAttrs = condition.type ? getEventAttributes(pageState.samplingRulesConfig, condition.type) : []
                                         const canAddMoreRegularAttrs = canAddMoreAttributes(condition, availableAttrs, 'attrs')
@@ -960,102 +941,27 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
 
                                         return (
                                             <div key={index}>
-                                                <div className="bg-gray-50 p-3 space-y-6 rounded-lg border">
-                                                    <div className="flex justify-between items-center">
-                                                        <div className="flex flex-row items-center">
-                                                            <p className="text-sm">Event Type</p>
-                                                            <div className="px-3" />
-                                                            <DropdownSelect
-                                                                type={DropdownSelectType.SingleString}
-                                                                title="Select Event Type"
-                                                                items={eventTypes}
-                                                                initialSelected={condition.type || ""}
-                                                                onChangeSelected={(selected) => {
-                                                                    updateEventCondition(index, selected as string)
-                                                                }}
-                                                            />
-                                                        </div>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => removeEventCondition(index)}
-                                                            className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
-                                                        >
-                                                            <Trash2 className="h-3 w-3" />
-                                                        </Button>
-                                                    </div>
-
-                                                    {(availableAttrs.length > 0 || (condition.type && doesEventSupportUdAttrs(pageState.samplingRulesConfig, condition.type) && globalUserDefinedAttrs.length > 0)) && (
-                                                        <div className="space-y-3">
-                                                            <div className="flex items-center gap-3">
-                                                                <p className="text-sm">Attributes</p>
-                                                                {availableAttrs.length > 0 && (
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => addAttribute(index, 'attrs')}
-                                                                        disabled={!canAddMoreRegularAttrs}
-                                                                        className="text-xs"
-                                                                    >
-                                                                        + Add attribute
-                                                                    </Button>
-                                                                )}
-                                                                {condition.type && doesEventSupportUdAttrs(pageState.samplingRulesConfig, condition.type) && globalUserDefinedAttrs.length > 0 && (
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => addAttribute(index, 'udAttrs')}
-                                                                        disabled={!canAddMoreUdAttrs}
-                                                                        className="text-xs"
-                                                                    >
-                                                                        + Add user-defined attribute
-                                                                    </Button>
-                                                                )}
-                                                            </div>
-
-                                                            {condition.attrs && condition.attrs.map((attr, attrIndex) => {
-                                                                const operatorTypes = getOperatorsForType(operatorTypesMapping, attr.type)
-                                                                const availableAttrKeys = availableAttrs.map(a => a.key);
-
-                                                                return (
-                                                                    <SamplingAttributeRow
-                                                                        key={`attrs-${index}-${attrIndex}`}
-                                                                        attr={attr}
-                                                                        attrIndex={attrIndex}
-                                                                        conditionIndex={index}
-                                                                        attributeType="attrs"
-                                                                        availableAttrKeys={availableAttrKeys}
-                                                                        operatorTypes={operatorTypes}
-                                                                        onUpdateAttribute={updateAttribute}
-                                                                        onRemoveAttribute={removeAttribute}
-                                                                    />
-                                                                )
-                                                            })}
-
-                                                            {condition.udAttrs && condition.udAttrs.map((udAttr, udAttrIndex) => {
-                                                                const operatorTypes = getOperatorsForType(operatorTypesMapping, udAttr.type)
-                                                                const availableUdAttrKeys = globalUserDefinedAttrs.map(a => a.key);
-
-                                                                return (
-                                                                    <SamplingAttributeRow
-                                                                        key={`udAttrs-${index}-${udAttrIndex}`}
-                                                                        attr={udAttr}
-                                                                        attrIndex={udAttrIndex}
-                                                                        conditionIndex={index}
-                                                                        attributeType="udAttrs"
-                                                                        availableAttrKeys={availableUdAttrKeys}
-                                                                        operatorTypes={operatorTypes}
-                                                                        onUpdateAttribute={updateAttribute}
-                                                                        onRemoveAttribute={removeAttribute}
-                                                                    />
-                                                                )
-                                                            })}
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                <SamplingEventCondition
+                                                    condition={condition}
+                                                    index={index}
+                                                    eventTypes={eventTypes}
+                                                    availableAttrs={availableAttrs}
+                                                    globalUserDefinedAttrs={globalUserDefinedAttrs}
+                                                    operatorTypesMapping={operatorTypesMapping}
+                                                    canAddMoreRegularAttrs={canAddMoreRegularAttrs}
+                                                    canAddMoreUdAttrs={canAddMoreUdAttrs}
+                                                    doesEventSupportUdAttrs={doesEventSupportUdAttrs}
+                                                    pageConfig={pageState.samplingRulesConfig}
+                                                    onUpdateCondition={updateEventCondition}
+                                                    onRemoveCondition={removeEventCondition}
+                                                    onAddAttribute={addAttribute}
+                                                    onUpdateAttribute={updateAttribute}
+                                                    onRemoveAttribute={removeAttribute}
+                                                    getOperatorsForType={getOperatorsForType}
+                                                />
 
                                                 {index < eventConditionsState.conditions.length - 1 && (
-                                                    <div className="flex justify-start">
+                                                    <div className="flex justify-center">
                                                         <SamplingLogicalOperatorSelector
                                                             value={eventConditionsState.operators[index] || 'AND'}
                                                             onChange={(operator) => updateEventOperator(index, operator)}
@@ -1067,173 +973,85 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                                     })}
                                 </div>
                             )}
-                        </div>
+                        </SamplingConditionSection>
                     )}
 
-                    {/* Trace conditions - only show for trace rules */}
-                    {type === 'trace' && (
-                        <div className="w-full">
-                            <div className="flex justify-start items-center gap-4">
-                                <div className="flex items-center gap-2">
-                                    <p className="font-display text-xl max-w-6xl">Trace conditions</p>
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={addTraceCondition}
-                                    disabled={traceConditionsState.conditions.length >= MAX_CONDITIONS}
-                                >
-                                    + Add condition
-                                </Button>
-                            </div>
 
-                            {traceConditionsState.conditions.length > 0 && (
-                                <div className="pt-4">
-                                    {traceConditionsState.conditions.map((condition, index) => {
-                                        const spanUdAttrs = getSpanUserDefinedAttributes(pageState.samplingRulesConfig);
-                                        const canAddMoreUdAttrs = condition.udAttrs ? condition.udAttrs.length < MAX_ATTRIBUTES_PER_CONDITION : true;
+                    {/* Trace conditions */}
+                    <SamplingConditionSection
+                        title="Trace Conditions"
+                        description="Target sessions based on application performance spans and trace data. Example: collect timelines where an 'Order Created' span took longer than 1000ms, a database query exceeded 500ms, or any network request had high latency."
+                        conditionCount={traceConditionsState.conditions.length}
+                        maxConditions={MAX_CONDITIONS}
+                        isCollapsed={traceSectionCollapsed}
+                        onToggleCollapse={() => setTraceSectionCollapsed(!traceSectionCollapsed)}
+                        onAddCondition={addTraceCondition}
+                    >
+                        {traceConditionsState.conditions.length > 0 && (
+                            <div className="pt-1">
+                                {traceConditionsState.conditions.map((condition, index) => {
+                                    const spanUdAttrs = getSpanUserDefinedAttributes(pageState.samplingRulesConfig);
+                                    const canAddMoreUdAttrs = condition.udAttrs ? condition.udAttrs.length < MAX_ATTRIBUTES_PER_CONDITION : true;
 
-                                        return (
-                                            <div key={index}>
-                                                <div className="bg-gray-50 p-3 space-y-6 rounded-lg border">
-                                                    <div className="flex justify-between items-center">
-                                                        <div className="flex flex-row items-center">
-                                                            <p className="text-sm">Span Name</p>
-                                                            <div className="px-3" />
-                                                            <DropdownSelect
-                                                                type={DropdownSelectType.SingleString}
-                                                                title="Select Span Name"
-                                                                items={spanNames}
-                                                                initialSelected={condition.spanName || ""}
-                                                                onChangeSelected={(selected) => {
-                                                                    updateTraceCondition(index, selected as string)
-                                                                }}
-                                                            />
-                                                        </div>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => removeTraceCondition(index)}
-                                                            className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
-                                                        >
-                                                            <Trash2 className="h-3 w-3" />
-                                                        </Button>
-                                                    </div>
+                                    return (
+                                        <div key={index}>
+                                            <SamplingTraceCondition
+                                                condition={condition}
+                                                index={index}
+                                                spanNames={spanNames}
+                                                spanUdAttrs={spanUdAttrs}
+                                                operatorTypesMapping={operatorTypesMapping}
+                                                canAddMoreUdAttrs={canAddMoreUdAttrs}
+                                                onRemoveCondition={removeTraceCondition}
+                                                onAddAttribute={addTraceAttribute}
+                                                onUpdateSpanName={updateTraceCondition}
+                                                onUpdateAttribute={updateTraceAttribute}
+                                                onRemoveAttribute={removeTraceAttribute}
+                                                getOperatorsForType={getOperatorsForType}
+                                            />
 
-                                                    {spanUdAttrs.length > 0 && (
-                                                        <div className="space-y-3">
-                                                            <div className="flex items-center gap-3">
-                                                                <p className="text-sm">User-defined Attributes</p>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    onClick={() => addTraceAttribute(index)}
-                                                                    disabled={!canAddMoreUdAttrs || !spanUdAttrs.length}
-                                                                    className="text-xs"
-                                                                >
-                                                                    + Add attribute
-                                                                </Button>
-                                                            </div>
-
-                                                            {condition.udAttrs && condition.udAttrs.map((udAttr, udAttrIndex) => {
-                                                                const operatorTypes = getOperatorsForType(operatorTypesMapping, udAttr.type)
-                                                                const availableUdAttrKeys = spanUdAttrs.map(a => a.key);
-
-                                                                return (
-                                                                    <SamplingAttributeRow
-                                                                        key={`trace-udAttrs-${index}-${udAttrIndex}`}
-                                                                        attr={udAttr}
-                                                                        attrIndex={udAttrIndex}
-                                                                        conditionIndex={index}
-                                                                        attributeType="udAttrs"
-                                                                        availableAttrKeys={availableUdAttrKeys}
-                                                                        operatorTypes={operatorTypes}
-                                                                        onUpdateAttribute={updateTraceAttribute}
-                                                                        onRemoveAttribute={removeTraceAttribute}
-                                                                    />
-                                                                )
-                                                            })}
-                                                        </div>
-                                                    )}
+                                            {index < traceConditionsState.conditions.length - 1 && (
+                                                <div className="flex justify-center">
+                                                    <SamplingLogicalOperatorSelector
+                                                        value={traceConditionsState.operators[index] || 'AND'}
+                                                        onChange={(operator) => updateTraceOperator(index, operator)}
+                                                    />
                                                 </div>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </SamplingConditionSection>
 
-                                                {index < traceConditionsState.conditions.length - 1 && (
-                                                    <div className="flex justify-start">
-                                                        <SamplingLogicalOperatorSelector
-                                                            value={traceConditionsState.operators[index] || 'AND'}
-                                                            onChange={(operator) => updateTraceOperator(index, operator)}
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    <div className="py-2" />
 
                     {/* Session conditions */}
-                    <div className="w-full">
-                        <div className="flex justify-start items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <p className="font-display text-xl max-w-6xl">Session conditions</p>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={addSessionCondition}
-                                disabled={sessionConditionsState.conditions.length >= MAX_CONDITIONS}
-                            >
-                                + Add condition
-                            </Button>
-                        </div>
-
+                    <SamplingConditionSection
+                        title="Session Conditions"
+                        description="Target sessions based on user context, device characteristics, and application environment. Example: collect timelines from app version 1.2.0, iOS 16+ devices, specific user segments, or sessions from particular geographic regions or network conditions."
+                        conditionCount={sessionConditionsState.conditions.length}
+                        maxConditions={MAX_CONDITIONS}
+                        isCollapsed={sessionSectionCollapsed}
+                        onToggleCollapse={() => setSessionSectionCollapsed(!sessionSectionCollapsed)}
+                        onAddCondition={addSessionCondition}
+                    >
                         {sessionConditionsState.conditions.length > 0 && (
-                            <div className="pt-4">
+                            <div className="pt-1">
                                 {sessionConditionsState.conditions.map((condition, index) => (
                                     <div key={index}>
-                                        <div className="bg-gray-50 p-3 space-y-6 rounded-lg border">
-                                            <div className="flex justify-between items-center">
-                                                <div className="flex-1">
-                                                    {sessionAttrs.length > 0 && condition.attrs && (
-                                                        <div className="space-y-3">
-                                                            {condition.attrs.map((attr, attrIndex) => {
-                                                                const operatorTypes = getOperatorsForType(operatorTypesMapping, attr.type)
-                                                                const availableSessionAttrKeys = sessionAttrs.map(a => a.key);
-
-                                                                return (
-                                                                    <SamplingAttributeRow
-                                                                        key={`session-attrs-${index}-${attrIndex}`}
-                                                                        attr={attr}
-                                                                        attrIndex={attrIndex}
-                                                                        conditionIndex={index}
-                                                                        attributeType="attrs"
-                                                                        availableAttrKeys={availableSessionAttrKeys}
-                                                                        operatorTypes={operatorTypes}
-                                                                        onUpdateAttribute={updateSessionAttribute}
-                                                                        showDeleteButton={false}
-                                                                    />
-                                                                )
-                                                            })}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => removeSessionCondition(index)}
-                                                    className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
-                                                >
-                                                    <Trash2 className="h-3 w-3" />
-                                                </Button>
-                                            </div>
-                                        </div>
+                                        <SamplingSessionCondition
+                                            condition={condition}
+                                            index={index}
+                                            sessionAttrs={sessionAttrs}
+                                            operatorTypesMapping={operatorTypesMapping}
+                                            onRemoveCondition={removeSessionCondition}
+                                            onUpdateAttribute={updateSessionAttribute}
+                                            getOperatorsForType={getOperatorsForType}
+                                        />
 
                                         {index < sessionConditionsState.conditions.length - 1 && (
-                                            <div className="flex justify-start">
+                                            <div className="flex justify-center">
                                                 <SamplingLogicalOperatorSelector
                                                     value={sessionConditionsState.operators[index] || 'AND'}
                                                     onChange={(operator) => updateSessionOperator(index, operator)}
@@ -1244,7 +1062,7 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                                 ))}
                             </div>
                         )}
-                    </div>
+                    </SamplingConditionSection>
                 </div>
             )}
         </div>
