@@ -726,7 +726,7 @@ func formatDailySummaryEmailBody(appName, dashboardURL string, date time.Time, m
             <!-- Date Header -->
             <div style="text-align: center; margin-bottom: 32px;">
                 <h2 style="margin: 0; font-size: 18px; color: #2d3748; font-family: 'Josefin Sans', sans-serif; font-weight: 600;">
-                    %s
+                    %s (Last 24 hours)
                 </h2>
             </div>
 
