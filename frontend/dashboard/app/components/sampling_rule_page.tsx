@@ -914,105 +914,111 @@ export default function SamplingRulePage({ params, isEditMode }: SamplingRulePag
                 <LoadingSpinner />
             )}
 
+            <div className="py-4" />
+
             {/* Main sampling conditions UI */}
             {isPageReady(pageState, isEditMode) && (
                 <div className="w-full space-y-4">
+                    <div className="w-full space-y-4">
+                        <h2 className="text-xl font-display">Configure conditions</h2>
+                        <p className="text-sm text-gray-600 mb-4">
+                            Target sessions by selecting specific events and session properties (device, user, app attributes).
+                        </p>
 
+                        {/* Event conditions - only show for non-trace rules */}
+                        {type !== 'trace' && (
+                            <SamplingConditionSection
+                                title="Event Conditions"
+                                description="Target sessions based on specific events that occurred during the session timeline. Example: collect timelines where a 'login_failed' event was triggered, an 'add_to_cart' action happened, or a custom event like 'payment_completed' was recorded."
+                                conditionCount={eventConditionsState.conditions.length}
+                                maxConditions={MAX_CONDITIONS}
+                                isCollapsed={eventSectionCollapsed}
+                                onToggleCollapse={() => setEventSectionCollapsed(!eventSectionCollapsed)}
+                                onAddCondition={addEventCondition}
+                            >
+                                {eventConditionsState.conditions.length > 0 && (
+                                    <div className="pt-1">
+                                        {eventConditionsState.conditions.map((condition, index) => {
+                                            const availableAttrs = condition.type ? getEventAttributes(pageState.samplingRulesConfig, condition.type) : []
+                                            const canAddMoreRegularAttrs = canAddMoreAttributes(condition, availableAttrs, 'attrs')
+                                            const globalUserDefinedAttrs = getUserDefinedAttributes(pageState.samplingRulesConfig)
+                                            const canAddMoreUdAttrs = canAddMoreAttributes(condition, globalUserDefinedAttrs, 'udAttrs')
 
+                                            return (
+                                                <div key={index}>
+                                                    <SamplingEventCondition
+                                                        condition={condition}
+                                                        index={index}
+                                                        eventTypes={eventTypes}
+                                                        availableAttrs={availableAttrs}
+                                                        globalUserDefinedAttrs={globalUserDefinedAttrs}
+                                                        operatorTypesMapping={operatorTypesMapping}
+                                                        canAddMoreRegularAttrs={canAddMoreRegularAttrs}
+                                                        canAddMoreUdAttrs={canAddMoreUdAttrs}
+                                                        doesEventSupportUdAttrs={doesEventSupportUdAttrs}
+                                                        pageConfig={pageState.samplingRulesConfig}
+                                                        onUpdateCondition={updateEventCondition}
+                                                        onRemoveCondition={removeEventCondition}
+                                                        onAddAttribute={addAttribute}
+                                                        onUpdateAttribute={updateAttribute}
+                                                        onRemoveAttribute={removeAttribute}
+                                                        getOperatorsForType={getOperatorsForType}
+                                                    />
 
-                    {/* Event conditions - only show for non-trace rules */}
-                    {type !== 'trace' && (
+                                                    {index < eventConditionsState.conditions.length - 1 && (
+                                                        <div className="flex justify-center">
+                                                            <SamplingLogicalOperatorSelector
+                                                                value={eventConditionsState.operators[index] || 'AND'}
+                                                                onChange={(operator) => updateEventOperator(index, operator)}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                )}
+                            </SamplingConditionSection>
+                        )}
+
+                        {/* Session conditions */}
                         <SamplingConditionSection
-                            title="Event Conditions"
-                            description="Target sessions based on specific events that occurred during the session timeline. Example: collect timelines where a 'login_failed' event was triggered, an 'add_to_cart' action happened, or a custom event like 'payment_completed' was recorded."
-                            conditionCount={eventConditionsState.conditions.length}
+                            title="Session Conditions"
+                            description="Target sessions based on user context, device characteristics, and application environment. Example: collect timelines from app version 1.2.0, iOS 16+ devices, specific user segments, or sessions from particular geographic regions or network conditions."
+                            conditionCount={sessionConditionsState.conditions.length}
                             maxConditions={MAX_CONDITIONS}
-                            isCollapsed={eventSectionCollapsed}
-                            onToggleCollapse={() => setEventSectionCollapsed(!eventSectionCollapsed)}
-                            onAddCondition={addEventCondition}
+                            isCollapsed={sessionSectionCollapsed}
+                            onToggleCollapse={() => setSessionSectionCollapsed(!sessionSectionCollapsed)}
+                            onAddCondition={addSessionCondition}
                         >
-                            {eventConditionsState.conditions.length > 0 && (
+                            {sessionConditionsState.conditions.length > 0 && (
                                 <div className="pt-1">
-                                    {eventConditionsState.conditions.map((condition, index) => {
-                                        const availableAttrs = condition.type ? getEventAttributes(pageState.samplingRulesConfig, condition.type) : []
-                                        const canAddMoreRegularAttrs = canAddMoreAttributes(condition, availableAttrs, 'attrs')
-                                        const globalUserDefinedAttrs = getUserDefinedAttributes(pageState.samplingRulesConfig)
-                                        const canAddMoreUdAttrs = canAddMoreAttributes(condition, globalUserDefinedAttrs, 'udAttrs')
+                                    {sessionConditionsState.conditions.map((condition, index) => (
+                                        <div key={index}>
+                                            <SamplingSessionCondition
+                                                condition={condition}
+                                                index={index}
+                                                sessionAttrs={sessionAttrs}
+                                                operatorTypesMapping={operatorTypesMapping}
+                                                onRemoveCondition={removeSessionCondition}
+                                                onUpdateAttribute={updateSessionAttribute}
+                                                getOperatorsForType={getOperatorsForType}
+                                            />
 
-                                        return (
-                                            <div key={index}>
-                                                <SamplingEventCondition
-                                                    condition={condition}
-                                                    index={index}
-                                                    eventTypes={eventTypes}
-                                                    availableAttrs={availableAttrs}
-                                                    globalUserDefinedAttrs={globalUserDefinedAttrs}
-                                                    operatorTypesMapping={operatorTypesMapping}
-                                                    canAddMoreRegularAttrs={canAddMoreRegularAttrs}
-                                                    canAddMoreUdAttrs={canAddMoreUdAttrs}
-                                                    doesEventSupportUdAttrs={doesEventSupportUdAttrs}
-                                                    pageConfig={pageState.samplingRulesConfig}
-                                                    onUpdateCondition={updateEventCondition}
-                                                    onRemoveCondition={removeEventCondition}
-                                                    onAddAttribute={addAttribute}
-                                                    onUpdateAttribute={updateAttribute}
-                                                    onRemoveAttribute={removeAttribute}
-                                                    getOperatorsForType={getOperatorsForType}
-                                                />
-
-                                                {index < eventConditionsState.conditions.length - 1 && (
-                                                    <div className="flex justify-center">
-                                                        <SamplingLogicalOperatorSelector
-                                                            value={eventConditionsState.operators[index] || 'AND'}
-                                                            onChange={(operator) => updateEventOperator(index, operator)}
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )
-                                    })}
+                                            {index < sessionConditionsState.conditions.length - 1 && (
+                                                <div className="flex justify-center">
+                                                    <SamplingLogicalOperatorSelector
+                                                        value={sessionConditionsState.operators[index] || 'AND'}
+                                                        onChange={(operator) => updateSessionOperator(index, operator)}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </SamplingConditionSection>
-                    )}
-
-                    {/* Session conditions */}
-                    <SamplingConditionSection
-                        title="Session Conditions"
-                        description="Target sessions based on user context, device characteristics, and application environment. Example: collect timelines from app version 1.2.0, iOS 16+ devices, specific user segments, or sessions from particular geographic regions or network conditions."
-                        conditionCount={sessionConditionsState.conditions.length}
-                        maxConditions={MAX_CONDITIONS}
-                        isCollapsed={sessionSectionCollapsed}
-                        onToggleCollapse={() => setSessionSectionCollapsed(!sessionSectionCollapsed)}
-                        onAddCondition={addSessionCondition}
-                    >
-                        {sessionConditionsState.conditions.length > 0 && (
-                            <div className="pt-1">
-                                {sessionConditionsState.conditions.map((condition, index) => (
-                                    <div key={index}>
-                                        <SamplingSessionCondition
-                                            condition={condition}
-                                            index={index}
-                                            sessionAttrs={sessionAttrs}
-                                            operatorTypesMapping={operatorTypesMapping}
-                                            onRemoveCondition={removeSessionCondition}
-                                            onUpdateAttribute={updateSessionAttribute}
-                                            getOperatorsForType={getOperatorsForType}
-                                        />
-
-                                        {index < sessionConditionsState.conditions.length - 1 && (
-                                            <div className="flex justify-center">
-                                                <SamplingLogicalOperatorSelector
-                                                    value={sessionConditionsState.operators[index] || 'AND'}
-                                                    onChange={(operator) => updateSessionOperator(index, operator)}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </SamplingConditionSection>
+                    </div>
                 </div>
             )}
         </div>
