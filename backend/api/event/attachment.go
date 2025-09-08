@@ -94,14 +94,15 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 			return
 		}
 
-		generation := int64(0)
-		if attrs != nil {
-			generation = attrs.Generation
+		// prepare conditional upload
+		var condObj *storage.ObjectHandle
+		if attrs == nil {
+			// Object doesn't exist: precondition for create-only
+			condObj = obj.If(storage.Conditions{DoesNotExist: true})
+		} else {
+			// Object exists: precondition for unchanged object
+			condObj = obj.If(storage.Conditions{GenerationMatch: attrs.Generation})
 		}
-
-		condObj := obj.If(storage.Conditions{
-			GenerationMatch: generation,
-		})
 
 		writer := condObj.NewWriter(ctx)
 		writer.ContentType = contentType
@@ -113,7 +114,7 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 		}
 
 		if err = writer.Close(); err != nil {
-			fmt.Printf("failed to close storage writer key: %s bucket: %s: %v\n", a.Key, config.AttachmentsBucket, err)
+			fmt.Printf("failed to close storage writer, key: %s bucket: %s: %v\n", a.Key, config.AttachmentsBucket, err)
 			return
 		}
 
