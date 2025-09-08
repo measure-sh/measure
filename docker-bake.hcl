@@ -4,6 +4,7 @@ target "api" {
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
   platforms = ["linux/amd64", "linux/arm64"]
+  tags = ["${{ steps.meta.outputs.tags }}"]
 }
 
 target "alerts" {
@@ -12,6 +13,7 @@ target "alerts" {
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
   platforms = ["linux/amd64", "linux/arm64"]
+  tags = ["${{ steps.meta.outputs.tags }}"]
 }
 
 target "symboloader" {
@@ -20,6 +22,7 @@ target "symboloader" {
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
   platforms = ["linux/amd64", "linux/arm64"]
+  tags = ["${{ steps.meta.outputs.tags }}"]
 }
 
 target "metering" {
@@ -28,6 +31,7 @@ target "metering" {
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
   platforms = ["linux/amd64", "linux/arm64"]
+  tags = ["${{ steps.meta.outputs.tags }}"]
 }
 
 target "cleanup" {
@@ -36,6 +40,7 @@ target "cleanup" {
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
   platforms = ["linux/amd64", "linux/arm64"]
+  tags = ["${{ steps.meta.outputs.tags }}"]
 }
 
 target "dashboard" {
@@ -44,4 +49,5 @@ target "dashboard" {
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
   platforms = ["linux/amd64"]
+  tags = ["${{ steps.meta.outputs.tags }}"]
 }
