@@ -3,7 +3,6 @@ name: Publish OCI images
 on:
   push:
     branches:
-      - "deploy"
       - "cloud*"
 
 permissions:
