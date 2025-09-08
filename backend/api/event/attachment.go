@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"mime"
+	"net/http"
 	"net/url"
 	"path/filepath"
 	"slices"
@@ -18,10 +19,18 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
+	"google.golang.org/api/googleapi"
 )
 
 // attachmentTypes is a list of all valid attachment types.
 var attachmentTypes = []string{"screenshot", "android_method_trace", "layout_snapshot"}
+
+// isNotFound checks if error is a googleapi
+// not found error.
+func isNotFound(err error) bool {
+	var gerr *googleapi.Error
+	return errors.As(err, &gerr) && gerr.Code == http.StatusNotFound
+}
 
 type Attachment struct {
 	ID       uuid.UUID `json:"id"`
@@ -72,9 +81,29 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 			return
 		}
 
-		defer client.Close()
+		defer func() {
+			if err := client.Close(); err != nil {
+				fmt.Printf("failed to close storage client: %v\n", err)
+			}
+		}()
+
 		obj := client.Bucket(config.AttachmentsBucket).Object(a.Key)
-		writer := obj.NewWriter(ctx)
+		attrs, errAttrs := obj.Attrs(ctx)
+		if errAttrs != nil && !isNotFound(errAttrs) {
+			err = errAttrs
+			return
+		}
+
+		generation := int64(0)
+		if attrs != nil {
+			generation = attrs.Generation
+		}
+
+		condObj := obj.If(storage.Conditions{
+			GenerationMatch: generation,
+		})
+
+		writer := condObj.NewWriter(ctx)
 		writer.ContentType = contentType
 		writer.Metadata = metadata
 

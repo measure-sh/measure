@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "deploy"
+      - "cloud*"
 
 permissions:
   contents: read
