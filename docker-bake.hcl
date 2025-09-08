@@ -1,3 +1,5 @@
+target "docker-metadata-action" {}
+
 target "api" {
   context = "backend/api"
   dockerfile = "dockerfile"
@@ -23,6 +25,7 @@ target "symboloader" {
 }
 
 target "metering" {
+  inherits = ["docker-metadata-action"]
   context = "backend/metering"
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
