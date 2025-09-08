@@ -82,7 +82,9 @@ jobs:
           event-type: "cloud-deploy"
           client-payload: |-
             {
+              "ref_type": "${{ github.ref_type }}",
               "ref": "${{ github.ref }}",
+              "ref_name": "${{ github.ref_name }}",
               "sha": "${{ github.sha }}"
             }
   # env:
