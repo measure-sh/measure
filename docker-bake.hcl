@@ -1,6 +1,7 @@
 target "docker-metadata-action" {}
 
 target "api" {
+  inherits = ["docker-metadata-action"]
   context = "backend/api"
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
@@ -9,6 +10,7 @@ target "api" {
 }
 
 target "alerts" {
+  inherits = ["docker-metadata-action"]
   context = "backend/alerts"
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
@@ -17,6 +19,7 @@ target "alerts" {
 }
 
 target "symboloader" {
+  inherits = ["docker-metadata-action"]
   context = "backend/symboloader"
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
@@ -34,6 +37,7 @@ target "metering" {
 }
 
 target "cleanup" {
+  inherits = ["docker-metadata-action"]
   context = "backend/cleanup"
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
@@ -42,6 +46,7 @@ target "cleanup" {
 }
 
 target "dashboard" {
+  inherits = ["docker-metadata-action"]
   context = "frontend/dashboard"
   dockerfile = "dockerfile.prod"
   cache-from = ["type=gha"]
