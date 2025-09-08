@@ -32,6 +32,25 @@ func isNotFound(err error) bool {
 	return errors.As(err, &gerr) && gerr.Code == http.StatusNotFound
 }
 
+// buildAttachmentLocation builds the location of the attachment
+// object based on runtime environment.
+func buildAttachmentLocation(key string) (location string) {
+	config := server.Server.Config
+
+	if config.IsCloud() {
+		location = fmt.Sprintf("https://storage.googleapis.com/%s/%s", config.AttachmentsBucket, key)
+		return
+	}
+
+	if config.AWSEndpoint != "" {
+		location = fmt.Sprintf("%s/%s/%s", config.AWSEndpoint, config.AttachmentsBucket, key)
+	} else {
+		location = fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", config.AttachmentsBucket, config.AttachmentsBucketRegion, key)
+	}
+
+	return
+}
+
 type Attachment struct {
 	ID       uuid.UUID `json:"id"`
 	Name     string    `json:"name" binding:"required"`
@@ -94,17 +113,21 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 			return
 		}
 
-		// prepare conditional upload
-		var condObj *storage.ObjectHandle
-		if attrs == nil {
-			// Object doesn't exist: precondition for create-only
-			condObj = obj.If(storage.Conditions{DoesNotExist: true})
-		} else {
-			// Object exists: precondition for unchanged object
-			condObj = obj.If(storage.Conditions{GenerationMatch: attrs.Generation})
+		// for typical workloads, attachment objects will not exist
+		// while load testing, the same object maybe repeated multiple
+		// times. for such workloads, there's not much point in
+		// uploading the attachment again and hitting and dealing
+		// with conflicts (429s) and retries.
+		//
+		// so, exit early.
+		if attrs != nil {
+			// Object exists
+			// set the location and exit early
+			location = buildAttachmentLocation(obj.ObjectName())
+			return
 		}
 
-		writer := condObj.NewWriter(ctx)
+		writer := obj.NewWriter(ctx)
 		writer.ContentType = contentType
 		writer.Metadata = metadata
 
@@ -118,7 +141,7 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 			return
 		}
 
-		location = fmt.Sprintf("https://storage.googleapis.com/%s/%s", config.AttachmentsBucket, obj.ObjectName())
+		location = buildAttachmentLocation(obj.ObjectName())
 
 		return
 	}
@@ -137,11 +160,7 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 	// implement a better solution later using
 	// EndpointResolverV2 with custom resolvers
 	// for non-AWS clouds like GCS
-	if config.AWSEndpoint != "" {
-		location = fmt.Sprintf("%s/%s/%s", config.AWSEndpoint, config.AttachmentsBucket, a.Key)
-	} else {
-		location = fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", config.AttachmentsBucket, config.AttachmentsBucketRegion, a.Key)
-	}
+	location = buildAttachmentLocation(a.Key)
 
 	// ignore the putObjectOutput, don't need
 	// it for now
