@@ -157,7 +157,7 @@ export default function SessionTargetingOverview({ params }: { params: { teamId:
                         </TableHeader>
                         <TableBody>
                             {pageState.targetingRules.results?.map(({ id, name, status, last_modified_at, last_modified_by, sampling_rate }, idx) => {
-                                const ruleHref = `/${params.teamId}/session_targeting/${pageState.filters.app!.id}/${id}/${encodeURIComponent(name)}/edit`
+                                const ruleHref = `/${params.teamId}/session_targeting/${pageState.filters.app!.id}/${id}/edit`
                                 return (
                                     <TableRow
                                         key={`${idx}-${id}`}
