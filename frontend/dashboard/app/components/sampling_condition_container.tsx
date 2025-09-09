@@ -15,7 +15,7 @@ const SamplingConditionContainer = ({
     children
 }: SamplingConditionContainerProps) => {
     return (
-        <div className="group p-3 rounded-lg border border-gray-200 mx-4 hover:bg-gray-50 transition-colors duration-200">
+        <div className="group px-4 py-4 bg-sky-50">
             <div className="flex justify-between items-start">
                 <div className="flex-1">
                     {children}
@@ -24,7 +24,7 @@ const SamplingConditionContainer = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => onRemoveCondition(index)}
-                    className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 mt-1"
+                    className="h-6 w-6 p-2 hover:bg-yellow-200 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 mt-1"
                 >
                     <Trash2 className="h-3 w-3" />
                 </Button>

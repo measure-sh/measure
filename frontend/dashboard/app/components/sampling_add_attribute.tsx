@@ -14,8 +14,8 @@ const SamplingAddAttribute = ({ title, onAdd, disabled = false }: SamplingAddAtt
             <p className="text-sm">{title}</p>
             <Button
                 variant="ghost"
-                size="sm"
-                className="text-xs text-green-600 hover:text-green-700 hover:bg-green-50 p-1 h-6"
+                size="lg"
+                className="text-xs hover:bg-yellow-200 p-2 h-6"
                 onClick={onAdd}
                 disabled={disabled}
             >

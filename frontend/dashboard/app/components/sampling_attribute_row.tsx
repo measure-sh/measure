@@ -89,7 +89,7 @@ const SamplingAttributeRow = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => onRemoveAttribute(conditionIndex, attrIndex, attributeType)}
-                        className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600 flex-shrink-0 
+                        className="h-8 w-8 p-0 hover:bg-yellow-200 flex-shrink-0 
                        opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                     >
                         <X className="h-4 w-4" />
