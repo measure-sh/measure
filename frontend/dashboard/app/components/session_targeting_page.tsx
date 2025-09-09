@@ -5,10 +5,10 @@ import LoadingSpinner from '@/app/components/loading_spinner';
 import SamplingConditionSection from '@/app/components/sampling_condition_section';
 import SamplingEventCondition from '@/app/components/sampling_event_condition';
 import SamplingLogicalOperatorSelector from '@/app/components/sampling_logical_operator_selector';
-import SamplingSessionCondition from '@/app/components/session_condition';
 import SaveSessionTargetingRule from '@/app/components/save_session_targeting_rule';
-import { EventCondition, EventConditions, SessionCondition, SessionConditions, TraceCondition, TraceConditions } from '@/app/utils/cel-types';
-import { generateEventRuleCelArray, generateSessionRuleCelArray, generateTraceRuleCelArray, getDefaultOperatorForType } from '@/app/utils/cel-utils';
+import SamplingSessionCondition from '@/app/components/session_condition';
+import { EventCondition, EventConditions, SessionCondition, SessionConditions } from '@/app/utils/cel-types';
+import { generateEventRuleCelArray, generateSessionRuleCelArray, getDefaultOperatorForType } from '@/app/utils/cel-utils';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -31,7 +31,6 @@ interface SamplingRulePageProps {
     params: {
         teamId: string;
         appId: string;
-        type: string; // "trace" or "session"
         ruleId?: string; // Only present for edit mode
         ruleName?: string; // Only present for edit mode
     };
@@ -140,42 +139,25 @@ const isPageReady = (pageState: PageState, isEditMode: boolean): boolean => {
 
 // Helper function to check if conditions are empty
 const areConditionsEmpty = (
-    type: string,
     eventConditionsState: EventConditions,
     sessionConditionsState: SessionConditions,
-    traceConditionsState?: TraceConditions
 ): boolean => {
-    if (type === 'trace') {
-        // For trace rules, check trace conditions and session conditions
-        const hasValidTraceConditions = traceConditionsState?.conditions.some(condition => {
-            return condition.spanName !== null ||
-                (condition.udAttrs && condition.udAttrs.length > 0);
-        });
+    // For event rules, check event conditions and session conditions  
+    const hasValidEventConditions = eventConditionsState.conditions.some(condition => {
+        return condition.type !== null ||
+            (condition.attrs && condition.attrs.length > 0) ||
+            (condition.udAttrs && condition.udAttrs.length > 0);
+    });
 
-        const hasValidSessionConditions = sessionConditionsState.conditions.some(condition => {
-            return condition.attrs && condition.attrs.length > 0;
-        });
+    const hasValidSessionConditions = sessionConditionsState.conditions.some(condition => {
+        return condition.attrs && condition.attrs.length > 0;
+    });
 
-        return !hasValidTraceConditions && !hasValidSessionConditions;
-    } else {
-        // For event rules, check event conditions and session conditions  
-        const hasValidEventConditions = eventConditionsState.conditions.some(condition => {
-            return condition.type !== null ||
-                (condition.attrs && condition.attrs.length > 0) ||
-                (condition.udAttrs && condition.udAttrs.length > 0);
-        });
-
-        const hasValidSessionConditions = sessionConditionsState.conditions.some(condition => {
-            return condition.attrs && condition.attrs.length > 0;
-        });
-
-        return !hasValidEventConditions && !hasValidSessionConditions;
-    }
+    return !hasValidEventConditions && !hasValidSessionConditions;
 };
 
 export default function SessionTargetingPage({ params, isEditMode }: SamplingRulePageProps) {
     const router = useRouter()
-    const type = params.type
     const nameFromParams = isEditMode && params.ruleName ? decodeURIComponent(params.ruleName) : null
 
     const initialState: PageState = {
@@ -195,10 +177,6 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
         conditions: [],
         operators: []
     })
-    const [traceConditionsState, setTraceConditionsState] = useState<TraceConditions>({
-        conditions: [],
-        operators: []
-    })
     const [samplingRateState, setSamplingRateState] = useState<SamplingRateState>({
         value: 100
     });
@@ -206,7 +184,6 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
 
     // Collapsible sections state
     const [eventSectionCollapsed, setEventSectionCollapsed] = useState(false);
-    const [traceSectionCollapsed, setTraceSectionCollapsed] = useState(false);
     const [sessionSectionCollapsed, setSessionSectionCollapsed] = useState(false);
 
     const updatePageState = (newState: Partial<PageState>) => {
@@ -290,11 +267,9 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
             // For now, we'll keep the existing empty state
             // Future: Implement CEL parsing to populate:
             // - eventConditionsState from ruleData.event_rule
-            // - traceConditionsState from ruleData.trace_rule  
             // - sessionConditionsState from ruleData.session_rule
             console.log('Rule data loaded for editing:', {
                 event_rule: ruleData.event_rule,
-                trace_rule: ruleData.trace_rule,
                 session_rule: ruleData.session_rule
             });
         }
@@ -304,7 +279,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
     useEffect(() => {
         const eventTypes = getEventTypesFromResponse(pageState.sessionTargetingConfig);
 
-        if (eventTypes.length > 0 && type !== 'trace') {
+        if (eventTypes.length > 0) {
             setEventConditionsState(prevState => {
                 // Only update if the first condition doesn't have a type set
                 if (prevState.conditions.length > 0 && prevState.conditions[0].type === null) {
@@ -319,7 +294,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
                 return prevState;
             });
         }
-    }, [pageState.sessionTargetingConfig, type]);
+    }, [pageState.sessionTargetingConfig]);
 
 
     const handleTitleChange = (title: string) => {
@@ -587,24 +562,18 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
     const handleCreateSamplingRule = async () => {
         // Generate CEL expressions as arrays
         let eventRuleCel = null;
-        let traceRuleCel = null;
         let sessionRuleCel = null;
 
         sessionRuleCel = generateSessionRuleCelArray(sessionConditionsState);
-        if (type === 'trace') {
-            traceRuleCel = generateTraceRuleCelArray(traceConditionsState);
-        } else {
-            eventRuleCel = generateEventRuleCelArray(eventConditionsState);
-        }
+        eventRuleCel = generateEventRuleCelArray(eventConditionsState);
+
 
         // Prepare rule data
         const ruleData = {
-            type: type,
             name: samplingRuleName || '', // TODO: add validation
             status: SessionTargetingtatus === 'enabled' ? 1 : 0,
             sampling_rate: Number(samplingRateState.value) / 100, // Convert percentage to decimal
             event_rule: eventRuleCel,
-            trace_rule: traceRuleCel,
             session_rule: sessionRuleCel,
         };
 
@@ -626,25 +595,18 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
     const handleUpdateSamplingRule = async () => {
         // Generate CEL expressions as arrays
         let eventRuleCel = null;
-        let traceRuleCel = null;
         let sessionRuleCel = null;
 
         sessionRuleCel = generateSessionRuleCelArray(sessionConditionsState);
-        if (type === 'trace') {
-            traceRuleCel = generateTraceRuleCelArray(traceConditionsState);
-        } else {
-            eventRuleCel = generateEventRuleCelArray(eventConditionsState);
-        }
+        eventRuleCel = generateEventRuleCelArray(eventConditionsState);
 
         // Prepare rule data
         const ruleData = {
             id: params.ruleId || '', // TODO: add validation
-            type: type,
             name: samplingRuleName || '', // TODO: add validation
             status: SessionTargetingtatus === 'enabled' ? 1 : 0,
             sampling_rate: Number(samplingRateState.value) / 100, // Convert percentage to decimal
             event_rule: eventRuleCel,
-            trace_rule: traceRuleCel,
             session_rule: sessionRuleCel,
         };
 
@@ -666,7 +628,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
     const eventTypes = getEventTypesFromResponse(pageState.sessionTargetingConfig);
     const operatorTypesMapping = getOperatorTypesMapping(pageState.sessionTargetingConfig);
     const sessionAttrs = getSessionAttributes(pageState.sessionTargetingConfig);
-    const conditionsAreEmpty = areConditionsEmpty(type, eventConditionsState, sessionConditionsState, traceConditionsState);
+    const conditionsAreEmpty = areConditionsEmpty(eventConditionsState, sessionConditionsState);
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
@@ -743,8 +705,8 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
             {isPageReady(pageState, isEditMode) && (
                 <div className="w-full space-y-4">
                     <div className="w-full space-y-4">
-                        {/* Event conditions - only show for non-trace rules */}
-                        {type !== 'trace' && (
+                        {/* Event conditions */}
+                        {(
                             <SamplingConditionSection
                                 title="Event Conditions"
                                 conditionCount={eventConditionsState.conditions.length}

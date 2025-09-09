@@ -1036,10 +1036,6 @@ export const emptySamplingRuleResponse = {
       conditions: string[],
       operators: ('AND' | 'OR')[]
     } | null,
-    trace_rule: {
-      conditions: string[],
-      operators: ('AND' | 'OR')[]
-    } | null,
     session_rule: {
       conditions: string[],
       operators: ('AND' | 'OR')[]
@@ -2661,7 +2657,6 @@ export const createSessionTargetingRule = async (
   teamId: string,
   appId: string,
   ruleData: {
-    type: string,
     name: string,
     status: number,
     sampling_rate: number,
@@ -2703,7 +2698,6 @@ export const updateSessionTargetingRule = async (
   ruleId: string,
   ruleData: {
     id: string,
-    type: string,
     name: string,
     status: number,
     sampling_rate: number,
