@@ -59,3 +59,31 @@ export function start(): Promise<any> {
 export function stop(): Promise<any> {
   return MeasureModule.stop();
 };
+
+export function trackEvent(
+  data: Record<string, any>,
+  type: string,
+  timestamp: number,
+  attributes: Record<string, any> = {},
+  userDefinedAttrs: Record<string, any> = {},
+  userTriggered = false,
+  sessionId?: string,
+  threadName?: string,
+  attachments: any[] = []
+): Promise<any> {
+  if (!MeasureModule.trackEvent) {
+    return Promise.reject(new Error('trackEvent native method not available.'));
+  }
+  
+  return MeasureModule.trackEvent(
+    data,
+    type,
+    timestamp,
+    attributes,
+    userDefinedAttrs,
+    userTriggered,
+    sessionId,
+    threadName,
+    attachments
+  );
+}

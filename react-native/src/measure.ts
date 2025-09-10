@@ -61,7 +61,7 @@ export const Measure = {
       try {
         console.info('Initializing Measure SDK ...');
 
-        _measureInitializer = new BaseMeasureInitializer(client);
+        _measureInitializer = new BaseMeasureInitializer(client, config);
         _measureInternal = new MeasureInternal(_measureInitializer);
 
         _measureInternal.init(client, config)
