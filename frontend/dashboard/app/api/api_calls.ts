@@ -1032,14 +1032,7 @@ export const emptySamplingRuleResponse = {
     name: string,
     status: number,
     sampling_rate: number,
-    event_rule: {
-      conditions: string[],
-      operators: ('AND' | 'OR')[]
-    } | null,
-    session_rule: {
-      conditions: string[],
-      operators: ('AND' | 'OR')[]
-    } | null,
+    rule: string,
     changelog: Array<{
       modified_at: string,
       modified_by: string,
@@ -1054,19 +1047,7 @@ export const dummySamplingRuleResponse = {
     name: "Critical issues",
     status: 0,
     sampling_rate: 1,
-    event_rule: {
-      conditions: [
-        "event_type == \"anr\"",
-        "(event_type == \"exception\" && exception.handled == false)",
-        "(event_type == \"bug_report\" && user_defined_attrs.is_user_premium == true)"
-      ],
-      operators: ["OR", "OR"] as ('AND' | 'OR')[]
-    },
-    trace_rule: null,
-    session_rule: {
-      conditions: ["attribute.app_version.startWith(\"1.0\")"],
-      operators: [] as ('AND' | 'OR')[]
-    },
+    rule: "(event_type == \"bug_report\" && user_defined_attrs.is_user_premium == true)",
     changelog: [
       {
         modified_at: "2023-10-02T12:00:00Z",
@@ -1087,18 +1068,7 @@ export const emptySessionTargetingRulesResponse = {
     name: string,
     status: number,
     sampling_rate: number,
-    event_rule: {
-      conditions: string[],
-      operators: ('AND' | 'OR')[]
-    } | null,
-    trace_rule: {
-      conditions: string[],
-      operators: ('AND' | 'OR')[]
-    } | null,
-    session_rule: {
-      conditions: string[],
-      operators: ('AND' | 'OR')[]
-    } | null,
+    rule: string,
     last_modified_at: string,
     last_modified_by: string
   }[],
@@ -1115,19 +1085,7 @@ export const dummySessionTargetingResponse = {
       name: "Critical issues",
       status: 0,
       sampling_rate: 1,
-      event_rule: {
-        conditions: [
-          "event_type == \"anr\"",
-          "(event_type == \"exception\" && exception.handled == false)",
-          "(event_type == \"bug_report\" && user_defined_attrs.is_user_premium == true)"
-        ],
-        operators: ["OR", "OR"] as ('AND' | 'OR')[]
-      },
-      trace_rule: null,
-      session_rule: {
-        conditions: ["attribute.app_version.startWith(\"1.0\")"],
-        operators: [] as ('AND' | 'OR')[]
-      },
+      rule: "(event_type == \"bug_report\" && user_defined_attrs.is_user_premium == true)",
       last_modified_at: "2023-10-02T12:00:00Z",
       last_modified_by: "bar@email.com"
     },
@@ -1137,15 +1095,7 @@ export const dummySessionTargetingResponse = {
       name: "Activity TTID traces",
       status: 1,
       sampling_rate: 0.5,
-      event_rule: null,
-      trace_rule: {
-        conditions: ["span.name.startWith(\"Activity TTID\")"],
-        operators: [] as ('AND' | 'OR')[]
-      },
-      session_rule: {
-        conditions: ["attribute.app_version.startWith(\"1.0\")"],
-        operators: [] as ('AND' | 'OR')[]
-      },
+      rule: "(event_type == \"bug_report\" && user_defined_attrs.is_user_premium == true)",
       last_modified_at: "2023-10-02T12:00:00Z",
       last_modified_by: "foo@email.com"
     }
@@ -2660,14 +2610,7 @@ export const createSessionTargetingRule = async (
     name: string,
     status: number,
     sampling_rate: number,
-    event_rule: {
-      conditions: string[],
-      operators: ('AND' | 'OR')[]
-    } | null,
-    session_rule: {
-      conditions: string[],
-      operators: ('AND' | 'OR')[]
-    } | null,
+    rule: string,
   }
 ) => {
   const opts = {
@@ -2701,14 +2644,7 @@ export const updateSessionTargetingRule = async (
     name: string,
     status: number,
     sampling_rate: number,
-    event_rule: {
-      conditions: string[],
-      operators: ('AND' | 'OR')[]
-    } | null,
-    session_rule: {
-      conditions: string[],
-      operators: ('AND' | 'OR')[]
-    } | null,
+    rule: string,
   }
 ) => {
   const opts = {

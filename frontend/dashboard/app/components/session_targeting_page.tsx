@@ -265,15 +265,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
                 setSessionTargetingtatus(ruleData.status === 1 ? 'enabled' : 'disabled')
             }
 
-            // TODO: Parse conditions arrays back into UI state
-            // For now, we'll keep the existing empty state
-            // Future: Implement CEL parsing to populate:
-            // - eventConditionsState from ruleData.event_rule
-            // - sessionConditionsState from ruleData.session_rule
-            console.log('Rule data loaded for editing:', {
-                event_rule: ruleData.event_rule,
-                session_rule: ruleData.session_rule
-            });
+            // Parse CEL rule into conditions
         }
     }, [isEditMode, pageState.samplingRuleApiStatus, pageState.samplingRule])
 
@@ -565,18 +557,19 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
         // Generate CEL expressions as arrays
         let eventRuleCel = null;
         let sessionRuleCel = null;
+        let ruleCel = null;
 
         sessionRuleCel = generateSessionRuleCelArray(sessionConditionsState);
         eventRuleCel = generateEventRuleCelArray(eventConditionsState);
+        ruleCel = `${eventRuleCel} && ${sessionRuleCel}`;
 
 
         // Prepare rule data
         const ruleData = {
             name: samplingRuleName || '', // TODO: add validation
             status: SessionTargetingtatus === 'enabled' ? 1 : 0,
-            sampling_rate: Number(samplingRateState.value) / 100, // Convert percentage to decimal
-            event_rule: eventRuleCel,
-            session_rule: sessionRuleCel,
+            sampling_rate: Number(samplingRateState.value),
+            rule: ruleCel,
         };
 
         try {
@@ -598,9 +591,12 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
         // Generate CEL expressions as arrays
         let eventRuleCel = null;
         let sessionRuleCel = null;
+        let ruleCel = null;
+
 
         sessionRuleCel = generateSessionRuleCelArray(sessionConditionsState);
         eventRuleCel = generateEventRuleCelArray(eventConditionsState);
+        ruleCel = `${eventRuleCel} && ${sessionRuleCel}`;
 
         // Prepare rule data
         const ruleData = {
@@ -608,8 +604,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
             name: samplingRuleName || '', // TODO: add validation
             status: SessionTargetingtatus === 'enabled' ? 1 : 0,
             sampling_rate: Number(samplingRateState.value) / 100, // Convert percentage to decimal
-            event_rule: eventRuleCel,
-            session_rule: sessionRuleCel,
+            rule: ruleCel,
         };
 
         try {
