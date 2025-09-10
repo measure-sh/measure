@@ -757,6 +757,8 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
                             </SamplingConditionSection>
                         )}
 
+                        <div className="py-2" />
+
                         {/* Session conditions */}
                         <SamplingConditionSection
                             title="Session Conditions"
