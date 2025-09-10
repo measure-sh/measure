@@ -679,25 +679,25 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                     onChange={(e) => handleTitleChange(e.target.value)}
                                     className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
                                 />
-                                <p className="text-sm">Sampling rate</p>
+                                <p className="text-sm">Sampling rate %</p>
                                 <div className="flex items-center">
                                     <input
                                         type="number"
-                                        placeholder="Value between 0-1, 0.2 for 20%"
+                                        placeholder="0-100%"
                                         value={samplingRateState.value}
                                         min={0}
-                                        max={1}
-                                        step="0.01"
+                                        max={100}
+                                        step="0.1"
                                         onChange={(e) => {
                                             setSamplingRateState({ value: e.target.value });
                                         }}
                                         onBlur={(e) => {
                                             const val = Number(e.target.value);
                                             setSamplingRateState({
-                                                value: Math.max(0, Math.min(1, isNaN(val) ? 0 : val))
+                                                value: Math.max(0, Math.min(100, isNaN(val) ? 0 : val))
                                             });
                                         }}
-                                        className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
+                                        className="w-32 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
                                     />
                                 </div>
                             </div>
