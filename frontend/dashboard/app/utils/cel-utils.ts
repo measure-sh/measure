@@ -157,7 +157,7 @@ function combineConditionsWithOperators(
   return conditions.length > 1 ? `(${result})` : result
 }
 
-export function generateEventRuleCel(
+export function generateRule(
   eventConditions: EventConditions,
   sessionConditions: SessionConditions
 ): string | null {

@@ -1,5 +1,5 @@
 import {
-  generateEventRuleCel,
+  generateRule,
   generateTraceRuleCel,
   generateSessionRuleCel,
   validateCelExpression,
@@ -16,7 +16,7 @@ describe('cel-utils', () => {
       }
       const sessionConditions = { conditions: [], operators: [] }
 
-      expect(generateEventRuleCel(eventConditions, sessionConditions)).toBe('(event_type == "exception")')
+      expect(generateRule(eventConditions, sessionConditions)).toBe('(event_type == "exception")')
     })
 
     it('should generate CEL for event with attributes', () => {
@@ -30,7 +30,7 @@ describe('cel-utils', () => {
       }
       const sessionConditions = { conditions: [], operators: [] }
 
-      expect(generateEventRuleCel(eventConditions, sessionConditions)).toBe('(event_type == "exception" && exception.handled == false)')
+      expect(generateRule(eventConditions, sessionConditions)).toBe('(event_type == "exception" && exception.handled == false)')
     })
 
     it('should combine event and session conditions with AND', () => {
@@ -45,7 +45,7 @@ describe('cel-utils', () => {
         operators: []
       }
 
-      expect(generateEventRuleCel(eventConditions, sessionConditions)).toBe('(event_type == "exception") && (attribute.app_version == "1.0")')
+      expect(generateRule(eventConditions, sessionConditions)).toBe('(event_type == "exception") && (attribute.app_version == "1.0")')
     })
 
     it('should handle multiple event conditions with OR operator', () => {
@@ -58,7 +58,7 @@ describe('cel-utils', () => {
       }
       const sessionConditions = { conditions: [], operators: [] }
 
-      expect(generateEventRuleCel(eventConditions, sessionConditions)).toBe('((event_type == "exception") || (event_type == "anr"))')
+      expect(generateRule(eventConditions, sessionConditions)).toBe('((event_type == "exception") || (event_type == "anr"))')
     })
 
     it('should handle multiple event conditions with mixed operators', () => {
@@ -72,7 +72,7 @@ describe('cel-utils', () => {
       }
       const sessionConditions = { conditions: [], operators: [] }
 
-      expect(generateEventRuleCel(eventConditions, sessionConditions)).toBe('((event_type == "exception" && exception.handled == false) && (event_type == "anr") || (event_type == "crash" && crash.severity == "high"))')
+      expect(generateRule(eventConditions, sessionConditions)).toBe('((event_type == "exception" && exception.handled == false) && (event_type == "anr") || (event_type == "crash" && crash.severity == "high"))')
     })
 
     it('should generate CEL for session conditions only', () => {
@@ -84,14 +84,14 @@ describe('cel-utils', () => {
         operators: []
       }
 
-      expect(generateEventRuleCel(eventConditions, sessionConditions)).toBe('(attribute.app_version == "2.0")')
+      expect(generateRule(eventConditions, sessionConditions)).toBe('(attribute.app_version == "2.0")')
     })
 
     it('should return null for empty conditions', () => {
       const eventConditions = { conditions: [], operators: [] }
       const sessionConditions = { conditions: [], operators: [] }
 
-      expect(generateEventRuleCel(eventConditions, sessionConditions)).toBe(null)
+      expect(generateRule(eventConditions, sessionConditions)).toBe(null)
     })
   })
 
@@ -235,7 +235,7 @@ describe('cel-utils', () => {
       }
       const sessionConditions = { conditions: [], operators: [] }
 
-      expect(generateEventRuleCel(eventConditions, sessionConditions)).toBe('(event_type == "exception" && exception.message.contains("error"))')
+      expect(generateRule(eventConditions, sessionConditions)).toBe('(event_type == "exception" && exception.message.contains("error"))')
     })
 
     it('should generate startsWith operator for user defined attributes', () => {
@@ -249,7 +249,7 @@ describe('cel-utils', () => {
       }
       const sessionConditions = { conditions: [], operators: [] }
 
-      expect(generateEventRuleCel(eventConditions, sessionConditions)).toBe('(event_type == "http" && user_defined_attrs.url.startWith("https://"))')
+      expect(generateRule(eventConditions, sessionConditions)).toBe('(event_type == "http" && user_defined_attrs.url.startWith("https://"))')
     })
 
     it('should generate startsWith operator for session attributes', () => {

@@ -8,13 +8,14 @@ import RuleBuilderLogicalOperator from '@/app/components/rule_builder_logical_op
 import SaveSessionTargetingRule from '@/app/components/save_session_targeting_rule';
 import RuleBuilderSessionCondition from '@/app/components/rule_builder_session_condition';
 import { EventCondition, EventConditions, SessionCondition, SessionConditions } from '@/app/utils/cel-types';
-import { generateEventRuleCelArray, generateSessionRuleCelArray, getDefaultOperatorForType } from '@/app/utils/cel-utils';
+import { generateRule as generateRule, getDefaultOperatorForType } from '@/app/utils/cel-utils';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export type SessionTargetingRulesConfig = typeof emptySessionTargetingRulesResponse;
 const MAX_CONDITIONS = 10;
 const MAX_ATTRIBUTES_PER_CONDITION = 10;
+const MAX_RULE_NAME_LENGTH = 256;
 
 interface SamplingRateState {
     value: string | number;
@@ -555,22 +556,8 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
     }
 
     const handleCreateSessionTargetingRule = async () => {
-        // Generate CEL expressions as arrays
-        let eventRuleCel = null;
-        let sessionRuleCel = null;
-        let ruleCel = null;
-
-        sessionRuleCel = generateSessionRuleCelArray(sessionConditionsState);
-        eventRuleCel = generateEventRuleCelArray(eventConditionsState);
-
-        // Combine only non-null rules
-        if (eventRuleCel != null && sessionRuleCel != null) {
-            ruleCel = `${eventRuleCel} && ${sessionRuleCel}`;
-        } else if (eventRuleCel != null) {
-            ruleCel = eventRuleCel;
-        } else if (sessionRuleCel != null) {
-            ruleCel = sessionRuleCel;
-        }
+        // Generate CEL expression as string
+        const ruleCel = generateRule(eventConditionsState, sessionConditionsState);
 
         if (ruleCel == null) {
             console.error('No valid conditions to create a rule.');
@@ -578,7 +565,12 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         }
 
         // Prepare rule data
-        const ruleData = {
+        const ruleData: {
+            name: string;
+            status: number;
+            sampling_rate: number;
+            rule: string;
+        } = {
             name: sessionTargetingRuleName || '', // TODO: add validation
             status: SessionTargetingtatus === 'enabled' ? 1 : 0,
             sampling_rate: Number(samplingRateState.value),
@@ -603,23 +595,8 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
     }
 
     const handleUpdateSessionTargetingRule = async () => {
-        // Generate CEL expressions as arrays
-        let eventRuleCel = null;
-        let sessionRuleCel = null;
-        let ruleCel = null;
-
-
-        sessionRuleCel = generateSessionRuleCelArray(sessionConditionsState);
-        eventRuleCel = generateEventRuleCelArray(eventConditionsState);
-
-        // Combine only non-null rules
-        if (eventRuleCel != null && sessionRuleCel != null) {
-            ruleCel = `${eventRuleCel} && ${sessionRuleCel}`;
-        } else if (eventRuleCel != null) {
-            ruleCel = eventRuleCel;
-        } else if (sessionRuleCel != null) {
-            ruleCel = sessionRuleCel;
-        }
+        // Generate CEL expression as string
+        const ruleCel = generateRule(eventConditionsState, sessionConditionsState);
 
         if (ruleCel == null) {
             console.error('No valid conditions to create a rule.');
@@ -629,7 +606,13 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         console.log('Generated CEL:', ruleCel);
 
         // Prepare rule data
-        const ruleData = {
+        const ruleData: {
+            id: string;
+            name: string;
+            status: number;
+            sampling_rate: number;
+            rule: string;
+        } = {
             id: params.ruleId || '', // TODO: add validation
             name: sessionTargetingRuleName || '', // TODO: add validation
             status: SessionTargetingtatus === 'enabled' ? 1 : 0,
@@ -675,7 +658,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                     type="text"
                                     placeholder="Enter rule name"
                                     value={sessionTargetingRuleName || ""}
-                                    maxLength={64}
+                                    maxLength={MAX_RULE_NAME_LENGTH}
                                     onChange={(e) => handleTitleChange(e.target.value)}
                                     className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
                                 />
