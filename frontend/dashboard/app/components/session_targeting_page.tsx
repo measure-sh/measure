@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export type SessionTargetingRulesConfig = typeof emptySessionTargetingRulesResponse;
-const MAX_CONDITIONS = 5;
+const MAX_CONDITIONS = 10;
 const MAX_ATTRIBUTES_PER_CONDITION = 10;
 
 interface SamplingRateState {
