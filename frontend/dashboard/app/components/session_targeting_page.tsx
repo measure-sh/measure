@@ -138,7 +138,7 @@ const isPageReady = (pageState: PageState, isEditMode: boolean): boolean => {
 };
 
 // Helper function to check if conditions are empty
-const areConditionsEmpty = (
+const isFormValid = (
     eventConditionsState: EventConditions,
     sessionConditionsState: SessionConditions,
     ruleName: string | null,
@@ -148,14 +148,15 @@ const areConditionsEmpty = (
             (condition.attrs && condition.attrs.length > 0) ||
             (condition.udAttrs && condition.udAttrs.length > 0);
     });
-
     const hasValidSessionConditions = sessionConditionsState.conditions.some(condition => {
         return condition.attrs && condition.attrs.length > 0;
     });
-
     const hasValidRuleName = ruleName !== null && ruleName.trim().length > 0;
+    const hasAtLeastOneCondition = hasValidEventConditions || hasValidSessionConditions;
 
-    return !hasValidEventConditions && !hasValidSessionConditions && !hasValidRuleName;
+    console.log('Form Validation:', { hasValidRuleName, hasAtLeastOneCondition });
+
+    return hasValidRuleName && hasAtLeastOneCondition;
 };
 
 export default function SessionTargetingPage({ params, isEditMode }: SessionTargetingRulePageProps) {
@@ -561,8 +562,20 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
 
         sessionRuleCel = generateSessionRuleCelArray(sessionConditionsState);
         eventRuleCel = generateEventRuleCelArray(eventConditionsState);
-        ruleCel = `${eventRuleCel} && ${sessionRuleCel}`;
 
+        // Combine only non-null rules
+        if (eventRuleCel != null && sessionRuleCel != null) {
+            ruleCel = `${eventRuleCel} && ${sessionRuleCel}`;
+        } else if (eventRuleCel != null) {
+            ruleCel = eventRuleCel;
+        } else if (sessionRuleCel != null) {
+            ruleCel = sessionRuleCel;
+        }
+
+        if (ruleCel == null) {
+            console.error('No valid conditions to create a rule.');
+            return;
+        }
 
         // Prepare rule data
         const ruleData = {
@@ -571,6 +584,8 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             sampling_rate: Number(samplingRateState.value),
             rule: ruleCel,
         };
+
+        console.log('Generated CEL:', ruleCel);
 
         try {
             const result = await createSessionTargetingRule(params.teamId, params.appId, ruleData);
@@ -596,7 +611,22 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
 
         sessionRuleCel = generateSessionRuleCelArray(sessionConditionsState);
         eventRuleCel = generateEventRuleCelArray(eventConditionsState);
-        ruleCel = `${eventRuleCel} && ${sessionRuleCel}`;
+
+        // Combine only non-null rules
+        if (eventRuleCel != null && sessionRuleCel != null) {
+            ruleCel = `${eventRuleCel} && ${sessionRuleCel}`;
+        } else if (eventRuleCel != null) {
+            ruleCel = eventRuleCel;
+        } else if (sessionRuleCel != null) {
+            ruleCel = sessionRuleCel;
+        }
+
+        if (ruleCel == null) {
+            console.error('No valid conditions to create a rule.');
+            return;
+        }
+
+        console.log('Generated CEL:', ruleCel);
 
         // Prepare rule data
         const ruleData = {
@@ -625,7 +655,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
     const eventTypes = getEventTypesFromResponse(pageState.sessionTargetingConfig);
     const operatorTypesMapping = getOperatorTypesMapping(pageState.sessionTargetingConfig);
     const sessionAttrs = getSessionAttributes(pageState.sessionTargetingConfig);
-    const conditionsAreEmpty = areConditionsEmpty(eventConditionsState, sessionConditionsState, sessionTargetingRuleName);
+    const formIsValid = isFormValid(eventConditionsState, sessionConditionsState, sessionTargetingRuleName);
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
@@ -676,8 +706,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                 </div>
                 <SaveSessionTargetingRule
                     isEditMode={isEditMode}
-                    isReady={isPageReady(pageState, isEditMode)}
-                    isDisabled={conditionsAreEmpty}
+                    isDisabled={!formIsValid || !isPageReady(pageState, isEditMode)}
                     onPublish={handleCreateSessionTargetingRule}
                     onUpdate={handleUpdateSessionTargetingRule}
                 />

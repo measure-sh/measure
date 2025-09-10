@@ -4,7 +4,6 @@ import { Button } from "./button";
 
 interface SaveSessionTargetingProps {
     isEditMode: boolean;
-    isReady: boolean;
     isDisabled: boolean;
     onPublish: () => void;
     onUpdate: () => void;
@@ -12,12 +11,10 @@ interface SaveSessionTargetingProps {
 
 const SaveSessionTargetingRule = ({ 
     isEditMode, 
-    isReady, 
     isDisabled, 
     onPublish, 
     onUpdate 
 }: SaveSessionTargetingProps) => {
-    if (!isReady) return null;
 
     const handleClick = () => {
         if (isEditMode) {
