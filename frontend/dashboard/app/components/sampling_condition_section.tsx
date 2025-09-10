@@ -38,7 +38,7 @@ const SamplingConditionSection = ({
                 </div>
                 <Button
                     variant="outline"
-                    className="m-2 font-display border border-black select-none"
+                    className="font-display border border-black select-none"
                     disabled={conditionCount >= maxConditions}
                     loading={false}
                     onClick={(e) => {

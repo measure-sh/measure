@@ -141,8 +141,8 @@ const isPageReady = (pageState: PageState, isEditMode: boolean): boolean => {
 const areConditionsEmpty = (
     eventConditionsState: EventConditions,
     sessionConditionsState: SessionConditions,
+    samplingRuleName: string | null,
 ): boolean => {
-    // For event rules, check event conditions and session conditions  
     const hasValidEventConditions = eventConditionsState.conditions.some(condition => {
         return condition.type !== null ||
             (condition.attrs && condition.attrs.length > 0) ||
@@ -153,7 +153,9 @@ const areConditionsEmpty = (
         return condition.attrs && condition.attrs.length > 0;
     });
 
-    return !hasValidEventConditions && !hasValidSessionConditions;
+    const hasValidSamplingRuleName = samplingRuleName !== null && samplingRuleName.trim().length > 0;
+
+    return !hasValidEventConditions && !hasValidSessionConditions && !hasValidSamplingRuleName;
 };
 
 export default function SessionTargetingPage({ params, isEditMode }: SamplingRulePageProps) {
@@ -257,7 +259,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
                 setSamplingRuleName(ruleData.name)
             }
             if (typeof ruleData.sampling_rate === 'number') {
-                setSamplingRateState({ value: ruleData.sampling_rate * 100 })
+                setSamplingRateState({ value: ruleData.sampling_rate })
             }
             if (typeof ruleData.status === 'number') {
                 setSessionTargetingtatus(ruleData.status === 1 ? 'enabled' : 'disabled')
@@ -628,7 +630,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
     const eventTypes = getEventTypesFromResponse(pageState.sessionTargetingConfig);
     const operatorTypesMapping = getOperatorTypesMapping(pageState.sessionTargetingConfig);
     const sessionAttrs = getSessionAttributes(pageState.sessionTargetingConfig);
-    const conditionsAreEmpty = areConditionsEmpty(eventConditionsState, sessionConditionsState);
+    const conditionsAreEmpty = areConditionsEmpty(eventConditionsState, sessionConditionsState, samplingRuleName);
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
@@ -649,24 +651,25 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
                                     placeholder="Enter rule name"
                                     value={samplingRuleName || ""}
                                     maxLength={64}
-                                    onChange={(e) => setSamplingRuleName(e.target.value)}
+                                    onChange={(e) => handleTitleChange(e.target.value)}
                                     className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
                                 />
                                 <p className="text-sm">Sampling rate</p>
                                 <div className="flex items-center">
                                     <input
                                         type="number"
-                                        placeholder="Enter a number between 0 and 1"
+                                        placeholder="Value between 0-1, 0.2 for 20%"
                                         value={samplingRateState.value}
                                         min={0}
                                         max={1}
+                                        step="0.1" // Add this line
                                         onChange={(e) => {
                                             setSamplingRateState({ value: e.target.value });
                                         }}
                                         onBlur={(e) => {
                                             const val = Number(e.target.value);
                                             setSamplingRateState({
-                                                value: Math.max(0, Math.min(100, isNaN(val) ? 0 : val))
+                                                value: Math.max(0, Math.min(1, isNaN(val) ? 0 : val))
                                             });
                                         }}
                                         className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
