@@ -650,16 +650,16 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
                                     value={samplingRuleName || ""}
                                     maxLength={64}
                                     onChange={(e) => setSamplingRuleName(e.target.value)}
-                                    className="border border-black rounded-md outline-none text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
+                                    className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
                                 />
                                 <p className="text-sm">Sampling rate</p>
                                 <div className="flex items-center">
                                     <input
                                         type="number"
-                                        placeholder="0-100"
+                                        placeholder="Enter a number between 0 and 1"
                                         value={samplingRateState.value}
                                         min={0}
-                                        max={100}
+                                        max={1}
                                         onChange={(e) => {
                                             setSamplingRateState({ value: e.target.value });
                                         }}
@@ -669,9 +669,8 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
                                                 value: Math.max(0, Math.min(100, isNaN(val) ? 0 : val))
                                             });
                                         }}
-                                        className="w-20 border border-black rounded-md outline-none text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                        className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
                                     />
-                                    <span className="text-sm ml-2">%</span>
                                 </div>
                             </div>
                         </>
