@@ -687,7 +687,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                         value={samplingRateState.value}
                                         min={0}
                                         max={1}
-                                        step="0.1" // Add this line
+                                        step="0.01"
                                         onChange={(e) => {
                                             setSamplingRateState({ value: e.target.value });
                                         }}
