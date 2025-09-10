@@ -96,8 +96,8 @@ function formatEventCondition(condition: EventCondition): string[] {
     })
   }
   
-  if (condition.udAttrs) {
-    condition.udAttrs.forEach(attr => {
+  if (condition.ud_attrs) {
+    condition.ud_attrs.forEach(attr => {
       parts.push(formatUserDefinedAttributeCondition(attr))
     })
   }
@@ -124,8 +124,8 @@ function formatTraceCondition(condition: TraceCondition): string[] {
     parts.push(formatSpanNameCondition(condition.spanName))
   }
   
-  if (condition.udAttrs) {
-    condition.udAttrs.forEach(attr => {
+  if (condition.ud_attrs) {
+    condition.ud_attrs.forEach(attr => {
       parts.push(formatSpanUserDefinedAttributeCondition(attr))
     })
   }

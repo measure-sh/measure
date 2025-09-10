@@ -8,8 +8,8 @@ interface RuleBuilderSessionConditionProps {
     index: number;
     sessionAttrs: any[];
     operatorTypesMapping: any;
-    onRemoveCondition: (index: number) => void;
-    onUpdateAttribute: (conditionIndex: number, attrIndex: number, field: 'key' | 'type' | 'value' | 'operator', value: any, attributeType: 'attrs' | 'udAttrs') => void;
+    onRemoveCondition: (conditionId: string) => void;
+    onUpdateAttribute: (conditionIndex: number, attrIndex: number, field: 'key' | 'type' | 'value' | 'operator', value: any, attributeType: 'attrs' | 'ud_attrs') => void;
     getOperatorsForType: (mapping: any, type: string) => string[];
 }
 
@@ -24,6 +24,7 @@ const RuleBuilderSessionCondition = ({
 }: RuleBuilderSessionConditionProps) => {
     return (
         <ConditionContainer
+            conditionId={condition.id}
             index={index}
             onRemoveCondition={onRemoveCondition}
         >
@@ -35,7 +36,7 @@ const RuleBuilderSessionCondition = ({
 
                         return (
                             <RuleBuilderAttributeRow
-                                key={`attrs-${index}-${attrIndex}`}
+                                key={attr.id}
                                 attr={attr}
                                 attrIndex={attrIndex}
                                 conditionIndex={index}

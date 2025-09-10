@@ -38,15 +38,17 @@ interface SessionTargetingRulePageProps {
     isEditMode: boolean;
 }
 
-type AttributeType = 'attrs' | 'udAttrs';
+type AttributeType = 'attrs' | 'ud_attrs';
 
 const createEmptyEventCondition = (): EventCondition => ({
+    id: crypto.randomUUID(),
     type: null,
     attrs: null,
-    udAttrs: null
+    ud_attrs: null
 })
 
 const createEmptySessionCondition = (): SessionCondition => ({
+    id: crypto.randomUUID(),
     attrs: null
 })
 
@@ -85,8 +87,8 @@ const canAddMoreAttributes = (
     availableAttrs: any[],
     attributeType: AttributeType = 'attrs'
 ): boolean => {
-    if (attributeType === 'udAttrs' && 'udAttrs' in condition) {
-        const currentAttrs = condition.udAttrs;
+    if (attributeType === 'ud_attrs' && 'ud_attrs' in condition) {
+        const currentAttrs = condition.ud_attrs;
         const currentCount = currentAttrs ? currentAttrs.length : 0;
 
         if (currentCount >= MAX_ATTRIBUTES_PER_CONDITION) {
@@ -113,7 +115,7 @@ const getAvailableAttributes = (
 ) => {
     if (attributeType === 'attrs' && eventType) {
         return getEventAttributes(SessionTargetingConfig, eventType);
-    } else if (attributeType === 'udAttrs' && eventType) {
+    } else if (attributeType === 'ud_attrs' && eventType) {
         if (doesEventSupportUdAttrs(SessionTargetingConfig, eventType)) {
             return getUserDefinedAttributes(SessionTargetingConfig);
         }
@@ -147,7 +149,7 @@ const isFormValid = (
     const hasValidEventConditions = eventConditionsState.conditions.some(condition => {
         return condition.type !== null ||
             (condition.attrs && condition.attrs.length > 0) ||
-            (condition.udAttrs && condition.udAttrs.length > 0);
+            (condition.ud_attrs && condition.ud_attrs.length > 0);
     });
     const hasValidSessionConditions = sessionConditionsState.conditions.some(condition => {
         return condition.attrs && condition.attrs.length > 0;
@@ -319,10 +321,11 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         }
     }
 
-    const removeEventCondition = (conditionIndex: number) => {
-        if (conditionIndex < 0 || conditionIndex >= eventConditionsState.conditions.length) return
+    const removeEventCondition = (conditionId: string) => {
+        const conditionIndex = eventConditionsState.conditions.findIndex(c => c.id === conditionId)
+        if (conditionIndex === -1) return
 
-        const newConditions = eventConditionsState.conditions.filter((_, index) => index !== conditionIndex)
+        const newConditions = eventConditionsState.conditions.filter(c => c.id !== conditionId)
         let newOperators = [...eventConditionsState.operators]
 
         if (conditionIndex < newOperators.length) {
@@ -342,7 +345,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
 
         const updatedConditions = eventConditionsState.conditions.map((condition, index) =>
             index === conditionIndex
-                ? { ...condition, type, attrs: null, udAttrs: null }
+                ? { ...condition, type, attrs: null, ud_attrs: null }
                 : condition
         )
         setEventConditionsState({
@@ -371,6 +374,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         if (!firstAttr) return;
 
         const newAttr = {
+            id: crypto.randomUUID(),
             key: firstAttr.key,
             type: firstAttr.type,
             value: firstAttr.type === 'bool' ? false : '',
@@ -393,13 +397,13 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         })
     }
 
-    const removeAttribute = (conditionIndex: number, attrIndex: number, attributeType: AttributeType) => {
+    const removeAttribute = (conditionIndex: number, attributeId: string, attributeType: AttributeType) => {
         setEventConditionsState(prevState => {
             const condition = prevState.conditions[conditionIndex]
             const currentAttrs = condition?.[attributeType]
             if (!currentAttrs) return prevState
 
-            const updatedAttrs = currentAttrs.filter((_, index) => index !== attrIndex)
+            const updatedAttrs = currentAttrs.filter((attr) => attr.id !== attributeId)
 
             const updatedConditions = prevState.conditions.map((cond, index) =>
                 index === conditionIndex
@@ -467,6 +471,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             if (sessionAttrs.length > 0) {
                 const firstAttr = sessionAttrs[0]
                 newCondition.attrs = [{
+                    id: crypto.randomUUID(),
                     key: firstAttr.key,
                     type: firstAttr.type,
                     value: firstAttr.type === 'bool' ? false : '',
@@ -485,10 +490,11 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         }
     }
 
-    const removeSessionCondition = (conditionIndex: number) => {
-        if (conditionIndex < 0 || conditionIndex >= sessionConditionsState.conditions.length) return
+    const removeSessionCondition = (conditionId: string) => {
+        const conditionIndex = sessionConditionsState.conditions.findIndex(c => c.id === conditionId)
+        if (conditionIndex === -1) return
 
-        const newConditions = sessionConditionsState.conditions.filter((_, index) => index !== conditionIndex)
+        const newConditions = sessionConditionsState.conditions.filter(c => c.id !== conditionId)
         let newOperators = [...sessionConditionsState.operators]
 
         if (conditionIndex < newOperators.length) {
@@ -730,10 +736,10 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                             const availableAttrs = condition.type ? getEventAttributes(pageState.sessionTargetingConfig, condition.type) : []
                                             const canAddMoreRegularAttrs = canAddMoreAttributes(condition, availableAttrs, 'attrs')
                                             const globalUserDefinedAttrs = getUserDefinedAttributes(pageState.sessionTargetingConfig)
-                                            const canAddMoreUdAttrs = canAddMoreAttributes(condition, globalUserDefinedAttrs, 'udAttrs')
+                                            const canAddMoreUdAttrs = canAddMoreAttributes(condition, globalUserDefinedAttrs, 'ud_attrs')
 
                                             return (
-                                                <div key={index}>
+                                                <div key={condition.id}>
                                                     <RuleBuilderEventCondition
                                                         condition={condition}
                                                         index={index}
@@ -783,7 +789,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                             {sessionConditionsState.conditions.length > 0 && (
                                 <div className="pt-1">
                                     {sessionConditionsState.conditions.map((condition, index) => (
-                                        <div key={index}>
+                                        <div key={condition.id}>
                                             <RuleBuilderSessionCondition
                                                 condition={condition}
                                                 index={index}

@@ -4,12 +4,14 @@ import { Button } from "./button";
 import { Trash2 } from "lucide-react";
 
 interface RuleBuilderConditionContainerProps {
+    conditionId: string;
     index: number;
-    onRemoveCondition: (index: number) => void;
+    onRemoveCondition: (conditionId: string) => void;
     children: React.ReactNode;
 }
 
 const ConditionContainer = ({
+    conditionId,
     index,
     onRemoveCondition,
     children
@@ -23,7 +25,7 @@ const ConditionContainer = ({
                 <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => onRemoveCondition(index)}
+                    onClick={() => onRemoveCondition(conditionId)}
                     className="h-6 w-6 p-2 hover:bg-yellow-200 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0 mt-1"
                 >
                     <Trash2 className="h-3 w-3" />

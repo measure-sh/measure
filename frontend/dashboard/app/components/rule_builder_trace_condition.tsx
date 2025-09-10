@@ -12,11 +12,11 @@ interface RuleBuilderTraceConditionProps {
     spanUdAttrs: any[];
     operatorTypesMapping: any;
     canAddMoreUdAttrs: boolean;
-    onRemoveCondition: (index: number) => void;
+    onRemoveCondition: (conditionId: string) => void;
     onAddAttribute: (index: number) => void;
     onUpdateSpanName: (index: number, spanName: string) => void;
-    onUpdateAttribute: (conditionIndex: number, attrIndex: number, field: 'key' | 'type' | 'value' | 'operator', value: any, attributeType: 'attrs' | 'udAttrs') => void;
-    onRemoveAttribute: (conditionIndex: number, attrIndex: number, attributeType: 'attrs' | 'udAttrs') => void;
+    onUpdateAttribute: (conditionIndex: number, attrIndex: number, field: 'key' | 'type' | 'value' | 'operator', value: any, attributeType: 'attrs' | 'ud_attrs') => void;
+    onRemoveAttribute: (conditionIndex: number, attributeId: string, attributeType: 'attrs' | 'ud_attrs') => void;
     getOperatorsForType: (mapping: any, type: string) => string[];
 }
 
@@ -36,6 +36,7 @@ const SamplingTraceCondition = ({
 }: RuleBuilderTraceConditionProps) => {
     return (
         <ConditionContainer
+            conditionId={condition.id}
             index={index}
             onRemoveCondition={onRemoveCondition}
         >
@@ -62,17 +63,17 @@ const SamplingTraceCondition = ({
                             disabled={!canAddMoreUdAttrs || !spanUdAttrs.length}
                         />
 
-                        {condition.udAttrs && condition.udAttrs.map((udAttr: any, udAttrIndex: number) => {
+                        {condition.ud_attrs && condition.ud_attrs.map((udAttr: any, udAttrIndex: number) => {
                             const operatorTypes = getOperatorsForType(operatorTypesMapping, udAttr.type)
                             const availableUdAttrKeys = spanUdAttrs.map(a => a.key);
 
                             return (
                                 <RuleBuilderAttributeRow
-                                    key={`udAttrs-${index}-${udAttrIndex}`}
+                                    key={udAttr.id}
                                     attr={udAttr}
                                     attrIndex={udAttrIndex}
                                     conditionIndex={index}
-                                    attributeType="udAttrs"
+                                    attributeType="ud_attrs"
                                     availableAttrKeys={availableUdAttrKeys}
                                     operatorTypes={operatorTypes}
                                     onUpdateAttribute={onUpdateAttribute}

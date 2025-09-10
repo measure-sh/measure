@@ -17,10 +17,10 @@ interface RuleBuilderEventConditionProps {
     doesEventSupportUdAttrs: (config: any, eventType: string) => boolean;
     pageConfig: any;
     onUpdateCondition: (index: number, eventType: string) => void;
-    onRemoveCondition: (index: number) => void;
-    onAddAttribute: (index: number, type: 'attrs' | 'udAttrs') => void;
-    onUpdateAttribute: (conditionIndex: number, attrIndex: number, field: 'key' | 'type' | 'value' | 'operator', value: any, attributeType: 'attrs' | 'udAttrs') => void;
-    onRemoveAttribute: (conditionIndex: number, attrIndex: number, attributeType: 'attrs' | 'udAttrs') => void;
+    onRemoveCondition: (conditionId: string) => void;
+    onAddAttribute: (index: number, type: 'attrs' | 'ud_attrs') => void;
+    onUpdateAttribute: (conditionIndex: number, attrIndex: number, field: 'key' | 'type' | 'value' | 'operator', value: any, attributeType: 'attrs' | 'ud_attrs') => void;
+    onRemoveAttribute: (conditionIndex: number, attributeId: string, attributeType: 'attrs' | 'ud_attrs') => void;
     getOperatorsForType: (mapping: any, type: string) => string[];
 }
 
@@ -44,6 +44,7 @@ const RuleBuilderEventCondition = ({
 }: RuleBuilderEventConditionProps) => {
     return (
         <ConditionContainer
+            conditionId={condition.id}
             index={index}
             onRemoveCondition={onRemoveCondition}
         >
@@ -76,7 +77,7 @@ const RuleBuilderEventCondition = ({
 
                             return (
                                 <RuleBuilderAttributeRow
-                                    key={`attrs-${index}-${attrIndex}`}
+                                    key={attr.id}
                                     attr={attr}
                                     attrIndex={attrIndex}
                                     conditionIndex={index}
@@ -95,21 +96,21 @@ const RuleBuilderEventCondition = ({
                     <div className="space-y-4">
                         <RuleBuilderAddAttribute
                             title="User-defined Attributes"
-                            onAdd={() => onAddAttribute(index, 'udAttrs')}
+                            onAdd={() => onAddAttribute(index, 'ud_attrs')}
                             disabled={!canAddMoreUdAttrs}
                         />
 
-                        {condition.udAttrs && condition.udAttrs.map((udAttr: any, udAttrIndex: number) => {
+                        {condition.ud_attrs && condition.ud_attrs.map((udAttr: any, udAttrIndex: number) => {
                             const operatorTypes = getOperatorsForType(operatorTypesMapping, udAttr.type)
                             const availableUdAttrKeys = globalUserDefinedAttrs.map(a => a.key);
 
                             return (
                                 <RuleBuilderAttributeRow
-                                    key={`udAttrs-${index}-${udAttrIndex}`}
+                                    key={udAttr.id}
                                     attr={udAttr}
                                     attrIndex={udAttrIndex}
                                     conditionIndex={index}
-                                    attributeType="udAttrs"
+                                    attributeType="ud_attrs"
                                     availableAttrKeys={availableUdAttrKeys}
                                     operatorTypes={operatorTypes}
                                     onUpdateAttribute={onUpdateAttribute}

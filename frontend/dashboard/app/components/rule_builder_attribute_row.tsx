@@ -17,14 +17,14 @@ const RuleBuilderAttributeRow = ({
     onRemoveAttribute,
     showDeleteButton = true
 }: {
-    attr: { key: string; type: string; value: string | boolean | number; operator?: string };
+    attr: { id: string; key: string; type: string; value: string | boolean | number; operator?: string };
     attrIndex: number;
     conditionIndex: number;
     attributeType: AttributeType;
     availableAttrKeys: string[];
     operatorTypes: string[];
     onUpdateAttribute: (conditionIndex: number, attrIndex: number, field: 'key' | 'type' | 'value' | 'operator', value: any, attributeType: AttributeType) => void;
-    onRemoveAttribute?: (conditionIndex: number, attrIndex: number, attributeType: AttributeType) => void;
+    onRemoveAttribute?: (conditionIndex: number, attributeId: string, attributeType: AttributeType) => void;
     showDeleteButton?: boolean;
 }) => {
 
@@ -88,7 +88,7 @@ const RuleBuilderAttributeRow = ({
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onRemoveAttribute(conditionIndex, attrIndex, attributeType)}
+                        onClick={() => onRemoveAttribute(conditionIndex, attr.id, attributeType)}
                         className="h-8 w-8 p-0 hover:bg-yellow-200 flex-shrink-0 
                        opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                     >
