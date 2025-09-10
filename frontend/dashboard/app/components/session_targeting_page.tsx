@@ -625,13 +625,13 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
 
             if (result.status === UpdateSessionTargetingRuleApiStatus.Success) {
                 // TODO: Navigate to sampling rules list page
-                router.push(`/teams/${params.teamId}/apps/${params.appId}/sampling-rules`);
+                router.push(`/teams/${params.teamId}/apps/${params.appId}/session-targeting`);
             } else {
                 // TODO: Show error
-                console.error('Failed to update sampling rule:', result.error);
+                console.error('Failed to update session targeting rule:', result.error);
             }
         } catch (error) {
-            console.error('Error updating sampling rule:', error);
+            console.error('Error updating session targeting rule:', error);
         }
     }
 
