@@ -3,17 +3,17 @@
 import { Button } from "./button";
 import { Trash2 } from "lucide-react";
 
-interface SamplingConditionContainerProps {
+interface RuleBuilderConditionContainerProps {
     index: number;
     onRemoveCondition: (index: number) => void;
     children: React.ReactNode;
 }
 
-const SamplingConditionContainer = ({
+const ConditionContainer = ({
     index,
     onRemoveCondition,
     children
-}: SamplingConditionContainerProps) => {
+}: RuleBuilderConditionContainerProps) => {
     return (
         <div className="group px-4 py-4 bg-sky-50">
             <div className="flex justify-between items-start">
@@ -33,4 +33,4 @@ const SamplingConditionContainer = ({
     );
 };
 
-export default SamplingConditionContainer;
+export default ConditionContainer;

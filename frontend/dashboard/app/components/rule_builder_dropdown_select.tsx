@@ -13,14 +13,14 @@ import {
 } from './command'
 import { Popover, PopoverContent, PopoverTrigger } from './popover'
 
-interface SamplingDropdownSelectProps {
+interface RuleBuilderDropdownSelectProps {
   title: string
   items: string[]
   initialSelected: string
   onChangeSelected?: (item: string) => void
 }
 
-const SamplingDropdownSelect: React.FC<SamplingDropdownSelectProps> = ({ 
+const RuleBuilderDropdownSelect: React.FC<RuleBuilderDropdownSelectProps> = ({ 
   title, 
   items, 
   initialSelected, 
@@ -91,4 +91,4 @@ const SamplingDropdownSelect: React.FC<SamplingDropdownSelectProps> = ({
   )
 }
 
-export default SamplingDropdownSelect
+export default RuleBuilderDropdownSelect

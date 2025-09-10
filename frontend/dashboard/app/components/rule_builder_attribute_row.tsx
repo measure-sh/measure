@@ -1,12 +1,12 @@
 "use client"
 
-import SamplingDropdownSelect from '@/app/components/sampling_dropdown_select';
+import RuleBuilderDropdownSelect from '@/app/components/rule_builder_dropdown_select';
 import { Button } from '@/app/components/button';
 import { X } from 'lucide-react';
 
-type AttributeType = 'attrs' | 'udAttrs';
+type AttributeType = 'attrs' | 'ud_attrs';
 
-const SamplingAttributeRow = ({
+const RuleBuilderAttributeRow = ({
     attr,
     attrIndex,
     conditionIndex,
@@ -32,7 +32,7 @@ const SamplingAttributeRow = ({
         <div className="flex items-center group">
             {/* Attribute Key Dropdown */}
             <div className="flex-[25] mr-3">
-                <SamplingDropdownSelect
+                <RuleBuilderDropdownSelect
                     title="Attributes"
                     items={availableAttrKeys}
                     initialSelected={attr.key}
@@ -44,7 +44,7 @@ const SamplingAttributeRow = ({
 
             {/* Operator Dropdown */}
             <div className="flex-[15] mr-3">
-                <SamplingDropdownSelect
+                <RuleBuilderDropdownSelect
                     title="Condition"
                     items={operatorTypes}
                     initialSelected={attr.operator || operatorTypes[0] || 'eq'}
@@ -57,7 +57,7 @@ const SamplingAttributeRow = ({
             {/* Value section */}
             <div className="flex-[38] mr-3">
                 {attr.type === 'bool' ? (
-                    <SamplingDropdownSelect
+                    <RuleBuilderDropdownSelect
                         title="Value"
                         items={['true', 'false']}
                         initialSelected={attr.value ? 'true' : 'false'}
@@ -102,4 +102,4 @@ const SamplingAttributeRow = ({
     )
 };
 
-export default SamplingAttributeRow;
+export default RuleBuilderAttributeRow;

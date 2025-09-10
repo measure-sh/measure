@@ -1,11 +1,11 @@
 "use client"
 
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
-import SamplingAttributeRow from "./sampling_attribute_row";
-import AddAttribute from "./sampling_add_attribute";
-import SamplingConditionContainer from "./sampling_condition_container";
+import RuleBuilderAttributeRow from "./rule_builder_attribute_row";
+import RuleBuilderAddAttribute from "./rule_builder_add_attribute";
+import ConditionContainer from "./rule_builder_condition_container";
 
-interface SamplingEventConditionProps {
+interface RuleBuilderEventConditionProps {
     condition: any;
     index: number;
     eventTypes: string[];
@@ -24,7 +24,7 @@ interface SamplingEventConditionProps {
     getOperatorsForType: (mapping: any, type: string) => string[];
 }
 
-const SamplingEventCondition = ({
+const RuleBuilderEventCondition = ({
     condition,
     index,
     eventTypes,
@@ -41,9 +41,9 @@ const SamplingEventCondition = ({
     onUpdateAttribute,
     onRemoveAttribute,
     getOperatorsForType
-}: SamplingEventConditionProps) => {
+}: RuleBuilderEventConditionProps) => {
     return (
-        <SamplingConditionContainer
+        <ConditionContainer
             index={index}
             onRemoveCondition={onRemoveCondition}
         >
@@ -64,7 +64,7 @@ const SamplingEventCondition = ({
 
                 {availableAttrs.length > 0 && (
                     <div className="space-y-4">
-                        <AddAttribute
+                        <RuleBuilderAddAttribute
                             title="Attributes"
                             onAdd={() => onAddAttribute(index, 'attrs')}
                             disabled={!canAddMoreRegularAttrs}
@@ -75,7 +75,7 @@ const SamplingEventCondition = ({
                             const availableAttrKeys = availableAttrs.map(a => a.key);
 
                             return (
-                                <SamplingAttributeRow
+                                <RuleBuilderAttributeRow
                                     key={`attrs-${index}-${attrIndex}`}
                                     attr={attr}
                                     attrIndex={attrIndex}
@@ -93,7 +93,7 @@ const SamplingEventCondition = ({
 
                 {condition.type && doesEventSupportUdAttrs(pageConfig, condition.type) && globalUserDefinedAttrs.length > 0 && (
                     <div className="space-y-4">
-                        <AddAttribute
+                        <RuleBuilderAddAttribute
                             title="User-defined Attributes"
                             onAdd={() => onAddAttribute(index, 'udAttrs')}
                             disabled={!canAddMoreUdAttrs}
@@ -104,7 +104,7 @@ const SamplingEventCondition = ({
                             const availableUdAttrKeys = globalUserDefinedAttrs.map(a => a.key);
 
                             return (
-                                <SamplingAttributeRow
+                                <RuleBuilderAttributeRow
                                     key={`udAttrs-${index}-${udAttrIndex}`}
                                     attr={udAttr}
                                     attrIndex={udAttrIndex}
@@ -120,8 +120,8 @@ const SamplingEventCondition = ({
                     </div>
                 )}
             </div>
-        </SamplingConditionContainer>
+        </ConditionContainer>
     );
 };
 
-export default SamplingEventCondition;
+export default RuleBuilderEventCondition;

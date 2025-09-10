@@ -1026,7 +1026,7 @@ export const emptyAlertsOverviewResponse = {
   }[],
 }
 
-export const emptySamplingRuleResponse = {
+export const emptySessionTargetingResponse = {
   results: {} as {
     id: string,
     name: string,

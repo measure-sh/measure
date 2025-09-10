@@ -1,6 +1,6 @@
 "use client"
 
-const SamplingLogicalOperatorSelector = ({
+const RuleBuilderLogicalOperator = ({
     value,
     onChange
 }: {
@@ -30,4 +30,4 @@ const SamplingLogicalOperatorSelector = ({
     );
 };
 
-export default SamplingLogicalOperatorSelector;
+export default RuleBuilderLogicalOperator;

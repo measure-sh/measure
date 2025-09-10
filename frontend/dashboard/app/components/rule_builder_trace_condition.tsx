@@ -1,11 +1,11 @@
 "use client"
 
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
-import SamplingAttributeRow from "./sampling_attribute_row";
-import AddAttribute from "./sampling_add_attribute";
-import SamplingConditionContainer from "./sampling_condition_container";
+import RuleBuilderAttributeRow from "./rule_builder_attribute_row";
+import RuleBuilderAddAttribute from "./rule_builder_add_attribute";
+import ConditionContainer from "./rule_builder_condition_container";
 
-interface SamplingTraceConditionProps {
+interface RuleBuilderTraceConditionProps {
     condition: any;
     index: number;
     spanNames: string[];
@@ -33,9 +33,9 @@ const SamplingTraceCondition = ({
     onUpdateAttribute,
     onRemoveAttribute,
     getOperatorsForType
-}: SamplingTraceConditionProps) => {
+}: RuleBuilderTraceConditionProps) => {
     return (
-        <SamplingConditionContainer
+        <ConditionContainer
             index={index}
             onRemoveCondition={onRemoveCondition}
         >
@@ -56,7 +56,7 @@ const SamplingTraceCondition = ({
 
                 {spanUdAttrs.length > 0 && (
                     <div className="space-y-4">
-                        <AddAttribute
+                        <RuleBuilderAddAttribute
                             title="User-defined Attributes"
                             onAdd={() => onAddAttribute(index)}
                             disabled={!canAddMoreUdAttrs || !spanUdAttrs.length}
@@ -67,7 +67,7 @@ const SamplingTraceCondition = ({
                             const availableUdAttrKeys = spanUdAttrs.map(a => a.key);
 
                             return (
-                                <SamplingAttributeRow
+                                <RuleBuilderAttributeRow
                                     key={`udAttrs-${index}-${udAttrIndex}`}
                                     attr={udAttr}
                                     attrIndex={udAttrIndex}
@@ -83,7 +83,7 @@ const SamplingTraceCondition = ({
                     </div>
                 )}
             </div>
-        </SamplingConditionContainer>
+        </ConditionContainer>
     );
 };
 

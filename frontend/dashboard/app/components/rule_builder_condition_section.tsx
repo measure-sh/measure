@@ -4,7 +4,7 @@ import { ChevronDown, ChevronRight, Info } from "lucide-react";
 import { Button } from "./button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
-interface SamplingConditionSectionProps {
+interface RuleBuilderConditionSectionProps {
     title: string;
     conditionCount: number;
     maxConditions: number;
@@ -14,7 +14,7 @@ interface SamplingConditionSectionProps {
     children: React.ReactNode;
 }
 
-const SamplingConditionSection = ({
+const RuleBuilderConditionSection = ({
     title,
     conditionCount,
     maxConditions,
@@ -22,7 +22,7 @@ const SamplingConditionSection = ({
     onToggleCollapse,
     onAddCondition,
     children
-}: SamplingConditionSectionProps) => {
+}: RuleBuilderConditionSectionProps) => {
     const handleAddCondition = () => {
         if (isCollapsed) {
             onToggleCollapse();
@@ -41,10 +41,7 @@ const SamplingConditionSection = ({
                     className="font-display border border-black select-none"
                     disabled={conditionCount >= maxConditions}
                     loading={false}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddCondition();
-                    }}
+                    onClick={handleAddCondition}
                 >
                     + Add condition
                 </Button>
@@ -56,4 +53,4 @@ const SamplingConditionSection = ({
     );
 };
 
-export default SamplingConditionSection;
+export default RuleBuilderConditionSection;

@@ -1,9 +1,9 @@
 "use client"
 
-import SamplingAttributeRow from "./sampling_attribute_row";
-import SamplingConditionContainer from "./sampling_condition_container";
+import RuleBuilderAttributeRow from "./rule_builder_attribute_row";
+import ConditionContainer from "./rule_builder_condition_container";
 
-interface SessionConditionProps {
+interface RuleBuilderSessionConditionProps {
     condition: any;
     index: number;
     sessionAttrs: any[];
@@ -13,7 +13,7 @@ interface SessionConditionProps {
     getOperatorsForType: (mapping: any, type: string) => string[];
 }
 
-const SamplingSessionCondition = ({
+const RuleBuilderSessionCondition = ({
     condition,
     index,
     sessionAttrs,
@@ -21,9 +21,9 @@ const SamplingSessionCondition = ({
     onRemoveCondition,
     onUpdateAttribute,
     getOperatorsForType
-}: SessionConditionProps) => {
+}: RuleBuilderSessionConditionProps) => {
     return (
-        <SamplingConditionContainer
+        <ConditionContainer
             index={index}
             onRemoveCondition={onRemoveCondition}
         >
@@ -34,7 +34,7 @@ const SamplingSessionCondition = ({
                         const availableSessionAttrKeys = sessionAttrs.map(a => a.key);
 
                         return (
-                            <SamplingAttributeRow
+                            <RuleBuilderAttributeRow
                                 key={`attrs-${index}-${attrIndex}`}
                                 attr={attr}
                                 attrIndex={attrIndex}
@@ -49,8 +49,8 @@ const SamplingSessionCondition = ({
                     })}
                 </div>
             )}
-        </SamplingConditionContainer>
+        </ConditionContainer>
     );
 };
 
-export default SamplingSessionCondition;
+export default RuleBuilderSessionCondition;

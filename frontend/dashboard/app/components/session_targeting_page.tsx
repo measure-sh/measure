@@ -1,12 +1,12 @@
 "use client"
 
-import { createSessionTargetingRule, CreateSessionTargetingRuleApiStatus, emptySamplingRuleResponse, emptySessionTargetingConfigResponse, emptySessionTargetingRulesResponse, fetchSessionTargetingConfigFromServer, fetchSessionTargetingRuleFromServer, SessionTargetingConfigApiStatus, SessionTargetingRuleApiStatus, updateSessionTargetingRule, UpdateSessionTargetingRuleApiStatus } from '@/app/api/api_calls';
+import { createSessionTargetingRule, CreateSessionTargetingRuleApiStatus, emptySessionTargetingResponse, emptySessionTargetingConfigResponse, emptySessionTargetingRulesResponse, fetchSessionTargetingConfigFromServer, fetchSessionTargetingRuleFromServer, SessionTargetingConfigApiStatus, SessionTargetingRuleApiStatus, updateSessionTargetingRule, UpdateSessionTargetingRuleApiStatus } from '@/app/api/api_calls';
 import LoadingSpinner from '@/app/components/loading_spinner';
-import SamplingConditionSection from '@/app/components/sampling_condition_section';
-import SamplingEventCondition from '@/app/components/sampling_event_condition';
-import SamplingLogicalOperatorSelector from '@/app/components/sampling_logical_operator_selector';
+import RuleBuilderConditionSection from '@/app/components/rule_builder_condition_section';
+import RuleBuilderEventCondition from '@/app/components/rule_builder_event_condition';
+import RuleBuilderLogicalOperator from '@/app/components/rule_builder_logical_operator';
 import SaveSessionTargetingRule from '@/app/components/save_session_targeting_rule';
-import SamplingSessionCondition from '@/app/components/session_condition';
+import RuleBuilderSessionCondition from '@/app/components/rule_builder_session_condition';
 import { EventCondition, EventConditions, SessionCondition, SessionConditions } from '@/app/utils/cel-types';
 import { generateEventRuleCelArray, generateSessionRuleCelArray, getDefaultOperatorForType } from '@/app/utils/cel-utils';
 import { useRouter } from 'next/navigation';
@@ -23,11 +23,11 @@ interface SamplingRateState {
 interface PageState {
     sessionTargetingConfigApiStatus: SessionTargetingConfigApiStatus
     sessionTargetingConfig: typeof emptySessionTargetingConfigResponse
-    samplingRuleApiStatus: SessionTargetingRuleApiStatus
-    samplingRule: typeof emptySamplingRuleResponse
+    sessionTargetingRuleApiStatus: SessionTargetingRuleApiStatus
+    sessionTargetingRule: typeof emptySessionTargetingResponse
 }
 
-interface SamplingRulePageProps {
+interface SessionTargetingRulePageProps {
     params: {
         teamId: string;
         appId: string;
@@ -124,24 +124,24 @@ const getAvailableAttributes = (
 // Loading state helper functions
 const isPageLoading = (pageState: PageState, isEditMode: boolean): boolean => {
     return pageState.sessionTargetingConfigApiStatus === SessionTargetingConfigApiStatus.Loading ||
-        (isEditMode && pageState.samplingRuleApiStatus === SessionTargetingRuleApiStatus.Loading);
+        (isEditMode && pageState.sessionTargetingRuleApiStatus === SessionTargetingRuleApiStatus.Loading);
 };
 
 const hasPageError = (pageState: PageState, isEditMode: boolean): boolean => {
     return pageState.sessionTargetingConfigApiStatus === SessionTargetingConfigApiStatus.Error ||
-        (isEditMode && pageState.samplingRuleApiStatus === SessionTargetingRuleApiStatus.Error);
+        (isEditMode && pageState.sessionTargetingRuleApiStatus === SessionTargetingRuleApiStatus.Error);
 };
 
 const isPageReady = (pageState: PageState, isEditMode: boolean): boolean => {
     return pageState.sessionTargetingConfigApiStatus === SessionTargetingConfigApiStatus.Success &&
-        (!isEditMode || pageState.samplingRuleApiStatus === SessionTargetingRuleApiStatus.Success);
+        (!isEditMode || pageState.sessionTargetingRuleApiStatus === SessionTargetingRuleApiStatus.Success);
 };
 
 // Helper function to check if conditions are empty
 const areConditionsEmpty = (
     eventConditionsState: EventConditions,
     sessionConditionsState: SessionConditions,
-    samplingRuleName: string | null,
+    ruleName: string | null,
 ): boolean => {
     const hasValidEventConditions = eventConditionsState.conditions.some(condition => {
         return condition.type !== null ||
@@ -153,24 +153,24 @@ const areConditionsEmpty = (
         return condition.attrs && condition.attrs.length > 0;
     });
 
-    const hasValidSamplingRuleName = samplingRuleName !== null && samplingRuleName.trim().length > 0;
+    const hasValidRuleName = ruleName !== null && ruleName.trim().length > 0;
 
-    return !hasValidEventConditions && !hasValidSessionConditions && !hasValidSamplingRuleName;
+    return !hasValidEventConditions && !hasValidSessionConditions && !hasValidRuleName;
 };
 
-export default function SessionTargetingPage({ params, isEditMode }: SamplingRulePageProps) {
+export default function SessionTargetingPage({ params, isEditMode }: SessionTargetingRulePageProps) {
     const router = useRouter()
     const nameFromParams = isEditMode && params.ruleName ? decodeURIComponent(params.ruleName) : null
 
     const initialState: PageState = {
         sessionTargetingConfigApiStatus: SessionTargetingConfigApiStatus.Loading,
         sessionTargetingConfig: emptySessionTargetingConfigResponse,
-        samplingRuleApiStatus: SessionTargetingRuleApiStatus.Loading,
-        samplingRule: emptySamplingRuleResponse,
+        sessionTargetingRuleApiStatus: SessionTargetingRuleApiStatus.Loading,
+        sessionTargetingRule: emptySessionTargetingResponse,
     }
 
     const [pageState, setPageState] = useState<PageState>(initialState)
-    const [samplingRuleName, setSamplingRuleName] = useState<string | null>(nameFromParams)
+    const [sessionTargetingRuleName, setSessionTargetingRuleName] = useState<string | null>(nameFromParams)
     const [eventConditionsState, setEventConditionsState] = useState<EventConditions>({
         conditions: [createEmptyEventCondition()],
         operators: []
@@ -212,29 +212,29 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
         }
     }
 
-    const getSamplingRule = async () => {
+    const getSesionTargetingRule = async () => {
         if (!isEditMode) {
             // For create mode, just mark as success
-            updatePageState({ samplingRuleApiStatus: SessionTargetingRuleApiStatus.Success })
+            updatePageState({ sessionTargetingRuleApiStatus: SessionTargetingRuleApiStatus.Success })
             return
         }
 
         if (!params.ruleId) {
-            updatePageState({ samplingRuleApiStatus: SessionTargetingRuleApiStatus.Error })
+            updatePageState({ sessionTargetingRuleApiStatus: SessionTargetingRuleApiStatus.Error })
             return
         }
 
-        updatePageState({ samplingRuleApiStatus: SessionTargetingRuleApiStatus.Loading })
+        updatePageState({ sessionTargetingRuleApiStatus: SessionTargetingRuleApiStatus.Loading })
         const result = await fetchSessionTargetingRuleFromServer(params.teamId, params.appId, params.ruleId)
 
         switch (result.status) {
             case SessionTargetingRuleApiStatus.Error:
-                updatePageState({ samplingRuleApiStatus: SessionTargetingRuleApiStatus.Error })
+                updatePageState({ sessionTargetingRuleApiStatus: SessionTargetingRuleApiStatus.Error })
                 break
             case SessionTargetingRuleApiStatus.Success:
                 updatePageState({
-                    samplingRuleApiStatus: SessionTargetingRuleApiStatus.Success,
-                    samplingRule: result.data
+                    sessionTargetingRuleApiStatus: SessionTargetingRuleApiStatus.Success,
+                    sessionTargetingRule: result.data
                 })
                 break
         }
@@ -246,17 +246,17 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
 
     useEffect(() => {
         if (isEditMode && pageState.sessionTargetingConfigApiStatus === SessionTargetingConfigApiStatus.Success) {
-            getSamplingRule()
+            getSesionTargetingRule()
         }
     }, [isEditMode, pageState.sessionTargetingConfigApiStatus])
 
     // Effect to populate title and sampling rate when rule data is loaded
     useEffect(() => {
-        if (isEditMode && pageState.samplingRuleApiStatus === SessionTargetingRuleApiStatus.Success && pageState.samplingRule.results) {
-            const ruleData = pageState.samplingRule.results
+        if (isEditMode && pageState.sessionTargetingRuleApiStatus === SessionTargetingRuleApiStatus.Success && pageState.sessionTargetingRule.results) {
+            const ruleData = pageState.sessionTargetingRule.results
 
             if (ruleData.name) {
-                setSamplingRuleName(ruleData.name)
+                setSessionTargetingRuleName(ruleData.name)
             }
             if (typeof ruleData.sampling_rate === 'number') {
                 setSamplingRateState({ value: ruleData.sampling_rate })
@@ -267,7 +267,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
 
             // Parse CEL rule into conditions
         }
-    }, [isEditMode, pageState.samplingRuleApiStatus, pageState.samplingRule])
+    }, [isEditMode, pageState.sessionTargetingRuleApiStatus, pageState.sessionTargetingRule])
 
     // Effect to set the first event type when eventTypes are available
     useEffect(() => {
@@ -292,7 +292,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
 
 
     const handleTitleChange = (title: string) => {
-        setSamplingRuleName(title);
+        setSessionTargetingRuleName(title);
     };
 
     // Event condition handlers
@@ -553,7 +553,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
         })
     }
 
-    const handleCreateSamplingRule = async () => {
+    const handleCreateSessionTargetingRule = async () => {
         // Generate CEL expressions as arrays
         let eventRuleCel = null;
         let sessionRuleCel = null;
@@ -566,7 +566,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
 
         // Prepare rule data
         const ruleData = {
-            name: samplingRuleName || '', // TODO: add validation
+            name: sessionTargetingRuleName || '', // TODO: add validation
             status: SessionTargetingtatus === 'enabled' ? 1 : 0,
             sampling_rate: Number(samplingRateState.value),
             rule: ruleCel,
@@ -576,18 +576,18 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
             const result = await createSessionTargetingRule(params.teamId, params.appId, ruleData);
 
             if (result.status === CreateSessionTargetingRuleApiStatus.Success) {
-                // TODO: Navigate to sampling rules list page
-                router.push(`/teams/${params.teamId}/apps/${params.appId}/sampling-rules`);
+                // TODO: Navigate to session targeting page
+                router.push(`/teams/${params.teamId}/apps/${params.appId}/session-targeting`);
             } else {
                 // TODO: Show error
-                console.error('Failed to create sampling rule:', result.error);
+                console.error('Failed to create session targeting rule:', result.error);
             }
         } catch (error) {
-            console.error('Error creating sampling rule:', error);
+            console.error('Error creating session targeting rule:', error);
         }
     }
 
-    const handleUpdateSamplingRule = async () => {
+    const handleUpdateSessionTargetingRule = async () => {
         // Generate CEL expressions as arrays
         let eventRuleCel = null;
         let sessionRuleCel = null;
@@ -601,7 +601,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
         // Prepare rule data
         const ruleData = {
             id: params.ruleId || '', // TODO: add validation
-            name: samplingRuleName || '', // TODO: add validation
+            name: sessionTargetingRuleName || '', // TODO: add validation
             status: SessionTargetingtatus === 'enabled' ? 1 : 0,
             sampling_rate: Number(samplingRateState.value) / 100, // Convert percentage to decimal
             rule: ruleCel,
@@ -625,7 +625,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
     const eventTypes = getEventTypesFromResponse(pageState.sessionTargetingConfig);
     const operatorTypesMapping = getOperatorTypesMapping(pageState.sessionTargetingConfig);
     const sessionAttrs = getSessionAttributes(pageState.sessionTargetingConfig);
-    const conditionsAreEmpty = areConditionsEmpty(eventConditionsState, sessionConditionsState, samplingRuleName);
+    const conditionsAreEmpty = areConditionsEmpty(eventConditionsState, sessionConditionsState, sessionTargetingRuleName);
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
@@ -644,7 +644,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
                                 <input
                                     type="text"
                                     placeholder="Enter rule name"
-                                    value={samplingRuleName || ""}
+                                    value={sessionTargetingRuleName || ""}
                                     maxLength={64}
                                     onChange={(e) => handleTitleChange(e.target.value)}
                                     className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
@@ -678,8 +678,8 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
                     isEditMode={isEditMode}
                     isReady={isPageReady(pageState, isEditMode)}
                     isDisabled={conditionsAreEmpty}
-                    onPublish={handleCreateSamplingRule}
-                    onUpdate={handleUpdateSamplingRule}
+                    onPublish={handleCreateSessionTargetingRule}
+                    onUpdate={handleUpdateSessionTargetingRule}
                 />
             </div>
             <div className="py-4" />
@@ -704,7 +704,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
                     <div className="w-full space-y-4">
                         {/* Event conditions */}
                         {(
-                            <SamplingConditionSection
+                            <RuleBuilderConditionSection
                                 title="Event Conditions"
                                 conditionCount={eventConditionsState.conditions.length}
                                 maxConditions={MAX_CONDITIONS}
@@ -722,7 +722,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
 
                                             return (
                                                 <div key={index}>
-                                                    <SamplingEventCondition
+                                                    <RuleBuilderEventCondition
                                                         condition={condition}
                                                         index={index}
                                                         eventTypes={eventTypes}
@@ -743,7 +743,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
 
                                                     {index < eventConditionsState.conditions.length - 1 && (
                                                         <div className="flex justify-center">
-                                                            <SamplingLogicalOperatorSelector
+                                                            <RuleBuilderLogicalOperator
                                                                 value={eventConditionsState.operators[index] || 'AND'}
                                                                 onChange={(operator) => updateEventOperator(index, operator)}
                                                             />
@@ -754,13 +754,13 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
                                         })}
                                     </div>
                                 )}
-                            </SamplingConditionSection>
+                            </RuleBuilderConditionSection>
                         )}
 
                         <div className="py-2" />
 
                         {/* Session conditions */}
-                        <SamplingConditionSection
+                        <RuleBuilderConditionSection
                             title="Session Conditions"
                             conditionCount={sessionConditionsState.conditions.length}
                             maxConditions={MAX_CONDITIONS}
@@ -772,7 +772,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
                                 <div className="pt-1">
                                     {sessionConditionsState.conditions.map((condition, index) => (
                                         <div key={index}>
-                                            <SamplingSessionCondition
+                                            <RuleBuilderSessionCondition
                                                 condition={condition}
                                                 index={index}
                                                 sessionAttrs={sessionAttrs}
@@ -784,7 +784,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
 
                                             {index < sessionConditionsState.conditions.length - 1 && (
                                                 <div className="flex justify-center">
-                                                    <SamplingLogicalOperatorSelector
+                                                    <RuleBuilderLogicalOperator
                                                         value={sessionConditionsState.operators[index] || 'AND'}
                                                         onChange={(operator) => updateSessionOperator(index, operator)}
                                                     />
@@ -794,7 +794,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SamplingRul
                                     ))}
                                 </div>
                             )}
-                        </SamplingConditionSection>
+                        </RuleBuilderConditionSection>
                     </div>
                 </div>
             )}
