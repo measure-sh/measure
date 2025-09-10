@@ -187,11 +187,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
     const [samplingRateState, setSamplingRateState] = useState<SamplingRateState>({
         value: 100
     });
-    const [SessionTargetingStatus, setSessionTargetingStatus] = useState<'enabled' | 'disabled'>('enabled'); // TODO: handle status change
-
-    // Collapsible sections state
-    const [eventSectionCollapsed, setEventSectionCollapsed] = useState(false);
-    const [sessionSectionCollapsed, setSessionSectionCollapsed] = useState(false);
+    const [SessionTargetingStatus, setSessionTargetingStatus] = useState<'enabled' | 'disabled'>('enabled');
 
     const updatePageState = (newState: Partial<PageState>) => {
         setPageState(prevState => {
@@ -730,8 +726,6 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                 title="Event Conditions"
                                 conditionCount={eventConditionsState.conditions.length}
                                 maxConditions={MAX_CONDITIONS}
-                                isCollapsed={eventSectionCollapsed}
-                                onToggleCollapse={() => setEventSectionCollapsed(!eventSectionCollapsed)}
                                 onAddCondition={addEventCondition}
                             >
                                 {eventConditionsState.conditions.length > 0 && (
@@ -786,8 +780,6 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                             title="Session Conditions"
                             conditionCount={sessionConditionsState.conditions.length}
                             maxConditions={MAX_CONDITIONS}
-                            isCollapsed={sessionSectionCollapsed}
-                            onToggleCollapse={() => setSessionSectionCollapsed(!sessionSectionCollapsed)}
                             onAddCondition={addSessionCondition}
                         >
                             {sessionConditionsState.conditions.length > 0 && (

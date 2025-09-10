@@ -8,8 +8,6 @@ interface RuleBuilderConditionSectionProps {
     title: string;
     conditionCount: number;
     maxConditions: number;
-    isCollapsed: boolean;
-    onToggleCollapse: () => void;
     onAddCondition: () => void;
     children: React.ReactNode;
 }
@@ -18,15 +16,10 @@ const RuleBuilderConditionSection = ({
     title,
     conditionCount,
     maxConditions,
-    isCollapsed,
-    onToggleCollapse,
     onAddCondition,
     children
 }: RuleBuilderConditionSectionProps) => {
     const handleAddCondition = () => {
-        if (isCollapsed) {
-            onToggleCollapse();
-        }
         onAddCondition();
     };
 
