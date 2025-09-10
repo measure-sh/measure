@@ -651,13 +651,11 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             <div className="flex flex-row items-start gap-2 justify-between w-full">
                 <div className="flex flex-col">
                     <h1 className="font-display text-4xl">Session Targeting Rule</h1>
+                    
+                    <div className="py-6" />
+
                     {isPageReady(pageState, isEditMode) && (
                         <>
-                            <div className="py-2" />
-                            <span className={`w-fit px-2 py-1 rounded-full border text-sm font-body ${SessionTargetingtatus === 'enabled' ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>
-                                {SessionTargetingtatus === 'enabled' ? 'Enabled' : 'Disabled'}
-                            </span>
-                            <div className="py-4" />
                             <div className="grid gap-y-6 items-center max-w-2xl" style={{ gridTemplateColumns: '120px 1fr' }}>
                                 <p className="text-sm">Rule name</p>
                                 <input
