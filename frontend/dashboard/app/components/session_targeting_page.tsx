@@ -7,6 +7,7 @@ import RuleBuilderEventCondition from '@/app/components/rule_builder_event_condi
 import RuleBuilderLogicalOperator from '@/app/components/rule_builder_logical_operator';
 import SaveSessionTargetingRule from '@/app/components/save_session_targeting_rule';
 import RuleBuilderSessionCondition from '@/app/components/rule_builder_session_condition';
+import ToggleSwitch from '@/app/components/toggle_switch';
 import { EventCondition, EventConditions, SessionCondition, SessionConditions } from '@/app/utils/cel-types';
 import { generateRule as generateRule, getDefaultOperatorForType } from '@/app/utils/cel-utils';
 import { useRouter } from 'next/navigation';
@@ -186,7 +187,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
     const [samplingRateState, setSamplingRateState] = useState<SamplingRateState>({
         value: 100
     });
-    const [SessionTargetingtatus, setSessionTargetingtatus] = useState<'enabled' | 'disabled'>('enabled'); // TODO: handle status change
+    const [SessionTargetingStatus, setSessionTargetingStatus] = useState<'enabled' | 'disabled'>('enabled'); // TODO: handle status change
 
     // Collapsible sections state
     const [eventSectionCollapsed, setEventSectionCollapsed] = useState(false);
@@ -266,7 +267,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                 setSamplingRateState({ value: ruleData.sampling_rate })
             }
             if (typeof ruleData.status === 'number') {
-                setSessionTargetingtatus(ruleData.status === 1 ? 'enabled' : 'disabled')
+                setSessionTargetingStatus(ruleData.status === 1 ? 'enabled' : 'disabled')
             }
 
             // Parse CEL rule into conditions
@@ -578,7 +579,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             rule: string;
         } = {
             name: sessionTargetingRuleName || '', // TODO: add validation
-            status: SessionTargetingtatus === 'enabled' ? 1 : 0,
+            status: SessionTargetingStatus === 'enabled' ? 1 : 0,
             sampling_rate: Number(samplingRateState.value),
             rule: ruleCel,
         };
@@ -621,7 +622,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         } = {
             id: params.ruleId || '', // TODO: add validation
             name: sessionTargetingRuleName || '', // TODO: add validation
-            status: SessionTargetingtatus === 'enabled' ? 1 : 0,
+            status: SessionTargetingStatus === 'enabled' ? 1 : 0,
             sampling_rate: Number(samplingRateState.value),
             rule: ruleCel,
         };
@@ -687,6 +688,11 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                         className="w-32 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
                                     />
                                 </div>
+                                 <p className="text-sm">Status</p>
+                                <ToggleSwitch
+                                    enabled={SessionTargetingStatus === 'enabled'}
+                                    onChange={(enabled) => setSessionTargetingStatus(enabled ? 'enabled' : 'disabled')}
+                                />
                             </div>
                         </>
                     )}
