@@ -658,7 +658,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                 {SessionTargetingtatus === 'enabled' ? 'Enabled' : 'Disabled'}
                             </span>
                             <div className="py-4" />
-                            <div className="grid gap-y-4 items-center max-w-2xl" style={{ gridTemplateColumns: '120px 1fr' }}>
+                            <div className="grid gap-y-6 items-center max-w-2xl" style={{ gridTemplateColumns: '120px 1fr' }}>
                                 <p className="text-sm">Rule name</p>
                                 <input
                                     type="text"
@@ -700,7 +700,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                     onUpdate={handleUpdateSessionTargetingRule}
                 />
             </div>
-            <div className="py-4" />
+            <div className="py-2" />
 
             {/* Error state */}
             {hasPageError(pageState, isEditMode) && (
