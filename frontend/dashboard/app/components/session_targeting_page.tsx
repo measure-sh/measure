@@ -616,7 +616,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             id: params.ruleId || '', // TODO: add validation
             name: sessionTargetingRuleName || '', // TODO: add validation
             status: SessionTargetingtatus === 'enabled' ? 1 : 0,
-            sampling_rate: Number(samplingRateState.value) / 100, // Convert percentage to decimal
+            sampling_rate: Number(samplingRateState.value),
             rule: ruleCel,
         };
 
