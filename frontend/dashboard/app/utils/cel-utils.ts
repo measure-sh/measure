@@ -9,7 +9,7 @@ const OPERATOR_TO_CEL = {
   gte: '>=',
   lte: '<=',
   contains: 'contains',
-  startsWith: 'startWith'
+  startsWith: 'startsWith'
 } as const
 
 const LOGICAL_OPERATOR_TO_CEL = {
@@ -33,7 +33,7 @@ function formatEventAttributeCondition(attr: { key: string; type: string; value:
   const value = formatValue(attr.value, attr.type)
   const prefix = eventType ? `${eventType}.` : ''
 
-  if (attr.type === 'string' && (operator === 'contains' || operator === 'startWith')) {
+  if (attr.type === 'string' && (operator === 'contains' || operator === 'startsWith')) {
     return `${prefix}${attr.key}.${operator}(${value})`
   }
 
@@ -44,7 +44,7 @@ function formatUserDefinedAttributeCondition(attr: { key: string; type: string; 
   const operator = attr.operator ? OPERATOR_TO_CEL[attr.operator as keyof typeof OPERATOR_TO_CEL] || '==' : '=='
   const value = formatValue(attr.value, attr.type)
 
-  if (attr.type === 'string' && (operator === 'contains' || operator === 'startWith')) {
+  if (attr.type === 'string' && (operator === 'contains' || operator === 'startsWith')) {
     return `user_defined_attrs.${attr.key}.${operator}(${value})`
   }
 
@@ -55,7 +55,7 @@ function formatSessionAttributeCondition(attr: { key: string; type: string; valu
   const operator = attr.operator ? OPERATOR_TO_CEL[attr.operator as keyof typeof OPERATOR_TO_CEL] || '==' : '=='
   const value = formatValue(attr.value, attr.type)
 
-  if (attr.type === 'string' && (operator === 'contains' || operator === 'startWith')) {
+  if (attr.type === 'string' && (operator === 'contains' || operator === 'startsWith')) {
     return `attribute.${attr.key}.${operator}(${value})`
   }
 
@@ -63,14 +63,14 @@ function formatSessionAttributeCondition(attr: { key: string; type: string; valu
 }
 
 function formatSpanNameCondition(spanName: string): string {
-  return `span.name.startWith("${spanName}")`
+  return `span.name.startsWith("${spanName}")`
 }
 
 function formatSpanUserDefinedAttributeCondition(attr: { key: string; type: string; value: string | boolean | number; operator?: string }): string {
   const operator = attr.operator ? OPERATOR_TO_CEL[attr.operator as keyof typeof OPERATOR_TO_CEL] || '==' : '=='
   const value = formatValue(attr.value, attr.type)
 
-  if (attr.type === 'string' && (operator === 'contains' || operator === 'startWith')) {
+  if (attr.type === 'string' && (operator === 'contains' || operator === 'startsWith')) {
     return `span.user_defined_attrs.${attr.key}.${operator}(${value})`
   }
 
