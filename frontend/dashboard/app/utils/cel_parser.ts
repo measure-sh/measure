@@ -409,7 +409,6 @@ export class CelParser {
     } else if (segments[0] === 'user_defined_attrs') {
       // User-defined attribute
       const key = segments[1]
-      this.ensureEventCondition()
       const condition = this.eventConditions[this.eventConditions.length - 1]
       
       if (comparison.value.value === null) {
@@ -483,14 +482,10 @@ export class CelParser {
 
   private addTraceCondition(comparison: Comparison): void {
     if (comparison.field.segments[1] === 'name') {
-      // span.name
-      this.ensureTraceCondition()
       const condition = this.traceConditions[this.traceConditions.length - 1]
       condition.spanName = comparison.value.value as string
     } else {
-      // span.user_defined_attrs.key
       const key = comparison.field.segments[2]
-      this.ensureTraceCondition()
       const condition = this.traceConditions[this.traceConditions.length - 1]
       
       if (comparison.value.value === null) {
@@ -506,26 +501,6 @@ export class CelParser {
         type: comparison.value.type === 'boolean' ? 'bool' : comparison.value.type,
         value: comparison.value.value as string | number | boolean,
         operator: comparison.operator
-      })
-    }
-  }
-
-  private ensureEventCondition(): void {
-    if (this.eventConditions.length === 0) {
-      this.eventConditions.push({
-        id: crypto.randomUUID(),
-        type: null,
-        attrs: [],
-        ud_attrs: []
-      })
-    }
-  }
-
-  private ensureTraceCondition(): void {
-    if (this.traceConditions.length === 0) {
-      this.traceConditions.push({
-        spanName: null,
-        ud_attrs: []
       })
     }
   }

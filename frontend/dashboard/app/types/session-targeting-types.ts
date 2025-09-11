@@ -1,20 +1,20 @@
 export interface EventCondition {
     id: string
-    type: string | null
+    type: string
     attrs: Array<{
         id: string,
         key: string,
         type: string,
         value: string | boolean | number,
         operator?: string
-    }> | null,
+    }>,
     ud_attrs: Array<{
         id: string,
         key: string,
         type: string,
         value: string | boolean | number,
         operator?: string
-    }> | null
+    }>
 }
 
 export interface SessionCondition {
@@ -25,18 +25,18 @@ export interface SessionCondition {
         type: string,
         value: string | boolean | number,
         operator?: string
-    }> | null
+    }>
 }
 
 export interface TraceCondition {
-    spanName: string | null
+    spanName: string
     ud_attrs: Array<{
         id: string,
         key: string,
         type: string,
         value: string | boolean | number,
         operator?: string
-    }> | null
+    }>
 }
 
 export interface EventConditions {

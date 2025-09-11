@@ -42,16 +42,9 @@ interface SessionTargetingRulePageProps {
 
 type AttributeType = 'attrs' | 'ud_attrs';
 
-const createEmptyEventCondition = (): EventCondition => ({
-    id: crypto.randomUUID(),
-    type: null,
-    attrs: null,
-    ud_attrs: null
-})
-
 const createEmptySessionCondition = (): SessionCondition => ({
     id: crypto.randomUUID(),
-    attrs: null
+    attrs: []
 })
 
 export const getEventTypesFromResponse = (response: typeof emptySessionTargetingConfigResponse) => {
@@ -177,7 +170,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
     const [pageState, setPageState] = useState<PageState>(initialState)
     const [sessionTargetingRuleName, setSessionTargetingRuleName] = useState<string | null>(null);
     const [eventConditionsState, setEventConditionsState] = useState<EventConditions>({
-        conditions: isEditMode ? [] : [createEmptyEventCondition()],
+        conditions: [],
         operators: []
     })
     const [sessionConditionsState, setSessionConditionsState] = useState<SessionConditions>({
@@ -282,7 +275,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
     // Effect to set the first event type when eventTypes are available (only in create mode)
     useEffect(() => {
         if (isEditMode) return; // Don't auto-set in edit mode
-        
+
         const eventTypes = getEventTypesFromResponse(pageState.sessionTargetingConfig);
 
         if (eventTypes.length > 0) {
@@ -311,17 +304,17 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
     const addEventCondition = () => {
         if (eventConditionsState.conditions.length < MAX_CONDITIONS) {
             const eventTypes = getEventTypesFromResponse(pageState.sessionTargetingConfig);
-            const newCondition = createEmptyEventCondition();
+            if (eventTypes.length === 0) return;
 
-            // Set the first event type if available
-            if (eventTypes.length > 0) {
-                newCondition.type = eventTypes[0];
+            const newCondition: EventCondition = {
+                id: crypto.randomUUID(),
+                type: eventTypes[0],
+                attrs: [],
+                ud_attrs: []
             }
-
             const newOperators = eventConditionsState.conditions.length > 0
                 ? [...eventConditionsState.operators, 'AND' as const]
                 : []
-
             setEventConditionsState({
                 conditions: [...eventConditionsState.conditions, newCondition],
                 operators: newOperators
@@ -353,7 +346,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
 
         const updatedConditions = eventConditionsState.conditions.map((condition, index) =>
             index === conditionIndex
-                ? { ...condition, type, attrs: null, ud_attrs: null }
+                ? { ...condition, type, attrs: [], ud_attrs: [] }
                 : condition
         )
         setEventConditionsState({
