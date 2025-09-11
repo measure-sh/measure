@@ -68,7 +68,7 @@ export class CelTokenizer {
 
     while (this.position < this.input.length) {
       this.skipWhitespace()
-      
+
       if (this.position >= this.input.length) break
 
       const char = this.input[this.position]
@@ -76,7 +76,7 @@ export class CelTokenizer {
 
       // Multi-character operators
       if (this.position + 1 < this.input.length) {
-        const twoChar = this.input.substr(this.position, 2)
+        const twoChar = this.input.slice(this.position, this.position + 2);
         const tokenType = this.getTwoCharTokenType(twoChar)
         if (tokenType) {
           this.tokens.push({ type: tokenType, value: twoChar, position: startPos })
@@ -194,7 +194,7 @@ export class CelTokenizer {
       throw new CelParseError('Unterminated string literal', this.position - value.length - 1)
     }
 
-    this.position++ // Skip closing quote
+    this.position++
     return value
   }
 
