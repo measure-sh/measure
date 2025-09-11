@@ -1,0 +1,43 @@
+on:
+  pull_request:
+    paths:
+      - 'react-native/**'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'react-native/**'
+    tags:
+      - 'rn-*'
+
+jobs:
+  rn_tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+
+    defaults:
+      run:
+        working-directory: react-native
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Use Correct Yarn Version
+        run: corepack prepare yarn@3.6.1 --activate
+
+      - name: Install Dependencies
+        run: yarn install
+
+      - name: Run Tests
+        run: yarn test

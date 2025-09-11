@@ -57,14 +57,15 @@ export const Measure = {
       return _initializationPromise;
     }
 
-    _initializationPromise = new Promise((_resolve, reject) => {
+    _initializationPromise = new Promise((resolve, reject) => {
       try {
         console.info('Initializing Measure SDK ...');
 
         _measureInitializer = new BaseMeasureInitializer(client);
         _measureInternal = new MeasureInternal(_measureInitializer);
-        _initializationPromise = _measureInternal
-          .init(client, config)
+
+        _measureInternal.init(client, config)
+          .then(() => resolve())
           .catch((error) => {
             _initializationPromise = null;
             reject(error);
