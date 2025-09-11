@@ -1,4 +1,4 @@
-import { EventCondition, SessionCondition, TraceCondition, EventConditions, SessionConditions, TraceConditions } from "../components/session_targeting_page"
+import { EventCondition, SessionCondition, TraceCondition, EventConditions, SessionConditions, TraceConditions } from "../types/session-targeting-types"
 
 
 const OPERATOR_TO_CEL = {

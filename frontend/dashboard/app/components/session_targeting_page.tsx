@@ -8,8 +8,8 @@ import RuleBuilderLogicalOperator from '@/app/components/rule_builder_logical_op
 import SaveSessionTargetingRule from '@/app/components/save_session_targeting_rule';
 import RuleBuilderSessionCondition from '@/app/components/rule_builder_session_condition';
 import ToggleSwitch from '@/app/components/toggle_switch';
-import { EventCondition, EventConditions, SessionCondition, SessionConditions } from '@/app/utils/cel-types';
 import { generateRule as generateRule, getDefaultOperatorForType } from '@/app/utils/cel-utils';
+import { EventCondition, SessionCondition, EventConditions, SessionConditions } from '@/app/types/session-targeting-types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -18,61 +18,6 @@ const MAX_CONDITIONS = 10;
 const MAX_ATTRIBUTES_PER_CONDITION = 10;
 const MAX_RULE_NAME_LENGTH = 256;
 
-export interface EventCondition {
-    id: string
-    type: string | null
-    attrs: Array<{
-        id: string,
-        key: string,
-        type: string,
-        value: string | boolean | number,
-        operator?: string
-    }> | null,
-    ud_attrs: Array<{
-        id: string,
-        key: string,
-        type: string,
-        value: string | boolean | number,
-        operator?: string
-    }> | null
-}
-
-export interface SessionCondition {
-    id: string
-    attrs: Array<{
-        id: string,
-        key: string,
-        type: string,
-        value: string | boolean | number,
-        operator?: string
-    }> | null
-}
-
-export interface TraceCondition {
-    spanName: string | null
-    ud_attrs: Array<{
-        id: string,
-        key: string,
-        type: string,
-        value: string | boolean | number,
-        operator?: string
-    }> | null
-}
-
-export interface EventConditions {
-    conditions: EventCondition[]
-    operators: ('AND' | 'OR')[]
-}
-
-export interface SessionConditions {
-    conditions: SessionCondition[]
-    operators: ('AND' | 'OR')[]
-}
-
-export interface TraceConditions {
-    conditions: TraceCondition[]
-    operators: ('AND' | 'OR')[]
-}
 
 interface SamplingRateState {
     value: string | number;
@@ -90,7 +35,6 @@ interface SessionTargetingRulePageProps {
         teamId: string;
         appId: string;
         ruleId?: string; // Only present for edit mode
-        ruleName?: string; // Only present for edit mode
     };
     isEditMode: boolean;
 }
@@ -221,7 +165,6 @@ const isFormValid = (
 
 export default function SessionTargetingPage({ params, isEditMode }: SessionTargetingRulePageProps) {
     const router = useRouter()
-    const nameFromParams = isEditMode && params.ruleName ? decodeURIComponent(params.ruleName) : null
 
     const initialState: PageState = {
         sessionTargetingConfigApiStatus: SessionTargetingConfigApiStatus.Loading,
@@ -231,7 +174,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
     }
 
     const [pageState, setPageState] = useState<PageState>(initialState)
-    const [sessionTargetingRuleName, setSessionTargetingRuleName] = useState<string | null>(nameFromParams)
+    const [sessionTargetingRuleName, setSessionTargetingRuleName] = useState<string | null>(null);
     const [eventConditionsState, setEventConditionsState] = useState<EventConditions>({
         conditions: [createEmptyEventCondition()],
         operators: []
@@ -704,7 +647,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             <div className="flex flex-row items-start gap-2 justify-between w-full">
                 <div className="flex flex-col">
                     <h1 className="font-display text-4xl">Session Targeting Rule</h1>
-                    
+
                     <div className="py-6" />
 
                     {isPageReady(pageState, isEditMode) && (
@@ -740,7 +683,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                         className="w-32 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
                                     />
                                 </div>
-                                 <p className="text-sm">Status</p>
+                                <p className="text-sm">Status</p>
                                 <ToggleSwitch
                                     enabled={SessionTargetingStatus === 'enabled'}
                                     onChange={(enabled) => setSessionTargetingStatus(enabled ? 'enabled' : 'disabled')}
