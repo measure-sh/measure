@@ -79,7 +79,7 @@ function formatSpanUserDefinedAttributeCondition(attr: { key: string; type: stri
 
 function formatEventCondition(condition: EventCondition): string[] {
   const parts: string[] = []
-
+  
   if (condition.type) {
     parts.push(formatEventTypeCondition(condition.type))
   }

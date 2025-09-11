@@ -8,10 +8,11 @@ import RuleBuilderLogicalOperator from '@/app/components/rule_builder_logical_op
 import SaveSessionTargetingRule from '@/app/components/save_session_targeting_rule';
 import RuleBuilderSessionCondition from '@/app/components/rule_builder_session_condition';
 import ToggleSwitch from '@/app/components/toggle_switch';
-import { generateRule as generateRule, getDefaultOperatorForType } from '@/app/utils/cel-utils';
+import { generateRule as generateRule, getDefaultOperatorForType } from '@/app/utils/cel_generator';
 import { EventCondition, SessionCondition, EventConditions, SessionConditions } from '@/app/types/session-targeting-types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { parseCel } from '../utils/cel_parser';
 
 export type SessionTargetingRulesConfig = typeof emptySessionTargetingRulesResponse;
 const MAX_CONDITIONS = 10;
@@ -176,7 +177,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
     const [pageState, setPageState] = useState<PageState>(initialState)
     const [sessionTargetingRuleName, setSessionTargetingRuleName] = useState<string | null>(null);
     const [eventConditionsState, setEventConditionsState] = useState<EventConditions>({
-        conditions: [createEmptyEventCondition()],
+        conditions: isEditMode ? [] : [createEmptyEventCondition()],
         operators: []
     })
     const [sessionConditionsState, setSessionConditionsState] = useState<SessionConditions>({
@@ -266,11 +267,22 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             }
 
             // Parse CEL rule into conditions
+            const parsedRules = parseCel(ruleData.rule);
+            if (parsedRules) {
+                if (parsedRules.eventConditions && parsedRules.eventConditions.conditions.length > 0) {
+                    setEventConditionsState(parsedRules.eventConditions);
+                }
+                if (parsedRules.sessionConditions && parsedRules.sessionConditions.conditions.length > 0) {
+                    setSessionConditionsState(parsedRules.sessionConditions);
+                }
+            }
         }
     }, [isEditMode, pageState.sessionTargetingRuleApiStatus, pageState.sessionTargetingRule])
 
-    // Effect to set the first event type when eventTypes are available
+    // Effect to set the first event type when eventTypes are available (only in create mode)
     useEffect(() => {
+        if (isEditMode) return; // Don't auto-set in edit mode
+        
         const eventTypes = getEventTypesFromResponse(pageState.sessionTargetingConfig);
 
         if (eventTypes.length > 0) {
@@ -288,7 +300,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                 return prevState;
             });
         }
-    }, [pageState.sessionTargetingConfig]);
+    }, [isEditMode, pageState.sessionTargetingConfig]);
 
 
     const handleTitleChange = (title: string) => {

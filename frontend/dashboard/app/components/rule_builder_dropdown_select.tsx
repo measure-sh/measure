@@ -1,7 +1,7 @@
 "use client"
 
 import { Check, ChevronsUpDown } from "lucide-react"
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { cn } from '../utils/shadcn_utils'
 import { Button } from './button'
 import {
@@ -29,6 +29,11 @@ const RuleBuilderDropdownSelect: React.FC<RuleBuilderDropdownSelectProps> = ({
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState(initialSelected)
   const [searchValue, setSearchValue] = useState("")
+
+  // Update selected state when initialSelected changes (e.g., from API response)
+  useEffect(() => {
+    setSelected(initialSelected)
+  }, [initialSelected])
 
   const handleSelect = (item: string) => {
     setSelected(item)

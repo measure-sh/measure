@@ -1047,7 +1047,7 @@ export const dummySamplingRuleResponse = {
     name: "Critical issues",
     status: 0,
     sampling_rate: 1,
-    rule: "(event_type == \"bug_report\" && user_defined_attrs.is_user_premium == true)",
+    rule: `((event_type == "anr") || (event_type == "exception" && exception.handled == false)) && ((attribute.is_device_foldable == true) && (attribute.app_version == "0.1.2"))`,
     changelog: [
       {
         modified_at: "2023-10-02T12:00:00Z",
