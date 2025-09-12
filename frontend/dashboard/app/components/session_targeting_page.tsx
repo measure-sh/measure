@@ -8,11 +8,11 @@ import RuleBuilderLogicalOperator from '@/app/components/rule_builder_logical_op
 import SaveSessionTargetingRule from '@/app/components/save_session_targeting_rule';
 import RuleBuilderSessionCondition from '@/app/components/rule_builder_session_condition';
 import ToggleSwitch from '@/app/components/toggle_switch';
-import { generateRule as generateRule, getDefaultOperatorForType } from '@/app/utils/cel_generator';
+import { conditionsToCel } from '@/app/cel/cel_generator';
 import { EventCondition, SessionCondition, EventConditions, SessionConditions } from '@/app/types/session-targeting-types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { parseCel } from '../utils/cel_parser';
+import { celToConditions } from '../cel/cel_parser';
 
 export type SessionTargetingRulesConfig = typeof emptySessionTargetingRulesResponse;
 const MAX_CONDITIONS = 10;
@@ -152,10 +152,24 @@ const isFormValid = (
     const hasValidRuleName = ruleName !== null && ruleName.trim().length > 0;
     const hasAtLeastOneCondition = hasValidEventConditions || hasValidSessionConditions;
 
-    console.log('Form Validation:', { hasValidRuleName, hasAtLeastOneCondition });
-
     return hasValidRuleName && hasAtLeastOneCondition;
 };
+
+function getDefaultOperatorForType(type: string): string {
+    switch (type) {
+        case 'string':
+            return 'eq'
+        case 'bool':
+        case 'boolean':
+            return 'eq'
+        case 'int64':
+        case 'float64':
+        case 'number':
+            return 'eq'
+        default:
+            return 'eq'
+    }
+}
 
 export default function SessionTargetingPage({ params, isEditMode }: SessionTargetingRulePageProps) {
     const router = useRouter()
@@ -168,12 +182,12 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
     }
 
     const [pageState, setPageState] = useState<PageState>(initialState)
-    const [sessionTargetingRuleName, setSessionTargetingRuleName] = useState<string | null>(null);
-    const [eventConditionsState, setEventConditionsState] = useState<EventConditions>({
+    const [ruleName, setRuleName] = useState<string | null>(null);
+    const [eventConditions, setEventConditions] = useState<EventConditions>({
         conditions: [],
         operators: []
     })
-    const [sessionConditionsState, setSessionConditionsState] = useState<SessionConditions>({
+    const [sessionConditions, setSessionConditions] = useState<SessionConditions>({
         conditions: [],
         operators: []
     })
@@ -242,15 +256,15 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         if (isEditMode && pageState.sessionTargetingConfigApiStatus === SessionTargetingConfigApiStatus.Success) {
             getSesionTargetingRule()
         }
-    }, [isEditMode, pageState.sessionTargetingConfigApiStatus])
+    }, [pageState.sessionTargetingConfigApiStatus])
 
-    // Effect to populate title and sampling rate when rule data is loaded
+    // Effect to populate a rule when in edit mode and rule data is available
     useEffect(() => {
         if (isEditMode && pageState.sessionTargetingRuleApiStatus === SessionTargetingRuleApiStatus.Success && pageState.sessionTargetingRule.results) {
             const ruleData = pageState.sessionTargetingRule.results
 
             if (ruleData.name) {
-                setSessionTargetingRuleName(ruleData.name)
+                setRuleName(ruleData.name)
             }
             if (typeof ruleData.sampling_rate === 'number') {
                 setSamplingRateState({ value: ruleData.sampling_rate })
@@ -260,17 +274,17 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             }
 
             // Parse CEL rule into conditions
-            const parsedRules = parseCel(ruleData.rule);
-            if (parsedRules) {
-                if (parsedRules.eventConditions && parsedRules.eventConditions.conditions.length > 0) {
-                    setEventConditionsState(parsedRules.eventConditions);
+            const conditions = celToConditions(ruleData.rule);
+            if (conditions) {
+                if (conditions.event && conditions.event.conditions.length > 0) {
+                    setEventConditions(conditions.event);
                 }
-                if (parsedRules.sessionConditions && parsedRules.sessionConditions.conditions.length > 0) {
-                    setSessionConditionsState(parsedRules.sessionConditions);
+                if (conditions.session && conditions.session.conditions.length > 0) {
+                    setSessionConditions(conditions.session);
                 }
             }
         }
-    }, [isEditMode, pageState.sessionTargetingRuleApiStatus, pageState.sessionTargetingRule])
+    }, [pageState.sessionTargetingRuleApiStatus, pageState.sessionTargetingRule])
 
     // Effect to set the first event type when eventTypes are available (only in create mode)
     useEffect(() => {
@@ -279,7 +293,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         const eventTypes = getEventTypesFromResponse(pageState.sessionTargetingConfig);
 
         if (eventTypes.length > 0) {
-            setEventConditionsState(prevState => {
+            setEventConditions(prevState => {
                 // Only update if the first condition doesn't have a type set
                 if (prevState.conditions.length > 0 && prevState.conditions[0].type === null) {
                     const updatedConditions = prevState.conditions.map((condition, index) =>
@@ -293,16 +307,16 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                 return prevState;
             });
         }
-    }, [isEditMode, pageState.sessionTargetingConfig]);
+    }, [pageState.sessionTargetingConfig]);
 
 
     const handleTitleChange = (title: string) => {
-        setSessionTargetingRuleName(title);
+        setRuleName(title);
     };
 
     // Event condition handlers
     const addEventCondition = () => {
-        if (eventConditionsState.conditions.length < MAX_CONDITIONS) {
+        if (eventConditions.conditions.length < MAX_CONDITIONS) {
             const eventTypes = getEventTypesFromResponse(pageState.sessionTargetingConfig);
             if (eventTypes.length === 0) return;
 
@@ -312,22 +326,22 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                 attrs: [],
                 ud_attrs: []
             }
-            const newOperators = eventConditionsState.conditions.length > 0
-                ? [...eventConditionsState.operators, 'AND' as const]
+            const newOperators = eventConditions.conditions.length > 0
+                ? [...eventConditions.operators, 'AND' as const]
                 : []
-            setEventConditionsState({
-                conditions: [...eventConditionsState.conditions, newCondition],
+            setEventConditions({
+                conditions: [...eventConditions.conditions, newCondition],
                 operators: newOperators
             })
         }
     }
 
     const removeEventCondition = (conditionId: string) => {
-        const conditionIndex = eventConditionsState.conditions.findIndex(c => c.id === conditionId)
+        const conditionIndex = eventConditions.conditions.findIndex(c => c.id === conditionId)
         if (conditionIndex === -1) return
 
-        const newConditions = eventConditionsState.conditions.filter(c => c.id !== conditionId)
-        let newOperators = [...eventConditionsState.operators]
+        const newConditions = eventConditions.conditions.filter(c => c.id !== conditionId)
+        let newOperators = [...eventConditions.operators]
 
         if (conditionIndex < newOperators.length) {
             newOperators.splice(conditionIndex, 1)
@@ -335,37 +349,37 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             newOperators.splice(conditionIndex - 1, 1)
         }
 
-        setEventConditionsState({
+        setEventConditions({
             conditions: newConditions,
             operators: newOperators
         })
     }
 
     const updateEventCondition = (conditionIndex: number, type: string) => {
-        if (conditionIndex < 0 || conditionIndex >= eventConditionsState.conditions.length) return
+        if (conditionIndex < 0 || conditionIndex >= eventConditions.conditions.length) return
 
-        const updatedConditions = eventConditionsState.conditions.map((condition, index) =>
+        const updatedConditions = eventConditions.conditions.map((condition, index) =>
             index === conditionIndex
                 ? { ...condition, type, attrs: [], ud_attrs: [] }
                 : condition
         )
-        setEventConditionsState({
-            ...eventConditionsState,
+        setEventConditions({
+            ...eventConditions,
             conditions: updatedConditions
         })
     }
 
     const updateEventOperator = (operatorIndex: number, operator: 'AND' | 'OR') => {
-        const newOperators = [...eventConditionsState.operators]
+        const newOperators = [...eventConditions.operators]
         newOperators[operatorIndex] = operator
-        setEventConditionsState({
-            ...eventConditionsState,
+        setEventConditions({
+            ...eventConditions,
             operators: newOperators
         })
     }
 
     const addAttribute = (conditionIndex: number, attributeType: AttributeType) => {
-        const condition = eventConditionsState.conditions[conditionIndex]
+        const condition = eventConditions.conditions[conditionIndex]
         if (!condition || !condition.type) return
 
         const availableAttrs = getAvailableAttributes(pageState.sessionTargetingConfig, condition.type, attributeType)
@@ -382,7 +396,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             operator: getDefaultOperatorForType(firstAttr.type)
         }
 
-        setEventConditionsState(prevState => {
+        setEventConditions(prevState => {
             const updatedConditions = prevState.conditions.map((cond, index) =>
                 index === conditionIndex
                     ? {
@@ -399,7 +413,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
     }
 
     const removeAttribute = (conditionIndex: number, attributeId: string, attributeType: AttributeType) => {
-        setEventConditionsState(prevState => {
+        setEventConditions(prevState => {
             const condition = prevState.conditions[conditionIndex]
             const currentAttrs = condition?.[attributeType]
             if (!currentAttrs) return prevState
@@ -426,7 +440,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         value: any,
         attributeType: AttributeType
     ) => {
-        setEventConditionsState(prevState => {
+        setEventConditions(prevState => {
             const condition = prevState.conditions[conditionIndex]
             const currentAttrs = condition?.[attributeType]
             if (!currentAttrs) return prevState
@@ -465,7 +479,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
 
     // Session condition handlers
     const addSessionCondition = () => {
-        if (sessionConditionsState.conditions.length < MAX_CONDITIONS) {
+        if (sessionConditions.conditions.length < MAX_CONDITIONS) {
             const sessionAttrs = getSessionAttributes(pageState.sessionTargetingConfig)
             const newCondition = createEmptySessionCondition()
 
@@ -480,23 +494,23 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                 }]
             }
 
-            const newOperators = sessionConditionsState.conditions.length > 0
-                ? [...sessionConditionsState.operators, 'AND' as const]
+            const newOperators = sessionConditions.conditions.length > 0
+                ? [...sessionConditions.operators, 'AND' as const]
                 : []
 
-            setSessionConditionsState({
-                conditions: [...sessionConditionsState.conditions, newCondition],
+            setSessionConditions({
+                conditions: [...sessionConditions.conditions, newCondition],
                 operators: newOperators
             })
         }
     }
 
     const removeSessionCondition = (conditionId: string) => {
-        const conditionIndex = sessionConditionsState.conditions.findIndex(c => c.id === conditionId)
+        const conditionIndex = sessionConditions.conditions.findIndex(c => c.id === conditionId)
         if (conditionIndex === -1) return
 
-        const newConditions = sessionConditionsState.conditions.filter(c => c.id !== conditionId)
-        let newOperators = [...sessionConditionsState.operators]
+        const newConditions = sessionConditions.conditions.filter(c => c.id !== conditionId)
+        let newOperators = [...sessionConditions.operators]
 
         if (conditionIndex < newOperators.length) {
             newOperators.splice(conditionIndex, 1)
@@ -504,17 +518,17 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             newOperators.splice(conditionIndex - 1, 1)
         }
 
-        setSessionConditionsState({
+        setSessionConditions({
             conditions: newConditions,
             operators: newOperators
         })
     }
 
     const updateSessionOperator = (operatorIndex: number, operator: 'AND' | 'OR') => {
-        const newOperators = [...sessionConditionsState.operators]
+        const newOperators = [...sessionConditions.operators]
         newOperators[operatorIndex] = operator
-        setSessionConditionsState({
-            ...sessionConditionsState,
+        setSessionConditions({
+            ...sessionConditions,
             operators: newOperators
         })
     }
@@ -525,7 +539,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         field: 'key' | 'type' | 'value' | 'operator',
         value: any
     ) => {
-        setSessionConditionsState(prevState => {
+        setSessionConditions(prevState => {
             const condition = prevState.conditions[conditionIndex]
             const currentAttrs = condition?.attrs
             if (!currentAttrs) return prevState
@@ -564,7 +578,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
 
     const handleCreateSessionTargetingRule = async () => {
         // Generate CEL expression as string
-        const ruleCel = generateRule(eventConditionsState, sessionConditionsState);
+        const ruleCel = conditionsToCel({ event: eventConditions, trace: undefined, session: sessionConditions });
 
         if (ruleCel == null) {
             console.error('No valid conditions to create a rule.');
@@ -578,7 +592,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             sampling_rate: number;
             rule: string;
         } = {
-            name: sessionTargetingRuleName || '', // TODO: add validation
+            name: ruleName || '', // TODO: add validation
             status: SessionTargetingStatus === 'enabled' ? 1 : 0,
             sampling_rate: Number(samplingRateState.value),
             rule: ruleCel,
@@ -603,7 +617,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
 
     const handleUpdateSessionTargetingRule = async () => {
         // Generate CEL expression as string
-        const ruleCel = generateRule(eventConditionsState, sessionConditionsState);
+        const ruleCel = conditionsToCel({ event: eventConditions, trace: undefined, session: sessionConditions });
 
         if (ruleCel == null) {
             console.error('No valid conditions to create a rule.');
@@ -621,7 +635,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             rule: string;
         } = {
             id: params.ruleId || '', // TODO: add validation
-            name: sessionTargetingRuleName || '', // TODO: add validation
+            name: ruleName || '', // TODO: add validation
             status: SessionTargetingStatus === 'enabled' ? 1 : 0,
             sampling_rate: Number(samplingRateState.value),
             rule: ruleCel,
@@ -645,7 +659,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
     const eventTypes = getEventTypesFromResponse(pageState.sessionTargetingConfig);
     const operatorTypesMapping = getOperatorTypesMapping(pageState.sessionTargetingConfig);
     const sessionAttrs = getSessionAttributes(pageState.sessionTargetingConfig);
-    const formIsValid = isFormValid(eventConditionsState, sessionConditionsState, sessionTargetingRuleName);
+    const formIsValid = isFormValid(eventConditions, sessionConditions, ruleName);
 
     return (
         <div className="flex flex-col selection:bg-yellow-200/75 items-start">
@@ -662,7 +676,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                 <input
                                     type="text"
                                     placeholder="Enter rule name"
-                                    value={sessionTargetingRuleName || ""}
+                                    value={ruleName || ""}
                                     maxLength={MAX_RULE_NAME_LENGTH}
                                     onChange={(e) => handleTitleChange(e.target.value)}
                                     className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
@@ -728,13 +742,13 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                         {(
                             <RuleBuilderConditionSection
                                 title="Event Conditions"
-                                conditionCount={eventConditionsState.conditions.length}
+                                conditionCount={eventConditions.conditions.length}
                                 maxConditions={MAX_CONDITIONS}
                                 onAddCondition={addEventCondition}
                             >
-                                {eventConditionsState.conditions.length > 0 && (
+                                {eventConditions.conditions.length > 0 && (
                                     <div className="pt-1">
-                                        {eventConditionsState.conditions.map((condition, index) => {
+                                        {eventConditions.conditions.map((condition, index) => {
                                             const availableAttrs = condition.type ? getEventAttributes(pageState.sessionTargetingConfig, condition.type) : []
                                             const canAddMoreRegularAttrs = canAddMoreAttributes(condition, availableAttrs, 'attrs')
                                             const globalUserDefinedAttrs = getUserDefinedAttributes(pageState.sessionTargetingConfig)
@@ -761,10 +775,10 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                                         getOperatorsForType={getOperatorsForType}
                                                     />
 
-                                                    {index < eventConditionsState.conditions.length - 1 && (
+                                                    {index < eventConditions.conditions.length - 1 && (
                                                         <div className="flex justify-center">
                                                             <RuleBuilderLogicalOperator
-                                                                value={eventConditionsState.operators[index] || 'AND'}
+                                                                value={eventConditions.operators[index] || 'AND'}
                                                                 onChange={(operator) => updateEventOperator(index, operator)}
                                                             />
                                                         </div>
@@ -782,13 +796,13 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                         {/* Session conditions */}
                         <RuleBuilderConditionSection
                             title="Session Conditions"
-                            conditionCount={sessionConditionsState.conditions.length}
+                            conditionCount={sessionConditions.conditions.length}
                             maxConditions={MAX_CONDITIONS}
                             onAddCondition={addSessionCondition}
                         >
-                            {sessionConditionsState.conditions.length > 0 && (
+                            {sessionConditions.conditions.length > 0 && (
                                 <div className="pt-1">
-                                    {sessionConditionsState.conditions.map((condition, index) => (
+                                    {sessionConditions.conditions.map((condition, index) => (
                                         <div key={condition.id}>
                                             <RuleBuilderSessionCondition
                                                 condition={condition}
@@ -800,10 +814,10 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                                 getOperatorsForType={getOperatorsForType}
                                             />
 
-                                            {index < sessionConditionsState.conditions.length - 1 && (
+                                            {index < sessionConditions.conditions.length - 1 && (
                                                 <div className="flex justify-center">
                                                     <RuleBuilderLogicalOperator
-                                                        value={sessionConditionsState.operators[index] || 'AND'}
+                                                        value={sessionConditions.operators[index] || 'AND'}
                                                         onChange={(operator) => updateSessionOperator(index, operator)}
                                                     />
                                                 </div>
