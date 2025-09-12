@@ -246,6 +246,7 @@
 		CF86818F2DB6541F00C62DA5 /* SpanId.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF86818D2DB6541F00C62DA5 /* SpanId.swift */; };
 		CF8681902DB6541F00C62DA5 /* TraceId.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF86818E2DB6541F00C62DA5 /* TraceId.swift */; };
 		CF9D74C52E6169F3007D6D30 /* LifecycleManagerInternal.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9D74C42E6169F3007D6D30 /* LifecycleManagerInternal.swift */; };
+		CF9D75792E66C0FA007D6D30 /* SessionStartData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9D75782E66C0FA007D6D30 /* SessionStartData.swift */; };
 		CFB838212DAFEF780023592B /* SpanProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB838202DAFEF780023592B /* SpanProcessorTests.swift */; };
 		CFB8382C2DB1597B0023592B /* SpanOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB8382A2DB1597B0023592B /* SpanOb+CoreDataClass.swift */; };
 		CFB8382D2DB1597B0023592B /* SpanOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB8382B2DB1597B0023592B /* SpanOb+CoreDataProperties.swift */; };
@@ -578,6 +579,7 @@
 		CF86818D2DB6541F00C62DA5 /* SpanId.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanId.swift; sourceTree = "<group>"; };
 		CF86818E2DB6541F00C62DA5 /* TraceId.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceId.swift; sourceTree = "<group>"; };
 		CF9D74C42E6169F3007D6D30 /* LifecycleManagerInternal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleManagerInternal.swift; sourceTree = "<group>"; };
+		CF9D75782E66C0FA007D6D30 /* SessionStartData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStartData.swift; sourceTree = "<group>"; };
 		CFB838202DAFEF780023592B /* SpanProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanProcessorTests.swift; sourceTree = "<group>"; };
 		CFB8382A2DB1597B0023592B /* SpanOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CFB8382B2DB1597B0023592B /* SpanOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpanOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
@@ -956,6 +958,7 @@
 				69E4B4D22DA7581A00361E25 /* MeasureInitializer.swift */,
 				526D18192D5A1913009A2E90 /* MeasureInternal.swift */,
 				526D181A2D5A1913009A2E90 /* RecentSession.swift */,
+				CF9D75782E66C0FA007D6D30 /* SessionStartData.swift */,
 				526D181B2D5A1913009A2E90 /* SessionManager.swift */,
 				526D179A2D5A1913009A2E90 /* AppLaunch */,
 				526D17A42D5A1913009A2E90 /* Attribute */,
@@ -1607,6 +1610,7 @@
 				526D188C2D5A1913009A2E90 /* UserDefaultStorage.swift in Sources */,
 				CFD88D152DA799CA0095115E /* SpanCollector.swift in Sources */,
 				526D182C2D5A1913009A2E90 /* DeviceAttributeProcessor.swift in Sources */,
+				CF9D75792E66C0FA007D6D30 /* SessionStartData.swift in Sources */,
 				526D18872D5A1913009A2E90 /* Randomizer.swift in Sources */,
 				526D18312D5A1913009A2E90 /* ClientInfo.swift in Sources */,
 				526D18672D5A1913009A2E90 /* LayoutSnapshotGenerator.swift in Sources */,

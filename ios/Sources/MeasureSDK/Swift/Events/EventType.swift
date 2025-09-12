@@ -25,4 +25,5 @@ enum EventType: String, Codable {
     case custom
     case screenView = "screen_view"
     case bugReport = "bug_report"
+    case sessionStart = "session_start"
 }

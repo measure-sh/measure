@@ -85,7 +85,8 @@ final class BaseConfigProviderTests: XCTestCase {
                 .warmLaunch,
                 .lifecycleSwiftUI,
                 .lifecycleViewController,
-                .screenView
+                .screenView,
+                .sessionStart
             ])
         XCTAssertTrue(baseConfigProvider.autoStart)
         XCTAssertEqual(baseConfigProvider.maxSpanNameLength, 64)

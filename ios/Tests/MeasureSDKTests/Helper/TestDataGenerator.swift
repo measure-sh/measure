@@ -94,6 +94,7 @@ struct TestDataGenerator {
         networkChange: Data? = nil,
         screenView: Data? = nil,
         bugReport: Data? = nil,
+        sessionStartData: Data? = nil,
         needsReporting: Bool = true) -> EventEntity {
         return EventEntity(
             id: id,
@@ -124,6 +125,7 @@ struct TestDataGenerator {
             customEvent: customEvent,
             screenView: screenView,
             bugReport: bugReport,
+            sessionStartData: sessionStartData,
             needsReporting: needsReporting
         )
     }
