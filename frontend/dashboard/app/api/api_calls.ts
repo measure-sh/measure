@@ -1047,7 +1047,7 @@ export const dummySamplingRuleResponse = {
     name: "Critical issues",
     status: 0,
     sampling_rate: 1,
-    rule: `((event_type == "anr") || (event_type == "exception" && exception.handled == false)) && ((attribute.is_device_foldable == true) && (attribute.app_version == "0.1.2"))`,
+    rule: `((event_type == "anr") && (event_type == "exception" && exception.handled == false) && (event_type == "custom" && custom.name.startsWith("login_") && event.user_defined_attrs.is_premium_user == false)) && (attribute.is_device_foldable == true)`,
     changelog: [
       {
         modified_at: "2023-10-02T12:00:00Z",

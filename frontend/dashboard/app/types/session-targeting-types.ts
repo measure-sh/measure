@@ -29,7 +29,9 @@ export interface SessionCondition {
 }
 
 export interface TraceCondition {
+    id: string
     spanName: string
+    operator: string
     ud_attrs: Array<{
         id: string,
         key: string,

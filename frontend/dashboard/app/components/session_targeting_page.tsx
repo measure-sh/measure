@@ -8,11 +8,11 @@ import RuleBuilderLogicalOperator from '@/app/components/rule_builder_logical_op
 import SaveSessionTargetingRule from '@/app/components/save_session_targeting_rule';
 import RuleBuilderSessionCondition from '@/app/components/rule_builder_session_condition';
 import ToggleSwitch from '@/app/components/toggle_switch';
-import { generateRule as generateRule, getDefaultOperatorForType } from '@/app/utils/cel_generator';
+import { conditionsToCel } from '@/app/cel/cel_generator';
 import { EventCondition, SessionCondition, EventConditions, SessionConditions } from '@/app/types/session-targeting-types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { parseCel } from '../utils/cel_parser';
+import { celToConditions } from '../cel/cel_parser';
 
 export type SessionTargetingRulesConfig = typeof emptySessionTargetingRulesResponse;
 const MAX_CONDITIONS = 10;
@@ -152,10 +152,24 @@ const isFormValid = (
     const hasValidRuleName = ruleName !== null && ruleName.trim().length > 0;
     const hasAtLeastOneCondition = hasValidEventConditions || hasValidSessionConditions;
 
-    console.log('Form Validation:', { hasValidRuleName, hasAtLeastOneCondition });
-
     return hasValidRuleName && hasAtLeastOneCondition;
 };
+
+function getDefaultOperatorForType(type: string): string {
+    switch (type) {
+        case 'string':
+            return 'eq'
+        case 'bool':
+        case 'boolean':
+            return 'eq'
+        case 'int64':
+        case 'float64':
+        case 'number':
+            return 'eq'
+        default:
+            return 'eq'
+    }
+}
 
 export default function SessionTargetingPage({ params, isEditMode }: SessionTargetingRulePageProps) {
     const router = useRouter()
@@ -260,13 +274,13 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             }
 
             // Parse CEL rule into conditions
-            const parsedRules = parseCel(ruleData.rule);
-            if (parsedRules) {
-                if (parsedRules.eventConditions && parsedRules.eventConditions.conditions.length > 0) {
-                    setEventConditionsState(parsedRules.eventConditions);
+            const conditions = celToConditions(ruleData.rule);
+            if (conditions) {
+                if (conditions.event && conditions.event.conditions.length > 0) {
+                    setEventConditionsState(conditions.event);
                 }
-                if (parsedRules.sessionConditions && parsedRules.sessionConditions.conditions.length > 0) {
-                    setSessionConditionsState(parsedRules.sessionConditions);
+                if (conditions.session && conditions.session.conditions.length > 0) {
+                    setSessionConditionsState(conditions.session);
                 }
             }
         }
@@ -564,7 +578,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
 
     const handleCreateSessionTargetingRule = async () => {
         // Generate CEL expression as string
-        const ruleCel = generateRule(eventConditionsState, sessionConditionsState);
+        const ruleCel = conditionsToCel({ event: eventConditionsState, trace: undefined, session: sessionConditionsState });
 
         if (ruleCel == null) {
             console.error('No valid conditions to create a rule.');
@@ -603,7 +617,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
 
     const handleUpdateSessionTargetingRule = async () => {
         // Generate CEL expression as string
-        const ruleCel = generateRule(eventConditionsState, sessionConditionsState);
+        const ruleCel = conditionsToCel({ event: eventConditionsState, trace: undefined, session: sessionConditionsState });
 
         if (ruleCel == null) {
             console.error('No valid conditions to create a rule.');
