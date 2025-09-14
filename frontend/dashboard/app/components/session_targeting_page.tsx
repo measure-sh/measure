@@ -255,11 +255,11 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         const conditions = celToConditions(ruleData.rule)
 
         const validatedEventConditions = conditions?.event
-            ? validateEventConditions(conditions.event, config)
+            ? conditions?.event
             : { conditions: [], operators: [] }
 
         const validatedSessionConditions = conditions?.session
-            ? validateSessionConditions(conditions.session, config)
+            ? conditions?.session
             : { conditions: [], operators: [] }
 
         setPageState(prev => ({
@@ -273,54 +273,6 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         }))
     }
 
-    // Validation functions
-    const validateEventConditions = (eventConditions: EventConditions, config: typeof emptySessionTargetingConfigResponse): EventConditions => {
-        const availableEventTypes = getEventTypesFromResponse(config)
-
-        const validConditions = eventConditions.conditions
-            .filter(condition => !condition.type || availableEventTypes.includes(condition.type))
-            .map(condition => validateEventCondition(condition, config))
-
-        return {
-            conditions: validConditions,
-            operators: eventConditions.operators.slice(0, Math.max(0, validConditions.length - 1))
-        }
-    }
-
-    const validateEventCondition = (condition: EventCondition, config: typeof emptySessionTargetingConfigResponse): EventCondition => {
-        if (!condition.type) return condition
-
-        const availableAttrs = getEventAttributes(config, condition.type)
-        const globalUdAttrs = getUserDefinedAttributes(config)
-
-        return {
-            ...condition,
-            attrs: condition.attrs?.filter(attr =>
-                availableAttrs.some(configAttr => configAttr.key === attr.key)
-            ) || [],
-            ud_attrs: condition.ud_attrs?.filter(attr =>
-                globalUdAttrs.some(configAttr => configAttr.key === attr.key)
-            ) || []
-        }
-    }
-
-    const validateSessionConditions = (sessionConditions: SessionConditions, config: typeof emptySessionTargetingConfigResponse): SessionConditions => {
-        const availableAttrs = getSessionAttributes(config)
-
-        const validConditions = sessionConditions.conditions
-            .map(condition => ({
-                ...condition,
-                attrs: condition.attrs.filter(attr =>
-                    availableAttrs.some(configAttr => configAttr.key === attr.key)
-                )
-            }))
-            .filter(condition => condition.attrs.length > 0)
-
-        return {
-            conditions: validConditions,
-            operators: sessionConditions.operators.slice(0, Math.max(0, validConditions.length - 1))
-        }
-    }
 
     // Event handlers
     const updatePageState = (updates: Partial<PageState>) => {
