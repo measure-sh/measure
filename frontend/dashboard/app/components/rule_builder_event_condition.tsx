@@ -14,8 +14,7 @@ interface RuleBuilderEventConditionProps {
     operatorTypesMapping: any;
     canAddMoreAttrs: boolean;
     canAddMoreUdAttrs: boolean;
-    doesEventSupportUdAttrs: (config: any, eventType: string) => boolean;
-    pageConfig: any;
+    supportsUdAttrs: boolean;
     onUpdateCondition: (index: number, eventType: string) => void;
     onRemoveCondition: (conditionId: string) => void;
     onAddAttribute: (index: number, type: 'attrs' | 'ud_attrs') => void;
@@ -33,8 +32,7 @@ const RuleBuilderEventCondition = ({
     operatorTypesMapping,
     canAddMoreAttrs: canAddMoreRegularAttrs,
     canAddMoreUdAttrs,
-    doesEventSupportUdAttrs,
-    pageConfig,
+    supportsUdAttrs,
     onUpdateCondition,
     onRemoveCondition,
     onAddAttribute,
@@ -92,7 +90,7 @@ const RuleBuilderEventCondition = ({
                     </div>
                 )}
 
-                {condition.type && doesEventSupportUdAttrs(pageConfig, condition.type) && userDefinedAttrs.length > 0 && (
+                {condition.type && supportsUdAttrs && userDefinedAttrs.length > 0 && (
                     <div className="space-y-4">
                         <RuleBuilderAddAttribute
                             title="User-defined Attributes"
