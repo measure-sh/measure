@@ -6,6 +6,19 @@ import { X } from 'lucide-react';
 
 type AttributeType = 'attrs' | 'ud_attrs';
 
+const getUserFriendlyTypeName = (type: string): string => {
+    const typeMap: { [key: string]: string } = {
+        'float64': 'decimal',
+        'int64': 'number',
+        'number': 'number',
+        'bool': 'true/false',
+        'boolean': 'true/false',
+        'string': 'text'
+    };
+
+    return typeMap[type] || type;
+};
+
 const RuleBuilderAttributeRow = ({
     attr,
     attrIndex,
@@ -69,7 +82,7 @@ const RuleBuilderAttributeRow = ({
                     <input
                         id="change-team-name-input"
                         type={attr.type === 'number' || attr.type === 'int64' || attr.type === 'float64' ? 'number' : 'text'}
-                        placeholder={`Enter ${attr.type} value`}
+                        placeholder={`Enter ${getUserFriendlyTypeName(attr.type)} value`}
                         value={attr.value as string | number}
                         onChange={(e) => {
                             const value = (attr.type === 'number' || attr.type === 'int64' || attr.type === 'float64') ?
