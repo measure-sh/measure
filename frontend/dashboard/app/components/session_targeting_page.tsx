@@ -1,17 +1,17 @@
 "use client"
 
-import { createSessionTargetingRule, CreateSessionTargetingRuleApiStatus, emptySessionTargetingResponse, emptySessionTargetingConfigResponse, emptySessionTargetingRulesResponse, fetchSessionTargetingConfigFromServer, fetchSessionTargetingRuleFromServer, SessionTargetingConfigApiStatus, SessionTargetingRuleApiStatus, updateSessionTargetingRule, UpdateSessionTargetingRuleApiStatus } from '@/app/api/api_calls';
+import { createSessionTargetingRule, CreateSessionTargetingRuleApiStatus, emptySessionTargetingConfigResponse, emptySessionTargetingResponse, emptySessionTargetingRulesResponse, fetchSessionTargetingConfigFromServer, fetchSessionTargetingRuleFromServer, SessionTargetingConfigApiStatus, SessionTargetingRuleApiStatus, updateSessionTargetingRule, UpdateSessionTargetingRuleApiStatus } from '@/app/api/api_calls';
+import { conditionsToCel } from '@/app/cel/cel_generator';
 import LoadingSpinner from '@/app/components/loading_spinner';
 import RuleBuilderConditionSection from '@/app/components/rule_builder_condition_section';
 import RuleBuilderEventCondition from '@/app/components/rule_builder_event_condition';
 import RuleBuilderLogicalOperator from '@/app/components/rule_builder_logical_operator';
-import SaveSessionTargetingRule from '@/app/components/save_session_targeting_rule';
 import RuleBuilderSessionCondition from '@/app/components/rule_builder_session_condition';
-import ToggleSwitch from '@/app/components/toggle_switch';
-import { conditionsToCel } from '@/app/cel/cel_generator';
-import { EventCondition, SessionCondition, EventConditions, SessionConditions } from '@/app/types/session-targeting-types';
+import SaveSessionTargetingRule from '@/app/components/save_session_targeting_rule';
+import SwitchToggle from '@/app/components/switch';
+import { EventCondition, EventConditions, SessionCondition, SessionConditions } from '@/app/types/session-targeting-types';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { celToConditions } from '../cel/cel_parser';
 
 export type SessionTargetingRulesConfig = typeof emptySessionTargetingRulesResponse;
@@ -675,9 +675,10 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                     />
                                 </div>
                                 <p className="text-sm">Status</p>
-                                <ToggleSwitch
-                                    enabled={pageState.status === 'enabled'}
-                                    onChange={handleStatusChange}
+                                <SwitchToggle
+                                    toggled={pageState.status === 'enabled'}
+                                    onToggle={handleStatusChange}
+                                    disabled={false}
                                 />
                             </div>
                         </>
