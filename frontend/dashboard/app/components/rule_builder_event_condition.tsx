@@ -10,9 +10,9 @@ interface RuleBuilderEventConditionProps {
     index: number;
     eventTypes: string[];
     availableAttrs: any[];
-    globalUserDefinedAttrs: any[];
+    userDefinedAttrs: any[];
     operatorTypesMapping: any;
-    canAddMoreRegularAttrs: boolean;
+    canAddMoreAttrs: boolean;
     canAddMoreUdAttrs: boolean;
     doesEventSupportUdAttrs: (config: any, eventType: string) => boolean;
     pageConfig: any;
@@ -29,9 +29,9 @@ const RuleBuilderEventCondition = ({
     index,
     eventTypes,
     availableAttrs,
-    globalUserDefinedAttrs,
+    userDefinedAttrs: userDefinedAttrs,
     operatorTypesMapping,
-    canAddMoreRegularAttrs,
+    canAddMoreAttrs: canAddMoreRegularAttrs,
     canAddMoreUdAttrs,
     doesEventSupportUdAttrs,
     pageConfig,
@@ -92,7 +92,7 @@ const RuleBuilderEventCondition = ({
                     </div>
                 )}
 
-                {condition.type && doesEventSupportUdAttrs(pageConfig, condition.type) && globalUserDefinedAttrs.length > 0 && (
+                {condition.type && doesEventSupportUdAttrs(pageConfig, condition.type) && userDefinedAttrs.length > 0 && (
                     <div className="space-y-4">
                         <RuleBuilderAddAttribute
                             title="User-defined Attributes"
@@ -102,7 +102,7 @@ const RuleBuilderEventCondition = ({
 
                         {condition.ud_attrs && condition.ud_attrs.map((udAttr: any, udAttrIndex: number) => {
                             const operatorTypes = getOperatorsForType(operatorTypesMapping, udAttr.type)
-                            const availableUdAttrKeys = globalUserDefinedAttrs.map(a => a.key);
+                            const availableUdAttrKeys = userDefinedAttrs.map(a => a.key);
 
                             return (
                                 <RuleBuilderAttributeRow

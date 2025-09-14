@@ -221,7 +221,6 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
     const router = useRouter()
     const [pageState, setPageState] = useState<PageState>(initialPageState)
 
-    // Derived values
     const isFormValid = useMemo(() => {
         return isValidForm(pageState.eventConditions, pageState.sessionConditions, pageState.name)
     }, [pageState.eventConditions, pageState.sessionConditions, pageState.name])
@@ -302,11 +301,11 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         const ruleData = rule.results
         const conditions = celToConditions(ruleData.rule)
 
-        const validatedEventConditions = conditions?.event
+        const eventConditions = conditions?.event
             ? conditions?.event
             : { conditions: [], operators: [] }
 
-        const validatedSessionConditions = conditions?.session
+        const sessionConditions = conditions?.session
             ? conditions?.session
             : { conditions: [], operators: [] }
 
@@ -316,8 +315,8 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             name: ruleData.name || '',
             samplingRate: ruleData.sampling_rate || 100,
             status: ruleData.status === 1 ? 'enabled' : 'disabled',
-            eventConditions: validatedEventConditions,
-            sessionConditions: validatedSessionConditions
+            eventConditions: eventConditions,
+            sessionConditions: sessionConditions
         }))
     }
 
@@ -808,9 +807,9 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                 <div className="pt-1">
                                     {pageState.eventConditions.conditions.map((condition, index) => {
                                         const availableAttrs = condition.type && pageState.config ? getEventAttributes(pageState.config, condition.type) : []
-                                        const canAddMoreRegularAttrs = canAddMoreAttributes(condition, availableAttrs, 'attrs')
-                                        const globalUserDefinedAttrs = pageState.config ? getUserDefinedAttributes(pageState.config) : []
-                                        const canAddMoreUdAttrs = canAddMoreAttributes(condition, globalUserDefinedAttrs, 'ud_attrs')
+                                        const canAddMoreAttrs = canAddMoreAttributes(condition, availableAttrs, 'attrs')
+                                        const userDefinedAttrs = pageState.config ? getUserDefinedAttributes(pageState.config) : []
+                                        const canAddMoreUdAttrs = canAddMoreAttributes(condition, userDefinedAttrs, 'ud_attrs')
 
                                         return (
                                             <div key={condition.id}>
@@ -819,9 +818,9 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                                     index={index}
                                                     eventTypes={eventTypes}
                                                     availableAttrs={availableAttrs}
-                                                    globalUserDefinedAttrs={globalUserDefinedAttrs}
+                                                    userDefinedAttrs={userDefinedAttrs}
                                                     operatorTypesMapping={operatorTypesMapping}
-                                                    canAddMoreRegularAttrs={canAddMoreRegularAttrs}
+                                                    canAddMoreAttrs={canAddMoreAttrs}
                                                     canAddMoreUdAttrs={canAddMoreUdAttrs}
                                                     doesEventSupportUdAttrs={doesEventSupportUdAttrs}
                                                     pageConfig={pageState.config!}
