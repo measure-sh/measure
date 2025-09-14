@@ -810,7 +810,8 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                         const canAddMoreAttrs = canAddMoreAttributes(condition, availableAttrs, 'attrs')
                                         const userDefinedAttrs = pageState.config ? getUserDefinedAttributes(pageState.config) : []
                                         const canAddMoreUdAttrs = canAddMoreAttributes(condition, userDefinedAttrs, 'ud_attrs')
-
+                                        const supportsUdAttrs = pageState.config && condition.type ? doesEventSupportUdAttrs(pageState.config, condition.type) : false
+                                        
                                         return (
                                             <div key={condition.id}>
                                                 <RuleBuilderEventCondition
@@ -822,7 +823,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                                     operatorTypesMapping={operatorTypesMapping}
                                                     canAddMoreAttrs={canAddMoreAttrs}
                                                     canAddMoreUdAttrs={canAddMoreUdAttrs}
-                                                    doesEventSupportUdAttrs={doesEventSupportUdAttrs}
+                                                    supportsUdAttrs={supportsUdAttrs}
                                                     pageConfig={pageState.config!}
                                                     onUpdateCondition={updateEventCondition}
                                                     onRemoveCondition={removeEventCondition}
