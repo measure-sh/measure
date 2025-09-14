@@ -25,7 +25,7 @@ const RuleBuilderConditionSection = ({
 
     return (
         <div className="py-2">
-            <div className="flex items-center justify-between cursor-pointer select-none p-2 rounded">
+            <div className="flex items-center justify-between select-none rounded">
                 <div className="flex items-center gap-2">
                     <h2 className="font-display text-xl">{title}</h2>
                 </div>
