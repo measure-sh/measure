@@ -6,14 +6,18 @@ export interface EventCondition {
         key: string,
         type: string,
         value: string | boolean | number,
-        operator?: string
+        operator?: string,
+        hasError?: boolean,
+        errorMessage?: string
     }>,
     ud_attrs: Array<{
         id: string,
         key: string,
         type: string,
         value: string | boolean | number,
-        operator?: string
+        operator?: string,
+        hasError?: boolean,
+        errorMessage?: string
     }>
 }
 
@@ -24,7 +28,9 @@ export interface SessionCondition {
         key: string,
         type: string,
         value: string | boolean | number,
-        operator?: string
+        operator?: string,
+        hasError?: boolean,
+        errorMessage?: string
     }>
 }
 
@@ -37,7 +43,9 @@ export interface TraceCondition {
         key: string,
         type: string,
         value: string | boolean | number,
-        operator?: string
+        operator?: string,
+        hasError?: boolean,
+        errorMessage?: string
     }>
 }
 

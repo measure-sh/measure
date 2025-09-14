@@ -10,6 +10,7 @@ import RuleBuilderSessionCondition from '@/app/components/rule_builder_session_c
 import SaveSessionTargetingRule from '@/app/components/save_session_targeting_rule';
 import SwitchToggle from '@/app/components/switch';
 import { EventCondition, EventConditions, SessionCondition, SessionConditions } from '@/app/types/session-targeting-types';
+import { toastNegative } from '@/app/utils/use_toast';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { celToConditions } from '../cel/cel_parser';
@@ -30,6 +31,8 @@ interface PageState {
 
     // Form fields
     name: string
+    nameHasError: boolean
+    nameErrorMessage: string
     samplingRate: number
     status: 'enabled' | 'disabled'
     eventConditions: EventConditions
@@ -42,6 +45,8 @@ const initialPageState: PageState = {
     config: null,
     rule: null,
     name: '',
+    nameHasError: false,
+    nameErrorMessage: '',
     samplingRate: 100,
     status: 'enabled',
     eventConditions: { conditions: [], operators: [] },
@@ -151,6 +156,49 @@ function getDefaultOperatorForType(type: string): string {
             return 'eq'
     }
 }
+
+const isValueEmpty = (value: string | boolean | number, type: string): boolean => {
+    // Boolean values are never considered empty since they're selected from dropdown
+    if (type === 'bool') return false;
+
+    // For all other types, check if the string representation is empty
+    return String(value).trim() === '';
+};
+
+const validateAllAttributes = (eventConditions: EventConditions, sessionConditions: SessionConditions): { eventConditions: EventConditions, sessionConditions: SessionConditions } => {
+    // Validate event conditions
+    const validatedEventConditions = {
+        ...eventConditions,
+        conditions: eventConditions.conditions.map(condition => ({
+            ...condition,
+            attrs: condition.attrs?.map(attr => ({
+                ...attr,
+                hasError: isValueEmpty(attr.value, attr.type),
+                errorMessage: isValueEmpty(attr.value, attr.type) ? 'Value cannot be empty' : undefined
+            })) || [],
+            ud_attrs: condition.ud_attrs?.map(attr => ({
+                ...attr,
+                hasError: isValueEmpty(attr.value, attr.type),
+                errorMessage: isValueEmpty(attr.value, attr.type) ? 'Value cannot be empty' : undefined
+            })) || []
+        }))
+    };
+
+    // Validate session conditions
+    const validatedSessionConditions = {
+        ...sessionConditions,
+        conditions: sessionConditions.conditions.map(condition => ({
+            ...condition,
+            attrs: condition.attrs?.map(attr => ({
+                ...attr,
+                hasError: isValueEmpty(attr.value, attr.type),
+                errorMessage: isValueEmpty(attr.value, attr.type) ? 'Value cannot be empty' : undefined
+            })) || []
+        }))
+    };
+
+    return { eventConditions: validatedEventConditions, sessionConditions: validatedSessionConditions };
+};
 
 const isValidForm = (eventConditions: EventConditions, sessionConditions: SessionConditions, ruleName: string): boolean => {
     const hasValidEventConditions = eventConditions.conditions.some(condition =>
@@ -280,7 +328,11 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
     }
 
     const handleTitleChange = (name: string) => {
-        updatePageState({ name })
+        updatePageState({
+            name,
+            nameHasError: false,
+            nameErrorMessage: ''
+        })
     }
 
     const handleSamplingRateChange = (value: string) => {
@@ -439,7 +491,13 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                         updatedAttr.type = selectedAttr.type
                         updatedAttr.value = selectedAttr.type === 'boolean' ? false : ''
                         updatedAttr.operator = getDefaultOperatorForType(selectedAttr.type)
+                        updatedAttr.hasError = false
+                        updatedAttr.errorMessage = undefined
                     }
+                } else if (field === 'value') {
+                    // Clear validation errors when user starts typing
+                    updatedAttr.hasError = false
+                    updatedAttr.errorMessage = undefined
                 }
 
                 return updatedAttr
@@ -460,6 +518,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             }
         })
     }
+
 
     // Session condition handlers  
     const addSessionCondition = () => {
@@ -535,7 +594,13 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                         updatedAttr.type = selectedAttr.type
                         updatedAttr.value = selectedAttr.type === 'bool' ? false : ''
                         updatedAttr.operator = getDefaultOperatorForType(selectedAttr.type)
+                        updatedAttr.hasError = false
+                        updatedAttr.errorMessage = undefined
                     }
+                } else if (field === 'value') {
+                    // Clear validation errors when user starts typing
+                    updatedAttr.hasError = false
+                    updatedAttr.errorMessage = undefined
                 }
 
                 return updatedAttr
@@ -556,6 +621,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             }
         })
     }
+
 
     // Helper functions
     const removeOperatorAtIndex = (operators: ('AND' | 'OR')[], conditionIndex: number): ('AND' | 'OR')[] => {
@@ -580,6 +646,32 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
 
     // Submit handlers
     const handleSubmit = async () => {
+        // Validate all attributes
+        const { eventConditions: validatedEventConditions, sessionConditions: validatedSessionConditions } =
+            validateAllAttributes(pageState.eventConditions, pageState.sessionConditions);
+
+        // Check if there are any validation errors
+        const hasAttributeErrors =
+            validatedEventConditions.conditions.some(condition =>
+                (condition.attrs && condition.attrs.some(attr => attr.hasError)) ||
+                (condition.ud_attrs && condition.ud_attrs.some(attr => attr.hasError))
+            ) ||
+            validatedSessionConditions.conditions.some(condition =>
+                condition.attrs && condition.attrs.some(attr => attr.hasError)
+            );
+
+        // Update state with validation results
+        updatePageState({
+            eventConditions: validatedEventConditions,
+            sessionConditions: validatedSessionConditions
+        });
+
+        // If there are validation errors, show toast and stop submission
+        if (hasAttributeErrors) {
+            toastNegative(`Some fields are empty or invalid. Please fix and try again.`);
+            return;
+        }
+
         const ruleCel = conditionsToCel({
             event: pageState.eventConditions,
             trace: undefined,
@@ -652,14 +744,20 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                         <>
                             <div className="grid gap-y-6 items-center max-w-2xl" style={{ gridTemplateColumns: '120px 1fr' }}>
                                 <p className="text-sm">Rule name</p>
-                                <input
-                                    type="text"
-                                    placeholder="Enter rule name"
-                                    value={pageState.name}
-                                    maxLength={MAX_RULE_NAME_LENGTH}
-                                    onChange={(e) => handleTitleChange(e.target.value)}
-                                    className="w-96 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
-                                />
+                                <div className={`relative ${pageState.nameHasError ? 'mb-6' : ''}`}>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter rule name"
+                                        value={pageState.name}
+                                        maxLength={MAX_RULE_NAME_LENGTH}
+                                        onChange={(e) => handleTitleChange(e.target.value)}
+                                        className={`w-96 border rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400 ${pageState.nameHasError ? 'border-red-500' : 'border-black'
+                                            }`}
+                                    />
+                                    {pageState.nameHasError && pageState.nameErrorMessage && (
+                                        <p className="absolute top-full left-0 w-full text-red-500 text-xs mt-1 ml-1">{pageState.nameErrorMessage}</p>
+                                    )}
+                                </div>
                                 <p className="text-sm">Sampling rate %</p>
                                 <div className="flex items-center">
                                     <input

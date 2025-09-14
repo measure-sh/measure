@@ -3,6 +3,7 @@
 import RuleBuilderDropdownSelect from '@/app/components/rule_builder_dropdown_select';
 import { Button } from '@/app/components/button';
 import { X } from 'lucide-react';
+import { useRef } from 'react';
 
 type AttributeType = 'attrs' | 'ud_attrs';
 
@@ -11,8 +12,6 @@ const getUserFriendlyTypeName = (type: string): string => {
         'float64': 'decimal',
         'int64': 'number',
         'number': 'number',
-        'bool': 'true/false',
-        'boolean': 'true/false',
         'string': 'text'
     };
 
@@ -30,7 +29,7 @@ const RuleBuilderAttributeRow = ({
     onRemoveAttribute,
     showDeleteButton = true
 }: {
-    attr: { id: string; key: string; type: string; value: string | boolean | number; operator?: string };
+    attr: { id: string; key: string; type: string; value: string | boolean | number; operator?: string; hasError?: boolean; errorMessage?: string };
     attrIndex: number;
     conditionIndex: number;
     attributeType: AttributeType;
@@ -41,8 +40,12 @@ const RuleBuilderAttributeRow = ({
     showDeleteButton?: boolean;
 }) => {
 
+    const handleValueChange = (newValue: string | boolean | number) => {
+        onUpdateAttribute(conditionIndex, attrIndex, 'value', newValue, attributeType);
+    };
+
     return (
-        <div className="flex items-center group">
+        <div className={`flex items-center group ${attr.hasError ? 'mb-8' : ''}`}>
             {/* Attribute Key Dropdown */}
             <div className="flex-[25] mr-3">
                 <RuleBuilderDropdownSelect
@@ -50,7 +53,7 @@ const RuleBuilderAttributeRow = ({
                     items={availableAttrKeys}
                     initialSelected={attr.key}
                     onChangeSelected={(selected) => {
-                        onUpdateAttribute(conditionIndex, attrIndex, 'key', selected, attributeType)
+                        onUpdateAttribute(conditionIndex, attrIndex, 'key', selected, attributeType);
                     }}
                 />
             </div>
@@ -62,7 +65,7 @@ const RuleBuilderAttributeRow = ({
                     items={operatorTypes}
                     initialSelected={attr.operator || operatorTypes[0] || 'eq'}
                     onChangeSelected={(selected) => {
-                        onUpdateAttribute(conditionIndex, attrIndex, 'operator', selected, attributeType)
+                        onUpdateAttribute(conditionIndex, attrIndex, 'operator', selected, attributeType);
                     }}
                 />
             </div>
@@ -75,23 +78,30 @@ const RuleBuilderAttributeRow = ({
                         items={['true', 'false']}
                         initialSelected={attr.value ? 'true' : 'false'}
                         onChangeSelected={(selected) => {
-                            onUpdateAttribute(conditionIndex, attrIndex, 'value', selected === 'true', attributeType)
+                            handleValueChange(selected === 'true')
                         }}
                     />
                 ) : (
-                    <input
-                        id="change-team-name-input"
-                        type={attr.type === 'number' || attr.type === 'int64' || attr.type === 'float64' ? 'number' : 'text'}
-                        placeholder={`Enter ${getUserFriendlyTypeName(attr.type)} value`}
-                        value={attr.value as string | number}
-                        onChange={(e) => {
-                            const value = (attr.type === 'number' || attr.type === 'int64' || attr.type === 'float64') ?
-                                (e.target.value === '' ? '' : Number(e.target.value)) :
-                                e.target.value
-                            onUpdateAttribute(conditionIndex, attrIndex, 'value', value, attributeType)
-                        }}
-                        className="w-full border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
-                    />
+                    <div className="relative">
+                        <input
+                            id="change-team-name-input"
+                            type={attr.type === 'number' || attr.type === 'int64' || attr.type === 'float64' ? 'number' : 'text'}
+                            placeholder={`Enter ${getUserFriendlyTypeName(attr.type)} value`}
+                            value={attr.value as string | number}
+                            onChange={(e) => {
+                                const value = (attr.type === 'number' || attr.type === 'int64' || attr.type === 'float64') ?
+                                    (e.target.value === '' ? '' : Number(e.target.value)) :
+                                    e.target.value
+                                handleValueChange(value)
+                            }}
+                            className={`w-full border rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400 ${
+                                attr.hasError ? 'border-red-500' : 'border-black'
+                            }`}
+                        />
+                        {attr.hasError && attr.errorMessage && (
+                            <p className="absolute top-full left-0 w-full text-red-500 text-xs mt-1 ml-1">{attr.errorMessage}</p>
+                        )}
+                    </div>
                 )}
             </div>
 
