@@ -1,6 +1,5 @@
 import { conditionsToCel } from "@/app/cel/cel_generator";
 import { celToConditions } from "@/app/cel/cel_parser";
-import { EventConditions } from "@/app/types/session-targeting-types";
 
 describe('CEL to conditions and back to CEL', () => {
 
