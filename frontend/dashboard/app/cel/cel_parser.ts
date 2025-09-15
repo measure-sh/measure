@@ -604,9 +604,6 @@ class CelParser {
 
 /**
  * Parses a CEL expression string into structured conditions
- * @param expression The CEL expression to parse
- * @returns Parsed conditions organized by type
- * @throws CelParseError if parsing fails
  */
 export function celToConditions(expression: string): ParsedConditions {
   if (!expression?.trim()) {

@@ -2,8 +2,7 @@
  * CEL (Common Expression Language) Tokenizer
  * 
  * This module provides tokenization for CEL expressions, breaking down input strings
- * into meaningful tokens for parsing. It handles literals, operators, identifiers,
- * and punctuation according to CEL syntax rules.
+ * into meaningful tokens for parsing.
  */
 
 /**
@@ -71,14 +70,6 @@ export interface Token {
 
 /**
  * Tokenizes CEL expressions into a sequence of tokens
- * 
- * The tokenizer handles:
- * - String literals with escape sequences
- * - Numeric literals (integers and floats)
- * - Boolean literals (true/false)
- * - Identifiers and keywords
- * - Comparison and logical operators
- * - Punctuation and delimiters
  */
 export class CelTokenizer {
   private input: string
@@ -113,7 +104,7 @@ export class CelTokenizer {
    * Reads and returns the next token from the input
    */
   private readNextToken(): Omit<Token, 'position'> {
-    // Try multi-character operators first
+    // Multi-character operators first
     const twoCharToken = this.tryReadTwoCharOperator()
     if (twoCharToken) return twoCharToken
 
@@ -203,7 +194,7 @@ export class CelTokenizer {
   }
 
   /**
-   * Classifies an identifier as a keyword or regular identifier
+   * Classifies an identifier as a keyword.
    */
   private classifyIdentifier(identifier: string): TokenType {
     const keywords: Record<string, TokenType> = {

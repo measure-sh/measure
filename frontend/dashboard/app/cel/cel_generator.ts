@@ -1,12 +1,15 @@
 /**
- * @fileoverview Converts structured condition objects into Common Expression Language (CEL) strings.
- * This is the reverse of the CEL parser, used to regenerate CEL expressions for filtering and evaluation.
+ * Converts UI state conditions into Common 
+ * Expression Language (CEL) strings.
+ * 
+ * This is the reverse of the CEL parser, used to 
+ * regenerate CEL expressions for filtering and 
+ * evaluation.
  */
 
 import { EventCondition, SessionCondition, TraceCondition, EventConditions, SessionConditions, TraceConditions } from "../types/session-targeting-types"
 import { ParsedConditions } from "./cel_parser"
 
-/** Maps internal operators to their CEL string representation. */
 const OPERATOR_MAPPINGS = {
   eq: '==',
   neq: '!=',
@@ -18,7 +21,6 @@ const OPERATOR_MAPPINGS = {
   startsWith: 'startsWith'
 } as const
 
-/** Maps logical operators to their CEL string representation. */
 const LOGICAL_OPERATOR_MAPPINGS = {
   AND: '&&',
   OR: '||'
@@ -26,9 +28,6 @@ const LOGICAL_OPERATOR_MAPPINGS = {
 
 /**
  * Formats a value for CEL syntax, wrapping strings in quotes.
- * @param value The value to format.
- * @param type The data type of the value ('string', 'number', 'boolean').
- * @returns The value formatted as a CEL literal.
  */
 function formatValueForCel(value: string | boolean | number, type: string): string {
   return type === 'string' ? `"${value}"` : String(value)
@@ -36,7 +35,7 @@ function formatValueForCel(value: string | boolean | number, type: string): stri
 
 /**
  * Creates a CEL expression for an event type.
- * @example createEventTypeCondition("page_view") -> 'event_type == "page_view"'
+ * Example output: 'event_type == "anr"'
  */
 function createEventTypeCondition(eventType: string): string {
   return `event_type == "${eventType}"`
@@ -44,9 +43,7 @@ function createEventTypeCondition(eventType: string): string {
 
 /**
  * Creates a CEL expression for a standard event attribute.
- * @param attribute The attribute definition.
- * @param eventType The parent event type, used as a prefix (e.g., 'page_view').
- * @returns A complete CEL expression for the attribute.
+ * Example output: 'exception.handled == false'
  */
 function createEventAttributeCondition(
   attribute: {
@@ -70,7 +67,7 @@ function createEventAttributeCondition(
 
 /**
  * Creates a CEL expression for a user-defined event attribute.
- * The keys are prefixed with `event.user_defined_attrs`.
+ * Example output: 'event.user_defined_attrs.is_premium == true'
  */
 function createUserDefinedEventAttributeCondition(attribute: {
   key: string;
@@ -91,7 +88,7 @@ function createUserDefinedEventAttributeCondition(attribute: {
 
 /**
  * Creates a CEL expression for a session attribute.
- * These are prefixed with `attribute`.
+ * Example output: 'attribute.session_duration > 300'
  */
 function createSessionAttributeCondition(attribute: {
   key: string;
@@ -111,7 +108,7 @@ function createSessionAttributeCondition(attribute: {
 
 /** 
  * Creates a CEL expression for a span name.
- * These are prefixed with `span_name`.
+ * Example output: 'span_name.contains("HTTP")'
  */
 function createSpanNameCondition(spanName: string, operator: string): string {
   const formattedValue = formatValueForCel(spanName, 'string')
@@ -126,7 +123,7 @@ function createSpanNameCondition(spanName: string, operator: string): string {
 
 /**
  * Creates a CEL expression for a span's user-defined attribute.
- * These are prefixed with `trace.user_defined_attrs`.
+ * Example output: 'trace.user_defined_attrs.is_critical == true'
  */
 function createSpanUserDefinedAttributeCondition(attribute: {
   key: string;
@@ -146,9 +143,9 @@ function createSpanUserDefinedAttributeCondition(attribute: {
 }
 
 /**
- * Converts a single event condition object into an array of its constituent CEL parts.
- * @param condition A single `EventCondition` object.
- * @returns An array of CEL expression strings (e.g., ['event_type == "A"', 'A.key == "val"']).
+ * Converts a single event condition object into an 
+ * array of its constituent CEL parts.
+ * Example output: ['event_type == "exception"', 'exception.handled == false']
  */
 function buildEventConditionParts(condition: EventCondition): string[] {
   const parts: string[] = []
@@ -170,18 +167,18 @@ function buildEventConditionParts(condition: EventCondition): string[] {
 }
 
 /**
- * Converts a single session condition object into an array of its constituent CEL parts.
- * @param condition A single `SessionCondition` object.
- * @returns An array of CEL expression strings.
+ * Converts a single session condition object into an 
+ * array of its constituent CEL parts.
+ * Example output: ['attribute.session_duration > 300', 'attribute.user_country == "US"']
  */
 function buildSessionConditionParts(condition: SessionCondition): string[] {
   return condition.attrs?.map(createSessionAttributeCondition) || []
 }
 
 /**
- * Converts a single trace condition object into an array of its constituent CEL parts.
- * @param condition A single `TraceCondition` object.
- * @returns An array of CEL expression strings.
+ * Converts a single trace condition object into an 
+ * array of its constituent CEL parts.
+ * Example output: ['span_name.contains("HTTP")', 'trace.user_defined_attrs.is_critical == true']
  */
 function buildTraceConditionParts(condition: TraceCondition): string[] {
   const parts: string[] = []
@@ -198,9 +195,9 @@ function buildTraceConditionParts(condition: TraceCondition): string[] {
 }
 
 /**
- * Joins an array of CEL parts for a single condition using the AND (`&&`) operator.
- * @param parts An array of CEL strings from a `build...ConditionParts` function.
- * @returns A single, combined CEL string for one condition block.
+ * Joins an array of CEL parts for a 
+ * single condition using the AND (`&&`) operator.
+ * Example output: 'part1 && part2 && part3'
  */
 function combineConditionParts(parts: string[]): string {
   if (parts.length === 0) return ''
@@ -208,12 +205,9 @@ function combineConditionParts(parts: string[]): string {
 }
 
 /**
- * Combines multiple completed condition strings using specified logical operators (`&&` or `||`).
- * Each individual condition is wrapped in parentheses to ensure correct precedence.
- * @example combineConditionsWithLogicalOperators(['a > 1', 'b < 2'], ['OR']) -> '(a > 1) || (b < 2)'
- * @param conditions An array of complete condition strings.
- * @param operators An array of 'AND' or 'OR' strings.
- * @returns A final CEL expression for the condition group.
+ * Combines multiple completed condition strings 
+ * using specified logical operators (`&&` or `||`).
+ * Example output: '(cond1) && (cond2) || (cond3)'
  */
 function combineConditionsWithLogicalOperators(
   conditions: string[],
@@ -235,7 +229,7 @@ function combineConditionsWithLogicalOperators(
 /**
  * High-level processor for all event conditions.
  * It builds, combines, and links all event conditions into a single CEL string.
- * @returns A complete CEL string for the event block, or `null` if empty.
+ * Example output: '(event_type == "anr" && exception.handled == false) || (event_type == "crash")'
  */
 function processEventConditions(eventConditions: EventConditions | undefined): string | null {
   if (!eventConditions?.conditions?.length) return null
@@ -253,7 +247,7 @@ function processEventConditions(eventConditions: EventConditions | undefined): s
 /**
  * High-level processor for all session conditions.
  * It builds, combines, and links all session conditions into a single CEL string.
- * @returns A complete CEL string for the session block, or `null` if empty.
+ * Example output: '(attribute.session_duration > 300) && (attribute.user_country == "US")'
  */
 function processSessionConditions(sessionConditions: SessionConditions | undefined): string | null {
   if (!sessionConditions?.conditions?.length) return null
@@ -270,8 +264,7 @@ function processSessionConditions(sessionConditions: SessionConditions | undefin
 
 /**
  * High-level processor for all trace conditions.
- * It builds, combines, and links all trace conditions into a single CEL string.
- * @returns A complete CEL string for the trace block, or `null` if empty.
+ * Example output: '(span_name.contains("HTTP")) || (trace.user_defined_attrs.is_critical == true)'
  */
 function processTraceConditions(traceConditions: TraceConditions | undefined): string | null {
   if (!traceConditions?.conditions?.length) return null
@@ -289,9 +282,6 @@ function processTraceConditions(traceConditions: TraceConditions | undefined): s
 /**
  * Wraps and joins the final event, session, and trace CEL groups with AND (`&&`).
  * Each group is individually wrapped in parentheses.
- * @example wrapConditionGroups(['event_cel', 'session_cel']) -> '((event_cel)) && ((session_cel))'
- * @param conditionGroups An array containing the final CEL strings for events, traces, and/or sessions.
- * @returns The final, combined CEL string.
  */
 function wrapConditionGroups(conditionGroups: string[]): string {
   if (conditionGroups.length === 0) return ''
@@ -307,9 +297,6 @@ function wrapConditionGroups(conditionGroups: string[]): string {
 /**
  * Converts a structured `ParsedConditions` object into a final CEL expression string.
  * This is the main entry point for the CEL generation logic.
- *
- * @param parsedConditions The structured object containing event, trace, and session conditions.
- * @returns A complete CEL expression string, or `null` if no conditions are provided.
  */
 export function conditionsToCel(parsedConditions: ParsedConditions): string | null {
   const eventCelExpression = processEventConditions(parsedConditions.event)
