@@ -79,7 +79,6 @@ internal class InternalSignalCollector(
                         )
                     }
                     val extractedData = extractExceptionEventData(data)
-                    logger.log(LogLevel.Error, "extractedData: $extractedData", extractedData)
                     if (!extractedData.handled) {
                         // ignoring session ID and user triggered properties
                         // this should be safe as handled exceptions are not tracked in
