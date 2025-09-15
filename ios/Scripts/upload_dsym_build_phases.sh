@@ -103,8 +103,12 @@ CURL_COMMAND="$CURL_COMMAND \
   --form os_name=$OS_NAME"
 
 # Attach each dSYM .tgz file
-for TGZ in "${TGZ_FILES[@]}"; do
-  CURL_COMMAND="$CURL_COMMAND --form mapping_type=dsym --form mapping_file=@$TGZ"
+INDEX=0
+for DSYM_TGZ in "${TGZ_FILES[@]}"; do
+  CURL_COMMAND="$CURL_COMMAND \
+    --form mappings[$INDEX].type=dsym \
+    --form mappings[$INDEX].filename=@$DSYM_TGZ"
+  INDEX=$((INDEX+1))
 done
 
 # Execute the curl command
