@@ -7,7 +7,7 @@
  * evaluation.
  */
 
-import { EventCondition, SessionCondition, TraceCondition, EventConditions, SessionConditions, TraceConditions } from "../types/session-targeting-types"
+import { EventCondition, SessionCondition, TraceCondition, EventConditions, SessionConditions, TraceConditions } from "./conditions"
 import { ParsedConditions } from "./cel_parser"
 
 const OPERATOR_MAPPINGS = {

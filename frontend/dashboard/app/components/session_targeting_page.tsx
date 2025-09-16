@@ -9,7 +9,7 @@ import RuleBuilderLogicalOperator from '@/app/components/rule_builder_logical_op
 import RuleBuilderSessionCondition from '@/app/components/rule_builder_session_condition';
 import SaveSessionTargetingRule from '@/app/components/save_session_targeting_rule';
 import SwitchToggle from '@/app/components/switch';
-import { EventCondition, EventConditions, SessionCondition, SessionConditions } from '@/app/types/session-targeting-types';
+import { EventCondition, EventConditions, SessionCondition, SessionConditions } from '@/app/cel/conditions';
 import { toastNegative } from '@/app/utils/use_toast';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -48,7 +48,7 @@ const initialPageState: PageState = {
     nameHasError: false,
     nameErrorMessage: '',
     samplingRate: 100,
-    status: 'enabled',
+    status: 'disabled',
     eventConditions: { conditions: [], operators: [] },
     sessionConditions: { conditions: [], operators: [] }
 }
@@ -57,7 +57,7 @@ interface SessionTargetingRulePageProps {
     params: {
         teamId: string;
         appId: string;
-        ruleId?: string; // Only present for edit mode
+        ruleId?: string;
     };
     isEditMode: boolean;
 }

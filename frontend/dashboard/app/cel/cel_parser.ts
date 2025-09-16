@@ -6,7 +6,7 @@
  * Syntax Tree (AST) and converts it into domain-specific condition formats.
  */
 
-import { EventConditions, SessionConditions, TraceConditions, EventCondition, SessionCondition, TraceCondition } from '../types/session-targeting-types'
+import { EventConditions, SessionConditions, TraceConditions, EventCondition, SessionCondition, TraceCondition } from './conditions'
 import { CelTokenizer, Token, TokenType, CelParseError } from './cel_tokenizer'
 
 /**
