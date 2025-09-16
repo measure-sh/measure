@@ -37,6 +37,9 @@ const RuleBuilderConditionSection = ({
                     + Add condition
                 </Button>
             </div>
+
+            <div className="py-2" />
+
             <div className="mt-2">
                 {children}
             </div>
