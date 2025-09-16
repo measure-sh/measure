@@ -17,7 +17,7 @@ const ConditionContainer = ({
     children
 }: RuleBuilderConditionContainerProps) => {
     return (
-        <div className="group px-4 py-4 bg-sky-50">
+        <div className="group px-4 py-4 bg-sky-100 rounded-md">
             <div className="flex justify-between items-start">
                 <div className="flex-1">
                     {children}
