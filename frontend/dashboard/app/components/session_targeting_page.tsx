@@ -177,12 +177,12 @@ const validateAllAttributes = (eventConditions: EventConditions, sessionConditio
             attrs: condition.attrs?.map(attr => ({
                 ...attr,
                 hasError: isValueEmpty(attr.value),
-                errorMessage: isValueEmpty(attr.value) ? 'Value cannot be empty' : undefined
+                errorMessage: isValueEmpty(attr.value) ? 'Please enter a value' : undefined
             })) || [],
             ud_attrs: condition.ud_attrs?.map(attr => ({
                 ...attr,
                 hasError: isValueEmpty(attr.value),
-                errorMessage: isValueEmpty(attr.value) ? 'Value cannot be empty' : undefined
+                errorMessage: isValueEmpty(attr.value) ? 'Please enter a value' : undefined
             })) || []
         }))
     };
@@ -195,7 +195,7 @@ const validateAllAttributes = (eventConditions: EventConditions, sessionConditio
             attrs: condition.attrs?.map(attr => ({
                 ...attr,
                 hasError: isValueEmpty(attr.value),
-                errorMessage: isValueEmpty(attr.value) ? 'Value cannot be empty' : undefined
+                errorMessage: isValueEmpty(attr.value) ? 'Please enter a value' : undefined
             })) || []
         }))
     };
@@ -654,7 +654,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
 
         // If there are validation errors, show toast and stop submission
         if (hasAttributeErrors) {
-            toastNegative(`Some fields are empty or invalid. Please fix and try again.`);
+            toastNegative(`Please complete the required fields and try again.`);
             return;
         }
 
