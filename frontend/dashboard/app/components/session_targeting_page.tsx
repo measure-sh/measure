@@ -694,8 +694,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                 toastNegative('Failed to save rule. Please try again.')
             }
         } catch (error) {
-
-            toastNegative('An error occurred while saving the rule. Please try again.')
+            toastNegative('Failed to save rule. Please try again.')
         } finally {
             updatePageState({ isSubmitting: false });
         }
