@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Ingest session start event (#2581) by @abhaysood in #2581
 - (**backend**): Drop crash + anr groups tables from postgres by @anupcowkur in #2452
 - (**backend**): Implement alerts by @anupcowkur in #2418
+- (**deps**): Bump form-data from 4.0.2 to 4.0.4 in /frontend/dashboard (#2636) by @dependabot[bot] in #2636
 - (**deps**): Bump github.com/ulikunitz/xz in /self-host/sessionator (#2635) by @dependabot[bot] in #2635
 - (**frontend**): Show api level for Android in crash & anr distribution plots by @anupcowkur in #2596
 - (**frontend**): Update milis to human readable display format by @anupcowkur in #2529
