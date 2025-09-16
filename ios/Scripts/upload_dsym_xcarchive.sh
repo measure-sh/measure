@@ -107,8 +107,12 @@ CURL_COMMAND="$CURL_COMMAND \
   --form os_name=$OS_NAME"
 
 # Add dSYM files
+INDEX=0
 for DSYM_TGZ in "${DSYM_TGZ_FILES[@]}"; do
-  CURL_COMMAND="$CURL_COMMAND --form mapping_type=dsym --form mapping_file=@$DSYM_TGZ"
+  CURL_COMMAND="$CURL_COMMAND \
+    --form mappings[$INDEX].type=dsym \
+    --form mappings[$INDEX].filename=@$DSYM_TGZ"
+  INDEX=$((INDEX+1))
 done
 
 # Execute the curl command
