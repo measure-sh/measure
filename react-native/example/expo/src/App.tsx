@@ -36,7 +36,7 @@ export default function App() {
         [], // httpHeadersBlocklist
         [], // httpUrlBlocklist
         [], // httpUrlAllowlist
-        false, // autoStart
+        true, // autoStart
         true // trackViewControllerLoadTime
       );
 

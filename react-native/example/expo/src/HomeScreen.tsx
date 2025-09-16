@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  SectionList,
-  Text,
-  View,
-  Pressable,
-  StyleSheet,
-} from 'react-native';
+import { SectionList, Text, View, Pressable, StyleSheet } from 'react-native';
 import { Measure } from '@measuresh/react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,21 +11,42 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 >;
 
 const stopMeasure = () => {
-  Measure.stop().then(() => {
-    console.log('Measure SDK stopped successfully');
-  }).catch((error) => {
-    console.error('Failed to stop Measure SDK:', error);
-  }
-  );
+  Measure.stop()
+    .then(() => {
+      console.log('Measure SDK stopped successfully');
+    })
+    .catch((error) => {
+      console.error('Failed to stop Measure SDK:', error);
+    });
 };
 
 const startMeasure = () => {
-  Measure.start().then(() => {
-    console.log('Measure SDK started successfully');
-  }).catch((error) => {
-    console.error('Failed to start Measure SDK:', error);
-  }
-  );
+  Measure.start()
+    .then(() => {
+      console.log('Measure SDK started successfully');
+    })
+    .catch((error) => {
+      console.error('Failed to start Measure SDK:', error);
+    });
+};
+
+const simulateJSException = () => {
+  throw new Error('Simulated JavaScript exception');
+};
+
+const simulateUnhandledPromiseRejection = () => {
+  Promise.reject(new Error('Simulated unhandled promise rejection'));
+};
+
+const simulateNativeCrash = () => {
+  // Intentionally call something invalid to crash native bridge
+  // (you’ll only see this on device/emulator, not in web preview)
+  // @ts-ignore
+  Measure.triggerNativeCrash();
+};
+
+const simulateInfiniteLoop = () => {
+  while (true) {}
 };
 
 export default function HomeScreen() {
@@ -52,14 +67,46 @@ export default function HomeScreen() {
     {
       title: 'User Actions',
       data: [
-        { id: 'event', title: 'Track Custom Event', onPress: () => console.log('Event pressed') },
-        { id: 'crash', title: 'Simulate Crash', onPress: () => console.log('Crash pressed') },
+        {
+          id: 'event',
+          title: 'Track Custom Event',
+          onPress: () => console.log('Event pressed'),
+        },
+      ],
+    },
+    {
+      title: 'Crash & Exception Simulation',
+      data: [
+        {
+          id: 'js-exception',
+          title: 'Throw JS Exception',
+          onPress: simulateJSException,
+        },
+        {
+          id: 'unhandled-rejection',
+          title: 'Unhandled Promise Rejection',
+          onPress: simulateUnhandledPromiseRejection,
+        },
+        {
+          id: 'native-crash',
+          title: 'Trigger Native Crash',
+          onPress: simulateNativeCrash,
+        },
+        {
+          id: 'infinite-loop',
+          title: 'UI Freeze (Infinite Loop)',
+          onPress: simulateInfiniteLoop,
+        },
       ],
     },
     {
       title: 'Navigation',
       data: [
-        { id: 'navigate', title: 'Navigate to component Screen', onPress: navigateToComponentScreen },
+        {
+          id: 'navigate',
+          title: 'Navigate to Component Screen',
+          onPress: navigateToComponentScreen,
+        },
       ],
     },
   ];
@@ -87,12 +134,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
-    marginVertical: 16,
-    textAlign: 'center',
   },
   sectionHeader: {
     fontSize: 18,

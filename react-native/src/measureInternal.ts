@@ -1,6 +1,7 @@
 import type { Client } from './config/clientInfo';
 import { DefaultConfig } from './config/defaultConfig';
 import { MeasureConfig } from './config/measureConfig';
+import * as MeasureErrorHandlers from './exception/measureErrorHandlers';
 import type { MeasureInitializer } from './measureInitializer';
 import { initializeNativeSDK, start, stop } from './native/measureBridge';
 
@@ -9,6 +10,19 @@ export class MeasureInternal {
 
   constructor(measureInitializer: MeasureInitializer) {
     this.measureInitializer = measureInitializer;
+
+    MeasureErrorHandlers.setupErrorHandlers({
+      onerror: true,
+      onunhandledrejection: true,
+      patchGlobalPromise: true,
+      logger: this.measureInitializer.logger,
+      timeProvider: this.measureInitializer.timeProvider,
+    });
+
+    this.measureInitializer.logger.internalLog(
+      'info',
+      'React Native error handlers installed.'
+    );
   }
 
   init(client: Client, config: MeasureConfig | null): Promise<any> {

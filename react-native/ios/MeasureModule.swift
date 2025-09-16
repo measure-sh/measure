@@ -44,4 +44,38 @@ class MeasureModule: NSObject, RCTBridgeModule {
         Measure.stop()
         resolve("Measure SDK stopped successfully")
     }
+
+    @objc
+    func trackEvent(_ data: NSDictionary,
+                    type: NSString,
+                    timestamp: NSNumber,
+                    attributes: NSDictionary,
+                    userDefinedAttrs: NSDictionary,
+                    userTriggered: Bool,
+                    sessionId: NSString?,
+                    threadName: NSString?,
+                    attachments: NSArray,
+                    resolver resolve: @escaping RCTPromiseResolveBlock,
+                    rejecter reject: @escaping RCTPromiseRejectBlock) {
+        var mutableData = data as? [String: Any?] ?? [:]
+
+        // Convert userDefinedAttrs if needed (depends on your AttributeValue bridging)
+        let userAttrs = userDefinedAttrs as? [String: Any?] ?? [:]
+
+        // Attachments mapping (depends on how you expose MsrAttachment from JS → native)
+        let msrAttachments: [MsrAttachment] = [] // TODO: map properly later
+
+        Measure.internalTrackEvent(
+            data: &mutableData,
+            type: type as String,
+            timestamp: timestamp.int64Value,
+            attributes: attributes as? [String: Any?] ?? [:],
+            userDefinedAttrs: userAttrs as? [String: AttributeValue] ?? [:],
+            userTriggered: userTriggered,
+            sessionId: sessionId as String?,
+            threadName: threadName as String?,
+            attachments: msrAttachments
+        )
+        resolve("Event tracked successfully")
+}
 }

@@ -528,15 +528,15 @@ Each thread object contains further fields.
 
 Use the `exception` type for errors and crashes.
 
-| Field           | Type    | Optional | Comment                                                                                      |
-| --------------- | ------- | -------- | -------------------------------------------------------------------------------------------- |
-| `handled`       | boolean | No       | `false` for crashes, `true` if exceptions are handled                                        |
-| `exceptions`    | array   | No       | Array of exception objects                                                                   |
-| `foreground`    | boolean | Yes      | `true` if the app was in the foreground at the time of the exception.                        |
-| `threads`       | array   | Yes      | Array of thread objects                                                                      |
-| `binary_images` | array   | Yes      | An optional array of all the `binary_image` needed for symbolication.                        |
-| `framework`     | string  | No       | Specifies the framework where the exception originated from. One of: `dart`, `jvm`, `apple`. |
-| `error`         | object  | Yes      | An optional object for tracking error(s). Applicable to Apple apps.                          |
+| Field           | Type    | Optional | Comment                                                                                            |
+| --------------- | ------- | -------- | -------------------------------------------------------------------------------------------------- |
+| `handled`       | boolean | No       | `false` for crashes, `true` if exceptions are handled                                              |
+| `exceptions`    | array   | No       | Array of exception objects                                                                         |
+| `foreground`    | boolean | Yes      | `true` if the app was in the foreground at the time of the exception.                              |
+| `threads`       | array   | Yes      | Array of thread objects                                                                            |
+| `binary_images` | array   | Yes      | An optional array of all the `binary_image` needed for symbolication.                              |
+| `framework`     | string  | No       | Specifies the framework where the exception originated from. One of: `dart`, `jvm`, `apple`, `js`. |
+| `error`         | object  | Yes      | An optional object for tracking error(s). Applicable to Apple apps.                                |
 
 `exception` objects
 
