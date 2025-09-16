@@ -689,7 +689,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             if (result.status === CreateSessionTargetingRuleApiStatus.Success ||
                 result.status === UpdateSessionTargetingRuleApiStatus.Success) {
                 toastPositive(isEditMode ? 'Rule updated successfully' : 'Rule published successfully')
-                router.push(`/teams/${params.teamId}/apps/${params.appId}/session-targeting`)
+                router.replace(`/${params.teamId}/session_targeting`)
             } else {
                 toastNegative('Failed to save rule. Please try again.')
             }
