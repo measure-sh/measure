@@ -22,7 +22,7 @@ describe("buildExceptionPayload", () => {
       col_num: 34,
       in_app: false,
     });
-    expect(payload.framework).toBe("react_native");
+    expect(payload.framework).toBe("js");
   });
 
   it("handles non-Error inputs", () => {

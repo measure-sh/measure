@@ -80,6 +80,6 @@ export function buildExceptionPayload(
     exceptions: [exceptionDetail],
     foreground: true,
     threads: [thread],
-    framework: "react_native",
+    framework: "js",
   };
 }
