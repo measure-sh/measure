@@ -10,11 +10,6 @@ import com.facebook.react.bridge.ReadableArray
 import sh.measure.android.Measure
 import sh.measure.android.config.ClientInfo
 import sh.measure.android.config.MeasureConfig
-import sh.measure.android.config.ScreenshotMaskLevel
-
-import android.util.Log
-
-import sh.measure.rn.MapUtils
 
 class MeasureModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
