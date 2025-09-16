@@ -764,7 +764,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                         className="w-32 border border-black rounded-md outline-hidden text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] py-2 px-4 font-body placeholder:text-neutral-400"
                                     />
                                 </div>
-                                <p className="text-sm">Status</p>
+                                <p className="text-sm">Active</p>
                                 <SwitchToggle
                                     toggled={pageState.status === 'enabled'}
                                     onToggle={handleStatusChange}
