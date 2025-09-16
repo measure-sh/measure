@@ -105,7 +105,7 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
-	github.com/ulikunitz/xz v0.5.12 // indirect
+	github.com/ulikunitz/xz v0.5.14 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/wneessen/go-mail v0.6.2 // indirect
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869 // indirect
