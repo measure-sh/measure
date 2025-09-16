@@ -730,7 +730,8 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                     <h1 className="font-display text-4xl">Session Targeting Rule</h1>
 
                     <div className="py-6" />
-
+                    
+                    {/* Rule name, status and sampling rate */}
                     {isPageReady && (
                         <>
                             <div className="grid gap-y-6 items-center max-w-2xl" style={{ gridTemplateColumns: '120px 1fr' }}>
