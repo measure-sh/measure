@@ -113,7 +113,8 @@ struct Config: InternalConfig, MeasureConfig {
                                          .warmLaunch,
                                          .lifecycleSwiftUI,
                                          .lifecycleViewController,
-                                         .screenView]
+                                         .screenView,
+                                         .sessionStart]
         self.screenshotMaskHexColor = "#222222"
         self.screenshotCompressionQuality = 25
         self.layoutSnapshotDebounceInterval = 750 // 750 ms

@@ -307,6 +307,7 @@ extension EventOb {
             customEvent: customEvent,
             screenView: screenView,
             bugReport: bugReport,
+            sessionStartData: nil,
             needsReporting: needsReporting
         )
     }
