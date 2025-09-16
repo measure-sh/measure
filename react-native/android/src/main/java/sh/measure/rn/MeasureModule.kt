@@ -85,7 +85,7 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
 
             promise.resolve("Event tracked successfully")
         } catch (e: Exception) {
-            promise.reject("TRACK_EVENT_ERROR", "Failed to track event", e)
+            promise.reject(ErrorCode.TRACK_EVENT_ERROR, "Failed to track event", e)
         }
     }
 }
