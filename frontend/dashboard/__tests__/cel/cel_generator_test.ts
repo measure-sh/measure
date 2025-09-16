@@ -1,8 +1,8 @@
 import { conditionsToCel } from "@/app/cel/cel_generator";
 import { ParsedConditions } from "@/app/cel/cel_parser";
 
-describe('conditionsToCel', () => {
-    describe('Event Conditions', () => {
+describe('CEL Generator', () => {
+    describe('CEL from event conditions', () => {
         test('generates CEL for single event type condition', () => {
             const conditions: ParsedConditions = {
                 event: {
@@ -210,7 +210,7 @@ describe('conditionsToCel', () => {
         });
     });
 
-    describe('Session Conditions', () => {
+    describe('CEL from session conditions', () => {
         test('generates CEL for single session attribute', () => {
             const conditions: ParsedConditions = {
                 session: {
@@ -477,7 +477,7 @@ describe('conditionsToCel', () => {
         });
     });
 
-    describe('Combined Conditions', () => {
+    describe('CEL from combined conditions', () => {
         test('generates CEL for event and session conditions', () => {
             const conditions: ParsedConditions = {
                 event: {
