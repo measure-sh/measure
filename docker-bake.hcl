@@ -6,7 +6,7 @@ target "api" {
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
-  platforms = ["linux/amd64", "linux/arm64"]
+  platforms = ["linux/amd64"]
 }
 
 target "alerts" {
@@ -15,7 +15,7 @@ target "alerts" {
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
-  platforms = ["linux/amd64", "linux/arm64"]
+  platforms = ["linux/amd64"]
 }
 
 target "symboloader" {
@@ -24,7 +24,7 @@ target "symboloader" {
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
-  platforms = ["linux/amd64", "linux/arm64"]
+  platforms = ["linux/amd64"]
 }
 
 target "metering" {
@@ -33,7 +33,7 @@ target "metering" {
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
-  platforms = ["linux/amd64", "linux/arm64"]
+  platforms = ["linux/amd64"]
 }
 
 target "cleanup" {
@@ -42,7 +42,7 @@ target "cleanup" {
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
-  platforms = ["linux/amd64", "linux/arm64"]
+  platforms = ["linux/amd64"]
 }
 
 target "dashboard" {
