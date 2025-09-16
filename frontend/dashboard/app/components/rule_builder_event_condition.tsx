@@ -28,9 +28,9 @@ const RuleBuilderEventCondition = ({
     index,
     eventTypes,
     availableAttrs,
-    userDefinedAttrs: userDefinedAttrs,
+    userDefinedAttrs,
     operatorTypesMapping,
-    canAddMoreAttrs: canAddMoreRegularAttrs,
+    canAddMoreAttrs,
     canAddMoreUdAttrs,
     supportsUdAttrs,
     onUpdateCondition,
@@ -66,7 +66,7 @@ const RuleBuilderEventCondition = ({
                         <RuleBuilderAddAttribute
                             title="Attributes"
                             onAdd={() => onAddAttribute(index, 'attrs')}
-                            disabled={!canAddMoreRegularAttrs}
+                            disabled={!canAddMoreAttrs}
                         />
 
                         {condition.attrs && condition.attrs.map((attr: any, attrIndex: number) => {
