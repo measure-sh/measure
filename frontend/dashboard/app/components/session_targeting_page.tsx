@@ -694,6 +694,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                 toastNegative('Failed to save rule. Please try again.')
             }
         } catch (error) {
+
             toastNegative('An error occurred while saving the rule. Please try again.')
         } finally {
             updatePageState({ isSubmitting: false });
@@ -816,7 +817,6 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                                     canAddMoreAttrs={canAddMoreAttrs}
                                                     canAddMoreUdAttrs={canAddMoreUdAttrs}
                                                     supportsUdAttrs={supportsUdAttrs}
-                                                    pageConfig={pageState.config!}
                                                     onUpdateCondition={updateEventCondition}
                                                     onRemoveCondition={removeEventCondition}
                                                     onAddAttribute={addAttribute}
