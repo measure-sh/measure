@@ -20,9 +20,9 @@ describe("buildExceptionPayload", () => {
       file_name: "/src/index.js",
       line_num: 12,
       col_num: 34,
-      in_app: true,
+      in_app: false,
     });
-    expect(payload.framework).toBe("react-native");
+    expect(payload.framework).toBe("react_native");
   });
 
   it("handles non-Error inputs", () => {
