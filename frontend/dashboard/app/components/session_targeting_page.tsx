@@ -10,7 +10,7 @@ import RuleBuilderLogicalOperator from '@/app/components/rule_builder_logical_op
 import RuleBuilderSessionCondition from '@/app/components/rule_builder_session_condition';
 import SaveSessionTargetingRule from '@/app/components/save_session_targeting_rule';
 import SwitchToggle from '@/app/components/switch';
-import { toastNegative } from '@/app/utils/use_toast';
+import { toastNegative, toastPositive } from '@/app/utils/use_toast';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { celToConditions } from '../cel/cel_parser';
@@ -24,6 +24,7 @@ interface PageState {
     // Loading/error states
     isLoading: boolean
     hasError: boolean
+    isSubmitting: boolean
 
     // API data
     config: typeof emptySessionTargetingConfigResponse | null
@@ -42,6 +43,7 @@ interface PageState {
 const initialPageState: PageState = {
     isLoading: true,
     hasError: false,
+    isSubmitting: false,
     config: null,
     rule: null,
     name: '',
@@ -677,7 +679,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
             id: pageState.rule?.results?.id || ''
         }
 
-        console.log('Rule:', ruleData)
+        updatePageState({ isSubmitting: true });
 
         try {
             const result = isEditMode
@@ -686,12 +688,15 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
 
             if (result.status === CreateSessionTargetingRuleApiStatus.Success ||
                 result.status === UpdateSessionTargetingRuleApiStatus.Success) {
+                toastPositive(isEditMode ? 'Rule updated successfully' : 'Rule published successfully')
                 router.push(`/teams/${params.teamId}/apps/${params.appId}/session-targeting`)
             } else {
-                console.error('Failed to save rule:', result.error)
+                toastNegative('Failed to save rule. Please try again.')
             }
         } catch (error) {
-            console.error('Error saving rule:', error)
+            toastNegative('An error occurred while saving the rule. Please try again.')
+        } finally {
+            updatePageState({ isSubmitting: false });
         }
     }
 
@@ -770,6 +775,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                 <SaveSessionTargetingRule
                     isEditMode={isEditMode}
                     isDisabled={!isFormValid || !isPageReady}
+                    isLoading={pageState.isSubmitting}
                     onPublish={handleSubmit}
                     onUpdate={handleSubmit}
                 />

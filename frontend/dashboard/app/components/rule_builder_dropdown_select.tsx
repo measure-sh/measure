@@ -30,7 +30,6 @@ const RuleBuilderDropdownSelect: React.FC<RuleBuilderDropdownSelectProps> = ({
   const [selected, setSelected] = useState(initialSelected)
   const [searchValue, setSearchValue] = useState("")
 
-  // Update selected state when initialSelected changes (e.g., from API response)
   useEffect(() => {
     setSelected(initialSelected)
   }, [initialSelected])

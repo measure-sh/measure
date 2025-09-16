@@ -2662,8 +2662,8 @@ export const updateSessionTargetingRule = async (
     if (!res.ok) {
       return { status: UpdateSessionTargetingRuleApiStatus.Error, error: data.error }
     }
-    return { status: UpdateSessionTargetingRuleApiStatus.Success }
+    return { status: UpdateSessionTargetingRuleApiStatus.Error }
   } catch {
-    return { status: UpdateSessionTargetingRuleApiStatus.Cancelled }
+    return { status: UpdateSessionTargetingRuleApiStatus.Error }
   }
 }
