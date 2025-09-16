@@ -765,11 +765,13 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                     />
                                 </div>
                                 <p className="text-sm">Active</p>
-                                <SwitchToggle
-                                    toggled={pageState.status === 'enabled'}
-                                    onToggle={handleStatusChange}
-                                    disabled={false}
-                                />
+                                <div className="flex items-center">
+                                    <SwitchToggle
+                                        toggled={pageState.status === 'enabled'}
+                                        onToggle={handleStatusChange}
+                                        disabled={false}
+                                    />
+                                </div>
                             </div>
                         </>
                     )}
