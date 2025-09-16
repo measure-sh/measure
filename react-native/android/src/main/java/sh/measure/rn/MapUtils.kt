@@ -83,26 +83,6 @@ object MapUtils {
         return result
     }
 
-    fun toAttachmentList(readableArray: ReadableArray?): MutableList<MsrAttachment> {
-        val result = mutableListOf<MsrAttachment>()
-        if (readableArray == null) return result
-
-        for (i in 0 until readableArray.size()) {
-            val type = readableArray.getType(i)
-            if (type == ReadableType.Map) {
-                val map = readableArray.getMap(i) ?: continue
-                val name = map.getString("name") ?: continue
-                val base64 = map.getString("bytes") ?: continue
-                val bytes = android.util.Base64.decode(base64, android.util.Base64.DEFAULT)
-
-                val attachmentType = map.getString("type") ?: "screenshot"
-
-                result.add(MsrAttachment(name = name, path = "", type = attachmentType))
-            }
-        }
-        return result
-    }
-
     private fun toList(readableArray: ReadableArray): List<Any?> {
         val size = readableArray.size()
         val out = ArrayList<Any?>(size)
@@ -116,7 +96,7 @@ object MapUtils {
                 }
                 ReadableType.String   -> out.add(readableArray.getString(i))
                 ReadableType.Map      -> out.add(buildGenericMap(readableArray.getMap(i)))
-                ReadableType.Array    -> out.add(toList(readableArray.getArray(i)!!))
+                ReadableType.Array    -> out.add(toList(readableArray.getArray(i)))
             }
         }
         return out

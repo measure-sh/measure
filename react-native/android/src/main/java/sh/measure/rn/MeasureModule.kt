@@ -8,6 +8,7 @@ import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.ReadableArray
 
 import sh.measure.android.Measure
+import sh.measure.android.MsrAttachment
 import sh.measure.android.config.ClientInfo
 import sh.measure.android.config.MeasureConfig
 
@@ -55,14 +56,15 @@ class MeasureModule(private val reactContext: ReactApplicationContext) : ReactCo
       userTriggered: Boolean,
       sessionId: String?,
       threadName: String?,
-      attachments: ReadableArray?, // moved to end
+      @Suppress("unused") attachments: ReadableArray?,
       promise: Promise
   ) {
       try {
           val dataMap: MutableMap<String, Any?> = MapUtils.toMutableMap(data)
           val attributesMap: MutableMap<String, Any?> = if (attributes != null) MapUtils.toMutableMap(attributes) else mutableMapOf()
           val userAttrs = MapUtils.toAttributeValueMap(userDefinedAttrs)
-          val attachmentsList = MapUtils.toAttachmentList(attachments)
+          // TODO: parse attachments when they are supported in RN
+          val attachmentsList = mutableListOf<MsrAttachment>()
           val tsLong = timestamp.toLong()
 
           Measure.internalTrackEvent(
