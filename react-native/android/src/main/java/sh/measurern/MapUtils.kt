@@ -1,16 +1,14 @@
 package sh.measure.rn
 
-import android.util.Base64
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.ReadableType
 import sh.measure.android.MsrAttachment
-
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.attributes.BooleanAttr
+import sh.measure.android.attributes.DoubleAttr
 import sh.measure.android.attributes.IntAttr
 import sh.measure.android.attributes.LongAttr
-import sh.measure.android.attributes.DoubleAttr
 import sh.measure.android.attributes.StringAttr
 
 object MapUtils {
@@ -89,19 +87,19 @@ object MapUtils {
         val result = mutableListOf<MsrAttachment>()
         if (readableArray == null) return result
 
-        // for (i in 0 until readableArray.size()) {
-        //     val type = readableArray.getType(i)
-        //     if (type == ReadableType.Map) {
-        //         val map = readableArray.getMap(i) ?: continue
-        //         val name = map.getString("name") ?: continue
-        //         val base64 = map.getString("bytes") ?: continue
-        //         val bytes = android.util.Base64.decode(base64, android.util.Base64.DEFAULT)
+        for (i in 0 until readableArray.size()) {
+            val type = readableArray.getType(i)
+            if (type == ReadableType.Map) {
+                val map = readableArray.getMap(i) ?: continue
+                val name = map.getString("name") ?: continue
+                val base64 = map.getString("bytes") ?: continue
+                val bytes = android.util.Base64.decode(base64, android.util.Base64.DEFAULT)
 
-        //         val attachmentType = map.getString("type") ?: "screenshot"
+                val attachmentType = map.getString("type") ?: "screenshot"
 
-        //         result.add(MsrAttachment(name = name, bytes = bytes, type = attachmentType))
-        //     }
-        // }
+                result.add(MsrAttachment(name = name, path = "", type = attachmentType))
+            }
+        }
         return result
     }
 

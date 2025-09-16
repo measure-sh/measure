@@ -339,10 +339,10 @@ Payload must contain the app version info, build info and optional build mapping
 
 Each mapping object has the following shape.
 
-| Field      | Type   | Optional | Comment                                                             |
-| ---------- | ------ | -------- | ------------------------------------------------------------------- |
-| `type`     | string | No       | Type of the mapping file. Either `dsym`, `proguard` or `elf_debug`. |
-| `filename` | string | No       | Filename of the mapping file.                                       |
+| Field      | Type   | Optional | Comment                                                                             |
+| ---------- | ------ | -------- | ----------------------------------------------------------------------------------- |
+| `type`     | string | No       | Type of the mapping file. Either `dsym`, `proguard`, `react_native` or `elf_debug`. |
+| `filename` | string | No       | Filename of the mapping file.                                                       |
 
 </details>
 

@@ -32,23 +32,11 @@ export interface ThreadDetail {
   sequence: number;
 }
 
-export interface BinaryImage {
-  start_addr?: string;
-  end_addr?: string;
-  base_addr?: string;
-  system?: boolean;
-  name?: string;
-  arch: string;
-  uuid: string;
-  path?: string;
-}
-
 export interface ExceptionPayload {
   handled: boolean;
   exceptions: ExceptionDetail[];
   foreground?: boolean;
   threads?: ThreadDetail[];
-  binary_images?: BinaryImage[];
   framework?: string;
   error?: unknown;
 }
@@ -63,8 +51,8 @@ export function buildExceptionPayload(
   const parsed = parseStacktrace(error);
 
   const frames: StackFrame[] = parsed.stacktrace.map((frame, idx) => ({
-    binary_name: "app",
-    in_app: true,
+    binary_name: undefined,
+    in_app: false,
     method_name: frame.function,
     file_name: frame.file,
     line_num: frame.line ?? undefined,
@@ -92,7 +80,6 @@ export function buildExceptionPayload(
     exceptions: [exceptionDetail],
     foreground: true,
     threads: [thread],
-    binary_images: [],
-    framework: "react-native",
+    framework: "react_native",
   };
 }
