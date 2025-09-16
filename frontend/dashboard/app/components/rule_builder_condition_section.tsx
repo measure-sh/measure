@@ -1,8 +1,6 @@
 "use client"
 
-import { ChevronDown, ChevronRight, Info } from "lucide-react";
 import { Button } from "./button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 interface RuleBuilderConditionSectionProps {
     title: string;

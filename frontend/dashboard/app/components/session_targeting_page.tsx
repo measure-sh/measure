@@ -2,6 +2,7 @@
 
 import { createSessionTargetingRule, CreateSessionTargetingRuleApiStatus, emptySessionTargetingConfigResponse, emptySessionTargetingResponse, emptySessionTargetingRulesResponse, fetchSessionTargetingConfigFromServer, fetchSessionTargetingRuleFromServer, SessionTargetingConfigApiStatus, SessionTargetingRuleApiStatus, updateSessionTargetingRule, UpdateSessionTargetingRuleApiStatus } from '@/app/api/api_calls';
 import { conditionsToCel } from '@/app/cel/cel_generator';
+import { EventCondition, EventConditions, SessionCondition, SessionConditions } from '@/app/cel/conditions';
 import LoadingSpinner from '@/app/components/loading_spinner';
 import RuleBuilderConditionSection from '@/app/components/rule_builder_condition_section';
 import RuleBuilderEventCondition from '@/app/components/rule_builder_event_condition';
@@ -9,7 +10,6 @@ import RuleBuilderLogicalOperator from '@/app/components/rule_builder_logical_op
 import RuleBuilderSessionCondition from '@/app/components/rule_builder_session_condition';
 import SaveSessionTargetingRule from '@/app/components/save_session_targeting_rule';
 import SwitchToggle from '@/app/components/switch';
-import { EventCondition, EventConditions, SessionCondition, SessionConditions } from '@/app/cel/conditions';
 import { toastNegative } from '@/app/utils/use_toast';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -69,7 +69,14 @@ const createEmptySessionCondition = (): SessionCondition => ({
     attrs: []
 })
 
-export const getEventTypesFromResponse = (response: typeof emptySessionTargetingConfigResponse) => {
+const createEmptyEventCondition = (eventType: string): EventCondition => ({
+    id: crypto.randomUUID(),
+    type: eventType,
+    attrs: [],
+    ud_attrs: []
+})
+
+const getEventTypesFromResponse = (response: typeof emptySessionTargetingConfigResponse) => {
     return response.result?.events?.map(event => event.type) || [];
 };
 
@@ -98,6 +105,22 @@ const getOperatorTypesMapping = (response: typeof emptySessionTargetingConfigRes
 const getOperatorsForType = (operatorMapping: Record<string, string[]>, type: string): string[] => {
     return operatorMapping[type] || [];
 };
+
+const getDefaultOperatorForType = (type: string): string => {
+    switch (type) {
+        case 'string':
+            return 'eq'
+        case 'bool':
+        case 'boolean':
+            return 'eq'
+        case 'int64':
+        case 'float64':
+        case 'number':
+            return 'eq'
+        default:
+            return 'eq'
+    }
+}
 
 const canAddMoreAttributes = (
     condition: EventCondition | SessionCondition,
@@ -141,27 +164,7 @@ const getAvailableAttributes = (
     return [];
 };
 
-function getDefaultOperatorForType(type: string): string {
-    switch (type) {
-        case 'string':
-            return 'eq'
-        case 'bool':
-        case 'boolean':
-            return 'eq'
-        case 'int64':
-        case 'float64':
-        case 'number':
-            return 'eq'
-        default:
-            return 'eq'
-    }
-}
-
-const isValueEmpty = (value: string | boolean | number, type: string): boolean => {
-    // Boolean values are never considered empty since they're selected from dropdown
-    if (type === 'bool') return false;
-
-    // For all other types, check if the string representation is empty
+const isValueEmpty = (value: string | boolean | number): boolean => {
     return String(value).trim() === '';
 };
 
@@ -173,13 +176,13 @@ const validateAllAttributes = (eventConditions: EventConditions, sessionConditio
             ...condition,
             attrs: condition.attrs?.map(attr => ({
                 ...attr,
-                hasError: isValueEmpty(attr.value, attr.type),
-                errorMessage: isValueEmpty(attr.value, attr.type) ? 'Value cannot be empty' : undefined
+                hasError: isValueEmpty(attr.value),
+                errorMessage: isValueEmpty(attr.value) ? 'Value cannot be empty' : undefined
             })) || [],
             ud_attrs: condition.ud_attrs?.map(attr => ({
                 ...attr,
-                hasError: isValueEmpty(attr.value, attr.type),
-                errorMessage: isValueEmpty(attr.value, attr.type) ? 'Value cannot be empty' : undefined
+                hasError: isValueEmpty(attr.value),
+                errorMessage: isValueEmpty(attr.value) ? 'Value cannot be empty' : undefined
             })) || []
         }))
     };
@@ -191,8 +194,8 @@ const validateAllAttributes = (eventConditions: EventConditions, sessionConditio
             ...condition,
             attrs: condition.attrs?.map(attr => ({
                 ...attr,
-                hasError: isValueEmpty(attr.value, attr.type),
-                errorMessage: isValueEmpty(attr.value, attr.type) ? 'Value cannot be empty' : undefined
+                hasError: isValueEmpty(attr.value),
+                errorMessage: isValueEmpty(attr.value) ? 'Value cannot be empty' : undefined
             })) || []
         }))
     };
@@ -229,7 +232,6 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         return !pageState.isLoading && !pageState.hasError && pageState.config !== null
     }, [pageState.isLoading, pageState.hasError, pageState.config])
 
-    // Main initialization effect
     useEffect(() => {
         const initializePage = async () => {
             try {
@@ -249,7 +251,6 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         initializePage()
     }, [])
 
-    // API functions
     const loadConfig = async () => {
         const result = await fetchSessionTargetingConfigFromServer(params.teamId, params.appId)
 
@@ -278,7 +279,6 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         return rule
     }
 
-    // Setup functions
     const setupCreateMode = (config: typeof emptySessionTargetingConfigResponse) => {
         const eventTypes = getEventTypesFromResponse(config)
         const firstEventType = eventTypes[0] || null
@@ -320,8 +320,6 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         }))
     }
 
-
-    // Event handlers
     const updatePageState = (updates: Partial<PageState>) => {
         setPageState(prev => ({ ...prev, ...updates }))
     }
@@ -348,19 +346,13 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         updatePageState({ status: enabled ? 'enabled' : 'disabled' })
     }
 
-    // Event condition handlers
     const addEventCondition = () => {
         if (!pageState.config || pageState.eventConditions.conditions.length >= MAX_CONDITIONS) return
 
         const eventTypes = getEventTypesFromResponse(pageState.config)
         if (eventTypes.length === 0) return
 
-        const newCondition: EventCondition = {
-            id: crypto.randomUUID(),
-            type: eventTypes[0],
-            attrs: [],
-            ud_attrs: []
-        }
+        const newCondition = createEmptyEventCondition(eventTypes[0])
 
         const newOperators = pageState.eventConditions.conditions.length > 0
             ? [...pageState.eventConditions.operators, 'AND' as const]
@@ -518,8 +510,6 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         })
     }
 
-
-    // Session condition handlers  
     const addSessionCondition = () => {
         if (!pageState.config || pageState.sessionConditions.conditions.length >= MAX_CONDITIONS) return
 
@@ -621,8 +611,6 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         })
     }
 
-
-    // Helper functions
     const removeOperatorAtIndex = (operators: ('AND' | 'OR')[], conditionIndex: number): ('AND' | 'OR')[] => {
         const newOperators = [...operators]
 
@@ -643,7 +631,6 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         operator: getDefaultOperatorForType(attrConfig.type)
     })
 
-    // Submit handlers
     const handleSubmit = async () => {
         // Validate all attributes
         const { eventConditions: validatedEventConditions, sessionConditions: validatedSessionConditions } =
@@ -708,7 +695,6 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
         }
     }
 
-    // Render helpers
     if (pageState.hasError) {
         return (
             <div className="flex flex-col selection:bg-yellow-200/75 items-start">
@@ -811,7 +797,7 @@ export default function SessionTargetingPage({ params, isEditMode }: SessionTarg
                                         const userDefinedAttrs = pageState.config ? getUserDefinedAttributes(pageState.config) : []
                                         const canAddMoreUdAttrs = canAddMoreAttributes(condition, userDefinedAttrs, 'ud_attrs')
                                         const supportsUdAttrs = pageState.config && condition.type ? doesEventSupportUdAttrs(pageState.config, condition.type) : false
-                                        
+
                                         return (
                                             <div key={condition.id}>
                                                 <RuleBuilderEventCondition

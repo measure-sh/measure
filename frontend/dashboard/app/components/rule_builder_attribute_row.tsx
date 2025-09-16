@@ -3,7 +3,6 @@
 import RuleBuilderDropdownSelect from '@/app/components/rule_builder_dropdown_select';
 import { Button } from '@/app/components/button';
 import { X } from 'lucide-react';
-import { useRef } from 'react';
 
 type AttributeType = 'attrs' | 'ud_attrs';
 
