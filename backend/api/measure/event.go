@@ -410,7 +410,7 @@ func (e eventreq) start(ctx context.Context) (err error) {
 		InsertInto(`event_reqs`).
 		Set(`id`, e.id).
 		Set(`app_id`, e.appId).
-		Set(`status`, pending)
+		Set(`status`, int(pending))
 
 	defer stmt.Close()
 
