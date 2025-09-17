@@ -5125,7 +5125,7 @@ func GetSession(c *gin.Context) {
 	}
 
 	lifecycleFragmentEvents := eventMap[event.TypeLifecycleFragment]
-	if len(lifecycleActivityEvents) > 0 {
+	if len(lifecycleFragmentEvents) > 0 {
 		lifecycleFragments := timeline.ComputeLifecycleFragments(lifecycleFragmentEvents)
 		threadedLifecycleFragments := timeline.GroupByThreads(lifecycleFragments)
 		threads.Organize(event.TypeLifecycleFragment, threadedLifecycleFragments)
@@ -5146,7 +5146,7 @@ func GetSession(c *gin.Context) {
 	}
 
 	lifecycleAppEvents := eventMap[event.TypeLifecycleApp]
-	if len(lifecycleActivityEvents) > 0 {
+	if len(lifecycleAppEvents) > 0 {
 		lifecycleApps := timeline.ComputeLifecycleApps(lifecycleAppEvents)
 		threadedLifecycleApps := timeline.GroupByThreads(lifecycleApps)
 		threads.Organize(event.TypeLifecycleApp, threadedLifecycleApps)
