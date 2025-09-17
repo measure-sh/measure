@@ -46,7 +46,7 @@ const RuleBuilderAttributeRow = ({
     return (
         <div className={`flex items-center group ${attr.hasError ? 'mb-8' : ''}`}>
             {/* Attribute Key Dropdown */}
-            <div className="flex-[25] mr-3">
+            <div className="flex-[35] mr-3 min-w-0">
                 <RuleBuilderDropdownSelect
                     title="Attributes"
                     items={availableAttrKeys}
@@ -70,7 +70,7 @@ const RuleBuilderAttributeRow = ({
             </div>
 
             {/* Value section */}
-            <div className="flex-[38] mr-3">
+            <div className="flex-[35] mr-3">
                 {attr.type === 'bool' ? (
                     <RuleBuilderDropdownSelect
                         title="Value"
@@ -105,7 +105,7 @@ const RuleBuilderAttributeRow = ({
             </div>
 
             {/* Remove Attribute Button */}
-            <div className="flex justify-start flex-[20]">
+            <div className="flex justify-start flex-[15]">
                 {showDeleteButton && onRemoveAttribute ? (
                     <Button
                         variant="ghost"
