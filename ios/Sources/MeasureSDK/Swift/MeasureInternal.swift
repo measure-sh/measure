@@ -327,9 +327,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.sessionManager.applicationDidEnterBackground()
         self.periodicExporter.applicationDidEnterBackground()
         self.lifecycleCollector.applicationDidEnterBackground()
-        self.cpuUsageCollector.pause()
-        self.memoryUsageCollector.pause()
-        self.shakeBugReportCollector.pause()
+        self.unregisterCollectors()
         self.dataCleanupService.clearStaleData {}
     }
 
@@ -339,9 +337,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.sessionManager.applicationWillEnterForeground()
         self.periodicExporter.applicationWillEnterForeground()
         self.lifecycleCollector.applicationWillEnterForeground()
-        self.cpuUsageCollector.resume()
-        self.memoryUsageCollector.resume()
-        self.shakeBugReportCollector.resume()
+        self.registedCollectors()
     }
 
     private func applicationWillTerminate() {
