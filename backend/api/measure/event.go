@@ -430,7 +430,7 @@ func (e eventreq) end(ctx context.Context, tx *pgx.Tx) (err error) {
 		Set(`session_count`, e.sessionCount()).
 		Set(`bytes_in`, e.size).
 		Set(`symbolication_attempts_count`, e.symbolicationAttempted).
-		Set(`status`, done).
+		Set(`status`, int(done)).
 		Where("id = ? and app_id = ?", e.id, e.appId)
 
 	defer stmt.Close()
