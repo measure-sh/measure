@@ -459,7 +459,7 @@ func (e eventreq) cleanup(ctx context.Context) (err error) {
 	switch *s {
 	case pending:
 		// remove event request in pending state
-		stmt := sqlf.PostgreSQL.DeleteFrom(`event_reqs`).Where("id = ? and app_id = ? and status = ?", e.id, e.appId, pending)
+		stmt := sqlf.PostgreSQL.DeleteFrom(`event_reqs`).Where("id = ? and app_id = ? and status = ?", e.id, e.appId, int(pending))
 
 		defer stmt.Close()
 
