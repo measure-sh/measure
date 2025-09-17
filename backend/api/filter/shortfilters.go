@@ -104,10 +104,12 @@ func (shortFilters *ShortFilters) Create(ctx context.Context) error {
 		return err
 	}
 
+	fmt.Println("filters json", string(filtersJSON))
+
 	stmt := sqlf.PostgreSQL.InsertInto("short_filters").
 		Set("code", shortFilters.Code).
 		Set("app_id", shortFilters.AppId).
-		SetExpr("filters", "?::jsonb", filtersJSON).
+		SetExpr("filters", "?::jsonb", string(filtersJSON)).
 		Set("created_at", shortFilters.CreatedAt).
 		Set("updated_at", shortFilters.UpdatedAt)
 	defer stmt.Close()
