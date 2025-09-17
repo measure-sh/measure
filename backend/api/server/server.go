@@ -15,6 +15,7 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/wneessen/go-mail"
 	"go.opentelemetry.io/otel"
@@ -303,6 +304,7 @@ func Init(config *ServerConfig) {
 	if err != nil {
 		log.Fatalf("Unable to parse postgres connection string: %v\n", err)
 	}
+	oConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 	// oConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
 	// 	_, err := conn.Exec(ctx, "SET role operator")
 	// 	return err
@@ -313,6 +315,7 @@ func Init(config *ServerConfig) {
 	if err != nil {
 		log.Fatalf("Unable to parse reader postgres connection string: %v\n", err)
 	}
+	rConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 	// rConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
 	// 	_, err := conn.Exec(ctx, "SET role reader")
 	// 	return err
