@@ -46,7 +46,14 @@ export default function SessionTargetingOverview({ params }: { params: { teamId:
 
         switch (result.status) {
             case SessionTargetingRulesApiStatus.Error:
-                updatePageState({ targetingRulesApiStatus: SessionTargetingRulesApiStatus.Error })
+                updatePageState({
+                    targetingRulesApiStatus: SessionTargetingRulesApiStatus.Error,
+                })
+                break
+            case SessionTargetingRulesApiStatus.NoData:
+                updatePageState({
+                    targetingRulesApiStatus: SessionTargetingRulesApiStatus.NoData,
+                })
                 break
             case SessionTargetingRulesApiStatus.Success:
                 updatePageState({
@@ -129,8 +136,8 @@ export default function SessionTargetingOverview({ params }: { params: { teamId:
 
             {/* Empty state */}
             {pageState.filters.ready
-                && pageState.targetingRulesApiStatus === SessionTargetingRulesApiStatus.Success
-                && pageState.targetingRules.results.length === 0 &&
+                && pageState.targetingRulesApiStatus === SessionTargetingRulesApiStatus.NoData &&
+                pageState.targetingRules.results.length === 0 &&
                 <div className="flex flex-col items-center">
                     <p className="font-body text-sm">No sampling rules created for this app yet</p>
                     <div className="py-2" />
@@ -167,7 +174,7 @@ export default function SessionTargetingOverview({ params }: { params: { teamId:
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {pageState.targetingRules.results?.map(({ id, name, status, last_modified_at, last_modified_by, sampling_rate }, idx) => {
+                            {pageState.targetingRules.results?.map(({ id, name, status, updated_at, updated_by, sampling_rate }, idx) => {
                                 const ruleHref = `/${params.teamId}/session_targeting/${pageState.filters.app!.id}/${id}/edit`
                                 return (
                                     <TableRow
@@ -200,12 +207,12 @@ export default function SessionTargetingOverview({ params }: { params: { teamId:
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[20%] text-center">
-                                            <p className='truncate select-none'>{formatDateToHumanReadableDate(last_modified_at)}</p>
+                                            <p className='truncate select-none'>{formatDateToHumanReadableDate(updated_at)}</p>
                                             <div className='py-1' />
-                                            <p className='truncate select-none'>{formatDateToHumanReadableTime(last_modified_at)}</p>
+                                            <p className='truncate select-none'>{formatDateToHumanReadableTime(updated_at)}</p>
                                         </TableCell>
                                         <TableCell className="w-[20%] text-center">
-                                            <p className='truncate select-none'>{last_modified_by}</p>
+                                            <p className='truncate select-none'>{updated_by}</p>
                                         </TableCell>
                                         <TableCell className="w-[10%] text-center p-4">
                                             <div className="flex justify-center">

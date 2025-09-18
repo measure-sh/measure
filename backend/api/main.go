@@ -113,6 +113,7 @@ func main() {
 		apps.GET(":id/bugReports/:bugReportId", measure.GetBugReport)
 		apps.PATCH(":id/bugReports/:bugReportId", measure.UpdateBugReportStatus)
 		apps.GET(":id/alerts", measure.GetAlertsOverview)
+		apps.GET(":id/sessionTargetingRules", measure.GetSessionTargetingRules)
 	}
 
 	teams := r.Group("/teams", measure.ValidateAccessToken())

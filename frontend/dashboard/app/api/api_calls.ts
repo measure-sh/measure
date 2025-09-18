@@ -331,6 +331,7 @@ export enum SessionTargetingRuleApiStatus {
 export enum SessionTargetingRulesApiStatus {
   Loading,
   Success,
+  NoData,
   Error,
   Cancelled,
 }
@@ -1057,7 +1058,6 @@ export const dummySamplingRuleResponse = {
   },
 }
 
-// TODO: rename to sessionTargetingRulesResponse 
 export const sessionTargetingRulesResponse = {
   meta: {
     next: false,
@@ -1069,37 +1069,9 @@ export const sessionTargetingRulesResponse = {
     status: number,
     sampling_rate: number,
     rule: string,
-    last_modified_at: string,
-    last_modified_by: string
+    updated_at: string,
+    updated_by: string
   }[],
-}
-
-export const dummySessionTargetingResponse = {
-  meta: {
-    next: false,
-    previous: false,
-  },
-  results: [
-    {
-      id: "rule_identifier_1",
-      name: "Critical issues",
-      status: 0,
-      sampling_rate: 1,
-      rule: "(event_type == \"bug_report\" && user_defined_attrs.is_user_premium == true)",
-      last_modified_at: "2023-10-02T12:00:00Z",
-      last_modified_by: "bar@email.com"
-    },
-    {
-      id: "rule_identifier_2",
-      type: "trace",
-      name: "Activity TTID traces",
-      status: 1,
-      sampling_rate: 0.5,
-      rule: "(event_type == \"bug_report\" && user_defined_attrs.is_user_premium == true)",
-      last_modified_at: "2023-10-02T12:00:00Z",
-      last_modified_by: "foo@email.com"
-    }
-  ],
 }
 
 export const sessionTargetingConfigResponse = {
@@ -2568,22 +2540,25 @@ export const fetchSessionTargetingRulesFromServer = async (
   limit: number,
   offset: number,
 ) => {
-  //const url = `/api/apps/${appId}/session-targeting-rules?limit=${limit}&offset=${offset}`
+  const url = `/api/apps/${appId}/sessionTargetingRules?limit=${limit}&offset=${offset}`
 
-  //try {
-  //const res = await measureAuth.fetchMeasure(url)
+  try {
+    const res = await measureAuth.fetchMeasure(url)
 
-  //if (!res.ok) {
-  console.log("fetchSessionTargetingFromServer: Using dummy data", dummySessionTargetingResponse)
-  return { status: SessionTargetingRulesApiStatus.Success, data: dummySessionTargetingResponse }
-  //}
+    if (!res.ok) {
+      return { status: SessionTargetingRulesApiStatus.Error, data: null }
+    }
 
-  //const data = await res.json()
+    const data = await res.json()
 
-  //   return { status: SessionTargetingApiStatus.Success, data: dummySessionTargetingResponse }
-  // } catch {
-  //   return { status: SessionTargetingApiStatus.Success, data: dummySessionTargetingResponse }
-  // }
+    if (data.results === null) {
+      return { status: SessionTargetingRulesApiStatus.NoData, data: null }
+    } else {
+      return { status: SessionTargetingRulesApiStatus.Success, data: data }
+    }
+  } catch {
+    return { status: SessionTargetingRulesApiStatus.Cancelled, data: null }
+  }
 }
 
 export const fetchSessionTargetingConfigFromServer = async (
@@ -2653,7 +2628,7 @@ export const updateSessionTargetingRule = async (
 
   try {
     const res = await measureAuth.fetchMeasure(
-      `/api/teams/${teamId}/apps/${appId}/session-targeting-rules/${ruleId}`,
+      `/api/teams/${teamId}/apps/${appId}/sessionTargetingRule/${ruleId}`,
       opts,
     )
     const data = await res.json()
