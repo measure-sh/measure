@@ -9,6 +9,9 @@ import Foundation
 
 protocol AppLaunchCollector {
     func enable()
+    func applicationWillEnterForeground()
+    func applicationDidBecomeActive()
+    func applicationWillResignActive()
 }
 
 final class BaseAppLaunchCollector: AppLaunchCollector {
@@ -17,6 +20,7 @@ final class BaseAppLaunchCollector: AppLaunchCollector {
     private let signalProcessor: SignalProcessor
     private let launchTracker: LaunchTracker
     private let launchCallback: LaunchCallbacks
+    private var enabled = false
 
     init(logger: Logger,
          timeProvider: TimeProvider,
@@ -41,10 +45,24 @@ final class BaseAppLaunchCollector: AppLaunchCollector {
 
     func enable() {
         logger.log(level: .info, message: "AppLaunchCollector enabled.", error: nil, data: nil)
-        launchTracker.start()
+        enabled = true
+    }
+
+    func applicationWillEnterForeground() {
+        launchTracker.applicationWillEnterForeground()
+    }
+
+    func applicationDidBecomeActive() {
+        launchTracker.applicationDidBecomeActive()
+    }
+
+    func applicationWillResignActive() {
+        launchTracker.applicationWillResignActive()
     }
 
     func onColdLaunchCallback(_ data: ColdLaunchData) {
+        guard enabled else { return }
+
         signalProcessor.track(data: data,
                               timestamp: timeProvider.now(),
                               type: .coldLaunch,
@@ -57,6 +75,8 @@ final class BaseAppLaunchCollector: AppLaunchCollector {
     }
 
     func onWarmLaunchCallback(_ data: WarmLaunchData) {
+        guard enabled else { return }
+
         signalProcessor.track(data: data,
                               timestamp: timeProvider.now(),
                               type: .warmLaunch,
@@ -68,6 +88,8 @@ final class BaseAppLaunchCollector: AppLaunchCollector {
     }
 
     func onHotLaunchCallback(_ data: HotLaunchData) {
+        guard enabled else { return }
+
         signalProcessor.track(data: data,
                               timestamp: timeProvider.now(),
                               type: .hotLaunch,

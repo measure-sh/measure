@@ -7,18 +7,22 @@
 
 import UIKit
 
-/// A class that observes key application lifecycle events: background, foreground and termination.
+/// A class that observes key application lifecycle events: background, foreground, active/inactive, and termination.
 ///
 /// - Properties:
-///   - `applicationDidEnterBackground`: A closure that is called when the application enters the background.
-///   - `applicationWillEnterForeground`: A closure that is called when the application will enter the foreground.
-///   - `applicationWillTerminate`: A closure that is called when the application is about to terminate.
+///   - `applicationDidEnterBackground`: Called when the application enters the background.
+///   - `applicationWillEnterForeground`: Called when the application will enter the foreground.
+///   - `applicationDidBecomeActive`: Called when the application becomes active.
+///   - `applicationWillResignActive`: Called when the application is about to move from active to inactive state.
+///   - `applicationWillTerminate`: Called when the application is about to terminate.
 ///
 /// - Note: Make sure to retain an instance of this class as long as you need to observe the lifecycle events.
-/// 
+///
 final class LifecycleObserver {
     var applicationDidEnterBackground: (() -> Void)?
     var applicationWillEnterForeground: (() -> Void)?
+    var applicationDidBecomeActive: (() -> Void)?
+    var applicationWillResignActive: (() -> Void)?
     var applicationWillTerminate: (() -> Void)?
 
     init() {
@@ -46,6 +50,20 @@ final class LifecycleObserver {
 
         NotificationCenter.default.addObserver(
             self,
+            selector: #selector(onAppDidBecomeActive),
+            name: UIApplication.didBecomeActiveNotification,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onAppWillResignActive),
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
             selector: #selector(onAppWillTerminate),
             name: UIApplication.willTerminateNotification,
             object: nil
@@ -58,6 +76,14 @@ final class LifecycleObserver {
 
     @objc private func onAppForegrounded() {
         applicationWillEnterForeground?()
+    }
+
+    @objc private func onAppDidBecomeActive() {
+        applicationDidBecomeActive?()
+    }
+
+    @objc private func onAppWillResignActive() {
+        applicationWillResignActive?()
     }
 
     @objc private func onAppWillTerminate() {
