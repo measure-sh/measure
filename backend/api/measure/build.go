@@ -194,7 +194,7 @@ func (b *Build) getMappings(ctx context.Context) (mappings []*Mapping, err error
 
 	defer stmt.Close()
 
-	rows, _ := server.Server.RpgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
 
 	for rows.Next() {
 		var mapping Mapping

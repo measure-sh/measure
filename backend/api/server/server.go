@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/cloudsqlconn"
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -30,8 +31,8 @@ import (
 var Server *server
 
 type server struct {
-	PgPool  *pgxpool.Pool
-	RpgPool *pgxpool.Pool
+	PgPool *pgxpool.Pool
+	// RpgPool *pgxpool.Pool
 	ChPool  driver.Conn
 	RchPool driver.Conn
 	Mail    *mail.Client
@@ -294,10 +295,32 @@ func NewConfig() *ServerConfig {
 	}
 }
 
+func WaitForPg(ctx context.Context, pgPool *pgxpool.Pool, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		if err := pgPool.Ping(ctx); err == nil {
+			return nil // Ready
+		} else {
+			fmt.Printf("PG ping failed: %v; Retrying...\n", err)
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+	}
+}
+
 func Init(config *ServerConfig) {
 	ctx := context.Background()
 	var pgPool *pgxpool.Pool
-	var rPgPool *pgxpool.Pool
+	// var rPgPool *pgxpool.Pool
 
 	// read/write pool
 	oConfig, err := pgxpool.ParseConfig(config.PG.DSN)
@@ -311,11 +334,11 @@ func Init(config *ServerConfig) {
 	// }
 
 	// reader pool
-	rConfig, err := pgxpool.ParseConfig(config.PG.DSN)
-	if err != nil {
-		log.Fatalf("Unable to parse reader postgres connection string: %v\n", err)
-	}
-	rConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+	// rConfig, err := pgxpool.ParseConfig(config.PG.DSN)
+	// if err != nil {
+	// 	log.Fatalf("Unable to parse reader postgres connection string: %v\n", err)
+	// }
+	// rConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeExec
 	// rConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
 	// 	_, err := conn.Exec(ctx, "SET role reader")
 	// 	return err
@@ -323,8 +346,6 @@ func Init(config *ServerConfig) {
 
 	if config.IsCloud() {
 		d, err := cloudsqlconn.NewDialer(ctx,
-			// Always use IAM authentication.
-			cloudsqlconn.WithIAMAuthN(),
 			// In Cloud Run CPU is throttled outside of a request
 			// context causing the backend refresh to fail, hence
 			// the need for `WithLazyRefresh()` option.
@@ -344,10 +365,10 @@ func Init(config *ServerConfig) {
 			return d.Dial(ctx, csqlConnName, cloudsqlconn.WithPrivateIP())
 		}
 
-		rConfig.ConnConfig.DialFunc = func(ctx context.Context, network string, address string) (net.Conn, error) {
-			fmt.Printf("Dialing reader network: %s, address: %s\n", network, address)
-			return d.Dial(ctx, csqlConnName, cloudsqlconn.WithPrivateIP())
-		}
+		// rConfig.ConnConfig.DialFunc = func(ctx context.Context, network string, address string) (net.Conn, error) {
+		// 	fmt.Printf("Dialing reader network: %s, address: %s\n", network, address)
+		// 	return d.Dial(ctx, csqlConnName, cloudsqlconn.WithPrivateIP())
+		// }
 	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, oConfig)
@@ -356,11 +377,15 @@ func Init(config *ServerConfig) {
 	}
 	pgPool = pool
 
-	rPool, err := pgxpool.NewWithConfig(ctx, rConfig)
-	if err != nil {
-		log.Fatalf("Unable to create reader PG connection pool: %v\n", err)
+	if err := WaitForPg(ctx, pgPool, 2*time.Second); err != nil {
+		fmt.Printf("Postgres pool not ready: %v\n", err)
 	}
-	rPgPool = rPool
+
+	// rPool, err := pgxpool.NewWithConfig(ctx, rConfig)
+	// if err != nil {
+	// 	log.Fatalf("Unable to create reader PG connection pool: %v\n", err)
+	// }
+	// rPgPool = rPool
 
 	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
 	if err != nil {
@@ -413,8 +438,8 @@ func Init(config *ServerConfig) {
 	}
 
 	Server = &server{
-		PgPool:  pgPool,
-		RpgPool: rPgPool,
+		PgPool: pgPool,
+		// RpgPool: rPgPool,
 		ChPool:  chPool,
 		RchPool: rChPool,
 		Config:  config,

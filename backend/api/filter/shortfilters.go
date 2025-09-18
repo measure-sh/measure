@@ -98,13 +98,13 @@ func (shortFilters *ShortFilters) Create(ctx context.Context) error {
 	// Since, FilterList is a `jsonb` type, we marshal it to json bytes
 	// and then cast it using `::jsonb` to make sure the pooler doesn't
 	// become a blocker for these types of queries.
-
+	//
+	// See https://pkg.go.dev/github.com/jackc/pgx/v5#QueryExecMode
+	// See https://cloud.google.com/sql/docs/postgres/managed-connection-pooling#limitations
 	filtersJSON, err := json.Marshal(shortFilters.Filters)
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("filters json", string(filtersJSON))
 
 	stmt := sqlf.PostgreSQL.InsertInto("short_filters").
 		Set("code", shortFilters.Code).
