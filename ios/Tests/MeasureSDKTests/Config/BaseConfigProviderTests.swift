@@ -52,7 +52,7 @@ final class BaseConfigProviderTests: XCTestCase {
         XCTAssertEqual(baseConfigProvider.trackHttpHeaders, DefaultConfig.trackHttpHeaders)
         XCTAssertEqual(baseConfigProvider.httpHeadersBlocklist, DefaultConfig.httpHeadersBlocklist)
         XCTAssertEqual(baseConfigProvider.httpUrlAllowlist, DefaultConfig.httpUrlAllowlist)
-        XCTAssertEqual(baseConfigProvider.sessionEndLastEventThresholdMs, 20 * 60 * 1000) // 20 minutes
+        XCTAssertEqual(baseConfigProvider.sessionEndLastEventThresholdMs, 3 * 60 * 1000) // 3 minutes
         XCTAssertEqual(baseConfigProvider.eventsBatchingIntervalMs, 30000) // 30 seconds
         XCTAssertEqual(baseConfigProvider.maxEventsInBatch, 500)
         XCTAssertEqual(baseConfigProvider.timeoutIntervalForRequest, 30) // 30 seconds
@@ -106,7 +106,7 @@ final class BaseConfigProviderTests: XCTestCase {
 
         XCTAssertEqual(baseConfigProvider.samplingRateForErrorFreeSessions, 0.25)
         XCTAssertEqual(baseConfigProvider.enableLogging, false)
-        XCTAssertEqual(baseConfigProvider.sessionEndLastEventThresholdMs, 20 * 60 * 1000) // 20 minutes
+        XCTAssertEqual(baseConfigProvider.sessionEndLastEventThresholdMs, 3 * 60 * 1000) // 3 minutes
         XCTAssertEqual(baseConfigProvider.eventsBatchingIntervalMs, 30000) // 30 seconds
         XCTAssertEqual(baseConfigProvider.maxEventsInBatch, 500)
         XCTAssertEqual(baseConfigProvider.timeoutIntervalForRequest, 30) // 30 seconds
