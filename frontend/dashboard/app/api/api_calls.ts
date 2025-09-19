@@ -2562,7 +2562,6 @@ export const fetchSessionTargetingRuleFromServer = async (
 }
 
 export const createSessionTargetingRule = async (
-  teamId: string,
   appId: string,
   ruleData: {
     name: string,
@@ -2578,23 +2577,22 @@ export const createSessionTargetingRule = async (
 
   try {
     const res = await measureAuth.fetchMeasure(
-      `/api/teams/${teamId}/apps/${appId}/session-targeting`,
+      `/api/apps/${appId}/sessionTargetingRules`,
       opts,
     )
     const data = await res.json()
 
     if (!res.ok) {
-      return { status: CreateSessionTargetingRuleApiStatus.Success }
+      return { status: CreateSessionTargetingRuleApiStatus.Error }
     }
 
-    return { status: CreateSessionTargetingRuleApiStatus.Error, data: data }
+    return { status: CreateSessionTargetingRuleApiStatus.Success, data: data }
   } catch {
     return { status: CreateSessionTargetingRuleApiStatus.Cancelled }
   }
 }
 
 export const updateSessionTargetingRule = async (
-  teamId: string,
   appId: string,
   ruleId: string,
   ruleData: {
@@ -2611,7 +2609,7 @@ export const updateSessionTargetingRule = async (
 
   try {
     const res = await measureAuth.fetchMeasure(
-      `/api/teams/${teamId}/apps/${appId}/sessionTargetingRule/${ruleId}`,
+      `/api/apps/${appId}/sessionTargetingRule/${ruleId}`,
       opts,
     )
     const data = await res.json()

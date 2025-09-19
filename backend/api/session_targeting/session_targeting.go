@@ -24,6 +24,13 @@ type SessionTargetingRule struct {
 	UpdatedBy    uuid.UUID `json:"updated_by" binding:"required"`
 }
 
+type CreateSessionTargetingRulePayload struct {
+	Name         string  `json:"name" binding:"required"`
+	Status       int     `json:"status" binding:"required,oneof=0 1"`
+	SamplingRate float64 `json:"sampling_rate" binding:"required,min=0,max=100"`
+	Rule         string  `json:"rule" binding:"required"`
+}
+
 func GetRules(ctx context.Context, af *filter.AppFilter) (rules []SessionTargetingRule, next, previous bool, err error) {
 	stmt := sqlf.PostgreSQL.From("session_targeting_rules").
 		Select("id").
@@ -108,6 +115,58 @@ func GetRule(ctx context.Context, ruleId string) (rule SessionTargetingRule, err
 		Select("updated_at").
 		Select("updated_by").
 		Where("id = ?", ruleId)
+
+	defer stmt.Close()
+
+	row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
+
+	if err := row.Scan(
+		&rule.Id,
+		&rule.TeamId,
+		&rule.AppId,
+		&rule.Name,
+		&rule.Status,
+		&rule.SamplingRate,
+		&rule.Rule,
+		&rule.CreatedAt,
+		&rule.CreatedBy,
+		&rule.UpdatedAt,
+		&rule.UpdatedBy,
+	); err != nil {
+		return rule, err
+	}
+
+	return rule, nil
+}
+
+func CreateRule(ctx context.Context, teamId string, appId string, userId string, payload CreateSessionTargetingRulePayload) (rule SessionTargetingRule, err error) {
+	now := time.Now()
+	ruleId := uuid.New()
+
+	stmt := sqlf.PostgreSQL.
+		InsertInto("session_targeting_rules").
+		Set("id", ruleId).
+		Set("team_id", teamId).
+		Set("app_id", appId).
+		Set("name", payload.Name).
+		Set("status", payload.Status).
+		Set("sampling_rate", payload.SamplingRate).
+		Set("rule", payload.Rule).
+		Set("created_at", now).
+		Set("created_by", userId).
+		Set("updated_at", now).
+		Set("updated_by", userId).
+		Returning("id").
+		Returning("team_id").
+		Returning("app_id").
+		Returning("name").
+		Returning("status").
+		Returning("sampling_rate").
+		Returning("rule").
+		Returning("created_at").
+		Returning("created_by").
+		Returning("updated_at").
+		Returning("updated_by")
 
 	defer stmt.Close()
 

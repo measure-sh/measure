@@ -694,8 +694,8 @@ export default function SessionTargetingRule({ params, isEditMode }: SessionTarg
 
         try {
             const result = isEditMode
-                ? await updateSessionTargetingRule(params.teamId, params.appId, ruleData.id!, ruleData)
-                : await createSessionTargetingRule(params.teamId, params.appId, ruleData)
+                ? await updateSessionTargetingRule(params.appId, ruleData.id!, ruleData)
+                : await createSessionTargetingRule(params.appId, ruleData)
 
             if (result.status === CreateSessionTargetingRuleApiStatus.Success ||
                 result.status === UpdateSessionTargetingRuleApiStatus.Success) {
