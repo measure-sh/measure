@@ -1,6 +1,6 @@
 "use client"
 
-import { createSessionTargetingRule, CreateSessionTargetingRuleApiStatus, sessionTargetingConfigResponse, emptySessionTargetingRuleResponse, sessionTargetingRulesResponse, fetchSessionTargetingConfigFromServer, fetchSessionTargetingRuleFromServer, SessionTargetingConfigApiStatus, SessionTargetingRuleApiStatus, updateSessionTargetingRule, UpdateSessionTargetingRuleApiStatus } from '@/app/api/api_calls';
+import { createSessionTargetingRule, CreateSessionTargetingRuleApiStatus, sessionTargetingConfigResponse, fetchSessionTargetingConfigFromServer, fetchSessionTargetingRuleFromServer, SessionTargetingConfigApiStatus, SessionTargetingRuleApiStatus, updateSessionTargetingRule, UpdateSessionTargetingRuleApiStatus, SessionTargetingRuleResponse } from '@/app/api/api_calls';
 import { conditionsToCel } from '@/app/utils/cel/cel_generator';
 import { EventCondition, EventConditions, SessionCondition, SessionConditions } from '@/app/utils/cel/conditions';
 import LoadingSpinner from '@/app/components/loading_spinner';
@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { celToConditions } from '../../utils/cel/cel_parser';
 
-export type SessionTargetingRulesConfig = typeof sessionTargetingRulesResponse;
+export type SessionTargetingRulesConfig = typeof sessionTargetingConfigResponse;
 const MAX_CONDITIONS = 10;
 const MAX_ATTRIBUTES_PER_CONDITION = 10;
 const MAX_RULE_NAME_LENGTH = 256;
@@ -28,13 +28,13 @@ enum PageStatus {
 interface PageState {
     status: PageStatus
     config: typeof sessionTargetingConfigResponse | null
-    rule: typeof emptySessionTargetingRuleResponse | null
+    ruleResponse: SessionTargetingRuleResponse | null
 }
 
 const initialPageState: PageState = {
     status: PageStatus.Loading,
     config: null,
-    rule: null,
+    ruleResponse: null,
 }
 interface RuleState {
     name: string
@@ -279,14 +279,14 @@ export default function SessionTargetingRule({ params, isEditMode }: SessionTarg
             throw new Error('Failed to load session targeting rule: missing rule ID')
         }
 
-        const result = await fetchSessionTargetingRuleFromServer(params.teamId, params.appId, params.ruleId)
+        const result = await fetchSessionTargetingRuleFromServer(params.appId, params.ruleId)
 
         if (result.status === SessionTargetingRuleApiStatus.Error) {
             throw new Error('Failed to load session targeting rule')
         }
 
         const rule = result.data
-        setPageState(prev => ({ ...prev, rule }))
+        setPageState(prev => ({ ...prev, ruleResponse: rule }))
         return rule
     }
 
@@ -298,12 +298,8 @@ export default function SessionTargetingRule({ params, isEditMode }: SessionTarg
         }))
     }
 
-    const setupEditMode = (rule: typeof emptySessionTargetingRuleResponse) => {
-        if (!rule.results) {
-            throw new Error('Invalid rule data')
-        }
-
-        const ruleData = rule.results
+    const setupEditMode = (ruleResponse: SessionTargetingRuleResponse) => {
+        const ruleData = ruleResponse
         const conditions = celToConditions(ruleData.rule)
 
         const eventConditions = conditions?.event
@@ -691,7 +687,7 @@ export default function SessionTargetingRule({ params, isEditMode }: SessionTarg
             status: ruleState.status === 'enabled' ? 1 : 0,
             sampling_rate: ruleState.samplingRate,
             rule: ruleCel,
-            id: pageState.rule?.results?.id || ''
+            id: pageState.ruleResponse?.id || ''
         }
 
         setSaveRuleState(prev => ({ ...prev, isSubmitting: true }));

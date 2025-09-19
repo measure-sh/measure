@@ -1,6 +1,6 @@
 "use client"
 
-import { FilterSource, SessionTargetingRulesApiStatus, sessionTargetingRulesResponse, fetchSessionTargetingRulesFromServer } from "@/app/api/api_calls";
+import { FilterSource, SessionTargetingRulesApiStatus, SessionTargetingRulesResponse, fetchSessionTargetingRulesFromServer } from "@/app/api/api_calls";
 import CreateSamplingRule from "@/app/components/create_sampling_rule";
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from "@/app/components/filters";
 import LoadingBar from "@/app/components/loading_bar";
@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 interface PageState {
     targetingRulesApiStatus: SessionTargetingRulesApiStatus
     filters: typeof defaultFilters
-    targetingRules: typeof sessionTargetingRulesResponse
+    targetingRules: SessionTargetingRulesResponse | null
     paginationOffset: number
 }
 
@@ -27,7 +27,7 @@ export default function SessionTargetingOverview({ params }: { params: { teamId:
     const initialState: PageState = {
         targetingRulesApiStatus: SessionTargetingRulesApiStatus.Loading,
         filters: defaultFilters,
-        targetingRules: sessionTargetingRulesResponse,
+        targetingRules: null,
         paginationOffset: searchParams.get(paginationOffsetUrlKey) ? parseInt(searchParams.get(paginationOffsetUrlKey)!) : 0
     }
 
@@ -137,7 +137,6 @@ export default function SessionTargetingOverview({ params }: { params: { teamId:
             {/* Empty state */}
             {pageState.filters.ready
                 && pageState.targetingRulesApiStatus === SessionTargetingRulesApiStatus.NoData &&
-                pageState.targetingRules.results.length === 0 &&
                 <div className="flex flex-col items-center">
                     <p className="font-body text-sm">No sampling rules created for this app yet</p>
                     <div className="py-2" />
@@ -145,13 +144,14 @@ export default function SessionTargetingOverview({ params }: { params: { teamId:
 
             {/* Main sampling rules UI */}
             {pageState.filters.ready
+                && pageState.targetingRules
                 && pageState.targetingRules.results.length > 0
                 && (pageState.targetingRulesApiStatus === SessionTargetingRulesApiStatus.Success || pageState.targetingRulesApiStatus === SessionTargetingRulesApiStatus.Loading) &&
                 <div className="flex flex-col items-center w-full">
                     <div className='self-end'>
                         <Paginator
-                            prevEnabled={pageState.targetingRulesApiStatus === SessionTargetingRulesApiStatus.Loading ? false : pageState.targetingRules.meta.previous}
-                            nextEnabled={pageState.targetingRulesApiStatus === SessionTargetingRulesApiStatus.Loading ? false : pageState.targetingRules.meta.next}
+                            prevEnabled={pageState.targetingRulesApiStatus === SessionTargetingRulesApiStatus.Loading ? false : pageState.targetingRules!.meta.previous}
+                            nextEnabled={pageState.targetingRulesApiStatus === SessionTargetingRulesApiStatus.Loading ? false : pageState.targetingRules!.meta.next}
                             displayText=''
                             onNext={handleNextPage}
                             onPrev={handlePrevPage}
@@ -174,7 +174,7 @@ export default function SessionTargetingOverview({ params }: { params: { teamId:
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {pageState.targetingRules.results?.map(({ id, name, status, updated_at, updated_by, sampling_rate }, idx) => {
+                            {pageState.targetingRules?.results?.map(({ id, name, status, updated_at, updated_by, sampling_rate }, idx) => {
                                 const ruleHref = `/${params.teamId}/session_targeting/${pageState.filters.app!.id}/${id}/edit`
                                 return (
                                     <TableRow

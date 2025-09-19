@@ -1027,51 +1027,22 @@ export const emptyAlertsOverviewResponse = {
   }[],
 }
 
-export const emptySessionTargetingRuleResponse = {
-  results: {} as {
-    id: string,
-    name: string,
-    status: number,
-    sampling_rate: number,
-    rule: string,
-    changelog: Array<{
-      modified_at: string,
-      modified_by: string,
-    }>
-  },
-}
+export type SessionTargetingRuleResponse = {
+  id: string;
+  name: string;
+  status: number;
+  sampling_rate: number;
+  rule: string;
+  updated_at: string;
+  updated_by: string;
+};
 
-
-export const dummySamplingRuleResponse = {
-  results: {
-    id: "rule_identifier_1",
-    name: "Critical issues",
-    status: 0,
-    sampling_rate: 1,
-    rule: `((event_type == "anr") && (event_type == "exception" && exception.handled == false) && (event_type == "custom" && custom.name.startsWith("login_") && event.user_defined_attrs.is_premium_user == false)) && (attribute.is_device_foldable == true)`,
-    changelog: [
-      {
-        modified_at: "2023-10-02T12:00:00Z",
-        modified_by: "bar@email.com"
-      }
-    ]
-  },
-}
-
-export const sessionTargetingRulesResponse = {
+export type SessionTargetingRulesResponse = {
   meta: {
     next: false,
     previous: false,
   },
-  results: [] as {
-    id: string,
-    name: string,
-    status: number,
-    sampling_rate: number,
-    rule: string,
-    updated_at: string,
-    updated_by: string
-  }[],
+  results: SessionTargetingRuleResponse[],
 }
 
 export const sessionTargetingConfigResponse = {
@@ -2570,12 +2541,24 @@ export const fetchSessionTargetingConfigFromServer = async (
 }
 
 export const fetchSessionTargetingRuleFromServer = async (
-  teamId: string,
   appId: string,
   ruleId: string
 ) => {
-  console.log("fetchSamplingRuleFromServer: Using dummy data", dummySamplingRuleResponse)
-  return { status: SessionTargetingRuleApiStatus.Success, data: dummySamplingRuleResponse }
+  const url = `/api/apps/${appId}/sessionTargetingRules/${ruleId}`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+
+    if (!res.ok) {
+      return { status: SessionTargetingRuleApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: SessionTargetingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: SessionTargetingRuleApiStatus.Cancelled, data: null }
+  }
 }
 
 export const createSessionTargetingRule = async (

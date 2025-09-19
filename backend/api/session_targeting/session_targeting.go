@@ -1,4 +1,4 @@
-package measure
+package session_targeting
 
 import (
 	"backend/api/filter"
@@ -11,9 +11,9 @@ import (
 )
 
 type SessionTargetingRule struct {
+	Id           uuid.UUID `json:"id" binding:"required"`
 	TeamId       uuid.UUID `json:"team_id" binding:"required"`
 	AppId        uuid.UUID `json:"app_id" binding:"required"`
-	Id           uuid.UUID `json:"id" binding:"required"`
 	Name         string    `json:"name" binding:"required"`
 	Status       int       `json:"status" binding:"required,oneof=0 1"`
 	SamplingRate float64   `json:"sampling_rate" binding:"required,min=0,max=100"`
@@ -24,11 +24,11 @@ type SessionTargetingRule struct {
 	UpdatedBy    uuid.UUID `json:"updated_by" binding:"required"`
 }
 
-func GetSessionTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilter) (rules []SessionTargetingRule, next, previous bool, err error) {
+func GetRules(ctx context.Context, af *filter.AppFilter) (rules []SessionTargetingRule, next, previous bool, err error) {
 	stmt := sqlf.PostgreSQL.From("session_targeting_rules").
+		Select("id").
 		Select("team_id").
 		Select("app_id").
-		Select("id").
 		Select("name").
 		Select("status").
 		Select("sampling_rate").
@@ -60,9 +60,9 @@ func GetSessionTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilte
 	for rows.Next() {
 		var rule SessionTargetingRule
 		if err := rows.Scan(
+			&rule.Id,
 			&rule.TeamId,
 			&rule.AppId,
-			&rule.Id,
 			&rule.Name,
 			&rule.Status,
 			&rule.SamplingRate,
@@ -89,4 +89,45 @@ func GetSessionTargetingRulesWithFilter(ctx context.Context, af *filter.AppFilte
 	}
 
 	return rules, next, previous, nil
+}
+
+// GetRule constructs and returns a
+// session targeting rule for a
+// given ruleId
+func GetRule(ctx context.Context, ruleId string) (rule SessionTargetingRule, err error) {
+	stmt := sqlf.PostgreSQL.From("session_targeting_rules").
+		Select("id").
+		Select("team_id").
+		Select("app_id").
+		Select("name").
+		Select("status").
+		Select("sampling_rate").
+		Select("rule").
+		Select("created_at").
+		Select("created_by").
+		Select("updated_at").
+		Select("updated_by").
+		Where("id = ?", ruleId)
+
+	defer stmt.Close()
+
+	row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
+
+	if err := row.Scan(
+		&rule.Id,
+		&rule.TeamId,
+		&rule.AppId,
+		&rule.Name,
+		&rule.Status,
+		&rule.SamplingRate,
+		&rule.Rule,
+		&rule.CreatedAt,
+		&rule.CreatedBy,
+		&rule.UpdatedAt,
+		&rule.UpdatedBy,
+	); err != nil {
+		return rule, err
+	}
+
+	return rule, nil
 }
