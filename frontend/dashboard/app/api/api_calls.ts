@@ -321,6 +321,44 @@ export enum AlertsOverviewApiStatus {
   Cancelled,
 }
 
+export enum SessionTargetingRuleApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum SessionTargetingRulesApiStatus {
+  Loading,
+  Success,
+  NoData,
+  Error,
+  Cancelled,
+}
+
+export enum SessionTargetingConfigApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum CreateSessionTargetingRuleApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum UpdateSessionTargetingRuleApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
@@ -982,12 +1020,237 @@ export const emptyAlertsOverviewResponse = {
     team_id: string
     app_id: string
     entity_id: string
-    type: string
     message: string
     url: string
     created_at: string
     updated_at: string
   }[],
+}
+
+export type SessionTargetingRuleResponse = {
+  id: string;
+  name: string;
+  status: number;
+  sampling_rate: number;
+  rule: string;
+  updated_at: string;
+  updated_by: string;
+};
+
+export type SessionTargetingRulesResponse = {
+  meta: {
+    next: false,
+    previous: false,
+  },
+  results: SessionTargetingRuleResponse[],
+}
+
+export const sessionTargetingConfigResponse = {
+  result: {} as {
+    events: Array<{
+      "type": string,
+      "ud_attrs": boolean,
+      "attrs": Array<{
+        "key": string,
+        "type": string
+      }> | null
+    }>,
+    event_ud_attrs: {
+      key_types: Array<{
+        key: string,
+        type: string,
+      }>
+    }
+    session_attrs: Array<{
+      key: string,
+      type: string,
+    }>,
+    operator_types: {
+      bool: string[],
+      float64: string[],
+      int64: string[],
+      string: string[]
+    }
+  }
+}
+
+export const dummySessionTargetingConfigResponse = {
+  result: {
+    events: [
+      {
+        "type": "anr",
+        "ud_attrs": false,
+        "attrs": null
+      },
+      {
+        "type": "exception",
+        "ud_attrs": false,
+        "attrs": [
+          {
+            "key": "handled",
+            "type": "bool"
+          }
+        ]
+      },
+      {
+        "type": "bug_report",
+        "ud_attrs": true,
+        "attrs": null
+      },
+      {
+        "type": "custom",
+        "ud_attrs": true,
+        "attrs": [
+          {
+            "key": "name",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "type": "screen_view",
+        "ud_attrs": true,
+        "attrs": [
+          {
+            "key": "name",
+            "type": "string"
+          },
+        ],
+      },
+      {
+        "type": "lifecycle_activity",
+        "ud_attrs": false,
+        "attrs": [
+          {
+            "key": "class_name",
+            "type": "string"
+          }
+        ],
+      },
+      {
+        "type": "lifecycle_fragment",
+        "ud_attrs": false,
+        "attrs": [
+          {
+            "key": "class_name",
+            "type": "string"
+          }
+        ],
+      },
+      {
+        "type": "http",
+        "ud_attrs": false,
+        "attrs": [
+          {
+            "key": "url",
+            "type": "string"
+          },
+          {
+            "key": "status_code",
+            "type": "int64"
+          }
+        ],
+      }
+    ],
+    event_ud_attrs: {
+      key_types: [
+        {
+          key: "is_premium_user",
+          type: "bool",
+        },
+        {
+          key: "campaign_id",
+          type: "string",
+        },
+        {
+          key: "referrer_url",
+          type: "string",
+        },
+        {
+          key: "load_time",
+          type: "float64",
+        },
+        {
+          key: "retry_count",
+          type: "int64",
+        },
+        {
+          key: "another_key_which_is_too_long_and_may_not_even_fit_the_entire_width_lorem_ipsum_foo_bar",
+          type: "string",
+        },
+      ]
+    },
+    session_attrs: [
+      {
+        key: "app_version",
+        type: "string",
+      },
+      {
+        key: "os_version",
+        type: "string",
+      },
+      {
+        key: "device_manufacturer",
+        type: "string",
+      },
+      {
+        key: "device_model",
+        type: "string",
+      },
+      {
+        key: "network_type",
+        type: "string",
+      },
+      {
+        key: "network_generation",
+        type: "string",
+      },
+      {
+        key: "network_provider",
+        type: "string",
+      },
+      {
+        key: "locale",
+        type: "string",
+      },
+      {
+        key: "is_device_foldable",
+        type: "bool",
+      },
+      {
+        key: "user_id",
+        type: "string",
+      }
+    ],
+    operator_types: {
+      bool: [
+        "eq",
+        "neq"
+      ],
+      float64: [
+        "eq",
+        "neq",
+        "gt",
+        "lt",
+        "gte",
+        "lte"
+      ],
+      int64: [
+        "eq",
+        "neq",
+        "gt",
+        "lt",
+        "gte",
+        "lte"
+      ],
+      string: [
+        "eq",
+        "neq",
+        "contains",
+        "startsWith"
+      ]
+    }
+  }
 }
 
 export class AppVersion {
@@ -2240,5 +2503,122 @@ export const fetchAlertsOverviewFromServer = async (
     return { status: AlertsOverviewApiStatus.Success, data: data }
   } catch {
     return { status: AlertsOverviewApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchSessionTargetingRulesFromServer = async (
+  appId: String,
+  limit: number,
+  offset: number,
+) => {
+  const url = `/api/apps/${appId}/sessionTargetingRules?limit=${limit}&offset=${offset}`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+
+    if (!res.ok) {
+      return { status: SessionTargetingRulesApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data.results === null) {
+      return { status: SessionTargetingRulesApiStatus.NoData, data: null }
+    } else {
+      return { status: SessionTargetingRulesApiStatus.Success, data: data }
+    }
+  } catch {
+    return { status: SessionTargetingRulesApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchSessionTargetingConfigFromServer = async (
+  teamId: string,
+  appId: string,
+) => {
+  console.log("fetchSessionTargetingConfigFromServer: Using dummy data", dummySessionTargetingConfigResponse)
+  return { status: SessionTargetingConfigApiStatus.Success, data: dummySessionTargetingConfigResponse }
+}
+
+export const fetchSessionTargetingRuleFromServer = async (
+  appId: string,
+  ruleId: string
+) => {
+  const url = `/api/apps/${appId}/sessionTargetingRules/${ruleId}`
+
+  try {
+    const res = await measureAuth.fetchMeasure(url)
+
+    if (!res.ok) {
+      return { status: SessionTargetingRuleApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: SessionTargetingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: SessionTargetingRuleApiStatus.Cancelled, data: null }
+  }
+}
+
+export const createSessionTargetingRule = async (
+  appId: string,
+  ruleData: {
+    name: string,
+    status: number,
+    sampling_rate: number,
+    rule: string,
+  }
+) => {
+  const opts = {
+    method: "POST",
+    body: JSON.stringify(ruleData),
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(
+      `/api/apps/${appId}/sessionTargetingRules`,
+      opts,
+    )
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { status: CreateSessionTargetingRuleApiStatus.Error }
+    }
+
+    return { status: CreateSessionTargetingRuleApiStatus.Success, data: data }
+  } catch {
+    return { status: CreateSessionTargetingRuleApiStatus.Cancelled }
+  }
+}
+
+export const updateSessionTargetingRule = async (
+  appId: string,
+  ruleId: string,
+  ruleData: {
+    name: string,
+    status: number,
+    sampling_rate: number,
+    rule: string,
+  }
+) => {
+  const opts = {
+    method: "PATCH",
+    body: JSON.stringify(ruleData),
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(
+      `/api/apps/${appId}/sessionTargetingRules/${ruleId}`,
+      opts,
+    )
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { status: UpdateSessionTargetingRuleApiStatus.Error, error: data.error }
+    }
+    return { status: UpdateSessionTargetingRuleApiStatus.Success }
+  } catch {
+    return { status: UpdateSessionTargetingRuleApiStatus.Cancelled }
   }
 }
