@@ -116,6 +116,7 @@ func main() {
 		apps.GET(":id/sessionTargetingRules", measure.GetSessionTargetingRules)
 		apps.GET(":id/sessionTargetingRules/:ruleId", measure.GetSessionTargetingRule)
 		apps.POST(":id/sessionTargetingRules", measure.CreateSessionTargetingRule)
+		apps.PATCH(":id/sessionTargetingRules/:ruleId", measure.UpdateSessionTargetingRule)
 	}
 
 	teams := r.Group("/teams", measure.ValidateAccessToken())

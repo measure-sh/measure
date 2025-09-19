@@ -2603,13 +2603,13 @@ export const updateSessionTargetingRule = async (
   }
 ) => {
   const opts = {
-    method: "PUT",
+    method: "PATCH",
     body: JSON.stringify(ruleData),
   }
 
   try {
     const res = await measureAuth.fetchMeasure(
-      `/api/apps/${appId}/sessionTargetingRule/${ruleId}`,
+      `/api/apps/${appId}/sessionTargetingRules/${ruleId}`,
       opts,
     )
     const data = await res.json()

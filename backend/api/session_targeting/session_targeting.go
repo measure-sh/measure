@@ -4,6 +4,7 @@ import (
 	"backend/api/filter"
 	"backend/api/server"
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,7 +16,7 @@ type SessionTargetingRule struct {
 	TeamId       uuid.UUID `json:"team_id" binding:"required"`
 	AppId        uuid.UUID `json:"app_id" binding:"required"`
 	Name         string    `json:"name" binding:"required"`
-	Status       int       `json:"status" binding:"required,oneof=0 1"`
+	Status       int       `json:"status" binding:"required"`
 	SamplingRate float64   `json:"sampling_rate" binding:"required,min=0,max=100"`
 	Rule         string    `json:"rule" binding:"required"`
 	CreatedAt    time.Time `json:"created_at" binding:"required"`
@@ -26,9 +27,16 @@ type SessionTargetingRule struct {
 
 type CreateSessionTargetingRulePayload struct {
 	Name         string  `json:"name" binding:"required"`
-	Status       int     `json:"status" binding:"required,oneof=0 1"`
+	Status       int     `json:"status" binding:"min=0,max=1"`
 	SamplingRate float64 `json:"sampling_rate" binding:"required,min=0,max=100"`
 	Rule         string  `json:"rule" binding:"required"`
+}
+
+type UpdateSessionTargetingRulePayload struct {
+	Name         *string  `json:"name,omitempty"`
+	Status       *int     `json:"status,omitempty" binding:"omitempty,min=0,max=1"`
+	SamplingRate *float64 `json:"sampling_rate,omitempty" binding:"omitempty,min=0,max=100"`
+	Rule         *string  `json:"rule,omitempty"`
 }
 
 func GetRules(ctx context.Context, af *filter.AppFilter) (rules []SessionTargetingRule, next, previous bool, err error) {
@@ -189,4 +197,46 @@ func CreateRule(ctx context.Context, teamId string, appId string, userId string,
 	}
 
 	return rule, nil
+}
+
+func UpdateRule(ctx context.Context, teamId string, appId string, userId string, ruleId string, payload UpdateSessionTargetingRulePayload) error {
+	now := time.Now()
+
+	stmt := sqlf.PostgreSQL.
+		Update("session_targeting_rules").
+		Set("updated_at", now).
+		Set("updated_by", userId).
+		Where("id = ?", ruleId).
+		Where("team_id = ?", teamId).
+		Where("app_id = ?", appId)
+
+	// Only update fields that are provided
+	if payload.Name != nil {
+		stmt = stmt.Set("name", *payload.Name)
+	}
+
+	if payload.Status != nil {
+		stmt = stmt.Set("status", *payload.Status)
+	}
+
+	if payload.SamplingRate != nil {
+		stmt = stmt.Set("sampling_rate", *payload.SamplingRate)
+	}
+
+	if payload.Rule != nil {
+		stmt = stmt.Set("rule", *payload.Rule)
+	}
+
+	defer stmt.Close()
+
+	result, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return fmt.Errorf("failed to update rule: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("rule not found: id=%s, team_id=%s, app_id=%s", ruleId, teamId, appId)
+	}
+
+	return nil
 }

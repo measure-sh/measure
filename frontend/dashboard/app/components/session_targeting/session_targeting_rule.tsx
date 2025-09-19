@@ -687,14 +687,13 @@ export default function SessionTargetingRule({ params, isEditMode }: SessionTarg
             status: ruleState.status === 'enabled' ? 1 : 0,
             sampling_rate: ruleState.samplingRate,
             rule: ruleCel,
-            id: pageState.ruleResponse?.id || ''
         }
 
         setSaveRuleState(prev => ({ ...prev, isSubmitting: true }));
 
         try {
             const result = isEditMode
-                ? await updateSessionTargetingRule(params.appId, ruleData.id!, ruleData)
+                ? await updateSessionTargetingRule(params.appId, pageState.ruleResponse!.id, ruleData)
                 : await createSessionTargetingRule(params.appId, ruleData)
 
             if (result.status === CreateSessionTargetingRuleApiStatus.Success ||
