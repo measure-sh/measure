@@ -377,7 +377,7 @@ func Init(config *ServerConfig) {
 	}
 	pgPool = pool
 
-	if err := WaitForPg(ctx, pgPool, 2*time.Second); err != nil {
+	if err := WaitForPg(ctx, pgPool, 5*time.Second); err != nil {
 		fmt.Printf("Postgres pool not ready: %v\n", err)
 	}
 
@@ -455,7 +455,7 @@ func (sc ServerConfig) InitTracer() func(context.Context) error {
 	var secureOption otlptracegrpc.Option
 
 	if strings.ToLower(otelInsecureMode) == "false" || otelInsecureMode == "0" || strings.ToLower(otelInsecureMode) == "f" {
-		secureOption = otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
+		secureOption = otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "tempo-us-east-2.grafana.net"))
 	} else {
 		secureOption = otlptracegrpc.WithInsecure()
 	}
