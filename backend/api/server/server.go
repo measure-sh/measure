@@ -23,6 +23,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc/credentials"
@@ -449,24 +450,26 @@ func Init(config *ServerConfig) {
 
 func (sc ServerConfig) InitTracer() func(context.Context) error {
 	otelCollectorURL := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	otelProtocol := os.Getenv("OTEL_EXPORTER_OTLP_PROTOCOL")
 	otelInsecureMode := os.Getenv("OTEL_INSECURE_MODE")
 	otelServiceName := sc.OtelServiceName
 
-	var secureOption otlptracegrpc.Option
-
-	if strings.ToLower(otelInsecureMode) == "false" || otelInsecureMode == "0" || strings.ToLower(otelInsecureMode) == "f" {
-		secureOption = otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "tempo-us-east-2.grafana.net"))
+	var client otlptrace.Client
+	if strings.Contains(otelProtocol, "http") {
+		client = otlptracehttp.NewClient()
 	} else {
-		secureOption = otlptracegrpc.WithInsecure()
+		var secureOption otlptracegrpc.Option
+
+		if strings.ToLower(otelInsecureMode) == "false" || otelInsecureMode == "0" || strings.ToLower(otelInsecureMode) == "f" {
+			secureOption = otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
+		} else {
+			secureOption = otlptracegrpc.WithInsecure()
+		}
+
+		client = otlptracegrpc.NewClient(secureOption, otlptracegrpc.WithEndpoint(otelCollectorURL))
 	}
 
-	exporter, err := otlptrace.New(
-		context.Background(),
-		otlptracegrpc.NewClient(
-			secureOption,
-			otlptracegrpc.WithEndpoint(otelCollectorURL),
-		),
-	)
+	exporter, err := otlptrace.New(context.Background(), client)
 
 	if err != nil {
 		log.Fatalf("Failed to create exporter: %v", err)
