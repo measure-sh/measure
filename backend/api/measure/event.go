@@ -138,10 +138,6 @@ func (e *eventreq) uploadAttachments(ctx context.Context) error {
 			}
 		}()
 
-		if err := eventAttachment.Upload(ctx); err != nil {
-			return err
-		}
-
 		attachment.uploaded = true
 	}
 
