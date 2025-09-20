@@ -32,9 +32,9 @@ func isNotFound(err error) bool {
 	return errors.As(err, &gerr) && gerr.Code == http.StatusNotFound
 }
 
-// buildAttachmentLocation builds the location of the attachment
+// BuildAttachmentLocation builds the location of the attachment
 // object based on runtime environment.
-func buildAttachmentLocation(key string) (location string) {
+func BuildAttachmentLocation(key string) (location string) {
 	config := server.Server.Config
 
 	if config.IsCloud() {
@@ -77,9 +77,8 @@ func (a Attachment) Validate() error {
 	return nil
 }
 
-// Upload uploads raw file bytes to an S3 compatible storage system
-// and returns the uploaded file's remote location.
-func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
+// Upload uploads raw file bytes to an S3 compatible storage system.
+func (a *Attachment) Upload(ctx context.Context) (err error) {
 	config := server.Server.Config
 
 	// set mime type from extension
@@ -122,8 +121,7 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 		// so, exit early.
 		if attrs != nil {
 			// Object exists
-			// set the location and exit early
-			location = buildAttachmentLocation(obj.ObjectName())
+			// exit early
 			return
 		}
 
@@ -141,8 +139,6 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 			return
 		}
 
-		location = buildAttachmentLocation(obj.ObjectName())
-
 		return
 	}
 
@@ -155,12 +151,6 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 		Metadata:    metadata,
 		ContentType: aws.String(contentType),
 	}
-
-	// for now, we construct the location manually
-	// implement a better solution later using
-	// EndpointResolverV2 with custom resolvers
-	// for non-AWS clouds like GCS
-	location = buildAttachmentLocation(a.Key)
 
 	// ignore the putObjectOutput, don't need
 	// it for now

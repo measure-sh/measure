@@ -111,6 +111,14 @@ func (e *eventreq) uploadAttachments(ctx context.Context) error {
 		ext := filepath.Ext(attachment.name)
 		key := attachment.id.String() + ext
 
+		// pre-fill the key and location
+		attachment.key = key
+		// for now, we construct the location manually
+		// implement a better solution later using
+		// EndpointResolverV2 with custom resolvers
+		// for non-AWS clouds like GCS
+		attachment.location = event.BuildAttachmentLocation(key)
+
 		eventAttachment := event.Attachment{
 			ID:   id,
 			Name: key,
@@ -124,14 +132,17 @@ func (e *eventreq) uploadAttachments(ctx context.Context) error {
 
 		eventAttachment.Reader = file
 
-		location, err := eventAttachment.Upload(ctx)
-		if err != nil {
+		go func() {
+			if err := eventAttachment.Upload(ctx); err != nil {
+				fmt.Printf("failed to upload attachment async: key: %s : %v\n", key, err)
+			}
+		}()
+
+		if err := eventAttachment.Upload(ctx); err != nil {
 			return err
 		}
 
 		attachment.uploaded = true
-		attachment.key = key
-		attachment.location = location
 	}
 
 	return nil
