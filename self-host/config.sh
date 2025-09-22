@@ -251,6 +251,14 @@ SMTP_USER=payton68@ethereal.email
 SMTP_PASSWORD=Bf1Qq34KhTpFV4AAu2
 EMAIL_DOMAIN=
 
+#########
+# Slack #
+#########
+
+SLACK_CLIENT_ID=$SLACK_CLIENT_ID
+SLACK_CLIENT_SECRET=$SLACK_CLIENT_SECRET
+SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
+
 ########
 # OTEL #
 ########
@@ -380,6 +388,14 @@ SMTP_PORT=$SMTP_PORT
 SMTP_USER=$SMTP_USER
 SMTP_PASSWORD=$SMTP_PASSWORD
 EMAIL_DOMAIN=$EMAIL_DOMAIN
+
+#########
+# Slack #
+#########
+
+SLACK_CLIENT_ID=$SLACK_CLIENT_ID
+SLACK_CLIENT_SECRET=$SLACK_CLIENT_SECRET
+SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
 
 ########
 # OTEL #
@@ -561,6 +577,13 @@ END
     SMTP_USER=$(prompt_value_manual "Enter SMTP username: ")
     SMTP_PASSWORD=$(prompt_value_manual "Enter SMTP password: ")
     EMAIL_DOMAIN=$(prompt_optional_value_manual "Enter email domain (optional): ")
+
+    echo -e "\nSet Slack credentials"
+    echo -e "Set up a Slack app to get API credentials. See https://github.com/measure-sh/measure/blob/main/docs/hosting/slack.md for more details. If you wish to ignore this, enter dummy values."
+    SLACK_CLIENT_ID=$(prompt_value_manual "Enter Slack client ID: ")
+    SLACK_CLIENT_SECRET=$(prompt_password_manual "Enter Slack client secret: ")
+    echo -e "Generated secure Slack OAuth State Salt"
+    SLACK_OAUTH_STATE_SALT=$(generate_password 44)
 
     write_prod_env
     write_web_prod_env

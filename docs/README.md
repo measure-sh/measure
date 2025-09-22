@@ -48,6 +48,7 @@ feature's documentation to understand its underlying mechanism and enhance your 
 * [**Manually Start or Stop the SDK**](features/feature-manually-start-stop-sdk.md) — Control when data collection
   happens
 * [**App Size Monitoring**](features/feature-app-size-monitoring.md) — Monitor app size changes
+* [**Alert Notifications**](features/feature-alerts.md) — Receive Crash & ANR spike alerts and Daily Summaries for core app metrics.
 
 # Configuration Options
 

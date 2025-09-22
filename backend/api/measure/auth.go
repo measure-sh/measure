@@ -9,12 +9,16 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/leporo/sqlf"
 	"google.golang.org/api/idtoken"
 )
 
@@ -91,7 +95,7 @@ func ValidateAccessToken() gin.HandlerFunc {
 
 		accessToken, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				err := fmt.Errorf("unexpected signing method: %v\n", token.Header["alg"])
+				err := fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 				return nil, err
 			}
 
@@ -142,7 +146,7 @@ func ValidateRefreshToken() gin.HandlerFunc {
 
 		refreshToken, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				err := fmt.Errorf("unexpected signing method: %v\n", token.Header["alg"])
+				err := fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 				return nil, err
 			}
 
@@ -634,6 +638,152 @@ func SigninGoogle(c *gin.Context) {
 		"user_id":       userId,
 		"own_team_id":   team.ID,
 	})
+}
+
+func ConnectSlackApp(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	type slackOAuthRequest struct {
+		Code   string `json:"code" binding:"required"`
+		UserId string `json:"userId" binding:"required"`
+		TeamId string `json:"teamId" binding:"required"`
+	}
+
+	var req slackOAuthRequest
+	msg := "failed to connect Slack app"
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		fmt.Println(msg, err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "missing or invalid request body",
+		})
+		return
+	}
+
+	if ok, err := PerformAuthz(req.UserId, req.TeamId, *ScopeTeamAll); err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	} else if !ok {
+		msg := fmt.Sprintf(`you don't have permissions for team [%s]`, req.TeamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	if req.Code == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": "missing authorization code",
+		})
+		return
+	}
+
+	// Exchange code with Slack
+	client := &http.Client{Timeout: 30 * time.Second}
+	data := url.Values{}
+	data.Set("client_id", server.Server.Config.SlackClientID)
+	data.Set("client_secret", server.Server.Config.SlackClientSecret)
+	data.Set("code", req.Code)
+
+	slackReq, err := http.NewRequestWithContext(ctx, "POST", "https://slack.com/api/oauth.v2.access", strings.NewReader(data.Encode()))
+	if err != nil {
+		fmt.Println(msg, "failed to create request:", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	slackReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := client.Do(slackReq)
+	if err != nil {
+		fmt.Println(msg, "failed to exchange code:", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Println(msg, "Slack API returned status:", resp.StatusCode)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	// Parse Slack response
+	type slackResponse struct {
+		OK          bool   `json:"ok"`
+		Error       string `json:"error,omitempty"`
+		AccessToken string `json:"access_token"`
+		Scope       string `json:"scope"`
+		BotUserID   string `json:"bot_user_id"`
+		AppID       string `json:"app_id"`
+		Team        struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"team"`
+		Enterprise struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"enterprise,omitempty"`
+	}
+
+	var slackResp slackResponse
+	if err := json.NewDecoder(resp.Body).Decode(&slackResp); err != nil {
+		fmt.Println(msg, "failed to decode Slack response:", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !slackResp.OK {
+		errMsg := "Slack OAuth failed"
+		if slackResp.Error != "" {
+			errMsg = fmt.Sprintf("Slack OAuth failed: %s", slackResp.Error)
+		}
+		fmt.Println(msg, errMsg)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	// Save Slack integration details to the database
+	stmt := sqlf.PostgreSQL.
+		InsertInto("measure.team_slack").
+		Set("team_id", req.TeamId).
+		Set("slack_team_id", slackResp.Team.ID).
+		Set("slack_team_name", slackResp.Team.Name).
+		Set("enterprise_id", slackResp.Enterprise.ID).
+		Set("enterprise_name", slackResp.Enterprise.Name).
+		Set("bot_token", slackResp.AccessToken).
+		Set("bot_user_id", slackResp.BotUserID).
+		Set("slack_app_id", slackResp.AppID).
+		Set("scopes", slackResp.Scope).
+		Set("channel_ids", pgtype.Array[string]{}).
+		Set("is_active", true).
+		Set("created_at", time.Now()).
+		Set("updated_at", time.Now())
+
+	query := stmt.String() + ` ON CONFLICT (team_id) DO UPDATE SET 
+		slack_team_id = EXCLUDED.slack_team_id,
+		slack_team_name = EXCLUDED.slack_team_name,
+		enterprise_id = EXCLUDED.enterprise_id,
+		enterprise_name = EXCLUDED.enterprise_name,
+		bot_token = EXCLUDED.bot_token,
+		bot_user_id = EXCLUDED.bot_user_id,
+		slack_app_id = EXCLUDED.slack_app_id,
+		scopes = EXCLUDED.scopes,
+		channel_ids = EXCLUDED.channel_ids,
+		is_active = EXCLUDED.is_active,
+		updated_at = NOW()`
+
+	if _, err := server.Server.PgPool.Exec(ctx, query, stmt.Args()...); err != nil {
+		fmt.Println(msg, "failed to save Slack integration:", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	response := gin.H{
+		"slack_team_name": slackResp.Team.Name,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // RefreshToken refreshes a previous session from

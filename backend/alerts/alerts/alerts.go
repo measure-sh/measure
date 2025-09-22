@@ -8,8 +8,10 @@ import (
 
 	"backend/alerts/email"
 	"backend/alerts/server"
+	"backend/alerts/slack"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 )
 
@@ -160,9 +162,9 @@ func CreateDailySummary(ctx context.Context) {
 				continue
 			}
 
-			dashboardURL := fmt.Sprintf("%s/%s/overview/%s", server.Server.Config.SiteOrigin, team.ID, app.ID)
+			dashboardURL := fmt.Sprintf("%s/%s/overview?a=%s", server.Server.Config.SiteOrigin, team.ID, app.ID)
 
-			metrics, err := getDailySummaryData(ctx, date, app.ID)
+			metrics, err := getDailySummaryMetrics(ctx, date, app.ID)
 			if err != nil {
 				fmt.Printf("Error fetching daily summary data for app %v: %v\n", app.ID, err)
 				continue
@@ -170,7 +172,7 @@ func CreateDailySummary(ctx context.Context) {
 
 			dailySummaryEmailBody := formatDailySummaryEmailBody(appName, dashboardURL, date, metrics)
 			scheduleDailySummaryEmailForteamMembers(ctx, team.ID, app.ID, dailySummaryEmailBody, dashboardURL, appName)
-
+			scheduleDailySummarySlackMessageForTeamChannels(ctx, team.ID, app.ID, dashboardURL, appName, date, metrics)
 		}
 	}
 }
@@ -233,7 +235,7 @@ func getAppNameByID(ctx context.Context, appID uuid.UUID) (string, error) {
 	return appName, nil
 }
 
-func getDailySummaryData(ctx context.Context, date time.Time, appID uuid.UUID) ([]MetricData, error) {
+func getDailySummaryMetrics(ctx context.Context, date time.Time, appID uuid.UUID) ([]MetricData, error) {
 	query := `
 		WITH
             toDate(?) AS target_date,
@@ -272,7 +274,7 @@ func getDailySummaryData(ctx context.Context, date time.Time, appID uuid.UUID) (
             toString(cd.total_sessions) AS sessions_value,
             'Sessions' AS sessions_label,
             CASE
-                WHEN pd.total_sessions IS NULL THEN 'No change from yesterday'
+                WHEN pd.total_sessions IS NULL THEN 'No previous day data'
                 WHEN cd.total_sessions > pd.total_sessions THEN concat(toString(cd.total_sessions - pd.total_sessions), ' greater than yesterday')
                 WHEN cd.total_sessions < pd.total_sessions THEN concat(toString(pd.total_sessions - cd.total_sessions), ' less than yesterday')
                 ELSE 'No change from yesterday'
@@ -287,7 +289,7 @@ func getDailySummaryData(ctx context.Context, date time.Time, appID uuid.UUID) (
             END AS crash_free_value,
             'Crash free sessions' AS crash_free_label,
             CASE
-                WHEN pd.total_sessions = 0 OR pd.total_sessions IS NULL THEN '0'
+                WHEN pd.total_sessions = 0 OR pd.total_sessions IS NULL THEN 'No previous day data'
                 WHEN (cd.crash_sessions * 1.0 / nullIf(cd.total_sessions, 0)) < (pd.crash_sessions * 1.0 / nullIf(pd.total_sessions, 0)) THEN concat(toString(if(isNaN(round(
                     ((cd.total_sessions - cd.crash_sessions) * 1.0 / nullIf(cd.total_sessions, 0)) /
                     nullIf((pd.total_sessions - pd.crash_sessions) * 1.0 / nullIf(pd.total_sessions, 0), 0), 2)), 0, round(
@@ -310,7 +312,7 @@ func getDailySummaryData(ctx context.Context, date time.Time, appID uuid.UUID) (
             END AS anr_free_value,
             'ANR free sessions' AS anr_free_label,
             CASE
-                WHEN pd.total_sessions = 0 OR pd.total_sessions IS NULL THEN '0'
+                WHEN pd.total_sessions = 0 OR pd.total_sessions IS NULL THEN 'No previous day data'
                 WHEN (cd.anr_sessions * 1.0 / nullIf(cd.total_sessions, 0)) < (pd.anr_sessions * 1.0 / nullIf(pd.total_sessions, 0)) THEN concat(toString(if(isNaN(round(
                     ((cd.total_sessions - cd.anr_sessions) * 1.0 / nullIf(cd.total_sessions, 0)) /
                     nullIf((pd.total_sessions - pd.anr_sessions) * 1.0 / nullIf(pd.total_sessions, 0), 0), 2)), 0, round(
@@ -329,11 +331,11 @@ func getDailySummaryData(ctx context.Context, date time.Time, appID uuid.UUID) (
             -- Cold Launch
             CASE
                 WHEN isNaN(cd.cold_launch_p95_ms) OR cd.cold_launch_p95_ms = 0 THEN '0ms'
-                ELSE concat(toString(cd.cold_launch_p95_ms), 'ms')
+                ELSE concat(toString(round(cd.cold_launch_p95_ms, 2)), 'ms')
             END AS cold_launch_value,
             'Cold launch time' AS cold_launch_label,
             CASE
-                WHEN pd.cold_launch_p95_ms IS NULL OR pd.cold_launch_p95_ms = 0 OR isNaN(pd.cold_launch_p95_ms) OR isNaN(cd.cold_launch_p95_ms) THEN 'No change from yesterday'
+                WHEN pd.cold_launch_p95_ms IS NULL OR pd.cold_launch_p95_ms = 0 THEN 'No previous day data'
                 WHEN cd.cold_launch_p95_ms < pd.cold_launch_p95_ms THEN concat(toString(round(cd.cold_launch_p95_ms / pd.cold_launch_p95_ms, 2)), 'x better than yesterday')
                 WHEN cd.cold_launch_p95_ms > pd.cold_launch_p95_ms THEN concat(toString(round(cd.cold_launch_p95_ms / pd.cold_launch_p95_ms, 2)), 'x worse than yesterday')
                 ELSE 'No change from yesterday'
@@ -344,11 +346,11 @@ func getDailySummaryData(ctx context.Context, date time.Time, appID uuid.UUID) (
             -- Warm Launch
             CASE
                 WHEN isNaN(cd.warm_launch_p95_ms) OR cd.warm_launch_p95_ms = 0 THEN '0ms'
-                ELSE concat(toString(cd.warm_launch_p95_ms), 'ms')
+                ELSE concat(toString(round(cd.warm_launch_p95_ms, 2)), 'ms')
             END AS warm_launch_value,
             'Warm launch time' AS warm_launch_label,
             CASE
-                WHEN pd.warm_launch_p95_ms IS NULL OR pd.warm_launch_p95_ms = 0 OR isNaN(pd.warm_launch_p95_ms) OR isNaN(cd.warm_launch_p95_ms) THEN 'No change from yesterday'
+                WHEN pd.warm_launch_p95_ms IS NULL OR pd.warm_launch_p95_ms = 0 THEN 'No previous day data'
                 WHEN cd.warm_launch_p95_ms < pd.warm_launch_p95_ms THEN concat(toString(round(cd.warm_launch_p95_ms / pd.warm_launch_p95_ms, 2)), 'x better than yesterday')
                 WHEN cd.warm_launch_p95_ms > pd.warm_launch_p95_ms THEN concat(toString(round(cd.warm_launch_p95_ms / pd.warm_launch_p95_ms, 2)), 'x worse than yesterday')
                 ELSE 'No change from yesterday'
@@ -359,11 +361,11 @@ func getDailySummaryData(ctx context.Context, date time.Time, appID uuid.UUID) (
             -- Hot Launch
             CASE
                 WHEN isNaN(cd.hot_launch_p95_ms) OR cd.hot_launch_p95_ms = 0 THEN '0ms'
-                ELSE concat(toString(cd.hot_launch_p95_ms), 'ms')
+                ELSE concat(toString(round(cd.hot_launch_p95_ms, 2)), 'ms')
             END AS hot_launch_value,
             'Hot launch time' AS hot_launch_label,
             CASE
-                WHEN pd.hot_launch_p95_ms IS NULL OR pd.hot_launch_p95_ms = 0 OR isNaN(pd.hot_launch_p95_ms) OR isNaN(cd.hot_launch_p95_ms) THEN 'No change from yesterday'
+                WHEN pd.hot_launch_p95_ms IS NULL OR pd.hot_launch_p95_ms = 0 THEN 'No previous day data'
                 WHEN cd.hot_launch_p95_ms < pd.hot_launch_p95_ms THEN concat(toString(round(cd.hot_launch_p95_ms / pd.hot_launch_p95_ms, 2)), 'x better than yesterday')
                 WHEN cd.hot_launch_p95_ms > pd.hot_launch_p95_ms THEN concat(toString(round(cd.hot_launch_p95_ms / pd.hot_launch_p95_ms, 2)), 'x worse than yesterday')
                 ELSE 'No change from yesterday'
@@ -523,11 +525,11 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 			continue
 		}
 
-		title := "Measure Alert - " + appName
+		title := appName + " - Alert"
 		if alert.Type == string(AlertTypeCrashSpike) {
-			title = "Measure Crash Spike Alert - " + appName
+			title = appName + " - Crash Spike Alert"
 		} else if alert.Type == string(AlertTypeAnrSpike) {
-			title = "Measure ANR Spike Alert - " + appName
+			title = appName + " - ANR Spike Alert"
 		}
 
 		pendingEmail := email.EmailInfo{
@@ -555,6 +557,71 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 		_, err = server.Server.PgPool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
 		if err != nil {
 			fmt.Printf("Error inserting pending alert message for user %v: %v\n", userID, err)
+			continue
+		}
+	}
+}
+
+func scheduleSlackAlertsForTeamChannels(ctx context.Context, alert Alert, message, url, appName string) {
+	teamSlackStmt := `
+    SELECT bot_token, channel_ids, is_active
+    FROM team_slack
+    WHERE team_id = $1 AND is_active = true
+`
+	var botToken string
+	var channelIds []string
+	var isActive bool
+
+	err := server.Server.PgPool.QueryRow(ctx, teamSlackStmt, alert.TeamID).Scan(&botToken, &channelIds, &isActive)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			fmt.Printf("No active Slack integration found for team %v\n", alert.TeamID)
+		} else {
+			fmt.Printf("Error fetching Slack integration for team %v: %v\n", alert.TeamID, err)
+		}
+		return
+	}
+
+	if !isActive || len(channelIds) == 0 {
+		fmt.Printf("Slack integration not active or no channels configured for team %v\n", alert.TeamID)
+		return
+	}
+
+	title := appName + " - Alert"
+	if alert.Type == string(AlertTypeCrashSpike) {
+		title = appName + " - Crash Spike Alert"
+	} else if alert.Type == string(AlertTypeAnrSpike) {
+		title = appName + " - ANR Spike Alert"
+	}
+
+	slackMessage := formatSlackAlertMessage(title, message, url)
+
+	for _, channelId := range channelIds {
+		slackData := slack.SlackMessageData{
+			Channel:  channelId,
+			Blocks:   slackMessage.Blocks,
+			BotToken: botToken,
+		}
+
+		dataJson, err := json.Marshal(slackData)
+		if err != nil {
+			fmt.Printf("Error marshaling Slack data for channel %v: %v\n", channelId, err)
+			continue
+		}
+
+		insertStmt := sqlf.PostgreSQL.
+			InsertInto("pending_alert_messages").
+			Set("id", uuid.New()).
+			Set("team_id", alert.TeamID).
+			Set("app_id", alert.AppID).
+			Set("channel", "slack").
+			Set("data", dataJson).
+			Set("created_at", time.Now()).
+			Set("updated_at", time.Now())
+
+		_, err = server.Server.PgPool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
+		if err != nil {
+			fmt.Printf("Error inserting pending Slack alert message for channel %v: %v\n", channelId, err)
 			continue
 		}
 	}
@@ -597,7 +664,7 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 		pendingEmail := email.EmailInfo{
 			From:        server.Server.Config.TxEmailAddress,
 			To:          emailAddr,
-			Subject:     "Measure Daily Summary - " + appName,
+			Subject:     appName + " Daily Summary",
 			ContentType: "text/html",
 			Body:        emailBody,
 		}
@@ -619,6 +686,64 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 		_, err = server.Server.PgPool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
 		if err != nil {
 			fmt.Printf("Error inserting pending alert message for user %v: %v\n", userID, err)
+			continue
+		}
+	}
+}
+
+func scheduleDailySummarySlackMessageForTeamChannels(ctx context.Context, teamId uuid.UUID, appId uuid.UUID, dashboardURL, appName string, date time.Time, metrics []MetricData) {
+	teamSlackStmt := `
+    SELECT bot_token, channel_ids, is_active
+    FROM team_slack
+    WHERE team_id = $1 AND is_active = true
+`
+	var botToken string
+	var channelIds []string
+	var isActive bool
+
+	err := server.Server.PgPool.QueryRow(ctx, teamSlackStmt, teamId).Scan(&botToken, &channelIds, &isActive)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			fmt.Printf("No active Slack integration found for team %v\n", teamId)
+		} else {
+			fmt.Printf("Error fetching Slack integration for team %v: %v\n", teamId, err)
+		}
+		return
+	}
+
+	if !isActive || len(channelIds) == 0 {
+		fmt.Printf("Slack integration not active or no channels configured for team %v\n", teamId)
+		return
+	}
+
+	slackMessage := formatDailySummarySlackMessage(appName, dashboardURL, date, metrics)
+
+	for _, channelId := range channelIds {
+		slackData := slack.SlackMessageData{
+			Channel:  channelId,
+			Blocks:   slackMessage.Blocks,
+			BotToken: botToken,
+		}
+
+		dataJson, err := json.Marshal(slackData)
+		if err != nil {
+			fmt.Printf("Error marshaling Slack data for channel %v: %v\n", channelId, err)
+			continue
+		}
+
+		insertStmt := sqlf.PostgreSQL.
+			InsertInto("pending_alert_messages").
+			Set("id", uuid.New()).
+			Set("team_id", teamId).
+			Set("app_id", appId).
+			Set("channel", "slack").
+			Set("data", dataJson).
+			Set("created_at", time.Now()).
+			Set("updated_at", time.Now())
+
+		_, err = server.Server.PgPool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
+		if err != nil {
+			fmt.Printf("Error inserting pending Slack message for channel %v: %v\n", channelId, err)
 			continue
 		}
 	}
@@ -672,6 +797,58 @@ func formatAlertEmailBody(appName, title, message, url string) string {
 </html>`, appName, title, message, url)
 }
 
+func formatSlackAlertMessage(title, message, url string) slack.SlackMessage {
+	blocks := []slack.SlackBlock{
+		slack.SlackHeaderBlock{
+			Type: "header",
+			Text: &slack.SlackText{
+				Type: "plain_text",
+				Text: fmt.Sprintf("🚨 %s", title),
+			},
+		},
+	}
+
+	blocks = append(blocks, slack.SlackSectionBlock{
+		Type: "section",
+		Text: &slack.SlackText{
+			Type: "mrkdwn",
+			Text: message,
+		},
+	})
+
+	blocks = append(blocks,
+		slack.SlackDividerBlock{
+			Type: "divider",
+		},
+		slack.SlackContextBlock{
+			Type: "context",
+			Elements: []slack.SlackText{
+				{
+					Type: "mrkdwn",
+					Text: fmt.Sprintf("Alert triggered at <!date^%d^{date_short} {time}|%s>", time.Now().Unix(), time.Now().Format("2006-01-02 15:04:05")),
+				},
+			},
+		},
+		slack.SlackActionsBlock{
+			Type: "actions",
+			Elements: []slack.SlackElement{
+				{
+					Type: "button",
+					Text: &slack.SlackText{
+						Type: "plain_text",
+						Text: "View Dashboard",
+					},
+					URL: url,
+				},
+			},
+		},
+	)
+
+	return slack.SlackMessage{
+		Blocks: blocks,
+	}
+}
+
 func formatDailySummaryEmailBody(appName, dashboardURL string, date time.Time, metrics []MetricData) string {
 	formattedDate := date.Format("January 2, 2006")
 
@@ -710,7 +887,7 @@ func formatDailySummaryEmailBody(appName, dashboardURL string, date time.Time, m
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <title>%s Daily Summary</title>
+    <title>%s - Daily Summary</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Space Mono', monospace; line-height: 1.6; color: #333; background-color: #f8f9fa;">
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
@@ -755,6 +932,86 @@ func formatDailySummaryEmailBody(appName, dashboardURL string, date time.Time, m
     </div>
 </body>
 </html>`, appName, appName, formattedDate, metricsHTML, dashboardURL)
+}
+
+func formatDailySummarySlackMessage(appName, dashboardURL string, date time.Time, metrics []MetricData) slack.SlackMessage {
+	formattedDate := date.Format("January 2, 2006")
+
+	blocks := []slack.SlackBlock{
+		// Title
+		slack.SlackHeaderBlock{
+			Type: "header",
+			Text: &slack.SlackText{
+				Type: "plain_text",
+				Text: fmt.Sprintf("%s — Daily Summary", appName),
+			},
+		},
+
+		// Date subtitle
+		slack.SlackSectionBlock{
+			Type: "section",
+			Text: &slack.SlackText{
+				Type: "mrkdwn",
+				Text: fmt.Sprintf("*%s*  _(last 24 hours)_", formattedDate),
+			},
+		},
+
+		slack.SlackDividerBlock{Type: "divider"},
+	}
+
+	for _, metric := range metrics {
+		status := "🟢"
+		if metric.HasError {
+			status = "🔴"
+		} else if metric.HasWarning {
+			status = "🟡"
+		}
+
+		blocks = append(blocks,
+			slack.SlackSectionBlock{
+				Type: "section",
+				Fields: []slack.SlackText{
+					{
+						Type: "mrkdwn",
+						Text: fmt.Sprintf("*%s*", metric.Label),
+					},
+					{
+						Type: "mrkdwn",
+						Text: fmt.Sprintf("%s *%s*\n_%s_", status, metric.Value, metric.Subtitle),
+					},
+				},
+			},
+			// Spacer between rows
+			slack.SlackContextBlock{
+				Type: "context",
+				Elements: []slack.SlackText{
+					{Type: "mrkdwn", Text: " "},
+				},
+			},
+		)
+	}
+
+	// Divider before button
+	blocks = append(blocks, slack.SlackDividerBlock{Type: "divider"})
+
+	// Button
+	blocks = append(blocks, slack.SlackActionsBlock{
+		Type: "actions",
+		Elements: []slack.SlackElement{
+			{
+				Type: "button",
+				Text: &slack.SlackText{
+					Type: "plain_text",
+					Text: "View Dashboard",
+				},
+				URL: dashboardURL,
+			},
+		},
+	})
+
+	return slack.SlackMessage{
+		Blocks: blocks,
+	}
 }
 
 func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to time.Time, sessionCount uint64) {
@@ -865,6 +1122,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 			}
 
 			scheduleEmailAlertsForteamMembers(ctx, alert, alertMsg, alertUrl, appName)
+			scheduleSlackAlertsForTeamChannels(ctx, alert, alertMsg, alertUrl, appName)
 		}
 	}
 
@@ -980,6 +1238,7 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 			}
 
 			scheduleEmailAlertsForteamMembers(ctx, alert, alertMsg, alertUrl, appName)
+			scheduleSlackAlertsForTeamChannels(ctx, alert, alertMsg, alertUrl, appName)
 		}
 	}
 

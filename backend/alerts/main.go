@@ -11,6 +11,7 @@ import (
 	"backend/alerts/alerts"
 	"backend/alerts/email"
 	"backend/alerts/server"
+	"backend/alerts/slack"
 
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
@@ -82,6 +83,8 @@ func initCron(ctx context.Context) *cron.Cron {
 	cron.AddFunc("0 0 * * * *", func() { alerts.CreateCrashAndAnrAlerts(ctx) })
 	cron.AddFunc("0 0 6 * * *", func() { alerts.CreateDailySummary(ctx) })
 	cron.AddFunc("@every 5m", func() { email.SendPendingAlertEmails(ctx) })
+	cron.AddFunc("@every 5m", func() { slack.SendPendingAlertSlackMessages(ctx) })
+
 	cron.Start()
 	return cron
 }

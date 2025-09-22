@@ -268,6 +268,17 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-47)
     - [Response Body](#response-body-49)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-49)
+  - [GET `/teams/:id/slack`](#get-teamsidslack)
+    - [Usage Notes](#usage-notes-49)
+    - [Authorization \& Content Type](#authorization--content-type-48)
+    - [Response Body](#response-body-50)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-50)
+  - [PATCH `/teams/:id/slack/status`](#patch-teamsidslackstatus)
+    - [Usage Notes](#usage-notes-50)
+    - [Request body](#request-body-12)
+    - [Authorization \& Content Type](#authorization--content-type-49)
+    - [Response Body](#response-body-51)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-51)
 
 ## Auth
 
@@ -5164,6 +5175,8 @@ List of HTTP status codes for success and failures.
 - [**PATCH `/teams/:id/members/:id/role`**](#patch-teamsidmembersid) -  Change role of a member of a team.
 - [**GET `/teams/:id/authz`**](#get-teamsidauthz) -  Fetch authorization details of access token holder for a team.
 - [**GET `/teams/:id/usage`**](#get-teamsidusage) -  Fetch data usage details for a team.
+- [**GET `/teams/:id/slack`**](#get-teamsidslack) -  Fetch Slack details for a team.
+- [**PATCH `/teams/:id/slack/status`**](#patch-teamsidslackstatus) -  Update a team's Slack integration status to active or inactive.
 
 ### POST `/teams`
 
@@ -6582,6 +6595,147 @@ The required headers must be present in each request.
           ]
       }
   ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/teams/:id/slack`
+
+Fetch Slack details for a team. Returns Slack workspace name and active or inactive status if team has slack connected. Returns null if team doesn't have Slack connected.
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+    {
+      "slack_team_name":"Measure",
+      "is_active":true
+    }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### PATCH `/teams/:id/slack/status`
+
+Update active or inactive status for a team's Slack integration.
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI as the first ID
+
+#### Request body
+
+```json
+{
+  "is_active": false
+}
+```
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok" : "done"
+  }
   ```
 
   </details>

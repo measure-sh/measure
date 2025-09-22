@@ -77,6 +77,8 @@ type ServerConfig struct {
 	SmtpPassword               string
 	EmailDomain                string
 	TxEmailAddress             string
+	SlackClientID              string
+	SlackClientSecret          string
 	OtelServiceName            string
 	CloudEnv                   bool
 }
@@ -249,6 +251,16 @@ func NewConfig() *ServerConfig {
 		txEmailAddress = "noreply@" + parsedSiteOrigin.Hostname()
 	}
 
+	slackClientID := os.Getenv("SLACK_CLIENT_ID")
+	if slackClientID == "" {
+		log.Println("SLACK_CLIENT_ID env var is not set, Slack integration will not work")
+	}
+
+	slackClientSecret := os.Getenv("SLACK_CLIENT_SECRET")
+	if slackClientSecret == "" {
+		log.Println("SLACK_CLIENT_SECRET env var is not set, Slack integration will not work")
+	}
+
 	otelServiceName := os.Getenv("OTEL_SERVICE_NAME")
 	if otelServiceName == "" {
 		log.Println("OTEL_SERVICE_NAME env var is not set, o11y will not work")
@@ -289,6 +301,8 @@ func NewConfig() *ServerConfig {
 		SmtpPassword:               smtpPassword,
 		EmailDomain:                emailDomain,
 		TxEmailAddress:             txEmailAddress,
+		SlackClientID:              slackClientID,
+		SlackClientSecret:          slackClientSecret,
 		OtelServiceName:            otelServiceName,
 		CloudEnv:                   cloudEnv,
 	}
