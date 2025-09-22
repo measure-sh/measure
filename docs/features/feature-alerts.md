@@ -34,7 +34,7 @@ To receive alert nofications in a channel, invite the Measure Slack app to the c
 To stop alert nofications in a channel, use the `/stop-alerts` slash command in a channel that is subscribed for receving alerts.
 
 ### Listing Active Alert Channels
-To see all active channels that are subscribed for alerts, use the `/list-alert-channels` slash command in a channel that is subscribed for receving alerts.
+To see all active channels that are subscribed for alerts, use the `/list-alert-channels` slash command in a channel that the Measure Slack app has been added to.
 
 ### Disabling Slack Integration
 You can stop all alerts regardless of channel subscription by disabling the Slack integration in the `teams` page on the Dashboard.
