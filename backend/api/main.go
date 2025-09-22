@@ -132,6 +132,14 @@ func main() {
 		teams.GET(":id/members", measure.GetTeamMembers)
 		teams.DELETE(":id/members/:memberId", measure.RemoveTeamMember)
 		teams.GET(":id/usage", measure.GetUsage)
+		teams.GET(":id/slack", measure.GetTeamSlack)
+		teams.PATCH(":id/slack/status", measure.UpdateTeamSlackStatus)
+	}
+
+	slack := r.Group("/slack")
+	{
+		slack.POST("/connect", measure.ConnectTeamSlack)
+		slack.POST("/events", measure.HandleSlackEvents)
 	}
 
 	// listen and serve on 0.0.0.0:${PORT}

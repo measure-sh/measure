@@ -239,6 +239,30 @@ export enum AuthzAndMembersApiStatus {
   Cancelled,
 }
 
+export enum FetchTeamSlackConnectUrlApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum FetchTeamSlackStatusApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum UpdateTeamSlackStatusApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum SessionTimelineApiStatus {
   Loading,
   Success,
@@ -1988,6 +2012,68 @@ export const removeMemberFromServer = async (
     return { status: RemoveMemberApiStatus.Success }
   } catch {
     return { status: RemoveMemberApiStatus.Cancelled }
+  }
+}
+
+export const fetchTeamSlackConnectUrlFromServer = async (userId: string, teamId: string, redirectUrl: string) => {
+  try {
+    const res = await measureAuth.fetchMeasure(`/auth/slack/url`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId, teamId, redirectUrl }),
+    })
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { status: FetchTeamSlackConnectUrlApiStatus.Error, error: data.error }
+    }
+
+    return { status: FetchTeamSlackConnectUrlApiStatus.Success, data: data }
+  } catch {
+    return { status: FetchTeamSlackConnectUrlApiStatus.Cancelled, data: null }
+  }
+}
+
+export const fetchTeamSlackStatusFromServer = async (teamId: string) => {
+  try {
+    const res = await measureAuth.fetchMeasure(`/api/teams/${teamId}/slack`)
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { status: FetchTeamSlackStatusApiStatus.Error, error: data.error }
+    }
+
+    return { status: FetchTeamSlackStatusApiStatus.Success, data: data }
+  } catch {
+    return { status: FetchTeamSlackStatusApiStatus.Cancelled, data: null }
+  }
+}
+
+export const updateTeamSlackStatusFromServer = async (
+  teamId: string,
+  slackStatus: boolean,
+) => {
+  const opts = {
+    method: "PATCH",
+    body: JSON.stringify({ is_active: slackStatus }),
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(
+      `/api/teams/${teamId}/slack/status`,
+      opts,
+    )
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { status: UpdateTeamSlackStatusApiStatus.Error, error: data.error }
+    }
+
+    return { status: UpdateTeamSlackStatusApiStatus.Success }
+  } catch {
+    return { status: UpdateTeamSlackStatusApiStatus.Cancelled }
   }
 }
 
