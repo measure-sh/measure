@@ -2,7 +2,7 @@
 
 Set up Slack integration to receive alert notifications on Slack.
 
-1. You will need to create a slack app following the official [Slack guide](https://docs.slack.dev/quickstart/). You may choose any name, logo and description you wish for your slack app.
+1. You will need to create a Slack app following the official [Slack guide](https://docs.slack.dev/quickstart/). You may choose any name, logo and description you wish for your app.
 
 2. Go to `Basic Information` section and copy client id, client secret and signing secret and paste them into the prompts. (If you're upgrading an existing Measure installation you will paste these variables into your environment variables file. See section for existing users below)
 

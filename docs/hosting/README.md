@@ -153,7 +153,7 @@ Next, you'll need to set up an SMTP email provider. This is used to send emails 
 
 Once your provider is set up, copy the values and enter in the relevant prompts.
 
-Optionally, you can set up a Slack app if you want to recieve alert notications in your Slack workspace Follow the below link to create and configure a Slack app:
+Optionally, you can set up a Slack app if you want to recieve alert notications in your Slack workspace. Follow the below link to create and configure a Slack app:
 
 - [Set up Slack Integration](./slack.md)
 
