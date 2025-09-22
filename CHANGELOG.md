@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Implement slack alerts by @anupcowkur in #2646
 - (**backend**): Make the project compatible for cloud deployment (#2608) by @detj in #2608
 - (**backend**): Add ability to set custom email domain by @anupcowkur in #2465
 - (**backend**): Use screen view events to build journey (#2460) by @abhaysood in #2460
