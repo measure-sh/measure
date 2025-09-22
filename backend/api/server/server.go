@@ -5,14 +5,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"cloud.google.com/go/cloudsqlconn"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/gin-gonic/gin"
@@ -346,25 +344,25 @@ func Init(config *ServerConfig) {
 	// }
 
 	if config.IsCloud() {
-		d, err := cloudsqlconn.NewDialer(ctx,
-			// In Cloud Run CPU is throttled outside of a request
-			// context causing the backend refresh to fail, hence
-			// the need for `WithLazyRefresh()` option.
-			cloudsqlconn.WithLazyRefresh(),
-		)
-		if err != nil {
-			fmt.Println("Failed to dial postgress connection.")
-		}
+		// d, err := cloudsqlconn.NewDialer(ctx,
+		// 	// In Cloud Run CPU is throttled outside of a request
+		// 	// context causing the backend refresh to fail, hence
+		// 	// the need for `WithLazyRefresh()` option.
+		// 	cloudsqlconn.WithLazyRefresh(),
+		// )
+		// if err != nil {
+		// 	fmt.Println("Failed to dial postgress connection.")
+		// }
 
-		csqlConnName := os.Getenv("CSQL_CONN_NAME")
-		if csqlConnName == "" {
-			fmt.Println("CSQL_CONN_NAME environment variable is not set.")
-		}
+		// csqlConnName := os.Getenv("CSQL_CONN_NAME")
+		// if csqlConnName == "" {
+		// 	fmt.Println("CSQL_CONN_NAME environment variable is not set.")
+		// }
 
-		oConfig.ConnConfig.DialFunc = func(ctx context.Context, network string, address string) (net.Conn, error) {
-			fmt.Printf("Dialing network: %s, address: %s\n", network, address)
-			return d.Dial(ctx, csqlConnName, cloudsqlconn.WithPrivateIP())
-		}
+		// oConfig.ConnConfig.DialFunc = func(ctx context.Context, network string, address string) (net.Conn, error) {
+		// 	fmt.Printf("Dialing network: %s, address: %s\n", network, address)
+		// 	return d.Dial(ctx, csqlConnName, cloudsqlconn.WithPrivateIP())
+		// }
 
 		// rConfig.ConnConfig.DialFunc = func(ctx context.Context, network string, address string) (net.Conn, error) {
 		// 	fmt.Printf("Dialing reader network: %s, address: %s\n", network, address)
