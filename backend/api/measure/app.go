@@ -1522,6 +1522,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 	}
 
 	var session Session
+	var firstUserID string
 
 	for rows.Next() {
 		var ev event.EventField
@@ -1798,6 +1799,11 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			return nil, err
 		}
 
+		// Capture first non-empty user ID (add this after the scan)
+		if firstUserID == "" && ev.Attribute.UserID != "" {
+			firstUserID = ev.Attribute.UserID
+		}
+
 		// populate user defined attribute
 		if len(userDefAttr) > 0 {
 			ev.UserDefinedAttribute.Scan(userDefAttr)
@@ -1955,6 +1961,10 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 	// as the session's attributes
 	if len(session.Events) > 0 {
 		attr := session.Events[0].Attribute
+		// Override with the first non-empty user ID we found
+		if firstUserID != "" {
+			attr.UserID = firstUserID
+		}
 		session.Attribute = &attr
 	}
 
