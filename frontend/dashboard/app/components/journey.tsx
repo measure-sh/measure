@@ -244,6 +244,11 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
       journey.nodes.filter(node => node.id.toLowerCase().includes(lowerSearch)).map(node => node.id)
     )
 
+    // if no nodes match, return original journey
+    if (matchingNodeIds.size === 0) {
+      return journey
+    }
+
     // Find all nodes connected to matching nodes (directly via links)
     const connectedNodeIds = new Set([...matchingNodeIds])
     journey.links.forEach(link => {
