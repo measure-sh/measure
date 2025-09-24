@@ -325,7 +325,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update sdk api docs (#1918) by @detj in #1918
 - (**backend**): Improve self hosting faq section (#1728) by @detj in #1728
 - (**backend**): Address clickhouse high cpu usage (#1727) by @detj in #1727
-- Update sdk readme (#1118) by @adwinross in #1118
+- Update sdk readme (#1118) by @adwinross
 - Update readme by @anupcowkur in #1699
 - (**readme**): Update banner image by @gandharva in #1768
 
@@ -531,7 +531,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update warm launch schema and duration calculation by @abhaysood
 - (**backend**): Track email on new user sign in by @anupcowkur in #1270
 - (**backend**): Improve session explorer by @anupcowkur in #1218
-- (**backend**): Add session explorer with text search filter by @anupcowkur in #1200
+- (**backend**): Add session explorer with text search filter by @anupcowkur
 - (**frontend**): Add custom error page by @anupcowkur in #1279
 - (**frontend**): Add custom 404 page by @anupcowkur in #1276
 - (**frontend**): Update tooltips by @anupcowkur in #1266
@@ -550,8 +550,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Set warm launch duration threshold to 10s by @abhaysood
 - (**backend**): Use client timezone for plots by @anupcowkur in #1224
 - (**backend**): Round crash and anr contribution percentage to 2 decimal places (#1221) by @detj in #1221
-- (**backend**): Addressed ingestion failures related to ip inspection (#1197) by @detj in #1197
-- (**backend**): Nil pointer dereference when ingesting `low_memory` events (#1190) by @detj in #1190
+- (**backend**): Addressed ingestion failures related to ip inspection (#1197) by @detj
+- (**backend**): Nil pointer dereference when ingesting `low_memory` events (#1190) by @detj
 - (**frontend**): Hide attachment data in session replay event body by @anupcowkur in #1259
 - (**frontend**): Only attempt to show attachments for crashes/anrs in sesion replay by @anupcowkur in #1258
 - (**frontend**): Add missing useEffect deps for journey by @anupcowkur in #1230
@@ -564,9 +564,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Remove compose profile by @detj
 - (**backend**): Enable sessionator parallel ingest (#1220) by @detj in #1220
 - (**backend**): Add os_page_size attribute by @abhaysood in #1211
-- (**backend**): Additional log for anomalous cold launch duration (#1199) by @detj in #1199
-- (**backend**): Format log line (#1189) by @detj in #1189
-- (**backend**): Sessionator `--clean-all` flag (#1187) by @detj in #1187
+- (**backend**): Additional log for anomalous cold launch duration (#1199) by @detj
+- (**backend**): Format log line (#1189) by @detj
+- (**backend**): Sessionator `--clean-all` flag (#1187) by @detj
 - (**frontend**): Use selected filters instead of expanded params by @anupcowkur in #1244
 - (**frontend**): Fix table column widths and move paginator to top right by @anupcowkur in #1232
 - (**frontend**): Refactor filter application to api calls by @anupcowkur in #1229
@@ -575,52 +575,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :books: Documentation
 
 - (**backend**): Add self host upgrade guide (#1291) by @detj in #1291
-- (**backend**): Improve sessionator readme (#1188) by @detj in #1188
-- Update README.md by @anupcowkur in #1201
-- Improved language and formatting for working with databases (#1198) by @detj in #1198
-- Update discord link by @anupcowkur in #1169
+- (**backend**): Improve sessionator readme (#1188) by @detj
+- Update README.md by @anupcowkur
+- Improved language and formatting for working with databases (#1198) by @detj
+- Update discord link by @anupcowkur
 
 ## [0.1.1] - 2024-08-31
 
 ### :bug: Bug fixes
 
-- (**backend**): Handle no selected versions for app journey & metrics by @anupcowkur in #1158
+- (**backend**): Handle no selected versions for app journey & metrics by @anupcowkur
 
 ## [0.1.0] - 2024-08-30
 
 ### :sparkles: New features
 
-- (**frontend**): Add "Copy AI context" button by @anupcowkur in #1092
+- (**frontend**): Add "Copy AI context" button by @anupcowkur
 
 ### :bug: Bug fixes
 
-- (**backend**): Fix incorrect filter query for crash & anr groups by @anupcowkur in #1153
-- (**backend**): Proceed with event ingestion on symbolication failure by @anupcowkur in #1134
-- (**backend**): Handle exception/anr groups with no events by @anupcowkur in #1098
+- (**backend**): Fix incorrect filter query for crash & anr groups by @anupcowkur
+- (**backend**): Proceed with event ingestion on symbolication failure by @anupcowkur
+- (**backend**): Handle exception/anr groups with no events by @anupcowkur
 
 ### :hammer: Misc
 
-- (**backend**): Reorder & cleanup postgres migrations (#1155) by @detj in #1155
-- (**backend**): Remove eventIds array from crash + anr groups by @anupcowkur in #1145
-- (**backend**): Fix session data (#1141) by @detj in #1141
-- (**frontend**): Remove commented code by @anupcowkur in #1150
-- (**frontend**): Update landing hero animation by @anupcowkur in #1095
+- (**backend**): Reorder & cleanup postgres migrations (#1155) by @detj
+- (**backend**): Remove eventIds array from crash + anr groups by @anupcowkur
+- (**backend**): Fix session data (#1141) by @detj
+- (**frontend**): Remove commented code by @anupcowkur
+- (**frontend**): Update landing hero animation by @anupcowkur
 - Update root `package.json` by @detj
 
 ### :books: Documentation
 
-- Add specific types to numbers in SDK API docs by @abhaysood in #1152
-- Fix typo in README by @anupcowkur in #1149
+- Add specific types to numbers in SDK API docs by @abhaysood
+- Fix typo in README by @anupcowkur
 - Update self host guide by @detj
 - Update contributing guide by @detj
-- Add code of conduct by @anupcowkur in #1128
-- Add PR template by @anupcowkur in #1125
-- Add issue template by @anupcowkur in #1122
-- Add feature request template by @anupcowkur in #1124
-- Add security policy by @anupcowkur in #1113
-- Add discord link to README by @anupcowkur in #1112
-- Fix formatting (#1094) by @detj in #1094
-- Fix broken link by @detj in #1093
+- Add code of conduct by @anupcowkur
+- Add PR template by @anupcowkur
+- Add issue template by @anupcowkur
+- Add feature request template by @anupcowkur
+- Add security policy by @anupcowkur
+- Add discord link to README by @anupcowkur
+- Fix formatting (#1094) by @detj
+- Fix broken link by @detj
 - Update self host guide by @detj
 - Improve self host guide by @detj
 
@@ -629,7 +629,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :sparkles: New features
 
 - (**backend**): Add stale data cleanup service by @anupcowkur
-- (**backend**): Improve crash + anr grouping by @anupcowkur in #920
+- (**backend**): Improve crash + anr grouping by @anupcowkur
 - (**backend**): Add app settings read/write api by @anupcowkur
 - (**backend**): Add get usage stats api by @anupcowkur
 - (**backend**): Implement new schema for navigation event by @abhaysood
@@ -654,14 +654,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Implement symbolicator with retrace (#126) by @abhaysood
 - (**backend**): Add symbolication (#79) by @detj
 - (**webapp**): Enable retention period app setting by @anupcowkur
-- (**webapp**): Add date selection presets to filters by @anupcowkur in #968
-- (**webapp**): Update exceptions overview list format by @anupcowkur in #937
+- (**webapp**): Add date selection presets to filters by @anupcowkur
+- (**webapp**): Update exceptions overview list format by @anupcowkur
 - (**webapp**): Show title & description for exception groups by @anupcowkur
-- (**webapp**): Add base url to apps page by @anupcowkur in #895
-- (**webapp**): Add data retention read/write to apps page by @anupcowkur in #891
-- (**webapp**): Show usage stats in pie chart by @anupcowkur in #879
-- (**webapp**): Add usage stats UI by @anupcowkur in #865
-- (**webapp**): Add different colour for handled exceptions in session replay by @anupcowkur in #838
+- (**webapp**): Add base url to apps page by @anupcowkur
+- (**webapp**): Add data retention read/write to apps page by @anupcowkur
+- (**webapp**): Show usage stats in pie chart by @anupcowkur
+- (**webapp**): Add usage stats UI by @anupcowkur
+- (**webapp**): Add different colour for handled exceptions in session replay by @anupcowkur
 - (**webapp**): Fade out non-path journey nodes on hover by @anupcowkur
 - (**webapp**): Hightlight path to hovered node in journey by @anupcowkur
 - (**webapp**): Persist selected app & dates filters across pages by @anupcowkur
@@ -749,12 +749,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
-- (**backend**): Google auth (#1022) by @detj in #1022
+- (**backend**): Google auth (#1022) by @detj
 - (**backend**): Update memory usage struct by @abhaysood
 - (**backend**): Remove validation for 0 percentage usage as it's valid value by @abhaysood
 - (**backend**): Update app.go with new percwentage_usage field by @abhaysood
 - (**backend**): Allow zero interval as it's valid value for first event by @abhaysood
-- (**backend**): Ignore cold launch greater than 30s for metrics calculation by @anupcowkur in #942
+- (**backend**): Ignore cold launch greater than 30s for metrics calculation by @anupcowkur
 - (**backend**): Update method comments to match code by @anupcowkur
 - (**backend**): Authn issue by @detj
 - (**backend**): Handle no teams by @detj
@@ -852,21 +852,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Retrace symbolication algorithm (#93) by @detj
 - (**backend**): App_exit symbolication (#91) by @detj
 - (**backend**): Change names of exception columns (#52) by @detj
-- (**frontend**): Use node env for auth.ts jest test by @anupcowkur in #1060
-- (**webapp**): Remove env checks causing vercel build failure by @anupcowkur in #983
-- (**webapp**): Import lottie dynamically to fix ssr error by @anupcowkur in #963
-- (**webapp**): Incorrect landing page video borders by @anupcowkur in #959
-- (**webapp**): Add missing id attribute to inline script by @anupcowkur in #952
+- (**frontend**): Use node env for auth.ts jest test by @anupcowkur
+- (**webapp**): Remove env checks causing vercel build failure by @anupcowkur
+- (**webapp**): Import lottie dynamically to fix ssr error by @anupcowkur
+- (**webapp**): Incorrect landing page video borders by @anupcowkur
+- (**webapp**): Add missing id attribute to inline script by @anupcowkur
 - (**webapp**): Use &apos; instead of apostrophe by @anupcowkur
 - (**webapp**): Lottie-react wrongfully added to project root by @anupcowkur
-- (**webapp**): Show formatted y value in tooltip in cpu usage graph by @anupcowkur in #939
-- (**webapp**): Set max height for session replay event vertical connectors by @anupcowkur in #938
-- (**webapp**): Handle 0 delta cases in metrics display by @anupcowkur in #936
-- (**webapp**): Fix launch time showing '0x faster' as delta by @anupcowkur in #935
-- (**webapp**): Handle invalid selected app in persisted filters by @anupcowkur in #915
-- (**webapp**): Remove hover,active & focus states on disabled buttons by @anupcowkur in #899
-- (**webapp**): Self-hosted check by @anupcowkur in #864
-- (**webapp**): Prevent unnecessary useEffect calls by @anupcowkur in #858
+- (**webapp**): Show formatted y value in tooltip in cpu usage graph by @anupcowkur
+- (**webapp**): Set max height for session replay event vertical connectors by @anupcowkur
+- (**webapp**): Handle 0 delta cases in metrics display by @anupcowkur
+- (**webapp**): Fix launch time showing '0x faster' as delta by @anupcowkur
+- (**webapp**): Handle invalid selected app in persisted filters by @anupcowkur
+- (**webapp**): Remove hover,active & focus states on disabled buttons by @anupcowkur
+- (**webapp**): Self-hosted check by @anupcowkur
+- (**webapp**): Prevent unnecessary useEffect calls by @anupcowkur
 - (**webapp**): Expand journey node on title hover only by @anupcowkur
 - (**webapp**): Decode title in exceptions details page by @anupcowkur
 - (**webapp**): Use slices tooltips for exceptions plots by @anupcowkur
@@ -942,8 +942,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
-- (**backend**): Fix dashboard healthcheck by @detj in #1085
-- (**backend**): Fix dashboard healthcheck by @detj in #1084
+- (**backend**): Fix dashboard healthcheck by @detj
+- (**backend**): Fix dashboard healthcheck by @detj
 - (**backend**): Fix incorrect path by @detj
 - (**backend**): Update dashboard github workflow by @anupcowkur
 - (**backend**): Fix dockerfile by @detj
@@ -951,7 +951,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update compose.yml by @detj
 - (**backend**): Update rigmarole script by @detj
 - (**backend**): Remove stale files by @detj
-- (**backend**): Update go.work.sum (#1050) by @detj in #1050
+- (**backend**): Update go.work.sum (#1050) by @detj
 - (**backend**): Move dashboard directory by @detj
 - (**backend**): Update cleanup deps by @detj
 - (**backend**): Update cleanup service by @detj
@@ -960,23 +960,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update docker compose by @detj
 - (**backend**): Rename directory & service names by @detj
 - (**backend**): Rename directory & service names by @detj
-- (**backend**): Tidy go.mod by @anupcowkur in #1044
-- (**backend**): Change default retention period to 90 days by @anupcowkur in #1042
-- (**backend**): Extend access token expiry (#1031) by @detj in #1031
-- (**backend**): Update `config.sh` by @detj in #1030
+- (**backend**): Tidy go.mod by @anupcowkur
+- (**backend**): Change default retention period to 90 days by @anupcowkur
+- (**backend**): Extend access token expiry (#1031) by @detj
+- (**backend**): Update `config.sh` by @detj
 - (**backend**): Proxy attachments by default by @detj
 - (**backend**): Fix typos by @detj
 - (**backend**): Rename web env vars by @detj
-- (**backend**): Fix a sessionator edge case (#1026) by @detj in #1026
-- (**backend**): Consistent healthcheck (#997) by @detj in #997
-- (**backend**): Add healthchecks (#989) by @detj in #989
-- (**backend**): Remove example env (#985) by @detj in #985
+- (**backend**): Fix a sessionator edge case (#1026) by @detj
+- (**backend**): Consistent healthcheck (#997) by @detj
+- (**backend**): Add healthchecks (#989) by @detj
+- (**backend**): Remove example env (#985) by @detj
 - (**backend**): Add otel instrumentation to api server by @anupcowkur
 - (**backend**): Add new sessions with real cpu usage data by @abhaysood
 - (**backend**): Add dummy percentage usage in session data by @abhaysood
 - (**backend**): Update interval_config to interval in session data by @abhaysood
 - (**backend**): Update cpu and memory usage events schema by @abhaysood
-- (**backend**): Refactor cpu usage calculation for clarity by @anupcowkur in #943
+- (**backend**): Refactor cpu usage calculation for clarity by @anupcowkur
 - (**backend**): Rename msg column to message in anr/exception groups by @anupcowkur
 - (**backend**): Remove redundant parameter types by @anupcowkur
 - (**backend**): Make getDisplayTitle method to encapsulate exception group naming by @anupcowkur
@@ -1050,7 +1050,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add a user method by @detj
 - (**backend**): Update `.env.example` by @detj
 - (**backend**): Add tables for auth by @detj
-- (**backend**): Update session replay api by @detj in #835
+- (**backend**): Update session replay api by @detj
 - (**backend**): Update session replay api by @detj
 - (**backend**): Mod event ingestion by @detj
 - (**backend**): Mod events table by @detj
@@ -1557,19 +1557,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Count session payload size (#122) by @detj
 - (**backend**): Improve example dotenv files (#123) by @detj
 - (**frontend**): Revert google ux_mode by @detj
-- (**frontend**): Remove commented code by @anupcowkur in #1083
-- (**frontend**): Lazy load landing page videos by @anupcowkur in #1082
+- (**frontend**): Remove commented code by @anupcowkur
+- (**frontend**): Lazy load landing page videos by @anupcowkur
 - (**frontend**): Adjust landing hero anim dimensions by @anupcowkur
 - (**frontend**): Change android availability on landing page by @anupcowkur
 - (**frontend**): Remove unity section from landing page by @anupcowkur
 - Rename directory and service names by @detj
-- Update installation script (#1037) by @detj in #1037
-- Delete self host `.env.example` (#1033) by @detj in #1033
+- Update installation script (#1037) by @detj
+- Delete self host `.env.example` (#1033) by @detj
 - Update .commitlintrc.js
-- Update compose.yml (#1023) by @detj in #1023
+- Update compose.yml (#1023) by @detj
 - Remove dotenv by @detj
 - Remove supabase by @detj
-- Update .gitignore (#850) by @detj in #850
+- Update .gitignore (#850) by @detj
 - Update root go work sum by @detj
 - Report status and errors (#324) by @detj
 - Remove supabase dependency from root folder by @anupcowkur
@@ -1603,46 +1603,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add initial backend code by @detj
 - Rename bodyValue to value for brevity by @abhaysood
 - Fix incorrect package name by @abhaysood
-- (**webapp**): Limit filter pill width & show tooltip by @anupcowkur in #1005
+- (**webapp**): Limit filter pill width & show tooltip by @anupcowkur
 - (**webapp**): Update dockerfile by @detj
-- (**webapp**): Update landing page with new tagline by @anupcowkur in #978
+- (**webapp**): Update landing page with new tagline by @anupcowkur
 - (**webapp**): Update landing page tagline by @anupcowkur
 - (**webapp**): Update 'App Hangs' to 'ANRs' in landing copy by @anupcowkur
 - (**webapp**): Update landing copy for session timelines by @anupcowkur
 - (**webapp**): Update 'timeline' to 'Timelines' in session landing copy by @anupcowkur
-- (**webapp**): Add favicon by @anupcowkur in #962
+- (**webapp**): Add favicon by @anupcowkur
 - (**webapp**): Add measure logo to landing header by @anupcowkur
-- (**webapp**): Update landing page layout for smaller screens by @anupcowkur in #958
+- (**webapp**): Update landing page layout for smaller screens by @anupcowkur
 - (**webapp**): Hide retention period settings by @anupcowkur
-- (**webapp**): Update landing copy by @anupcowkur in #951
+- (**webapp**): Update landing copy by @anupcowkur
 - (**webapp**): Update landing page hero animation by @anupcowkur
-- (**webapp**): Add highlight instrumentation by @anupcowkur in #948
+- (**webapp**): Add highlight instrumentation by @anupcowkur
 - (**webapp**): Add clarity instrumentation by @anupcowkur
-- (**webapp**): Update exceptions product video on landing page by @anupcowkur in #944
+- (**webapp**): Update exceptions product video on landing page by @anupcowkur
 - (**webapp**): Change laneing page features to vertical layout by @anupcowkur
-- (**webapp**): Remove redudant if statement by @anupcowkur in #924
+- (**webapp**): Remove redudant if statement by @anupcowkur
 - (**webapp**): Ellipsize long session replay event titles by @anupcowkur
-- (**webapp**): Remove google auto sign in by @anupcowkur in #910
-- (**webapp**): Update npm packages to latest by @anupcowkur in #909
+- (**webapp**): Remove google auto sign in by @anupcowkur
+- (**webapp**): Update npm packages to latest by @anupcowkur
 - (**webapp**): Add dockerfile by @detj
 - (**webapp**): Change build settings by @detj
 - (**webapp**): Add dockerignore by @detj
 - (**webapp**): Update env var by @detj
-- (**webapp**): Consolidate auth utils by @anupcowkur in #908
-- (**webapp**): Update Github sign in button text by @anupcowkur in #904
-- (**webapp**): Update auth flow by @detj in #886
-- (**webapp**): Update Accordion ui by @anupcowkur in #901
+- (**webapp**): Consolidate auth utils by @anupcowkur
+- (**webapp**): Update Github sign in button text by @anupcowkur
+- (**webapp**): Update auth flow by @detj
+- (**webapp**): Update Accordion ui by @anupcowkur
 - (**webapp**): Update exceptions overview table ui by @anupcowkur
 - (**webapp**): Remove disabled states on link by @anupcowkur
-- (**webapp**): Adjust button margin by @anupcowkur in #897
-- (**webapp**): Replace create app integration steps with integration guide link by @anupcowkur in #885
+- (**webapp**): Adjust button margin by @anupcowkur
+- (**webapp**): Replace create app integration steps with integration guide link by @anupcowkur
 - (**webapp**): Update nivo packages by @anupcowkur
-- (**webapp**): Use &apos; instead of ' in landing copy by @anupcowkur in #878
+- (**webapp**): Use &apos; instead of ' in landing copy by @anupcowkur
 - (**webapp**): Update landing copy by @anupcowkur
 - (**webapp**): Update landing OSS & Self hosted section by @anupcowkur
 - (**webapp**): Add containers around landing videos by @anupcowkur
 - (**webapp**): Update landing copy by @anupcowkur
-- (**webapp**): Add login button to landing page header by @anupcowkur in #861
+- (**webapp**): Add login button to landing page header by @anupcowkur
 - (**webapp**): Replace email waitlist with Github link by @anupcowkur
 - (**webapp**): Remove supabase packages by @detj
 - (**webapp**): Remove supabase related pieces by @detj
@@ -1660,10 +1660,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Revamp authn by @detj
 - (**webapp**): Add authn utils by @detj
 - (**webapp**): Use esnext by @detj
-- (**webapp**): Update landing page by @anupcowkur in #860
-- (**webapp**): Hide alerts page from nav bar by @anupcowkur in #841
-- (**webapp**): Remove console.log by @anupcowkur in #839
-- (**webapp**): Rename variable for clarity by @anupcowkur in #834
+- (**webapp**): Update landing page by @anupcowkur
+- (**webapp**): Hide alerts page from nav bar by @anupcowkur
+- (**webapp**): Remove console.log by @anupcowkur
+- (**webapp**): Rename variable for clarity by @anupcowkur
 - (**webapp**): Add flower brackets for if statement by @anupcowkur
 - (**webapp**): Update journey positive node colour by @anupcowkur
 - (**webapp**): Update journey hightlight edge colour by @anupcowkur
@@ -1880,7 +1880,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :recycle: Refactor
 
-- (**backend**): Minor refactor to google auth (#1038) by @detj in #1038
+- (**backend**): Minor refactor to google auth (#1038) by @detj
 - (**backend**): Improve interval calculation function for cpu and memory usage collectors by @abhaysood
 - (**backend**): Rename authsession path by @detj
 - (**backend**): Organize function order by @detj
@@ -1962,8 +1962,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :books: Documentation
 
 - (**backend**): Update self host guide by @detj
-- (**backend**): Update migrations by @detj in #1052
-- (**backend**): Update self-host guide by @detj in #990
+- (**backend**): Update migrations by @detj
+- (**backend**): Update self-host guide by @detj
 - (**backend**): Update dashboard api by @detj
 - (**backend**): Update sdk api docs by @detj
 - (**backend**): Update sessionator readme by @detj
@@ -2053,43 +2053,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Update self host guide by @detj
 - (**backend**): Add launch time metrics by @detj
 - (**backend**): Fix a mistake by @detj
-- Add team section to README by @anupcowkur in #1077
-- Update README.md by @anupcowkur in #1065
-- Update contributing.md (#1059) by @detj in #1059
-- Improve language by @detj in #1054
+- Add team section to README by @anupcowkur
+- Update README.md by @anupcowkur
+- Update contributing.md (#1059) by @detj
+- Improve language by @detj
 - Update self host docs by @detj
-- Add info about `name` field (#1051) by @detj in #1051
-- Update sessionator readme (#1032) by @detj in #1032
-- Correct path for Android SDK quick start by @abhaysood in #1009
-- Move CONTRIBUTING.md to main docs folder by @anupcowkur in #1004
+- Add info about `name` field (#1051) by @detj
+- Update sessionator readme (#1032) by @detj
+- Correct path for Android SDK quick start by @abhaysood
+- Move CONTRIBUTING.md to main docs folder by @anupcowkur
 - Move android docs by @abhaysood
-- Fix doc links by @anupcowkur in #996
-- Move CONTRIBUTING.md to docs by @anupcowkur in #995
+- Fix doc links by @anupcowkur
+- Move CONTRIBUTING.md to docs by @anupcowkur
 - Add documentation guidelines to CONTRIBUTING.md by @anupcowkur
 - Remove quickstart from docs README by @anupcowkur
-- Update sessionator README by @anupcowkur in #993
+- Update sessionator README by @anupcowkur
 - Add symbolicator-retrace README by @anupcowkur
 - Update measure-go README by @anupcowkur
 - Update bencmarking README by @anupcowkur
 - Update measure-web-app README by @anupcowkur
 - Update measure-go README by @anupcowkur
 - Remove quickstart empty doc by @anupcowkur
-- Update self hosting guide link in main README by @anupcowkur in #991
+- Update self hosting guide link in main README by @anupcowkur
 - Improve self host guide by @detj
-- Update self host guide by @detj in #984
+- Update self host guide by @detj
 - Update contributing.md by @detj
 - Update README philosophy by @anupcowkur
 - Link new self hosting guide to main README by @anupcowkur
 - Update contribution guide by @detj
 - Update README with new tagline by @anupcowkur
-- Improve README by @anupcowkur in #976
+- Improve README by @anupcowkur
 - Update API docs with cpu and memory usage schema changes by @abhaysood
 - Add fresh self hosting guide by @detj
-- Update self-host guide (#903) by @detj in #903
-- Update alertPrefs api docs by @anupcowkur in #892
+- Update self-host guide (#903) by @detj
+- Update alertPrefs api docs by @anupcowkur
 - Update dashboard api docs indices by @anupcowkur
-- Update versioning guide by @anupcowkur in #884
-- Add versioning guide by @anupcowkur in #883
+- Update versioning guide by @anupcowkur
+- Add versioning guide by @anupcowkur
 - Update self-host guide by @detj
 - Update sessionator docs (#833) by @detj
 - Update self host guide by @detj
