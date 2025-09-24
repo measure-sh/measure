@@ -1,33 +1,33 @@
-import { NextResponse } from "next/server"
-import { setCookiesFromJWT } from "../../cookie"
+import { NextResponse } from "next/server";
+import { setCookiesFromJWT } from "../../cookie";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
-const origin = process?.env?.NEXT_PUBLIC_SITE_URL
-const apiOrigin = process?.env?.API_BASE_URL
+const origin = process?.env?.NEXT_PUBLIC_SITE_URL;
+const apiOrigin = process?.env?.API_BASE_URL;
 
 export async function POST(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const errRedirectUrl = `${origin}/auth/login?error=Could not sign in with Google`
-  const nonce = searchParams.get("nonce")
-  const state = searchParams.get("state")
+  const { searchParams } = new URL(request.url);
+  const errRedirectUrl = `${origin}/auth/login?error=Could not sign in with Google`;
+  const nonce = searchParams.get("nonce");
+  const state = searchParams.get("state");
 
-  const formdata = await request.formData()
-  const credential = formdata.get("credential")
+  const formdata = await request.formData();
+  const credential = formdata.get("credential");
 
   if (!credential) {
-    console.log("google login failure: no credential")
-    return NextResponse.redirect(errRedirectUrl, { status: 302 })
+    console.log("google login failure: no credential");
+    return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
   if (state && !nonce) {
-    console.log("google login failure: no nonce")
-    return NextResponse.redirect(errRedirectUrl, { status: 302 })
+    console.log("google login failure: no nonce");
+    return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
   if (nonce && !state) {
-    console.log("google login failure: no state")
-    return NextResponse.redirect(errRedirectUrl, { status: 302 })
+    console.log("google login failure: no state");
+    return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
   // Google API JavaScript client has an open issue where
@@ -39,10 +39,10 @@ export async function POST(request: Request) {
   // valid and proceed for now, while keeping an eye out
   // on the user agent.
   if (!nonce && !state) {
-    const headers = Object.fromEntries(request.headers)
+    const headers = Object.fromEntries(request.headers);
     console.log(
       `google login warning: nonce and state both are missing, request possibly originated from Safari, check UA: ${headers["user-agent"]}`,
-    )
+    );
   }
 
   const res = await fetch(`${apiOrigin}/auth/google`, {
@@ -55,23 +55,36 @@ export async function POST(request: Request) {
       state,
       nonce,
     }),
-  })
+  });
 
   if (!res.ok) {
+    let body = "";
+    try {
+      body = await res.json();
+    } catch (error) {
+      console.error("Error parsing Google login error response JSON:", error);
+      body = await res.text();
+    }
+
     console.log(
       `google login failure: post /auth/google returned ${res.status}`,
-    )
-    return NextResponse.redirect(errRedirectUrl, { status: 302 })
+    );
+
+    if (body) {
+      console.log("google login failure res:", body);
+    }
+
+    return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
-  const data = await res.json()
+  const data = await res.json();
 
   // Create a response with redirect
-  let response = NextResponse.redirect(
+  const response = NextResponse.redirect(
     // Redirect to overview page with own team Id
     new URL(`${origin}/${data.own_team_id}/overview`),
     { status: 303 },
-  )
+  );
 
-  return setCookiesFromJWT(data.access_token, data.refresh_token, response)
+  return setCookiesFromJWT(data.access_token, data.refresh_token, response);
 }

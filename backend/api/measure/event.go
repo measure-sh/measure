@@ -111,6 +111,14 @@ func (e *eventreq) uploadAttachments(ctx context.Context) error {
 		ext := filepath.Ext(attachment.name)
 		key := attachment.id.String() + ext
 
+		// pre-fill the key and location
+		attachment.key = key
+		// for now, we construct the location manually
+		// implement a better solution later using
+		// EndpointResolverV2 with custom resolvers
+		// for non-AWS clouds like GCS
+		attachment.location = event.BuildAttachmentLocation(key)
+
 		eventAttachment := event.Attachment{
 			ID:   id,
 			Name: key,
@@ -124,14 +132,13 @@ func (e *eventreq) uploadAttachments(ctx context.Context) error {
 
 		eventAttachment.Reader = file
 
-		location, err := eventAttachment.Upload(ctx)
-		if err != nil {
-			return err
-		}
+		go func() {
+			if err := eventAttachment.Upload(ctx); err != nil {
+				fmt.Printf("failed to upload attachment async: key: %s : %v\n", key, err)
+			}
+		}()
 
 		attachment.uploaded = true
-		attachment.key = key
-		attachment.location = location
 	}
 
 	return nil
@@ -410,7 +417,7 @@ func (e eventreq) start(ctx context.Context) (err error) {
 		InsertInto(`event_reqs`).
 		Set(`id`, e.id).
 		Set(`app_id`, e.appId).
-		Set(`status`, pending)
+		Set(`status`, int(pending))
 
 	defer stmt.Close()
 
@@ -430,7 +437,7 @@ func (e eventreq) end(ctx context.Context, tx *pgx.Tx) (err error) {
 		Set(`session_count`, e.sessionCount()).
 		Set(`bytes_in`, e.size).
 		Set(`symbolication_attempts_count`, e.symbolicationAttempted).
-		Set(`status`, done).
+		Set(`status`, int(done)).
 		Where("id = ? and app_id = ?", e.id, e.appId)
 
 	defer stmt.Close()
@@ -459,7 +466,7 @@ func (e eventreq) cleanup(ctx context.Context) (err error) {
 	switch *s {
 	case pending:
 		// remove event request in pending state
-		stmt := sqlf.PostgreSQL.DeleteFrom(`event_reqs`).Where("id = ? and app_id = ? and status = ?", e.id, e.appId, pending)
+		stmt := sqlf.PostgreSQL.DeleteFrom(`event_reqs`).Where("id = ? and app_id = ? and status = ?", e.id, e.appId, int(pending))
 
 		defer stmt.Close()
 

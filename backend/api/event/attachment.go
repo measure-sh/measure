@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"mime"
+	"net/http"
 	"net/url"
 	"path/filepath"
 	"slices"
@@ -18,10 +19,37 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
+	"google.golang.org/api/googleapi"
 )
 
 // attachmentTypes is a list of all valid attachment types.
 var attachmentTypes = []string{"screenshot", "android_method_trace", "layout_snapshot"}
+
+// isNotFound checks if error is a googleapi
+// not found error.
+func isNotFound(err error) bool {
+	var gerr *googleapi.Error
+	return errors.As(err, &gerr) && gerr.Code == http.StatusNotFound
+}
+
+// BuildAttachmentLocation builds the location of the attachment
+// object based on runtime environment.
+func BuildAttachmentLocation(key string) (location string) {
+	config := server.Server.Config
+
+	if config.IsCloud() {
+		location = fmt.Sprintf("https://storage.googleapis.com/%s/%s", config.AttachmentsBucket, key)
+		return
+	}
+
+	if config.AWSEndpoint != "" {
+		location = fmt.Sprintf("%s/%s/%s", config.AWSEndpoint, config.AttachmentsBucket, key)
+	} else {
+		location = fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", config.AttachmentsBucket, config.AttachmentsBucketRegion, key)
+	}
+
+	return
+}
 
 type Attachment struct {
 	ID       uuid.UUID `json:"id"`
@@ -49,9 +77,8 @@ func (a Attachment) Validate() error {
 	return nil
 }
 
-// Upload uploads raw file bytes to an S3 compatible storage system
-// and returns the uploaded file's remote location.
-func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
+// Upload uploads raw file bytes to an S3 compatible storage system.
+func (a *Attachment) Upload(ctx context.Context) (err error) {
 	config := server.Server.Config
 
 	// set mime type from extension
@@ -72,8 +99,32 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 			return
 		}
 
-		defer client.Close()
+		defer func() {
+			if err := client.Close(); err != nil {
+				fmt.Printf("failed to close storage client: %v\n", err)
+			}
+		}()
+
 		obj := client.Bucket(config.AttachmentsBucket).Object(a.Key)
+		attrs, errAttrs := obj.Attrs(ctx)
+		if errAttrs != nil && !isNotFound(errAttrs) {
+			err = errAttrs
+			return
+		}
+
+		// for typical workloads, attachment objects will not exist
+		// while load testing, the same object maybe repeated multiple
+		// times. for such workloads, there's not much point in
+		// uploading the attachment again and hitting and dealing
+		// with conflicts (429s) and retries.
+		//
+		// so, exit early.
+		if attrs != nil {
+			// Object exists
+			// exit early
+			return
+		}
+
 		writer := obj.NewWriter(ctx)
 		writer.ContentType = contentType
 		writer.Metadata = metadata
@@ -84,11 +135,9 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 		}
 
 		if err = writer.Close(); err != nil {
-			fmt.Printf("failed to close storage writer key: %s bucket: %s: %v\n", a.Key, config.AttachmentsBucket, err)
+			fmt.Printf("failed to close storage writer, key: %s bucket: %s: %v\n", a.Key, config.AttachmentsBucket, err)
 			return
 		}
-
-		location = fmt.Sprintf("https://storage.googleapis.com/%s/%s", config.AttachmentsBucket, obj.ObjectName())
 
 		return
 	}
@@ -101,16 +150,6 @@ func (a *Attachment) Upload(ctx context.Context) (location string, err error) {
 		Body:        a.Reader,
 		Metadata:    metadata,
 		ContentType: aws.String(contentType),
-	}
-
-	// for now, we construct the location manually
-	// implement a better solution later using
-	// EndpointResolverV2 with custom resolvers
-	// for non-AWS clouds like GCS
-	if config.AWSEndpoint != "" {
-		location = fmt.Sprintf("%s/%s/%s", config.AWSEndpoint, config.AttachmentsBucket, a.Key)
-	} else {
-		location = fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", config.AttachmentsBucket, config.AttachmentsBucketRegion, a.Key)
 	}
 
 	// ignore the putObjectOutput, don't need

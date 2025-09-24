@@ -5,13 +5,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
-	"cloud.google.com/go/cloudsqlconn"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/gin-gonic/gin"
@@ -22,6 +21,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc/credentials"
@@ -30,8 +30,8 @@ import (
 var Server *server
 
 type server struct {
-	PgPool  *pgxpool.Pool
-	RpgPool *pgxpool.Pool
+	PgPool *pgxpool.Pool
+	// RpgPool *pgxpool.Pool
 	ChPool  driver.Conn
 	RchPool driver.Conn
 	Mail    *mail.Client
@@ -308,59 +308,40 @@ func NewConfig() *ServerConfig {
 	}
 }
 
+func WaitForPg(ctx context.Context, pgPool *pgxpool.Pool, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		if err := pgPool.Ping(ctx); err == nil {
+			return nil // Ready
+		} else {
+			fmt.Printf("PG ping failed: %v; Retrying...\n", err)
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+	}
+}
+
 func Init(config *ServerConfig) {
 	ctx := context.Background()
 	var pgPool *pgxpool.Pool
-	var rPgPool *pgxpool.Pool
 
 	// read/write pool
 	oConfig, err := pgxpool.ParseConfig(config.PG.DSN)
 	if err != nil {
 		log.Fatalf("Unable to parse postgres connection string: %v\n", err)
 	}
-	oConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-		_, err := conn.Exec(ctx, "SET role operator")
-		return err
-	}
 
-	// reader pool
-	rConfig, err := pgxpool.ParseConfig(config.PG.DSN)
-	if err != nil {
-		log.Fatalf("Unable to parse reader postgres connection string: %v\n", err)
-	}
-	rConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-		_, err := conn.Exec(ctx, "SET role reader")
-		return err
-	}
-
-	if config.IsCloud() {
-		d, err := cloudsqlconn.NewDialer(ctx,
-			// Always use IAM authentication.
-			cloudsqlconn.WithIAMAuthN(),
-			// In Cloud Run CPU is throttled outside of a request
-			// context causing the backend refresh to fail, hence
-			// the need for `WithLazyRefresh()` option.
-			cloudsqlconn.WithLazyRefresh(),
-		)
-		if err != nil {
-			fmt.Println("Failed to dial postgress connection.")
-		}
-
-		csqlConnName := os.Getenv("CSQL_CONN_NAME")
-		if csqlConnName == "" {
-			fmt.Println("CSQL_CONN_NAME environment variable is not set.")
-		}
-
-		oConfig.ConnConfig.DialFunc = func(ctx context.Context, network string, address string) (net.Conn, error) {
-			fmt.Printf("Dialing network: %s, address: %s\n", network, address)
-			return d.Dial(ctx, csqlConnName, cloudsqlconn.WithPrivateIP())
-		}
-
-		rConfig.ConnConfig.DialFunc = func(ctx context.Context, network string, address string) (net.Conn, error) {
-			fmt.Printf("Dialing reader network: %s, address: %s\n", network, address)
-			return d.Dial(ctx, csqlConnName, cloudsqlconn.WithPrivateIP())
-		}
-	}
+	// See https://pkg.go.dev/github.com/jackc/pgx/v5#QueryExecMode
+	oConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 
 	pool, err := pgxpool.NewWithConfig(ctx, oConfig)
 	if err != nil {
@@ -368,11 +349,9 @@ func Init(config *ServerConfig) {
 	}
 	pgPool = pool
 
-	rPool, err := pgxpool.NewWithConfig(ctx, rConfig)
-	if err != nil {
-		log.Fatalf("Unable to create reader PG connection pool: %v\n", err)
+	if err := WaitForPg(ctx, pgPool, 5*time.Second); err != nil {
+		fmt.Printf("Postgres pool not ready: %v\n", err)
 	}
-	rPgPool = rPool
 
 	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
 	if err != nil {
@@ -426,7 +405,6 @@ func Init(config *ServerConfig) {
 
 	Server = &server{
 		PgPool:  pgPool,
-		RpgPool: rPgPool,
 		ChPool:  chPool,
 		RchPool: rChPool,
 		Config:  config,
@@ -436,24 +414,26 @@ func Init(config *ServerConfig) {
 
 func (sc ServerConfig) InitTracer() func(context.Context) error {
 	otelCollectorURL := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	otelProtocol := os.Getenv("OTEL_EXPORTER_OTLP_PROTOCOL")
 	otelInsecureMode := os.Getenv("OTEL_INSECURE_MODE")
 	otelServiceName := sc.OtelServiceName
 
-	var secureOption otlptracegrpc.Option
-
-	if strings.ToLower(otelInsecureMode) == "false" || otelInsecureMode == "0" || strings.ToLower(otelInsecureMode) == "f" {
-		secureOption = otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
+	var client otlptrace.Client
+	if strings.Contains(otelProtocol, "http") {
+		client = otlptracehttp.NewClient()
 	} else {
-		secureOption = otlptracegrpc.WithInsecure()
+		var secureOption otlptracegrpc.Option
+
+		if strings.ToLower(otelInsecureMode) == "false" || otelInsecureMode == "0" || strings.ToLower(otelInsecureMode) == "f" {
+			secureOption = otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
+		} else {
+			secureOption = otlptracegrpc.WithInsecure()
+		}
+
+		client = otlptracegrpc.NewClient(secureOption, otlptracegrpc.WithEndpoint(otelCollectorURL))
 	}
 
-	exporter, err := otlptrace.New(
-		context.Background(),
-		otlptracegrpc.NewClient(
-			secureOption,
-			otlptracegrpc.WithEndpoint(otelCollectorURL),
-		),
-	)
+	exporter, err := otlptrace.New(context.Background(), client)
 
 	if err != nil {
 		log.Fatalf("Failed to create exporter: %v", err)

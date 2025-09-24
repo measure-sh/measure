@@ -34,16 +34,29 @@ export async function GET(request: Request) {
   });
 
   if (!res.ok) {
+    let body = "";
+    try {
+      body = await res.json();
+    } catch (error) {
+      console.error("Error parsing GitHub login error response JSON:", error);
+      body = await res.text();
+    }
+
     console.log(
       `GitHub login failure: post /auth/github returned ${res.status}`,
     );
+
+    if (body) {
+      console.log("github login failure res:", body);
+    }
+
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
   const data = await res.json();
 
   // Create a response with redirect
-  let response = NextResponse.redirect(
+  const response = NextResponse.redirect(
     // Redirect to overview page with own team Id
     new URL(`${origin}/${data.own_team_id}/overview`),
     { status: 303 },
