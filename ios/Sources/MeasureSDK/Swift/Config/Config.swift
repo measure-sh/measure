@@ -88,7 +88,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.maxDiskUsageInMb = maxDiskUsageInMb
         self.eventsBatchingIntervalMs = 30000 // 30 seconds
         self.maxEventsInBatch = 500
-        self.sessionEndLastEventThresholdMs = 20 * 60 * 1000 // 20 minitues
+        self.sessionEndLastEventThresholdMs = 3 * 60 * 1000 // 3 minitues
         self.timeoutIntervalForRequest = 30 // 30 seconds
         self.longPressTimeout = 500 // 500 ms
         self.scaledTouchSlop = 3.5 // 3.5 points

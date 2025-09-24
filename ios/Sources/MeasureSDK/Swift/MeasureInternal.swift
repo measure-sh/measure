@@ -162,6 +162,8 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleObserver.applicationDidEnterBackground = applicationDidEnterBackground
         self.lifecycleObserver.applicationWillEnterForeground = applicationWillEnterForeground
         self.lifecycleObserver.applicationWillTerminate = applicationWillTerminate
+        self.lifecycleObserver.applicationDidBecomeActive = applicationDidBecomeActive
+        self.lifecycleObserver.applicationWillResignActive = applicationWillResignActive
         self.logger.log(level: .info, message: "Initializing Measure SDK", error: nil, data: nil)
         self.sessionManager.setPreviousSessionCrashed(crashReportManager.hasPendingCrashReport)
         self.sessionManager.start { sessionId in
@@ -327,26 +329,31 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.sessionManager.applicationDidEnterBackground()
         self.periodicExporter.applicationDidEnterBackground()
         self.lifecycleCollector.applicationDidEnterBackground()
-        self.cpuUsageCollector.pause()
-        self.memoryUsageCollector.pause()
-        self.shakeBugReportCollector.pause()
+        self.unregisterCollectors()
         self.dataCleanupService.clearStaleData {}
     }
 
     private func applicationWillEnterForeground() {
+        self.appLaunchCollector.applicationWillEnterForeground()
         self.crashDataPersistence.isForeground = true
         self.internalSignalCollector.isForeground = true
         self.sessionManager.applicationWillEnterForeground()
         self.periodicExporter.applicationWillEnterForeground()
         self.lifecycleCollector.applicationWillEnterForeground()
-        self.cpuUsageCollector.resume()
-        self.memoryUsageCollector.resume()
-        self.shakeBugReportCollector.resume()
+        self.registedCollectors()
     }
 
     private func applicationWillTerminate() {
         self.sessionManager.applicationWillTerminate()
         self.lifecycleCollector.applicationWillTerminate()
+    }
+
+    private func applicationDidBecomeActive() {
+        self.appLaunchCollector.applicationDidBecomeActive()
+    }
+
+    private func applicationWillResignActive() {
+        self.appLaunchCollector.applicationWillResignActive()
     }
 
     private func registedCollectors() {
