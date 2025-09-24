@@ -136,6 +136,8 @@ EOF
   grant usage on schema measure to operator;
   grant usage on schema measure to reader;
 
+  alter database measure set search_path to measure, "\$user", public;
+
   grant all privileges on all tables in schema measure to operator;
   alter default privileges in schema measure grant all on tables to operator;
   grant all privileges on all sequences in schema measure to operator;

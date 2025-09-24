@@ -36,6 +36,11 @@ END
 GRANT USAGE ON SCHEMA ${SCHEMA_NAME} TO operator;
 GRANT USAGE ON SCHEMA ${SCHEMA_NAME} TO reader;
 
+-- Set the default schema at database level
+-- The default search path is set to: "\$user", public
+-- Retain existing schema and add the "measure" schema
+ALTER DATABASE "${DB_NAME}" SET search_path TO measure, "\$user", public;
+
 -- Grant privileges to roles
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ${SCHEMA_NAME} TO operator;
 ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA_NAME} GRANT ALL ON TABLES TO operator;
