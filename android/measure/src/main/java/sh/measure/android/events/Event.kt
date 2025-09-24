@@ -27,7 +27,7 @@ internal data class Event<T>(
     /**
      * The type of the event. See [EventType] for the list of event types.
      */
-    val type: String,
+    val type: EventType,
 
     /**
      * The data collected. This can be any object that is annotated with `@Serializable`.

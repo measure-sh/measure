@@ -22,7 +22,7 @@ internal interface SessionManager {
     /**
      * Creates a new session, to be used only when the SDK is initialized.
      */
-    fun init()
+    fun init(): SessionInitResult
 
     /**
      * Returns a session ID.
@@ -69,6 +69,11 @@ internal interface SessionManager {
     fun clearAppExitSessionsBefore(timestamp: Long)
 }
 
+internal sealed interface SessionInitResult {
+    data class NewSessionCreated(val sessionId: String) : SessionInitResult
+    data class SessionResumed(val sessionId: String) : SessionInitResult
+}
+
 /**
  * Manages creation of sessions.
  *
@@ -90,16 +95,20 @@ internal class SessionManagerImpl(
     private var currentSession: RecentSession? = null
     private var appBackgroundTime: Long = 0
 
-    override fun init() {
+    override fun init(): SessionInitResult {
         val recentSession = prefs.getRecentSession()
-        currentSession = when {
+        return when {
             recentSession != null && shouldContinue(recentSession) -> {
                 updateSessionPid(recentSession.id, processInfo.getPid(), recentSession.createdAt)
-                logger.log(LogLevel.Debug, "Continuing previous session ${recentSession.id}")
-                recentSession
+                currentSession = recentSession
+                SessionInitResult.SessionResumed(recentSession.id)
             }
 
-            else -> createNewSession()
+            else -> {
+                val newSession = createNewSession()
+                currentSession = newSession
+                SessionInitResult.NewSessionCreated(newSession.id)
+            }
         }
     }
 
@@ -175,20 +184,21 @@ internal class SessionManagerImpl(
                         session.createdAt,
                         needsReporting = needsReporting,
                         supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
+                        appVersion = packageInfoProvider.appVersion,
+                        appBuild = packageInfoProvider.getVersionCode(),
                     ),
                 )
                 if (success) {
                     prefs.setRecentSession(session)
-                    logger.log(LogLevel.Debug, "New session created: $session.sessionId")
                 } else {
                     logger.log(
-                        LogLevel.Error,
-                        "Unable to store session, all events will be discarded",
+                        LogLevel.Debug,
+                        "Failed to store session",
                     )
                 }
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Unable to store session, all events will be discarded", e)
+            logger.log(LogLevel.Debug, "Failed to store session", e)
         }
     }
 
@@ -203,7 +213,7 @@ internal class SessionManagerImpl(
                 )
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Unable to update session", e)
+            logger.log(LogLevel.Debug, "Failed to update session", e)
         }
     }
 

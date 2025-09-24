@@ -1,59 +1,96 @@
 "use client"
 
-import { emptySessionsOverviewResponse, SessionsOverviewApiStatus, fetchSessionsOverviewFromServer, FilterSource } from '@/app/api/api_calls';
-import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters';
-import LoadingBar from '@/app/components/loading_bar';
-import Paginator from '@/app/components/paginator';
-import SessionsOverviewPlot from '@/app/components/sessions_overview_plot';
-import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import { emptySessionsOverviewResponse, fetchSessionsOverviewFromServer, FilterSource, SessionsOverviewApiStatus } from '@/app/api/api_calls'
+import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
+import LoadingBar from '@/app/components/loading_bar'
+import Paginator from '@/app/components/paginator'
+import SessionsOverviewPlot from '@/app/components/sessions_overview_plot'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
+import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+
+interface PageState {
+    sessionsOverviewApiStatus: SessionsOverviewApiStatus
+    filters: typeof defaultFilters
+    sessionsOverview: typeof emptySessionsOverviewResponse
+    paginationOffset: number
+}
+
+const paginationLimit = 5
+const paginationOffsetUrlKey = "po"
 
 export default function SessionsOverview({ params }: { params: { teamId: string } }) {
     const router = useRouter()
-    const [sessionsOverviewApiStatus, setSessionsOverviewApiStatus] = useState(SessionsOverviewApiStatus.Loading);
+    const searchParams = useSearchParams()
 
-    const [filters, setFilters] = useState(defaultFilters);
+    const initialState: PageState = {
+        sessionsOverviewApiStatus: SessionsOverviewApiStatus.Loading,
+        filters: defaultFilters,
+        sessionsOverview: emptySessionsOverviewResponse,
+        paginationOffset: searchParams.get(paginationOffsetUrlKey) ? parseInt(searchParams.get(paginationOffsetUrlKey)!) : 0
+    }
 
-    const [sessionsOverview, setSessionsOverview] = useState(emptySessionsOverviewResponse);
-    const paginationLimit = 5
-    const [paginationOffset, setPaginationOffset] = useState(0)
+    const [pageState, setPageState] = useState<PageState>(initialState)
+
+
+    const updatePageState = (newState: Partial<PageState>) => {
+        setPageState(prevState => {
+            const updatedState = { ...prevState, ...newState }
+            return updatedState
+        })
+    }
 
     const getSessionsOverview = async () => {
-        setSessionsOverviewApiStatus(SessionsOverviewApiStatus.Loading)
+        updatePageState({ sessionsOverviewApiStatus: SessionsOverviewApiStatus.Loading })
 
-        const result = await fetchSessionsOverviewFromServer(filters, null, null, paginationLimit, paginationOffset, router)
+        const result = await fetchSessionsOverviewFromServer(pageState.filters, null, null, paginationLimit, pageState.paginationOffset)
 
         switch (result.status) {
             case SessionsOverviewApiStatus.Error:
-                setSessionsOverviewApiStatus(SessionsOverviewApiStatus.Error)
+                updatePageState({ sessionsOverviewApiStatus: SessionsOverviewApiStatus.Error })
                 break
             case SessionsOverviewApiStatus.Success:
-                setSessionsOverviewApiStatus(SessionsOverviewApiStatus.Success)
-                setSessionsOverview(result.data)
+                updatePageState({
+                    sessionsOverviewApiStatus: SessionsOverviewApiStatus.Success,
+                    sessionsOverview: result.data
+                })
                 break
         }
     }
 
+    const handleFiltersChanged = (updatedFilters: typeof defaultFilters) => {
+        // update filters only if they have changed
+        if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
+            updatePageState({
+                filters: updatedFilters,
+                // Reset pagination on filters change if previous filters were not default filters
+                paginationOffset: pageState.filters.serialisedFilters && searchParams.get(paginationOffsetUrlKey) ? 0 : pageState.paginationOffset
+            })
+        }
+    }
+
+    const handleNextPage = () => {
+        updatePageState({ paginationOffset: pageState.paginationOffset + paginationLimit })
+    }
+
+    const handlePrevPage = () => {
+        updatePageState({ paginationOffset: Math.max(0, pageState.paginationOffset - paginationLimit) })
+    }
+
     useEffect(() => {
-        if (!filters.ready) {
+        if (!pageState.filters.ready) {
             return
         }
+
+        // update url
+        router.replace(`?${paginationOffsetUrlKey}=${encodeURIComponent(pageState.paginationOffset)}&${pageState.filters.serialisedFilters!}`, { scroll: false })
 
         getSessionsOverview()
-    }, [paginationOffset, filters]);
-
-    useEffect(() => {
-        if (!filters.ready) {
-            return
-        }
-        setPaginationOffset(0)
-    }, [filters])
+    }, [pageState.paginationOffset, pageState.filters])
 
     return (
-        <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-            <div className="py-4" />
+        <div className="flex flex-col selection:bg-yellow-200/75 items-start">
             <p className="font-display text-4xl max-w-6xl text-center">Sessions</p>
             <div className="py-4" />
 
@@ -61,7 +98,6 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                 teamId={params.teamId}
                 filterSource={FilterSource.Events}
                 appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-                showCreateApp={true}
                 showNoData={true}
                 showNotOnboarded={true}
                 showAppSelector={true}
@@ -80,63 +116,102 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                 showUdAttrs={true}
                 showFreeText={true}
                 freeTextPlaceholder='Search User/Session ID, Logs, Event Type, Target View ID, File/Class name or Exception Traces...'
-                onFiltersChanged={(updatedFilters) => setFilters(updatedFilters)} />
+                onFiltersChanged={handleFiltersChanged} />
             <div className="py-4" />
 
             {/* Error state for sessions fetch */}
-            {filters.ready
-                && sessionsOverviewApiStatus === SessionsOverviewApiStatus.Error
+            {pageState.filters.ready
+                && pageState.sessionsOverviewApiStatus === SessionsOverviewApiStatus.Error
                 && <p className="text-lg font-display">Error fetching list of sessions, please change filters, refresh page or select a different app to try again</p>}
 
             {/* Main sessions list UI */}
-            {filters.ready
-                && (sessionsOverviewApiStatus === SessionsOverviewApiStatus.Success || sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading) &&
+            {pageState.filters.ready
+                && (pageState.sessionsOverviewApiStatus === SessionsOverviewApiStatus.Success || pageState.sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading) &&
                 <div className="flex flex-col items-center w-full">
-                    <div className="py-4" />
-                    <SessionsOverviewPlot
-                        filters={filters} />
-                    <div className="py-4" />
+                    <SessionsOverviewPlot filters={pageState.filters} />
                     <div className='self-end'>
-                        <Paginator prevEnabled={sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? false : sessionsOverview.meta.previous} nextEnabled={sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? false : sessionsOverview.meta.next} displayText=''
-                            onNext={() => {
-                                setPaginationOffset(paginationOffset + paginationLimit)
-                            }}
-                            onPrev={() => {
-                                setPaginationOffset(paginationOffset - paginationLimit)
-                            }} />
+                        <Paginator
+                            prevEnabled={pageState.sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? false : pageState.sessionsOverview.meta.previous}
+                            nextEnabled={pageState.sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? false : pageState.sessionsOverview.meta.next}
+                            displayText=''
+                            onNext={handleNextPage}
+                            onPrev={handlePrevPage}
+                        />
                     </div>
-                    <div className={`py-1 w-full ${sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? 'visible' : 'invisible'}`}>
+                    <div className={`py-1 w-full ${pageState.sessionsOverviewApiStatus === SessionsOverviewApiStatus.Loading ? 'visible' : 'invisible'}`}>
                         <LoadingBar />
                     </div>
-                    <div className="table border border-black rounded-md w-full" style={{ tableLayout: "fixed" }}>
-                        <div className="table-header-group bg-neutral-950">
-                            <div className="table-row text-white font-display">
-                                <div className="table-cell w-96 p-4">Session Id</div>
-                                <div className="table-cell w-48 p-4 text-center">Start Time</div>
-                                <div className="table-cell w-48 p-4 text-center">Duration</div>
-                            </div>
-                        </div>
-                        <div className="table-row-group font-body">
-                            {sessionsOverview.results?.map(({ session_id, app_id, first_event_time, duration, matched_free_text, attribute }, idx) => (
-                                <Link key={`${idx}-${session_id}`} href={`/${params.teamId}/sessions/${app_id}/${session_id}`} className="table-row border-b-2 border-black hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300 ">
-                                    <div className="table-cell p-4">
-                                        <p className='truncate'>{session_id}</p>
-                                        <div className='py-1' />
-                                        <p className='text-xs truncate text-gray-500'>{"v" + attribute.app_version + "(" + attribute.app_build + "), " + attribute.os_name + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
-                                        {matched_free_text !== "" && <p className='p-1 mt-2 text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
-                                    </div>
-                                    <div className="table-cell p-4 text-center">
-                                        <p className='truncate'>{formatDateToHumanReadableDate(first_event_time)}</p>
-                                        <div className='py-1' />
-                                        <p className='text-xs truncate'>{formatDateToHumanReadableTime(first_event_time)}</p>
-                                    </div>
-                                    <div className="table-cell p-4 text-center truncate">{(duration as unknown as number) === 0 ? 'N/A' : formatMillisToHumanReadable(duration as unknown as number)}</div>
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
+                    <div className="py-4" />
+                    <Table className="font-display">
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[60%]">Session</TableHead>
+                                <TableHead className="w-[20%] text-center">Start Time</TableHead>
+                                <TableHead className="w-[20%] text-center">Duration</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {pageState.sessionsOverview.results?.map(({ session_id, app_id, first_event_time, duration, matched_free_text, attribute }, idx) => {
+                                const sessionHref = `/${params.teamId}/sessions/${app_id}/${session_id}`
+                                return (
+                                    <TableRow
+                                        key={`${idx}-${session_id}`}
+                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault()
+                                                router.push(sessionHref)
+                                            }
+                                        }}
+                                    >
+                                        <TableCell className="w-[60%] relative p-0">
+                                            <a
+                                                href={sessionHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-label={`ID: ${session_id}`}
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                <p className='truncate select-none'>ID: {session_id}</p>
+                                                <div className='py-1' />
+                                                <p className='text-xs truncate text-gray-500 select-none'>{attribute.app_version + "(" + attribute.app_build + "), " + (attribute.os_name === 'android' ? 'Android API Level' : attribute.os_name === 'ios' ? 'iOS' : attribute.os_name === 'ipados' ? 'iPadOS' : attribute.os_name) + " " + attribute.os_version + ", " + attribute.device_manufacturer + " " + attribute.device_model}</p>
+                                                {matched_free_text !== "" && <p className='p-1 mt-2 text-xs truncate border border-black rounded-md '>{"Matched " + matched_free_text}</p>}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="w-[20%] text-center relative p-0">
+                                            <a
+                                                href={sessionHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-hidden="true"
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                <p className='truncate select-none'>{formatDateToHumanReadableDate(first_event_time)}</p>
+                                                <div className='py-1' />
+                                                <p className='text-xs truncate select-none'>{formatDateToHumanReadableTime(first_event_time)}</p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="w-[20%] text-center truncate select-none relative p-0">
+                                            <a
+                                                href={sessionHref}
+                                                className="absolute inset-0 z-10 cursor-pointer"
+                                                tabIndex={-1}
+                                                aria-hidden="true"
+                                                style={{ display: 'block' }}
+                                            />
+                                            <div className="pointer-events-none p-4">
+                                                {(duration as unknown as number) === 0 ? 'N/A' : formatMillisToHumanReadable(duration as unknown as number)}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
+                        </TableBody>
+                    </Table>
                 </div>}
         </div>
     )
 }
-

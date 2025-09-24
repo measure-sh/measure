@@ -24,8 +24,7 @@ import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ConfigProviderImpl
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.CustomEventCollector
-import sh.measure.android.events.DefaultEventTransformer
-import sh.measure.android.events.EventTransformer
+import sh.measure.android.events.InternalSignalCollector
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.events.SignalProcessorImpl
 import sh.measure.android.events.UserTriggeredEventCollector
@@ -44,9 +43,9 @@ import sh.measure.android.exporter.NetworkClientImpl
 import sh.measure.android.exporter.PeriodicExporter
 import sh.measure.android.gestures.GestureCollector
 import sh.measure.android.layoutinspector.LayoutSnapshotThrottler
-import sh.measure.android.lifecycle.ActivityLifecycleCollector
 import sh.measure.android.lifecycle.AppLifecycleCollector
 import sh.measure.android.lifecycle.AppLifecycleManager
+import sh.measure.android.lifecycle.DefaultActivityLifecycleCollector
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.logger.Logger
 import sh.measure.android.networkchange.InitialNetworkStateProvider
@@ -124,6 +123,7 @@ internal class TestMeasureInitializer(
             httpUrlAllowlist = inputConfig.httpUrlAllowlist,
             trackActivityIntentData = inputConfig.trackActivityIntentData,
             samplingRateForErrorFreeSessions = inputConfig.samplingRateForErrorFreeSessions,
+            requestHeadersProvider = inputConfig.requestHeadersProvider,
         ),
         configLoader = ConfigLoaderImpl(),
     ),
@@ -139,13 +139,13 @@ internal class TestMeasureInitializer(
     override val networkClient: NetworkClient = NetworkClientImpl(
         logger = logger,
         fileStorage = fileStorage,
+        configProvider = configProvider,
     ),
     private val randomizer: Randomizer = RandomizerImpl(),
     private val idProvider: IdProvider = IdProviderImpl(randomizer),
     override val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
     private val prefsStorage: PrefsStorage = PrefsStorageImpl(
         context = application,
-        logger = logger,
     ),
     private val packageInfoProvider: PackageInfoProvider = PackageInfoProviderImpl(application),
     override val sessionManager: SessionManager = SessionManagerImpl(
@@ -188,7 +188,6 @@ internal class TestMeasureInitializer(
         executorServiceRegistry.ioExecutor(),
     ),
     private val deviceAttributeProcessor: DeviceAttributeProcessor = DeviceAttributeProcessor(
-        logger,
         context = application,
         localeProvider = localeProvider,
         osSysConfProvider = osSysConfProvider,
@@ -219,9 +218,6 @@ internal class TestMeasureInitializer(
         installationIdAttributeProcessor,
         networkStateAttributeProcessor,
         powerStateAttributeProcessor,
-    ),
-    private val eventTransformer: EventTransformer = DefaultEventTransformer(
-        configProvider = configProvider,
     ),
     private val signalStore: SignalStore = SignalStoreImpl(
         logger = logger,
@@ -277,10 +273,10 @@ internal class TestMeasureInitializer(
         attributeProcessors = attributeProcessors,
         exceptionExporter = exceptionExporter,
         screenshotCollector = screenshotCollector,
-        eventTransformer = eventTransformer,
         configProvider = configProvider,
     ),
     override val userTriggeredEventCollector: UserTriggeredEventCollector = UserTriggeredEventCollectorImpl(
+        logger = logger,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         processInfoProvider = processInfoProvider,
@@ -337,9 +333,10 @@ internal class TestMeasureInitializer(
     override val appLifecycleManager: AppLifecycleManager = AppLifecycleManager(
         application = application,
     ),
+    override val spanAttributeProcessors: List<AttributeProcessor> = emptyList(),
     private val spanProcessor: SpanProcessor = MsrSpanProcessor(
         signalProcessor = signalProcessor,
-        attributeProcessors = emptyList(),
+        attributeProcessors = spanAttributeProcessors,
         logger = logger,
         configProvider = configProvider,
     ),
@@ -355,7 +352,7 @@ internal class TestMeasureInitializer(
         timeProvider = timeProvider,
         traceSampler = traceSampler,
     ),
-    override val activityLifecycleCollector: ActivityLifecycleCollector = ActivityLifecycleCollector(
+    override val activityLifecycleCollector: DefaultActivityLifecycleCollector = DefaultActivityLifecycleCollector(
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         appLifecycleManager = appLifecycleManager,
@@ -381,7 +378,6 @@ internal class TestMeasureInitializer(
         tracer,
     ),
     override val appLaunchCollector: AppLaunchCollector = AppLaunchCollector(
-        logger = logger,
         application = application,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
@@ -407,6 +403,7 @@ internal class TestMeasureInitializer(
         logger = logger,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
+        configProvider = configProvider,
     ),
     override val spanCollector: SpanCollector = SpanCollector(tracer),
     override val bugReportCollector: BugReportCollector = BugReportCollectorImpl(
@@ -427,11 +424,17 @@ internal class TestMeasureInitializer(
         configProvider = configProvider,
     ),
     override val shakeBugReportCollector: ShakeBugReportCollector = ShakeBugReportCollector(
-        autoLaunchEnabled = configProvider.enableShakeToLaunchBugReport,
         shakeDetector = AccelerometerShakeDetector(
             sensorManager = systemServiceProvider.sensorManager,
             timeProvider = timeProvider,
             configProvider = configProvider,
         ),
+    ),
+    override val internalSignalCollector: InternalSignalCollector = InternalSignalCollector(
+        logger = logger,
+        signalProcessor = signalProcessor,
+        processInfoProvider = processInfoProvider,
+        sessionManager = sessionManager,
+        spanAttributeProcessors = spanAttributeProcessors,
     ),
 ) : MeasureInitializer

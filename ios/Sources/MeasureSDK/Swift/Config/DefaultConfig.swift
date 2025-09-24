@@ -11,9 +11,15 @@ import Foundation
 struct DefaultConfig {
     static let enableLogging = false
     static let sessionSamplingRate: Float = 0.0
+    static let traceSamplingRate: Float = 0.1
     static let trackHttpHeaders = false
     static let trackHttpBody = false
     static let httpHeadersBlocklist: [String] = []
     static let httpUrlBlocklist: [String] = []
     static let httpUrlAllowlist: [String] = []
+    static let autoStart = true
+    static let trackViewControllerLoadTime = true
+    static let screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia
+    static let disallowedCustomHeaders = ["Content-Type", "msr-req-id", "Authorization", "Content-Length"]
+    static let maxEstimatedDiskUsageInMb = 50 // 50MB
 }

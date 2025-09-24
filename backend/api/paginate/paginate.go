@@ -2,12 +2,10 @@ package paginate
 
 import (
 	"backend/api/filter"
-
-	"github.com/google/uuid"
 )
 
 type PaginationID interface {
-	GetID() uuid.UUID
+	GetId() string
 }
 
 // PaginateGroups accepts slice of interface GroupID and computes and
@@ -26,7 +24,7 @@ func Paginate[T PaginationID](groups []T, af *filter.AppFilter) (sliced []T, nex
 
 	start := 0
 	for i := range groups {
-		if groups[i].GetID().String() == af.KeyID {
+		if groups[i].GetId() == af.KeyID {
 			if af.Limit > 0 {
 				start = i + 1
 			} else {

@@ -9,18 +9,20 @@ import Foundation
 
 protocol NetworkChangeCollector {
     func enable()
+    func disable()
 }
 
 final class BaseNetworkChangeCollector: NetworkChangeCollector {
     private let logger: Logger
-    private let eventProcessor: EventProcessor
+    private let signalProcessor: SignalProcessor
     private let timeProvider: TimeProvider
     private let networkChangeDetector: NetworkChangeDetector
     private let networkChangeCallback: NetworkChangeCallback
+    private var isEnabled = AtomicBool(false)
 
-    init(logger: Logger, eventProcessor: EventProcessor, timeProvider: TimeProvider) {
+    init(logger: Logger, signalProcessor: SignalProcessor, timeProvider: TimeProvider) {
         self.logger = logger
-        self.eventProcessor = eventProcessor
+        self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.networkChangeCallback = NetworkChangeCallback()
         self.networkChangeDetector = BaseNetworkChangeDetector(networkChangeCallback: self.networkChangeCallback)
@@ -28,17 +30,27 @@ final class BaseNetworkChangeCollector: NetworkChangeCollector {
     }
 
     func enable() {
-        logger.internalLog(level: .debug, message: "GestureCollector enabled", error: nil, data: nil)
-        networkChangeDetector.start()
+        isEnabled.setTrueIfFalse {
+            networkChangeDetector.start()
+            logger.log(level: .info, message: "NetworkChangeCollector enabled.", error: nil, data: nil)
+        }
+    }
+
+    func disable() {
+        isEnabled.setFalseIfTrue {
+            networkChangeDetector.stop()
+            logger.log(level: .info, message: "NetworkChangeCollector disabled.", error: nil, data: nil)
+        }
     }
 
     func onNetworkChangeCallback(_ data: NetworkChangeData) {
-        eventProcessor.track(data: data,
-                             timestamp: timeProvider.now(),
-                             type: .networkChange,
-                             attributes: nil,
-                             sessionId: nil,
-                             attachments: nil,
-                             userDefinedAttributes: nil)
+        signalProcessor.track(data: data,
+                              timestamp: timeProvider.now(),
+                              type: .networkChange,
+                              attributes: nil,
+                              sessionId: nil,
+                              attachments: nil,
+                              userDefinedAttributes: nil,
+                              threadName: nil)
     }
 }

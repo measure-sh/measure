@@ -12,6 +12,7 @@ import SystemConfiguration
 
 protocol NetworkChangeDetector {
     func start()
+    func stop()
 }
 
 final class BaseNetworkChangeDetector: NetworkChangeDetector {
@@ -20,15 +21,16 @@ final class BaseNetworkChangeDetector: NetworkChangeDetector {
     private var previousNetworkChangeData: NetworkChangeData
     private var lastUpdateTime: Date?
     private let networkChangeCallback: NetworkChangeCallback
+    private var isFirstUpdate = true
 
     init(networkChangeCallback: NetworkChangeCallback) {
-        monitor = NWPathMonitor()
-        queue = DispatchQueue.global(qos: .background)
-        previousNetworkChangeData = NetworkChangeData(previousNetworkType: .unknown,
-                                                      networkType: .unknown,
-                                                      previousNetworkGeneration: .unknown,
-                                                      networkGeneration: .unknown,
-                                                      networkProvider: AttributeConstants.unknown)
+        self.monitor = NWPathMonitor()
+        self.queue = DispatchQueue.global(qos: .background)
+        self.previousNetworkChangeData = NetworkChangeData(previousNetworkType: .unknown,
+                                                           networkType: .unknown,
+                                                           previousNetworkGeneration: .unknown,
+                                                           networkGeneration: .unknown,
+                                                           networkProvider: AttributeConstants.unknown)
         self.networkChangeCallback = networkChangeCallback
     }
 
@@ -36,50 +38,66 @@ final class BaseNetworkChangeDetector: NetworkChangeDetector {
         monitor.pathUpdateHandler = { [weak self] path in
             guard let self = self else { return }
 
-            // Only update once every second
             let now = Date()
-            if let lastUpdateTime = self.lastUpdateTime, now.timeIntervalSince(lastUpdateTime) < 1.0 {
+            if let lastUpdate = self.lastUpdateTime, now.timeIntervalSince(lastUpdate) < 1.0 {
                 return
             }
             self.lastUpdateTime = now
 
             // Detect VPN
             if let networkType = self.detectVpnState() {
-                self.processNetworkChange(newNetworkType: networkType)
+                self.handleNetworkChange(type: networkType)
                 return
             }
 
-            // Normal connectivity states
+            let networkType: NetworkType
             if path.status == .satisfied {
                 if path.usesInterfaceType(.wifi) {
-                    self.processNetworkChange(newNetworkType: .wifi)
+                    networkType = .wifi
                 } else if path.usesInterfaceType(.cellular) {
-                    self.processNetworkChange(newNetworkType: .cellular)
+                    networkType = .cellular
                 } else {
-                    self.processNetworkChange(newNetworkType: .unknown)
+                    networkType = .unknown
                 }
             } else {
-                self.processNetworkChange(newNetworkType: .noNetwork)
+                networkType = .noNetwork
             }
+
+            self.handleNetworkChange(type: networkType)
         }
 
         monitor.start(queue: queue)
     }
 
-    private func processNetworkChange(newNetworkType: NetworkType) {
-        if newNetworkType != previousNetworkChangeData.networkType {
-            previousNetworkChangeData = generateNetworkChangeData(newNetworkType)
-            networkChangeCallback.onNetworkChange(previousNetworkChangeData)
-        }
+    func stop() {
+        monitor.cancel()
     }
 
-    func detectVpnState() -> NetworkType? {
-        let cfDict = CFNetworkCopySystemProxySettings()
-        let nsDict = cfDict!.takeRetainedValue() as NSDictionary
-        if let keys = nsDict["__SCOPED__"] as? NSDictionary {
-            if keys.allKeys.contains(where: { $0 as? String == "tap" || $0 as? String == "tun" }) {
-                return .vpn
-            }
+    private func handleNetworkChange(type newNetworkType: NetworkType) {
+        if isFirstUpdate {
+            previousNetworkChangeData = generateNetworkChangeData(newNetworkType)
+            isFirstUpdate = false
+            return
+        }
+
+        processNetworkChange(newNetworkType: newNetworkType)
+    }
+
+    private func processNetworkChange(newNetworkType: NetworkType) {
+        guard newNetworkType != previousNetworkChangeData.networkType else { return }
+
+        previousNetworkChangeData = generateNetworkChangeData(newNetworkType)
+        networkChangeCallback.onNetworkChange(previousNetworkChangeData)
+    }
+
+    private func detectVpnState() -> NetworkType? {
+        guard let cfDict = CFNetworkCopySystemProxySettings()?.takeRetainedValue() as? [String: Any],
+              let scoped = cfDict["__SCOPED__"] as? [String: Any] else {
+            return nil
+        }
+
+        if scoped.keys.contains(where: { $0.contains("tap") || $0.contains("tun") }) {
+            return .vpn
         }
 
         return nil
@@ -103,14 +121,12 @@ final class BaseNetworkChangeDetector: NetworkChangeDetector {
 
     private func getNetworkGeneration() -> NetworkGeneration {
         let networkInfo = CTTelephonyNetworkInfo()
-        let carrierType = networkInfo.serviceCurrentRadioAccessTechnology
-
-        guard let carrierTypeName = carrierType?.first?.value else {
+        guard let carrierType = networkInfo.serviceCurrentRadioAccessTechnology?.first?.value else {
             return .unknown
         }
 
         if #available(iOS 14.1, *) {
-            switch carrierTypeName {
+            switch carrierType {
             case CTRadioAccessTechnologyGPRS, CTRadioAccessTechnologyEdge, CTRadioAccessTechnologyCDMA1x:
                 return .generation2
             case CTRadioAccessTechnologyLTE:
@@ -121,7 +137,7 @@ final class BaseNetworkChangeDetector: NetworkChangeDetector {
                 return .generation3
             }
         } else {
-            switch carrierTypeName {
+            switch carrierType {
             case CTRadioAccessTechnologyGPRS, CTRadioAccessTechnologyEdge, CTRadioAccessTechnologyCDMA1x:
                 return .generation2
             case CTRadioAccessTechnologyLTE:

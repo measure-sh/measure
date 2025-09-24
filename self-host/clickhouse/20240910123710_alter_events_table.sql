@@ -1,6 +1,6 @@
 -- migrate:up
 alter table events
-add column if not exists `attribute.os_page_size` UInt8 after `attribute.os_version`, comment column `attribute.os_page_size` 'memory page size';
+  add column if not exists `attribute.os_page_size` UInt8 after `attribute.os_version`;
 
 -- migrate:down
 alter table events

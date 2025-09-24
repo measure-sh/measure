@@ -83,14 +83,7 @@ internal interface InternalConfig {
      * All [EventType]'s that are always exported, regardless of other filters like session
      * sampling rate and whether the session crashed or not.
      */
-    val eventTypeExportAllowList: List<String>
-
-    /**
-     * The maximum number of (events + spans) allowed in the database.
-     * If the number of events exceeds this limit, the oldest session is deleted everytime
-     * cleanup is triggered until the total number of events is below this limit.
-     */
-    val maxSignalsInDatabase: Int
+    val eventTypeExportAllowList: List<EventType>
 
     /**
      * Max length of a span name. Defaults to 64.
@@ -129,17 +122,28 @@ internal interface InternalConfig {
     val maxDescriptionLengthInBugReport: Int
 
     /**
-     * The force threshold to trigger a shake (higher = less sensitive). Defaults to 20.
+     * The force threshold to trigger a shake (higher = less sensitive).
+     * Defaults to 2.5 * GRAVITY_EARTH ≈ 24.5 m/s².
      */
     val shakeAccelerationThreshold: Float
 
     /**
-     *  Minimum time between shake detections in milliseconds. Defaults to 1500 ms.
+     *  Minimum time between shake detections in milliseconds. Defaults to 5000 ms.
      */
     val shakeMinTimeIntervalMs: Long
 
     /**
-     * Number of movements required before considering a shake. Defaults to 3.
+     * Number of movements required before considering a shake. Defaults to 2.
      */
     val shakeSlop: Int
+
+    /**
+     * List of custom headers that should not be included.
+     */
+    val disallowedCustomHeaders: List<String>
+
+    /**
+     * The estimated size of one event on disk.
+     */
+    val estimatedEventSizeInKb: Int
 }

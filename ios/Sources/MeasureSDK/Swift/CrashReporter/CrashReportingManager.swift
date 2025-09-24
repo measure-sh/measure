@@ -15,7 +15,8 @@ func measureCrashCallback(info: UnsafeMutablePointer<siginfo_t>?, uap: UnsafeMut
 
 /// A protocol that defines the interface for managing crash reporting and exception tracking.
 protocol CrashReportManager {
-    func enableCrashReporting()
+    func enable()
+    func disable()
     func trackException()
     var hasPendingCrashReport: Bool { get }
 }
@@ -27,22 +28,23 @@ protocol CrashReportManager {
 final class CrashReportingManager: CrashReportManager {
     private var crashReporter: SystemCrashReporter
     private let logger: Logger
-    private let eventProcessor: EventProcessor
+    private let signalProcessor: SignalProcessor
     private let crashDataPersistence: CrashDataPersistence
     private let systemFileManager: SystemFileManager
     private let idProvider: IdProvider
     private let configProvider: ConfigProvider
+    private var isEnabled = AtomicBool(false)
     let hasPendingCrashReport: Bool
 
     init(logger: Logger,
-         eventProcessor: EventProcessor,
+         signalProcessor: SignalProcessor,
          crashDataPersistence: CrashDataPersistence,
          crashReporter: SystemCrashReporter,
          systemFileManager: SystemFileManager,
          idProvider: IdProvider,
          configProvider: ConfigProvider) {
         self.logger = logger
-        self.eventProcessor = eventProcessor
+        self.signalProcessor = signalProcessor
         self.crashDataPersistence = crashDataPersistence
         self.crashReporter = crashReporter
         self.crashReporter.setCrashCallback(measureCrashCallback)
@@ -52,12 +54,20 @@ final class CrashReportingManager: CrashReportManager {
         self.configProvider = configProvider
     }
 
-    func enableCrashReporting() {
-        do {
-            try crashReporter.enable()
-            self.logger.internalLog(level: .info, message: "Crash reporter enabled", error: nil, data: nil)
-        } catch {
-            self.logger.internalLog(level: .error, message: "Failed to enable crash reporter", error: error, data: nil)
+    func enable() {
+        isEnabled.setTrueIfFalse {
+            do {
+                try crashReporter.enable()
+                self.logger.log(level: .info, message: "Crash reporter enabled.", error: nil, data: nil)
+            } catch {
+                self.logger.internalLog(level: .error, message: "Failed to enable crash reporter.", error: error, data: nil)
+            }
+        }
+    }
+
+    func disable() {
+        isEnabled.setFalseIfTrue {
+            self.logger.log(level: .info, message: "Crash reporter disabled.", error: nil, data: nil)
         }
     }
 
@@ -71,15 +81,16 @@ final class CrashReportingManager: CrashReportManager {
         }
 
         let crashDataAttributes = crashDataPersistence.readCrashData()
-        if let attributes = crashDataAttributes.attribute, let sessionId = crashDataPersistence.sessionId {
+        if let attributes = crashDataAttributes.attribute, let sessionId = crashDataAttributes.sessionId {
             exception.foreground = crashDataPersistence.isForeground
-            self.eventProcessor.track(data: exception,
-                                      timestamp: Number(date.timeIntervalSince1970 * 1000),
-                                      type: .exception,
-                                      attributes: attributes,
-                                      sessionId: sessionId,
-                                      attachments: nil,
-                                      userDefinedAttributes: nil)
+            self.signalProcessor.track(data: exception,
+                                       timestamp: Number(date.timeIntervalSince1970 * 1000),
+                                       type: .exception,
+                                       attributes: attributes,
+                                       sessionId: sessionId,
+                                       attachments: nil,
+                                       userDefinedAttributes: nil,
+                                       threadName: nil)
         }
 
         crashReporter.clearCrashData()

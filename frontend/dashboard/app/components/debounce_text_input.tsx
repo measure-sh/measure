@@ -1,52 +1,56 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react'
+import { cn } from '../utils/shadcn_utils'
 
 interface DebounceTextInputProps {
-  id: string;
-  placeholder: string;
-  initialValue: string;
-  onChange: (input: string) => void;
+  className?: string
+  id: string
+  placeholder: string
+  initialValue: string
+  onChange: (input: string) => void
 }
 
 const DebounceTextInput: React.FC<DebounceTextInputProps> = ({
+  className,
   id,
   placeholder,
   initialValue,
   onChange
 }) => {
-  const [inputValue, setInputValue] = useState(initialValue);
+  const [inputValue, setInputValue] = useState(initialValue)
 
   useEffect(() => {
     if (inputValue !== initialValue) {
       setInputValue(initialValue)
     }
-  }, [initialValue]);
+  }, [initialValue])
 
   const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(event.target.value);
-  }, []);
+    setInputValue(event.target.value)
+  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      onChange(inputValue);
-    }, 500);
+      onChange(inputValue)
+    }, 500)
 
     return () => {
-      clearTimeout(timer);
-    };
-  }, [inputValue, onChange]);
+      clearTimeout(timer)
+    }
+  }, [inputValue, onChange])
 
   return (
     <input
       id={id}
       type="text"
       placeholder={placeholder}
-      className="w-full border border-black rounded-md outline-hidden focus-visible:outline-yellow-300 py-2 px-4 font-body placeholder:text-neutral-400"
+      className={cn("w-full font-body border border-black rounded-md p-2 text-sm transition-all outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] placeholder:text-neutral-400", className)}
       value={inputValue}
       onChange={handleInputChange}
     />
-  );
-};
+  )
+}
 
-export default DebounceTextInput;
+
+export default DebounceTextInput

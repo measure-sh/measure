@@ -1,23 +1,24 @@
 "use client"
 
-import { BugReportApiStatus, emptyBugReport, fetchBugReportFromServer, UpdateBugReportStatusApiStatus, updateBugReportStatusFromServer } from "@/app/api/api_calls";
-import Image from 'next/image';
-import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
-import Link from "next/link";
-import { useRouter } from 'next/navigation';
-import { FormEventHandler, useEffect, useState } from "react";
+import { BugReportApiStatus, emptyBugReport, fetchBugReportFromServer, UpdateBugReportStatusApiStatus, updateBugReportStatusFromServer } from "@/app/api/api_calls"
+import { Button, buttonVariants } from "@/app/components/button"
+import LoadingSpinner from "@/app/components/loading_spinner"
+import { cn } from "@/app/utils/shadcn_utils"
+import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
+import { toastNegative, toastPositive } from "@/app/utils/use_toast"
+import Image from 'next/image'
+import Link from "next/link"
+import { FormEventHandler, useEffect, useState } from "react"
 
 export default function BugReport({ params }: { params: { teamId: string, appId: string, bugReportId: string } }) {
-  const router = useRouter()
-
-  const [bugReport, setBugReport] = useState(emptyBugReport);
-  const [bugReportApiStatus, setBugReportApiStatus] = useState(BugReportApiStatus.Loading);
-  const [updateBugReportStatusApiStatus, setUpdateBugReportStatusApiStatus] = useState(UpdateBugReportStatusApiStatus.Init);
+  const [bugReport, setBugReport] = useState(emptyBugReport)
+  const [bugReportApiStatus, setBugReportApiStatus] = useState(BugReportApiStatus.Loading)
+  const [updateBugReportStatusApiStatus, setUpdateBugReportStatusApiStatus] = useState(UpdateBugReportStatusApiStatus.Init)
 
   const getBugReport = async () => {
     setBugReportApiStatus(BugReportApiStatus.Loading)
 
-    const result = await fetchBugReportFromServer(params.appId, params.bugReportId, router)
+    const result = await fetchBugReportFromServer(params.appId, params.bugReportId)
 
     switch (result.status) {
       case BugReportApiStatus.Error:
@@ -32,36 +33,37 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
 
   useEffect(() => {
     getBugReport()
-  }, []);
+  }, [])
 
 
   const updateBugReportStatus: FormEventHandler = async (event) => {
-    event.preventDefault();
+    event.preventDefault()
 
     setUpdateBugReportStatusApiStatus(UpdateBugReportStatusApiStatus.Loading)
 
-    const result = await updateBugReportStatusFromServer(params.appId, params.bugReportId, bugReport.status === 0 ? 1 : 0, router)
+    const result = await updateBugReportStatusFromServer(params.appId, params.bugReportId, bugReport.status === 0 ? 1 : 0)
 
     switch (result.status) {
       case UpdateBugReportStatusApiStatus.Error:
         setUpdateBugReportStatusApiStatus(UpdateBugReportStatusApiStatus.Error)
+        toastNegative("Error updating bug report status. Please try again.")
         break
       case UpdateBugReportStatusApiStatus.Success:
         setUpdateBugReportStatusApiStatus(UpdateBugReportStatusApiStatus.Success)
         setBugReport({ ...bugReport, status: bugReport.status === 0 ? 1 : 0 }) // Toggle status
+        toastPositive(bugReport.status === 0 ? "Bug report closed" : "Bug report re-opened")
         break
     }
   }
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-      <div className="py-4" />
+    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
       <p className="font-display text-4xl">Bug Report: {params.bugReportId}</p>
       <div className="py-2" />
 
-      {bugReportApiStatus === BugReportApiStatus.Loading && <p className="text-lg font-display">Fetching bug report...</p>}
+      {bugReportApiStatus === BugReportApiStatus.Loading && <LoadingSpinner />}
 
-      {bugReportApiStatus === BugReportApiStatus.Error && <p className="text-lg font-display">Error fetching bug report, please refresh page try again</p>}
+      {bugReportApiStatus === BugReportApiStatus.Error && <p className="font-body text-sm">Error fetching bug report, please refresh page try again</p>}
 
       {bugReportApiStatus === BugReportApiStatus.Success &&
         <div>
@@ -84,11 +86,16 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
           {bugReport.description && <p className="font-body text-lg">{bugReport.description}</p>}
           <div className="py-8" />
           <div className="flex flex-row">
-            <Link href={`/${params.teamId}/sessions/${params.appId}/${bugReport.session_id}`} className="outline-hidden justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4">View Session</Link>
+            <Link href={`/${params.teamId}/sessions/${params.appId}/${bugReport.session_id}`} className={cn(buttonVariants({ variant: "outline" }), "font-display border border-black rounded-md select-none")}>View Session</Link>
             <div className="px-2" />
-            <button onClick={updateBugReportStatus} disabled={updateBugReportStatusApiStatus === UpdateBugReportStatusApiStatus.Loading} className={`w-fit outline-hidden hover:enabled:bg-yellow-200 focus-visible:enabled:bg-yellow-200 active:enabled:bg-yellow-300 font-display border border-black rounded-md transition-colors duration-100 py-2 px-4 ${(updateBugReportStatusApiStatus === UpdateBugReportStatusApiStatus.Loading) ? 'pointer-events-none' : 'pointer-events-auto'}`}>{bugReport.status === 0 ? "Close Bug Report" : "Re-Open Bug Report"}</button>
+            <Button
+              variant="outline"
+              className="w-fit font-display border border-black select-none"
+              disabled={updateBugReportStatusApiStatus === UpdateBugReportStatusApiStatus.Loading}
+              onClick={updateBugReportStatus}>
+              {bugReport.status === 0 ? "Close Bug Report" : "Re-Open Bug Report"}
+            </Button>
           </div>
-          {updateBugReportStatusApiStatus === UpdateBugReportStatusApiStatus.Error && <p className="font-display text-xs mt-2">Error updating bug report status. Please try again.</p>}
 
           <div className="py-4" />
           {bugReport.attachments !== undefined && bugReport.attachments !== null && bugReport.attachments.length > 0 &&

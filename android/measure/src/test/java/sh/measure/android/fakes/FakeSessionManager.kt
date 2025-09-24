@@ -1,20 +1,22 @@
 package sh.measure.android.fakes
 
+import sh.measure.android.SessionInitResult
 import sh.measure.android.SessionManager
 import sh.measure.android.events.Event
 
 internal class FakeSessionManager : SessionManager {
+    var session = "fake-session-id"
     var crashedSession = ""
     var crashedSessions = mutableListOf<String>()
     var onEventTracked = false
     var markedSessionWithBugReport = false
 
-    override fun init() {
-        // no-op
+    override fun init(): SessionInitResult {
+        return SessionInitResult.NewSessionCreated(session)
     }
 
     override fun getSessionId(): String {
-        return "fake-session-id"
+        return session
     }
 
     override fun markCrashedSession(sessionId: String) {

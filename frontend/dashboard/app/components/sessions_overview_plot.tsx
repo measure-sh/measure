@@ -1,12 +1,11 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
-import { SessionsOverviewPlotApiStatus, fetchSessionsOverviewPlotFromServer } from '../api/api_calls';
-import { useRouter } from 'next/navigation';
-import { formatDateToHumanReadableDate } from '../utils/time_utils';
-import { Filters } from './filters';
-import LoadingSpinner from './loading_spinner';
+import React, { useEffect, useState } from 'react'
+import { SessionsOverviewPlotApiStatus, fetchSessionsOverviewPlotFromServer } from '../api/api_calls'
+import { formatDateToHumanReadableDate } from '../utils/time_utils'
+import { Filters } from './filters'
+import LoadingSpinner from './loading_spinner'
 
 interface SessionsOverviewPlotProps {
   filters: Filters
@@ -22,10 +21,8 @@ type SessionsOverviewPlot = {
 }[]
 
 const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) => {
-  const router = useRouter()
-
-  const [sessionsOverviewPlotApiStatus, setSessionsOverviewPlotApiStatus] = useState(SessionsOverviewPlotApiStatus.Loading);
-  const [plot, setPlot] = useState<SessionsOverviewPlot>();
+  const [sessionsOverviewPlotApiStatus, setSessionsOverviewPlotApiStatus] = useState(SessionsOverviewPlotApiStatus.Loading)
+  const [plot, setPlot] = useState<SessionsOverviewPlot>()
 
   const getSessionsOverviewPlot = async () => {
     // Don't try to fetch plot if filters aren't ready
@@ -35,7 +32,7 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) 
 
     setSessionsOverviewPlotApiStatus(SessionsOverviewPlotApiStatus.Loading)
 
-    const result = await fetchSessionsOverviewPlotFromServer(filters, router)
+    const result = await fetchSessionsOverviewPlotFromServer(filters)
 
     switch (result.status) {
       case SessionsOverviewPlotApiStatus.Error:
@@ -64,10 +61,10 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) 
 
   useEffect(() => {
     getSessionsOverviewPlot()
-  }, [filters]);
+  }, [filters])
 
   return (
-    <div className="flex border border-black font-body items-center justify-center w-full h-[36rem]">
+    <div className="flex font-body items-center justify-center w-full h-[36rem]">
       {sessionsOverviewPlotApiStatus === SessionsOverviewPlotApiStatus.Loading && <LoadingSpinner />}
       {sessionsOverviewPlotApiStatus === SessionsOverviewPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {sessionsOverviewPlotApiStatus === SessionsOverviewPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
@@ -75,8 +72,10 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) 
         <ResponsiveLine
           data={plot!}
           curve="monotoneX"
+          enableArea={true}
+          areaOpacity={0.1}
           colors={{ scheme: 'nivo' }}
-          margin={{ top: 40, right: 120, bottom: 120, left: 120 }}
+          margin={{ top: 40, right: 40, bottom: 140, left: 100 }}
           xFormat="time:%Y-%m-%d"
           xScale={{
             format: '%Y-%m-%d',
@@ -86,7 +85,7 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) 
           }}
           yScale={{
             type: 'linear',
-            min: 'auto',
+            min: 0,
             max: 'auto'
           }}
           yFormat="d"
@@ -108,10 +107,11 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) 
             legendOffset: -80,
             legendPosition: 'middle'
           }}
-          pointSize={3}
-          pointBorderWidth={2}
+          pointSize={6}
+          pointBorderWidth={1.5}
+          pointColor={"rgba(255, 255, 255, 255)"}
           pointBorderColor={{
-            from: 'color',
+            from: 'serieColor',
             modifiers: [
               [
                 'darker',
@@ -121,10 +121,12 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) 
           }}
           pointLabelYOffset={-12}
           useMesh={true}
+          enableGridX={false}
+          enableGridY={false}
           enableSlices="x"
           sliceTooltip={({ slice }) => {
             return (
-              <div className="bg-neutral-950 text-white flex flex-col p-2 text-xs">
+              <div className="bg-neutral-800 text-white flex flex-col p-2 text-xs rounded-md">
                 <p className='p-2'>Date: {formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
                 {slice.points.map((point) => (
                   <div className="flex flex-row items-center p-2" key={point.id}>
@@ -142,6 +144,6 @@ const SessionsOverviewPlot: React.FC<SessionsOverviewPlotProps> = ({ filters }) 
     </div>
   )
 
-};
+}
 
-export default SessionsOverviewPlot;
+export default SessionsOverviewPlot

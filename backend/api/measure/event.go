@@ -7,7 +7,7 @@ import (
 	"backend/api/group"
 	"backend/api/inet"
 	"backend/api/numeric"
-	"backend/api/platform"
+	"backend/api/opsys"
 	"backend/api/server"
 	"backend/api/span"
 	"backend/api/symbolicator"
@@ -18,6 +18,7 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -74,7 +75,7 @@ type eventreq struct {
 	id                     uuid.UUID
 	appId                  uuid.UUID
 	status                 status
-	platform               string
+	osName                 string
 	symbolicateEvents      map[uuid.UUID]int
 	symbolicateSpans       map[string]int
 	exceptionIds           []int
@@ -110,6 +111,14 @@ func (e *eventreq) uploadAttachments(ctx context.Context) error {
 		ext := filepath.Ext(attachment.name)
 		key := attachment.id.String() + ext
 
+		// pre-fill the key and location
+		attachment.key = key
+		// for now, we construct the location manually
+		// implement a better solution later using
+		// EndpointResolverV2 with custom resolvers
+		// for non-AWS clouds like GCS
+		attachment.location = event.BuildAttachmentLocation(key)
+
 		eventAttachment := event.Attachment{
 			ID:   id,
 			Name: key,
@@ -123,14 +132,13 @@ func (e *eventreq) uploadAttachments(ctx context.Context) error {
 
 		eventAttachment.Reader = file
 
-		location, err := eventAttachment.Upload(ctx)
-		if err != nil {
-			return err
-		}
+		go func() {
+			if err := eventAttachment.Upload(ctx); err != nil {
+				fmt.Printf("failed to upload attachment async: key: %s : %v\n", key, err)
+			}
+		}()
 
 		attachment.uploaded = true
-		attachment.key = key
-		attachment.location = location
 	}
 
 	return nil
@@ -254,11 +262,11 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 			ev.HotLaunch.Compute()
 		}
 
-		// read platfrom from payload
+		// read OS name from payload
 		// if we haven't figured out
-		// platform already.
-		if e.platform == "" {
-			e.platform = ev.Attribute.Platform
+		// already.
+		if e.osName == "" {
+			e.osName = strings.ToLower(ev.Attribute.OSName)
 		}
 
 		e.events = append(e.events, ev)
@@ -292,11 +300,11 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 			e.symbolicateSpans[sp.SpanName] = i
 		}
 
-		// read platfrom from payload
+		// read OS name from payload
 		// if we haven't figured out
-		// platform already.
-		if e.platform == "" {
-			e.platform = sp.Attributes.Platform
+		// already.
+		if e.osName == "" {
+			e.osName = strings.ToLower(sp.Attributes.OSName)
 		}
 
 		e.spans = append(e.spans, sp)
@@ -406,10 +414,10 @@ func (e eventreq) getRequest(ctx context.Context) (r *eventreq, err error) {
 // storage.
 func (e eventreq) start(ctx context.Context) (err error) {
 	stmt := sqlf.PostgreSQL.
-		InsertInto(`public.event_reqs`).
+		InsertInto(`event_reqs`).
 		Set(`id`, e.id).
 		Set(`app_id`, e.appId).
-		Set(`status`, pending)
+		Set(`status`, int(pending))
 
 	defer stmt.Close()
 
@@ -422,14 +430,14 @@ func (e eventreq) start(ctx context.Context) (err error) {
 // status as "done" along with additional even request
 // related metadata.
 func (e eventreq) end(ctx context.Context, tx *pgx.Tx) (err error) {
-	stmt := sqlf.PostgreSQL.Update(`public.event_reqs`).
+	stmt := sqlf.PostgreSQL.Update(`event_reqs`).
 		Set(`event_count`, len(e.events)).
 		Set(`span_count`, len(e.spans)).
 		Set(`attachment_count`, len(e.attachments)).
 		Set(`session_count`, e.sessionCount()).
 		Set(`bytes_in`, e.size).
 		Set(`symbolication_attempts_count`, e.symbolicationAttempted).
-		Set(`status`, done).
+		Set(`status`, int(done)).
 		Where("id = ? and app_id = ?", e.id, e.appId)
 
 	defer stmt.Close()
@@ -458,7 +466,7 @@ func (e eventreq) cleanup(ctx context.Context) (err error) {
 	switch *s {
 	case pending:
 		// remove event request in pending state
-		stmt := sqlf.PostgreSQL.DeleteFrom(`event_reqs`).Where("id = ? and app_id = ? and status = ?", e.id, e.appId, pending)
+		stmt := sqlf.PostgreSQL.DeleteFrom(`event_reqs`).Where("id = ? and app_id = ? and status = ?", e.id, e.appId, int(pending))
 
 		defer stmt.Close()
 
@@ -511,12 +519,8 @@ func (e eventreq) getANRs() (events []event.EventField) {
 
 // bucketUnhandledExceptions groups unhandled exceptions
 // based on similarity.
-func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (err error) {
+func (e eventreq) bucketUnhandledExceptions(ctx context.Context) (err error) {
 	events := e.getUnhandledExceptions()
-
-	app := App{
-		ID: &e.appId,
-	}
 
 	for i := range events {
 		if events[i].Exception.Fingerprint == "" {
@@ -525,24 +529,9 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (er
 			continue
 		}
 
-		matchedGroup, err := app.GetExceptionGroupByFingerprint(ctx, events[i].Exception.Fingerprint)
-		if err != nil {
+		exceptionGroup := group.NewExceptionGroup(events[i].AppID, events[i].Exception.Fingerprint, events[i].Exception.GetType(), events[i].Exception.GetMessage(), events[i].Exception.GetMethodName(), events[i].Exception.GetFileName(), events[i].Exception.GetLineNumber(), events[i].Timestamp)
+		if err := exceptionGroup.Insert(ctx); err != nil {
 			return err
-		}
-
-		if matchedGroup == nil {
-			exceptionGroup := group.NewExceptionGroup(events[i].AppID, events[i].Exception.GetType(), events[i].Exception.GetMessage(), events[i].Exception.GetMethodName(), events[i].Exception.GetFileName(), events[i].Exception.GetLineNumber(), events[i].Exception.Fingerprint, events[i].Timestamp)
-			if err := exceptionGroup.Insert(ctx, tx); err != nil {
-				return err
-			}
-
-			return nil
-		}
-
-		if !matchedGroup.EventExists(events[i].ID) {
-			if err := matchedGroup.UpdateTimeStamps(ctx, &events[i], tx); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -550,12 +539,8 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context, tx *pgx.Tx) (er
 }
 
 // bucketANRs groups ANRs based on similarity.
-func (e eventreq) bucketANRs(ctx context.Context, tx *pgx.Tx) (err error) {
+func (e eventreq) bucketANRs(ctx context.Context) (err error) {
 	events := e.getANRs()
-
-	app := App{
-		ID: &e.appId,
-	}
 
 	for i := range events {
 		if events[i].ANR.Fingerprint == "" {
@@ -564,24 +549,9 @@ func (e eventreq) bucketANRs(ctx context.Context, tx *pgx.Tx) (err error) {
 			continue
 		}
 
-		matchedGroup, err := app.GetANRGroupByFingerprint(ctx, events[i].ANR.Fingerprint)
-		if err != nil {
+		anrGroup := group.NewANRGroup(events[i].AppID, events[i].ANR.Fingerprint, events[i].ANR.GetType(), events[i].ANR.GetMessage(), events[i].ANR.GetMethodName(), events[i].ANR.GetFileName(), events[i].ANR.GetLineNumber(), events[i].Timestamp)
+		if err := anrGroup.Insert(ctx); err != nil {
 			return err
-		}
-
-		if matchedGroup == nil {
-			anrGroup := group.NewANRGroup(events[i].AppID, events[i].ANR.GetType(), events[i].ANR.GetMessage(), events[i].ANR.GetMethodName(), events[i].ANR.GetFileName(), events[i].ANR.GetLineNumber(), events[i].ANR.Fingerprint, events[i].Timestamp)
-			if err := anrGroup.Insert(ctx, tx); err != nil {
-				return err
-			}
-
-			return nil
-		}
-
-		if !matchedGroup.EventExists(events[i].ID) {
-			if err := matchedGroup.UpdateTimeStamps(ctx, &events[i], tx); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -661,7 +631,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		return nil
 	}
 
-	stmt := sqlf.InsertInto(`default.events`)
+	stmt := sqlf.InsertInto(`events`)
 	defer stmt.Close()
 
 	for i := range e.events {
@@ -671,6 +641,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		exceptionThreads := "[]"
 		attachments := "[]"
 		binaryImages := "[]"
+		error := "{}"
 
 		if e.events[i].IsANR() {
 			marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
@@ -709,6 +680,15 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 					return err
 				}
 				binaryImages = string(marshalledImages)
+			}
+
+			if e.events[i].Exception.HasError() {
+				marshalledError, err := json.Marshal(e.events[i].Exception.Error)
+				if err != nil {
+					return err
+				}
+
+				error = string(marshalledError)
 			}
 		}
 
@@ -792,7 +772,9 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.exceptions`, exceptionExceptions).
 				Set(`exception.threads`, exceptionThreads).
 				Set(`exception.foreground`, e.events[i].Exception.Foreground).
-				Set(`exception.binary_images`, binaryImages)
+				Set(`exception.binary_images`, binaryImages).
+				Set(`exception.framework`, e.events[i].Exception.GetFramework()).
+				Set(`exception.error`, error)
 		} else {
 			row.
 				Set(`exception.handled`, nil).
@@ -800,7 +782,9 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.exceptions`, nil).
 				Set(`exception.threads`, nil).
 				Set(`exception.foreground`, nil).
-				Set(`exception.binary_images`, nil)
+				Set(`exception.binary_images`, nil).
+				Set(`exception.framework`, nil).
+				Set(`exception.error`, nil)
 		}
 
 		// app exit
@@ -1278,6 +1262,30 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
 }
 
+func (e *eventreq) countMetrics() (sessionCount, eventCount, spanCount, traceCount, attachmentCount uint32) {
+	eventCount = uint32(len(e.events))
+
+	sessionCount = 0
+	for _, ev := range e.events {
+		if ev.Type == event.TypeSessionStart {
+			sessionCount++
+		}
+	}
+
+	attachmentCount = uint32(len(e.attachments))
+
+	traceCount = uint32(0)
+	for _, span := range e.spans {
+		if span.ParentID == "" {
+			traceCount++
+		}
+	}
+
+	spanCount = uint32(len(e.spans))
+
+	return sessionCount, eventCount, spanCount, traceCount, attachmentCount
+}
+
 // sessionCount counts and provides the number of
 // sessions in event request.
 func (e eventreq) sessionCount() (count int) {
@@ -1347,9 +1355,10 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		Select("toString(attribute.network_type) network_type").
 		Select("exception.exceptions exceptions").
 		Select("exception.threads threads").
+		Select("exception.framework framework").
 		Select("attachments").
 		Select(fmt.Sprintf("row_number() over (order by timestamp %s, id) as row_num", order)).
-		Clause(prewhere, af.AppID, group.Fingerprint).
+		Clause(prewhere, af.AppID, group.ID).
 		Where("(attribute.app_version, attribute.app_build) in (?)", selectedVersions.Parameterize()).
 		Where("(attribute.os_name, attribute.os_version) in (?)", selectedOSVersions.Parameterize()).
 		Where("type = ?", event.TypeException).
@@ -1373,7 +1382,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		substmt.Clause("AND id in").SubQuery("(", ")", subQuery)
 	}
 
-	substmt.GroupBy("id, type, timestamp, session_id, attribute.app_version, attribute.app_build, attribute.device_manufacturer, attribute.device_model, attribute.network_type, exceptions, threads, attachments")
+	substmt.GroupBy("id, type, timestamp, session_id, attribute.app_version, attribute.app_build, attribute.device_manufacturer, attribute.device_model, attribute.network_type, exceptions, threads, framework, attachments")
 
 	stmt := sqlf.New("with ? as page_size, ? as last_timestamp, ? as last_id select", pageSize, keyTimestamp, af.KeyID)
 
@@ -1393,6 +1402,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		Select("network_type").
 		Select("exceptions").
 		Select("threads").
+		Select("toString(framework)").
 		Select("attachments").
 		From("").
 		SubQuery("(", ") as t", substmt).
@@ -1411,8 +1421,7 @@ func GetExceptionsWithFilter(ctx context.Context, group *group.ExceptionGroup, a
 		var exceptions string
 		var threads string
 		var attachments string
-
-		if err = rows.Scan(&e.ID, &e.Type, &e.Timestamp, &e.SessionID, &e.Attribute.AppVersion, &e.Attribute.AppBuild, &e.Attribute.DeviceManufacturer, &e.Attribute.DeviceModel, &e.Attribute.NetworkType, &exceptions, &threads, &attachments); err != nil {
+		if err = rows.Scan(&e.ID, &e.Type, &e.Timestamp, &e.SessionID, &e.Attribute.AppVersion, &e.Attribute.AppBuild, &e.Attribute.DeviceManufacturer, &e.Attribute.DeviceModel, &e.Attribute.NetworkType, &exceptions, &threads, &e.Exception.Framework, &attachments); err != nil {
 			return
 		}
 
@@ -1621,7 +1630,7 @@ func GetANRsWithFilter(ctx context.Context, group *group.ANRGroup, af *filter.Ap
 		Select("anr.threads threads").
 		Select("attachments").
 		Select(fmt.Sprintf("row_number() over (order by timestamp %s, id) as row_num", order)).
-		Clause(prewhere, af.AppID, group.Fingerprint).
+		Clause(prewhere, af.AppID, group.ID).
 		Where("(attribute.app_version, attribute.app_build) in (?)", selectedVersions.Parameterize()).
 		Where("(attribute.os_name, attribute.os_version) in (?)", selectedOSVersions.Parameterize()).
 		Where("type = ?", event.TypeANR).
@@ -1850,17 +1859,17 @@ func GetIssuesAttributeDistribution(ctx context.Context, g group.IssueGroup, af 
 	switch g.(type) {
 	case *group.ANRGroup:
 		groupType = event.TypeANR
-		fingerprint = g.(*group.ANRGroup).GetFingerprint()
+		fingerprint = g.(*group.ANRGroup).GetId()
 	case *group.ExceptionGroup:
 		groupType = event.TypeException
-		fingerprint = g.(*group.ExceptionGroup).GetFingerprint()
+		fingerprint = g.(*group.ExceptionGroup).GetId()
 	default:
 		err := errors.New("couldn't determine correct type of issue group")
 		return nil, err
 	}
 
 	stmt := sqlf.
-		From("default.events").
+		From("events").
 		Select("concat(toString(attribute.app_version), ' (', toString(attribute.app_build), ')') as app_version").
 		Select("concat(toString(attribute.os_name), ' ', toString(attribute.os_version)) as os_version").
 		Select("toString(inet.country_code) as country").
@@ -1977,7 +1986,7 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 		return nil, errors.New("missing timezone filter")
 	}
 
-	fingerprint := g.GetFingerprint()
+	fingerprint := g.GetId()
 	groupType := event.TypeException
 
 	switch g.(type) {
@@ -2098,7 +2107,7 @@ func PutEvents(c *gin.Context) {
 	msg := `failed to parse event request payload`
 	eventReq := eventreq{
 		appId:             appId,
-		platform:          app.Platform,
+		osName:            app.OSName,
 		symbolicateEvents: make(map[uuid.UUID]int),
 		symbolicateSpans:  make(map[string]int),
 		attachments:       make(map[uuid.UUID]*blob),
@@ -2226,22 +2235,34 @@ func PutEvents(c *gin.Context) {
 	if eventReq.needsSymbolication() {
 		config := server.Server.Config
 		origin := config.SymbolicatorOrigin
-		pltfrm := eventReq.platform
+		osName := eventReq.osName
 		sources := []symbolicator.Source{}
 
 		// configure correct sources as per
-		// platform
-		switch pltfrm {
-		case platform.Android:
-			sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-		case platform.IOS:
+		// OS
+		switch opsys.ToFamily(osName) {
+		case opsys.Android:
+			if config.IsCloud() {
+				privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
+				clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
+				sources = append(sources, symbolicator.NewGCSSourceAndroid("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
+			} else {
+				sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+			}
+		case opsys.AppleFamily:
 			// by default only symbolicate app's own symbols. to symbolicate iOS
 			// system framework symbols, append a GCSSourceApple source containing
 			// all iOS system framework symbol debug information files.
-			sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+			if config.IsCloud() {
+				privateKey := os.Getenv("SYMBOLS_READER_SA_KEY")
+				clientEmail := os.Getenv("SYMBOLS_READER_SA_EMAIL")
+				sources = append(sources, symbolicator.NewGCSSourceApple("msr-symbols", config.SymbolsBucket, privateKey, clientEmail))
+			} else {
+				sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+			}
 		}
 
-		symblctr := symbolicator.New(origin, pltfrm, sources)
+		symblctr := symbolicator.New(origin, osName, sources)
 
 		// start span to trace symbolication
 		symbolicationTracer := otel.Tracer("symbolication-tracer")
@@ -2335,7 +2356,7 @@ func PutEvents(c *gin.Context) {
 
 	defer bucketUnhandledExceptionsSpan.End()
 
-	if err := eventReq.bucketUnhandledExceptions(ctx, &tx); err != nil {
+	if err := eventReq.bucketUnhandledExceptions(ctx); err != nil {
 		msg := `failed to bucket unhandled exceptions`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -2350,7 +2371,7 @@ func PutEvents(c *gin.Context) {
 
 	defer bucketAnrsSpan.End()
 
-	if err := eventReq.bucketANRs(ctx, &tx); err != nil {
+	if err := eventReq.bucketANRs(ctx); err != nil {
 		msg := `failed to bucket anrs`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -2362,10 +2383,10 @@ func PutEvents(c *gin.Context) {
 	if !app.Onboarded && len(eventReq.events) > 0 {
 		firstEvent := eventReq.events[0]
 		uniqueID := firstEvent.Attribute.AppUniqueID
-		platform := firstEvent.Attribute.Platform
+		osName := strings.ToLower(firstEvent.Attribute.OSName)
 		version := firstEvent.Attribute.AppVersion
 
-		if err := app.Onboard(ctx, &tx, uniqueID, platform, version); err != nil {
+		if err := app.Onboard(ctx, &tx, uniqueID, osName, version); err != nil {
 			msg := `failed to onboard app`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -2377,6 +2398,74 @@ func PutEvents(c *gin.Context) {
 
 	if err := eventReq.end(ctx, &tx); err != nil {
 		msg := `failed to save event request`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	// get team id from app id
+	var teamID string
+	teamIdForAppQuery := sqlf.PostgreSQL.From("apps").
+		Select("team_id").
+		Where("id = ?", app.ID)
+	defer teamIdForAppQuery.Close()
+
+	if err := server.Server.PgPool.QueryRow(ctx, teamIdForAppQuery.String(), teamIdForAppQuery.Args()...).Scan(&teamID); err != nil {
+		msg := `failed to get team id for app`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	// get retention period for app
+	var retentionPeriod int
+	retentionPeriodQuery := sqlf.PostgreSQL.From("app_settings").
+		Select("retention_period").
+		Where("app_id = ?", app.ID)
+	defer retentionPeriodQuery.Close()
+
+	if err := server.Server.PgPool.QueryRow(ctx, retentionPeriodQuery.String(), retentionPeriodQuery.Args()...).Scan(&retentionPeriod); err != nil {
+		msg := `failed to get app retention period`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	sessionCount, eventCount, spanCount, traceCount, attachmentCount := eventReq.countMetrics()
+	sessionCountDays := sessionCount * uint32(retentionPeriod)
+	eventCountDays := eventCount * uint32(retentionPeriod)
+	spanCountDays := spanCount * uint32(retentionPeriod)
+	traceCountDays := traceCount * uint32(retentionPeriod)
+	attachmentCountDays := attachmentCount * uint32(retentionPeriod)
+
+	// insert metrics into clickhouse table
+	insertMetricsIngestionSelectStmt := sqlf.
+		Select("? AS team_id", teamID).
+		Select("? AS app_id", app.ID).
+		Select("? AS timestamp", time.Now()).
+		Select("sumState(CAST(? AS UInt32)) AS session_count", sessionCount).
+		Select("sumState(CAST(? AS UInt32)) AS event_count", eventCount).
+		Select("sumState(CAST(? AS UInt32)) AS span_count", spanCount).
+		Select("sumState(CAST(? AS UInt32)) AS trace_count", traceCount).
+		Select("sumState(CAST(? AS UInt32)) AS attachment_count", attachmentCount).
+		Select("sumState(CAST(? AS UInt32)) AS session_count_days", sessionCountDays).
+		Select("sumState(CAST(? AS UInt32)) AS event_count_days", eventCountDays).
+		Select("sumState(CAST(? AS UInt32)) AS span_count_days", spanCountDays).
+		Select("sumState(CAST(? AS UInt32)) AS trace_count_days", traceCountDays).
+		Select("sumState(CAST(? AS UInt32)) AS attachment_count_days", attachmentCountDays)
+	selectSQL := insertMetricsIngestionSelectStmt.String()
+	args := insertMetricsIngestionSelectStmt.Args()
+	defer insertMetricsIngestionSelectStmt.Close()
+	insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
+
+	if err := server.Server.ChPool.AsyncInsert(ctx, insertMetricsIngestionFullStmt, false, args...); err != nil {
+		msg := `failed to insert metrics into clickhouse`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,

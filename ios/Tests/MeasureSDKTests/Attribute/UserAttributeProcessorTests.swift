@@ -16,7 +16,7 @@ final class UserAttributeProcessorTests: XCTestCase {
     override func setUp() {
         super.setUp()
         userDefaultStorage = MockUserDefaultStorage()
-        userAttributeProcessor = UserAttributeProcessor(userDefaultStorage: userDefaultStorage)
+        userAttributeProcessor = UserAttributeProcessor(userDefaultStorage: userDefaultStorage, measureDispatchQueue: MockMeasureDispatchQueue())
         attributes = Attributes()
     }
 
@@ -46,7 +46,7 @@ final class UserAttributeProcessorTests: XCTestCase {
     func testAppendsUserIdToAttributesFromMemory() {
         userAttributeProcessor.setUserId("user-id")
 
-        userAttributeProcessor.appendAttributes(&attributes)
+        userAttributeProcessor.appendAttributes(attributes)
 
         XCTAssertEqual("user-id", attributes.userId)
     }
@@ -54,7 +54,7 @@ final class UserAttributeProcessorTests: XCTestCase {
     func testAppendsUserIdToAttributesFromUserDefaults() {
         userDefaultStorage.setUserId("user-id")
 
-        userAttributeProcessor.appendAttributes(&attributes)
+        userAttributeProcessor.appendAttributes(attributes)
 
         XCTAssertEqual("user-id", attributes.userId)
     }

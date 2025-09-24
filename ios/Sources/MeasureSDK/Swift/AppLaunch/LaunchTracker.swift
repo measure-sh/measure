@@ -14,9 +14,17 @@ let isActivePrewarm: Bool = {
     return environment["ActivePrewarm"] == "1"
 }()
 
+enum LaunchState {
+    case launching              // initial cold start, waiting for first active
+    case inactiveDuringLaunch   // resigned before becoming active → skip
+    case active                 // app active at least once
+    case foregrounded           // returned from background
+}
+
 protocol LaunchTracker {
-    func start()
-    func stop()
+    func applicationWillEnterForeground()
+    func applicationDidBecomeActive()
+    func applicationWillResignActive()
 }
 
 final class BaseLaunchTracker: LaunchTracker {
@@ -24,47 +32,58 @@ final class BaseLaunchTracker: LaunchTracker {
     private let timeProvider: TimeProvider
     private let sysCtl: SysCtl
     private let logger: Logger
-    private var willEnterForegroundTimestamp: UnsignedNumber?
-    private var isLaunching: Bool
     private let userDefaultStorage: UserDefaultStorage
     private let currentAppVersion: String
+    private var state: LaunchState
+    private var willEnterForegroundTimestamp: UnsignedNumber?
 
-    init(launchCallbacks: LaunchCallbacks, timeProvider: TimeProvider, sysCtl: SysCtl, logger: Logger, userDefaultStorage: UserDefaultStorage, currentAppVersion: String) {
+    init(launchCallbacks: LaunchCallbacks,
+         timeProvider: TimeProvider,
+         sysCtl: SysCtl,
+         logger: Logger,
+         userDefaultStorage: UserDefaultStorage,
+         currentAppVersion: String) {
         self.launchCallbacks = launchCallbacks
         self.timeProvider = timeProvider
         self.sysCtl = sysCtl
         self.logger = logger
-        self.isLaunching = true
         self.userDefaultStorage = userDefaultStorage
         self.currentAppVersion = currentAppVersion
+        self.state = .launching
     }
 
-    func start() {
-        NotificationCenter.default.addObserver(self,
-                                               selector: #selector(onDidBecomeActive),
-                                               name: UIApplication.didBecomeActiveNotification,
-                                               object: nil)
-        NotificationCenter.default.addObserver(self,
-                                               selector: #selector(onWillEnterForeground),
-                                               name: UIApplication.willEnterForegroundNotification,
-                                               object: nil)
-    }
-
-    func stop() {
-        removeObserver()
-    }
-
-    @objc private func onDidBecomeActive(_ notification: Notification) {
-        if isLaunching {
-            isLaunching = false
-            processAppLaunchData()
-        } else if let willEnterForegroundTimestamp = self.willEnterForegroundTimestamp {
-            generateHotLaunchData(appVisibleUptime: willEnterForegroundTimestamp, onNextDrawUptime: UnsignedNumber(timeProvider.millisTime))
+    func applicationWillResignActive() {
+        if state == .launching {
+            state = .inactiveDuringLaunch
+            logger.log(level: .info, message: "Resigned before active, skipping launch tracking.", error: nil, data: nil)
         }
     }
 
-    @objc private func onWillEnterForeground(_ notification: Notification) {
+    func applicationDidBecomeActive() {
+        switch state {
+        case .launching:
+            processAppLaunchData()
+            state = .active
+        case .foregrounded:
+            if let timestamp = willEnterForegroundTimestamp {
+                generateHotLaunchData(appVisibleUptime: timestamp,
+                                      onNextDrawUptime: UnsignedNumber(timeProvider.millisTime))
+            }
+            willEnterForegroundTimestamp = nil
+            state = .active
+        case .inactiveDuringLaunch:
+            // skip as launch is marked inactive.
+            break
+        default:
+            break
+        }
+    }
+
+    func applicationWillEnterForeground() {
         willEnterForegroundTimestamp = UnsignedNumber(timeProvider.millisTime)
+        if state != .launching {
+            state = .foregrounded
+        }
     }
 
     private func processAppLaunchData() {
@@ -74,22 +93,29 @@ final class BaseLaunchTracker: LaunchTracker {
             return
         }
 
+        guard !isActivePrewarm else {
+            logger.log(level: .error, message: "Skipping launch data collection as app is prewarmed.", error: nil, data: nil)
+            return
+        }
+
+        let now = UnsignedNumber(timeProvider.now())
         let currentLaunchData = LaunchData(appVersion: currentAppVersion, timeSinceLastBoot: currentSystemBootTime)
+
         // Mark a launch as cold launch if recent launch data is not available
         guard let recentLaunch = userDefaultStorage.getRecentLaunchData() else {
-            generateColdLaunchData(processStartUptime: processStart * 1_000, onNextDrawUptime: UnsignedNumber(Date().timeIntervalSince1970 * 1_000))
+            generateColdLaunchData(processStartUptime: processStart, onNextDrawUptime: now)
             userDefaultStorage.setRecentLaunchData(currentLaunchData)
             return
         }
 
         if recentLaunch.appVersion != currentAppVersion { // if app is updated, mark it as a cold launch
-            generateColdLaunchData(processStartUptime: processStart * 1_000, onNextDrawUptime: UnsignedNumber(Date().timeIntervalSince1970 * 1_000))
+            generateColdLaunchData(processStartUptime: processStart, onNextDrawUptime: now)
         } else if recentLaunch.timeSinceLastBoot == currentSystemBootTime { // if the device boot time is same as previous launch, mark it as a warm launch
-            generateWarmLaunchData(appVisibleUptime: processStart * 1_000, onNextDrawUptime: UnsignedNumber(Date().timeIntervalSince1970 * 1_000))
+            generateWarmLaunchData(appVisibleUptime: processStart, onNextDrawUptime: now)
         } else if currentSystemBootTime > recentLaunch.timeSinceLastBoot { // if the current device boot time is more recent than previous launch, mark it as a cold launch
-            generateColdLaunchData(processStartUptime: processStart * 1_000, onNextDrawUptime: UnsignedNumber(Date().timeIntervalSince1970 * 1_000))
+            generateColdLaunchData(processStartUptime: processStart, onNextDrawUptime: now)
         } else { // This else case will only be executed in case of clock skew.
-            generateColdLaunchData(processStartUptime: processStart * 1_000, onNextDrawUptime: UnsignedNumber(Date().timeIntervalSince1970 * 1_000))
+            generateColdLaunchData(processStartUptime: processStart, onNextDrawUptime: now)
         }
         userDefaultStorage.setRecentLaunchData(currentLaunchData)
     }
@@ -133,7 +159,7 @@ final class BaseLaunchTracker: LaunchTracker {
     }
 
     private func getViewControllerName() -> String {
-        let keyWindow = UIApplication.shared.windows.filter {$0.isKeyWindow}.first
+        let keyWindow = UIWindow.keyWindow()
 
         if var topController = keyWindow?.rootViewController {
             while let presentedViewController = topController.presentedViewController {

@@ -8,6 +8,7 @@ import (
 	"io"
 	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -30,8 +31,14 @@ type AppRetention struct {
 }
 
 func DeleteStaleData(ctx context.Context) {
+	// delete stale auth sessions
+	deleteStaleAuthSessions(ctx)
+
 	// delete shortened filters
 	deleteStaleShortenedFilters(ctx)
+
+	// delete stale invites
+	deleteStaleInvites(ctx)
 
 	// fetch each app's retention thresholds
 	appRetentions, err := fetchAppRetentions(ctx)
@@ -70,14 +77,36 @@ func DeleteStaleData(ctx context.Context) {
 	// delete events and attachments
 	deleteEventsAndAttachments(ctx, appRetentions)
 
+	// delete stale alerts
+	deleteStaleAlerts(ctx, appRetentions)
+
+	// delete stale pending alert messages
+	deleteStalePendingAlertMessages(ctx, appRetentions)
+
 	fmt.Println("Finished cleaning up stale data")
+}
+
+// deleteStaleAuthSessions deletes stale auth sessions that
+// have passed the expiry time
+func deleteStaleAuthSessions(ctx context.Context) {
+	threshold := time.Now()
+	stmt := sqlf.PostgreSQL.DeleteFrom("auth_sessions").
+		Where("rt_expiry_at < ?", threshold)
+
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		fmt.Printf("Failed to delete stale auth sessions: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Succesfully deleted stale auth sessions\n")
 }
 
 // deleteStaleShortenedFilters deletes stale shortened filters that
 // have passed the expiry threshold
 func deleteStaleShortenedFilters(ctx context.Context) {
 	threshold := time.Now().Add(-60 * time.Minute) // 1 hour expiry
-	stmt := sqlf.PostgreSQL.DeleteFrom("public.short_filters").
+	stmt := sqlf.PostgreSQL.DeleteFrom("short_filters").
 		Where("created_at < ?", threshold)
 
 	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
@@ -87,6 +116,22 @@ func deleteStaleShortenedFilters(ctx context.Context) {
 	}
 
 	fmt.Printf("Succesfully deleted stale short filters\n")
+}
+
+// deleteStaleInvites deletes stale invites that
+// have passed the expiry threshold
+func deleteStaleInvites(ctx context.Context) {
+	threshold := time.Now().Add(-48 * time.Hour) // 48 hour expiry
+	stmt := sqlf.PostgreSQL.DeleteFrom("invites").
+		Where("updated_at < ?", threshold)
+
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		fmt.Printf("Failed to delete stale invites: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Succesfully deleted stale invites\n")
 }
 
 // deleteEventFilters deletes stale event filters for each
@@ -327,7 +372,7 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 			Where("app_id = toUUID(?)", retention.AppID).
 			Where("timestamp < ?", retention.Threshold)
 
-		attachmentRows, err := server.Server.ChPool.Query(ctx, fetchAttachmentsStmt.String(), fetchAttachmentsStmt.Args()...)
+		attachmentRows, err := server.Server.RchPool.Query(ctx, fetchAttachmentsStmt.String(), fetchAttachmentsStmt.Args()...)
 		if err != nil {
 			fmt.Printf("Failed to fetch stale events from ClickHouse: %v\n", err)
 			continue
@@ -355,7 +400,10 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 		}
 
 		// Delete attachments from object storage
-		deleteAttachments(ctx, staleAttachments)
+		if err := deleteAttachments(ctx, staleAttachments); err != nil {
+			errCount += 1
+			fmt.Printf("Failed to delete attachments: %v\n", err)
+		}
 
 		// Delete stale events
 		stmt := sqlf.
@@ -379,13 +427,43 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 }
 
 func deleteAttachments(ctx context.Context, attachments []Attachment) (err error) {
+	config := server.Server.Config
+	if config.IsCloud() {
+		client, errStorage := storage.NewClient(ctx)
+		if errStorage != nil {
+			return
+		}
+
+		defer func() {
+			if err := client.Close(); err != nil {
+				fmt.Printf("Failed to close storage client: %v\n", err)
+			}
+		}()
+
+		bucket := client.Bucket(config.AttachmentsBucket)
+		var failed []string
+
+		for _, at := range attachments {
+			o := bucket.Object(at.Key)
+			if err := o.Delete(ctx); err != nil {
+				fmt.Printf("Failed to delete attachment %q: %v\n", at.Key, err)
+				failed = append(failed, at.Key)
+			}
+		}
+
+		if len(failed) > 0 {
+			fmt.Printf("Failed to delete %d attachments: %v\n", len(failed), failed)
+		}
+
+		return
+	}
+
 	objectIds := []types.ObjectIdentifier{}
 
 	for _, at := range attachments {
 		objectIds = append(objectIds, types.ObjectIdentifier{
 			Key: aws.String(at.Key),
 		})
-
 	}
 
 	deleteObjectsInput := &s3.DeleteObjectsInput{
@@ -421,6 +499,42 @@ func deleteAttachments(ctx context.Context, attachments []Attachment) (err error
 	return
 }
 
+// deleteStaleAlerts deletes stale alerts for each
+// app's retention threshold.
+func deleteStaleAlerts(ctx context.Context, retentions []AppRetention) {
+	for _, retention := range retentions {
+		stmt := sqlf.PostgreSQL.DeleteFrom("alerts").
+			Where("app_id = ?", retention.AppID).
+			Where("created_at < ?", retention.Threshold)
+
+		_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+		if err != nil {
+			fmt.Printf("Failed to delete stale alerts: %v\n", err)
+			return
+		}
+	}
+
+	fmt.Printf("Succesfully deleted stale alerts\n")
+}
+
+// deleteStalePendingAlertMessages deletes stale pending alert messages for each
+// app's retention threshold.
+func deleteStalePendingAlertMessages(ctx context.Context, retentions []AppRetention) {
+	for _, retention := range retentions {
+		stmt := sqlf.PostgreSQL.DeleteFrom("pending_alert_messages").
+			Where("app_id = ?", retention.AppID).
+			Where("created_at < ?", retention.Threshold)
+
+		_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+		if err != nil {
+			fmt.Printf("Failed to delete stale pending alert messages: %v\n", err)
+			return
+		}
+	}
+
+	fmt.Printf("Succesfully deleted stale pending alert messages\n")
+}
+
 // fetchAppRetentions fetches retention period
 // for each app.
 func fetchAppRetentions(ctx context.Context) (retentions []AppRetention, err error) {
@@ -432,7 +546,7 @@ func fetchAppRetentions(ctx context.Context) (retentions []AppRetention, err err
 
 	defer stmt.Close()
 
-	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.RpgPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}

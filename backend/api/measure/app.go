@@ -18,8 +18,8 @@ import (
 	"backend/api/journey"
 	"backend/api/metrics"
 	"backend/api/numeric"
+	"backend/api/opsys"
 	"backend/api/paginate"
-	"backend/api/platform"
 	"backend/api/server"
 	"backend/api/span"
 	"backend/api/timeline"
@@ -36,7 +36,7 @@ type App struct {
 	TeamId       uuid.UUID  `json:"team_id"`
 	AppName      string     `json:"name" binding:"required"`
 	UniqueId     string     `json:"unique_identifier"`
-	Platform     string     `json:"platform"`
+	OSName       string     `json:"os_name"`
 	APIKey       *APIKey    `json:"api_key"`
 	FirstVersion string     `json:"first_version"`
 	Onboarded    bool       `json:"onboarded"`
@@ -49,15 +49,15 @@ func (a App) MarshalJSON() ([]byte, error) {
 	type Alias App
 	return json.Marshal(&struct {
 		*Alias
-		Platform    *string    `json:"platform"`
+		OSName      *string    `json:"os_name"`
 		OnboardedAt *time.Time `json:"onboarded_at"`
 		UniqueId    *string    `json:"unique_identifier"`
 	}{
-		Platform: func() *string {
-			if a.Platform == "" {
+		OSName: func() *string {
+			if a.OSName == "" {
 				return nil
 			}
-			return &a.Platform
+			return &a.OSName
 		}(),
 		UniqueId: func() *string {
 			if a.UniqueId == "" {
@@ -76,7 +76,7 @@ func (a App) MarshalJSON() ([]byte, error) {
 }
 
 func (a App) rename() error {
-	stmt := sqlf.PostgreSQL.Update("public.apps").
+	stmt := sqlf.PostgreSQL.Update("apps").
 		Set("app_name", a.AppName).
 		Set("updated_at", time.Now()).
 		Where("id = ?", a.ID)
@@ -91,36 +91,45 @@ func (a App) rename() error {
 }
 
 // GetExceptionGroup queries a single exception group by its id.
-func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGroup *group.ExceptionGroup, err error) {
-	stmt := sqlf.PostgreSQL.
-		From("public.unhandled_exception_groups").
-		Select("id").
+func (a App) GetExceptionGroup(ctx context.Context, id string) (exceptionGroup *group.ExceptionGroup, err error) {
+	stmt := sqlf.
+		From("unhandled_exception_groups").
+		Clause("FINAL").
 		Select("app_id").
+		Select("id").
 		Select(`type`).
 		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
-		Select("fingerprint").
-		Select("first_event_timestamp").
-		Select("created_at").
 		Select("updated_at").
 		Where("app_id = ?", a.ID).
 		Where("id = ?", id)
 
 	defer stmt.Close()
 
-	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if rows.Err() != nil {
-		return
+	row := group.ExceptionGroup{}
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, err
 	}
+	defer rows.Close()
 
-	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
-	if errors.Is(err, pgx.ErrNoRows) {
-		err = nil
-		return
-	} else if err != nil {
-		return
+	if rows.Next() {
+		if err := rows.Scan(
+			&row.AppID,
+			&row.ID,
+			&row.Type,
+			&row.Message,
+			&row.MethodName,
+			&row.FileName,
+			&row.LineNumber,
+			&row.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, nil
 	}
 
 	exceptionGroup = &row
@@ -128,7 +137,7 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 	// Get list of event IDs
 	eventDataStmt := sqlf.From(`events`).
 		Select(`distinct id`).
-		Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", a.ID, exceptionGroup.Fingerprint).
+		Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", a.ID, exceptionGroup.ID).
 		Where("type = 'exception'").
 		Where("exception.handled = false").
 		GroupBy("id")
@@ -161,95 +170,48 @@ func (a App) GetExceptionGroup(ctx context.Context, id uuid.UUID) (exceptionGrou
 	return
 }
 
-// GetExceptionGroupByFingerprint queries a single exception group by its fingerprint.
-func (a App) GetExceptionGroupByFingerprint(ctx context.Context, fingerprint string) (exceptionGroup *group.ExceptionGroup, err error) {
-	stmt := sqlf.PostgreSQL.
-		From("public.unhandled_exception_groups").
-		Select("id").
-		Select("app_id").
-		Select(`type`).
-		Select(`message`).
-		Select(`method_name`).
-		Select(`file_name`).
-		Select(`line_number`).
-		Select("fingerprint").
-		Select("first_event_timestamp").
-		Select("created_at").
-		Select("updated_at").
-		Where("app_id = ?", a.ID).
-		Where("fingerprint = ?", fingerprint)
-
-	defer stmt.Close()
-
-	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if rows.Err() != nil {
-		return
-	}
-
-	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
-	}
-
-	exceptionGroup = &row
-
-	// Get list of event IDs
-	eventDataStmt := sqlf.From(`default.events`).
-		Select(`id`).
-		Where(`exception.fingerprint = ?`, exceptionGroup.Fingerprint)
-
-	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
-	if err != nil {
-		return nil, err
-	}
-	defer eventDataRows.Close()
-
-	var eventIds = []uuid.UUID{}
-	var eventID uuid.UUID
-	for eventDataRows.Next() {
-		if err := eventDataRows.Scan(&eventID); err != nil {
-			return nil, err
-		}
-
-		eventIds = append(eventIds, eventID)
-	}
-
-	if eventDataRows.Err() != nil {
-		return nil, eventDataRows.Err()
-	}
-
-	exceptionGroup.EventIDs = eventIds
-	exceptionGroup.Count = len(eventIds)
-
-	return exceptionGroup, nil
-}
-
 // GetExceptionGroups returns slice of ExceptionGroup
 // of an app.
 func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, err error) {
-	stmt := sqlf.PostgreSQL.
-		From("public.unhandled_exception_groups").
-		Select("id").
+	stmt := sqlf.
+		From("unhandled_exception_groups").
+		Clause("FINAL").
 		Select("app_id").
+		Select("id").
 		Select(`type`).
 		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
-		Select("fingerprint").
-		Select("first_event_timestamp").
-		Select("created_at").
 		Select("updated_at").
 		Where("app_id = ?", a.ID)
 
 	defer stmt.Close()
 
-	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	groups, err = pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ExceptionGroup])
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var g group.ExceptionGroup
+		if err := rows.Scan(
+			&g.AppID,
+			&g.ID,
+			&g.Type,
+			&g.Message,
+			&g.MethodName,
+			&g.FileName,
+			&g.LineNumber,
+			&g.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		groups = append(groups, g)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
 	}
 
 	var exceptionGroup *group.ExceptionGroup
@@ -259,7 +221,7 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 		eventDataStmt := sqlf.
 			From("events").
 			Select("distinct id").
-			Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", af.AppID, exceptionGroup.Fingerprint).
+			Clause("prewhere app_id = toUUID(?) and exception.fingerprint = ?", af.AppID, exceptionGroup.ID).
 			Where("type = ?", event.TypeException).
 			Where("exception.handled = ?", false)
 
@@ -354,36 +316,45 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, af *filter.AppFil
 }
 
 // GetANRGroup queries a single ANR group by its id.
-func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANRGroup, err error) {
-	stmt := sqlf.PostgreSQL.
-		From("public.anr_groups").
-		Select("id").
+func (a App) GetANRGroup(ctx context.Context, id string) (anrGroup *group.ANRGroup, err error) {
+	stmt := sqlf.
+		From("anr_groups").
+		Clause("FINAL").
 		Select("app_id").
+		Select("id").
 		Select(`type`).
 		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
-		Select("fingerprint").
-		Select("first_event_timestamp").
-		Select("created_at").
 		Select("updated_at").
 		Where("app_id = ?", a.ID).
 		Where("id = ?", id)
 
 	defer stmt.Close()
 
-	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if rows.Err() != nil {
-		return
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, err
 	}
+	defer rows.Close()
 
-	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ANRGroup])
-	if errors.Is(err, pgx.ErrNoRows) {
-		err = nil
-		return
-	} else if err != nil {
-		return
+	row := group.ANRGroup{}
+	if rows.Next() {
+		if err := rows.Scan(
+			&row.AppID,
+			&row.ID,
+			&row.Type,
+			&row.Message,
+			&row.MethodName,
+			&row.FileName,
+			&row.LineNumber,
+			&row.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, nil
 	}
 
 	anrGroup = &row
@@ -391,7 +362,7 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 	// Get list of event IDs
 	eventDataStmt := sqlf.From(`events`).
 		Select(`distinct id`).
-		Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", a.ID, anrGroup.Fingerprint).
+		Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", a.ID, anrGroup.ID).
 		Where("type = ?", event.TypeANR).
 		GroupBy("id")
 
@@ -421,94 +392,47 @@ func (a App) GetANRGroup(ctx context.Context, id uuid.UUID) (anrGroup *group.ANR
 	return anrGroup, nil
 }
 
-// GetANRGroupByFingerprint queries a single ANR group by its fingerprint.
-func (a App) GetANRGroupByFingerprint(ctx context.Context, fingerprint string) (anrGroup *group.ANRGroup, err error) {
-	stmt := sqlf.PostgreSQL.
-		From("public.anr_groups").
-		Select("id").
-		Select("app_id").
-		Select(`type`).
-		Select(`message`).
-		Select(`method_name`).
-		Select(`file_name`).
-		Select(`line_number`).
-		Select("fingerprint").
-		Select("first_event_timestamp").
-		Select("created_at").
-		Select("updated_at").
-		Where("app_id = ?", a.ID).
-		Where("fingerprint = ?", fingerprint)
-
-	defer stmt.Close()
-
-	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if rows.Err() != nil {
-		return
-	}
-
-	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByNameLax[group.ANRGroup])
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
-	}
-
-	anrGroup = &row
-
-	// Get list of event IDs
-	eventDataStmt := sqlf.From(`default.events`).
-		Select(`id`).
-		Where(`anr.fingerprint = ?`, anrGroup.Fingerprint)
-
-	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
-	if err != nil {
-		return nil, err
-	}
-	defer eventDataRows.Close()
-
-	var eventIds = []uuid.UUID{}
-	var eventID uuid.UUID
-	for eventDataRows.Next() {
-		if err := eventDataRows.Scan(&eventID); err != nil {
-			return nil, err
-		}
-
-		eventIds = append(eventIds, eventID)
-	}
-
-	if eventDataRows.Err() != nil {
-		return nil, eventDataRows.Err()
-	}
-
-	anrGroup.EventIDs = eventIds
-	anrGroup.Count = len(eventIds)
-
-	return anrGroup, nil
-}
-
 // GetANRGroups returns slice of ANRGroup of an app.
 func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ANRGroup, err error) {
-	stmt := sqlf.PostgreSQL.
-		From("public.anr_groups").
-		Select("id").
+	stmt := sqlf.
+		From("anr_groups").
+		Clause("FINAL").
 		Select("app_id").
+		Select("id").
 		Select(`type`).
 		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
-		Select("fingerprint").
-		Select("first_event_timestamp").
-		Select("created_at").
 		Select("updated_at").
 		Where("app_id = ?", a.ID)
 
 	defer stmt.Close()
 
-	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	groups, err = pgx.CollectRows(rows, pgx.RowToStructByNameLax[group.ANRGroup])
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var g group.ANRGroup
+		if err := rows.Scan(
+			&g.AppID,
+			&g.ID,
+			&g.Type,
+			&g.Message,
+			&g.MethodName,
+			&g.FileName,
+			&g.LineNumber,
+			&g.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		groups = append(groups, g)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
 	}
 
 	var anrGroup *group.ANRGroup
@@ -518,7 +442,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		eventDataStmt := sqlf.
 			From("events").
 			Select("distinct id").
-			Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", af.AppID, anrGroup.Fingerprint).
+			Clause("prewhere app_id = toUUID(?) and anr.fingerprint = ?", af.AppID, anrGroup.ID).
 			Where("type = ?", event.TypeANR)
 
 		defer eventDataStmt.Close()
@@ -619,7 +543,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions filter.Versions) (size *metrics.SizeMetric, err error) {
 	size = &metrics.SizeMetric{}
 	stmt := sqlf.Select("count(id) as count").
-		From("default.events").
+		From("events").
 		Where("app_id = ?", af.AppID).
 		Where("`attribute.app_version` = ? and `attribute.app_build` = ?", af.Versions[0], af.VersionCodes[0]).
 		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
@@ -639,8 +563,8 @@ func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions 
 	}
 
 	avgSizeStmt := sqlf.PostgreSQL.
-		From("public.build_sizes").
-		Select("round(avg(build_size), 2) as average_size").
+		From("build_sizes").
+		Select("round(coalesce(avg(build_size), 2), 0) as average_size").
 		Where("app_id = ?", af.AppID)
 
 	if versions.HasVersions() {
@@ -665,7 +589,7 @@ func (a App) GetSizeMetrics(ctx context.Context, af *filter.AppFilter, versions 
 		Select("t1.average_size as average_app_size").
 		Select("t2.build_size as selected_app_size").
 		Select("(t2.build_size - t1.average_size) as delta").
-		From("avg_size as t1, public.build_sizes as t2").
+		From("avg_size as t1, build_sizes as t2").
 		Where("app_id = ?", af.AppID).
 		Where("version_name = ?", af.Versions[0]).
 		Where("version_code = ?", af.VersionCodes[0])
@@ -704,8 +628,8 @@ func (a App) GetIssueFreeMetrics(
 	crashFree = &metrics.CrashFreeSession{}
 	perceivedCrashFree = &metrics.PerceivedCrashFreeSession{}
 
-	switch a.Platform {
-	case platform.Android:
+	switch a.OSName {
+	case opsys.Android:
 		anrFree = &metrics.ANRFreeSession{}
 		perceivedANRFree = &metrics.PerceivedANRFreeSession{}
 	}
@@ -723,8 +647,8 @@ func (a App) GetIssueFreeMetrics(
 		Select("uniqMergeIf(perceived_crash_sessions, app_version in (?)) as selected_perceived_crash_sessions", selectedVersions.Parameterize()).
 		Select("uniqMergeIf(perceived_crash_sessions, app_version not in (?)) as unselected_perceived_crash_sessions", selectedVersions.Parameterize())
 
-	switch a.Platform {
-	case platform.Android:
+	switch a.OSName {
+	case opsys.Android:
 		stmt.
 			Select("uniqMergeIf(anr_sessions, app_version in (?)) as selected_anr_sessions", selectedVersions.Parameterize()).
 			Select("uniqMergeIf(anr_sessions, app_version not in (?)) as unselected_anr_sessions", selectedVersions.Parameterize()).
@@ -759,8 +683,8 @@ func (a App) GetIssueFreeMetrics(
 		&perceivedCrashUnselected,
 	}
 
-	switch a.Platform {
-	case platform.Android:
+	switch a.OSName {
+	case opsys.Android:
 		dest = append(dest, &anrSelected, &anrUnselected, &perceivedANRSelected, &perceivedANRUnselected)
 	}
 
@@ -772,8 +696,8 @@ func (a App) GetIssueFreeMetrics(
 		crashFree.CrashFreeSessions = math.NaN()
 		perceivedCrashFree.CrashFreeSessions = math.NaN()
 
-		switch a.Platform {
-		case platform.Android:
+		switch a.OSName {
+		case opsys.Android:
 			anrFree.ANRFreeSessions = math.NaN()
 			perceivedANRFree.ANRFreeSessions = math.NaN()
 		}
@@ -781,8 +705,8 @@ func (a App) GetIssueFreeMetrics(
 		crashFree.CrashFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(crashSelected) / float64(selected))) * 100)
 		perceivedCrashFree.CrashFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedCrashSelected) / float64(selected))) * 100)
 
-		switch a.Platform {
-		case platform.Android:
+		switch a.OSName {
+		case opsys.Android:
 			anrFree.ANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrSelected) / float64(selected))) * 100)
 			perceivedANRFree.ANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRSelected) / float64(selected))) * 100)
 		}
@@ -792,8 +716,8 @@ func (a App) GetIssueFreeMetrics(
 		crashFreeUnselected = math.NaN()
 		perceivedCrashFreeUnselected = math.NaN()
 
-		switch a.Platform {
-		case platform.Android:
+		switch a.OSName {
+		case opsys.Android:
 			anrFreeUnselected = math.NaN()
 			perceivedANRFreeUnselected = math.NaN()
 		}
@@ -801,8 +725,8 @@ func (a App) GetIssueFreeMetrics(
 		crashFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(crashUnselected) / float64(unselected))) * 100)
 		perceivedCrashFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedCrashUnselected) / float64(unselected))) * 100)
 
-		switch a.Platform {
-		case platform.Android:
+		switch a.OSName {
+		case opsys.Android:
 			anrFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrUnselected) / float64(unselected))) * 100)
 			perceivedANRFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRUnselected) / float64(unselected))) * 100)
 		}
@@ -824,8 +748,8 @@ func (a App) GetIssueFreeMetrics(
 			perceivedCrashFree.Delta = 1
 		}
 
-		switch a.Platform {
-		case platform.Android:
+		switch a.OSName {
+		case opsys.Android:
 			if anrFreeUnselected != 0 {
 				anrFree.Delta = numeric.RoundTwoDecimalsFloat64(anrFree.ANRFreeSessions / anrFreeUnselected)
 			} else {
@@ -852,8 +776,8 @@ func (a App) GetIssueFreeMetrics(
 			perceivedCrashFree.Delta = 1
 		}
 
-		switch a.Platform {
-		case platform.Android:
+		switch a.OSName {
+		case opsys.Android:
 			if anrFree.ANRFreeSessions != 0 {
 				anrFree.Delta = 1
 			}
@@ -867,8 +791,8 @@ func (a App) GetIssueFreeMetrics(
 	crashFree.SetNaNs()
 	perceivedCrashFree.SetNaNs()
 
-	switch a.Platform {
-	case platform.Android:
+	switch a.OSName {
+	case opsys.Android:
 		anrFree.SetNaNs()
 		perceivedANRFree.SetNaNs()
 	}
@@ -956,8 +880,8 @@ func (a App) GetLaunchMetrics(ctx context.Context, af *filter.AppFilter) (launch
 func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts filter.JourneyOpts) (events []event.EventField, err error) {
 	whereVals := []any{}
 
-	switch a.Platform {
-	case platform.Android:
+	switch opsys.ToFamily(a.OSName) {
+	case opsys.Android:
 		whereVals = append(
 			whereVals,
 			event.TypeLifecycleActivity,
@@ -970,8 +894,9 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				event.LifecycleFragmentTypeAttached,
 				event.LifecycleFragmentTypeResumed,
 			},
+			event.TypeScreenView,
 		)
-	case platform.IOS:
+	case opsys.AppleFamily:
 		whereVals = append(
 			whereVals,
 			event.TypeLifecycleViewController,
@@ -983,27 +908,28 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			[]string{
 				event.LifecycleSwiftUITypeOnAppear,
 			},
+			event.TypeScreenView,
 		)
 	}
 
 	if opts.All {
-		switch a.Platform {
-		case platform.Android:
+		switch opsys.ToFamily(a.OSName) {
+		case opsys.Android:
 			whereVals = append(whereVals, event.TypeException, false, event.TypeANR)
-		case platform.IOS:
+		case opsys.AppleFamily:
 			whereVals = append(whereVals, event.TypeException, false)
 		}
 	} else if opts.Exceptions {
 		whereVals = append(whereVals, event.TypeException, false)
 	} else if opts.ANRs {
-		switch a.Platform {
-		case platform.Android:
+		switch a.OSName {
+		case opsys.Android:
 			whereVals = append(whereVals, event.TypeANR)
 		}
 	}
 
 	stmt := sqlf.
-		From(`default.events`).
+		From(`events`).
 		Select(`distinct id`).
 		Select(`toString(type)`).
 		Select(`timestamp`).
@@ -1011,21 +937,23 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		Where(`app_id = toUUID(?)`, a.ID).
 		Where("`timestamp` >= ? and `timestamp` <= ?", af.From, af.To)
 
-	switch a.Platform {
-	case platform.Android:
+	switch opsys.ToFamily(a.OSName) {
+	case opsys.Android:
 		stmt.
 			Select(`toString(lifecycle_activity.type)`).
 			Select(`toString(lifecycle_activity.class_name)`).
 			Select(`toString(lifecycle_fragment.type)`).
 			Select(`toString(lifecycle_fragment.class_name)`).
 			Select(`toString(lifecycle_fragment.parent_activity)`).
-			Select(`toString(lifecycle_fragment.parent_fragment)`)
-	case platform.IOS:
+			Select(`toString(lifecycle_fragment.parent_fragment)`).
+			Select(`toString(screen_view.name)`)
+	case opsys.AppleFamily:
 		stmt.
 			Select(`toString(lifecycle_view_controller.type)`).
 			Select(`toString(lifecycle_view_controller.class_name)`).
 			Select(`toString(lifecycle_swift_ui.type)`).
-			Select(`toString(lifecycle_swift_ui.class_name)`)
+			Select(`toString(lifecycle_swift_ui.class_name)`).
+			Select(`toString(screen_view.name)`)
 	}
 
 	if len(af.Versions) > 0 {
@@ -1037,18 +965,18 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 	}
 
 	if opts.All {
-		switch a.Platform {
-		case platform.Android:
-			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
-		case platform.IOS:
-			stmt.Where("((type = ? and `lifecycle_view_controller.type` in ?) or (type = ? and `lifecycle_swift_ui.type` in ?) or (type = ? and `exception.handled` = ?))", whereVals...)
+		switch opsys.ToFamily(a.OSName) {
+		case opsys.Android:
+			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?) or ((type = ? and `exception.handled` = ?) or type = ?))", whereVals...)
+		case opsys.AppleFamily:
+			stmt.Where("((type = ? and `lifecycle_view_controller.type` in ?) or (type = ? and `lifecycle_swift_ui.type` in ?) or (type = ?) or (type = ? and `exception.handled` = ?))", whereVals...)
 		}
 	} else if opts.Exceptions {
-		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ? and `exception.handled` = ?))", whereVals...)
+		stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?) or (type = ? and `exception.handled` = ?))", whereVals...)
 	} else if opts.ANRs {
-		switch a.Platform {
-		case platform.Android:
-			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?))", whereVals...)
+		switch a.OSName {
+		case opsys.Android:
+			stmt.Where("((type = ? and `lifecycle_activity.type` in ?) or (type = ? and `lifecycle_fragment.type` in ?) or (type = ?) or (type = ?))", whereVals...)
 		}
 	}
 
@@ -1109,6 +1037,7 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 		var lifecycleViewControllerClassName string
 		var lifecycleSwiftUIType string
 		var lifecycleSwiftUIClassName string
+		var screenViewName string
 
 		dest := []any{
 			&ev.ID,
@@ -1117,8 +1046,8 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 			&ev.SessionID,
 		}
 
-		switch a.Platform {
-		case platform.Android:
+		switch opsys.ToFamily(a.OSName) {
+		case opsys.Android:
 			dest = append(
 				dest,
 				&lifecycleActivityType,
@@ -1127,14 +1056,16 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				&lifecycleFragmentClassName,
 				&lifecycleFragmentParentActivity,
 				&lifecycleFragmentParentFragment,
+				&screenViewName,
 			)
-		case platform.IOS:
+		case opsys.AppleFamily:
 			dest = append(
 				dest,
 				&lifecycleViewControllerType,
 				&lifecycleViewControllerClassName,
 				&lifecycleSwiftUIType,
 				&lifecycleSwiftUIClassName,
+				&screenViewName,
 			)
 		}
 
@@ -1164,6 +1095,10 @@ func (a App) getJourneyEvents(ctx context.Context, af *filter.AppFilter, opts fi
 				Type:      lifecycleSwiftUIType,
 				ClassName: lifecycleSwiftUIClassName,
 			}
+		} else if ev.IsScreenView() {
+			ev.ScreenView = &event.ScreenView{
+				Name: screenViewName,
+			}
 		} else if ev.IsException() {
 			ev.Exception = &event.Exception{}
 		} else if ev.IsANR() {
@@ -1191,7 +1126,7 @@ func (a *App) add() (*APIKey, error) {
 
 	defer tx.Rollback(context.Background())
 
-	_, err = tx.Exec(context.Background(), "insert into public.apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
+	_, err = tx.Exec(context.Background(), "insert into apps(id, team_id, app_name, created_at, updated_at) values ($1, $2, $3, $4, $5);", a.ID, a.TeamId, a.AppName, a.CreatedAt, a.UpdatedAt)
 
 	if err != nil {
 		return nil, err
@@ -1217,7 +1152,7 @@ func (a *App) add() (*APIKey, error) {
 func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 	var appName pgtype.Text
 	var uniqueId pgtype.Text
-	var platform pgtype.Text
+	var osName pgtype.Text
 	var firstVersion pgtype.Text
 	var onboarded pgtype.Bool
 	var onboardedAt pgtype.Timestamptz
@@ -1231,7 +1166,7 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 	cols := []string{
 		"apps.app_name",
 		"apps.unique_identifier",
-		"apps.platform",
+		"apps.os_name",
 		"apps.first_version",
 		"apps.onboarded",
 		"apps.onboarded_at",
@@ -1246,8 +1181,8 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 
 	stmt := sqlf.PostgreSQL.
 		Select(strings.Join(cols, ",")).
-		From("public.apps").
-		LeftJoin("public.api_keys", "api_keys.app_id = apps.id").
+		From("apps").
+		LeftJoin("api_keys", "api_keys.app_id = apps.id").
 		Where("apps.id = ? and apps.team_id = ?", nil, nil)
 
 	defer stmt.Close()
@@ -1255,7 +1190,7 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 	dest := []any{
 		&appName,
 		&uniqueId,
-		&platform,
+		&osName,
 		&firstVersion,
 		&onboarded,
 		&onboardedAt,
@@ -1286,10 +1221,10 @@ func (a *App) getWithTeam(id uuid.UUID) (*App, error) {
 		a.UniqueId = ""
 	}
 
-	if platform.Valid {
-		a.Platform = platform.String
+	if osName.Valid {
+		a.OSName = osName.String
 	} else {
-		a.Platform = ""
+		a.OSName = ""
 	}
 
 	if firstVersion.Valid {
@@ -1348,12 +1283,14 @@ func (a *App) getTeam(ctx context.Context) (*Team, error) {
 	return team, nil
 }
 
+// Populate fills in all app values
+// for the app.
 func (a *App) Populate(ctx context.Context) (err error) {
 	stmt := sqlf.PostgreSQL.From("apps").
 		Select("team_id::UUID").
 		Select("unique_identifier").
 		Select("app_name").
-		Select("platform").
+		Select("os_name").
 		Select("first_version").
 		Select("onboarded").
 		Select("onboarded_at").
@@ -1363,15 +1300,15 @@ func (a *App) Populate(ctx context.Context) (err error) {
 
 	defer stmt.Close()
 
-	return server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&a.TeamId, &a.UniqueId, &a.AppName, &a.Platform, &a.FirstVersion, &a.Onboarded, &a.OnboardedAt, &a.CreatedAt, &a.UpdatedAt)
+	return server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&a.TeamId, &a.UniqueId, &a.AppName, &a.OSName, &a.FirstVersion, &a.Onboarded, &a.OnboardedAt, &a.CreatedAt, &a.UpdatedAt)
 }
 
-func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, platform, firstVersion string) error {
+func (a *App) Onboard(ctx context.Context, tx *pgx.Tx, uniqueIdentifier, osName, firstVersion string) error {
 	now := time.Now()
-	stmt := sqlf.PostgreSQL.Update("public.apps").
+	stmt := sqlf.PostgreSQL.Update("apps").
 		Set("onboarded", true).
 		Set("unique_identifier", uniqueIdentifier).
-		Set("platform", platform).
+		Set("os_name", osName).
 		Set("first_version", firstVersion).
 		Set("onboarded_at", now).
 		Set("updated_at", now).
@@ -1454,6 +1391,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`exception.foreground`,
 		`exception.exceptions`,
 		`exception.threads`,
+		`toString(exception.framework)`,
 		`toString(lifecycle_app.type)`,
 		`cold_launch.process_start_uptime`,
 		`cold_launch.process_start_requested_uptime`,
@@ -1511,8 +1449,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`custom.name`,
 	}
 
-	switch a.Platform {
-	case platform.Android:
+	switch opsys.ToFamily(a.OSName) {
+	case opsys.Android:
 		cols = append(cols, []string{
 			`anr.fingerprint`,
 			`anr.foreground`,
@@ -1554,8 +1492,9 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			`toString(navigation.from)`,
 			`toString(navigation.source)`,
 		}...)
-	case platform.IOS:
+	case opsys.AppleFamily:
 		cols = append(cols, []string{
+			`exception.error`,
 			`toString(lifecycle_view_controller.type)`,
 			`toString(lifecycle_view_controller.class_name)`,
 			`toString(lifecycle_swift_ui.type)`,
@@ -1566,7 +1505,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		}...)
 	}
 
-	stmt := sqlf.From("default.events")
+	stmt := sqlf.From("events")
 	defer stmt.Close()
 
 	for i := range cols {
@@ -1583,6 +1522,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 	}
 
 	var session Session
+	var firstUserID string
 
 	for rows.Next() {
 		var ev event.EventField
@@ -1621,6 +1561,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		var warmLaunchDuration uint32
 		var hotLaunchDuration uint32
 
+		var exceptionError string
 		var lifecycleViewController event.LifecycleViewController
 		var lifecycleSwiftUI event.LifecycleSwiftUI
 		var memoryUsageAbs event.MemoryUsageAbs
@@ -1703,6 +1644,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&exception.Foreground,
 			&exceptionExceptions,
 			&exceptionThreads,
+			&exception.Framework,
 
 			// lifecycle app
 			&lifecycleApp.Type,
@@ -1780,8 +1722,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&custom.Name,
 		}
 
-		switch a.Platform {
-		case platform.Android:
+		switch opsys.ToFamily(a.OSName) {
+		case opsys.Android:
 			dest = append(dest, []any{
 				// anr
 				&anr.Fingerprint,
@@ -1840,8 +1782,9 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 				&navigation.From,
 				&navigation.Source,
 			}...)
-		case platform.IOS:
+		case opsys.AppleFamily:
 			dest = append(dest, []any{
+				&exceptionError,
 				&lifecycleViewController.Type,
 				&lifecycleViewController.ClassName,
 				&lifecycleSwiftUI.Type,
@@ -1854,6 +1797,11 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 
 		if err := rows.Scan(dest...); err != nil {
 			return nil, err
+		}
+
+		// Capture first non-empty user ID (add this after the scan)
+		if firstUserID == "" && ev.Attribute.UserID != "" {
+			firstUserID = ev.Attribute.UserID
 		}
 
 		// populate user defined attribute
@@ -1878,12 +1826,28 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			if err := json.Unmarshal([]byte(exceptionExceptions), &exception.Exceptions); err != nil {
 				return nil, err
 			}
+
 			if err := json.Unmarshal([]byte(exceptionThreads), &exception.Threads); err != nil {
 				return nil, err
 			}
+
 			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
 				return nil, err
 			}
+
+			// for now, only unmarshal exception.error for Apple
+			// family of OSes. support can - of course, be extended
+			// to other OSes on a "need to" basis.
+			switch opsys.ToFamily(a.OSName) {
+			case opsys.AppleFamily:
+				fmt.Println("exceptionError", exceptionError)
+				if exceptionError != "" {
+					if err := json.Unmarshal([]byte(exceptionError), &exception.Error); err != nil {
+						return nil, err
+					}
+				}
+			}
+
 			ev.Exception = &exception
 			session.Events = append(session.Events, ev)
 		case event.TypeAppExit:
@@ -1997,6 +1961,10 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 	// as the session's attributes
 	if len(session.Events) > 0 {
 		attr := session.Events[0].Attribute
+		// Override with the first non-empty user ID we found
+		if firstUserID != "" {
+			attr.UserID = firstUserID
+		}
 		session.Attribute = &attr
 	}
 
@@ -2018,16 +1986,16 @@ func NewApp(teamId uuid.UUID) *App {
 func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 	var onboarded pgtype.Bool
 	var uniqueId pgtype.Text
-	var platform pgtype.Text
+	var os pgtype.Text
 	var firstVersion pgtype.Text
 
 	stmt := sqlf.PostgreSQL.
 		Select("id").
 		Select("onboarded").
 		Select("unique_identifier").
-		Select("platform").
+		Select("os_name").
 		Select("first_version").
-		From("public.apps").
+		From("apps").
 		Where("id = ?", id)
 
 	defer stmt.Close()
@@ -2036,7 +2004,7 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 		app = &App{}
 	}
 
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&app.ID, &onboarded, &uniqueId, &platform, &firstVersion); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&app.ID, &onboarded, &uniqueId, &os, &firstVersion); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {
@@ -2056,10 +2024,10 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 		app.UniqueId = ""
 	}
 
-	if platform.Valid {
-		app.Platform = platform.String
+	if os.Valid {
+		app.OSName = os.String
 	} else {
-		app.Platform = ""
+		app.OSName = ""
 	}
 
 	if firstVersion.Valid {
@@ -2201,7 +2169,7 @@ func GetAppJourney(c *gin.Context) {
 		if journeyEvents[i].IsUnhandledException() {
 			issueEvents = append(issueEvents, journeyEvents[i])
 		}
-		if app.Platform == platform.Android && journeyEvents[i].IsANR() {
+		if app.OSName == opsys.Android && journeyEvents[i].IsANR() {
 			issueEvents = append(issueEvents, journeyEvents[i])
 		}
 	}
@@ -2214,9 +2182,9 @@ func GetAppJourney(c *gin.Context) {
 	}
 
 	type Issue struct {
-		ID    uuid.UUID `json:"id"`
-		Title string    `json:"title"`
-		Count int       `json:"count"`
+		ID    string `json:"id"`
+		Title string `json:"title"`
+		Count int    `json:"count"`
 	}
 
 	type Node struct {
@@ -2227,12 +2195,12 @@ func GetAppJourney(c *gin.Context) {
 	var nodes []Node
 	var links []Link
 
-	switch app.Platform {
-	case platform.Android:
+	switch opsys.ToFamily(app.OSName) {
+	case opsys.Android:
 		journeyGraph = journey.NewJourneyAndroid(journeyEvents, &journey.Options{
 			BiGraph: af.BiGraph,
 		})
-	case platform.IOS:
+	case opsys.AppleFamily:
 		journeyGraph = journey.NewJourneyiOS(journeyEvents, &journey.Options{
 			BiGraph: af.BiGraph,
 		})
@@ -2494,6 +2462,8 @@ func GetAppMetrics(c *gin.Context) {
 		return
 	}
 
+	af.AppOSName = app.OSName
+
 	team := &Team{
 		ID: &app.TeamId,
 	}
@@ -2637,9 +2607,18 @@ func GetAppFilters(c *gin.Context) {
 		return
 	}
 
-	app := App{
-		ID: &id,
+	app, err := SelectApp(ctx, id)
+	if err != nil {
+		msg := "failed to select app"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
 	}
+
+	af.AppOSName = app.OSName
 
 	team, err := app.getTeam(ctx)
 	if err != nil {
@@ -3050,8 +3029,8 @@ func GetCrashDetailCrashes(c *gin.Context) {
 		return
 	}
 
-	crashGroupId, err := uuid.Parse(c.Param("crashGroupId"))
-	if err != nil {
+	crashGroupId := c.Param("crashGroupId")
+	if crashGroupId == "" {
 		msg := `crash group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -3143,7 +3122,7 @@ func GetCrashDetailCrashes(c *gin.Context) {
 
 	group, err := app.GetExceptionGroup(ctx, crashGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId.String())
+		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -3201,8 +3180,8 @@ func GetCrashDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	crashGroupId, err := uuid.Parse(c.Param("crashGroupId"))
-	if err != nil {
+	crashGroupId := c.Param("crashGroupId")
+	if crashGroupId == "" {
 		msg := `crash group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -3300,7 +3279,7 @@ func GetCrashDetailPlotInstances(c *gin.Context) {
 
 	group, err := app.GetExceptionGroup(ctx, crashGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId.String())
+		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -3356,8 +3335,8 @@ func GetCrashDetailAttributeDistribution(c *gin.Context) {
 		return
 	}
 
-	crashGroupId, err := uuid.Parse(c.Param("crashGroupId"))
-	if err != nil {
+	crashGroupId := c.Param("crashGroupId")
+	if crashGroupId == "" {
 		msg := `crash group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -3455,7 +3434,7 @@ func GetCrashDetailAttributeDistribution(c *gin.Context) {
 
 	group, err := app.GetExceptionGroup(ctx, crashGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId.String())
+		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -3484,8 +3463,8 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 		return
 	}
 
-	crashGroupId, err := uuid.Parse(c.Param("crashGroupId"))
-	if err != nil {
+	crashGroupId := c.Param("crashGroupId")
+	if crashGroupId == "" {
 		msg := `crash group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -3584,7 +3563,7 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 
 	exceptionGroup, err := app.GetExceptionGroup(ctx, crashGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId.String())
+		msg := fmt.Sprintf("failed to get exception group with id %q", crashGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -3624,9 +3603,9 @@ func GetCrashDetailPlotJourney(c *gin.Context) {
 	}
 
 	type Issue struct {
-		ID    uuid.UUID `json:"id"`
-		Title string    `json:"title"`
-		Count int       `json:"count"`
+		ID    string `json:"id"`
+		Title string `json:"title"`
+		Count int    `json:"count"`
 	}
 
 	type Node struct {
@@ -3970,8 +3949,8 @@ func GetANRDetailANRs(c *gin.Context) {
 		return
 	}
 
-	anrGroupId, err := uuid.Parse(c.Param("anrGroupId"))
-	if err != nil {
+	anrGroupId := c.Param("anrGroupId")
+	if anrGroupId == "" {
 		msg := `anr group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -4069,7 +4048,7 @@ func GetANRDetailANRs(c *gin.Context) {
 
 	group, err := app.GetANRGroup(ctx, anrGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId.String())
+		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -4127,8 +4106,8 @@ func GetANRDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	anrGroupId, err := uuid.Parse(c.Param("anrGroupId"))
-	if err != nil {
+	anrGroupId := c.Param("anrGroupId")
+	if anrGroupId == "" {
 		msg := `anr group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -4220,7 +4199,7 @@ func GetANRDetailPlotInstances(c *gin.Context) {
 
 	group, err := app.GetANRGroup(ctx, anrGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId.String())
+		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -4276,8 +4255,8 @@ func GetANRDetailAttributeDistribution(c *gin.Context) {
 		return
 	}
 
-	anrGroupId, err := uuid.Parse(c.Param("anrGroupId"))
-	if err != nil {
+	anrGroupId := c.Param("anrGroupId")
+	if anrGroupId == "" {
 		msg := `anr group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -4369,7 +4348,7 @@ func GetANRDetailAttributeDistribution(c *gin.Context) {
 
 	group, err := app.GetANRGroup(ctx, anrGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get anr group with id %q", anrGroupId.String())
+		msg := fmt.Sprintf("failed to get anr group with id %q", anrGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -4398,8 +4377,8 @@ func GetANRDetailPlotJourney(c *gin.Context) {
 		return
 	}
 
-	anrGroupId, err := uuid.Parse(c.Param("anrGroupId"))
-	if err != nil {
+	anrGroupId := c.Param("anrGroupId")
+	if anrGroupId == "" {
 		msg := `ANR group id is invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
@@ -4501,7 +4480,7 @@ func GetANRDetailPlotJourney(c *gin.Context) {
 
 	anrGroup, err := app.GetANRGroup(ctx, anrGroupId)
 	if err != nil {
-		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId.String())
+		msg := fmt.Sprintf("failed to get ANR group with id %q", anrGroupId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -4543,9 +4522,9 @@ func GetANRDetailPlotJourney(c *gin.Context) {
 	}
 
 	type Issue struct {
-		ID    uuid.UUID `json:"id"`
-		Title string    `json:"title"`
-		Count int       `json:"count"`
+		ID    string `json:"id"`
+		Title string `json:"title"`
+		Count int    `json:"count"`
 	}
 
 	type Node struct {
@@ -5156,7 +5135,7 @@ func GetSession(c *gin.Context) {
 	}
 
 	lifecycleFragmentEvents := eventMap[event.TypeLifecycleFragment]
-	if len(lifecycleActivityEvents) > 0 {
+	if len(lifecycleFragmentEvents) > 0 {
 		lifecycleFragments := timeline.ComputeLifecycleFragments(lifecycleFragmentEvents)
 		threadedLifecycleFragments := timeline.GroupByThreads(lifecycleFragments)
 		threads.Organize(event.TypeLifecycleFragment, threadedLifecycleFragments)
@@ -5177,7 +5156,7 @@ func GetSession(c *gin.Context) {
 	}
 
 	lifecycleAppEvents := eventMap[event.TypeLifecycleApp]
-	if len(lifecycleActivityEvents) > 0 {
+	if len(lifecycleAppEvents) > 0 {
 		lifecycleApps := timeline.ComputeLifecycleApps(lifecycleAppEvents)
 		threadedLifecycleApps := timeline.GroupByThreads(lifecycleApps)
 		threads.Organize(event.TypeLifecycleApp, threadedLifecycleApps)
@@ -6368,4 +6347,123 @@ func UpdateBugReportStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+}
+
+func GetAlertsOverview(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "alerts overview request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	app := App{
+		ID: &id,
+	}
+	team, err := app.getTeam(ctx)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := PerformAuthz(userId, team.ID.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	alerts, next, previous, err := GetAlertsWithFilter(ctx, &af)
+	if err != nil {
+		msg := "failed to get app's alerts"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"results": alerts,
+		"meta": gin.H{
+			"next":     next,
+			"previous": previous,
+		},
+	})
 }

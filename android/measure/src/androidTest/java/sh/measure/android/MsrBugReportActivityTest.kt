@@ -150,41 +150,6 @@ class MsrBugReportActivityTest {
     }
 
     @Test
-    fun enablesShakeDeviceToLaunchBugReportActivityUsingMeasureConfig() {
-        // Given
-        robot.initializeMeasure(
-            MeasureConfig(
-                enableLogging = true,
-                enableShakeToLaunchBugReport = true,
-            ),
-        )
-        ActivityScenario.launch(TestActivity::class.java).use { activity ->
-            activity.moveToState(Lifecycle.State.RESUMED)
-            // Then
-            robot.shakeDevice()
-            robot.assertBugReportActivityLaunched()
-        }
-    }
-
-    @Test
-    fun enablesShakeDeviceToLaunchBugReportActivityAtRuntime() {
-        // Given
-        robot.initializeMeasure(
-            MeasureConfig(
-                enableLogging = true,
-                enableShakeToLaunchBugReport = false,
-            ),
-        )
-        ActivityScenario.launch(TestActivity::class.java).use { activity ->
-            activity.moveToState(Lifecycle.State.RESUMED)
-            // Then
-            Measure.enableShakeToLaunchBugReport()
-            robot.shakeDevice()
-            robot.assertBugReportActivityLaunched()
-        }
-    }
-
-    @Test
     @Ignore("Skipped as picking image from gallery is not reliable in tests")
     fun addsImageFromGallery() {
         // Unable to create an image URI which can be read by the app under test

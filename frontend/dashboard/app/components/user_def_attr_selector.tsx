@@ -1,7 +1,18 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from 'react';
-import { UserDefAttr } from '../api/api_calls';
+import { ChevronsUpDown, Circle, CircleCheck } from "lucide-react"
+import React, { useEffect, useState } from 'react'
+import { UserDefAttr } from '../api/api_calls'
+import { cn } from '../utils/shadcn_utils'
+import { Button } from './button'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from './command'
+import { Popover, PopoverContent, PopoverTrigger } from './popover'
 
 export type UdAttrMatcher = {
   key: string
@@ -13,273 +24,225 @@ export type UdAttrMatcher = {
 interface UserDefAttrSelectorProps {
   attrs: UserDefAttr[]
   ops: Map<string, string[]>
-  onChangeSelected?: (udattrMatchers: UdAttrMatcher[]) => void;
+  initialSelected: UdAttrMatcher[]
+  onChangeSelected?: (udattrMatchers: UdAttrMatcher[]) => void
 }
 
-const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, onChangeSelected }) => {
-  console.log(attrs)
-  console.log(ops)
-  // Init default ops and values for each key
-  const initKeyOpMap: Map<string, string> = new Map()
-  const initKeyValMap: Map<string, string | number | boolean> = new Map()
-  attrs.forEach((attr) => {
-    initKeyOpMap.set(attr.key, ops.get(attr.type)![0])
-    let initVal = undefined
-    switch (attr.type) {
-      case "bool":
-        initVal = false
-        break;
-      case "string":
-        initVal = ""
-        break;
-      default:
-        initVal = "0"
-        break;
+const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({ attrs, ops, initialSelected, onChangeSelected }) => {
+  const [open, setOpen] = useState(false)
+  const [searchValue, setSearchValue] = useState("")
+  const [selectedAttrs, setSelectedAttrs] = useState<UserDefAttr[]>(
+    initialSelected.map((attr) => ({ key: attr.key, type: attr.type }))
+  )
+
+  const getDefaultValue = (type: string) => {
+    switch (type) {
+      case "bool": return false
+      case "string": return ""
+      default: return 0
     }
-    initKeyValMap.set(attr.key, initVal)
+  }
+
+  const [selectedKeyOpMap, setSelectedKeyOpMap] = useState<Map<string, string>>(() => {
+    const map = new Map()
+    attrs.forEach((attr) => map.set(attr.key, ops.get(attr.type)![0]))
+    initialSelected.forEach((attr) => map.set(attr.key, attr.op))
+    return map
+  })
+  const [selectedKeyValMap, setSelectedKeyValMap] = useState<Map<string, string | number | boolean>>(() => {
+    const map = new Map()
+    attrs.forEach((attr) => map.set(attr.key, getDefaultValue(attr.type)))
+    initialSelected.forEach((attr) => map.set(attr.key, attr.value))
+    return map
   })
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedAttrs, setSelectedAttrs] = useState([] as UserDefAttr[]);
-  const [selectedKeyOpMap, setSelectedKeyOpMap] = useState<Map<string, string>>(initKeyOpMap);
-  const [selectedKeyValMap, setSelectedKeyValMap] = useState<Map<string, string | number | boolean>>(initKeyValMap);
-  const [searchText, setSearchText] = useState('');
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    const handleFocusIn = (event: FocusEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('focusin', handleFocusIn);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('focusin', handleFocusIn);
-    };
-  }, []);
-
-  const toggleDropdown = () => {
-    setIsOpen(!isOpen);
-    setSearchText('')
-  };
 
   const isAttrSelected = (item: UserDefAttr) => {
-    return selectedAttrs.some((i) => {
-      return item.key === i.key;
-    });
+    return selectedAttrs.some(i => i.key === item.key)
   }
 
   const toggleAttr = (attr: UserDefAttr) => {
-    if (isAttrSelected(attr)) {
-      setSelectedAttrs(selectedAttrs.filter(a => a != attr))
-    } else {
-      setSelectedAttrs([attr, ...selectedAttrs])
-    }
-  };
+    setSelectedAttrs(prev => isAttrSelected(attr)
+      ? prev.filter(a => a.key !== attr.key)
+      : [...prev, attr]
+    )
+  }
 
-  const clearAll = () => {
-    setSelectedAttrs([]);
-  };
+  const clearAll = () => setSelectedAttrs([])
 
   const updateSelectedOp = (key: string, op: string) => {
-    setSelectedKeyOpMap((prevMap) => {
-      const newMap = new Map(prevMap);
-      newMap.set(key, op);
-      return newMap;
-    });
+    setSelectedKeyOpMap(prev => new Map(prev).set(key, op))
   }
 
   const updateSelectedValue = (key: string, val: string | number | boolean) => {
-    setSelectedKeyValMap((prevMap) => {
-      const newMap = new Map(prevMap);
-      newMap.set(key, val);
-      return newMap;
-    });
+    setSelectedKeyValMap(prev => new Map(prev).set(key, val))
+  }
+
+  const getUdAttrMatchers = (): UdAttrMatcher[] => {
+    return selectedAttrs.map(attr => ({
+      key: attr.key,
+      type: attr.type,
+      op: selectedKeyOpMap.get(attr.key)!,
+      value: selectedKeyValMap.get(attr.key)!
+    }))
   }
 
   useEffect(() => {
-    const udAttrMatchers: UdAttrMatcher[] = [];
-    selectedAttrs.forEach((attr) => {
-      udAttrMatchers.push({
-        key: attr.key,
-        type: attr.type,
-        op: selectedKeyOpMap.get(attr.key)!,
-        value: selectedKeyValMap.get(attr.key)!
-      });
-    });
-
-    onChangeSelected?.(udAttrMatchers);
-  }, [selectedAttrs, ...selectedAttrs.map(attr => selectedKeyOpMap.get(attr.key)), ...selectedAttrs.map(attr => selectedKeyValMap.get(attr.key))]);
-
-  const clearButtonStyle = "text-white text-xs font-display rounded-md border border-white p-1 bg-neutral-950 hover:text-black hover:bg-yellow-200 hover:border-black focus-visible:bg-yellow-200 focus-visible:text-black focus-visible:border-black active:bg-yellow-300 outline-hidden"
-  const checkboxContainerStyle = "flex flex-row items-center px-2 py-2 bg-neutral-950 text-white font-display text-left outline-hidden hover:text-black hover:bg-yellow-200 focus:text-black focus:bg-yellow-200 active:bg-yellow-300"
-  const checkboxInputStyle = "appearance-none pointer-events-none border-white rounded-xs font-display bg-neutral-950 checked:bg-neutral-950 checked:hover:bg-neutral-950 checked:focus:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
-  const searchInputStyle = "w-full py-2 px-4 bg-neutral-950 text-white text-sm border border-white rounded-md font-body placeholder:text-gray-400 focus:outline-hidden focus:border-yellow-300 focus:ring-1 focus:ring-yellow-300"
-  const innerDropdownStyle = "px-4 py-2 w-40 border border-white text-white text-sm bg-neutral-950 rounded-md font-body placeholder:text-gray-400 focus:outline-hidden focus:border-yellow-300 focus:ring-1 focus:ring-yellow-300"
-  const innerOpDropdownStyle = innerDropdownStyle + " ml-2"
-  const innerValueDropdownStyle = innerDropdownStyle + " ml-4"
-  const valueInputStyle = "py-2 px-4 ml-4 w-40 bg-neutral-950 text-white text-sm border border-white rounded-md font-body placeholder:text-gray-400 focus:outline-hidden focus:border-yellow-300 focus:ring-1 focus:ring-yellow-300"
+    onChangeSelected?.(getUdAttrMatchers())
+  }, [selectedAttrs, selectedKeyOpMap, selectedKeyValMap])
 
   const renderValueInput = (attr: UserDefAttr) => {
+    const value = selectedKeyValMap.get(attr.key)
+    const valueClass = "sm:ml-2 ml-0 p-1 text-sm border rounded-md w-full bg-background focus-visible:border-0 focus-visible:ring-2 focus-visible:ring-yellow-300"
+
     switch (attr.type) {
       case 'bool':
         return (
           <select
-            className={innerValueDropdownStyle}
-            value={String(selectedKeyValMap.get(attr.key))}
-            onChange={(e) =>
-              setSelectedKeyValMap((prevMap) => {
-                const newMap = new Map(prevMap);
-                newMap.set(attr.key, e.target.value === 'true');
-                return newMap;
-              })
-            }
-            onClick={(e) => e.stopPropagation()} // Prevent toggleAttr from being called
+            value={String(value)}
+            onChange={(e) => updateSelectedValue(attr.key, e.target.value === 'true')}
+            className={valueClass}
+            onClick={(e) => e.stopPropagation()}
           >
             <option value="true">True</option>
             <option value="false">False</option>
           </select>
-        );
+        )
       case 'int64':
         return (
           <input
             type="number"
             step="1"
-            className={valueInputStyle}
-            value={selectedKeyValMap.get(attr.key) as number}
+            value={value as number}
             onChange={e => updateSelectedValue(attr.key, parseInt(e.target.value, 10))}
-            onClick={(e) => e.stopPropagation()} // Prevent toggleAttr from being called
+            className={valueClass}
+            onClick={(e) => e.stopPropagation()}
           />
-        );
+        )
       case 'float64':
         return (
           <input
             type="number"
             step="0.1"
-            className={valueInputStyle}
-            value={selectedKeyValMap.get(attr.key) as number}
+            value={value as number}
             onChange={e => updateSelectedValue(attr.key, parseFloat(e.target.value))}
-            onClick={(e) => e.stopPropagation()} // Prevent toggleAttr from being called
+            className={valueClass}
+            onClick={(e) => e.stopPropagation()}
           />
-        );
+        )
       default:
         return (
           <input
             type="text"
-            className={valueInputStyle}
-            value={selectedKeyValMap.get(attr.key) as string}
-            onChange={(e) => updateSelectedValue(attr.key, e.target.value)}
-            onClick={(e) => e.stopPropagation()} // Prevent toggleAttr from being called
+            value={value as string}
+            onChange={e => updateSelectedValue(attr.key, e.target.value)}
+            className={valueClass}
+            onClick={(e) => e.stopPropagation()}
           />
-        );
+        )
     }
-  };
+  }
+
+  const filteredAttrs = attrs.filter(attr =>
+    attr.key.toLowerCase().includes(searchValue.toLowerCase())
+  )
 
   return (
-    <div className="relative inline-block text-left select-none" ref={dropdownRef} >
-      <div>
-        <button
-          type="button"
-          onClick={toggleDropdown}
-          className="inline-flex justify-center w-full font-display border border-black rounded-md outline-hidden hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
-          <span className="px-6 py-2">User Defined Attrs</span>
-          <span className="border border-black border-t-0 border-r-0 border-b-0 px-4 py-2">⏷</span>
-        </button>
-      </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className="flex justify-between font-display border border-black"
+          style={{ width: 'fit-content', minWidth: '150px' }}
+        >
+          <span className="truncate">User Defined Attrs</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-[600px]" align="start">
+        <Command>
+          <CommandInput
+            placeholder="Search..."
+            value={searchValue}
+            onValueChange={setSearchValue}
+            className="h-10 p-1 border border-0 rounded-md focus:ring-0 font-body text-sm"
+          />
 
-      {isOpen && (
-        <div className={`z-50 origin-top-right absolute mt-2 w-[600px] max-h-96 overflow-auto rounded-md shadow-lg ring-1 ring-black ring-opacity-5 ${dropdownRef.current && dropdownRef.current.getBoundingClientRect().left > window.innerWidth / 2 ? 'right-0' : 'left-0'}`}>
-          <div
-            role="menu"
-            aria-orientation="vertical"
-            aria-labelledby="options-menu"
-          >
-            <div>
-              {attrs.length > 1 && <div className='w-full p-2 bg-neutral-950'>
-                <input
-                  type="text"
-                  id="user-def-attr-search"
-                  placeholder='Search...'
-                  className={searchInputStyle}
-                  onChange={(e) => {
-                    setSearchText(e.target.value)
-                  }}
-                />
-              </div>}
-              {attrs.length > 1 && <div className='flex flex-row w-full p-2 bg-neutral-950'>
-                <button
-                  onClick={() => clearAll()}
-                  className={clearButtonStyle}
-                >
-                  Clear
-                </button>
-              </div>}
-              {attrs.filter((attr) => attr.key.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((attr) => (
-                <div
-                  key={attr.key}
-                  className={checkboxContainerStyle}
-                  role="menuitem"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    toggleAttr(attr);
-                    (e.currentTarget as HTMLElement).blur()
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      toggleAttr(attr);
-                    }
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    className={checkboxInputStyle}
-                    value={attr.key}
-                    checked={isAttrSelected(attr)}
-                    readOnly
-                    tabIndex={-1}
-                  />
-                  <div className='flex flex-row items-center ml-2 w-56'>
-                    <p className="truncate">{attr.key}</p>
-                    <p className='ml-2 text-xs rounded-md bg-sky-500 p-1'>{attr.type}</p>
-                  </div>
-                  <select
-                    value={selectedKeyOpMap.get(attr.key)}
-                    onChange={(e) => updateSelectedOp(attr.key, e.target.value)}
-                    onClick={(e) => e.stopPropagation()} // Prevent toggleAttr from being called
-                    className={innerOpDropdownStyle}
-                  >
-                    {ops.get(attr.type)!.map((op) => (
-                      <option key={op} value={op}>
-                        {op}
-                      </option>
-                    ))}
-                  </select>
-                  {renderValueInput(attr)}
-                </div>
-              ))}
-            </div>
+          <div className="flex gap-2 p-2 py-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearAll}
+              className="font-display text-xs flex-1"
+            >
+              Clear
+            </Button>
           </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
-export default UserDefAttrSelector;
+          <CommandEmpty>
+            <div className="text-center py-2 text-sm text-gray-500">No attributes found</div>
+          </CommandEmpty>
+
+          <CommandGroup className="max-h-96 overflow-auto">
+            {filteredAttrs.map((attr) => (
+              <CommandItem
+                key={attr.key}
+                onSelect={() => toggleAttr(attr)}
+                className="flex flex-col items-start px-4 sm:px-4 px-0 sm:w-full w-fit focus-visible:ring-3 focus-visible:ring-yellow-300"
+                tabIndex={0}
+                onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    toggleAttr(attr)
+                  }
+                }}
+              >
+                <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-0">
+                  <div className="flex items-center justify-center w-full sm:w-[5%]">
+                    {!isAttrSelected(attr) && <Circle className={cn("h-4 w-4 opacity-50")} />}
+                    {isAttrSelected(attr) && <CircleCheck className={cn("h-4 w-4")} />}
+                  </div>
+
+                  <div className="flex items-center w-full sm:w-[15%]">
+                    <span className="font-medium truncate">{attr.key}</span>
+                  </div>
+
+                  <div className="flex items-center w-full sm:w-[15%]">
+                    <span
+                      className={cn(
+                        "sm:ml-2 ml-0 text-xs rounded-md px-2 py-1 whitespace-nowrap",
+                        isAttrSelected(attr) ? "bg-yellow-200" : "bg-white border border-neutral-400"
+                      )}
+                    >
+                      {attr.type}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center w-full sm:w-[20%]">
+                    <select
+                      value={selectedKeyOpMap.get(attr.key)}
+                      onChange={(e) => updateSelectedOp(attr.key, e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-1 text-sm border rounded-md bg-background w-full focus-visible:border-0 focus-visible:ring-2 focus-visible:ring-yellow-300"
+                    >
+                      {ops.get(attr.type)!.map((op) => (
+                        <option key={op} value={op}>{op}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="w-full sm:w-[45%]">
+                    {renderValueInput(attr)}
+                  </div>
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+export default UserDefAttrSelector

@@ -9,6 +9,7 @@ import Foundation
 @testable import Measure
 
 final class MockConfigProvider: ConfigProvider {
+    var lifecycleViewControllerExcludeList: [String]
     var cpuTrackingIntervalMs: UnsignedNumber
     var memoryTrackingIntervalMs: UnsignedNumber
     var maxSessionDurationMs: Number
@@ -38,8 +39,24 @@ final class MockConfigProvider: ConfigProvider {
     var httpHeadersBlocklist: [String]
     var httpUrlBlocklist: [String]
     var httpUrlAllowlist: [String]
+    var autoStart: Bool
+    var traceSamplingRate: Float
+    var maxSpanNameLength: Int
+    var maxCheckpointNameLength: Int
+    var maxCheckpointsPerSpan: Int
+    var trackViewControllerLoadTime: Bool
+    var screenshotMaskLevel: ScreenshotMaskLevel
+    var maxAttachmentsInBugReport: Int
+    var maxDescriptionLengthInBugReport: Int
+    var shakeAccelerationThreshold: Float
+    var shakeMinTimeIntervalMs: Number
+    var accelerometerUpdateInterval: TimeInterval
+    var requestHeadersProvider: MsrRequestHeadersProvider?
+    var disallowedCustomHeaders: [String]
+    var maxDiskUsageInMb: Int
+    var estimatedEventSizeInKb: Int
 
-    init(enableLogging: Bool = false,
+    init(enableLogging: Bool = false,  // swiftlint:disable:this function_body_length
          trackScreenshotOnCrash: Bool = true,
          samplingRateForErrorFreeSessions: Float = 1.0,
          eventsBatchingIntervalMs: Number = 30000,
@@ -77,7 +94,23 @@ final class MockConfigProvider: ConfigProvider {
          trackHttpBody: Bool = false,
          httpHeadersBlocklist: [String] = [],
          httpUrlBlocklist: [String] = [],
-         httpUrlAllowlist: [String] = []) {
+         httpUrlAllowlist: [String] = [],
+         autoStart: Bool = true,
+         traceSamplingRate: Float = 0.1,
+         maxSpanNameLength: Int = 64,
+         maxCheckpointNameLength: Int = 64,
+         maxCheckpointsPerSpan: Int = 100,
+         trackViewControllerLoadTime: Bool = true,
+         screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia,
+         maxAttachmentsInBugReport: Int = 5,
+         maxDescriptionLengthInBugReport: Int = 4000,
+         shakeAccelerationThreshold: Float = 20,
+         shakeMinTimeIntervalMs: Number = 1500,
+         accelerometerUpdateInterval: TimeInterval = 0.1,
+         requestHeadersProvider: MsrRequestHeadersProvider? = nil,
+         disallowedCustomHeaders: [String] = ["Content-Type", "msr-req-id", "Authorization", "Content-Length"],
+         maxDiskUsageInMb: Int = 50,
+         estimatedEventSizeInKb: Int = 10) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
@@ -107,6 +140,40 @@ final class MockConfigProvider: ConfigProvider {
         self.httpHeadersBlocklist = httpHeadersBlocklist
         self.httpUrlBlocklist = httpUrlBlocklist
         self.httpUrlAllowlist = httpUrlAllowlist
+        self.autoStart = autoStart
+        self.traceSamplingRate = traceSamplingRate
+        self.maxSpanNameLength = maxSpanNameLength
+        self.maxCheckpointNameLength = maxCheckpointNameLength
+        self.maxCheckpointsPerSpan = maxCheckpointsPerSpan
+        self.trackViewControllerLoadTime = trackViewControllerLoadTime
+        self.screenshotMaskLevel = screenshotMaskLevel
+        self.maxAttachmentsInBugReport = maxAttachmentsInBugReport
+        self.maxDescriptionLengthInBugReport = maxDescriptionLengthInBugReport
+        self.shakeAccelerationThreshold = shakeAccelerationThreshold
+        self.shakeMinTimeIntervalMs = shakeMinTimeIntervalMs
+        self.accelerometerUpdateInterval = accelerometerUpdateInterval
+        self.requestHeadersProvider = requestHeadersProvider
+        self.disallowedCustomHeaders = disallowedCustomHeaders
+        self.lifecycleViewControllerExcludeList = [
+            "UIHostingController",
+            "UIKitNavigationController",
+            "NavigationStackHostingController",
+            "NotifyingMulticolumnSplitViewController",
+            "StyleContextSplitViewController",
+            "UISystemAssistantViewController",
+            "UISystemKeyboardDockController",
+            "UIEditingOverlayViewController",
+            "UIInputWindowContoller",
+            "PrewarmingViewController",
+            "UIInputViewController",
+            "UICompactibilityInputViewController",
+            "UICompactibilityInputViewController",
+            "UIPredictionViewController",
+            "_UICursorAccessoryViewController",
+            "UIMultiscriptCandidateViewController"
+        ]
+        self.maxDiskUsageInMb = maxDiskUsageInMb
+        self.estimatedEventSizeInKb = estimatedEventSizeInKb
     }
 
     func loadNetworkConfig() {}

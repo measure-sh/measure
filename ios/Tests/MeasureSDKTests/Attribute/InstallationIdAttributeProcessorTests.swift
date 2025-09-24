@@ -18,7 +18,8 @@ final class InstallationIdAttributeProcessorTests: XCTestCase {
     override func setUp() {
         super.setUp()
         installationId = "installation_id"
-        idProvider = MockIdProvider(installationId)
+        idProvider = MockIdProvider()
+        idProvider.uuId = installationId
         userDefaultStorage = MockUserDefaultStorage()
         installationIdAttributeProcessor = InstallationIdAttributeProcessor(userDefaultStorage: userDefaultStorage,
                                                                             idProvider: idProvider)
@@ -35,7 +36,7 @@ final class InstallationIdAttributeProcessorTests: XCTestCase {
     }
 
     func testGivenInstallationIdIsNotSetThenCreatesStoresAndReturnsInstallationIdInUserDefaults() {
-        installationIdAttributeProcessor.appendAttributes(&attributes)
+        installationIdAttributeProcessor.appendAttributes(attributes)
 
         XCTAssertEqual(attributes.installationId, installationId)
     }
@@ -43,7 +44,7 @@ final class InstallationIdAttributeProcessorTests: XCTestCase {
     func testGivenInstallationIdIsAlreadySetThenReturnsTheStoredInstallationId() {
         userDefaultStorage.installationId = installationId
 
-        installationIdAttributeProcessor.appendAttributes(&attributes)
+        installationIdAttributeProcessor.appendAttributes(attributes)
 
         XCTAssertEqual(attributes.installationId, installationId)
     }

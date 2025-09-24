@@ -22,6 +22,7 @@
 - [Quick start](#quick-start)
 - [Features](#features)
   - [Session Timelines](#session-timelines)
+  - [Bug Reports](#bug-reports)
   - [Performance Traces](#performance-traces)
   - [User Journeys](#user-journeys)
   - [App Health](#app-health)
@@ -37,7 +38,7 @@
 
 ## Quick start
 
-Measure is available as a self hosted platform that comes with a simple one line install script. Check out our [Self hosting](./docs/hosting/README.md), [Android SDK](./docs/android/README.md) and [iOS SDK](./docs/ios/README.md) guides.
+Measure is available as a self-hosted platform that comes with a simple one line install script. Check out our [Self hosting](./docs/hosting/README.md) and [SDK integration](./docs/sdk-integration-guide.md) guides.
 
 ## Features
 
@@ -45,34 +46,37 @@ Measure is available as a self hosted platform that comes with a simple one line
 
 Debug issues easily with full session timelines. Get the complete context with automatic tracking for clicks, navigations, http calls and more.
 
-[Session Timelines demo](https://github.com/user-attachments/assets/e8bac17c-c8c7-4f19-81e3-1979c7e70969)
+[Session Timelines demo](https://github.com/user-attachments/assets/9e0737b6-c1b4-4724-be89-736b99d8d5f6)
+
+### Bug Reports
+
+Capture bug reports with a device shake or SDK call. Get full history of user actions leading to the bug.
+
+[Bug Reports demo](https://github.com/user-attachments/assets/3507fdd6-b940-47e1-81b1-c3b0259bf811)
 
 ### Performance Traces
 
 Analyze app performance with traces and spans. Break down complex issues and intelligently smoothen out bottlenecks. 
 
-[Performance Traces demo](https://github.com/user-attachments/assets/78b86961-ba76-4cc1-a301-8c676c75f6ed)
+[Performance Traces demo](https://github.com/user-attachments/assets/3cd8b09a-08e5-4c12-bd71-0cd3d1ddf37b)
 
 ### User Journeys
 
 Understand how users move through your app. Easily visualise screens most affected by issues.
 
-[Journey demo](https://github.com/user-attachments/assets/54a0f7c5-d078-4e67-a5df-0ae73b2309c9)
+[Journey demo](https://github.com/user-attachments/assets/2e2c49b4-bf95-4bd0-84f5-8a475a3ca562)
 
 ### App Health
 
 Monitor important metrics to stay on top of app health. Quickly see deltas to make sure you're moving in the right direction.
 
-[App Health demo](https://github.com/user-attachments/assets/a6e7b57d-2dc8-4671-a461-6708921fdd72)
+[App Health demo](https://github.com/user-attachments/assets/2e6aa704-f170-4623-857d-ddf783b395ed)
 
 ### Crashes and ANRs
 
 Automatically track Crashes and ANRs. Dive deeper with screenshots, filters and detailed stacktraces
 
-[Crashes and ANRs demo](https://github.com/user-attachments/assets/fb8e3c67-f263-41d7-b547-1f9d09c90ae0)
-
-
-⭐ If you find Measure useful, please consider [starring this repo!](https://github.com/measure-sh/measure)
+[Crashes and ANRs demo](https://github.com/user-attachments/assets/0a2ff565-84b9-433f-bef8-7b8ed43cbecb)
 
 ## Philosophy
 
@@ -94,15 +98,16 @@ If you want to support the project and get updates on new features and releases,
 ## Docs
 
 1. [**Self Hosting Guide**](./docs/hosting/README.md) - Get started with hosting Measure
-2. [**Android SDK Guide**](./android/README.md) - Integrate our Android SDK and start measuring in no time
-3. [**REST API Docs**](./docs/api/README.md) - REST APIs used by the dashboard app and SDKs
-4. [**Versioning Guide**](./docs/versioning/README.md) - Understand how versions are tagged
-5. [**Contribution Guide**](./docs/CONTRIBUTING.md) - Contribute to Measure
+2. [**SDK Integration Guide**](./docs/sdk-integration-guide.md) - Integrate Android or iOS SDK and start measuring in no time
+3. [**Explore Features**](./docs/README.md#explore-features) - Learn about the features available in Measure and how to use them
+4. [**REST API Docs**](./docs/api/README.md) - REST APIs used by the dashboard app and SDKs
+5. [**Versioning Guide**](./docs/versioning/README.md) - Understand how versions are tagged
+6. [**Contribution Guide**](./docs/CONTRIBUTING.md) - Contribute to Measure
 
 
 ## Platforms
 
-Currently, we support Android with iOS, Flutter and React Native SDKs planned for the future.
+Currently, we support Android, iOS and Flutter. React Native SDK planned for the future.
 
 ## Roadmap
 

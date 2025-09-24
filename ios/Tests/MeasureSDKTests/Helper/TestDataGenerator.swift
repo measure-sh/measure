@@ -93,6 +93,8 @@ struct TestDataGenerator {
         customEvent: Data? = nil,
         networkChange: Data? = nil,
         screenView: Data? = nil,
+        bugReport: Data? = nil,
+        sessionStartData: Data? = nil,
         needsReporting: Bool = true) -> EventEntity {
         return EventEntity(
             id: id,
@@ -122,8 +124,49 @@ struct TestDataGenerator {
             networkChange: networkChange,
             customEvent: customEvent,
             screenView: screenView,
+            bugReport: bugReport,
+            sessionStartData: sessionStartData,
             needsReporting: needsReporting
         )
     }
 
+    static func generateSpans(
+        name: String? = "ViewController.viewDidLoad",
+        traceId: String? = "trace-id-123",
+        spanId: String = "span-id-123",
+        parentId: String? = nil,
+        sessionId: String? = "session-id-123",
+        startTime: Int64 = 1727272496000,
+        startTimeString: String = "2024-09-25T12:34:56Z",
+        endTime: Int64 = 1727272496200,
+        endTimeString: String = "2024-09-25T12:34:58Z",
+        duration: Int64 = 200,
+        status: Int64? = 0,
+        attributes: Data? = nil,
+        userDefinedAttrs: Data? = nil,
+        checkpoints: Data? = nil,
+        hasEnded: Bool = true,
+        isSampled: Bool = true,
+        batchId: String? = nil
+    ) -> SpanEntity {
+        return SpanEntity(
+            name: name,
+            traceId: traceId,
+            spanId: spanId,
+            parentId: parentId,
+            sessionId: sessionId,
+            startTime: startTime,
+            startTimeString: startTimeString,
+            endTime: endTime,
+            endTimeString: endTimeString,
+            duration: duration,
+            status: status,
+            attributes: attributes,
+            userDefinedAttrs: userDefinedAttrs,
+            checkpoints: checkpoints,
+            hasEnded: hasEnded,
+            isSampled: isSampled,
+            batchId: batchId
+        )
+    }
 }

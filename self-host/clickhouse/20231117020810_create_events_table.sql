@@ -1,5 +1,5 @@
 -- migrate:up
-create table if not exists default.events
+create table if not exists events
 (
   `id` UUID not null comment 'unique event id',
   `type` LowCardinality(FixedString(32)) not null comment 'type of the event',
@@ -159,4 +159,4 @@ order by (app_id, session_id, id, timestamp)
 comment 'events master table';
 
 -- migrate:down
-drop table if exists default.events;
+drop table if exists events;

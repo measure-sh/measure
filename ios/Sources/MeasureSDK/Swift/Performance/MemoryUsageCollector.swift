@@ -9,6 +9,7 @@ import Foundation
 
 protocol MemoryUsageCollector {
     func enable()
+    func disable()
     func resume()
     func pause()
 }
@@ -18,31 +19,42 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
     private let logger: Logger
     private let configProvider: ConfigProvider
     private let sysCtl: SysCtl
-    private let eventProcessor: EventProcessor
+    private let signalProcessor: SignalProcessor
     private let timeProvider: TimeProvider
     private let memoryUsageCalculator: MemoryUsageCalculator
     private var isTrackingInProgress = false
-    private var isEnabled = false
+    private var isEnabled = AtomicBool(false)
 
-    init(logger: Logger, configProvider: ConfigProvider, eventProcessor: EventProcessor, timeProvider: TimeProvider, memoryUsageCalculator: MemoryUsageCalculator, sysCtl: SysCtl) {
+    init(logger: Logger, configProvider: ConfigProvider, signalProcessor: SignalProcessor, timeProvider: TimeProvider, memoryUsageCalculator: MemoryUsageCalculator, sysCtl: SysCtl) {
         self.logger = logger
         self.configProvider = configProvider
-        self.eventProcessor = eventProcessor
+        self.signalProcessor = signalProcessor
         self.sysCtl = sysCtl
         self.timeProvider = timeProvider
         self.memoryUsageCalculator = memoryUsageCalculator
     }
 
     func enable() {
-        guard timer == nil else { return }
+        isEnabled.setTrueIfFalse {
+            guard timer == nil else { return }
 
-        isEnabled = true
-        initializeTimer()
-        logger.log(level: .info, message: "MemoryUsageCollector enabled.", error: nil, data: nil)
+            initializeTimer()
+            logger.log(level: .info, message: "MemoryUsageCollector enabled.", error: nil, data: nil)
+        }
+    }
+
+    func disable() {
+        isEnabled.setFalseIfTrue {
+            guard let timer = self.timer else { return }
+
+            timer.invalidate()
+            self.timer = nil
+            logger.log(level: .info, message: "MemoryUsageCollector disabled.", error: nil, data: nil)
+        }
     }
 
     func resume() {
-        if isEnabled && timer == nil {
+        if isEnabled.get() && timer == nil {
             initializeTimer()
             logger.log(level: .info, message: "MemoryUsageCollector resumed.", error: nil, data: nil)
         }
@@ -72,13 +84,14 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
                                                   usedMemory: memoryUsage,
                                                   interval: configProvider.memoryTrackingIntervalMs)
 
-            self.eventProcessor.track(data: memoryUsageData,
-                                      timestamp: timeProvider.now(),
-                                      type: .memoryUsageAbsolute,
-                                      attributes: nil,
-                                      sessionId: nil,
-                                      attachments: nil,
-                                      userDefinedAttributes: nil)
+            self.signalProcessor.track(data: memoryUsageData,
+                                       timestamp: timeProvider.now(),
+                                       type: .memoryUsageAbsolute,
+                                       attributes: nil,
+                                       sessionId: nil,
+                                       attachments: nil,
+                                       userDefinedAttributes: nil,
+                                       threadName: nil)
         } else {
             logger.internalLog(level: .error, message: "Could not get memory usage data.", error: nil, data: nil)
         }

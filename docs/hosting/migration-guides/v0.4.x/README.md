@@ -41,7 +41,7 @@ Visit [Releases](https://github.com/measure-sh/measure/releases) page to capture
 
 ```sh
 cd ~/measure
-git fetch
+git fetch --tags
 git checkout <git-tag>
 cd self-host
 sudo docker compose -f compose.yml -f compose.prod.yml \

@@ -20,10 +20,10 @@ internal class MsrSpanProcessor(
     private val configProvider: ConfigProvider,
 ) : SpanProcessor {
     override fun onStart(span: InternalSpan) {
-        logger.log(LogLevel.Debug, "Span start: ${span.name}")
         InternalTrace.trace(
             { "msr-spanProcessor-onStart" },
             {
+                logger.log(LogLevel.Debug, "Span started: ${span.name}")
                 val threadName = Thread.currentThread().name
                 span.setInternalAttribute(Attribute.THREAD_NAME to threadName)
                 val attributes = span.getAttributesMap()
@@ -39,19 +39,28 @@ internal class MsrSpanProcessor(
 
     override fun onEnded(span: InternalSpan) {
         val spanData = span.toSpanData()
-        logger.log(LogLevel.Debug, "Span end: ${span.name}, ${spanData.duration}ms")
         if (!spanData.sanitize()) {
             return
         }
         signalProcessor.trackSpan(spanData)
+        logger.log(LogLevel.Debug, "Span ended: ${spanData.name}, duration: ${spanData.duration}")
     }
 
     private fun SpanData.sanitize(): Boolean {
         // discard span if it's duration is negative
         if (duration < 0) {
             logger.log(
-                LogLevel.Warning,
-                "Span($name) duration is negative, span will be dropped.",
+                LogLevel.Error,
+                "Invalid span: $name, duration is negative, span will be dropped",
+            )
+            return false
+        }
+
+        // discard span if it is empty
+        if (name.isBlank()) {
+            logger.log(
+                LogLevel.Error,
+                "Span name is does not contain any characters, span will be dropped",
             )
             return false
         }
@@ -59,18 +68,10 @@ internal class MsrSpanProcessor(
         // discard span if it exceeds max span name length
         if (name.length > configProvider.maxSpanNameLength) {
             logger.log(
-                LogLevel.Warning,
-                "Span name length (${name.length} exceeded max allowed, span will be dropped.",
+                LogLevel.Error,
+                "Invalid span: $name, length ${name.length} exceeded max allowed, span will be dropped",
             )
             return false
-        }
-
-        // discard invalid checkpoints
-        if (checkpoints.size > configProvider.maxCheckpointsPerSpan) {
-            logger.log(
-                LogLevel.Warning,
-                "Max checkpoints exceeded ${checkpoints.size}, some checkpoints will be dropped.",
-            )
         }
 
         // remove invalid checkpoints
@@ -80,16 +81,16 @@ internal class MsrSpanProcessor(
         }
         if (checkpoints.size < initialSize) {
             logger.log(
-                LogLevel.Warning,
-                "Dropped ${initialSize - checkpoints.size} checkpoints due to invalid name length.",
+                LogLevel.Error,
+                "Invalid span: $name, dropped ${initialSize - checkpoints.size} checkpoints due to invalid name",
             )
         }
 
         // limit number of checkpoints per span
         if (checkpoints.size > configProvider.maxCheckpointsPerSpan) {
             logger.log(
-                LogLevel.Warning,
-                "Max checkpoints exceeded for span($name), some checkpoints will be dropped.",
+                LogLevel.Error,
+                "Invalid span: $name, max checkpoints exceeded, some checkpoints will be dropped",
             )
             checkpoints.subList(configProvider.maxCheckpointsPerSpan, checkpoints.size).clear()
         }

@@ -84,7 +84,7 @@ internal class DefaultMemoryReader(
                 val pages = file.readText().split(" ")[1].toLong()
                 return pages * pageSize
             } catch (e: Exception) {
-                logger.log(LogLevel.Error, "Failed to read RSS from /proc/pid/statm", e)
+                logger.log(LogLevel.Debug, "Failed to read RSS file from /proc/pid/statm", e)
             }
         }
         return null

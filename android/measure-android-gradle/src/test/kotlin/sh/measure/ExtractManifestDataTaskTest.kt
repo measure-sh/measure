@@ -32,7 +32,7 @@ internal class ExtractManifestDataTaskTest {
         configureTask()
         task.extractManifestData()
         val validManifestOutput = """
-                {"apiKey":"api-key","apiUrl":"api-url","versionCode":"100","appUniqueId":"sh.measure.sample","versionName":"1.0.0"}
+                {"apiKey":"msrsh-api-key","apiUrl":"api-url","versionCode":"100","appUniqueId":"sh.measure.sample","versionName":"1.0.0"}
         """.trimIndent()
         Assert.assertEquals(validManifestOutput, outputFile.readText())
     }
@@ -48,6 +48,14 @@ internal class ExtractManifestDataTaskTest {
     @Test
     fun `ExtractManifestDataTask does not output the file when API URL is missing in manifest`() {
         manifestFile.writeText(manifestWithoutApiUrl)
+        configureTask()
+        task.extractManifestData()
+        Assert.assertTrue(outputFile.readText().isEmpty())
+    }
+
+    @Test
+    fun `ExtractManifestDataTask does not output the file when API KEY is invalid`() {
+        manifestFile.writeText(manifestWithInvalidApiKey)
         configureTask()
         task.extractManifestData()
         Assert.assertTrue(outputFile.readText().isEmpty())
@@ -70,7 +78,7 @@ internal class ExtractManifestDataTaskTest {
                 <application>
                     <meta-data
                         android:name="sh.measure.android.API_KEY"
-                        android:value="api-key" />
+                        android:value="msrsh-api-key" />
                         
                     <meta-data
                         android:name="sh.measure.android.API_URL"
@@ -89,6 +97,20 @@ internal class ExtractManifestDataTaskTest {
                       <meta-data
                         android:name="sh.measure.android.API_URL"
                         android:value="api-url" />
+                </application>
+            </manifest>
+    """.trimIndent()
+
+    private val manifestWithInvalidApiKey = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+                package="sh.measure.sample"
+                android:versionCode="100"
+                android:versionName="1.0.0">
+                <application>
+                      <meta-data
+                        android:name="sh.measure.android.API_URL"
+                        android:value="invalid-api-key" />
                 </application>
             </manifest>
     """.trimIndent()

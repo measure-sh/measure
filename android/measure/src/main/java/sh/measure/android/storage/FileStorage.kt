@@ -75,6 +75,12 @@ internal interface FileStorage {
      * Returns the directory where bug report data is stored temporarily.
      */
     fun getBugReportDir(): File
+
+    /**
+     * Returns the directory where attachment files are stored. Creates one, if it doesn't
+     * exist yet.
+     */
+    fun getAttachmentDirectory(): String
 }
 
 private const val MEASURE_DIR = "measure"
@@ -90,7 +96,7 @@ internal class FileStorageImpl(
         try {
             file.writeText(serializedData)
         } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Error writing serialized event data to file", e)
+            logger.log(LogLevel.Debug, "Failed to write event data to file", e)
             deleteFileIfExists(file)
             return null
         }
@@ -103,7 +109,7 @@ internal class FileStorageImpl(
             file.writeBytes(bytes)
             file.path
         } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Error writing attachment to file", e)
+            logger.log(LogLevel.Debug, "Failed to write attachment to file", e)
             deleteFileIfExists(file)
             null
         }
@@ -146,6 +152,20 @@ internal class FileStorageImpl(
         return File("$rootDir/$MEASURE_DIR/$BUG_REPORTS_DIR")
     }
 
+    override fun getAttachmentDirectory(): String {
+        val dirPath = "$rootDir/$MEASURE_DIR"
+        val rootDir = File(dirPath)
+        try {
+            if (!rootDir.exists()) {
+                rootDir.mkdirs()
+            }
+        } catch (e: SecurityException) {
+            logger.log(LogLevel.Debug, "Failed to create file", e)
+            return dirPath
+        }
+        return dirPath
+    }
+
     override fun deleteEventsIfExist(eventIds: List<String>, attachmentIds: List<String>) {
         (eventIds + attachmentIds).forEach { id ->
             getFile("$rootDir/$MEASURE_DIR/$id")?.delete()
@@ -170,7 +190,7 @@ internal class FileStorageImpl(
                 rootDir.mkdirs()
             }
         } catch (e: SecurityException) {
-            logger.log(LogLevel.Error, "Unable to create file with id=$id", e)
+            logger.log(LogLevel.Debug, "Failed to create file", e)
             return null
         }
 
@@ -182,7 +202,7 @@ internal class FileStorageImpl(
                 file.createNewFile()
             }
         } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Error creating file with id=$id", e)
+            logger.log(LogLevel.Debug, "Failed to create file", e)
             return null
         }
 

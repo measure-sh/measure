@@ -16,15 +16,15 @@ final class ComputeOnceAttributeProcessorTests: XCTestCase {
             override func computeAttributes() {
                 computeAttributesCalledCount += 1
             }
-            override func updateAttribute(_ attribute: inout Attributes) {}
+            override func updateAttribute(_ attribute: Attributes) {}
         }
 
         let processor = TestComputeOnceAttributeProcessor()
-        var attributes = Attributes()
+        let attributes = Attributes()
 
-        processor.appendAttributes(&attributes)
-        processor.appendAttributes(&attributes)
-        processor.appendAttributes(&attributes)
+        processor.appendAttributes(attributes)
+        processor.appendAttributes(attributes)
+        processor.appendAttributes(attributes)
 
         XCTAssertEqual(processor.computeAttributesCalledCount, 1)
     }

@@ -3,18 +3,25 @@ package server
 import (
 	"backend/api/inet"
 	"context"
+	"fmt"
 	"log"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/wneessen/go-mail"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc/credentials"
@@ -24,8 +31,11 @@ var Server *server
 
 type server struct {
 	PgPool *pgxpool.Pool
-	ChPool driver.Conn
-	Config *ServerConfig
+	// RpgPool *pgxpool.Pool
+	ChPool  driver.Conn
+	RchPool driver.Conn
+	Mail    *mail.Client
+	Config  *ServerConfig
 }
 
 type PostgresConfig struct {
@@ -35,12 +45,14 @@ type PostgresConfig struct {
 
 type ClickhouseConfig struct {
 	/* connection string of the clickhouse instance */
-	DSN string
+	DSN       string
+	ReaderDSN string
 }
 
 type ServerConfig struct {
 	PG                         PostgresConfig
 	CH                         ClickhouseConfig
+	ServiceAccountEmail        string
 	SymbolsBucket              string
 	SymbolsBucketRegion        string
 	SymbolsAccessKey           string
@@ -59,10 +71,45 @@ type ServerConfig struct {
 	OAuthGoogleKey             string
 	AccessTokenSecret          []byte
 	RefreshTokenSecret         []byte
+	SmtpHost                   string
+	SmtpPort                   string
+	SmtpUser                   string
+	SmtpPassword               string
+	EmailDomain                string
+	TxEmailAddress             string
+	SlackClientID              string
+	SlackClientSecret          string
 	OtelServiceName            string
+	CloudEnv                   bool
+}
+
+// IsCloud is true if the service is assumed
+// running on a cloud environment.
+func (sc *ServerConfig) IsCloud() bool {
+	if sc.CloudEnv {
+		return true
+	}
+
+	return false
 }
 
 func NewConfig() *ServerConfig {
+	cloudEnv := false
+	if os.Getenv("K_SERVICE") != "" && os.Getenv("K_REVISION") != "" {
+		cloudEnv = true
+	}
+
+	// capture google service account email when running in
+	// cloud. need this to create signed PUT URLs for uploading
+	// symbol files.
+	var serviceAccountEmail string
+	if cloudEnv {
+		serviceAccountEmail = os.Getenv("GOOGLE_SERVICE_ACCOUNT_EMAIL")
+		if serviceAccountEmail == "" {
+			log.Println("GOOGLE_SERVICE_ACCOUNT_EMAIL env var not set")
+		}
+	}
+
 	symbolsBucket := os.Getenv("SYMBOLS_S3_BUCKET")
 	if symbolsBucket == "" {
 		log.Println("SYMBOLS_S3_BUCKET env var not set, mapping file uploads won't work")
@@ -110,17 +157,19 @@ func NewConfig() *ServerConfig {
 
 	siteOrigin := os.Getenv("SITE_ORIGIN")
 	if siteOrigin == "" {
-		log.Fatal("SITE_ORIGIN env var not set. Need for Cross Origin Resource Sharing (CORS) to work.")
+		log.Fatal("SITE_ORIGIN env var not set. Authentication and emails might not work.")
 	}
 
 	apiOrigin := os.Getenv("API_ORIGIN")
 	if apiOrigin == "" {
-		log.Fatal("API_ORIGIN env var not set. Need for proxying session attachments.")
+		// log.Fatal("API_ORIGIN env var not set. Need for proxying session attachments.")
+		log.Println("API_ORIGIN env var not set. Need for proxying session attachments.")
 	}
 
 	symbolicatorOrigin := os.Getenv("SYMBOLICATOR_ORIGIN")
 	if symbolicatorOrigin == "" {
-		log.Fatal("SYMBOLICATOR_ORIGIN env var not set. Need for de-obfuscating events.")
+		// log.Fatal("SYMBOLICATOR_ORIGIN env var not set. Need for de-obfuscating events.")
+		log.Println("SYMBOLICATOR_ORIGIN env var not set. Need for de-obfuscating events.")
 	}
 
 	oauthGitHubKey := os.Getenv("OAUTH_GITHUB_KEY")
@@ -150,12 +199,66 @@ func NewConfig() *ServerConfig {
 
 	postgresDSN := os.Getenv("POSTGRES_DSN")
 	if postgresDSN == "" {
-		log.Fatal("POSTGRES_DSN env var is not set, cannot start server")
+		// log.Fatal("POSTGRES_DSN env var is not set, cannot start server")
+		log.Println("POSTGRES_DSN env var is not set, cannot start server")
 	}
 
 	clickhouseDSN := os.Getenv("CLICKHOUSE_DSN")
 	if clickhouseDSN == "" {
-		log.Fatal("CLICKHOUSE_DSN env var is not set, cannot start server")
+		// log.Fatal("CLICKHOUSE_DSN env var is not set, cannot start server")
+		log.Println("CLICKHOUSE_DSN env var is not set, cannot start server")
+	}
+
+	clickhouseReaderDSN := os.Getenv("CLICKHOUSE_READER_DSN")
+	if clickhouseReaderDSN == "" {
+		// log.Fatal("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
+		log.Println("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
+	}
+
+	smtpHost := os.Getenv("SMTP_HOST")
+	if smtpHost == "" {
+		log.Println("SMTP_HOST env var is not set, emails will not work")
+	}
+
+	smtpPort := os.Getenv("SMTP_PORT")
+	if smtpPort == "" {
+		log.Println("SMTP_PORT env var is not set, emails will not work")
+	}
+
+	smtpUser := os.Getenv("SMTP_USER")
+	if smtpUser == "" {
+		log.Println("SMTP_USER env var is not set, emails will not work")
+	}
+
+	smtpPassword := os.Getenv("SMTP_PASSWORD")
+	if smtpPassword == "" {
+		log.Println("SMTP_PASSWORD env var is not set, emails will not work")
+	}
+
+	emailDomain := os.Getenv("EMAIL_DOMAIN")
+	if emailDomain == "" {
+		log.Println("EMAIL_DOMAIN env var is not set, emails will use SITE_ORIGIN as domain")
+	}
+
+	var txEmailAddress string
+	if emailDomain != "" {
+		txEmailAddress = "noreply@" + emailDomain
+	} else {
+		parsedSiteOrigin, err := url.Parse(siteOrigin)
+		if err != nil {
+			log.Fatalf("Error parsing SITE_ORIGIN: %v\n", err)
+		}
+		txEmailAddress = "noreply@" + parsedSiteOrigin.Hostname()
+	}
+
+	slackClientID := os.Getenv("SLACK_CLIENT_ID")
+	if slackClientID == "" {
+		log.Println("SLACK_CLIENT_ID env var is not set, Slack integration will not work")
+	}
+
+	slackClientSecret := os.Getenv("SLACK_CLIENT_SECRET")
+	if slackClientSecret == "" {
+		log.Println("SLACK_CLIENT_SECRET env var is not set, Slack integration will not work")
 	}
 
 	otelServiceName := os.Getenv("OTEL_SERVICE_NAME")
@@ -170,8 +273,10 @@ func NewConfig() *ServerConfig {
 			DSN: postgresDSN,
 		},
 		CH: ClickhouseConfig{
-			DSN: clickhouseDSN,
+			DSN:       clickhouseDSN,
+			ReaderDSN: clickhouseReaderDSN,
 		},
+		ServiceAccountEmail:        serviceAccountEmail,
 		SymbolsBucket:              symbolsBucket,
 		SymbolsBucketRegion:        symbolsBucketRegion,
 		SymbolsAccessKey:           symbolsAccessKey,
@@ -190,19 +295,73 @@ func NewConfig() *ServerConfig {
 		OAuthGoogleKey:             oauthGoogleKey,
 		AccessTokenSecret:          []byte(atSecret),
 		RefreshTokenSecret:         []byte(rtSecret),
+		SmtpHost:                   smtpHost,
+		SmtpPort:                   smtpPort,
+		SmtpUser:                   smtpUser,
+		SmtpPassword:               smtpPassword,
+		EmailDomain:                emailDomain,
+		TxEmailAddress:             txEmailAddress,
+		SlackClientID:              slackClientID,
+		SlackClientSecret:          slackClientSecret,
 		OtelServiceName:            otelServiceName,
+		CloudEnv:                   cloudEnv,
+	}
+}
+
+func WaitForPg(ctx context.Context, pgPool *pgxpool.Pool, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		if err := pgPool.Ping(ctx); err == nil {
+			return nil // Ready
+		} else {
+			fmt.Printf("PG ping failed: %v; Retrying...\n", err)
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
 	}
 }
 
 func Init(config *ServerConfig) {
-	pgPool, err := pgxpool.New(context.Background(), config.PG.DSN)
+	ctx := context.Background()
+	var pgPool *pgxpool.Pool
+
+	// read/write pool
+	oConfig, err := pgxpool.ParseConfig(config.PG.DSN)
+	if err != nil {
+		log.Fatalf("Unable to parse postgres connection string: %v\n", err)
+	}
+
+	// See https://pkg.go.dev/github.com/jackc/pgx/v5#QueryExecMode
+	oConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+
+	pool, err := pgxpool.NewWithConfig(ctx, oConfig)
 	if err != nil {
 		log.Fatalf("Unable to create PG connection pool: %v\n", err)
+	}
+	pgPool = pool
+
+	if err := WaitForPg(ctx, pgPool, 5*time.Second); err != nil {
+		fmt.Printf("Postgres pool not ready: %v\n", err)
 	}
 
 	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
 	if err != nil {
-		log.Fatalf("Unable to parse CH connection string: %v\n", err)
+		// log.Fatalf("Unable to parse CH connection string: %v\n", err)
+		log.Printf("Unable to parse CH connection string: %v\n", err)
+	}
+
+	rChOpts, err := clickhouse.ParseDSN(config.CH.ReaderDSN)
+	if err != nil {
+		log.Printf("unable to parse reader CH connection string %v\n", err)
 	}
 
 	if gin.Mode() == gin.ReleaseMode {
@@ -215,40 +374,66 @@ func Init(config *ServerConfig) {
 
 	chPool, err := clickhouse.Open(chOpts)
 	if err != nil {
-		log.Fatalf("Unable to create CH connection pool: %v", err)
+		// log.Fatalf("Unable to create CH connection pool: %v", err)
+		log.Printf("Unable to create CH connection pool: %v\n", err)
+	}
+
+	rChPool, err := clickhouse.Open(rChOpts)
+	if err != nil {
+		log.Printf("Unable to create reader CH connection pool: %v\n", err)
 	}
 
 	if err := inet.Init(); err != nil {
-		log.Fatalf("Unable to initialize geo ip lookup system: %v", err)
+		// log.Fatalf("Unable to initialize geo ip lookup system: %v", err)
+		log.Printf("Unable to initialize geo ip lookup system: %v", err)
+	}
+
+	// init email client
+	var mailClient *mail.Client
+	if config.SmtpHost != "" || config.SmtpPort != "" || config.SmtpUser != "" || config.SmtpPassword != "" {
+		smtpConfigPort, err := strconv.Atoi(config.SmtpPort)
+		if err != nil {
+			log.Printf("Invalid smtp port: %s", err)
+		}
+
+		mailClient, err = mail.NewClient(config.SmtpHost, mail.WithPort(smtpConfigPort), mail.WithSMTPAuth(mail.SMTPAuthPlain),
+			mail.WithUsername(config.SmtpUser), mail.WithPassword(config.SmtpPassword))
+		if err != nil {
+			log.Printf("failed to create email client: %s", err)
+		}
 	}
 
 	Server = &server{
-		PgPool: pgPool,
-		ChPool: chPool,
-		Config: config,
+		PgPool:  pgPool,
+		ChPool:  chPool,
+		RchPool: rChPool,
+		Config:  config,
+		Mail:    mailClient,
 	}
 }
 
 func (sc ServerConfig) InitTracer() func(context.Context) error {
 	otelCollectorURL := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	otelProtocol := os.Getenv("OTEL_EXPORTER_OTLP_PROTOCOL")
 	otelInsecureMode := os.Getenv("OTEL_INSECURE_MODE")
 	otelServiceName := sc.OtelServiceName
 
-	var secureOption otlptracegrpc.Option
-
-	if strings.ToLower(otelInsecureMode) == "false" || otelInsecureMode == "0" || strings.ToLower(otelInsecureMode) == "f" {
-		secureOption = otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
+	var client otlptrace.Client
+	if strings.Contains(otelProtocol, "http") {
+		client = otlptracehttp.NewClient()
 	} else {
-		secureOption = otlptracegrpc.WithInsecure()
+		var secureOption otlptracegrpc.Option
+
+		if strings.ToLower(otelInsecureMode) == "false" || otelInsecureMode == "0" || strings.ToLower(otelInsecureMode) == "f" {
+			secureOption = otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
+		} else {
+			secureOption = otlptracegrpc.WithInsecure()
+		}
+
+		client = otlptracegrpc.NewClient(secureOption, otlptracegrpc.WithEndpoint(otelCollectorURL))
 	}
 
-	exporter, err := otlptrace.New(
-		context.Background(),
-		otlptracegrpc.NewClient(
-			secureOption,
-			otlptracegrpc.WithEndpoint(otelCollectorURL),
-		),
-	)
+	exporter, err := otlptrace.New(context.Background(), client)
 
 	if err != nil {
 		log.Fatalf("Failed to create exporter: %v", err)

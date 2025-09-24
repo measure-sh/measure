@@ -12,10 +12,7 @@ internal class AndroidLogger(override val enabled: Boolean) : Logger {
         if (!enabled) return
         when (level) {
             LogLevel.Debug -> Log.d(tag, message, throwable)
-            LogLevel.Info -> Log.i(tag, message, throwable)
-            LogLevel.Warning -> Log.w(tag, message, throwable)
             LogLevel.Error -> Log.e(tag, message, throwable)
-            LogLevel.Fatal -> Log.wtf(tag, message, throwable)
         }
     }
 }

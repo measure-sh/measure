@@ -1,11 +1,11 @@
-FROM node:lts-alpine AS base
+# build stage
+FROM node:lts-alpine AS builder
 
-FROM base AS builder
 WORKDIR /app
 COPY ./ ./
-RUN npm install
+RUN apk add --no-cache ca-certificates && npm install
 
-FROM base
+FROM builder
 WORKDIR /app
 COPY --from=builder /app ./
 CMD ["npm", "run", "dev"]

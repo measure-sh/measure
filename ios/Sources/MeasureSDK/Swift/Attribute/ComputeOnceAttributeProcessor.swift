@@ -9,7 +9,7 @@ import Foundation
 
 protocol ComputeOnceAttributeProcessor {
     func computeAttributes()
-    func updateAttribute(_ attribute: inout Attributes)
+    func updateAttribute(_ attribute: Attributes)
 }
 
 /// Generates the attributes once and then caches them. Subsequent calls to [appendAttributes] will return the cached attributes.
@@ -20,15 +20,15 @@ protocol ComputeOnceAttributeProcessor {
 class BaseComputeOnceAttributeProcessor: AttributeProcessor, ComputeOnceAttributeProcessor {
     private var isComputed = false
 
-    func appendAttributes(_ attribute: inout Attributes) {
+    func appendAttributes(_ attribute: Attributes) {
         if !isComputed {
             computeAttributes()
             isComputed = true
         }
-        updateAttribute(&attribute)
+        updateAttribute(attribute)
     }
 
-    func updateAttribute(_ attribute: inout Attributes) {
+    func updateAttribute(_ attribute: Attributes) {
         fatalError("Subclasses must override updateAttribute()")
     }
 

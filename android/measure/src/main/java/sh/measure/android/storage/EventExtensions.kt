@@ -5,6 +5,7 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.modules.SerializersModule
+import sh.measure.android.SessionStartData
 import sh.measure.android.appexit.AppExit
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
@@ -161,8 +162,12 @@ internal fun <T> Event<T>.serializeDataToString(): String {
             json.encodeToString(BugReportData.serializer(), data as BugReportData)
         }
 
-        else -> {
-            throw IllegalArgumentException("Unknown event type: $type")
+        EventType.STRING -> {
+            json.encodeToString(String.serializer(), data as String)
+        }
+
+        EventType.SESSION_START -> {
+            json.encodeToString(SessionStartData.serializer(), data as SessionStartData)
         }
     }
 }

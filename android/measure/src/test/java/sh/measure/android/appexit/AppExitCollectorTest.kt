@@ -6,6 +6,7 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
@@ -50,11 +51,14 @@ class AppExitCollectorTest {
         appExitCollector.collect()
 
         // Then
-        verify(signalProcessor).track(
-            appExit,
-            appExit.app_exit_time_ms,
-            EventType.APP_EXIT,
-            sessionId = session.id,
+        verify(signalProcessor).trackAppExit(
+            eq(appExit),
+            eq(appExit.app_exit_time_ms),
+            eq(EventType.APP_EXIT),
+            threadName = any(),
+            sessionId = eq(session.id),
+            appVersion = eq("1.0.0"),
+            appBuild = eq("1000"),
         )
     }
 
@@ -62,9 +66,11 @@ class AppExitCollectorTest {
     fun `given multiple sessions are available, tracks app exit event for each of them`() {
         // Given
         val appExit1 = TestData.getAppExit()
-        val session1 = getSession(sessionId = "session-1", pid = 1)
+        val session1 =
+            getSession(sessionId = "session-1", pid = 1, appVersion = "1.1.1", appBuild = "111")
         val appExit2 = TestData.getAppExit()
-        val session2 = getSession(sessionId = "session-2", pid = 2)
+        val session2 =
+            getSession(sessionId = "session-2", pid = 2, appVersion = "1.1.2", appBuild = "112")
 
         appExitProvider.appExits = mapOf(1 to appExit1, 2 to appExit2)
         `when`(database.getSessionForAppExit(1)).thenReturn(session1)
@@ -74,17 +80,23 @@ class AppExitCollectorTest {
         appExitCollector.collect()
 
         // Then
-        verify(signalProcessor).track(
-            appExit1,
-            appExit1.app_exit_time_ms,
-            EventType.APP_EXIT,
-            sessionId = session1.id,
+        verify(signalProcessor).trackAppExit(
+            eq(appExit1),
+            eq(appExit1.app_exit_time_ms),
+            eq(EventType.APP_EXIT),
+            threadName = any(),
+            sessionId = eq(session1.id),
+            appVersion = eq(session1.appVersion),
+            appBuild = eq(session1.appBuild),
         )
-        verify(signalProcessor).track(
-            appExit2,
-            appExit2.app_exit_time_ms,
-            EventType.APP_EXIT,
-            sessionId = session2.id,
+        verify(signalProcessor).trackAppExit(
+            eq(appExit2),
+            eq(appExit2.app_exit_time_ms),
+            eq(EventType.APP_EXIT),
+            threadName = any(),
+            sessionId = eq(session2.id),
+            appVersion = eq(session2.appVersion),
+            appBuild = eq(session2.appBuild),
         )
     }
 
@@ -187,14 +199,29 @@ class AppExitCollectorTest {
         appExitCollector.collect()
 
         // Then
-        verify(signalProcessor, times(1)).track(
-            appExit,
-            appExit.app_exit_time_ms,
-            EventType.APP_EXIT,
-            sessionId = session.id,
+        verify(signalProcessor, times(1)).trackAppExit(
+            eq(appExit),
+            eq(appExit.app_exit_time_ms),
+            eq(EventType.APP_EXIT),
+            threadName = any(),
+            sessionId = eq(session.id),
+            appVersion = eq(session.appVersion),
+            appBuild = eq(session.appBuild),
         )
     }
 
-    private fun getSession(pid: Int, sessionId: String = "session-id-1", createdAt: Long = 98765) =
-        AppExitCollector.Session(id = sessionId, pid = pid, createdAt = createdAt)
+    private fun getSession(
+        pid: Int,
+        sessionId: String = "session-id-1",
+        createdAt: Long = 98765,
+        appVersion: String = "1.0.0",
+        appBuild: String = "1000",
+    ) =
+        AppExitCollector.Session(
+            id = sessionId,
+            pid = pid,
+            createdAt = createdAt,
+            appVersion = appVersion,
+            appBuild = appBuild,
+        )
 }

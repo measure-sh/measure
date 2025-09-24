@@ -21,11 +21,11 @@ internal class ManifestReaderImpl(private val context: Context, private val logg
         val bundle = try {
             getMetadataBundle()
         } catch (e: NameNotFoundException) {
-            logger.log(LogLevel.Error, "Failed to load manifest, application not found", e)
+            logger.log(LogLevel.Error, "Failed to init: unable to read manifest, application not found", e)
             return null
         }
         if (bundle == null) {
-            logger.log(LogLevel.Error, "Failed to read metadata from manifest")
+            logger.log(LogLevel.Error, "Failed to init: unable to read metadata from manifest")
             return null
         }
         return ManifestMetadata(

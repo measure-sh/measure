@@ -12,7 +12,7 @@ import UIKit
 ///
 /// This class initializes the Measure SDK and hides the internal dependencies from the public API.
 ///
-final class MeasureInternal {
+final class MeasureInternal { // swiftlint:disable:this type_body_length
     var measureInitializer: MeasureInitializer
     var logger: Logger {
         return measureInitializer.logger
@@ -23,8 +23,11 @@ final class MeasureInternal {
     var sessionManager: SessionManager {
         return measureInitializer.sessionManager
     }
-    private var timeProvider: TimeProvider {
+    var timeProvider: TimeProvider {
         return measureInitializer.timeProvider
+    }
+    var idProvider: IdProvider {
+        return measureInitializer.idProvider
     }
     private var configProvider: ConfigProvider {
         return measureInitializer.configProvider
@@ -50,8 +53,8 @@ final class MeasureInternal {
     private var attributeProcessors: [AttributeProcessor] {
         return measureInitializer.attributeProcessors
     }
-    private var eventProcessor: EventProcessor {
-        return measureInitializer.eventProcessor
+    private var signalProcessor: SignalProcessor {
+        return measureInitializer.signalProcessor
     }
     private var crashReportManager: CrashReportManager {
         return measureInitializer.crashReportManager
@@ -88,8 +91,8 @@ final class MeasureInternal {
     private var heartbeat: Heartbeat {
         return measureInitializer.heartbeat
     }
-    private var periodicEventExporter: PeriodicEventExporter {
-        return measureInitializer.periodicEventExporter
+    private var periodicExporter: PeriodicExporter {
+        return measureInitializer.periodicExporter
     }
     private var lifecycleCollector: LifecycleCollector {
         return measureInitializer.lifecycleCollector
@@ -121,36 +124,102 @@ final class MeasureInternal {
     var attachmentProcessor: AttachmentProcessor {
         return measureInitializer.attachmentProcessor
     }
+    var traceSampler: TraceSampler {
+        return measureInitializer.traceSampler
+    }
+    var spanCollector: SpanCollector {
+        return measureInitializer.spanCollector
+    }
+    var internalSignalCollector: InternalSignalCollector {
+        get {
+            return measureInitializer.internalSignalCollector
+        }
+        set {
+            measureInitializer.internalSignalCollector = newValue
+        }
+    }
+    var bugReportCollector: BugReportCollector {
+        return measureInitializer.bugReportCollector
+    }
+    var shakeBugReportCollector: ShakeBugReportCollector {
+        return measureInitializer.shakeBugReportCollector
+    }
+    var shakeDetector: ShakeDetector {
+        return measureInitializer.shakeDetector
+    }
+    var screenshotGenerator: ScreenshotGenerator {
+        return measureInitializer.screenshotGenerator
+    }
+    var layoutSnapshotGenerator: LayoutSnapshotGenerator {
+        return measureInitializer.layoutSnapshotGenerator
+    }
     private let lifecycleObserver: LifecycleObserver
+    var isStarted: Bool = false
 
     init(_ measureInitializer: MeasureInitializer) {
         self.measureInitializer = measureInitializer
         self.lifecycleObserver = LifecycleObserver()
-        self.logger.log(level: .info, message: "Starting Measure SDK", error: nil, data: nil)
-        self.sessionManager.setPreviousSessionCrashed(crashReportManager.hasPendingCrashReport)
-        self.sessionManager.start()
-        self.customEventCollector.enable()
-        self.appLaunchCollector.enable()
-        self.userTriggeredEventCollector.enable()
         self.lifecycleObserver.applicationDidEnterBackground = applicationDidEnterBackground
         self.lifecycleObserver.applicationWillEnterForeground = applicationWillEnterForeground
         self.lifecycleObserver.applicationWillTerminate = applicationWillTerminate
+        self.lifecycleObserver.applicationDidBecomeActive = applicationDidBecomeActive
+        self.lifecycleObserver.applicationWillResignActive = applicationWillResignActive
+        self.logger.log(level: .info, message: "Initializing Measure SDK", error: nil, data: nil)
+        self.sessionManager.setPreviousSessionCrashed(crashReportManager.hasPendingCrashReport)
+        self.sessionManager.start { sessionId in
+            self.trackSessionStart(sessionId: sessionId)
+        }
         self.crashDataPersistence.prepareCrashFile()
         self.crashDataPersistence.sessionId = sessionManager.sessionId
-
-        self.crashReportManager.enableCrashReporting()
         self.crashReportManager.trackException()
-        self.lifecycleCollector.enable()
-        self.cpuUsageCollector.enable()
-        self.memoryUsageCollector.enable()
-        self.periodicEventExporter.start()
-        self.httpEventCollector.enable()
-        self.networkChangeCollector.enable()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            if let window = UIApplication.shared.windows.first {
-                self.gestureCollector.enable(for: window)
-            }
+        registerAlwaysOnCollectors()
+        if configProvider.autoStart {
+            start()
         }
+    }
+
+    func start() {
+        guard !isStarted else { return }
+
+        self.logger.log(level: .info, message: "Starting Measure SDK", error: nil, data: nil)
+        registedCollectors()
+        isStarted = true
+    }
+
+    func stop() {
+        guard isStarted && !configProvider.autoStart else { return }
+
+        self.logger.log(level: .info, message: "Stopping Measure SDK", error: nil, data: nil)
+        unregisterCollectors()
+        isStarted = false
+    }
+
+    func trackEvent(name: String, attributes: [String: AttributeValue], timestamp: Int64?) {
+        guard isStarted else { return }
+
+        customEventCollector.trackEvent(name: name, attributes: attributes, timestamp: timestamp)
+    }
+
+    func trackEvent(_ name: String, attributes: [String: Any], timestamp: NSNumber?) {
+        guard isStarted else { return }
+
+        let transformedAttributes = transformAttributes(attributes)
+
+        customEventCollector.trackEvent(name: name, attributes: transformedAttributes, timestamp: timestamp?.int64Value)
+    }
+
+    func trackScreenView(_ screenName: String, attributes: [String: AttributeValue]?) {
+        guard isStarted else { return }
+
+        userTriggeredEventCollector.trackScreenView(screenName, attributes: attributes)
+    }
+
+    func trackScreenView(_ screenName: String, attributes: [String: Any]?) {
+        guard isStarted else { return }
+
+        let transformedAttributes = transformAttributes(attributes)
+
+        userTriggeredEventCollector.trackScreenView(screenName, attributes: transformedAttributes)
     }
 
     func setUserId(_ userId: String) {
@@ -161,27 +230,206 @@ final class MeasureInternal {
         userAttributeProcessor.clearUserId()
     }
 
+    func createSpan(name: String) -> SpanBuilder? {
+        guard isStarted else { return nil }
+
+        return spanCollector.createSpan(name: name)
+    }
+
+    func startSpan(name: String, timestamp: Int64? = nil) -> Span {
+        guard isStarted else { return InvalidSpan() }
+
+        return spanCollector.startSpan(name: name, timestamp: timestamp)
+    }
+
+    func getTraceParentHeaderValue(for span: Span) -> String {
+        return spanCollector.getTraceParentHeaderValue(for: span)
+    }
+
+    func getTraceParentHeaderKey() -> String {
+        return spanCollector.getTraceParentHeaderKey()
+    }
+
+    func startBugReportFlow(takeScreenshot: Bool = true,
+                            bugReportConfig: BugReportConfig,
+                            attributes: [String: AttributeValue]? = nil) {
+        guard isStarted else { return }
+
+        bugReportCollector.startBugReportFlow(takeScreenshot: takeScreenshot, bugReportConfig: bugReportConfig, attributes: attributes)
+    }
+
+    func onShake(_ handler: (() -> Void)?) {
+        guard isStarted else { return }
+
+        shakeBugReportCollector.setShakeHandler(handler)
+    }
+
+    func trackBugReport(description: String,
+                        attachments: [MsrAttachment],
+                        attributes: [String: AttributeValue]?) {
+        guard isStarted else { return }
+
+        bugReportCollector.trackBugReport(description: description, attachments: attachments, attributes: attributes)
+    }
+
+    func captureScreenshot(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
+        guard isStarted else { return }
+
+        screenshotGenerator.generate(viewController: viewController) { attachment in
+            completion(attachment)
+        }
+    }
+
+    func captureLayoutSnapshot(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
+        guard isStarted else { return }
+
+        layoutSnapshotGenerator.generate(for: viewController) { attachment in
+            completion(attachment)
+        }
+    }
+
+    func startBugReportFlow(takeScreenshot: Bool = true,
+                            bugReportConfig: BugReportConfig,
+                            attributes: [String: Any]? = nil) {
+        guard isStarted else { return }
+
+        let transformedAttributes = transformAttributes(attributes)
+        startBugReportFlow(takeScreenshot: takeScreenshot, bugReportConfig: bugReportConfig, attributes: transformedAttributes)
+    }
+
+    func trackBugReport(description: String,
+                        attachments: [MsrAttachment] = [],
+                        attributes: [String: Any]? = nil) {
+        guard isStarted else { return }
+
+        let transformedAttributes = transformAttributes(attributes)
+        trackBugReport(description: description, attachments: attachments, attributes: transformedAttributes)
+    }
+
+    func trackError(_ error: Error, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool) {
+        guard isStarted else { return }
+
+        userTriggeredEventCollector.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
+    }
+
+    func trackError(_ error: NSError, attributes: [String: Any]? = nil, collectStackTraces: Bool) {
+        guard isStarted else { return }
+
+        let transformedAttributes = transformAttributes(attributes)
+        userTriggeredEventCollector.trackError(error, attributes: transformedAttributes, collectStackTraces: collectStackTraces)
+    }
+
+    func getDocumentDirectoryPath() -> String? {
+        return systemFileManager.getDirectoryPath(directory: FileManager.SearchPathDirectory.documentDirectory)
+    }
+
     private func applicationDidEnterBackground() {
         self.crashDataPersistence.isForeground = false
+        self.internalSignalCollector.isForeground = false
         self.sessionManager.applicationDidEnterBackground()
-        self.periodicEventExporter.applicationDidEnterBackground()
+        self.periodicExporter.applicationDidEnterBackground()
         self.lifecycleCollector.applicationDidEnterBackground()
-        self.cpuUsageCollector.pause()
-        self.memoryUsageCollector.pause()
-        self.dataCleanupService.clearStaleData()
+        self.unregisterCollectors()
+        self.dataCleanupService.clearStaleData {}
     }
 
     private func applicationWillEnterForeground() {
+        self.appLaunchCollector.applicationWillEnterForeground()
         self.crashDataPersistence.isForeground = true
+        self.internalSignalCollector.isForeground = true
         self.sessionManager.applicationWillEnterForeground()
-        self.periodicEventExporter.applicationWillEnterForeground()
+        self.periodicExporter.applicationWillEnterForeground()
         self.lifecycleCollector.applicationWillEnterForeground()
-        self.cpuUsageCollector.resume()
-        self.memoryUsageCollector.resume()
+        self.registedCollectors()
     }
 
     private func applicationWillTerminate() {
         self.sessionManager.applicationWillTerminate()
         self.lifecycleCollector.applicationWillTerminate()
+    }
+
+    private func applicationDidBecomeActive() {
+        self.appLaunchCollector.applicationDidBecomeActive()
+    }
+
+    private func applicationWillResignActive() {
+        self.appLaunchCollector.applicationWillResignActive()
+    }
+
+    private func registedCollectors() {
+        self.customEventCollector.enable()
+        self.userTriggeredEventCollector.enable()
+        self.cpuUsageCollector.enable()
+        self.memoryUsageCollector.enable()
+        self.periodicExporter.enable()
+        self.httpEventCollector.enable()
+        self.networkChangeCollector.enable()
+        self.lifecycleCollector.enable()
+        self.crashReportManager.enable()
+        self.spanCollector.enable()
+        self.internalSignalCollector.enable()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            if let window = UIApplication.shared.windows.first {
+                self.gestureCollector.enable(for: window)
+            }
+        }
+    }
+
+    private func unregisterCollectors() {
+        self.customEventCollector.disable()
+        self.userTriggeredEventCollector.disable()
+        self.cpuUsageCollector.disable()
+        self.memoryUsageCollector.disable()
+        self.periodicExporter.disable()
+        self.httpEventCollector.disable()
+        self.networkChangeCollector.disable()
+        self.gestureCollector.disable()
+        self.lifecycleCollector.disable()
+        self.crashReportManager.disable()
+        self.spanCollector.disabled()
+        self.internalSignalCollector.disable()
+    }
+
+    private func registerAlwaysOnCollectors() {
+        self.appLaunchCollector.enable()
+    }
+
+    private func transformAttributes(_ attributes: [String: Any]?) -> [String: AttributeValue] {
+        guard let attributes = attributes else {
+            return [:]
+        }
+
+        var transformedAttributes: [String: AttributeValue] = [:]
+
+        for (key, value) in attributes {
+            if let stringVal = value as? String {
+                transformedAttributes[key] = .string(stringVal)
+            } else if let boolVal = value as? Bool {
+                transformedAttributes[key] = .boolean(boolVal)
+            } else if let intVal = value as? Int {
+                transformedAttributes[key] = .int(intVal)
+            } else if let longVal = value as? Int64 {
+                transformedAttributes[key] = .long(longVal)
+            } else if let floatVal = value as? Float {
+                transformedAttributes[key] = .float(floatVal)
+            } else if let doubleVal = value as? Double {
+                transformedAttributes[key] = .double(doubleVal)
+            } else {
+                logger.log(level: .fatal, message: "Attribute value can only be a string, boolean, integer, or double.", error: nil, data: nil)
+            }
+        }
+
+        return transformedAttributes
+    }
+
+    private func trackSessionStart(sessionId: String?) {
+        signalProcessor.track(data: SessionStartData(),
+                              timestamp: timeProvider.now(),
+                              type: .sessionStart,
+                              attributes: nil,
+                              sessionId: sessionId,
+                              attachments: nil,
+                              userDefinedAttributes: nil,
+                              threadName: nil)
     }
 }

@@ -1,12 +1,11 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
-import { ExceptionsType, ExceptionsOverviewPlotApiStatus, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls';
-import { useRouter } from 'next/navigation';
-import { formatDateToHumanReadableDate } from '../utils/time_utils';
-import { Filters } from './filters';
-import LoadingSpinner from './loading_spinner';
+import React, { useEffect, useState } from 'react'
+import { ExceptionsOverviewPlotApiStatus, ExceptionsType, fetchExceptionsOverviewPlotFromServer } from '../api/api_calls'
+import { formatDateToHumanReadableDate } from '../utils/time_utils'
+import { Filters } from './filters'
+import LoadingSpinner from './loading_spinner'
 
 interface ExceptionsOverviewPlotProps {
   exceptionsType: ExceptionsType,
@@ -24,10 +23,8 @@ type ExceptionsOverviewPlot = {
 }[]
 
 const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ exceptionsType, filters }) => {
-  const router = useRouter()
-
-  const [exceptionsOverviewPlotApiStatus, setExceptionsOverviewPlotApiStatus] = useState(ExceptionsOverviewPlotApiStatus.Loading);
-  const [plot, setPlot] = useState<ExceptionsOverviewPlot>();
+  const [exceptionsOverviewPlotApiStatus, setExceptionsOverviewPlotApiStatus] = useState(ExceptionsOverviewPlotApiStatus.Loading)
+  const [plot, setPlot] = useState<ExceptionsOverviewPlot>()
   const [pointIdToInstanceMap, setPointIdToInstanceMap] = useState(new Map<String, number>())
 
   const getExceptionsOverviewPlot = async () => {
@@ -38,7 +35,7 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
 
     setExceptionsOverviewPlotApiStatus(ExceptionsOverviewPlotApiStatus.Loading)
 
-    const result = await fetchExceptionsOverviewPlotFromServer(exceptionsType, filters, router)
+    const result = await fetchExceptionsOverviewPlotFromServer(exceptionsType, filters)
 
     switch (result.status) {
       case ExceptionsOverviewPlotApiStatus.Error:
@@ -77,10 +74,10 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
 
   useEffect(() => {
     getExceptionsOverviewPlot()
-  }, [exceptionsType, filters]);
+  }, [exceptionsType, filters])
 
   return (
-    <div className="flex border border-black font-body items-center justify-center w-full h-[36rem]">
+    <div className="flex font-body items-center justify-center w-full h-[36rem]">
       {exceptionsOverviewPlotApiStatus === ExceptionsOverviewPlotApiStatus.Loading && <LoadingSpinner />}
       {exceptionsOverviewPlotApiStatus === ExceptionsOverviewPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {exceptionsOverviewPlotApiStatus === ExceptionsOverviewPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
@@ -88,8 +85,10 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
         <ResponsiveLine
           data={plot!}
           curve="monotoneX"
+          enableArea={true}
+          areaOpacity={0.1}
           colors={{ scheme: 'nivo' }}
-          margin={{ top: 40, right: 120, bottom: 120, left: 120 }}
+          margin={{ top: 40, right: 40, bottom: 140, left: 100 }}
           xFormat="time:%Y-%m-%d"
           xScale={{
             format: '%Y-%m-%d',
@@ -99,8 +98,8 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
           }}
           yScale={{
             type: 'linear',
-            min: 'auto',
-            max: 'auto'
+            min: 0,
+            max: 100
           }}
           yFormat=" >-.2f"
           axisTop={null}
@@ -121,10 +120,11 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
             legendOffset: -80,
             legendPosition: 'middle'
           }}
-          pointSize={3}
-          pointBorderWidth={2}
+          pointSize={6}
+          pointBorderWidth={1.5}
+          pointColor={"rgba(255, 255, 255, 255)"}
           pointBorderColor={{
-            from: 'color',
+            from: 'serieColor',
             modifiers: [
               [
                 'darker',
@@ -134,10 +134,12 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
           }}
           pointLabelYOffset={-12}
           useMesh={true}
+          enableGridX={false}
+          enableGridY={false}
           enableSlices="x"
           sliceTooltip={({ slice }) => {
             return (
-              <div className="bg-neutral-950 text-white flex flex-col p-2 text-xs">
+              <div className="bg-neutral-800 text-white flex flex-col p-2 text-xs rounded-md">
                 <p className='p-2'>Date: {formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
                 {slice.points.map((point) => (
                   <div className="flex flex-row items-center p-2" key={point.id}>
@@ -155,6 +157,6 @@ const ExceptionsOverviewPlot: React.FC<ExceptionsOverviewPlotProps> = ({ excepti
     </div>
   )
 
-};
+}
 
-export default ExceptionsOverviewPlot;
+export default ExceptionsOverviewPlot

@@ -10,3 +10,4 @@
 
 # Required to find gesture targe for composables
 -keepnames class androidx.compose.ui.platform.AndroidComposeView
+

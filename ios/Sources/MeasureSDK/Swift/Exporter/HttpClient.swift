@@ -79,9 +79,11 @@ final class BaseHttpClient: HttpClient {
         request.httpMethod = method.rawValue
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
-        headers.forEach { key, value in
-            request.setValue(value, forHTTPHeaderField: key)
+        headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
+        if let customHeaders = getCustomHeaders() {
+            customHeaders.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
         }
+
         return request
     }
 
@@ -91,9 +93,11 @@ final class BaseHttpClient: HttpClient {
         for data in multipartData {
             switch data {
             case let .formField(name, value):
+                var value = value
                 body.append(Data("--\(boundary)\r\n".utf8))
                 body.append(Data("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".utf8))
-                body.append(Data("\(value)\r\n".utf8))
+                value.append(Data("\r\n".utf8))
+                body.append(value)
             case let .fileData(name, filename, data):
                 body.append(Data("--\(boundary)\r\n".utf8))
                 body.append(Data("Content-Disposition: form-data; name=\"\(name)\"; filename=\"\(filename)\"\r\n\r\n".utf8))
@@ -124,6 +128,22 @@ final class BaseHttpClient: HttpClient {
             return .error(.serverError(responseCode: httpResponse.statusCode, body: responseBody))
         default:
             return .error(.unknownError("Unexpected response code: \(httpResponse.statusCode)"))
+        }
+    }
+
+    func getCustomHeaders() -> [String: String]? {
+        guard let requestHeadersProvider = configProvider.requestHeadersProvider else {
+            return nil
+        }
+
+        let disallowed = Set(configProvider.disallowedCustomHeaders.map { $0.lowercased() })
+
+        guard let headers = requestHeadersProvider.getRequestHeaders() as? [String: String] else {
+            return nil
+        }
+
+        return headers.filter { key, _ in
+            !disallowed.contains(key.lowercased())
         }
     }
 }

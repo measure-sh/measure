@@ -1,5 +1,6 @@
 package sh.measure.android.storage
 
+import android.annotation.SuppressLint
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import sh.measure.android.events.AttachmentType
@@ -17,7 +18,7 @@ internal data class EventEntity(
     /**
      * Type of the event. See [EventType] for possible values.
      */
-    val type: String,
+    val type: EventType,
     /**
      * Timestamp when the event was created.
      */
@@ -74,6 +75,7 @@ internal data class EventEntity(
 /**
  * Maps an attachment to [AttachmentTable] in the database.
  */
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class AttachmentEntity(
     /**
@@ -102,6 +104,8 @@ internal data class SessionEntity(
     val needsReporting: Boolean = false,
     val crashed: Boolean = false,
     val supportsAppExit: Boolean,
+    val appVersion: String?,
+    val appBuild: String?,
 )
 
 internal data class BatchEntity(

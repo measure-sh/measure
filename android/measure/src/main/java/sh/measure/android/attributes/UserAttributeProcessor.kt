@@ -31,6 +31,7 @@ internal class UserAttributeProcessor(
         this.userId = userId
         ioExecutor.submit {
             prefsStorage.setUserId(userId)
+            logger.log(LogLevel.Debug, "User ID saved")
         }
     }
 
@@ -41,9 +42,10 @@ internal class UserAttributeProcessor(
         try {
             ioExecutor.submit {
                 prefsStorage.setUserId(null)
+                logger.log(LogLevel.Debug, "User ID cleared")
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Failed to submit clear user id task to executor", e)
+            logger.log(LogLevel.Error, "Failed to clear user id", e)
         }
     }
 }

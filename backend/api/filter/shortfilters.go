@@ -86,10 +86,30 @@ func (shortFilters *ShortFilters) Create(ctx context.Context) error {
 		return nil
 	}
 
-	stmt := sqlf.PostgreSQL.InsertInto("public.short_filters").
+	// Managed Connection Pooling in transaction mode doesn't support
+	// PREPARE statements.
+	//
+	// Default QueryExecMode used by pgx v5 uses PREPARED statements
+	// and caches it as well. This is incompatible with poolers.
+	//
+	// A workaround for this problem is to properly encode unsupported
+	// pgx types, like a go struct.
+	//
+	// Since, FilterList is a `jsonb` type, we marshal it to json bytes
+	// and then cast it using `::jsonb` to make sure the pooler doesn't
+	// become a blocker for these types of queries.
+	//
+	// See https://pkg.go.dev/github.com/jackc/pgx/v5#QueryExecMode
+	// See https://cloud.google.com/sql/docs/postgres/managed-connection-pooling#limitations
+	filtersJSON, err := json.Marshal(shortFilters.Filters)
+	if err != nil {
+		return err
+	}
+
+	stmt := sqlf.PostgreSQL.InsertInto("short_filters").
 		Set("code", shortFilters.Code).
 		Set("app_id", shortFilters.AppId).
-		Set("filters", shortFilters.Filters).
+		SetExpr("filters", "?::jsonb", string(filtersJSON)).
 		Set("created_at", shortFilters.CreatedAt).
 		Set("updated_at", shortFilters.UpdatedAt)
 	defer stmt.Close()
@@ -115,7 +135,7 @@ func GetFiltersFromCode(ctx context.Context, filterShortCode string, appId uuid.
 
 	stmt := sqlf.PostgreSQL.
 		Select("filters").
-		From("public.short_filters").
+		From("short_filters").
 		Where("code = ?", filterShortCode).
 		Where("app_id = ?", appId)
 

@@ -13,7 +13,9 @@ internal object DefaultConfig {
     const val SESSION_SAMPLING_RATE: Float = 0f
     const val AUTO_START: Boolean = true
     const val TRACE_SAMPLING_RATE: Float = 0.1f
-    const val ENABLE_SHAKE_TO_LAUNCH_BUG_REPORT: Boolean = false
     const val TRACK_ACTIVITY_LOAD_TIME: Boolean = true
     const val TRACK_FRAGMENT_LOAD_TIME: Boolean = true
+    const val MAX_ESTIMATED_DISK_USAGE_IN_MB: Int = 50 // 50MB
+    val DISALLOWED_CUSTOM_HEADERS: List<String> =
+        listOf("Content-Type", "msr-req-id", "Authorization", "Content-Length")
 }

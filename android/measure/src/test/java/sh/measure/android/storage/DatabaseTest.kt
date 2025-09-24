@@ -8,6 +8,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -599,6 +600,8 @@ class DatabaseTest {
                 500,
                 true,
                 supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
+                appVersion = "1.0.0",
+                appBuild = "100",
             ),
         )
         database.insertEvent(event1)
@@ -623,6 +626,7 @@ class DatabaseTest {
         assertEquals(2, batches.first().spanIds.size)
     }
 
+    @Test
     fun `getOldestSession returns oldest session`() {
         database.insertSession(TestData.getSessionEntity(id = "session-id-1", createdAt = 500))
         database.insertSession(TestData.getSessionEntity(id = "session-id-2", createdAt = 700))
@@ -673,13 +677,18 @@ class DatabaseTest {
     @Test
     fun `insertSession inserts a new app exit entry successfully`() {
         // when
-        database.insertSession(TestData.getSessionEntity("session-id-1", supportsAppExit = true))
+        val session = TestData.getSessionEntity("session-id-1", supportsAppExit = true)
+        database.insertSession(session)
 
         // then
         val db = database.writableDatabase
         db.query(
             AppExitTable.TABLE_NAME,
-            null,
+            arrayOf(
+                AppExitTable.COL_SESSION_ID,
+                AppExitTable.COL_APP_VERSION,
+                AppExitTable.COL_APP_BUILD,
+            ),
             "${AppExitTable.COL_SESSION_ID} = ?",
             arrayOf("session-id-1"),
             null,
@@ -687,6 +696,11 @@ class DatabaseTest {
             null,
         ).use {
             assertEquals(1, it.count)
+            it.moveToFirst()
+            val appVersion = it.getString(it.getColumnIndex(AppExitTable.COL_APP_VERSION))
+            assertEquals(session.appVersion, appVersion)
+            val appBuild = it.getString(it.getColumnIndex(AppExitTable.COL_APP_BUILD))
+            assertEquals(session.appBuild, appBuild)
         }
     }
 
@@ -1124,6 +1138,70 @@ class DatabaseTest {
         assertEquals(0, attachments)
     }
 
+    @Test
+    fun `getSessionForAppExit returns session entity when session exists`() {
+        val sessionId = "session-id"
+        val pid = 100
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = sessionId,
+                pid = pid,
+                supportsAppExit = true,
+            ),
+        )
+        val session = database.getSessionForAppExit(pid)
+        assertNotNull(session)
+    }
+
+    @Test
+    fun `getSessionForAppExit returns null when session does not exist`() {
+        val pid = 100
+        val session = database.getSessionForAppExit(pid)
+        assertNull(session)
+    }
+
+    @Test
+    fun `getSessionForAppExit returns session with app version and app build`() {
+        val sessionId = "session-id"
+        val pid = 100
+        val appVersion = "1.0"
+        val appBuild = "123"
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = sessionId,
+                pid = pid,
+                appVersion = appVersion,
+                appBuild = appBuild,
+                supportsAppExit = true,
+            ),
+        )
+        val session = database.getSessionForAppExit(pid)
+        assertNotNull(session)
+        assertEquals(appVersion, session?.appVersion)
+        assertEquals(appBuild, session?.appBuild)
+    }
+
+    @Test
+    fun `getSessionForAppExit returns session without app version and app build`() {
+        // Database v4 added new columns for app version and app build,
+        // these fields can be null for older versions
+        val sessionId = "session-id"
+        val pid = 100
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = sessionId,
+                pid = pid,
+                appVersion = null,
+                appBuild = null,
+                supportsAppExit = true,
+            ),
+        )
+        val session = database.getSessionForAppExit(pid)
+        assertNotNull(session)
+        assertNull(session?.appVersion)
+        assertNull(session?.appBuild)
+    }
+
     private fun queryAllEvents(db: SQLiteDatabase): Cursor {
         return db.query(
             EventTable.TABLE_NAME,
@@ -1220,7 +1298,7 @@ class DatabaseTest {
     private fun assertEventInCursor(expectedEvent: EventEntity, cursor: Cursor) {
         assertEquals(expectedEvent.id, cursor.getString(cursor.getColumnIndex(EventTable.COL_ID)))
         assertEquals(
-            expectedEvent.type,
+            expectedEvent.type.value,
             cursor.getString(cursor.getColumnIndex(EventTable.COL_TYPE)),
         )
         assertEquals(

@@ -1,7 +1,6 @@
 package event
 
 import (
-	"backend/api/platform"
 	"backend/api/text"
 	"fmt"
 	"strconv"
@@ -44,20 +43,13 @@ type Frame struct {
 	// InApp is `true` if the frame originates
 	// from the app module.
 	InApp bool `json:"in_app"`
+	// InstructionAddr is the instruction address
+	// of the frame.
+	InstructionAddr string `json:"instruction_address"`
 	*FrameiOS
 }
 
 type Frames []Frame
-
-// GetPlatform figures out the frame's
-// app platform by inspection.
-func (f Frame) GetPlatform() string {
-	if f.FrameiOS != nil && f.BinaryName != "" {
-		return platform.IOS
-	} else {
-		return platform.Android
-	}
-}
 
 // CodeInfo provides a serialized
 // version of the frame's code information.
@@ -82,11 +74,10 @@ func (f Frame) FileInfo() string {
 }
 
 // String provides a serialized
-// version of the frame.
-func (f Frame) String() string {
-	switch f.GetPlatform() {
-	// consider "Android" as default
-	// platform
+// version of the frame based on
+// the given framework.
+func (f Frame) String(frmwrk string) string {
+	switch frmwrk {
 	default:
 		codeInfo := f.CodeInfo()
 		fileInfo := f.FileInfo()
@@ -96,7 +87,7 @@ func (f Frame) String() string {
 		}
 
 		return fmt.Sprintf(`%s%s`, codeInfo, fileInfo)
-	case platform.IOS:
+	case FrameworkApple:
 		binaryName := f.BinaryName
 		methodName := f.MethodName
 		className := f.ClassName

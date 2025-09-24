@@ -6,13 +6,13 @@ import (
 	"backend/api/filter"
 	"backend/api/server"
 	"context"
+	"fmt"
 	"math"
 	"slices"
 	"sort"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 )
 
@@ -20,53 +20,43 @@ import (
 // common interface for issue group
 // types like ExceptionGroup & ANRGroup.
 type IssueGroup interface {
-	GetFingerprint() string
+	GetId() string
 }
 
 type ExceptionGroup struct {
-	ID              uuid.UUID              `json:"id" db:"id"`
 	AppID           uuid.UUID              `json:"app_id" db:"app_id"`
+	ID              string                 `json:"id" db:"id"`
 	Type            string                 `json:"type" db:"type"`
 	Message         string                 `json:"message" db:"message"`
 	MethodName      string                 `json:"method_name" db:"method_name"`
 	FileName        string                 `json:"file_name" db:"file_name"`
-	LineNumber      int                    `json:"line_number" db:"line_number"`
-	Fingerprint     string                 `json:"fingerprint" db:"fingerprint"`
+	LineNumber      int32                  `json:"line_number" db:"line_number"`
 	Count           int                    `json:"count"`
 	EventIDs        []uuid.UUID            `json:"event_ids,omitempty"`
 	EventExceptions []event.EventException `json:"exception_events,omitempty"`
 	Percentage      float32                `json:"percentage_contribution"`
-	FirstEventTime  time.Time              `json:"-" db:"first_event_timestamp"`
-	CreatedAt       chrono.ISOTime         `json:"created_at" db:"created_at"`
-	UpdatedAt       chrono.ISOTime         `json:"updated_at" db:"updated_at"`
+	UpdatedAt       *time.Time             `json:"updated_at" db:"updated_at"`
 }
 
 type ANRGroup struct {
-	ID             uuid.UUID        `json:"id" db:"id"`
-	AppID          uuid.UUID        `json:"app_id" db:"app_id"`
-	Type           string           `json:"type" db:"type"`
-	Message        string           `json:"message" db:"message"`
-	MethodName     string           `json:"method_name" db:"method_name"`
-	FileName       string           `json:"file_name" db:"file_name"`
-	LineNumber     int              `json:"line_number" db:"line_number"`
-	Fingerprint    string           `json:"fingerprint" db:"fingerprint"`
-	Count          int              `json:"count"`
-	EventIDs       []uuid.UUID      `json:"event_ids,omitempty"`
-	EventANRs      []event.EventANR `json:"anr_events,omitempty"`
-	Percentage     float32          `json:"percentage_contribution"`
-	FirstEventTime time.Time        `json:"-" db:"first_event_timestamp"`
-	CreatedAt      chrono.ISOTime   `json:"created_at" db:"created_at"`
-	UpdatedAt      chrono.ISOTime   `json:"updated_at" db:"updated_at"`
+	AppID      uuid.UUID        `json:"app_id" db:"app_id"`
+	ID         string           `json:"id" db:"id"`
+	Type       string           `json:"type" db:"type"`
+	Message    string           `json:"message" db:"message"`
+	MethodName string           `json:"method_name" db:"method_name"`
+	FileName   string           `json:"file_name" db:"file_name"`
+	LineNumber int32            `json:"line_number" db:"line_number"`
+	Count      int              `json:"count"`
+	EventIDs   []uuid.UUID      `json:"event_ids,omitempty"`
+	EventANRs  []event.EventANR `json:"anr_events,omitempty"`
+	Percentage float32          `json:"percentage_contribution"`
+	UpdatedAt  *time.Time       `json:"updated_at" db:"updated_at"`
 }
 
-func (e ExceptionGroup) GetID() uuid.UUID {
+// GetId provides the exception's
+// Id.
+func (e ExceptionGroup) GetId() string {
 	return e.ID
-}
-
-// GetFingerprint provides the exception's
-// fingerprint.
-func (e ExceptionGroup) GetFingerprint() string {
-	return e.Fingerprint
 }
 
 // GetDisplayTitle provides a user friendly display
@@ -83,71 +73,28 @@ func (e ExceptionGroup) EventExists(id uuid.UUID) bool {
 	})
 }
 
-// UpdateTimeStamps updates the updated_at timestamp of the
-// ExceptionGroup. Additionally, if the event's timestamp is
-// older than the group's timestamp, then update the group's
-// timestamp.
-func (e ExceptionGroup) UpdateTimeStamps(ctx context.Context, event *event.EventField, tx *pgx.Tx) (err error) {
-	stmt := sqlf.PostgreSQL.
-		Update("public.unhandled_exception_groups").
-		Set("updated_at", time.Now()).
-		Where("id = ?", e.ID)
-
-	if event.Timestamp.Before(e.FirstEventTime) {
-		stmt.Set("first_event_timestamp", event.Timestamp)
-	}
-
-	defer stmt.Close()
-
-	if tx != nil {
-		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-		return
-	}
-
-	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-
-	return
-}
-
 // Insert inserts a new ExceptionGroup into the database.
-func (e *ExceptionGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
-	id, err := uuid.NewV7()
-	if err != nil {
-		return
-	}
-
-	stmt := sqlf.PostgreSQL.
-		InsertInto("public.unhandled_exception_groups").
-		Set("id", id).
+func (e *ExceptionGroup) Insert(ctx context.Context) (err error) {
+	stmt := sqlf.
+		InsertInto("unhandled_exception_groups").
 		Set("app_id", e.AppID).
+		Set("id", e.ID).
 		Set("type", e.Type).
 		Set("message", e.Message).
 		Set("method_name", e.MethodName).
 		Set("file_name", e.FileName).
 		Set("line_number", e.LineNumber).
-		Set("fingerprint", e.Fingerprint).
-		Set("first_event_timestamp", e.FirstEventTime)
+		Set("updated_at", e.UpdatedAt.Format(chrono.NanoTimeFormat))
 
 	defer stmt.Close()
 
-	if tx != nil {
-		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-		return
-	}
-
-	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-
-	return
+	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
 }
 
-func (a ANRGroup) GetID() uuid.UUID {
+// GetId provides the ANR's
+// Id.
+func (a ANRGroup) GetId() string {
 	return a.ID
-}
-
-// GetFingerprint provides the ANR's
-// fingerprint.
-func (a ANRGroup) GetFingerprint() string {
-	return a.Fingerprint
 }
 
 // GetDisplayTitle provides a user friendly display
@@ -164,61 +111,22 @@ func (a ANRGroup) EventExists(id uuid.UUID) bool {
 	})
 }
 
-// UpdateTimeStamps updates the updated_at timestamp of the
-// ANRGroup. Additionally, if the event's timestamp is
-// older than the group's timestamp, then update the group's
-// timestamp.
-func (e ANRGroup) UpdateTimeStamps(ctx context.Context, event *event.EventField, tx *pgx.Tx) (err error) {
-	stmt := sqlf.PostgreSQL.
-		Update("public.anr_groups").
-		Set("updated_at", time.Now()).
-		Where("id = ?", e.ID)
-
-	if event.Timestamp.Before(e.FirstEventTime) {
-		stmt.Set("first_event_timestamp", event.Timestamp)
-	}
-
-	defer stmt.Close()
-
-	if tx != nil {
-		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-		return
-	}
-
-	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-
-	return
-}
-
 // Insert inserts a new ANRGroup into the database.
-func (a *ANRGroup) Insert(ctx context.Context, tx *pgx.Tx) (err error) {
-	id, err := uuid.NewV7()
-	if err != nil {
-		return err
-	}
-
-	stmt := sqlf.PostgreSQL.
-		InsertInto("public.anr_groups").
-		Set("id", id).
+func (a *ANRGroup) Insert(ctx context.Context) (err error) {
+	stmt := sqlf.
+		InsertInto("anr_groups").
 		Set("app_id", a.AppID).
+		Set("id", a.ID).
 		Set("type", a.Type).
 		Set("message", a.Message).
 		Set("method_name", a.MethodName).
 		Set("file_name", a.FileName).
 		Set("line_number", a.LineNumber).
-		Set("fingerprint", a.Fingerprint).
-		Set("first_event_timestamp", a.FirstEventTime)
+		Set("updated_at", a.UpdatedAt.Format(chrono.NanoTimeFormat))
 
 	defer stmt.Close()
 
-	if tx != nil {
-		_, err = (*tx).Exec(ctx, stmt.String(), stmt.Args()...)
-		return
-	}
-
-	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-
-	return
+	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
 }
 
 // ComputeCrashContribution computes percentage of crash contribution from
@@ -252,24 +160,18 @@ func ComputeANRContribution(groups []ANRGroup) {
 }
 
 // SortExceptionGroups first sorts a slice of ExceptionGroup
-// with descending count and then ascending ID.
+// with descending count.
 func SortExceptionGroups(groups []ExceptionGroup) {
 	sort.SliceStable(groups, func(i, j int) bool {
-		if groups[i].Count != groups[j].Count {
-			return groups[i].Count > groups[j].Count
-		}
-		return groups[i].ID.String() < groups[j].ID.String()
+		return groups[i].Count > groups[j].Count
 	})
 }
 
 // SortANRGroups first sorts a slice of ANRGroup
-// with descending count and then ascending ID.
+// with descending count.
 func SortANRGroups(groups []ANRGroup) {
 	sort.SliceStable(groups, func(i, j int) bool {
-		if groups[i].Count != groups[j].Count {
-			return groups[i].Count > groups[j].Count
-		}
-		return groups[i].ID.String() < groups[j].ID.String()
+		return groups[i].Count > groups[j].Count
 	})
 }
 
@@ -277,18 +179,24 @@ func SortANRGroups(groups []ANRGroup) {
 // matched by app filter(s) and exception event ids.
 func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (exceptionGroups []ExceptionGroup, err error) {
 	// Get list of fingerprints and event IDs
-	eventDataStmt := sqlf.From(`default.events`).
+	eventDataStmt := sqlf.From(`events`).
 		Select(`id, exception.fingerprint`).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where("id in ?", eventIds)
-
 	defer eventDataStmt.Close()
 
 	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
+
 	if err != nil {
 		return nil, err
 	}
+	if eventDataRows == nil {
+		return nil, fmt.Errorf("rows is nil after query")
+	}
 	defer eventDataRows.Close()
+	if eventDataRows.Err() != nil {
+		return nil, eventDataRows.Err()
+	}
 
 	fingerprints := make([]string, 0)
 	fingerprintSet := make(map[string]struct{})
@@ -307,38 +215,53 @@ func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilte
 		}
 	}
 
-	if eventDataRows.Err() != nil {
-		return nil, eventDataRows.Err()
-	}
-
 	// Query groups that match the obtained fingerprints
-	stmt := sqlf.PostgreSQL.
-		From(`public.unhandled_exception_groups`).
+	stmt := sqlf.
+		From(`unhandled_exception_groups`).
+		Clause(`FINAL`).
 		Select(`id`).
 		Select(`type`).
 		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
-		Select(`fingerprint`).
-		Where(`fingerprint = ANY(?)`, fingerprints)
-
+		Where(`id IN ?`, fingerprints)
 	defer stmt.Close()
 
-	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	exceptionGroups, err = pgx.CollectRows(rows, pgx.RowToStructByNameLax[ExceptionGroup])
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 
 	if err != nil {
 		return nil, err
 	}
+	if rows == nil {
+		return nil, fmt.Errorf("rows is nil after query")
+	}
+	defer rows.Close()
 	if rows.Err() != nil {
 		return nil, rows.Err()
+	}
+
+	exceptionGroups = make([]ExceptionGroup, 0)
+	for rows.Next() {
+		var group ExceptionGroup
+		err := rows.Scan(
+			&group.ID,
+			&group.Type,
+			&group.Message,
+			&group.MethodName,
+			&group.FileName,
+			&group.LineNumber,
+		)
+		if err != nil {
+			return nil, err
+		}
+		exceptionGroups = append(exceptionGroups, group)
 	}
 
 	// Add event ids to obtained exception groups
 	fingerprintToGroup := make(map[string]*ExceptionGroup)
 	for i := range exceptionGroups {
-		fingerprintToGroup[exceptionGroups[i].Fingerprint] = &exceptionGroups[i]
+		fingerprintToGroup[exceptionGroups[i].ID] = &exceptionGroups[i]
 	}
 
 	for eventID, fingerprint := range eventIdToFingerprint {
@@ -354,16 +277,24 @@ func GetExceptionGroupsFromExceptionIds(ctx context.Context, af *filter.AppFilte
 // matched by app filter(s) and ANR event ids.
 func GetANRGroupsFromANRIds(ctx context.Context, af *filter.AppFilter, eventIds []uuid.UUID) (anrGroups []ANRGroup, err error) {
 	// Get list of fingerprints and event IDs
-	eventDataStmt := sqlf.From(`default.events`).
+	eventDataStmt := sqlf.From(`events`).
 		Select(`id, anr.fingerprint`).
 		Where("app_id = toUUID(?)", af.AppID).
 		Where(`id in ?`, eventIds)
+	defer eventDataStmt.Close()
 
 	eventDataRows, err := server.Server.ChPool.Query(ctx, eventDataStmt.String(), eventDataStmt.Args()...)
+
 	if err != nil {
 		return nil, err
 	}
+	if eventDataRows == nil {
+		return nil, fmt.Errorf("rows is nil after query")
+	}
 	defer eventDataRows.Close()
+	if eventDataRows.Err() != nil {
+		return nil, eventDataRows.Err()
+	}
 
 	fingerprints := make([]string, 0)
 	fingerprintSet := make(map[string]struct{})
@@ -382,38 +313,53 @@ func GetANRGroupsFromANRIds(ctx context.Context, af *filter.AppFilter, eventIds 
 		}
 	}
 
-	if eventDataRows.Err() != nil {
-		return nil, eventDataRows.Err()
-	}
-
 	// Query groups that match the obtained fingerprints
-	stmt := sqlf.PostgreSQL.
-		From(`public.anr_groups`).
+	stmt := sqlf.
+		From(`anr_groups`).
+		Clause(`FINAL`).
 		Select(`id`).
 		Select(`type`).
 		Select(`message`).
 		Select(`method_name`).
 		Select(`file_name`).
 		Select(`line_number`).
-		Select(`fingerprint`).
-		Where(`fingerprint = ANY(?)`, fingerprints)
-
+		Where(`id IN ?`, fingerprints)
 	defer stmt.Close()
 
-	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	anrGroups, err = pgx.CollectRows(rows, pgx.RowToStructByNameLax[ANRGroup])
+	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 
 	if err != nil {
 		return nil, err
 	}
+	if rows == nil {
+		return nil, fmt.Errorf("rows is nil after query")
+	}
+	defer rows.Close()
 	if rows.Err() != nil {
 		return nil, rows.Err()
+	}
+
+	anrGroups = make([]ANRGroup, 0)
+	for rows.Next() {
+		var group ANRGroup
+		err := rows.Scan(
+			&group.ID,
+			&group.Type,
+			&group.Message,
+			&group.MethodName,
+			&group.FileName,
+			&group.LineNumber,
+		)
+		if err != nil {
+			return nil, err
+		}
+		anrGroups = append(anrGroups, group)
 	}
 
 	// Add event ids to obtained ANR groups
 	fingerprintToGroup := make(map[string]*ANRGroup)
 	for i := range anrGroups {
-		fingerprintToGroup[anrGroups[i].Fingerprint] = &anrGroups[i]
+		fingerprintToGroup[anrGroups[i].ID] = &anrGroups[i]
 	}
 
 	for eventID, fingerprint := range eventIdToFingerprint {
@@ -426,29 +372,29 @@ func GetANRGroupsFromANRIds(ctx context.Context, af *filter.AppFilter, eventIds 
 }
 
 // NewExceptionGroup constructs a new ExceptionGroup and returns a pointer to it.
-func NewExceptionGroup(appId uuid.UUID, exceptionType, message, methodName, fileName string, lineNumber int, fingerprint string, firstTime time.Time) *ExceptionGroup {
+func NewExceptionGroup(appId uuid.UUID, fingerprint string, exceptionType, message, methodName, fileName string, lineNumber int32, firstTime time.Time) *ExceptionGroup {
 	return &ExceptionGroup{
-		AppID:          appId,
-		Type:           exceptionType,
-		Message:        message,
-		MethodName:     methodName,
-		FileName:       fileName,
-		LineNumber:     lineNumber,
-		Fingerprint:    fingerprint,
-		FirstEventTime: firstTime,
+		AppID:      appId,
+		ID:         fingerprint,
+		Type:       exceptionType,
+		Message:    message,
+		MethodName: methodName,
+		FileName:   fileName,
+		LineNumber: lineNumber,
+		UpdatedAt:  func() *time.Time { t := time.Now().UTC(); return &t }(),
 	}
 }
 
 // NewANRGroup constructs a new ANRGroup and returns a pointer to it.
-func NewANRGroup(appId uuid.UUID, anrType, message, methodName, fileName string, lineNumber int, fingerprint string, firstTime time.Time) *ANRGroup {
+func NewANRGroup(appId uuid.UUID, fingerprint string, anrType, message, methodName, fileName string, lineNumber int32, firstTime time.Time) *ANRGroup {
 	return &ANRGroup{
-		AppID:          appId,
-		Type:           anrType,
-		Message:        message,
-		MethodName:     methodName,
-		FileName:       fileName,
-		LineNumber:     lineNumber,
-		Fingerprint:    fingerprint,
-		FirstEventTime: firstTime,
+		AppID:      appId,
+		ID:         fingerprint,
+		Type:       anrType,
+		Message:    message,
+		MethodName: methodName,
+		FileName:   fileName,
+		LineNumber: lineNumber,
+		UpdatedAt:  func() *time.Time { t := time.Now().UTC(); return &t }(),
 	}
 }

@@ -8,7 +8,7 @@
 import Foundation
 
 protocol NetworkClient {
-    func execute(batchId: String, events: [EventEntity]) -> HttpResponse
+    func execute(batchId: String, events: [EventEntity], spans: [SpanEntity]) -> HttpResponse
 }
 
 final class BaseNetworkClient: NetworkClient {
@@ -26,7 +26,7 @@ final class BaseNetworkClient: NetworkClient {
         self.systemFileManager = systemFileManager
     }
 
-    func execute(batchId: String, events: [EventEntity]) -> HttpResponse {
+    func execute(batchId: String, events: [EventEntity], spans: [SpanEntity]) -> HttpResponse {
         var multipartData = [MultipartData]()
         for event in events {
             if let serialisedEvent = eventSerializer.getSerialisedEvent(for: event) {
@@ -36,15 +36,26 @@ final class BaseNetworkClient: NetworkClient {
                 for attachment in attachments {
                     if let bytes = attachment.bytes {
                         multipartData.append(.fileData(name: "blob-\(attachment.id)", filename: attachment.name, data: bytes))
+                    } else if attachment.path != nil, let image = systemFileManager.retrieveFile(name: attachment.name, folderName: nil, directory: .documentDirectory) {
+                        multipartData.append(.fileData(name: "blob-\(attachment.id)", filename: attachment.name, data: image))
                     }
                 }
+            }
+        }
+
+        for spanEntity in spans {
+            let span = spanEntity.toSpanDataCodable()
+
+            let encoder = JSONEncoder()
+            if let data = try? encoder.encode(span) {
+                multipartData.append(.formField(name: formFieldSpan, value: data))
             }
         }
 
         return httpClient.sendMultipartRequest(url: baseUrl.appendingPathComponent(eventsEndpoint),
                                                method: .put,
                                                headers: [authorization: "\(bearer) \(apiKey)",
-                                                         msrRequestId: batchId],
+                                                          msrRequestId: batchId],
                                                multipartData: multipartData)
     }
 }

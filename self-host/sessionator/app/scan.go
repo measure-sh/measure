@@ -32,12 +32,15 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 		if err != nil {
 			return err
 		}
-		name := d.Name()
+
 		rel, err := filepath.Rel(rootPath, path)
 		if err != nil {
 			return err
 		}
 
+		// app name and version
+		// parts[0] is app unique id
+		// parts[1] is app version name
 		parts := strings.Split(rel, "/")
 
 		// don't process apps marked
@@ -46,9 +49,11 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 			return fs.SkipDir
 		}
 
+		entryName := d.Name()
+
 		if d.IsDir() {
 			// not top-level directory
-			if name != rootbase && !hidden(name) {
+			if entryName != rootbase && !hidden(entryName) {
 				appMatch, err := filepath.Match("*/*", rel)
 				if err != nil {
 					return err
@@ -57,7 +62,7 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 					apps.Add(parts[0], parts[1])
 				}
 			}
-		} else if d.Type().IsRegular() && !hidden(name) {
+		} else if d.Type().IsRegular() && !hidden(entryName) {
 			jsonMatch, err := filepath.Match("*/*/*.json", rel)
 			if err != nil {
 				return err
@@ -129,6 +134,7 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				}
 
 				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)
+				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, "proguard")
 			}
 
 			dSYMMapping, err := filepath.Match("*/*/*/*.tgz", rel)
@@ -152,6 +158,31 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				}
 
 				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)
+				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, "dsym")
+			}
+
+			elfDebugInfo, err := filepath.Match("*/*/*/*.symbols", rel)
+			if err != nil {
+				return err
+			}
+			if elfDebugInfo {
+				app := apps.Lookup(parts[0], parts[1])
+				info, err := d.Info()
+				if err != nil {
+					return err
+				}
+				if info.Size() < 1 {
+					return fmt.Errorf(`%q has empty ELF debug info file. check %q`, app.FullName(), rel)
+				}
+				_, ok := app.Builds[code]
+				if !ok {
+					app.Builds[code] = &Build{
+						VersionCode: code,
+					}
+				}
+
+				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)
+				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, "elf_debug")
 			}
 
 			blob, err := filepath.Match("*/*/blobs/*", rel)

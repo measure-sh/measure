@@ -36,6 +36,8 @@ struct EventEntity { // swiftlint:disable:this type_body_length
     let http: Data?
     let customEvent: Data?
     var needsReporting: Bool
+    let bugReport: Data?
+    let sessionStartData: Data?
 
     init<T: Codable>(_ event: Event<T>, needsReporting: Bool) { // swiftlint:disable:this cyclomatic_complexity function_body_length
         self.id = event.id
@@ -49,7 +51,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.userDefinedAttributes = event.userDefinedAttributes
         self.needsReporting = needsReporting
 
-        if let exception = event.data as? Exception {
+        if let exception = event.exception {
             do {
                 let data = try JSONEncoder().encode(exception)
                 self.exception = data
@@ -60,7 +62,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.exception = nil
         }
 
-        if let gestureClick = event.data as? ClickData {
+        if let gestureClick = event.gestureClick {
             do {
                 let data = try JSONEncoder().encode(gestureClick)
                 self.gestureClick = data
@@ -71,7 +73,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.gestureClick = nil
         }
 
-        if let gestureLongClick = event.data as? LongClickData {
+        if let gestureLongClick = event.gestureLongClick {
             do {
                 let data = try JSONEncoder().encode(gestureLongClick)
                 self.gestureLongClick = data
@@ -82,7 +84,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.gestureLongClick = nil
         }
 
-        if let gestureScroll = event.data as? ScrollData {
+        if let gestureScroll = event.gestureScroll {
             do {
                 let data = try JSONEncoder().encode(gestureScroll)
                 self.gestureScroll = data
@@ -93,7 +95,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.gestureScroll = nil
         }
 
-        if let lifecycleApp = event.data as? ApplicationLifecycleData {
+        if let lifecycleApp = event.lifecycleApp {
             do {
                 let data = try JSONEncoder().encode(lifecycleApp)
                 self.lifecycleApp = data
@@ -104,7 +106,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.lifecycleApp = nil
         }
 
-        if let lifecycleViewController = event.data as? VCLifecycleData {
+        if let lifecycleViewController = event.lifecycleViewController {
             do {
                 let data = try JSONEncoder().encode(lifecycleViewController)
                 self.lifecycleViewController = data
@@ -115,7 +117,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.lifecycleViewController = nil
         }
 
-        if let lifecycleSwiftUI = event.data as? SwiftUILifecycleData {
+        if let lifecycleSwiftUI = event.lifecycleSwiftUI {
             do {
                 let data = try JSONEncoder().encode(lifecycleSwiftUI)
                 self.lifecycleSwiftUI = data
@@ -126,7 +128,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.lifecycleSwiftUI = nil
         }
 
-        if let cpuUsage = event.data as? CpuUsageData {
+        if let cpuUsage = event.cpuUsage {
             do {
                 let data = try JSONEncoder().encode(cpuUsage)
                 self.cpuUsage = data
@@ -137,7 +139,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.cpuUsage = nil
         }
 
-        if let memoryUsage = event.data as? MemoryUsageData {
+        if let memoryUsage = event.memoryUsageAbsolute {
             do {
                 let data = try JSONEncoder().encode(memoryUsage)
                 self.memoryUsage = data
@@ -148,7 +150,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.memoryUsage = nil
         }
 
-        if let coldLaunch = event.data as? ColdLaunchData {
+        if let coldLaunch = event.coldLaunch {
             do {
                 let data = try JSONEncoder().encode(coldLaunch)
                 self.coldLaunch = data
@@ -159,7 +161,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.coldLaunch = nil
         }
 
-        if let warmLaunch = event.data as? WarmLaunchData {
+        if let warmLaunch = event.warmLaunch {
             do {
                 let data = try JSONEncoder().encode(warmLaunch)
                 self.warmLaunch = data
@@ -170,7 +172,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.warmLaunch = nil
         }
 
-        if let hotLaunch = event.data as? HotLaunchData {
+        if let hotLaunch = event.hotLaunch {
             do {
                 let data = try JSONEncoder().encode(hotLaunch)
                 self.hotLaunch = data
@@ -181,7 +183,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.hotLaunch = nil
         }
 
-        if let http = event.data as? HttpData {
+        if let http = event.http {
             do {
                 let data = try JSONEncoder().encode(http)
                 self.http = data
@@ -192,7 +194,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.http = nil
         }
 
-        if let networkChange = event.data as? NetworkChangeData {
+        if let networkChange = event.networkChange {
             do {
                 let data = try JSONEncoder().encode(networkChange)
                 self.networkChange = data
@@ -203,7 +205,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.networkChange = nil
         }
 
-        if let customEvent = event.data as? CustomEventData {
+        if let customEvent = event.custom {
             do {
                 let data = try JSONEncoder().encode(customEvent)
                 self.customEvent = data
@@ -214,7 +216,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.customEvent = nil
         }
 
-        if let screenView = event.data as? ScreenViewData {
+        if let screenView = event.screenView {
             do {
                 let data = try JSONEncoder().encode(screenView)
                 self.screenView = data
@@ -246,6 +248,28 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         } else {
             self.attachments = nil
         }
+
+        if let bugReport = event.bugReport {
+            do {
+                let data = try JSONEncoder().encode(bugReport)
+                self.bugReport = data
+            } catch {
+                self.bugReport = nil
+            }
+        } else {
+            self.bugReport = nil
+        }
+
+        if event.type == .sessionStart {
+            do {
+                let data = try JSONEncoder().encode(SessionStartData())
+                self.sessionStartData = data
+            } catch {
+                self.sessionStartData = nil
+            }
+        } else {
+            self.sessionStartData = nil
+        }
     }
 
     init(id: String,
@@ -275,6 +299,8 @@ struct EventEntity { // swiftlint:disable:this type_body_length
          networkChange: Data?,
          customEvent: Data?,
          screenView: Data?,
+         bugReport: Data?,
+         sessionStartData: Data?,
          needsReporting: Bool) {
         self.id = id
         self.sessionId = sessionId
@@ -304,6 +330,8 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.customEvent = customEvent
         self.screenView = screenView
         self.needsReporting = needsReporting
+        self.bugReport = bugReport
+        self.sessionStartData = sessionStartData
     }
 
     func getEvent<T: Codable>() -> Event<T> { // swiftlint:disable:this cyclomatic_complexity function_body_length
@@ -438,14 +466,30 @@ struct EventEntity { // swiftlint:disable:this type_body_length
                     decodedData = nil
                 }
             }
+        case .bugReport:
+            if let bugReportData = self.bugReport {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: bugReportData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .sessionStart:
+            if let sessionStartData = self.sessionStartData {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: sessionStartData)
+                } catch {
+                    decodedData = nil
+                }
+            }
         case nil:
             decodedData = nil
         }
 
-        let decodedAttachments: [Attachment]?
+        let decodedAttachments: [MsrAttachment]?
         if let attachmentData = self.attachments {
             do {
-                decodedAttachments = try JSONDecoder().decode([Attachment].self, from: attachmentData)
+                decodedAttachments = try JSONDecoder().decode([MsrAttachment].self, from: attachmentData)
             } catch {
                 decodedAttachments = nil
             }
@@ -476,10 +520,10 @@ struct EventEntity { // swiftlint:disable:this type_body_length
                      userDefinedAttributes: self.userDefinedAttributes)
     }
 
-    func getAttachments() -> [Attachment]? {
+    func getAttachments() -> [MsrAttachment]? {
         if let attachmentData = self.attachments {
             do {
-                return try JSONDecoder().decode([Attachment].self, from: attachmentData)
+                return try JSONDecoder().decode([MsrAttachment].self, from: attachmentData)
             } catch {
                 return nil
             }
@@ -487,4 +531,4 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             return nil
         }
     }
-}
+} // swiftlint:disable:this file_length

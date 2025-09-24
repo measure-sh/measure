@@ -78,7 +78,7 @@ final class CrashDataFormatter {
         }
     }
 
-    func getException() -> Exception {
+    func getException(_ handled: Bool = false, error: MsrError? = nil) -> Exception {
         let crashedThread = getCrashedThread()
         let exceptionDetails = ExceptionDetail(type: crashReport.exceptionName,
                                                message: crashReport.exceptionReason,
@@ -88,20 +88,24 @@ final class CrashDataFormatter {
                                                threadSequence: crashedThread?.sequence ?? 0,
                                                osBuildNumber: crashReport.osBuildNumber)
         guard let crashedThread = crashedThread, let threads = getExceptionStackTrace() else {
-            return Exception(handled: false,
+            return Exception(handled: handled,
                              exceptions: [exceptionDetails],
                              foreground: true,
                              threads: nil,
-                             binaryImages: nil)
+                             binaryImages: nil,
+                             framework: Framework.apple,
+                             error: error)
         }
 
         let binaryImages = getBinaryImageInfo([crashedThread] + threads)
 
-        return Exception(handled: false,
+        return Exception(handled: handled,
                          exceptions: [exceptionDetails],
                          foreground: true,
                          threads: threads,
-                         binaryImages: binaryImages)
+                         binaryImages: binaryImages,
+                         framework: Framework.apple,
+                         error: error)
     }
 
     private func getCrashedThread() -> ThreadDetail? {
@@ -184,11 +188,18 @@ final class CrashDataFormatter {
                                     offset: Int(offset) ?? 0,
                                     frameIndex: Number(frameIndex),
                                     symbolAddress: formattedInstructionPointer,
-                                    inApp: (self.executableName == imageName) || (imageName.contains(self.executableName ?? "")))
+                                    inApp: (self.executableName == imageName) || (imageName.contains(self.executableName ?? "")),
+                                    className: nil,
+                                    methodName: nil,
+                                    fileName: nil,
+                                    lineNumber: nil,
+                                    columnNumber: nil,
+                                    moduleName: nil,
+                                    instructionAddress: nil)
         return stackFrame
     }
 
-    private func getBinaryImageInfo(_ threads: [ThreadDetail]) -> [BinaryImage]? {
+    private func getBinaryImageInfo(_ threads: [ThreadDetail]) -> [BinaryImage]? { // swiftlint:disable:this cyclomatic_complexity function_body_length
         var binaryImages: [BinaryImage] = []
         var lastImageBaseAddress: UInt64 = 0
 
@@ -198,7 +209,7 @@ final class CrashDataFormatter {
 
         // Collect all binary addresses from StackFrames in threads
         let relevantBinaryAddresses: Set<String> = Set(
-            threads.flatMap { $0.frames.map { $0.binaryAddress } }
+            threads.flatMap { $0.frames.compactMap { $0.binaryAddress } }
         )
 
         for imageInfo in images {
@@ -252,6 +263,7 @@ final class CrashDataFormatter {
 
             let binaryImage = BinaryImage(startAddress: startAddress,
                                           endAddress: endAddress,
+                                          baseAddress: nil,
                                           system: !(self.executableName == imageName),
                                           name: imageName,
                                           arch: arch,

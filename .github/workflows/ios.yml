@@ -12,7 +12,7 @@ on:
 
 jobs:
   ios_lint_and_tests:
-    runs-on: macos-latest
+    runs-on: macos-15
     permissions:
       contents: read
       pull-requests: read
@@ -20,22 +20,24 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Run SwiftLint
-        uses: cirruslabs/swiftlint-action@fdc2695c66b8807e7b1571d08097a99cf1fde41b
-        with:
-          version: latest
-          directory: ios
+      - name: Switch to Xcode 16.4
+        run: sudo xcode-select -switch /Applications/Xcode_16.4.app
+
+      - name: Confirm Xcode Version
+        run: xcodebuild -version
+
+      - name: Show Available Simulators
+        run: xcrun simctl list devices
 
       - name: Clean Derived Data
-        run: |
-          rm -rf ~/Library/Developer/Xcode/DerivedData
+        run: rm -rf ~/Library/Developer/Xcode/DerivedData
 
       - name: Run Unit Tests
         run: |
           xcodebuild test \
             -project ios/MeasureSDK.xcodeproj \
-            -scheme Measure \
+            -scheme MeasureSDKTests \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
-            -only-testing:MeasureSDKTests
-            ONLY_ACTIVE_ARCH=YES
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.4' \
+            ONLY_ACTIVE_ARCH=YES \
+            -parallel-testing-enabled NO

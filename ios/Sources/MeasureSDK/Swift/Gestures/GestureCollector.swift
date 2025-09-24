@@ -9,28 +9,30 @@ import UIKit
 
 protocol GestureCollector {
     func enable(for window: UIWindow)
+    func disable()
     func processEvent(_ event: UIEvent)
 }
 
 final class BaseGestureCollector: GestureCollector {
     private let logger: Logger
-    private let eventProcessor: EventProcessor
+    private let signalProcessor: SignalProcessor
     private let timeProvider: TimeProvider
     private let configProvider: ConfigProvider
     private let gestureTargetFinder: GestureTargetFinder
     private var window: UIWindow?
     private let layoutSnapshotGenerator: LayoutSnapshotGenerator
     private let systemFileManager: SystemFileManager
+    private var isEnabled = false
 
     init(logger: Logger,
-         eventProcessor: EventProcessor,
+         signalProcessor: SignalProcessor,
          timeProvider: TimeProvider,
          configProvider: ConfigProvider,
          gestureTargetFinder: GestureTargetFinder,
          layoutSnapshotGenerator: LayoutSnapshotGenerator,
          systemFileManager: SystemFileManager) {
         self.logger = logger
-        self.eventProcessor = eventProcessor
+        self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.configProvider = configProvider
         self.gestureTargetFinder = gestureTargetFinder
@@ -40,13 +42,21 @@ final class BaseGestureCollector: GestureCollector {
 
     func enable(for window: UIWindow) {
         self.window = window
-        logger.internalLog(level: .debug, message: "GestureCollector enabled", error: nil, data: nil)
-        self.window?.setGestureCollector(self)
-        self.window?.swizzleSendEvent()
+        logger.internalLog(level: .debug, message: "GestureCollector enabled.", error: nil, data: nil)
+        UIApplication.shared.setGestureCollector(self)
+        UIApplication.swizzleSendEvent()
+        isEnabled = true
+    }
+
+    func disable() {
+        isEnabled = false
+        logger.internalLog(level: .debug, message: "GestureCollector disabled.", error: nil, data: nil)
     }
 
     func processEvent(_ event: UIEvent) {
-        if let window = window, let detectedGesture = GestureDetector.detect(event: event,
+        if isEnabled,
+           let window = window,
+           let detectedGesture = GestureDetector.detect(event: event,
                                                         in: window,
                                                         timeProvider: timeProvider,
                                                         scaledTouchSlop: configProvider.scaledTouchSlop,
@@ -64,6 +74,11 @@ final class BaseGestureCollector: GestureCollector {
         switch gesture {
         case .click(let x, let y, let touchDownTime, let touchUpTime, let target, let targetId, let targetFrame):
             let gestureTargetFinderData = gestureTargetFinder.findClickable(x: x, y: y, window: window)
+
+            if gestureTargetFinderData.target == nil && gestureTargetFinderData.targetFrame == nil && gestureTargetFinderData.targetId == nil {
+                return
+            }
+
             let width = UInt16((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0)
             let height = UInt16((gestureTargetFinderData.targetFrame?.height ?? targetFrame?.height) ?? 0)
 
@@ -75,13 +90,23 @@ final class BaseGestureCollector: GestureCollector {
                                  y: FloatNumber32(y),
                                  touchDownTime: touchDownTime,
                                  touchUpTime: touchUpTime)
-            var attachments: [Attachment]?
-            if let attachment = collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) {
-                attachments = [attachment]
+
+            collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) { attachment in
+                self.signalProcessor.track(data: data,
+                                      timestamp: self.timeProvider.now(),
+                                      type: .gestureClick,
+                                      attributes: nil,
+                                      sessionId: nil,
+                                      attachments: attachment == nil ? nil : [attachment!],
+                                      userDefinedAttributes: nil,
+                                      threadName: nil)
             }
-            eventProcessor.track(data: data, timestamp: timeProvider.now(), type: .gestureClick, attributes: nil, sessionId: nil, attachments: attachments, userDefinedAttributes: nil)
         case .longClick(let x, let y, let touchDownTime, let touchUpTime, let target, let targetId, let targetFrame):
             let gestureTargetFinderData = gestureTargetFinder.findClickable(x: x, y: y, window: window)
+            if gestureTargetFinderData.target == nil && gestureTargetFinderData.targetFrame == nil && gestureTargetFinderData.targetId == nil {
+                return
+            }
+
             let width = UInt16((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0)
             let height = UInt16((gestureTargetFinderData.targetFrame?.height ?? targetFrame?.height) ?? 0)
 
@@ -93,15 +118,25 @@ final class BaseGestureCollector: GestureCollector {
                                      y: FloatNumber32(y),
                                      touchDownTime: touchDownTime,
                                      touchUpTime: touchUpTime)
-            var attachments: [Attachment]?
-            if let attachment = collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) {
-                attachments = [attachment]
+
+            collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: x, y: y)) { attachment in
+                self.signalProcessor.track(data: data,
+                                           timestamp: self.timeProvider.now(),
+                                      type: .gestureLongClick,
+                                      attributes: nil,
+                                      sessionId: nil,
+                                      attachments: attachment == nil ? nil : [attachment!],
+                                      userDefinedAttributes: nil,
+                                      threadName: nil)
             }
-            eventProcessor.track(data: data, timestamp: timeProvider.now(), type: .gestureLongClick, attributes: nil, sessionId: nil, attachments: attachments, userDefinedAttributes: nil)
         case .scroll(let startX, let startY, let endX, let endY, let direction, let touchDownTime, let touchUpTime, let target, let targetId):
             let startScrollPoint = CGPoint(x: startX, y: startY)
             let endScrollPoint = CGPoint(x: endX, y: endY)
             if let gestureTargetFinderData = gestureTargetFinder.findScrollable(startScrollPoint: startScrollPoint, endScrollPoint: endScrollPoint, window: window) {
+                if gestureTargetFinderData.target == nil && gestureTargetFinderData.targetFrame == nil && gestureTargetFinderData.targetId == nil {
+                    return
+                }
+
                 let data = ScrollData(target: gestureTargetFinderData.target ?? target,
                                       targetId: gestureTargetFinderData.targetId ?? targetId,
                                       x: FloatNumber32(startX),
@@ -111,24 +146,30 @@ final class BaseGestureCollector: GestureCollector {
                                       direction: direction,
                                       touchDownTime: touchDownTime,
                                       touchUpTime: touchUpTime)
-                var attachments: [Attachment]?
-                if let attachment = collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: startX, y: startY)) {
-                    attachments = [attachment]
+
+                collectLayoutSnapshot(gesture, touchPoint: CGPoint(x: startX, y: startY)) { attachment in
+                    self.signalProcessor.track(data: data,
+                                               timestamp: self.timeProvider.now(),
+                                          type: .gestureScroll,
+                                          attributes: nil,
+                                          sessionId: nil,
+                                          attachments: attachment == nil ? nil : [attachment!],
+                                          userDefinedAttributes: nil,
+                                          threadName: nil)
                 }
-                eventProcessor.track(data: data, timestamp: timeProvider.now(), type: .gestureScroll, attributes: nil, sessionId: nil, attachments: attachments, userDefinedAttributes: nil)
             }
         }
         // swiftlint:enable identifier_name
     }
 
-    private func collectLayoutSnapshot(_ gesture: DetectedGesture, touchPoint: CGPoint) -> Attachment? {
-        SignPost.trace(label: "msr-take-layout-snapshot") {
-            if let window = self.window,
-               let attachment = layoutSnapshotGenerator.generate(window: window, touchPoint: touchPoint) {
-                return attachment
+    private func collectLayoutSnapshot(_ gesture: DetectedGesture, touchPoint: CGPoint, completion: @escaping (MsrAttachment?) -> Void) {
+        if let window = self.window {
+            layoutSnapshotGenerator.generate(window: window, touchPoint: touchPoint) { attachment in
+                completion(attachment)
             }
-
-            return nil
+        } else {
+            completion(nil)
+            return
         }
     }
 }

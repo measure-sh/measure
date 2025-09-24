@@ -15,44 +15,53 @@ protocol CustomEventCollector {
 
 final class BaseCustomEventCollector: CustomEventCollector {
     private let logger: Logger
-    private let eventProcessor: EventProcessor
+    private let signalProcessor: SignalProcessor
     private let timeProvider: TimeProvider
     private let configProvider: ConfigProvider
-    private var isEnabled: Bool = false
-    private lazy var customEventNameRegex: NSRegularExpression? = {
-        try? NSRegularExpression(pattern: configProvider.customEventNameRegex)
-    }()
+    private var isEnabled = AtomicBool(false)
+    private let customEventNameRegex: NSRegularExpression?
 
-    init(logger: Logger, eventProcessor: EventProcessor, timeProvider: TimeProvider, configProvider: ConfigProvider) {
+    init(logger: Logger, signalProcessor: SignalProcessor, timeProvider: TimeProvider, configProvider: ConfigProvider) {
         self.logger = logger
-        self.eventProcessor = eventProcessor
+        self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.configProvider = configProvider
+        do {
+            self.customEventNameRegex = try NSRegularExpression(pattern: configProvider.customEventNameRegex)
+        } catch {
+            self.customEventNameRegex = nil
+            logger.log(level: .error, message: "Failed to create NSRegularExpression", error: error, data: nil)
+        }
     }
 
     func enable() {
-        isEnabled = true
+        isEnabled.setTrueIfFalse {
+            logger.log(level: .info, message: "CustomEventCollector enabled.", error: nil, data: nil)
+        }
     }
 
     func disable() {
-        isEnabled = false
+        isEnabled.setFalseIfTrue {
+            logger.log(level: .info, message: "CustomEventCollector disabled.", error: nil, data: nil)
+        }
     }
 
     func trackEvent(name: String, attributes: [String: AttributeValue], timestamp: Int64?) {
-        guard isEnabled else { return }
+        guard isEnabled.get() else { return }
         guard validateName(name) else { return }
         guard validateAttributes(name: name, attributes: attributes) else { return }
 
         let data = CustomEventData(name: name)
         let userDefinedAttributes = EventSerializer.serializeUserDefinedAttribute(attributes)
 
-        eventProcessor.trackUserTriggered(data: data,
-                                          timestamp: timestamp ?? timeProvider.now(),
-                                          type: .custom,
-                                          attributes: nil,
-                                          sessionId: nil,
-                                          attachments: nil,
-                                          userDefinedAttributes: userDefinedAttributes)
+        signalProcessor.trackUserTriggered(data: data,
+                                           timestamp: timestamp ?? timeProvider.now(),
+                                           type: .custom,
+                                           attributes: nil,
+                                           sessionId: nil,
+                                           attachments: nil,
+                                           userDefinedAttributes: userDefinedAttributes,
+                                           threadName: nil)
     }
 
     private func validateName(_ name: String) -> Bool {

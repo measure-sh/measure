@@ -2,7 +2,6 @@ package sh.measure.android.events
 
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -11,6 +10,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
+import sh.measure.android.attributes.StringAttr
 import sh.measure.android.exporter.ExceptionExporter
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
@@ -20,7 +20,6 @@ import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
 import sh.measure.android.fakes.TestData.toEvent
-import sh.measure.android.lifecycle.ActivityLifecycleData
 import sh.measure.android.screenshot.Screenshot
 import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.utils.iso8601Timestamp
@@ -33,9 +32,6 @@ internal class SignalProcessorTest {
     private val exceptionExporter = mock<ExceptionExporter>()
     private val screenshotCollector = mock<ScreenshotCollector>()
     private val configProvider = FakeConfigProvider()
-    private val eventTransformer = object : EventTransformer {
-        override fun <T> transform(event: Event<T>): Event<T> = event
-    }
 
     private val signalProcessor = SignalProcessorImpl(
         logger = NoopLogger(),
@@ -47,7 +43,6 @@ internal class SignalProcessorTest {
         exceptionExporter = exceptionExporter,
         screenshotCollector = screenshotCollector,
         configProvider = configProvider,
-        eventTransformer = eventTransformer,
     )
 
     @Before
@@ -74,7 +69,10 @@ internal class SignalProcessorTest {
             timestamp = timestamp.iso8601Timestamp(),
             id = idProvider.id,
             sessionId = sessionManager.getSessionId(),
-        ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
+        ).apply {
+            appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name)
+            appendAttribute(Attribute.PLATFORM_KEY, "android")
+        }
 
         assertEquals(1, signalStore.trackedEvents.size)
         assertEquals(expectedEvent, signalStore.trackedEvents.first())
@@ -102,7 +100,10 @@ internal class SignalProcessorTest {
             id = idProvider.id,
             sessionId = sessionManager.getSessionId(),
             attachments = attachments,
-        ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
+        ).apply {
+            appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name)
+            appendAttribute(Attribute.PLATFORM_KEY, "android")
+        }
 
         assertEquals(1, signalStore.trackedEvents.size)
         assertEquals(expectedEvent, signalStore.trackedEvents.first())
@@ -157,7 +158,6 @@ internal class SignalProcessorTest {
             exceptionExporter = exceptionExporter,
             screenshotCollector = screenshotCollector,
             configProvider = configProvider,
-            eventTransformer = eventTransformer,
         )
 
         // When
@@ -173,7 +173,10 @@ internal class SignalProcessorTest {
             id = idProvider.id,
             sessionId = sessionManager.getSessionId(),
             attributes = mutableMapOf("key" to "value"),
-        ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
+        ).apply {
+            appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name)
+            appendAttribute(Attribute.PLATFORM_KEY, "android")
+        }
 
         assertEquals(1, signalStore.trackedEvents.size)
         assertEquals(expectedEvent, signalStore.trackedEvents.first())
@@ -191,6 +194,7 @@ internal class SignalProcessorTest {
             data = exceptionData,
             timestamp = timestamp,
             type = type,
+            takeScreenshot = false,
         )
 
         // Then
@@ -211,6 +215,7 @@ internal class SignalProcessorTest {
             data = exceptionData,
             timestamp = timestamp,
             type = type,
+            takeScreenshot = false,
         )
 
         // Then
@@ -308,82 +313,53 @@ internal class SignalProcessorTest {
     }
 
     @Test
-    fun `given transformer drops event, then does not store event`() {
+    fun `given an event of type app exit, applies attributes and updates version info`() {
         // Given
-        val exceptionData = TestData.getExceptionData()
-        val timestamp = 9856564654L
-        val type = EventType.EXCEPTION
-
-        val eventTransformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T>? = null
-        }
-        val signalProcessor = SignalProcessorImpl(
-            logger = NoopLogger(),
-            ioExecutor = executorService,
-            signalStore = signalStore,
-            idProvider = idProvider,
-            sessionManager = sessionManager,
-            attributeProcessors = emptyList(),
-            exceptionExporter = exceptionExporter,
-            screenshotCollector = screenshotCollector,
-            configProvider = configProvider,
-            eventTransformer = eventTransformer,
-        )
+        val appExit = TestData.getAppExit()
+        val timestamp = 1710746412L
+        val type = EventType.APP_EXIT
+        val sessionId = "session-id-app-exit"
+        val appVersion = "app-version"
+        val appBuild = "1000"
 
         // When
-        signalProcessor.track(
-            data = exceptionData,
+        signalProcessor.trackAppExit(
+            data = appExit,
             timestamp = timestamp,
             type = type,
-        )
-        signalProcessor.track(
-            data = "data",
-            timestamp = timestamp,
-            type = EventType.STRING,
-        )
-
-        // Then
-        assertEquals(0, signalStore.trackedEvents.size)
-    }
-
-    @Test
-    fun `given transformer modifies event, then stores modified event`() {
-        // Given
-        val activityLifecycleData = TestData.getActivityLifecycleData(intent = "intent-data")
-        val timestamp = 9856564654L
-        val type = EventType.LIFECYCLE_ACTIVITY
-
-        val eventTransformer = object : EventTransformer {
-            override fun <T> transform(event: Event<T>): Event<T> {
-                // drop the intent data from the event
-                (event.data as ActivityLifecycleData).intent = null
-                return event
-            }
-        }
-        val signalProcessor = SignalProcessorImpl(
-            logger = NoopLogger(),
-            ioExecutor = executorService,
-            signalStore = signalStore,
-            idProvider = idProvider,
-            sessionManager = sessionManager,
-            attributeProcessors = emptyList(),
-            exceptionExporter = exceptionExporter,
-            screenshotCollector = screenshotCollector,
-            configProvider = configProvider,
-            eventTransformer = eventTransformer,
-        )
-
-        // When
-        signalProcessor.track(
-            data = activityLifecycleData,
-            timestamp = timestamp,
-            type = type,
+            sessionId = sessionId,
+            appVersion = appVersion,
+            appBuild = appBuild,
+            threadName = "thread-name",
         )
 
         // Then
         assertEquals(1, signalStore.trackedEvents.size)
-        // verify intent data is dropped from the event
-        assertNull((signalStore.trackedEvents.first().data as ActivityLifecycleData).intent)
+        val event = signalStore.trackedEvents.first()
+        assertEquals(type, event.type)
+        assertEquals(appBuild, event.attributes[Attribute.APP_BUILD_KEY])
+        assertEquals(appVersion, event.attributes[Attribute.APP_VERSION_KEY])
+        assertEquals(sessionId, event.sessionId)
+    }
+
+    @Test
+    fun `given an event of type bug_report, marks session with bug report`() {
+        // Given
+        val bugReportData = TestData.getBugReportData()
+        val timestamp = 1710746412L
+        val type = EventType.BUG_REPORT
+        val sessionId = "session-id-bug-report"
+
+        // When
+        signalProcessor.track(
+            data = bugReportData,
+            timestamp = timestamp,
+            type = type,
+            sessionId = sessionId,
+        )
+
+        // Then
+        assertTrue(sessionManager.markedSessionWithBugReport)
     }
 
     @Test
@@ -397,7 +373,10 @@ internal class SignalProcessorTest {
             id = idProvider.id,
             sessionId = sessionManager.getSessionId(),
             userTriggered = true,
-        ).apply { appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name) }
+        ).apply {
+            appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name)
+            appendAttribute(Attribute.PLATFORM_KEY, "android")
+        }
 
         signalProcessor.trackUserTriggered(
             data = data,
@@ -421,6 +400,7 @@ internal class SignalProcessorTest {
             data = exceptionData,
             timestamp = timestamp,
             type = type,
+            takeScreenshot = false,
         )
 
         // Then
@@ -453,5 +433,65 @@ internal class SignalProcessorTest {
 
         // Then
         assertTrue(signalStore.trackedSpans.contains(spanData))
+    }
+
+    @Test
+    fun `should drop event when user defined attributes exceed maximum count`() {
+        // Given
+        val attributes = (0..configProvider.maxUserDefinedAttributesPerEvent).associate {
+            "key$it" to StringAttr("value")
+        }
+        val exceptionData = TestData.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.EXCEPTION
+
+        // When
+        signalProcessor.track(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+            userDefinedAttributes = attributes,
+        )
+
+        assertEquals(0, signalStore.trackedEvents.size)
+    }
+
+    @Test
+    fun `should drop event when user defined attribute key exceeds maximum length`() {
+        val longKey = "k".repeat(configProvider.maxUserDefinedAttributeKeyLength + 1)
+        val attributes = mapOf(longKey to StringAttr("value"))
+        val exceptionData = TestData.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.EXCEPTION
+
+        // When
+        signalProcessor.track(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+            userDefinedAttributes = attributes,
+        )
+
+        assertEquals(0, signalStore.trackedEvents.size)
+    }
+
+    @Test
+    fun `should drop event when user defined string attribute value exceeds maximum length`() {
+        val invalidAttributeValue =
+            "v".repeat(configProvider.maxUserDefinedAttributeValueLength + 1)
+        val attributes = mapOf("key" to StringAttr(invalidAttributeValue))
+        val exceptionData = TestData.getExceptionData()
+        val timestamp = 9856564654L
+        val type = EventType.EXCEPTION
+
+        // When
+        signalProcessor.track(
+            data = exceptionData,
+            timestamp = timestamp,
+            type = type,
+            userDefinedAttributes = attributes,
+        )
+
+        assertEquals(0, signalStore.trackedEvents.size)
     }
 }

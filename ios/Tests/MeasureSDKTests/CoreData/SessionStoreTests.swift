@@ -28,109 +28,94 @@ final class SessionStoreTests: XCTestCase {
     }
 
     func testInsertSession() {
+        let expectation = expectation(description: "Insert sessions and fetch all")
         let session1 = SessionEntity(sessionId: "1", pid: 123, createdAt: 1000, needsReporting: false, crashed: false)
         let session2 = SessionEntity(sessionId: "2", pid: 123, createdAt: 1000, needsReporting: false, crashed: false)
 
-        // Perform concurrent inserts
-        let expectation1 = expectation(description: "Insert session 1")
-        let expectation2 = expectation(description: "Insert session 2")
-
-        DispatchQueue.global().async {
-            self.sessionStore.insertSession(session1)
-            expectation1.fulfill()
+        sessionStore.insertSession(session1) {
+            self.sessionStore.insertSession(session2) {
+                self.sessionStore.getAllSessions { sessions in
+                    XCTAssertEqual(sessions?.count, 2, "Expected 2 sessions to be inserted.")
+                    expectation.fulfill()
+                }
+            }
         }
 
-        DispatchQueue.global().async {
-            self.sessionStore.insertSession(session2)
-            expectation2.fulfill()
-        }
-
-        wait(for: [expectation1, expectation2], timeout: 5)
-
-        // Assert that no race condition occurred and session is inserted properly
-        let sessions = sessionStore.getAllSessions()
-        XCTAssertEqual(sessions?.count, 2)
+        wait(for: [expectation], timeout: 2.0)
     }
 
     func testGetSession() {
+        let expectation = expectation(description: "Get session twice")
         let session = SessionEntity(sessionId: "1", pid: 123, createdAt: 1000, needsReporting: false, crashed: false)
-        sessionStore.insertSession(session)
 
-        let expectation1 = expectation(description: "Get session 1")
-        let expectation2 = expectation(description: "Get session 2")
+        sessionStore.insertSession(session) {
+            self.sessionStore.getSession(byId: "1") { result1 in
+                XCTAssertEqual(result1?.sessionId, "1")
 
-        DispatchQueue.global().async {
-            let session = self.sessionStore.getSession(byId: "1")
-            XCTAssertEqual(session?.sessionId, "1")
-            expectation1.fulfill()
+                self.sessionStore.getSession(byId: "1") { result2 in
+                    XCTAssertEqual(result2?.sessionId, "1")
+                    expectation.fulfill()
+                }
+            }
         }
 
-        DispatchQueue.global().async {
-            let session = self.sessionStore.getSession(byId: "1")
-            XCTAssertEqual(session?.sessionId, "1")
-            expectation2.fulfill()
-        }
-
-        wait(for: [expectation1, expectation2], timeout: 5)
+        wait(for: [expectation], timeout: 2.0)
     }
 
     func testDeleteSession() {
+        let expectation = expectation(description: "Delete sessions and verify empty state")
+
         let session1 = SessionEntity(sessionId: "1", pid: 123, createdAt: 1000, needsReporting: false, crashed: false)
         let session2 = SessionEntity(sessionId: "2", pid: 123, createdAt: 1000, needsReporting: false, crashed: false)
 
-        sessionStore.insertSession(session1)
-        sessionStore.insertSession(session2)
-
-        let expectation1 = expectation(description: "Delete session 1")
-        let expectation2 = expectation(description: "Delete session 2")
-
-        DispatchQueue.global().async {
-            self.sessionStore.deleteSession("1")
-            expectation1.fulfill()
+        sessionStore.insertSession(session1) {
+            self.sessionStore.insertSession(session2) {
+                self.sessionStore.deleteSession("1") {
+                    self.sessionStore.deleteSession("2") {
+                        self.sessionStore.getAllSessions { sessions in
+                            XCTAssertNil(sessions, "Expected all sessions to be deleted.")
+                            expectation.fulfill()
+                        }
+                    }
+                }
+            }
         }
 
-        DispatchQueue.global().async {
-            self.sessionStore.deleteSession("2")
-            expectation2.fulfill()
-        }
-
-        wait(for: [expectation1, expectation2], timeout: 5)
-
-        let sessions = sessionStore.getAllSessions()
-        XCTAssertNil(sessions)
+        wait(for: [expectation], timeout: 3.0)
     }
 
     func testMarkCrashedSessions() {
-        let expectation = expectation(description: "Mark session 1 as crashed")
-        let session = SessionEntity(sessionId: "1", pid: 123, createdAt: 1000, needsReporting: false, crashed: false)
-        sessionStore.insertSession(session)
+        let expectation = expectation(description: "Mark session as crashed")
 
-        DispatchQueue.global().async {
-            self.sessionStore.markCrashedSession(sessionId: "1")
-            expectation.fulfill()
+        let session = SessionEntity(sessionId: "1", pid: 123, createdAt: 1000, needsReporting: false, crashed: false)
+
+        sessionStore.insertSession(session) {
+            self.sessionStore.markCrashedSession(sessionId: "1") {
+                self.sessionStore.getSession(byId: "1") { fetchedSession in
+                    XCTAssertTrue(fetchedSession?.crashed == true, "Expected session to be marked as crashed.")
+                    expectation.fulfill()
+                }
+            }
         }
 
-        wait(for: [expectation], timeout: 5)
-
-        let fetchedSession = sessionStore.getSession(byId: "1")
-        XCTAssertTrue(fetchedSession?.crashed == true)
+        wait(for: [expectation], timeout: 3.0)
     }
 
     func testGetOldestSession() {
+        let expectation = expectation(description: "Get the oldest session")
+
         let session1 = SessionEntity(sessionId: "1", pid: 123, createdAt: 1000, needsReporting: false, crashed: false)
         let session2 = SessionEntity(sessionId: "2", pid: 123, createdAt: 2000, needsReporting: false, crashed: false)
 
-        sessionStore.insertSession(session1)
-        sessionStore.insertSession(session2)
-
-        let expectation = expectation(description: "Get oldest session")
-
-        DispatchQueue.global().async {
-            let oldestSessionId = self.sessionStore.getOldestSession()
-            XCTAssertEqual(oldestSessionId, "1")
-            expectation.fulfill()
+        sessionStore.insertSession(session1) {
+            self.sessionStore.insertSession(session2) {
+                self.sessionStore.getOldestSession { oldestSessionId in
+                    XCTAssertEqual(oldestSessionId, "1", "Expected session with ID '1' to be the oldest.")
+                    expectation.fulfill()
+                }
+            }
         }
 
-        wait(for: [expectation], timeout: 5)
+        wait(for: [expectation], timeout: 2.0)
     }
 }

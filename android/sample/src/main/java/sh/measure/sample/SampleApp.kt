@@ -11,7 +11,8 @@ class SampleApp : Application() {
         super.onCreate()
         val startTime = Measure.getCurrentTime()
         Measure.init(
-            this, MeasureConfig(
+            this,
+            measureConfig = MeasureConfig(
                 enableLogging = true,
                 trackScreenshotOnCrash = true,
                 screenshotMaskLevel = if (BuildConfig.DEBUG) {

@@ -15,8 +15,10 @@ import Foundation
 /// - Note: If no values are provided during initialization, the struct will use default values specified in `DefaultConfig` where applicable.
 ///
 struct Config: InternalConfig, MeasureConfig {
+    let maxDiskUsageInMb: Int
     let enableLogging: Bool
     let samplingRateForErrorFreeSessions: Float
+    let traceSamplingRate: Float
     let eventsBatchingIntervalMs: Number
     let sessionEndLastEventThresholdMs: Number
     let longPressTimeout: TimeInterval
@@ -43,24 +45,50 @@ struct Config: InternalConfig, MeasureConfig {
     let httpHeadersBlocklist: [String]
     let httpUrlBlocklist: [String]
     let httpUrlAllowlist: [String]
+    let autoStart: Bool
+    let maxSpanNameLength: Int
+    let maxCheckpointNameLength: Int
+    let maxCheckpointsPerSpan: Int
+    let trackViewControllerLoadTime: Bool
+    let maxAttachmentsInBugReport: Int
+    let maxDescriptionLengthInBugReport: Int
+    let shakeAccelerationThreshold: Float
+    let shakeMinTimeIntervalMs: Number
+    let accelerometerUpdateInterval: TimeInterval
+    let screenshotMaskLevel: ScreenshotMaskLevel
+    let requestHeadersProvider: MsrRequestHeadersProvider?
+    let disallowedCustomHeaders: [String]
+    let lifecycleViewControllerExcludeList: [String]
+    let estimatedEventSizeInKb: Int
 
-    internal init(enableLogging: Bool = DefaultConfig.enableLogging,
+    internal init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
+                  traceSamplingRate: Float = DefaultConfig.traceSamplingRate,
                   trackHttpHeaders: Bool = DefaultConfig.trackHttpHeaders,
                   trackHttpBody: Bool = DefaultConfig.trackHttpBody,
                   httpHeadersBlocklist: [String] = DefaultConfig.httpHeadersBlocklist,
                   httpUrlBlocklist: [String] = DefaultConfig.httpUrlBlocklist,
-                  httpUrlAllowlist: [String] = DefaultConfig.httpUrlAllowlist) {
+                  httpUrlAllowlist: [String] = DefaultConfig.httpUrlAllowlist,
+                  autoStart: Bool = DefaultConfig.autoStart,
+                  trackViewControllerLoadTime: Bool = DefaultConfig.trackViewControllerLoadTime,
+                  screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel,
+                  requestHeadersProvider: MsrRequestHeadersProvider? = nil,
+                  maxDiskUsageInMb: Int = DefaultConfig.maxEstimatedDiskUsageInMb) {
         self.enableLogging = enableLogging
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
+        self.traceSamplingRate = traceSamplingRate
         self.trackHttpHeaders = trackHttpHeaders
         self.trackHttpBody = trackHttpBody
         self.httpHeadersBlocklist = httpHeadersBlocklist
         self.httpUrlBlocklist = httpUrlBlocklist
         self.httpUrlAllowlist = httpUrlAllowlist
+        self.autoStart = autoStart
+        self.trackViewControllerLoadTime = trackViewControllerLoadTime
+        self.screenshotMaskLevel = screenshotMaskLevel
+        self.maxDiskUsageInMb = maxDiskUsageInMb
         self.eventsBatchingIntervalMs = 30000 // 30 seconds
         self.maxEventsInBatch = 500
-        self.sessionEndLastEventThresholdMs = 20 * 60 * 1000 // 20 minitues
+        self.sessionEndLastEventThresholdMs = 3 * 60 * 1000 // 3 minitues
         self.timeoutIntervalForRequest = 30 // 30 seconds
         self.longPressTimeout = 500 // 500 ms
         self.scaledTouchSlop = 3.5 // 3.5 points
@@ -85,9 +113,44 @@ struct Config: InternalConfig, MeasureConfig {
                                          .warmLaunch,
                                          .lifecycleSwiftUI,
                                          .lifecycleViewController,
-                                         .screenView]
+                                         .screenView,
+                                         .sessionStart]
         self.screenshotMaskHexColor = "#222222"
         self.screenshotCompressionQuality = 25
         self.layoutSnapshotDebounceInterval = 750 // 750 ms
+        self.maxSpanNameLength = 64
+        self.maxCheckpointNameLength = 64
+        self.maxCheckpointsPerSpan = 100
+        self.maxAttachmentsInBugReport = 5
+        self.maxDescriptionLengthInBugReport = 4000
+        self.shakeAccelerationThreshold = 2.5
+        self.shakeMinTimeIntervalMs = 1500
+        self.accelerometerUpdateInterval = 0.1
+        self.requestHeadersProvider = requestHeadersProvider
+        self.disallowedCustomHeaders = DefaultConfig.disallowedCustomHeaders
+        self.lifecycleViewControllerExcludeList = [
+            "UIHostingController",
+            "UIKitNavigationController",
+            "NavigationStackHostingController",
+            "NotifyingMulticolumnSplitViewController",
+            "StyleContextSplitViewController",
+            "UISystemAssistantViewController",
+            "UISystemKeyboardDockController",
+            "UIEditingOverlayViewController",
+            "UIInputWindowContoller",
+            "PrewarmingViewController",
+            "UIInputViewController",
+            "UICompactibilityInputViewController",
+            "UICompactibilityInputViewController",
+            "UIPredictionViewController",
+            "_UICursorAccessoryViewController",
+            "UIMultiscriptCandidateViewController",
+            "_UIContextMenuActionsOnlyViewController",
+            "_UIAlertControllerTextFieldViewController",
+            "UIInputWindowController",
+            "UICompatibilityInputViewController",
+            "UISystemInputAssistantViewController"
+        ]
+        self.estimatedEventSizeInKb = 10 // 10 KB
     }
 }

@@ -1,0 +1,92 @@
+name: Prepare Android Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 0.9.0)'
+        required: true
+        type: string
+
+env:
+  JAVA_VERSION: 17
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  prepare-release:
+    name: Prepare Android SDK Release
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    permissions:
+      contents: write
+      pull-requests: write
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: 'main'
+          fetch-depth: 0
+          token: ${{ secrets.SDK_RELEASE }}
+
+      - name: Setup Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Validate input version format
+        run: |
+          if ! [[ ${{ inputs.version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+(-((alpha|beta)\.[0-9]+))?$ ]]; then
+            echo "Error: Version must match semantic versioning pattern:"
+            echo "  - x.y.z (e.g. 1.2.3)"
+            echo "Got: ${{ inputs.version }}"
+            exit 1
+          fi
+
+      - name: Update version in gradle.properties
+        run: |
+          sed -i "s/MEASURE_VERSION_NAME=.*/MEASURE_VERSION_NAME=${{ inputs.version }}/" gradle.properties
+
+      - name: Update version in libs.versions.toml
+        run: |
+          sed -i "s/measure-android = \".*\"/measure-android = \"${{ inputs.version }}\"/" gradle/libs.versions.toml
+
+      - name: Generate changelog
+        run: |
+          cd ..
+          git cliff --output android/CHANGELOG.md --tag android-v${{ inputs.version }}
+
+      - name: Update version in README
+        run: |
+          cd ../docs
+          # Update Groovy dependency
+          GROOVY_PATTERN="implementation 'sh.measure:measure-android:.*'"
+          GROOVY_REPLACEMENT="implementation 'sh.measure:measure-android:${{ inputs.version }}'"
+          sed -i "s/$GROOVY_PATTERN/$GROOVY_REPLACEMENT/" sdk-integration-guide.md
+          
+          # Update Kotlin dependency
+          KOTLIN_PATTERN='implementation("sh.measure:measure-android:.*")'
+          KOTLIN_REPLACEMENT='implementation("sh.measure:measure-android:${{ inputs.version }}")'
+          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" sdk-integration-guide.md
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.SDK_RELEASE }}
+          commit-message: "chore(android): prepare sdk release ${{ inputs.version }}"
+          branch: android-v${{ inputs.version }}
+          delete-branch: false
+          title: "chore(android): prepare sdk release ${{ inputs.version }}"
+          body: |
+            This PR prepares the Android SDK for release version ${{ inputs.version }}.
+
+            Changes:
+            - Updated version to ${{ inputs.version }} in gradle.properties
+            - Updated version to ${{ inputs.version }} in libs.versions.toml
+            - Generated changelog for version ${{ inputs.version }}
+            - Updated version in README.md
+          base: main
+          labels: android
+          assignees: abhaysood

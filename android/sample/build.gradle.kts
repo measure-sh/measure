@@ -5,7 +5,14 @@ plugins {
 }
 
 measure {
+    httpHeaders = mapOf(
+        "header-key" to "header-value"
+    )
     variantFilter {
+        httpHeaders = when {
+            name.contains("debug") -> mapOf("key" to "debug-value")
+            else -> mapOf("key" to "prod-value")
+        }
         if (name.contains("debug")) {
             enabled = false
         }

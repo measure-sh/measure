@@ -9,6 +9,7 @@ import android.os.PowerManager
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.SystemServiceProvider
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface PowerStateProvider {
     fun register()
@@ -22,6 +23,7 @@ internal class PowerStateProviderImpl(
     private val context: Context,
     private val systemServiceProvider: SystemServiceProvider,
 ) : PowerStateProvider {
+    private val isRegistered = AtomicBoolean(false)
     override var lowPowerModeEnabled: Boolean? = null
         private set
 
@@ -44,22 +46,27 @@ internal class PowerStateProviderImpl(
     }
 
     override fun register() {
+        if (isRegistered.get()) {
+            return
+        }
+        isRegistered.set(true)
         try {
             updatePowerState()
             val filter = IntentFilter(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
             context.registerReceiver(powerSaveReceiver, filter)
             thermalStateManager.register(systemServiceProvider.powerManager)
         } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Failed to register power state receiver", e)
+            logger.log(LogLevel.Debug, "Failed to register power state receiver", e)
         }
     }
 
     override fun unregister() {
+        isRegistered.set(false)
         try {
             context.unregisterReceiver(powerSaveReceiver)
             thermalStateManager.unregister(systemServiceProvider.powerManager)
         } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Failed to unregister power state receiver", e)
+            logger.log(LogLevel.Debug, "Failed to unregister power state receiver", e)
         }
     }
 
@@ -68,7 +75,7 @@ internal class PowerStateProviderImpl(
             val powerManager = systemServiceProvider.powerManager
             lowPowerModeEnabled = powerManager?.isPowerSaveMode
         } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Failed to update power state", e)
+            logger.log(LogLevel.Debug, "Failed to update power state", e)
             lowPowerModeEnabled = null
         }
     }

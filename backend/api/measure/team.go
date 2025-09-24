@@ -2,6 +2,7 @@ package measure
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -9,7 +10,10 @@ import (
 	"time"
 
 	"backend/api/chrono"
+	"backend/api/email"
 	"backend/api/server"
+
+	"github.com/wneessen/go-mail"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -31,6 +35,18 @@ type Invitee struct {
 	Role  rank      `json:"role"`
 }
 
+type Invite struct {
+	ID              uuid.UUID `json:"id"`
+	InvitedByUserId uuid.UUID `json:"invited_by_user_id"`
+	InvitedByEmail  string    `json:"invited_by_email"`
+	InvitedToTeamId uuid.UUID `json:"invited_to_team_id"`
+	InvitedAsRole   rank      `json:"role"`
+	Email           string    `json:"email"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	ValidUntil      time.Time `json:"valid_until"`
+}
+
 type MemberAuthz struct {
 	CanChangeRoles []rank `json:"can_change_roles"`
 	CanRemove      bool   `json:"can_remove"`
@@ -50,14 +66,16 @@ type MemberWithAuthz struct {
 	MemberAuthz `json:"authz"`
 }
 
-func (t *Team) getApps() ([]App, error) {
+const teamInviteValidity = 48 * time.Hour
+
+func (t *Team) getApps(ctx context.Context) ([]App, error) {
 	var apps []App
 	stmt := sqlf.PostgreSQL.
 		Select(`apps.id`, nil).
 		Select(`apps.app_name`, nil).
 		Select(`apps.team_id`, nil).
 		Select(`apps.unique_identifier`, nil).
-		Select(`apps.platform`, nil).
+		Select(`apps.os_name`, nil).
 		Select(`apps.first_version`, nil).
 		Select(`apps.onboarded`, nil).
 		Select(`apps.onboarded_at`, nil).
@@ -68,13 +86,12 @@ func (t *Team) getApps() ([]App, error) {
 		Select(`api_keys.created_at`, nil).
 		Select(`apps.created_at`, nil).
 		Select(`apps.updated_at`, nil).
-		From(`public.apps`).
-		LeftJoin(`public.api_keys`, `api_keys.app_Id = apps.id`).
+		From(`apps`).
+		LeftJoin(`api_keys`, `api_keys.app_Id = apps.id`).
 		Where(`apps.team_id = ?`, nil).
 		OrderBy(`apps.app_name`)
 
 	defer stmt.Close()
-	ctx := context.Background()
 	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), &t.ID)
 	if err != nil {
 		return nil, err
@@ -84,7 +101,7 @@ func (t *Team) getApps() ([]App, error) {
 	for rows.Next() {
 		var a App
 		var uniqueId pgtype.Text
-		var platform pgtype.Text
+		var osName pgtype.Text
 		var firstVersion pgtype.Text
 		var onboardedAt pgtype.Timestamptz
 		var apiKeyLastSeen pgtype.Timestamptz
@@ -92,7 +109,7 @@ func (t *Team) getApps() ([]App, error) {
 
 		apiKey := new(APIKey)
 
-		if err := rows.Scan(&a.ID, &a.AppName, &a.TeamId, &uniqueId, &platform, &firstVersion, &a.Onboarded, &onboardedAt, &apiKey.keyPrefix, &apiKey.keyValue, &apiKey.checksum, &apiKeyLastSeen, &apiKeyCreatedAt, &a.CreatedAt, &a.UpdatedAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.AppName, &a.TeamId, &uniqueId, &osName, &firstVersion, &a.Onboarded, &onboardedAt, &apiKey.keyPrefix, &apiKey.keyValue, &apiKey.checksum, &apiKeyLastSeen, &apiKeyCreatedAt, &a.CreatedAt, &a.UpdatedAt); err != nil {
 			return nil, err
 		}
 
@@ -102,10 +119,10 @@ func (t *Team) getApps() ([]App, error) {
 			a.UniqueId = ""
 		}
 
-		if platform.Valid {
-			a.Platform = platform.String
+		if osName.Valid {
+			a.OSName = osName.String
 		} else {
-			a.Platform = ""
+			a.OSName = ""
 		}
 
 		if firstVersion.Valid {
@@ -136,17 +153,17 @@ func (t *Team) getApps() ([]App, error) {
 	return apps, nil
 }
 
-func (t *Team) getMembers() ([]*Member, error) {
-	ctx := context.Background()
-	stmt := sqlf.PostgreSQL.From("public.team_membership tm").
+func (t *Team) getMembers(ctx context.Context) ([]*Member, error) {
+	stmt := sqlf.PostgreSQL.From("team_membership tm").
 		Select("tm.user_id").
-		Select("public.users.name").
-		Select("public.users.email").
+		Select("users.name").
+		Select("users.email").
 		Select("tm.role").
-		Select("public.users.last_sign_in_at").
-		Select("public.users.created_at").
-		LeftJoin("public.users", "tm.user_id = public.users.id").
-		Where("tm.team_id = $1")
+		Select("users.last_sign_in_at").
+		Select("users.created_at").
+		LeftJoin("users", "tm.user_id = users.id").
+		Where("tm.team_id = $1").
+		OrderBy("tm.created_at")
 
 	defer stmt.Close()
 
@@ -169,15 +186,180 @@ func (t *Team) getMembers() ([]*Member, error) {
 	return members, nil
 }
 
-func (t *Team) rename() error {
+func (t *Team) getName(ctx context.Context) error {
+	stmt := sqlf.PostgreSQL.From("teams").
+		Select("name").
+		Where("id = ?", nil)
+
+	defer stmt.Close()
+
+	err := server.Server.PgPool.QueryRow(ctx, stmt.String(), t.ID).Scan(&t.Name)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *Team) rename(ctx context.Context) error {
 	stmt := sqlf.PostgreSQL.Update("teams").
 		Set("name", nil).
 		Set("updated_at", nil).
 		Where("id = ?", nil)
 	defer stmt.Close()
 
-	ctx := context.Background()
 	if _, err := server.Server.PgPool.Exec(ctx, stmt.String(), *t.Name, time.Now(), t.ID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// addInvites adds invites to invites table. It skips invitees if an
+// invite already exists for that email.
+func (t *Team) addInvites(ctx context.Context, userId string, invitees []Invitee) error {
+	now := time.Now()
+
+	// Query existing invites for the given team and emails
+	existingEmails := make(map[string]bool)
+	stmt := sqlf.PostgreSQL.From("invites").
+		Select("email").
+		Where("invited_to_team_id = ?", nil)
+	defer stmt.Close()
+
+	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), t.ID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return err
+		}
+		existingEmails[email] = true
+	}
+
+	// Filter out invitees who already have invites
+	stmt = sqlf.PostgreSQL.InsertInto("invites")
+	defer stmt.Close()
+	var args []any
+	for _, invitee := range invitees {
+		if existingEmails[invitee.Email] {
+			continue
+		}
+		stmt.NewRow().
+			Set("id", nil).
+			Set("invited_by_user_id", nil).
+			Set("invited_to_team_id", nil).
+			Set("invited_as_role", nil).
+			Set("email", nil).
+			Set("created_at", nil).
+			Set("updated_at", nil)
+		args = append(args, uuid.New(), userId, t.ID, invitee.Role.String(), invitee.Email, now, now)
+	}
+
+	if len(args) == 0 {
+		// No new invites to add
+		return errors.New("already invited")
+	}
+
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *Team) getValidInvites(ctx context.Context) ([]*Invite, error) {
+	stmt := sqlf.PostgreSQL.From("invites inv").
+		Select("inv.id").
+		Select("inv.invited_by_user_id").
+		Select("users.email").
+		Select("inv.invited_as_role").
+		Select("inv.email").
+		Select("inv.created_at").
+		Select("inv.updated_at").
+		LeftJoin("users", "invited_by_user_id = users.id").
+		Where("inv.invited_to_team_id = ?", nil).
+		Where("inv.updated_at > ?", nil)
+
+	defer stmt.Close()
+
+	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), t.ID, time.Now().Add(-teamInviteValidity))
+	if err != nil {
+		return nil, err
+	}
+
+	var invites []*Invite
+
+	for rows.Next() {
+		inv := new(Invite)
+		var roleStr string
+		if err := rows.Scan(&inv.ID, &inv.InvitedByUserId, &inv.InvitedByEmail, &roleStr, &inv.Email, &inv.CreatedAt, &inv.UpdatedAt); err != nil {
+			return nil, err
+		}
+		inv.InvitedAsRole = roleMap[roleStr]
+		inv.ValidUntil = inv.UpdatedAt.Add(teamInviteValidity)
+
+		invites = append(invites, inv)
+	}
+
+	return invites, nil
+}
+
+func (t *Team) getInviteById(ctx context.Context, inviteId string) (*Invite, error) {
+	stmt := sqlf.PostgreSQL.From("invites inv").
+		Select("inv.id").
+		Select("inv.invited_by_user_id").
+		Select("users.email").
+		Select("inv.invited_as_role").
+		Select("inv.email").
+		Select("inv.created_at").
+		Select("inv.updated_at").
+		LeftJoin("users", "invited_by_user_id = users.id").
+		Where("inv.invited_to_team_id = ?", nil).
+		Where("inv.id = ?", nil)
+
+	defer stmt.Close()
+
+	invite := new(Invite)
+	var roleStr string
+	err := server.Server.PgPool.QueryRow(ctx, stmt.String(), t.ID, inviteId).Scan(&invite.ID, &invite.InvitedByUserId, &invite.InvitedByEmail, &roleStr, &invite.Email, &invite.CreatedAt, &invite.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	invite.InvitedAsRole = roleMap[roleStr]
+	invite.ValidUntil = invite.UpdatedAt.Add(teamInviteValidity)
+
+	return invite, nil
+}
+
+// resendInvite updates invite updated_at in the invites table
+func (t *Team) resendInvite(ctx context.Context, inviteId uuid.UUID) error {
+	stmt := sqlf.PostgreSQL.Update("invites").
+		Set("updated_at", nil).
+		Where("id = ?", nil)
+	defer stmt.Close()
+
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), time.Now(), inviteId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// removeInvite removes invite from the invites table
+func (t *Team) removeInvite(ctx context.Context, inviteId uuid.UUID) error {
+	stmt := sqlf.PostgreSQL.DeleteFrom("invites").
+		Where("id = ?", nil)
+	defer stmt.Close()
+
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), inviteId)
+	if err != nil {
 		return err
 	}
 
@@ -186,7 +368,7 @@ func (t *Team) rename() error {
 
 // addMembers makes invitees member of the team according
 // to each invitee's role.
-func (t *Team) addMembers(invitees []Invitee) error {
+func (t *Team) addMembers(ctx context.Context, invitees []Invitee) error {
 	now := time.Now()
 	stmt := sqlf.PostgreSQL.InsertInto("team_membership")
 	defer stmt.Close()
@@ -201,7 +383,7 @@ func (t *Team) addMembers(invitees []Invitee) error {
 		args = append(args, t.ID, invitee.ID, invitee.Role, now, now)
 	}
 
-	_, err := server.Server.PgPool.Exec(context.Background(), stmt.String(), args...)
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), args...)
 	if err != nil {
 		return err
 	}
@@ -209,13 +391,11 @@ func (t *Team) addMembers(invitees []Invitee) error {
 	return nil
 }
 
-func (t *Team) removeMember(memberId *uuid.UUID) error {
+func (t *Team) removeMember(ctx context.Context, memberId *uuid.UUID) error {
 	stmt := sqlf.PostgreSQL.DeleteFrom("team_membership").
 		Where("team_id = ?", nil).
 		Where("user_id = ?", nil)
 	defer stmt.Close()
-
-	ctx := context.Background()
 
 	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), t.ID, memberId)
 
@@ -228,8 +408,8 @@ func (t *Team) removeMember(memberId *uuid.UUID) error {
 
 // areInviteesMember provides the index of the invitee if that invitee
 // is already a legitimate member of the team.
-func (t *Team) areInviteesMember(invitees []Invitee) (int, error) {
-	members, err := t.getMembers()
+func (t *Team) areInviteesMember(ctx context.Context, invitees []Invitee) (int, error) {
+	members, err := t.getMembers(ctx)
 	if err != nil {
 		return -1, err
 	}
@@ -245,7 +425,7 @@ func (t *Team) areInviteesMember(invitees []Invitee) (int, error) {
 	return -1, nil
 }
 
-func (t *Team) changeRole(memberId *uuid.UUID, role rank) error {
+func (t *Team) changeRole(ctx context.Context, memberId *uuid.UUID, role rank) error {
 	stmt := sqlf.PostgreSQL.Update("team_membership").
 		Set("role", nil).
 		Set("role_updated_at", nil).
@@ -253,8 +433,6 @@ func (t *Team) changeRole(memberId *uuid.UUID, role rank) error {
 	defer stmt.Close()
 
 	fmt.Println("stmt", stmt.String())
-
-	ctx := context.Background()
 
 	if _, err := server.Server.PgPool.Exec(ctx, stmt.String(), role, time.Now(), t.ID, memberId); err != nil {
 		return err
@@ -271,7 +449,7 @@ func (t *Team) create(ctx context.Context, u *User, tx *pgx.Tx) (err error) {
 	now := time.Now()
 
 	stmtTeam := sqlf.PostgreSQL.
-		InsertInto("public.teams").
+		InsertInto("teams").
 		Set("id", t.ID).
 		Set("name", t.Name).
 		Set("created_at", now).
@@ -285,7 +463,7 @@ func (t *Team) create(ctx context.Context, u *User, tx *pgx.Tx) (err error) {
 	}
 
 	stmtMembership := sqlf.PostgreSQL.
-		InsertInto("public.team_membership").
+		InsertInto("team_membership").
 		Set("team_id", t.ID).
 		Set("user_id", u.ID).
 		Set("role", roleMap["owner"]).
@@ -447,7 +625,7 @@ func GetTeamApps(c *gin.Context) {
 	var team = new(Team)
 	team.ID = &teamId
 
-	apps, err := team.getApps()
+	apps, err := team.getApps(c.Request.Context())
 	if err != nil {
 		msg := fmt.Sprintf("error occurred while querying apps list for team: %s", teamId)
 		fmt.Println(msg, err)
@@ -520,6 +698,82 @@ func GetTeamApp(c *gin.Context) {
 	c.JSON(http.StatusOK, &a)
 }
 
+// GetValidInvitesForEmail retrieves valid invites for a given email address
+func GetValidInvitesForEmail(ctx context.Context, email string) ([]Invite, error) {
+	stmt := sqlf.PostgreSQL.From("invites").
+		Select("id").
+		Select("invited_by_user_id").
+		Select("invited_to_team_id").
+		Select("invited_as_role").
+		Select("email").
+		Where("email = ?", nil).
+		Where("updated_at > ?", nil)
+
+	defer stmt.Close()
+
+	rows, _ := server.Server.PgPool.Query(ctx, stmt.String(), email, time.Now().Add(-teamInviteValidity))
+	invites, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (Invite, error) {
+		var invite Invite
+		var roleStr string
+		err := row.Scan(&invite.ID, &invite.InvitedByUserId, &invite.InvitedToTeamId, &roleStr, &invite.Email)
+
+		if err == nil {
+			invite.InvitedAsRole = roleMap[roleStr]
+		}
+		return invite, err
+	})
+
+	return invites, err
+}
+
+func formatTeamEmailBody(title, message, url, cta string) string {
+	return fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <title>%s</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Space Mono', monospace; line-height: 1.6; color: #333; background-color: #f8f9fa;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
+        <!-- Header -->
+        <div style="background-color: #000000; color: #ffffff; padding: 20px; display: flex; align-items: center; gap: 16px;">
+            <img src="https://www.measure.sh/images/measure_logo.png" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
+            <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; margin-top: 3px;">%s</h1>
+        </div>
+
+        <!-- Content -->
+        <div style="padding: 40px 30px;">
+
+            <!-- Message -->
+            <div style="margin-bottom: 32px; font-size: 16px; line-height: 1.6; color: #4a5568;">
+                %s
+            </div>
+
+            <!-- CTA Button -->
+            <div style="text-align: center; margin: 32px 0;">
+                <a href="%s" style="display: inline-block; background-color: #000000; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; font-size: 16px; transition: background-color 0.2s ease; font-family: 'Josefin Sans', sans-serif;">
+                    %s
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="background-color: #f8f9fa; padding: 20px 30px; border-top: 1px solid #e2e8f0; text-align: center;">
+            <p style="margin: 0; font-size: 14px; color: #718096;">
+                This notification was sent from <a href="https://measure.sh" style="text-decoration: none; color: inherit; cursor: pointer;"><strong>measure.sh</strong></a>
+            </p>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: #a0aec0;">
+                open source tool to monitor mobile apps
+            </p>
+        </div>
+    </div>
+</body>
+</html>`, title, title, message, url, cta)
+}
+
 func InviteMembers(c *gin.Context) {
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
@@ -583,9 +837,11 @@ func InviteMembers(c *gin.Context) {
 		})
 		return
 	}
+
 	user := &User{
 		ID: &userId,
 	}
+
 	userRole, err := user.getRole(teamId.String())
 	if err != nil {
 		msg := `couldn't perform authorization checks`
@@ -623,9 +879,9 @@ func InviteMembers(c *gin.Context) {
 		ID: &teamId,
 	}
 
-	idx, err := team.areInviteesMember(invitees)
+	idx, err := team.areInviteesMember(c.Request.Context(), invitees)
 	if err != nil {
-		msg := `failed to invite`
+		msg := `failed to check if invitees are already members of the team`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -642,10 +898,9 @@ func InviteMembers(c *gin.Context) {
 		return
 	}
 
-	// ignoring new invitees for now
-	existingUsers, _, err := GetUsersByInvitees(invitees)
+	existingInvitees, newInvitees, err := GetExistingAndNewInvitees(invitees)
 	if err != nil {
-		msg := `failed to invite`
+		msg := `failed to fetch existing and new invitees`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -653,21 +908,192 @@ func InviteMembers(c *gin.Context) {
 		return
 	}
 
-	if len(existingUsers) < 1 {
-		inviteeEmails := []string{}
-		for i := range invitees {
-			inviteeEmails = append(inviteeEmails, invitees[i].Email)
+	err = team.getName(c.Request.Context())
+	if err != nil {
+		msg := `failed to fetch team name. Unable to send invites for new users`
+		fmt.Println(msg, err)
+	}
+
+	err = user.getEmail(c.Request.Context())
+	if err != nil {
+		msg := `failed to fetch user email. Unable to send invites for new users`
+		fmt.Println(msg, err)
+	}
+
+	// Handle existing invitees
+	if len(existingInvitees) > 0 {
+		if err := team.addMembers(c.Request.Context(), existingInvitees); err != nil {
+			msg := `failed to add existing invitees to team`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
 		}
-		emails := strings.Join(inviteeEmails, ", ")
-		msg := fmt.Sprintf("no matching users found for %s", emails)
-		c.JSON(http.StatusNotFound, gin.H{
+
+		// Send emails to exisiting invitees
+		for _, invitee := range existingInvitees {
+			title := "Added to Measure team"
+			msg := fmt.Sprintf("You have been added to team <b>%s</b> as <b>%s</b> by <b>%s</b>", *team.Name, invitee.Role, *user.Email)
+			url := server.Server.Config.SiteOrigin + "/" + teamId.String() + "/overview"
+			body := formatTeamEmailBody(title, msg, url, "Go to Dashboard")
+
+			emailInfo := &email.EmailInfo{
+				From:        server.Server.Config.TxEmailAddress,
+				To:          invitee.Email,
+				Subject:     title,
+				ContentType: mail.TypeTextHTML,
+				Body:        body,
+			}
+
+			email.SendEmail(*emailInfo)
+		}
+	}
+
+	// Handle new invitees
+	if len(newInvitees) > 0 {
+		if err := team.addInvites(c.Request.Context(), userId, newInvitees); err != nil {
+			msg := `failed to create invites for new users: `
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg + ": " + err.Error(),
+			})
+			return
+		}
+
+		// Send emails to new invitees
+		for _, invitee := range newInvitees {
+			title := "Invitation to join Measure"
+			msg := fmt.Sprintf("You have been invited by <b>%s</b> as <b>%s</b> in team <b>%s</b>!", *user.Email, invitee.Role, *team.Name)
+			url := server.Server.Config.SiteOrigin + "/auth/login"
+			body := formatTeamEmailBody(title, msg, url, "Join Team")
+			emailInfo := &email.EmailInfo{
+				From:        server.Server.Config.TxEmailAddress,
+				To:          invitee.Email,
+				Subject:     title,
+				ContentType: mail.TypeTextHTML,
+				Body:        body,
+			}
+
+			email.SendEmail(*emailInfo)
+		}
+	}
+
+	existingInvitedEmails := []string{}
+	newInvitedEmails := []string{}
+	for i := range existingInvitees {
+		existingInvitedEmails = append(existingInvitedEmails, existingInvitees[i].Email)
+	}
+	for i := range newInvitees {
+		newInvitedEmails = append(newInvitedEmails, newInvitees[i].Email)
+	}
+	existingEmails := strings.Join(existingInvitedEmails, ", ")
+	newEmails := strings.Join(newInvitedEmails, ", ")
+
+	if len(existingInvitees) > 0 && len(newInvitees) > 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"ok": fmt.Sprintf("Added %s and invited %s", existingEmails, newEmails),
+		})
+	} else if len(existingInvitees) > 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"ok": fmt.Sprintf("Added %s", existingEmails),
+		})
+	} else if len(newInvitees) > 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"ok": fmt.Sprintf("Invited %s", newEmails),
+		})
+	} else {
+		c.JSON(http.StatusOK, gin.H{
+			"ok": "No users were added or invited",
+		})
+	}
+}
+
+func GetValidTeamInvites(c *gin.Context) {
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	user := &User{
+		ID: &userId,
+	}
+
+	userRole, err := user.getRole(teamId.String())
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if userRole == unknown {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, teamId.String(), *ScopeTeamRead)
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have read permissions to team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	team := &Team{
+		ID: &teamId,
+	}
+
+	invites, err := team.getValidInvites(c.Request.Context())
+	if err != nil {
+		msg := "failed to query invites"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, invites)
+}
+
+func ResendInvite(c *gin.Context) {
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+	inviteId, err := uuid.Parse(c.Param("inviteId"))
+	if err != nil {
+		msg := `invite id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
 			"error": msg,
 		})
 		return
 	}
 
-	if err := team.addMembers(existingUsers); err != nil {
-		msg := `failed to invite existing users`
+	user := &User{
+		ID: &userId,
+	}
+
+	userRole, err := user.getRole(teamId.String())
+	if err != nil {
+		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -675,14 +1101,223 @@ func InviteMembers(c *gin.Context) {
 		return
 	}
 
-	invitedEmails := []string{}
-	for i := range existingUsers {
-		invitedEmails = append(invitedEmails, existingUsers[i].Email)
+	if userRole == unknown {
+		msg := `couldn't find team, perhaps team id is invalid`
+		fmt.Println(msg)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
 	}
-	emails := strings.Join(invitedEmails, ", ")
+
+	ok, err := PerformAuthz(userId, teamId.String(), *ScopeTeamInviteSameOrLower)
+	if err != nil {
+		// FIXME: improve error handling, this is quite brittle way of
+		// doing errors. not ideal.
+		if err.Error() == "received 'unknown' role" {
+			msg := `couldn't find team, perhaps team id is invalid`
+			fmt.Println(msg)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": msg,
+			})
+			return
+		}
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to resend invites in team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	team := Team{
+		ID: &teamId,
+	}
+
+	// check if user role can resend invite
+	invite, err := team.getInviteById(c.Request.Context(), inviteId.String())
+	if err != nil {
+		msg := "couldn't perform authorization checks: couldn't fetch invite"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if invite.InvitedAsRole == unknown {
+		msg := "couldn't perform authorization checks: 'invited as role' unknown"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if userRole < invite.InvitedAsRole {
+		msg := fmt.Sprintf("you don't have permissions to resend invite [%s] in team [%s]", inviteId, teamId)
+		fmt.Println(msg)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	err = team.resendInvite(c.Request.Context(), inviteId)
+	if err != nil {
+		msg := "failed to resend invite"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	err = team.getName(c.Request.Context())
+	if err != nil {
+		msg := `failed to fetch team name. Unable to send invites for new users`
+		fmt.Println(msg, err)
+	}
+
+	err = user.getEmail(c.Request.Context())
+	if err != nil {
+		msg := `failed to fetch user email. Unable to send invites for new users`
+		fmt.Println(msg, err)
+	}
+
+	title := "Invitation to join Measure"
+	msg := fmt.Sprintf("You have been invited by <b>%s</b> as <b>%s</b> in team <b>%s</b>!", *user.Email, invite.InvitedAsRole, *team.Name)
+	url := server.Server.Config.SiteOrigin + "/auth/login"
+	body := formatTeamEmailBody(title, msg, url, "Join Team")
+
+	emailInfo := &email.EmailInfo{
+		From:        server.Server.Config.TxEmailAddress,
+		To:          invite.Email,
+		Subject:     title,
+		ContentType: mail.TypeTextHTML,
+		Body:        body,
+	}
+
+	email.SendEmail(*emailInfo)
 
 	c.JSON(http.StatusOK, gin.H{
-		"ok": fmt.Sprintf("invited %s", emails),
+		"ok": fmt.Sprintf("Resent invite %s", inviteId),
+	})
+}
+
+func RemoveInvite(c *gin.Context) {
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+	inviteId, err := uuid.Parse(c.Param("inviteId"))
+	if err != nil {
+		msg := `invite id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	user := &User{
+		ID: &userId,
+	}
+
+	userRole, err := user.getRole(teamId.String())
+	if err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if userRole == unknown {
+		msg := `couldn't find team, perhaps team id is invalid`
+		fmt.Println(msg)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	ok, err := PerformAuthz(userId, teamId.String(), *ScopeTeamInviteSameOrLower)
+	if err != nil {
+		// FIXME: improve error handling, this is quite brittle way of
+		// doing errors. not ideal.
+		if err.Error() == "received 'unknown' role" {
+			msg := `couldn't find team, perhaps team id is invalid`
+			fmt.Println(msg)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": msg,
+			})
+			return
+		}
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+	if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to revoke invites in team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	team := Team{
+		ID: &teamId,
+	}
+
+	ctx := c.Request.Context()
+
+	// check if user role can remove invite
+	invite, err := team.getInviteById(ctx, inviteId.String())
+	if err != nil {
+		msg := "couldn't perform authorization checks: couldn't fetch invite"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if invite.InvitedAsRole == unknown {
+		msg := "couldn't perform authorization checks: 'invited as role' unknown"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if userRole < invite.InvitedAsRole {
+		msg := fmt.Sprintf("you don't have permissions to remove invite [%s] in team [%s]", inviteId, teamId)
+		fmt.Println(msg)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	err = team.removeInvite(ctx, inviteId)
+	if err != nil {
+		msg := "failed to remove invite"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok": fmt.Sprintf("Removed invite %s", inviteId),
 	})
 }
 
@@ -732,7 +1367,7 @@ func RenameTeam(c *gin.Context) {
 		return
 	}
 
-	if err := team.rename(); err != nil {
+	if err := team.rename(c.Request.Context()); err != nil {
 		msg := "failed to rename team"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -743,6 +1378,7 @@ func RenameTeam(c *gin.Context) {
 }
 
 func GetAuthzRoles(c *gin.Context) {
+	ctx := c.Request.Context()
 	userId := c.GetString("userId")
 	teamId, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -788,11 +1424,15 @@ func GetAuthzRoles(c *gin.Context) {
 		ID: &teamId,
 	}
 
-	members, err := team.getMembers()
+	members, err := team.getMembers(ctx)
 	if err != nil {
 		msg := `failed to retrieve team members`
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
 		return
 	}
 
@@ -815,7 +1455,10 @@ func GetAuthzRoles(c *gin.Context) {
 
 	inviteeRoles := ScopeTeamInviteSameOrLower.getRolesSameOrLower(userRole)
 
-	c.JSON(http.StatusOK, gin.H{"can_invite": inviteeRoles, "members": membersWithAuthz})
+	c.JSON(http.StatusOK, gin.H{
+		"can_invite": inviteeRoles,
+		"members":    membersWithAuthz,
+	})
 }
 
 func GetTeamMembers(c *gin.Context) {
@@ -864,7 +1507,7 @@ func GetTeamMembers(c *gin.Context) {
 		ID: &teamId,
 	}
 
-	members, err := team.getMembers()
+	members, err := team.getMembers(c.Request.Context())
 	if err != nil {
 		msg := "failed to query team members"
 		fmt.Println(msg, err)
@@ -892,6 +1535,7 @@ func RemoveTeamMember(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
+	memberIdStr := memberId.String()
 
 	user := &User{
 		ID: &userId,
@@ -929,12 +1573,89 @@ func RemoveTeamMember(c *gin.Context) {
 		ID: &teamId,
 	}
 
-	if err = team.removeMember(&memberId); err != nil {
+	memberUser := &User{
+		ID: &memberIdStr,
+	}
+
+	// check if user role can remove member
+	memberRole, err := memberUser.getRole(teamId.String())
+	if err != nil {
+		msg := "couldn't perform authorization checks: couldn't fetch member role"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if memberRole == unknown {
+		msg := "couldn't perform authorization checks: member role unknown"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if userRole < memberRole {
+		msg := fmt.Sprintf("you don't have permissions to remove member [%s] from team [%s]", memberId, teamId)
+		fmt.Println(msg)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	// check if member is being removed from their default team
+	memberOwnTeam, err := memberUser.getOwnTeam(c.Request.Context())
+	if err != nil {
+		msg := "couldn't perform authorization checks: failed to lookup member's default team"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if memberOwnTeam.ID != nil && *memberOwnTeam.ID == teamId {
+		msg := fmt.Sprintf("member [%s] cannot be removed from their default team [%s]", memberId, teamId)
+		fmt.Println(msg)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	if err = team.removeMember(c.Request.Context(), &memberId); err != nil {
 		msg := fmt.Sprintf("couldn't remove member [%s]", memberId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
+
+	err = team.getName(c.Request.Context())
+	if err != nil {
+		msg := `failed to fetch team name. Unable to send email for removed member`
+		fmt.Println(msg, err)
+	}
+
+	err = user.getEmail(c.Request.Context())
+	if err != nil {
+		msg := `failed to fetch user email. Unable to send email for removed member`
+		fmt.Println(msg, err)
+	}
+
+	err = memberUser.getEmail(c.Request.Context())
+	if err != nil {
+		msg := `failed to fetch member email. Unable to send email for removed member`
+		fmt.Println(msg, err)
+	}
+
+	title := "Removed from Measure team"
+	message := fmt.Sprintf("You have been removed from team <b>%s</b> by <b>%s</b>", *team.Name, *user.Email)
+	url := server.Server.Config.SiteOrigin + "/" + memberOwnTeam.ID.String() + "/overview"
+	cta := "Go to Dashboard"
+	body := formatTeamEmailBody(title, message, url, cta)
+
+	emailInfo := &email.EmailInfo{
+		From:        server.Server.Config.TxEmailAddress,
+		To:          *memberUser.Email,
+		Subject:     title,
+		ContentType: mail.TypeTextHTML,
+		Body:        body,
+	}
+
+	email.SendEmail(*emailInfo)
 
 	c.JSON(http.StatusOK, gin.H{"ok": fmt.Sprintf("removed member [%s] from team [%s]", memberId, teamId)})
 }
@@ -956,6 +1677,7 @@ func ChangeMemberRole(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
+	memberIdStr := memberId.String()
 
 	user := &User{
 		ID: &userId,
@@ -1010,12 +1732,88 @@ func ChangeMemberRole(c *gin.Context) {
 		ID: &teamId,
 	}
 
-	if err := team.changeRole(&memberId, roleMap[*member.Role]); err != nil {
+	memberUser := &User{
+		ID: &memberIdStr,
+	}
+
+	// check if user role can change member role
+	memberRole, err := memberUser.getRole(teamId.String())
+	if err != nil {
+		msg := "couldn't perform authorization checks: couldn't fetch member role"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if memberRole == unknown {
+		msg := "couldn't perform authorization checks: member role unknown"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if userRole < memberRole {
+		msg := fmt.Sprintf("you don't have permissions to change role of member [%s] in team [%s]", memberId, teamId)
+		fmt.Println(msg)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	// check if member role is being changed in default team
+	memberOwnTeam, err := memberUser.getOwnTeam(c)
+	if err != nil {
+		msg := "couldn't perform authorization checks: failed to lookup member's default team"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if memberOwnTeam.ID != nil && *memberOwnTeam.ID == teamId {
+		msg := fmt.Sprintf("cannot change role of member [%s] in their default team [%s]", memberId, teamId)
+		fmt.Println(msg)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	if err := team.changeRole(c.Request.Context(), &memberId, roleMap[*member.Role]); err != nil {
 		msg := `failed to change role`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
+
+	err = team.getName(c.Request.Context())
+	if err != nil {
+		msg := `failed to fetch team name. Unable to send email for role changed member`
+		fmt.Println(msg, err)
+	}
+
+	err = user.getEmail(c.Request.Context())
+	if err != nil {
+		msg := `failed to fetch user email. Unable to send email for role changed member`
+		fmt.Println(msg, err)
+	}
+
+	err = memberUser.getEmail(c.Request.Context())
+	if err != nil {
+		msg := `failed to fetch member email. Unable to send email for role changed member`
+		fmt.Println(msg, err)
+	}
+
+	title := "Role changed in Measure team"
+	message := fmt.Sprintf("Your role has been changed to <b>%s</b> by <b>%s</b> in team <b>%s</b>", *member.Role, *user.Email, *team.Name)
+	url := server.Server.Config.SiteOrigin + "/" + team.ID.String() + "/overview"
+	cta := "Go to Dashboard"
+	body := formatTeamEmailBody(title, message, url, cta)
+	emailInfo := &email.EmailInfo{
+		From:        server.Server.Config.TxEmailAddress,
+		To:          *memberUser.Email,
+		Subject:     title,
+		ContentType: mail.TypeTextHTML,
+		Body:        body,
+	}
+
+	email.SendEmail(*emailInfo)
 
 	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }

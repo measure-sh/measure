@@ -15,6 +15,7 @@ protocol SystemCrashReporter {
     func enable() throws
     func clearCrashData()
     func loadCrashReport() throws -> Data
+    func generateLiveReport() -> Data
 }
 
 final class BaseSystemCrashReporter: SystemCrashReporter {
@@ -55,5 +56,9 @@ final class BaseSystemCrashReporter: SystemCrashReporter {
 
     func loadCrashReport() throws -> Data {
         return try crashReporter.loadPendingCrashReportDataAndReturnError()
+    }
+
+    func generateLiveReport() -> Data {
+        return crashReporter.generateLiveReport()
     }
 }

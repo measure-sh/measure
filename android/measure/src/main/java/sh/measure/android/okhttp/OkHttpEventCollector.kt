@@ -2,11 +2,11 @@ package sh.measure.android.okhttp
 
 import okhttp3.Call
 import okhttp3.EventListener
-import okhttp3.Headers
 import okhttp3.Request
 import okhttp3.Response
 import okio.Buffer
 import okio.ByteString
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.logger.LogLevel
@@ -24,6 +24,7 @@ internal class OkHttpEventCollectorImpl(
     private val logger: Logger,
     private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
+    private val configProvider: ConfigProvider,
 ) : OkHttpEventCollector() {
     private val enabled = AtomicBoolean(false)
     private val httpDataBuilders: MutableMap<String, HttpData.Builder> by lazy(
@@ -43,15 +44,27 @@ internal class OkHttpEventCollectorImpl(
         val key = getIdentityHash(call)
         val request = call.request()
         val url = request.url.toString()
-        httpDataBuilders[key] =
-            HttpData.Builder().url(url).startTime(timeProvider.elapsedRealtime)
-                .method(request.method.lowercase()).startTime(timeProvider.elapsedRealtime)
-                .client(HttpClientName.OK_HTTP)
+        if (configProvider.shouldTrackHttpUrl(url)) {
+            httpDataBuilders[key] =
+                HttpData.Builder().url(url).startTime(timeProvider.elapsedRealtime)
+                    .method(request.method.lowercase())
+                    .client(HttpClientName.OK_HTTP)
+        }
     }
 
     override fun requestHeadersEnd(call: Call, request: Request) {
         val key = getIdentityHash(call)
-        httpDataBuilders[key]?.requestHeaders(headersToMap(request.headers))
+        if (configProvider.trackHttpHeaders) {
+            val filteredHeaders = request.headers.names()
+                .filter { headerName ->
+                    configProvider.shouldTrackHttpHeader(headerName)
+                }
+                .associateWith { headerName ->
+                    request.headers.values(headerName).joinToString()
+                }
+
+            httpDataBuilders[key]?.requestHeaders(filteredHeaders)
+        }
     }
 
     override fun requestFailed(call: Call, ioe: IOException) {
@@ -63,8 +76,19 @@ internal class OkHttpEventCollectorImpl(
 
     override fun responseHeadersEnd(call: Call, response: Response) {
         val key = getIdentityHash(call)
-        httpDataBuilders[key]?.responseHeaders(headersToMap(response.headers))
-            ?.statusCode(response.code)
+        if (configProvider.trackHttpHeaders) {
+            val filteredHeaders = response.headers.names()
+                .filter { headerName ->
+                    configProvider.shouldTrackHttpHeader(headerName)
+                }
+                .associateWith { headerName ->
+                    response.headers.values(headerName).joinToString()
+                }
+
+            httpDataBuilders[key]?.responseHeaders(filteredHeaders)
+        }
+
+        httpDataBuilders[key]?.statusCode(response.code)
     }
 
     override fun responseFailed(call: Call, ioe: IOException) {
@@ -91,18 +115,30 @@ internal class OkHttpEventCollectorImpl(
     }
 
     override fun request(call: Call, request: Request) {
-        val key = getIdentityHash(call)
-        val builder = httpDataBuilders[key]
-        val requestBody = getRequestBodyByteArray(request)
-        val decodedBody = requestBody?.decodeToString(0, requestBody.size, false)
-        builder?.requestBody(decodedBody)
+        if (configProvider.shouldTrackHttpBody(
+                request.url.toString(),
+                request.headers["Content-Type"],
+            )
+        ) {
+            val key = getIdentityHash(call)
+            val builder = httpDataBuilders[key]
+            val requestBody = getRequestBodyByteArray(request)
+            val decodedBody = requestBody?.decodeToString(0, requestBody.size, false)
+            builder?.requestBody(decodedBody)
+        }
     }
 
     override fun response(call: Call, request: Request, response: Response) {
-        val key = getIdentityHash(call)
-        val builder = httpDataBuilders[key]
-        val responseBody = getResponseBodyByteString(response)
-        builder?.responseBody(responseBody?.utf8())
+        if (configProvider.shouldTrackHttpBody(
+                request.url.toString(),
+                response.headers["Content-Type"],
+            )
+        ) {
+            val key = getIdentityHash(call)
+            val builder = httpDataBuilders[key]
+            val responseBody = getResponseBodyByteString(response)
+            builder?.responseBody(responseBody?.utf8())
+        }
     }
 
     private fun trackEvent(call: Call, builder: HttpData.Builder?) {
@@ -128,10 +164,15 @@ internal class OkHttpEventCollectorImpl(
      */
     private fun getResponseBodyByteString(response: Response): ByteString? {
         response.body?.let { responseBody ->
-            val source = responseBody.source()
-            source.request(Int.MAX_VALUE.toLong())
-            return source.buffer.use {
-                it.snapshot()
+            try {
+                val source = responseBody.source()
+                val maxBufferSize = 1024 * 1024L // 1MB limit
+                source.request(minOf(maxBufferSize, responseBody.contentLength()))
+                return source.buffer.use {
+                    it.snapshot()
+                }
+            } catch (e: IOException) {
+                logger.log(LogLevel.Debug, "Failed to read response body", e)
             }
         }
         return null
@@ -149,13 +190,10 @@ internal class OkHttpEventCollectorImpl(
                 return readByteArray
             }
         } catch (e: IOException) {
-            logger.log(LogLevel.Error, "Error reading request body", e)
+            logger.log(LogLevel.Debug, "Failed to read request body", e)
         }
         return null
     }
-
-    private fun headersToMap(headers: Headers) = headers.toMultimap()
-        .mapValues { it.value.joinToString() }
 
     private fun getIdentityHash(call: Call): String {
         return Integer.toHexString(System.identityHashCode(call))

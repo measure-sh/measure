@@ -9,10 +9,10 @@ import Foundation
 
 struct ExceptionDetail: Codable {
     /// The type of the exception.
-    let type: String
+    let type: String?
 
     /// The error message text associated with the exception.
-    let message: String
+    let message: String?
 
     /// An optional array of `StackFrame` objects representing the stack frames at the time of the exception.
     let frames: [StackFrame]?
@@ -21,13 +21,13 @@ struct ExceptionDetail: Codable {
     let signal: String?
 
     /// The name of the thread.
-    let threadName: String
+    let threadName: String?
 
     /// The sequence number of the thread
     let threadSequence: Number
 
     /// The OS System Build unique for the device
-    let osBuildNumber: String
+    let osBuildNumber: String?
 
     enum CodingKeys: String, CodingKey {
         case type

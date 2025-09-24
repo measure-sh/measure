@@ -1,9 +1,11 @@
 'use client'
 
-import { ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { ReactNode } from 'react'
+import { cn } from '../utils/shadcn_utils'
 import { formatDateToHumanReadableDateTime, formatMillisToHumanReadable } from '../utils/time_utils'
+import { buttonVariants } from './button'
 
 type SessionTimelineEventDetailsProps = {
   teamId: string
@@ -23,13 +25,14 @@ export default function SessionTimelineEventDetails({
     // Remove user defined attrs. In case of http event, remove start_time and end_time as well since they represent uptime in ms and not timestamps.
     const entries = Object.entries(eventDetails).filter(([key]) => key !== "user_defined_attribute" && !(eventType === "http" && (key === "start_time" || key === "end_time")))
     const userDefinedAttributes = Object.entries(eventDetails).find(([key]) => key === "user_defined_attribute")?.[1]
+    const errorException = Object.entries(eventDetails).filter(([key]) => key === "error")?.[0]?.[1] as Record<string, unknown>
     const keyStyle = "text-gray-400 w-1/3"
     const valueStyle = "w-2/3 pl-2"
 
     return (
       <div className="flex flex-col p-4 text-white w-full gap-1 text-sm">
         {entries.map(([key, value]) => {
-          if (key === "stacktrace" && typeof value === "string") {
+          if (key === "stacktrace" && typeof value === "string" && value !== "") {
             return (
               <div className="flex flex-col" key={key}>
                 <p className={keyStyle}>{key}:</p>
@@ -76,6 +79,23 @@ export default function SessionTimelineEventDetails({
             ))}
           </div>
         )}
+
+        {errorException !== undefined && errorException !== null && (errorException.numcode !== 0 || errorException.code !== "" || errorException.meta !== null) && (
+          <div key="error">
+            {Object.entries(errorException).map(([errKey, errVal]) => {
+              return (
+                <div key={`error_${errKey}`} className="flex flex-row py-1">
+                  <p className={keyStyle}>{errKey}</p>
+                  {
+                    typeof errVal === "object" ?
+                      <pre className={valueStyle}><code className="text-pretty">{JSON.stringify(errVal, null, 2)}</code></pre>
+                      : <p className={valueStyle}>{errVal?.toString()}</p>
+                  }
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     )
   }
@@ -104,24 +124,25 @@ export default function SessionTimelineEventDetails({
   }
 
   function getDetailsLinkFromEventDetails(): ReactNode {
-    if ((eventType === "exception" && eventDetails.user_triggered === false) || eventType === "anr") {
+    const linkStyle = cn(buttonVariants({ variant: "outline" }), "justify-center w-fit font-display bg-neutral-800 border border-white hover:border-black rounded-md text-white hover:text-black rounded-md select-none")
+    if ((eventType === "exception" && eventDetails.user_triggered === false && eventDetails.handled === false) || eventType === "anr") {
       return (
         <div className='px-4 pt-4'>
-          <Link key={eventDetails.id} href={`/${teamId}/${eventType === "exception" ? 'crashes' : 'anrs'}/${appId}/${eventDetails.group_id}/${eventDetails.type + "@" + eventDetails.file_name}`} className="outline-hidden justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black rounded-md text-white hover:text-black font-display transition-colors duration-100 py-2 px-4">View {eventType === "exception" ? 'Crash' : 'ANR'} Details</Link>
+          <Link key={eventDetails.id} href={`/${teamId}/${eventType === "exception" ? 'crashes' : 'anrs'}/${appId}/${eventDetails.group_id}/${eventDetails.type + "@" + eventDetails.file_name}`} className={linkStyle}>View {eventType === "exception" ? 'Crash' : 'ANR'} Details</Link>
         </div>
       )
     }
     if (eventType === "trace") {
       return (
         <div className='px-4 pt-8 pb-4'>
-          <Link key={eventDetails.id} href={`/${teamId}/traces/${appId}/${eventDetails.trace_id}`} className="outline-hidden justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black rounded-md text-white hover:text-black font-display transition-colors duration-100 py-2 px-4">View Trace Details</Link>
+          <Link key={eventDetails.id} href={`/${teamId}/traces/${appId}/${eventDetails.trace_id}`} className={linkStyle}>View Trace Details</Link>
         </div>
       )
     }
     if (eventType === "bug_report") {
       return (
         <div className='px-4 pt-8 pb-4'>
-          <Link key={eventDetails.id} href={`/${teamId}/bug_reports/${appId}/${eventDetails.bug_report_id}`} className="outline-hidden justify-center w-fit hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-white hover:border-black rounded-md text-white hover:text-black font-display transition-colors duration-100 py-2 px-4">View Bug Report Details</Link>
+          <Link key={eventDetails.id} href={`/${teamId}/bug_reports/${appId}/${eventDetails.bug_report_id}`} className={linkStyle}>View Bug Report Details</Link>
         </div>
       )
     }

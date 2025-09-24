@@ -9,6 +9,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
+import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -18,11 +19,13 @@ class NetworkClientTest {
     private val fileStorage = mock<FileStorage>()
     private val httpClient = mock<HttpUrlConnectionClient>()
     private val multipartDataFactory = mock<MultipartDataFactory>()
+    private val configProvider = FakeConfigProvider()
     private val networkClient: NetworkClient = NetworkClientImpl(
         logger = NoopLogger(),
         fileStorage = fileStorage,
         httpClient = httpClient,
         multipartDataFactory = multipartDataFactory,
+        configProvider = configProvider,
     ).apply {
         init(apiKey = "secret", baseUrl = "http://localhost:8080")
     }
@@ -42,11 +45,12 @@ class NetworkClientTest {
             fileStorage = fileStorage,
             httpClient = httpClient,
             multipartDataFactory = multipartDataFactory,
+            configProvider = configProvider,
         )
 
         clientWithErrorLogger.init(baseUrl = "invalid-url", apiKey = "secret")
 
-        verify(errorLogger).log(eq(LogLevel.Error), eq("Invalid API_URL"), any())
+        verify(errorLogger).log(eq(LogLevel.Error), eq("Failed to send request: invalid API_URL"), any())
     }
 
     @Test
@@ -179,6 +183,7 @@ class NetworkClientTest {
             fileStorage = fileStorage,
             httpClient = httpClient,
             multipartDataFactory = multipartDataFactory,
+            configProvider = configProvider,
         )
 
         val result =

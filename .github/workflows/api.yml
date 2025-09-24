@@ -9,7 +9,7 @@ on:
       - backend/api/**/*.sum
   push:
     branches:
-      - 'main'
+      - "main"
     paths:
       - .github/workflows/api.yml
       - backend/api/dockerfile
@@ -17,7 +17,10 @@ on:
       - backend/api/**/*.mod
       - backend/api/**/*.sum
     tags:
-      - 'v*'
+      - "v*"
+
+permissions:
+  contents: read
 
 env:
   REGISTRY: ghcr.io
@@ -29,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ["1.22.x", "1.23.x"]
+        go-version: ["1.24.x", "1.25.x"]
     defaults:
       run:
         working-directory: backend/api
@@ -54,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ["1.22.x", "1.23.x"]
+        go-version: ["1.24.x", "1.25.x"]
     defaults:
       run:
         working-directory: backend/api

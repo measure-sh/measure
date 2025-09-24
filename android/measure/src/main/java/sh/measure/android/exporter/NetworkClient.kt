@@ -1,5 +1,6 @@
 package sh.measure.android.exporter
 
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.FileStorage
@@ -23,6 +24,7 @@ internal class NetworkClientImpl(
         logger,
         fileStorage,
     ),
+    private val configProvider: ConfigProvider,
 ) : NetworkClient {
     private var baseUrl: URL? = null
     private var eventsUrl: URL? = null
@@ -55,11 +57,8 @@ internal class NetworkClientImpl(
         val multipartData = prepareMultipartData(eventPackets, attachmentPackets, spanPackets)
 
         return try {
-            val response =
-                httpClient.sendMultipartRequest(eventsUrl.toString(), "PUT", headers, multipartData)
-            handleResponse(response)
+            httpClient.sendMultipartRequest(eventsUrl.toString(), "PUT", headers, multipartData)
         } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Failed to send request", e)
             HttpResponse.Error.UnknownError(e)
         }
     }
@@ -68,7 +67,7 @@ internal class NetworkClientImpl(
         return try {
             URL(url)
         } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Invalid API_URL", e)
+            logger.log(LogLevel.Error, "Failed to send request: invalid API_URL", e)
             null
         }
     }
@@ -77,7 +76,7 @@ internal class NetworkClientImpl(
         return try {
             baseUrl.toURI().resolve(PATH_EVENTS).toURL()
         } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Invalid API_URL", e)
+            logger.log(LogLevel.Error, "Failed to send request: invalid API_URL", e)
             null
         }
     }
@@ -87,10 +86,17 @@ internal class NetworkClientImpl(
     }
 
     private fun createHeaders(batchId: String): Map<String, String> {
-        return mapOf(
+        val defaultHeaders = mapOf(
             "msr-req-id" to batchId,
             "Authorization" to "Bearer $apiKey",
         )
+
+        val customHeaders = sanitizedCustomHeaders()
+        return if (customHeaders != null) {
+            defaultHeaders + customHeaders
+        } else {
+            defaultHeaders
+        }
     }
 
     private fun prepareMultipartData(
@@ -110,32 +116,11 @@ internal class NetworkClientImpl(
         return events + attachments + spans
     }
 
-    private fun handleResponse(response: HttpResponse): HttpResponse {
-        return when (response) {
-            is HttpResponse.Success -> {
-                logger.log(LogLevel.Debug, "Request successful")
-                response
-            }
+    private fun sanitizedCustomHeaders(): Map<String, String>? {
+        val requestHeaderProvider = configProvider.requestHeadersProvider ?: return null
 
-            is HttpResponse.Error.RateLimitError -> {
-                logger.log(LogLevel.Debug, "Request rate limited, will retry later")
-                response
-            }
-
-            is HttpResponse.Error.ClientError -> {
-                logger.log(LogLevel.Error, "Unable to process request: ${response.code}")
-                response
-            }
-
-            is HttpResponse.Error.ServerError -> {
-                logger.log(LogLevel.Error, "Request failed with code: ${response.code}")
-                response
-            }
-
-            is HttpResponse.Error.UnknownError -> {
-                logger.log(LogLevel.Error, "Request failed with unknown error")
-                response
-            }
-        }
+        return requestHeaderProvider.getRequestHeaders()
+            .filter { it.key !in configProvider.disallowedCustomHeaders }
+            .toMap()
     }
 }

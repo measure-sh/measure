@@ -1,16 +1,18 @@
 "use client"
 
-import Image from 'next/image'
-import LandingHeader from './components/landing_header'
-import Link from 'next/link'
-import landingHeroAnim from "./animations/landing_hero.json"
 import dynamic from 'next/dynamic'
+import Image from 'next/image'
+import Link from 'next/link'
 import { useRef, useState } from 'react'
+import landingHeroAnim from "./animations/landing_hero.json"
+import { buttonVariants } from './components/button'
+import LandingHeader from './components/landing_header'
 import VideoPlayButton from './components/video_play_button'
+import { cn } from './utils/shadcn_utils'
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
 
-type VideoName = 'session' | 'perf' | 'journey' | 'appHealth' | 'exceptions'
+type VideoName = 'session' | 'bugReport' | 'perf' | 'journey' | 'appHealth' | 'exceptions'
 
 type IsPlayingState = {
   [K in VideoName]: boolean;
@@ -24,6 +26,7 @@ export default function Home() {
 
   const [isPlaying, setIsPlaying] = useState<IsPlayingState>({
     session: false,
+    bugReport: false,
     perf: false,
     journey: false,
     appHealth: false,
@@ -32,6 +35,7 @@ export default function Home() {
 
   const videoRefs: VideoRefs = {
     session: useRef<HTMLVideoElement>(null),
+    bugReport: useRef<HTMLVideoElement>(null),
     perf: useRef<HTMLVideoElement>(null),
     journey: useRef<HTMLVideoElement>(null),
     appHealth: useRef<HTMLVideoElement>(null),
@@ -87,6 +91,34 @@ export default function Home() {
               />
               {!isPlaying.session &&
                 <VideoPlayButton onClick={() => handlePlay('session')} />
+              }
+            </div>
+          </div>
+        </div>
+        <div className="py-12 md:py-16" />
+        <div className="flex flex-col md:w-full items-center">
+          <div className="flex flex-col items-center max-w-4xl">
+            <p className="text-6xl font-regular text-black font-display text-center">Bug Reports</p>
+            <div className="py-2" />
+            <p className="text-lg text-center leading-relaxed font-body text-black">Capture bug reports with a device shake or SDK call. Get full history of user actions leading to the bug.</p>
+          </div>
+          <div className="py-8" />
+          <div className='border border-amber-400 rounded-3xl p-4 w-80 h-80 md:w-[56rem] md:h-[40rem] bg-amber-200'>
+            <div className='relative flex bg-white rounded-3xl h-full border border-amber-400 items-center justify-center overflow-hidden'>
+              <video
+                ref={videoRefs.bugReport}
+                src="/videos/bug_report.webm"
+                poster='/images/bug_report_poster.png'
+                preload='none'
+                loop
+                muted
+                playsInline
+                className="w-full h-full rounded-3xl"
+                onPlay={() => setIsPlaying(prev => ({ ...prev, bugReport: true }))}
+                onPause={() => setIsPlaying(prev => ({ ...prev, bugReport: false }))}
+              />
+              {!isPlaying.bugReport &&
+                <VideoPlayButton onClick={() => handlePlay('bugReport')} />
               }
             </div>
           </div>
@@ -215,14 +247,12 @@ export default function Home() {
             <p className="text-center">Android</p>
           </div>
           <div className="py-2 md:px-4" />
-          <div className="flex flex-col items-center font-display text-neutral-400 border border-neutral-400 rounded-md py-2 px-8">
+          <div className="flex flex-col items-center font-display text-black border border-black rounded-md py-4 px-8">
             <p className="text-center">iOS</p>
-            <p className="text-xs text-center">In progress</p>
           </div>
           <div className="py-2 md:px-4" />
-          <div className="flex flex-col items-center font-display text-neutral-400 border border-neutral-400 rounded-md py-2 px-8">
+          <div className="flex flex-col items-center font-display text-black border border-black rounded-md py-4 px-8">
             <p className="text-center">Flutter</p>
-            <p className="text-xs text-center">In progress</p>
           </div>
           <div className="py-2 md:px-4" />
           <div className="flex flex-col items-center font-display text-neutral-400 border border-neutral-400 rounded-md py-2 px-8">
@@ -233,7 +263,7 @@ export default function Home() {
         <div className="py-12 md:py-16" />
         <p className="font-body text-black text-lg leading-relaxed max-w-4xl text-center">Let&apos;s get to the root cause:</p>
         <div className="py-2" />
-        <Link href="https://github.com/measure-sh/measure" className='m-4 outline-hidden flex flex-row place-items-center hover:bg-yellow-200 active:bg-yellow-300 focus-visible:bg-yellow-200 border border-black rounded-md font-display transition-colors duration-100 py-2 px-4'>
+        <Link href="https://github.com/measure-sh/measure" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "m-4 font-display border border-black rounded-md select-none")}>
           <Image
             src='/images/github_logo.svg'
             width={24}

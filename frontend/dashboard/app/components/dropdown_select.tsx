@@ -1,7 +1,19 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from 'react';
-import { AppVersion, OsVersion } from '../api/api_calls';
+import { Check, ChevronsUpDown, Circle, CircleCheck } from "lucide-react"
+import React, { useEffect, useState } from 'react'
+import { AppVersion, OsVersion } from '../api/api_calls'
+
+import { cn } from '../utils/shadcn_utils'
+import { Button } from './button'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from './command'
+import { Popover, PopoverContent, PopoverTrigger } from './popover'
 
 export enum DropdownSelectType {
   SingleString,
@@ -13,70 +25,39 @@ export enum DropdownSelectType {
 }
 
 interface DropdownSelectProps {
-  type: DropdownSelectType;
-  title: string;
-  items: string[] | AppVersion[] | OsVersion[];
-  initialSelected: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[];
-  onChangeSelected?: (item: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]) => void;
+  type: DropdownSelectType
+  title: string
+  items: string[] | AppVersion[] | OsVersion[]
+  initialSelected: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]
+  onChangeSelected?: (item: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]) => void
 }
 
 const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, initialSelected, onChangeSelected }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selected, setSelected] = useState(initialSelected);
-  const [searchText, setSearchText] = useState('');
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState(initialSelected)
+  const [searchValue, setSearchValue] = useState("")
 
   useEffect(() => {
     if (selected !== initialSelected) {
       setSelected(initialSelected)
     }
-  }, [initialSelected]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    const handleFocusIn = (event: FocusEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('focusin', handleFocusIn);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('focusin', handleFocusIn);
-    };
-  }, []);
-
-  const toggleDropdown = () => {
-    setIsOpen(!isOpen);
-    setSearchText('')
-  };
+  }, [initialSelected])
 
   const selectSingleItem = (item: string | AppVersion | OsVersion) => {
-    setSelected(item);
-    setIsOpen(false);
-  };
+    setSelected(item)
+    setOpen(false)
+    onChangeSelected?.(item)
+  }
 
   const selectAll = () => {
     setSelected(items)
-  };
+    onChangeSelected?.(items)
+  }
 
   const clearAll = () => {
     setSelected([])
-  };
+    onChangeSelected?.([])
+  }
 
   const selectLatestAppVersion = () => {
     // find version with highest build number
@@ -86,336 +67,262 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
     )
 
     setSelected([latestVersion])
-  };
+    onChangeSelected?.([latestVersion])
+  }
 
   const toggleCheckboxStringItem = (item: string) => {
     let curSelected = selected as string[]
+    let newSelected
     if (curSelected.includes(item)) {
-      setSelected(curSelected.filter(a => a != item))
+      newSelected = curSelected.filter(a => a != item)
     } else {
-      setSelected([item, ...curSelected])
+      newSelected = [item, ...curSelected]
     }
-  };
+    setSelected(newSelected)
+    onChangeSelected?.(newSelected)
+  }
 
   const isOsVersionSelected = (item: OsVersion) => {
     return (selected as OsVersion[]).some((i) => {
-      return item.displayName === i.displayName;
-    });
+      return item.displayName === i.displayName
+    })
   }
 
   const toggleCheckboxOsVersionItem = (item: OsVersion) => {
     let curSelected = selected as OsVersion[]
+    let newSelected
     if (isOsVersionSelected(item)) {
-      setSelected(curSelected.filter(a => a != item))
+      newSelected = curSelected.filter(a => a.displayName != item.displayName)
     } else {
-      setSelected([item, ...curSelected])
+      newSelected = [item, ...curSelected]
     }
-  };
+    setSelected(newSelected)
+    onChangeSelected?.(newSelected)
+  }
 
   const isAppVersionSelected = (item: AppVersion) => {
     return (selected as AppVersion[]).some((i) => {
-      return item.displayName === i.displayName;
-    });
+      return item.displayName === i.displayName
+    })
   }
 
   const toggleCheckboxAppVersionItem = (item: AppVersion) => {
     let curSelected = selected as AppVersion[]
+    let newSelected
     if (isAppVersionSelected(item)) {
       // If only one item is selected, do nothing
       if (curSelected.length === 1) {
         return
       }
-      setSelected(curSelected.filter(a => a.displayName != item.displayName))
+      newSelected = curSelected.filter(a => a.displayName != item.displayName)
     } else {
-      setSelected([item, ...curSelected])
+      newSelected = [item, ...curSelected]
     }
-  };
+    setSelected(newSelected)
+    onChangeSelected?.(newSelected)
+  }
 
-  useEffect(() => {
-    onChangeSelected?.(selected);
-  }, [selected]);
+  // Helper to get display text for selected items
+  const getDisplayText = () => {
+    switch (type) {
+      case DropdownSelectType.SingleString:
+        return selected as string
+      case DropdownSelectType.SingleAppVersion:
+        return (selected as AppVersion).displayName
+      case DropdownSelectType.SingleOsVersion:
+        return (selected as OsVersion).displayName
+      case DropdownSelectType.MultiString:
+      case DropdownSelectType.MultiAppVersion:
+      case DropdownSelectType.MultiOsVersion:
+        return title
+    }
+  }
 
-  const buttonStyle = "block px-2 py-2 w-full truncate text-white bg-neutral-950 hover:text-black font-display text-left hover:bg-yellow-200 active:bg-yellow-300 outline-hidden focus:bg-yellow-200"
-  const groupSelectButtonStyle = "text-white text-xs font-display rounded-md border border-white p-1 bg-neutral-950 hover:text-black hover:bg-yellow-200 hover:border-black focus-visible:bg-yellow-200 focus-visible:text-black focus-visible:border-black active:bg-yellow-300 outline-hidden"
-  const checkboxContainerStyle = "px-2 py-2 bg-neutral-950 truncate text-white font-display text-left outline-hidden hover:text-black hover:bg-yellow-200 focus:text-black focus:bg-yellow-200 active:bg-yellow-300"
-  const checkboxInputStyle = "appearance-none pointer-events-none border-white rounded-xs font-display bg-neutral-950 checked:bg-neutral-950 checked:hover:bg-neutral-950 checked:focus:bg-neutral-950 focus:ring-offset-yellow-200 focus:ring-0 checked:ring-1 checked:ring-white"
-  const searchInputStyle = "w-full bg-neutral-950 text-white text-sm border border-white rounded-md py-2 px-4 font-body placeholder:text-gray-400 focus:outline-hidden focus:border-yellow-300 focus:ring-1 focus:ring-yellow-300"
+  // Filter items based on search text
+  const getFilteredItems = () => {
+    const searchLower = searchValue.toLowerCase()
+    switch (type) {
+      case DropdownSelectType.SingleString:
+      case DropdownSelectType.MultiString:
+        return (items as string[]).filter(item =>
+          item.toLowerCase().includes(searchLower)
+        )
+      case DropdownSelectType.SingleAppVersion:
+      case DropdownSelectType.MultiAppVersion:
+        return (items as AppVersion[]).filter(item =>
+          item.displayName.toLowerCase().includes(searchLower)
+        )
+      case DropdownSelectType.SingleOsVersion:
+      case DropdownSelectType.MultiOsVersion:
+        return (items as OsVersion[]).filter(item =>
+          item.displayName.toLowerCase().includes(searchLower)
+        )
+    }
+  }
+
+  const renderItemContent = (item: string | AppVersion | OsVersion) => {
+    switch (type) {
+      case DropdownSelectType.SingleString:
+        return item as string
+      case DropdownSelectType.MultiString:
+        return item as string
+      case DropdownSelectType.SingleAppVersion:
+      case DropdownSelectType.MultiAppVersion:
+        return (item as AppVersion).displayName
+      case DropdownSelectType.SingleOsVersion:
+      case DropdownSelectType.MultiOsVersion:
+        return (item as OsVersion).displayName
+    }
+  }
+
+  const isItemSelected = (item: string | AppVersion | OsVersion) => {
+    switch (type) {
+      case DropdownSelectType.SingleString:
+        return item === selected
+      case DropdownSelectType.MultiString:
+        return (selected as string[]).includes(item as string)
+      case DropdownSelectType.SingleAppVersion:
+        return (item as AppVersion).displayName === (selected as AppVersion).displayName
+      case DropdownSelectType.MultiAppVersion:
+        return isAppVersionSelected(item as AppVersion)
+      case DropdownSelectType.SingleOsVersion:
+        return (item as OsVersion).displayName === (selected as OsVersion).displayName
+      case DropdownSelectType.MultiOsVersion:
+        return isOsVersionSelected(item as OsVersion)
+    }
+  }
+
+  const handleItemClick = (item: string | AppVersion | OsVersion) => {
+    switch (type) {
+      case DropdownSelectType.SingleString:
+      case DropdownSelectType.SingleAppVersion:
+      case DropdownSelectType.SingleOsVersion:
+        selectSingleItem(item)
+        break
+      case DropdownSelectType.MultiString:
+        toggleCheckboxStringItem(item as string)
+        break
+      case DropdownSelectType.MultiAppVersion:
+        toggleCheckboxAppVersionItem(item as AppVersion)
+        break
+      case DropdownSelectType.MultiOsVersion:
+        toggleCheckboxOsVersionItem(item as OsVersion)
+        break
+    }
+  }
+
+  const isMultiSelect = () => {
+    return type === DropdownSelectType.MultiString ||
+      type === DropdownSelectType.MultiAppVersion ||
+      type === DropdownSelectType.MultiOsVersion
+  }
 
   return (
-    <div className="relative inline-block text-left select-none" ref={dropdownRef} >
-      <div>
-        <button
-          type="button"
-          onClick={toggleDropdown}
-          className="inline-flex justify-center w-full font-display border border-black rounded-md outline-hidden hover:bg-yellow-200 focus:bg-yellow-200 active:bg-yellow-300">
-          {type === DropdownSelectType.SingleString && <span className="px-6 py-2">{selected as string}</span>}
-          {type === DropdownSelectType.SingleAppVersion && <span className="px-6 py-2">{(selected as AppVersion).displayName}</span>}
-          {type === DropdownSelectType.SingleOsVersion && <span className="px-6 py-2">{(selected as OsVersion).displayName}</span>}
-          {(type == DropdownSelectType.MultiString || type === DropdownSelectType.MultiAppVersion || type === DropdownSelectType.MultiOsVersion) && <span className="px-6 py-2">{title}</span>}
-          <span className="border border-black border-t-0 border-r-0 border-b-0 px-4 py-2">⏷</span>
-        </button>
-      </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className="flex justify-between font-display border border-black w-fit min-w-[150px] select-none"
+        >
+          <span className="truncate">{getDisplayText()}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-64" align="start">
+        <Command>
+          <CommandInput
+            placeholder="Search..."
+            value={searchValue}
+            onValueChange={setSearchValue}
+            className="h-10 p-1 border border-0 rounded-md focus:ring-0 font-body text-sm"
+          />
+          {isMultiSelect() && items.length > 1 && (
+            <div className="flex gap-2 p-2 py-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={selectAll}
+                className="font-display text-xs flex-1"
+                tabIndex={0}
+                onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    selectAll()
+                  }
+                }}
+              >
+                All
+              </Button>
+              {type === DropdownSelectType.MultiAppVersion ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={selectLatestAppVersion}
+                  className="font-display text-xs flex-1"
+                  tabIndex={0}
+                  onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      selectLatestAppVersion()
+                    }
+                  }}
+                >
+                  Latest
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearAll}
+                  className="font-display text-xs flex-1"
+                  tabIndex={0}
+                  onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      clearAll()
+                    }
+                  }}
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+          )}
+          <CommandEmpty>
+            <div className="text-center py-2 text-sm text-gray-500">No results found</div>
+          </CommandEmpty>
+          <CommandGroup className="max-h-72 overflow-auto">
+            {getFilteredItems().map((item, index) => (
+              <CommandItem
+                key={index}
+                onSelect={() => handleItemClick(item)}
+                className={cn(
+                  "flex items-center cursor-default focus-visible:ring-3 focus-visible:ring-yellow-300",
+                )}
+                tabIndex={0}
+                onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleItemClick(item)
+                  }
+                }}
+              >
+                {isMultiSelect() && (
+                  <span className="mr-2 flex items-center justify-center w-4 h-4">
+                    {isItemSelected(item) ? <CircleCheck className="h-4 w-4" /> : <Circle className="h-4 w-4 opacity-50" />}
+                  </span>
+                )}
+                <span className="flex-1 truncate font-display text-sm">{renderItemContent(item)}</span>
+                {!isMultiSelect() && isItemSelected(item) && (
+                  <Check className="h-4 w-4 ml-2" />
+                )}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
 
-      {isOpen && (
-        <div className="z-50 origin-top-right absolute left-0 mt-2 w-fit min-w-48 max-h-96 overflow-auto rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
-          <div
-            role="menu"
-            aria-orientation="vertical"
-            aria-labelledby="options-menu"
-          >
-            {type === DropdownSelectType.SingleString &&
-              <div>
-                {(items as string[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
-                  <input
-                    type="text"
-                    id="single-string-search"
-                    placeholder='Search...'
-                    className={searchInputStyle}
-                    onChange={(e) => {
-                      setSearchText(e.target.value)
-                    }}
-                  />
-                </div>}
-                {items.filter((item) => (item as string).toLowerCase().includes(searchText.toLowerCase())).map((item) => (
-                  <button
-                    key={item as string}
-                    onClick={() => selectSingleItem(item as string)}
-                    className={buttonStyle}
-                    role="menuitem"
-                  >
-                    {item as string}
-                  </button>
-                ))}
-              </div>
-            }
-            {type === DropdownSelectType.SingleAppVersion &&
-              <div>
-                {(items as AppVersion[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
-                  <input
-                    type="text"
-                    id="single-app-version-search"
-                    placeholder='Search...'
-                    className={searchInputStyle}
-                    onChange={(e) => {
-                      setSearchText(e.target.value)
-                    }}
-                  />
-                </div>}
-                {items.filter((item) => (item as AppVersion).displayName.toLowerCase().includes(searchText.toLowerCase())).map((item) => (
-                  <button
-                    key={(item as AppVersion).displayName}
-                    onClick={() => selectSingleItem(item as AppVersion)}
-                    className={buttonStyle}
-                    role="menuitem"
-                  >
-                    {(item as AppVersion).displayName}
-                  </button>
-                ))}
-              </div>
-            }
-            {type === DropdownSelectType.SingleOsVersion &&
-              <div>
-                {(items as OsVersion[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
-                  <input
-                    type="text"
-                    id="single-os-version-search"
-                    placeholder='Search...'
-                    className={searchInputStyle}
-                    onChange={(e) => {
-                      setSearchText(e.target.value)
-                    }}
-                  />
-                </div>}
-                {items.filter((item) => (item as OsVersion).displayName.toLowerCase().includes(searchText.toLowerCase())).map((item) => (
-                  <button
-                    key={(item as OsVersion).displayName}
-                    onClick={() => selectSingleItem(item as OsVersion)}
-                    className={buttonStyle}
-                    role="menuitem"
-                  >
-                    {(item as OsVersion).displayName}
-                  </button>
-                ))}
-              </div>
-            }
-            {type === DropdownSelectType.MultiString &&
-              <div>
-                {(items as string[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
-                  <input
-                    type="text"
-                    id="multi-string-search"
-                    placeholder='Search...'
-                    className={searchInputStyle}
-                    onChange={(e) => {
-                      setSearchText(e.target.value)
-                    }}
-                  />
-                </div>}
-                {(items as string[]).length > 1 && <div className='flex flex-row w-full p-2 bg-neutral-950'>
-                  <button
-                    onClick={() => selectAll()}
-                    className={groupSelectButtonStyle}
-                  >
-                    All
-                  </button>
-                  <div className="px-1" />
-                  <button
-                    onClick={() => clearAll()}
-                    className={groupSelectButtonStyle}
-                  >
-                    Clear
-                  </button>
-                </div>}
-                {items.filter((item) => (item as string).toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item) => (
-                  <div
-                    key={item as string}
-                    className={checkboxContainerStyle}
-                    role="menuitem"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      toggleCheckboxStringItem(item as string);
-                      (e.currentTarget as HTMLElement).blur()
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        toggleCheckboxStringItem(item as string)
-                      }
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      className={checkboxInputStyle}
-                      value={item as string}
-                      checked={(selected as string[]).includes(item as string)}
-                      readOnly
-                      tabIndex={-1}
-                    />
-                    <span className="ml-2">{item as string}</span>
-                  </div>
-                ))}
-              </div>
-            }
-            {type === DropdownSelectType.MultiOsVersion &&
-              <div>
-                {(items as OsVersion[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
-                  <input
-                    type="text"
-                    id="multi-os-version-search"
-                    placeholder='Search...'
-                    className={searchInputStyle}
-                    onChange={(e) => {
-                      setSearchText(e.target.value)
-                    }}
-                  />
-                </div>}
-                {(items as OsVersion[]).length > 1 && <div className='flex flex-row w-full p-2 bg-neutral-950'>
-                  <button
-                    onClick={() => selectAll()}
-                    className={groupSelectButtonStyle}
-                  >
-                    All
-                  </button>
-                  <div className="px-1" />
-                  <button
-                    onClick={() => clearAll()}
-                    className={groupSelectButtonStyle}
-                  >
-                    Clear
-                  </button>
-                </div>}
-                {items.filter((item) => (item as OsVersion).displayName.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item, idx) => (
-                  <div
-                    key={`${idx}-${item as string}`}
-                    className={checkboxContainerStyle}
-                    role="menuitem"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      toggleCheckboxOsVersionItem(item as OsVersion);
-                      (e.currentTarget as HTMLElement).blur()
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        toggleCheckboxOsVersionItem(item as OsVersion)
-                      }
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      className={checkboxInputStyle}
-                      value={(item as OsVersion).displayName}
-                      checked={isOsVersionSelected(item as OsVersion)}
-                      readOnly
-                      tabIndex={-1}
-                    />
-                    <span className="ml-2">{(item as OsVersion).displayName}</span>
-                  </div>
-                ))}
-              </div>
-            }
-            {type === DropdownSelectType.MultiAppVersion &&
-              <div>
-                {(items as AppVersion[]).length > 1 && <div className='w-full p-2 bg-neutral-950'>
-                  <input
-                    type="text"
-                    id="multi-app-version-search"
-                    placeholder='Search...'
-                    className={searchInputStyle}
-                    onChange={(e) => {
-                      setSearchText(e.target.value)
-                    }}
-                  />
-                </div>}
-                {(items as AppVersion[]).length > 1 && <div className='flex flex-row w-full p-2 bg-neutral-950'>
-                  <button
-                    onClick={() => selectAll()}
-                    className={groupSelectButtonStyle}
-                  >
-                    All
-                  </button>
-                  <div className="px-1" />
-                  <button
-                    onClick={() => selectLatestAppVersion()}
-                    className={groupSelectButtonStyle}
-                  >
-                    Latest
-                  </button>
-                </div>}
-                {items.filter((item) => (item as AppVersion).displayName.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())).map((item) => (
-                  <div
-                    key={(item as AppVersion).displayName}
-                    className={checkboxContainerStyle}
-                    role="menuitem"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      toggleCheckboxAppVersionItem(item as AppVersion);
-                      (e.currentTarget as HTMLElement).blur()
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        toggleCheckboxAppVersionItem(item as AppVersion)
-                      }
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      className={checkboxInputStyle}
-                      value={(item as AppVersion).displayName}
-                      checked={isAppVersionSelected(item as AppVersion)}
-                      readOnly
-                      tabIndex={-1}
-                    />
-                    <span className="ml-2">{(item as OsVersion).displayName}</span>
-                  </div>
-                ))}
-              </div>}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default DropdownSelect;
+export default DropdownSelect

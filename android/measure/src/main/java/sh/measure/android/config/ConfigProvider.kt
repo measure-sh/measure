@@ -1,6 +1,7 @@
 package sh.measure.android.config
 
 import androidx.annotation.VisibleForTesting
+import sh.measure.android.events.EventType
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -56,10 +57,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { screenshotMaskHexColor }
     override val screenshotCompressionQuality: Int
         get() = getMergedConfig { screenshotCompressionQuality }
-    override val eventTypeExportAllowList: List<String>
+    override val eventTypeExportAllowList: List<EventType>
         get() = getMergedConfig { eventTypeExportAllowList }
-    override val maxSignalsInDatabase: Int
-        get() = getMergedConfig { maxSignalsInDatabase }
     override val trackHttpHeaders: Boolean
         get() = getMergedConfig { trackHttpHeaders }
     override val trackHttpBody: Boolean
@@ -122,12 +121,18 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { shakeAccelerationThreshold }
     override val shakeSlop: Int
         get() = getMergedConfig { shakeSlop }
-    override val enableShakeToLaunchBugReport: Boolean
-        get() = getMergedConfig { enableShakeToLaunchBugReport }
     override val trackActivityLoadTime: Boolean
         get() = getMergedConfig { trackActivityLoadTime }
     override val trackFragmentLoadTime: Boolean
         get() = getMergedConfig { trackFragmentLoadTime }
+    override val disallowedCustomHeaders: List<String>
+        get() = getMergedConfig { disallowedCustomHeaders }
+    override val requestHeadersProvider: MsrRequestHeadersProvider?
+        get() = getMergedConfig { requestHeadersProvider }
+    override val maxDiskUsageInMb: Int
+        get() = getMergedConfig { maxDiskUsageInMb }
+    override val estimatedEventSizeInKb: Int
+        get() = getMergedConfig { estimatedEventSizeInKb }
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         if (!trackHttpBody) {
@@ -154,14 +159,11 @@ internal class ConfigProviderImpl(
 
         // If the allowlist is empty, then block the URLs that are in the blocklist.
         return !combinedHttpUrlBlocklist.any { value ->
-            value?.let { url.contains(it, ignoreCase = true) } ?: false
+            value?.let { url.contains(it, ignoreCase = true) } == true
         }
     }
 
     override fun shouldTrackHttpHeader(key: String): Boolean {
-        if (!trackHttpHeaders) {
-            return false
-        }
         return !combinedHttpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
     }
 

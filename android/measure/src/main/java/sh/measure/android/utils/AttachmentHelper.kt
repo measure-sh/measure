@@ -68,8 +68,8 @@ internal class AttachmentHelper(
                         onCaptured(
                             MsrAttachment(
                                 "screenshot.$extension",
-                                bytes,
-                                AttachmentType.SCREENSHOT,
+                                bytes = bytes,
+                                type = AttachmentType.SCREENSHOT,
                             ),
                         )
                     }
@@ -87,19 +87,19 @@ internal class AttachmentHelper(
         onError: (() -> Unit)?,
     ) {
         val window = activity.window ?: run {
-            logger.log(LogLevel.Debug, "Unable to take screenshot, window is null.")
+            logger.log(LogLevel.Debug, "Failed to take screenshot, window is null")
             onError?.invoke()
             return
         }
 
         val decorView = window.peekDecorView() ?: run {
-            logger.log(LogLevel.Debug, "Unable to take screenshot, decor view is null.")
+            logger.log(LogLevel.Debug, "Failed to take screenshot, decor view is null")
             onError?.invoke()
             return
         }
 
         val view = decorView.rootView ?: run {
-            logger.log(LogLevel.Debug, "Unable to take screenshot, root view is null.")
+            logger.log(LogLevel.Debug, "Failed to take screenshot, root view is null")
             onError?.invoke()
             return
         }
@@ -107,7 +107,7 @@ internal class AttachmentHelper(
         val width = view.width
         val height = view.height
         if (width <= 0 || height <= 0) {
-            logger.log(LogLevel.Debug, "Unable to take screenshot, invalid view bounds.")
+            logger.log(LogLevel.Debug, "Failed to take screenshot, invalid view bounds")
             onError?.invoke()
             return
         }
@@ -128,7 +128,7 @@ internal class AttachmentHelper(
                     val contentResolver = contextRef.get()?.contentResolver ?: run {
                         logger.log(
                             LogLevel.Error,
-                            "Failed to read Uri, context is no longer available",
+                            "Failed to read uri: context is no longer available",
                         )
                         onError?.let { mainHandler.post(it) }
                         return@submit
@@ -144,7 +144,7 @@ internal class AttachmentHelper(
                     if (firstDecodeFailed) {
                         logger.log(
                             LogLevel.Error,
-                            "Failed to decode image dimensions from Uri: $uri. Image may be corrupted or in unsupported format.",
+                            "Failed to read uri: image may be corrupted or in unsupported format.",
                         )
                         onError?.let { mainHandler.post(it) }
                         return@submit
@@ -162,7 +162,7 @@ internal class AttachmentHelper(
                         BitmapFactory.decodeStream(it, null, options)
                     }
                     if (bitmap == null) {
-                        logger.log(LogLevel.Error, "Failed to decode image content from Uri: $uri")
+                        logger.log(LogLevel.Error, "Failed to read uri: unable to decode image")
                         onError?.let { mainHandler.post(it) }
                         return@submit
                     }
@@ -172,7 +172,7 @@ internal class AttachmentHelper(
                         logger,
                     )
                     if (compressed == null) {
-                        logger.log(LogLevel.Error, "Failed to compress bitmap from Uri: $uri")
+                        logger.log(LogLevel.Error, "Failed to read uri: unable to compress bitmap")
                         onError?.let { mainHandler.post(it) }
                         return@submit
                     }
@@ -191,7 +191,7 @@ internal class AttachmentHelper(
                 }
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Unexpected error while reading image from Uri: $uri", e)
+            logger.log(LogLevel.Error, "Failed to read uri: unexpected error", e)
             onError?.invoke()
         }
     }

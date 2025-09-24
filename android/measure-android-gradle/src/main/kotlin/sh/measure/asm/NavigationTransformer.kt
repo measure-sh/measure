@@ -15,8 +15,8 @@ class NavigationTransformer : AsmBytecodeTransformer() {
     // Tested from 2.4.0, 2.3.5 does not have navigation-compose package
     override val minVersion = SemVer(2, 4, 0)
 
-    // Tested up-to 2.9.0-alpha01
-    override val maxVersion = SemVer(2, 9, 0)
+    // Tested up-to 2.9.2
+    override val maxVersion = SemVer(2, 9, 2)
 }
 
 abstract class NavigationVisitorFactory :
@@ -36,6 +36,9 @@ abstract class NavigationVisitorFactory :
     }
 
     override fun createClassVisitor(nextClassVisitor: ClassVisitor): ClassVisitor {
+        val versions = parameters.get().versions.get().get()
+        val navigationVersion = versions[ModuleInfo("androidx.navigation", "navigation-compose")]
+        println("[Measure] Navigation transformer creating visitor (navigation-compose version: $navigationVersion)")
         return NavigationClassVisitor(nextClassVisitor)
     }
 

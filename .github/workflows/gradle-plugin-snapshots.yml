@@ -1,0 +1,68 @@
+name: Publish Gradle Plugin Snapshots
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'android/measure-android-gradle/**'
+
+env:
+  JAVA_VERSION: 17
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  publish-snapshots:
+    name: Publish Gradle Plugin Snapshots
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: 'main'
+          fetch-depth: 1
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'gradle'
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v3
+        with:
+          gradle-root: android
+
+      - name: Check if version is snapshot
+        id: check-snapshot
+        run: |
+          version=$(grep "MEASURE_PLUGIN_VERSION_NAME=" measure-android-gradle/gradle.properties | cut -d'=' -f2)
+          if [[ "$version" == *"-SNAPSHOT" ]]; then
+            echo "is_snapshot=true" >> $GITHUB_OUTPUT
+            echo "version=$version" >> $GITHUB_OUTPUT
+          else
+            echo "is_snapshot=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Version $version is not a snapshot, skipping publish"
+          fi
+
+      - name: Publish snapshot to Central Portal
+        if: steps.check-snapshot.outputs.is_snapshot == 'true'
+        run: ./gradlew clean :measure-android-gradle:publishToMavenCentral --no-daemon --no-parallel --no-configuration-cache --stacktrace
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_ARTIFACT_SIGNING_PASSWORD }}
+
+      - name: Summary
+        if: steps.check-snapshot.outputs.is_snapshot == 'true'
+        run: |
+          echo "🎉 Successfully published gradle plugin snapshot version: ${{ steps.check-snapshot.outputs.version }}"
+          echo "📦 Available at: https://central.sonatype.com/artifact/sh.measure/sh.measure.android.gradle.gradle.plugin/${{ steps.check-snapshot.outputs.version }}"

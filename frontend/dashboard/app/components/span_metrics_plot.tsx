@@ -1,13 +1,12 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
-import { SpanMetricsPlotApiStatus, fetchSpanMetricsPlotFromServer } from '../api/api_calls';
-import { useRouter } from 'next/navigation';
-import { formatDateToHumanReadableDate, formatMillisToHumanReadable } from '../utils/time_utils';
-import { Filters } from './filters';
-import LoadingSpinner from './loading_spinner';
-import TabSelect from './tab_select';
+import React, { useEffect, useState } from 'react'
+import { SpanMetricsPlotApiStatus, fetchSpanMetricsPlotFromServer } from '../api/api_calls'
+import { formatDateToHumanReadableDate, formatMillisToHumanReadable } from '../utils/time_utils'
+import { Filters } from './filters'
+import LoadingSpinner from './loading_spinner'
+import TabSelect from './tab_select'
 
 interface SpanMetricsPlotProps {
   filters: Filters
@@ -30,36 +29,34 @@ enum RootSpanMetricsQuantile {
 }
 
 const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
-  const router = useRouter()
-
-  const [spanMetricsPlotApiStatus, setSpanMetricsPlotApiStatus] = useState(SpanMetricsPlotApiStatus.Loading);
+  const [spanMetricsPlotApiStatus, setSpanMetricsPlotApiStatus] = useState(SpanMetricsPlotApiStatus.Loading)
   const [quantile, setQuantile] = useState(RootSpanMetricsQuantile.p95)
-  const [spanMetricsPlotApiData, setSpanMetricsPlotApiData] = useState<any>();
-  const [plot, setPlot] = useState<SpanMetricsPlot>();
+  const [spanMetricsPlotApiData, setSpanMetricsPlotApiData] = useState<any>()
+  const [plot, setPlot] = useState<SpanMetricsPlot>()
 
   function getYBasedOnQuantile(data: any) {
     switch (quantile) {
       case RootSpanMetricsQuantile.p50:
-        return data.p50;
+        return data.p50
       case RootSpanMetricsQuantile.p90:
-        return data.p90;
+        return data.p90
       case RootSpanMetricsQuantile.p95:
-        return data.p95;
+        return data.p95
       case RootSpanMetricsQuantile.p99:
-        return data.p99;
+        return data.p99
     }
   }
 
   function mapQuantileStringToQuantile(quantile: string) {
     switch (quantile) {
       case RootSpanMetricsQuantile.p50:
-        return RootSpanMetricsQuantile.p50;
+        return RootSpanMetricsQuantile.p50
       case RootSpanMetricsQuantile.p90:
-        return RootSpanMetricsQuantile.p90;
+        return RootSpanMetricsQuantile.p90
       case RootSpanMetricsQuantile.p95:
-        return RootSpanMetricsQuantile.p95;
+        return RootSpanMetricsQuantile.p95
       case RootSpanMetricsQuantile.p99:
-        return RootSpanMetricsQuantile.p99;
+        return RootSpanMetricsQuantile.p99
     }
 
     throw "Invalid quantile selected"
@@ -73,7 +70,7 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
 
     setSpanMetricsPlotApiStatus(SpanMetricsPlotApiStatus.Loading)
 
-    const result = await fetchSpanMetricsPlotFromServer(filters, router)
+    const result = await fetchSpanMetricsPlotFromServer(filters)
 
     switch (result.status) {
       case SpanMetricsPlotApiStatus.Error:
@@ -91,7 +88,7 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
 
   useEffect(() => {
     getSpanMetricsPlot()
-  }, [filters]);
+  }, [filters])
 
   useEffect(() => {
     if (spanMetricsPlotApiStatus !== SpanMetricsPlotApiStatus.Success) {
@@ -108,10 +105,10 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
     }))
 
     setPlot(newPlot)
-  }, [spanMetricsPlotApiData, quantile]);
+  }, [spanMetricsPlotApiData, quantile])
 
   return (
-    <div className="flex border border-black font-body items-center justify-center w-full h-[36rem]">
+    <div className="flex font-body items-center justify-center w-full h-[36rem]">
       {spanMetricsPlotApiStatus === SpanMetricsPlotApiStatus.Loading && <LoadingSpinner />}
       {spanMetricsPlotApiStatus === SpanMetricsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {spanMetricsPlotApiStatus === SpanMetricsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
@@ -123,8 +120,10 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
           <ResponsiveLine
             data={plot!}
             curve="monotoneX"
+            enableArea={true}
+            areaOpacity={0.1}
             colors={{ scheme: 'nivo' }}
-            margin={{ top: 0, right: 120, bottom: 140, left: 120 }}
+            margin={{ top: 20, right: 40, bottom: 140, left: 100 }}
             xFormat="time:%Y-%m-%d"
             xScale={{
               format: '%Y-%m-%d',
@@ -134,7 +133,7 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
             }}
             yScale={{
               type: 'linear',
-              min: 'auto',
+              min: 0,
               max: 'auto'
             }}
             yFormat=".2f"
@@ -155,10 +154,11 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
               legendOffset: -80,
               legendPosition: 'middle'
             }}
-            pointSize={3}
-            pointBorderWidth={2}
+            pointSize={6}
+            pointBorderWidth={1.5}
+            pointColor={"rgba(255, 255, 255, 255)"}
             pointBorderColor={{
-              from: 'color',
+              from: 'serieColor',
               modifiers: [
                 [
                   'darker',
@@ -168,10 +168,12 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
             }}
             pointLabelYOffset={-12}
             useMesh={true}
+            enableGridX={false}
+            enableGridY={false}
             enableSlices="x"
             sliceTooltip={({ slice }) => {
               return (
-                <div className="bg-neutral-950 text-white flex flex-col p-2 text-xs">
+                <div className="bg-neutral-800 text-white flex flex-col p-2 text-xs rounded-md">
                   <p className='p-2'>Date: {formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
                   {slice.points.map((point) => (
                     <div className="flex flex-row items-center p-2" key={point.id}>
@@ -190,6 +192,6 @@ const SpanMetricsPlot: React.FC<SpanMetricsPlotProps> = ({ filters }) => {
     </div>
   )
 
-};
+}
 
-export default SpanMetricsPlot;
+export default SpanMetricsPlot

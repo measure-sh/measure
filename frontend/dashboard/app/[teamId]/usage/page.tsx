@@ -1,40 +1,38 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import CreateApp from '@/app/components/create_app';
-import { FetchUsageApiStatus, emptyUsage, fetchUsageFromServer } from '@/app/api/api_calls';
-import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select';
-import { ResponsivePie } from '@nivo/pie';
+import { FetchUsageApiStatus, emptyUsage, fetchUsageFromServer } from '@/app/api/api_calls'
+import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
+import LoadingSpinner from '@/app/components/loading_spinner'
+import { ResponsivePie } from '@nivo/pie'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 export default function Overview({ params }: { params: { teamId: string } }) {
-  const router = useRouter()
-
   type AppMonthlyUsage = {
-    id: string;
-    label: string;
-    value: number;
-    events: number;
-    traces: number;
-    spans: number;
+    id: string
+    label: string
+    value: number
+    events: number
+    traces: number
+    spans: number
   }
 
-  const [fetchUsageApiStatus, setFetchUsageApiStatus] = useState(FetchUsageApiStatus.Loading);
-  const [usage, setUsage] = useState(emptyUsage);
-  const [months, setMonths] = useState<string[]>();
-  const [selectedMonth, setSelectedMonth] = useState<string>();
-  const [selectedMonthUsage, setSelectedMonthUsage] = useState<AppMonthlyUsage[]>();
+  const [fetchUsageApiStatus, setFetchUsageApiStatus] = useState(FetchUsageApiStatus.Loading)
+  const [usage, setUsage] = useState(emptyUsage)
+  const [months, setMonths] = useState<string[]>()
+  const [selectedMonth, setSelectedMonth] = useState<string>()
+  const [selectedMonthUsage, setSelectedMonthUsage] = useState<AppMonthlyUsage[]>()
 
   function parseMonths(data: typeof emptyUsage): string[] {
-    const monthYearSet: Set<string> = new Set();
+    const monthYearSet: Set<string> = new Set()
 
     data.forEach(app => {
       app.monthly_app_usage.forEach(u => {
-        monthYearSet.add(u.month_year);
-      });
-    });
+        monthYearSet.add(u.month_year)
+      })
+    })
 
-    return Array.from(monthYearSet);
+    return Array.from(monthYearSet)
   }
 
   function parseUsageForMonth(usage: typeof emptyUsage, month: string): AppMonthlyUsage[] {
@@ -43,17 +41,17 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     usage.forEach(app => {
       app.monthly_app_usage.forEach(u => {
         if (u.month_year === month) {
-          selectedMonthUsages.push({ id: app.app_id, label: app.app_name, value: u.session_count, events: u.event_count, traces: u.trace_count, spans: u.span_count });
+          selectedMonthUsages.push({ id: app.app_id, label: app.app_name, value: u.session_count, events: u.event_count, traces: u.trace_count, spans: u.span_count })
         }
-      });
-    });
+      })
+    })
     return selectedMonthUsages
   }
 
   const getUsage = async () => {
     setFetchUsageApiStatus(FetchUsageApiStatus.Loading)
 
-    const result = await fetchUsageFromServer(params.teamId, router)
+    const result = await fetchUsageFromServer(params.teamId)
 
     switch (result.status) {
       case FetchUsageApiStatus.NoApps:
@@ -76,11 +74,11 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
   useEffect(() => {
     getUsage()
-  }, []);
+  }, [])
 
   useEffect(() => {
     setSelectedMonthUsage(parseUsageForMonth(usage, selectedMonth!))
-  }, [selectedMonth]);
+  }, [selectedMonth])
 
   // @ts-ignore
   const CenteredMetric = ({ centerX, centerY }) => {
@@ -113,27 +111,21 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start p-24 pt-8">
-      <div className="py-4" />
+    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
       <p className="font-display text-4xl max-w-6xl text-center">Usage</p>
       <div className="py-4" />
 
       {/* Error states */}
-      {fetchUsageApiStatus === FetchUsageApiStatus.Error && <p className="text-lg font-display">Error fetching usage data, please check if Team ID is valid or refresh page to try again</p>}
-      {fetchUsageApiStatus === FetchUsageApiStatus.NoApps &&
-        <div>
-          <p className="text-lg font-display">Looks like you don&apos;t have any apps yet. Get started by creating your first app!</p>
-          <div className="py-4" />
-          <CreateApp teamId={params.teamId} />
-        </div>}
+      {fetchUsageApiStatus === FetchUsageApiStatus.Error && <p className="font-body text-sm">Error fetching usage data, please check if Team ID is valid or refresh page to try again</p>}
+      {fetchUsageApiStatus === FetchUsageApiStatus.NoApps && <p className='font-body text-sm'>Looks like you don&apos;t have any apps yet. Get started by <Link className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500" href={`apps`}>creating your first app!</Link></p>}
 
       {/* Main UI */}
-      {fetchUsageApiStatus === FetchUsageApiStatus.Loading && <p className='font-body'> Fetching usage data...</p>}
+      {fetchUsageApiStatus === FetchUsageApiStatus.Loading && <LoadingSpinner />}
       {fetchUsageApiStatus === FetchUsageApiStatus.Success &&
-        <div className="flex flex-col items-start">
-          <DropdownSelect title="App Name" type={DropdownSelectType.SingleString} items={months!} initialSelected={selectedMonth!} onChangeSelected={(item) => setSelectedMonth(item as string)} />
+        <div className="flex flex-col items-start w-full">
+          <DropdownSelect title="Month" type={DropdownSelectType.SingleString} items={months!} initialSelected={selectedMonth!} onChangeSelected={(item) => setSelectedMonth(item as string)} />
           <div className="py-4" />
-          <div className='w-[56rem] h-[36rem] border border-black'>
+          <div className='w-full h-[36rem]'>
             <ResponsivePie
               data={selectedMonthUsage!}
               animate
@@ -150,7 +142,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
               arcLinkLabelsColor={{ from: 'color' }}
               tooltip={({ datum: { id, label, value, color } }) => {
                 return (
-                  <div className="bg-neutral-950 text-white flex flex-col py-2 px-4 font-display">
+                  <div className="bg-neutral-800 text-white flex flex-col py-2 px-4 font-display rounded-md">
                     <p className='text-sm font-semibold' style={{ color: color }}>{label}</p>
                     <div className='py-0.5' />
                     <p className='text-xs'>Sessions: {value}</p>

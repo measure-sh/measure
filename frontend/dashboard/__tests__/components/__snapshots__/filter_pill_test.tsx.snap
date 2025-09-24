@@ -5,37 +5,23 @@ exports[`FilterPill renders correctly 1`] = `
   "asFragment": [Function],
   "baseElement": <body>
     <div>
-      <div
-        class="group relative select-none"
-      >
-        <p
-          class="px-2 py-1 max-w-72 whitespace-nowrap text-ellipsis overflow-hidden text-white bg-neutral-950 font-display text-sm border border-black rounded-full outline-hidden transition ease-in-out transition-colors duration-100"
-        >
-          TITLE
-        </p>
-        <span
-          class="pointer-events-none z-50 absolute max-w-xl w-max font-body text-xs text-white rounded-md p-4 bg-neutral-800 left-0 top-0 transform translate-y-8 opacity-0 transition-opacity group-hover:opacity-100"
-        >
-          TITLE
-        </span>
-      </div>
-    </div>
-  </body>,
-  "container": <div>
-    <div
-      class="group relative select-none"
-    >
       <p
-        class="px-2 py-1 max-w-72 whitespace-nowrap text-ellipsis overflow-hidden text-white bg-neutral-950 font-display text-sm border border-black rounded-full outline-hidden transition ease-in-out transition-colors duration-100"
+        class="px-2 py-1 max-w-72 whitespace-nowrap text-ellipsis overflow-hidden font-display text-xs border border-gray-300 hover:bg-gray-100 rounded-full outline-hidden transition ease-in-out transition-colors duration-100 select-none"
+        data-slot="tooltip-trigger"
+        data-state="closed"
       >
         TITLE
       </p>
-      <span
-        class="pointer-events-none z-50 absolute max-w-xl w-max font-body text-xs text-white rounded-md p-4 bg-neutral-800 left-0 top-0 transform translate-y-8 opacity-0 transition-opacity group-hover:opacity-100"
-      >
-        TITLE
-      </span>
     </div>
+  </body>,
+  "container": <div>
+    <p
+      class="px-2 py-1 max-w-72 whitespace-nowrap text-ellipsis overflow-hidden font-display text-xs border border-gray-300 hover:bg-gray-100 rounded-full outline-hidden transition ease-in-out transition-colors duration-100 select-none"
+      data-slot="tooltip-trigger"
+      data-state="closed"
+    >
+      TITLE
+    </p>
   </div>,
   "debug": [Function],
   "findAllByAltText": [Function],

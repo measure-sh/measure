@@ -7,7 +7,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -31,13 +30,13 @@ type AuthSession struct {
 }
 
 // createAccessToken creates a new access token.
-func createAccessToken(userId, teamId uuid.UUID, secret []byte, expiry time.Time) (token string, err error) {
+func createAccessToken(jti, userId uuid.UUID, secret []byte, expiry time.Time) (token string, err error) {
 	claims := jwt.MapClaims{
-		"iat":  time.Now().Unix(),
-		"sub":  userId.String(),
-		"exp":  expiry.Unix(),
-		"iss":  "measure",
-		"team": teamId.String(),
+		"iat": time.Now().Unix(),
+		"sub": userId.String(),
+		"jti": jti.String(),
+		"exp": expiry.Unix(),
+		"iss": "measure",
 	}
 
 	tokenCursor := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -66,7 +65,7 @@ func createRefreshToken(secret []byte, jti uuid.UUID, expiry time.Time) (token s
 }
 
 // NewAuthSession creates a new authentication session object.
-func NewAuthSession(userId, teamId uuid.UUID, provider string, meta json.RawMessage) (authSession AuthSession, err error) {
+func NewAuthSession(userId uuid.UUID, provider string, meta json.RawMessage) (authSession AuthSession, err error) {
 	authSession.ID = uuid.New()
 	authSession.UserID = userId
 	authSession.OAuthProvider = provider
@@ -82,12 +81,7 @@ func NewAuthSession(userId, teamId uuid.UUID, provider string, meta json.RawMess
 	atSecret := server.Server.Config.AccessTokenSecret
 	atExpiryAt := now.Add(accessTokenExpiryDuration)
 
-	// use extended expiry when in debug mode
-	if gin.IsDebugging() {
-		atExpiryAt = now.Add(24 * time.Hour)
-	}
-
-	accessToken, err := createAccessToken(userId, teamId, atSecret, atExpiryAt)
+	accessToken, err := createAccessToken(authSession.ID, userId, atSecret, atExpiryAt)
 	if err != nil {
 		return
 	}
@@ -107,10 +101,10 @@ func NewAuthSession(userId, teamId uuid.UUID, provider string, meta json.RawMess
 	return
 }
 
-// RemoveSession removes outdated sessions from database.
+// RemoveSession removes session from database.
 func RemoveSession(ctx context.Context, jti uuid.UUID, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.
-		DeleteFrom("public.auth_sessions").
+		DeleteFrom("auth_sessions").
 		Where("id = ?", jti)
 
 	defer stmt.Close()
@@ -128,7 +122,7 @@ func RemoveSession(ctx context.Context, jti uuid.UUID, tx *pgx.Tx) (err error) {
 // GetAuthSession finds an authentication session from its id.
 func GetAuthSession(ctx context.Context, id uuid.UUID) (authSession AuthSession, err error) {
 	stmt := sqlf.PostgreSQL.
-		From("public.auth_sessions").
+		From("auth_sessions").
 		Select("id").
 		Select("user_id").
 		Select("oauth_provider").
@@ -144,26 +138,10 @@ func GetAuthSession(ctx context.Context, id uuid.UUID) (authSession AuthSession,
 	return
 }
 
-// Cleanup removes expired auth sessions.
-func Cleanup(ctx context.Context) (err error) {
-	stmt := sqlf.PostgreSQL.
-		DeleteFrom("public.auth_sessions").
-		Where("rt_expiry_at < ?", time.Now())
-
-	defer stmt.Close()
-
-	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	return
-}
-
 // Save saves the authentication session to database.
 func (au *AuthSession) Save(ctx context.Context, tx *pgx.Tx) (err error) {
 	stmt := sqlf.PostgreSQL.
-		InsertInto("public.auth_sessions").
+		InsertInto("auth_sessions").
 		Set("id", au.ID).
 		Set("user_id", au.UserID).
 		Set("oauth_provider", au.OAuthProvider).

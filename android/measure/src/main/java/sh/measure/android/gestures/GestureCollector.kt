@@ -40,7 +40,6 @@ internal class GestureCollector(
     private var rootViewsChangedListener: OnRootViewsChangedListener? = null
 
     fun register() {
-        logger.log(LogLevel.Debug, "Registering gesture collector")
         rootViewsChangedListener = OnRootViewsChangedListener { view, added ->
             view.phoneWindow?.let { window ->
                 if (added) {
@@ -68,7 +67,6 @@ internal class GestureCollector(
             window.touchEventInterceptors -= listener
         }
         touchListeners.clear()
-        logger.log(LogLevel.Debug, "Unregistering gesture collector")
     }
 
     private fun addTouchListenerToWindow(window: Window) {
@@ -94,7 +92,7 @@ internal class GestureCollector(
             val layoutSnapshot = try {
                 getLayoutSnapshot(gesture, window, motionEvent)
             } catch (e: Exception) {
-                logger.log(LogLevel.Error, "Failed to parse layout, gesture will not be tracked", e)
+                logger.log(LogLevel.Debug, "Failed to track gesture: unable to parse layout", e)
                 return@trace
             }
 
@@ -118,14 +116,7 @@ internal class GestureCollector(
     }
 
     private fun findTargetNode(layoutSnapshot: LayoutSnapshot): Node? {
-        val targetNode = layoutSnapshot.findTargetNode()
-        if (targetNode == null) {
-            logger.log(
-                LogLevel.Debug,
-                "No target found for gesture",
-            )
-        }
-        return targetNode
+        return layoutSnapshot.findTargetNode()
     }
 
     private fun handleClick(
@@ -170,7 +161,7 @@ internal class GestureCollector(
                 type = EventType.CLICK,
                 data = data,
             )
-            logger.log(LogLevel.Error, "Failed to generate layout snapshot", e)
+            logger.log(LogLevel.Debug, "Failed to generate layout snapshot", e)
         }
     }
 

@@ -1,6 +1,6 @@
 -- migrate:up
 alter table events
-add column if not exists `warm_launch.is_lukewarm` Boolean after `warm_launch.duration`, comment column `warm_launch.is_lukewarm` 'whether it is a lukewarm launch';
+add column if not exists `warm_launch.is_lukewarm` Boolean after `warm_launch.duration`;
 
 -- migrate:down
 alter table events

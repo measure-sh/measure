@@ -23,7 +23,7 @@ func readEvents(path string) (events []event.EventField, err error) {
 }
 
 var exceptionGroupOne = group.ExceptionGroup{
-	ID: uuid.MustParse("018fba31-0012-7274-8874-8b062b9f6690"),
+	ID: "5d41402abc4b2a76b9719d911017c592",
 	EventIDs: []uuid.UUID{
 		uuid.MustParse("bd10e744-da4b-4685-bd83-fe29e4ac6ed9"),
 		uuid.MustParse("bd3aa0e2-13cf-4ccf-9ddb-7b9d4a8cc48e"),
@@ -47,7 +47,7 @@ var exceptionGroupOne = group.ExceptionGroup{
 }
 
 var exceptionGroupTwo = group.ExceptionGroup{
-	ID: uuid.MustParse("018fba30-637d-7367-85b6-0b375e16f5a2"),
+	ID: "6e809cbda0732ac4845916a59016f954",
 	EventIDs: []uuid.UUID{
 		uuid.MustParse("8fe6d874-8066-463c-b895-825d24cbf418"),
 		uuid.MustParse("2e8876ab-df6b-4325-b21a-1d04fdb03c2c"),
@@ -71,7 +71,7 @@ var exceptionGroupTwo = group.ExceptionGroup{
 }
 
 var exceptionGroupThree = group.ExceptionGroup{
-	ID: uuid.MustParse("6ed37c84-fa37-4627-879e-87c0787cfe36"),
+	ID: "7ce8be0fa3932e840f6a19c2b83e11ae",
 	EventIDs: []uuid.UUID{
 		uuid.MustParse("8fe6d874-8066-463c-b895-825d24cbf418"),
 		uuid.MustParse("02840cca-9025-44ca-88b8-31f87b958319"),
@@ -91,7 +91,7 @@ var exceptionGroupThree = group.ExceptionGroup{
 }
 
 var anrGroupOne = group.ANRGroup{
-	ID: uuid.MustParse("018fba31-08cc-7d93-9c26-1c3a5226abaa"),
+	ID: "a75f2192bae11cb76cdcdada9332bab6",
 	EventIDs: []uuid.UUID{
 		uuid.MustParse("e8f656b5-65c3-46ad-a03d-0ba777cff13f"),
 	},
@@ -897,7 +897,7 @@ func TestExceptionGroupAccessors(t *testing.T) {
 	})
 
 	groupOne := group.ExceptionGroup{
-		ID:         uuid.MustParse("b863efbe-585e-4e14-856d-fe6a3f31b64e"),
+		ID:         "ebde9cc9540087b9688fdb470fa20f17",
 		Type:       "some type",
 		Message:    "some message",
 		MethodName: "some method name",
@@ -939,7 +939,7 @@ func TestANRGroupAccessors(t *testing.T) {
 	})
 
 	groupOne := group.ANRGroup{
-		ID:         uuid.MustParse("b863efbe-585e-4e14-856d-fe6a3f31b64e"),
+		ID:         "5726012822477f24fe999a1f7223c82a",
 		Type:       "some type",
 		Message:    "some message",
 		MethodName: "some method name",
@@ -2004,6 +2004,54 @@ func TestNewJourneyAndroidANRsOne(t *testing.T) {
 
 		if expected != got {
 			t.Errorf("Expected %d node ANRs, but got %d", expected, got)
+		}
+	}
+}
+
+func TestNewJourneyAndroidScreenViewsFour(t *testing.T) {
+	events, err := readEvents("android_events_four.json")
+	if err != nil {
+		panic(err)
+	}
+
+	journey := NewJourneyAndroid(events, &Options{
+		BiGraph: true,
+	})
+
+	// Verify correct number of nodes (1 activity + 3 screen views = 4 nodes)
+	expectedOrder := 4
+	gotOrder := journey.Graph.Order()
+
+	if expectedOrder != gotOrder {
+		t.Errorf("Expected %d vertices, but got %d", expectedOrder, gotOrder)
+	}
+
+	vertices := journey.GetNodeVertices()
+	screenViewNodes := make(map[string]int)
+	var activityVertex int
+
+	for _, vertex := range vertices {
+		nodeName := journey.GetNodeName(vertex)
+		switch nodeName {
+		case "home", "order", "checkout":
+			screenViewNodes[nodeName] = vertex
+		case "sh.measure.sample.ComposeNavigationActivity":
+			activityVertex = vertex
+		}
+	}
+
+	// Verify graph structure: activity should have edges to all screen view nodes
+	expectedGraphString := "4 [(0 1) (0 2) (0 3)]"
+	gotGraphString := journey.Graph.String()
+
+	if expectedGraphString != gotGraphString {
+		t.Errorf("Expected graph %q, got %q", expectedGraphString, gotGraphString)
+	}
+
+	// Verify edges from activity to each screen view
+	for screenName, screenVertex := range screenViewNodes {
+		if !journey.Graph.Edge(activityVertex, screenVertex) {
+			t.Errorf("Expected edge from ComposeNavigationActivity to %s screen view", screenName)
 		}
 	}
 }

@@ -6,6 +6,8 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
+import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeProcessInfoProvider
@@ -53,23 +55,20 @@ internal class UnhandledExceptionCollectorTest {
         // Given
         val thread = Thread.currentThread()
         val exception = RuntimeException("Test exception")
-        val expectedException = ExceptionFactory.createMeasureException(
-            exception,
-            handled = false,
-            thread = thread,
-            foreground = processInfo.isForegroundProcess(),
-        )
 
         // When
         collector.uncaughtException(thread, exception)
 
         // Then
         verify(signalProcessor).trackCrash(
-            timestamp = timeProvider.now(),
-            type = EventType.EXCEPTION,
-            data = expectedException,
-            attributes = mutableMapOf(),
-            attachments = mutableListOf(),
+            data = any<ExceptionData>(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.EXCEPTION),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(mutableMapOf()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            takeScreenshot = eq(true),
         )
     }
 

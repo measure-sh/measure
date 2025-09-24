@@ -1,220 +1,650 @@
-# Dashbaord REST API Documentation <!-- omit in toc -->
+# Dashboard REST API Documentation <!-- omit in toc -->
 
 Find all the endpoints, resources and detailed documentation for Measure Dashboard REST APIs.
 
 ## Contents <!-- omit in toc -->
 
-- [Apps](#apps)
-  - [GET `/apps/:id/journey`](#get-appsidjourney)
+- [Auth](#auth)
+  - [POST `/auth/github`](#post-authgithub)
     - [Usage Notes](#usage-notes)
-    - [Authorization \& Content Type](#authorization--content-type)
+    - [Request Body](#request-body)
+    - [Content Type](#content-type)
     - [Response Body](#response-body)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting)
-  - [GET `/apps/:id/metrics`](#get-appsidmetrics)
+  - [POST `/auth/google`](#post-authgoogle)
     - [Usage Notes](#usage-notes-1)
-    - [Authorization \& Content Type](#authorization--content-type-1)
+    - [Request Body](#request-body-1)
+    - [Content Type](#content-type-1)
     - [Response Body](#response-body-1)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-1)
-  - [GET `/apps/:id/filters`](#get-appsidfilters)
+  - [POST `/auth/refresh`](#post-authrefresh)
     - [Usage Notes](#usage-notes-2)
-    - [Authorization \& Content Type](#authorization--content-type-2)
+    - [Authorization \& Content Type](#authorization--content-type)
     - [Response Body](#response-body-2)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-2)
-  - [GET `/apps/:id/crashGroups`](#get-appsidcrashgroups)
+  - [GET `/auth/session`](#get-authsession)
     - [Usage Notes](#usage-notes-3)
-    - [Authorization \& Content Type](#authorization--content-type-3)
+    - [Authorization \& Content Type](#authorization--content-type-1)
     - [Response Body](#response-body-3)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-3)
-  - [GET `/apps/:id/crashGroups/plots/instances`](#get-appsidcrashgroupsplotsinstances)
+  - [DELETE `/auth/signout`](#delete-authsignout)
     - [Usage Notes](#usage-notes-4)
-    - [Authorization \& Content Type](#authorization--content-type-4)
+    - [Authorization \& Content Type](#authorization--content-type-2)
     - [Response Body](#response-body-4)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-4)
-  - [GET `/apps/:id/crashGroups/:id/crashes`](#get-appsidcrashgroupsidcrashes)
+- [Apps](#apps)
+  - [GET `/apps/:id/journey`](#get-appsidjourney)
     - [Usage Notes](#usage-notes-5)
-    - [Authorization \& Content Type](#authorization--content-type-5)
+    - [Authorization \& Content Type](#authorization--content-type-3)
     - [Response Body](#response-body-5)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-5)
-  - [GET `/apps/:id/crashGroups/:id/plots/instances`](#get-appsidcrashgroupsidplotsinstances)
+  - [GET `/apps/:id/metrics`](#get-appsidmetrics)
     - [Usage Notes](#usage-notes-6)
-    - [Authorization \& Content Type](#authorization--content-type-6)
+    - [Authorization \& Content Type](#authorization--content-type-4)
     - [Response Body](#response-body-6)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-6)
-  - [GET `/apps/:id/crashGroups/:id/plots/journey`](#get-appsidcrashgroupsidplotsjourney)
+  - [GET `/apps/:id/filters`](#get-appsidfilters)
     - [Usage Notes](#usage-notes-7)
-    - [Authorization \& Content Type](#authorization--content-type-7)
+    - [Authorization \& Content Type](#authorization--content-type-5)
     - [Response Body](#response-body-7)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-7)
-  - [GET `/apps/:id/anrGroups`](#get-appsidanrgroups)
+  - [GET `/apps/:id/crashGroups`](#get-appsidcrashgroups)
     - [Usage Notes](#usage-notes-8)
-    - [Authorization \& Content Type](#authorization--content-type-8)
+    - [Authorization \& Content Type](#authorization--content-type-6)
     - [Response Body](#response-body-8)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-8)
-  - [GET `/apps/:id/anrGroups/plots/instances`](#get-appsidanrgroupsplotsinstances)
+  - [GET `/apps/:id/crashGroups/plots/instances`](#get-appsidcrashgroupsplotsinstances)
     - [Usage Notes](#usage-notes-9)
-    - [Authorization \& Content Type](#authorization--content-type-9)
+    - [Authorization \& Content Type](#authorization--content-type-7)
     - [Response Body](#response-body-9)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-9)
-  - [GET `/apps/:id/anrGroups/:id/anrs`](#get-appsidanrgroupsidanrs)
+  - [GET `/apps/:id/crashGroups/:id/crashes`](#get-appsidcrashgroupsidcrashes)
     - [Usage Notes](#usage-notes-10)
-    - [Authorization \& Content Type](#authorization--content-type-10)
+    - [Authorization \& Content Type](#authorization--content-type-8)
     - [Response Body](#response-body-10)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-10)
-  - [GET `/apps/:id/anrGroups/:id/plots/instances`](#get-appsidanrgroupsidplotsinstances)
+  - [GET `/apps/:id/crashGroups/:id/plots/instances`](#get-appsidcrashgroupsidplotsinstances)
     - [Usage Notes](#usage-notes-11)
-    - [Authorization \& Content Type](#authorization--content-type-11)
+    - [Authorization \& Content Type](#authorization--content-type-9)
     - [Response Body](#response-body-11)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-11)
-  - [GET `/apps/:id/anrGroups/:id/plots/journey`](#get-appsidanrgroupsidplotsjourney)
+  - [GET `/apps/:id/crashGroups/:id/plots/journey`](#get-appsidcrashgroupsidplotsjourney)
     - [Usage Notes](#usage-notes-12)
-    - [Authorization \& Content Type](#authorization--content-type-12)
+    - [Authorization \& Content Type](#authorization--content-type-10)
     - [Response Body](#response-body-12)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-12)
-  - [GET `/apps/:id/sessions`](#get-appsidsessions)
+  - [GET `/apps/:id/anrGroups`](#get-appsidanrgroups)
     - [Usage Notes](#usage-notes-13)
-    - [Authorization \& Content Type](#authorization--content-type-13)
+    - [Authorization \& Content Type](#authorization--content-type-11)
     - [Response Body](#response-body-13)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-13)
-  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
+  - [GET `/apps/:id/anrGroups/plots/instances`](#get-appsidanrgroupsplotsinstances)
     - [Usage Notes](#usage-notes-14)
-    - [Authorization \& Content Type](#authorization--content-type-14)
+    - [Authorization \& Content Type](#authorization--content-type-12)
     - [Response Body](#response-body-14)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-14)
-  - [GET `/apps/:id/alertPrefs`](#get-appsidalertprefs)
+  - [GET `/apps/:id/anrGroups/:id/anrs`](#get-appsidanrgroupsidanrs)
     - [Usage Notes](#usage-notes-15)
-    - [Authorization \& Content Type](#authorization--content-type-15)
+    - [Authorization \& Content Type](#authorization--content-type-13)
     - [Response Body](#response-body-15)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-15)
-  - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
+  - [GET `/apps/:id/anrGroups/:id/plots/instances`](#get-appsidanrgroupsidplotsinstances)
     - [Usage Notes](#usage-notes-16)
-    - [Request body](#request-body)
-    - [Authorization \& Content Type](#authorization--content-type-16)
+    - [Authorization \& Content Type](#authorization--content-type-14)
     - [Response Body](#response-body-16)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-16)
-  - [PATCH `/apps/:id/rename`](#patch-appsidrename)
+  - [GET `/apps/:id/anrGroups/:id/plots/journey`](#get-appsidanrgroupsidplotsjourney)
     - [Usage Notes](#usage-notes-17)
-    - [Request body](#request-body-1)
-    - [Authorization \& Content Type](#authorization--content-type-17)
+    - [Authorization \& Content Type](#authorization--content-type-15)
     - [Response Body](#response-body-17)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-17)
-  - [GET `/apps/:id/settings`](#get-appsidsettings)
+  - [GET `/apps/:id/sessions`](#get-appsidsessions)
     - [Usage Notes](#usage-notes-18)
-    - [Authorization \& Content Type](#authorization--content-type-18)
+    - [Authorization \& Content Type](#authorization--content-type-16)
     - [Response Body](#response-body-18)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-18)
-  - [PATCH `/apps/:id/settings`](#patch-appsidsettings)
+  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
     - [Usage Notes](#usage-notes-19)
-    - [Request body](#request-body-2)
-    - [Authorization \& Content Type](#authorization--content-type-19)
+    - [Authorization \& Content Type](#authorization--content-type-17)
     - [Response Body](#response-body-19)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-19)
-  - [POST `/apps/:id/shortFilters`](#post-appsidshortfilters)
+  - [GET `/apps/:id/alertPrefs`](#get-appsidalertprefs)
     - [Usage Notes](#usage-notes-20)
-    - [Request body](#request-body-3)
-    - [Authorization \& Content Type](#authorization--content-type-20)
+    - [Authorization \& Content Type](#authorization--content-type-18)
     - [Response Body](#response-body-20)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-20)
-  - [GET `/apps/:id/spans/roots/names`](#get-appsidspansrootsnames)
+  - [PATCH `/apps/:id/alertPrefs`](#patch-appsidalertprefs)
     - [Usage Notes](#usage-notes-21)
-    - [Authorization \& Content Type](#authorization--content-type-21)
+    - [Request body](#request-body-2)
+    - [Authorization \& Content Type](#authorization--content-type-19)
     - [Response Body](#response-body-21)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-21)
-  - [GET `/apps/:id/spans`](#get-appsidspans)
+  - [PATCH `/apps/:id/rename`](#patch-appsidrename)
     - [Usage Notes](#usage-notes-22)
-    - [Authorization \& Content Type](#authorization--content-type-22)
+    - [Request body](#request-body-3)
+    - [Authorization \& Content Type](#authorization--content-type-20)
     - [Response Body](#response-body-22)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-22)
-  - [GET `/apps/:id/spans/plots/metrics`](#get-appsidspansplotsmetrics)
+  - [GET `/apps/:id/settings`](#get-appsidsettings)
     - [Usage Notes](#usage-notes-23)
-    - [Authorization \& Content Type](#authorization--content-type-23)
+    - [Authorization \& Content Type](#authorization--content-type-21)
     - [Response Body](#response-body-23)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-23)
-  - [GET `/apps/:id/traces/:traceId`](#get-appsidtracestraceid)
+  - [PATCH `/apps/:id/settings`](#patch-appsidsettings)
     - [Usage Notes](#usage-notes-24)
-    - [Authorization \& Content Type](#authorization--content-type-24)
+    - [Request body](#request-body-4)
+    - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-24)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-24)
-  - [GET `/apps/:id/bugReports`](#get-appsidbugreports)
+  - [POST `/apps/:id/shortFilters`](#post-appsidshortfilters)
     - [Usage Notes](#usage-notes-25)
-    - [Authorization \& Content Type](#authorization--content-type-25)
+    - [Request body](#request-body-5)
+    - [Authorization \& Content Type](#authorization--content-type-23)
     - [Response Body](#response-body-25)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-25)
-  - [GET `/apps/:id/bugReports/plots/instances`](#get-appsidbugreportsplotsinstances)
+  - [GET `/apps/:id/spans/roots/names`](#get-appsidspansrootsnames)
     - [Usage Notes](#usage-notes-26)
-    - [Authorization \& Content Type](#authorization--content-type-26)
+    - [Authorization \& Content Type](#authorization--content-type-24)
     - [Response Body](#response-body-26)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-26)
-  - [GET `/apps/:id/bugReports/:bugReportId`](#get-appsidbugreportsbugreportid)
+  - [GET `/apps/:id/spans`](#get-appsidspans)
     - [Usage Notes](#usage-notes-27)
-    - [Authorization \& Content Type](#authorization--content-type-27)
+    - [Authorization \& Content Type](#authorization--content-type-25)
     - [Response Body](#response-body-27)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-27)
-  - [PATCH `/apps/:id/bugReports/:bugReportId`](#patch-appsidbugreportsbugreportid)
+  - [GET `/apps/:id/spans/plots/metrics`](#get-appsidspansplotsmetrics)
     - [Usage Notes](#usage-notes-28)
-    - [Request body](#request-body-4)
-    - [Authorization \& Content Type](#authorization--content-type-28)
+    - [Authorization \& Content Type](#authorization--content-type-26)
     - [Response Body](#response-body-28)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-28)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-29)
-    - [Request Body](#request-body-5)
+  - [GET `/apps/:id/traces/:traceId`](#get-appsidtracestraceid)
     - [Usage Notes](#usage-notes-29)
+    - [Authorization \& Content Type](#authorization--content-type-27)
     - [Response Body](#response-body-29)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-29)
-  - [GET `/teams`](#get-teams)
-    - [Authorization \& Content Type](#authorization--content-type-30)
+  - [GET `/apps/:id/bugReports`](#get-appsidbugreports)
+    - [Usage Notes](#usage-notes-30)
+    - [Authorization \& Content Type](#authorization--content-type-28)
     - [Response Body](#response-body-30)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-30)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-30)
-    - [Authorization \& Content Type](#authorization--content-type-31)
+  - [GET `/apps/:id/bugReports/plots/instances`](#get-appsidbugreportsplotsinstances)
+    - [Usage Notes](#usage-notes-31)
+    - [Authorization \& Content Type](#authorization--content-type-29)
     - [Response Body](#response-body-31)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-31)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
-    - [Usage Notes](#usage-notes-31)
-    - [Authorization \& Content Type](#authorization--content-type-32)
+  - [GET `/apps/:id/bugReports/:bugReportId`](#get-appsidbugreportsbugreportid)
+    - [Usage Notes](#usage-notes-32)
+    - [Authorization \& Content Type](#authorization--content-type-30)
     - [Response Body](#response-body-32)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-32)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
-    - [Usage Notes](#usage-notes-32)
+  - [PATCH `/apps/:id/bugReports/:bugReportId`](#patch-appsidbugreportsbugreportid)
+    - [Usage Notes](#usage-notes-33)
     - [Request body](#request-body-6)
-    - [Authorization \& Content Type](#authorization--content-type-33)
+    - [Authorization \& Content Type](#authorization--content-type-31)
     - [Response Body](#response-body-33)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-33)
-  - [POST `/auth/invite`](#post-authinvite)
-    - [Usage Notes](#usage-notes-33)
-    - [Request body](#request-body-7)
-    - [Authorization \& Content Type](#authorization--content-type-34)
+  - [GET `/apps/:id/alerts`](#get-appsidalerts)
+    - [Usage Notes](#usage-notes-34)
+    - [Authorization \& Content Type](#authorization--content-type-32)
     - [Response Body](#response-body-34)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-34)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
-    - [Usage Notes](#usage-notes-34)
-    - [Request body](#request-body-8)
-    - [Authorization \& Content Type](#authorization--content-type-35)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
+    - [Authorization \& Content Type](#authorization--content-type-33)
+    - [Request Body](#request-body-7)
+    - [Usage Notes](#usage-notes-35)
     - [Response Body](#response-body-35)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-35)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
-    - [Usage Notes](#usage-notes-35)
-    - [Authorization \& Content Type](#authorization--content-type-36)
+  - [GET `/teams`](#get-teams)
+    - [Authorization \& Content Type](#authorization--content-type-34)
     - [Response Body](#response-body-36)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-36)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-36)
-    - [Authorization \& Content Type](#authorization--content-type-37)
+    - [Authorization \& Content Type](#authorization--content-type-35)
     - [Response Body](#response-body-37)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-37)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-37)
-    - [Request body](#request-body-9)
-    - [Authorization \& Content Type](#authorization--content-type-38)
+    - [Authorization \& Content Type](#authorization--content-type-36)
     - [Response Body](#response-body-38)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-38)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-38)
-    - [Authorization \& Content Type](#authorization--content-type-39)
+    - [Request body](#request-body-8)
+    - [Authorization \& Content Type](#authorization--content-type-37)
     - [Response Body](#response-body-39)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-39)
+  - [GET `/teams/:id/invites`](#get-teamsidinvites)
+    - [Usage Notes](#usage-notes-39)
+    - [Authorization \& Content Type](#authorization--content-type-38)
+    - [Response Body](#response-body-40)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-40)
+  - [POST `/teams/:id/invite`](#post-teamsidinvite)
+    - [Usage Notes](#usage-notes-40)
+    - [Request body](#request-body-9)
+    - [Authorization \& Content Type](#authorization--content-type-39)
+    - [Response Body](#response-body-41)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-41)
+  - [PATCH `/teams/:id/invite/:id`](#patch-teamsidinviteid)
+    - [Usage Notes](#usage-notes-41)
+    - [Authorization \& Content Type](#authorization--content-type-40)
+    - [Response Body](#response-body-42)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-42)
+  - [DELETE `/teams/:id/invite/:id`](#delete-teamsidinviteid)
+    - [Usage Notes](#usage-notes-42)
+    - [Authorization \& Content Type](#authorization--content-type-41)
+    - [Response Body](#response-body-43)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-43)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+    - [Usage Notes](#usage-notes-44)
+    - [Request body](#request-body-10)
+    - [Authorization \& Content Type](#authorization--content-type-42)
+    - [Response Body](#response-body-44)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-44)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
+    - [Usage Notes](#usage-notes-44)
+    - [Authorization \& Content Type](#authorization--content-type-43)
+    - [Response Body](#response-body-45)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-45)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+    - [Usage Notes](#usage-notes-45)
+    - [Authorization \& Content Type](#authorization--content-type-44)
+    - [Response Body](#response-body-46)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-46)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+    - [Usage Notes](#usage-notes-46)
+    - [Request body](#request-body-11)
+    - [Authorization \& Content Type](#authorization--content-type-45)
+    - [Response Body](#response-body-47)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-47)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+    - [Usage Notes](#usage-notes-47)
+    - [Authorization \& Content Type](#authorization--content-type-46)
+    - [Response Body](#response-body-48)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-48)
+  - [GET `/teams/:id/usage`](#get-teamsidusage)
+    - [Usage Notes](#usage-notes-48)
+    - [Authorization \& Content Type](#authorization--content-type-47)
+    - [Response Body](#response-body-49)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-49)
+  - [GET `/teams/:id/slack`](#get-teamsidslack)
+    - [Usage Notes](#usage-notes-49)
+    - [Authorization \& Content Type](#authorization--content-type-48)
+    - [Response Body](#response-body-50)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-50)
+  - [PATCH `/teams/:id/slack/status`](#patch-teamsidslackstatus)
+    - [Usage Notes](#usage-notes-50)
+    - [Request body](#request-body-12)
+    - [Authorization \& Content Type](#authorization--content-type-49)
+    - [Response Body](#response-body-51)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-51)
+
+## Auth
+
+- [**POST `/auth/github`**](#post-authgithub) - Sign in with Github.
+- [**POST `/auth/google`**](#post-authgoogle) - Sign in with Google.
+- [**POST `/auth/refresh`**](#post-authrefresh) - Refresh session.
+- [**GET `/auth/session`**](#get-authsession) - Fetch session.
+- [**DELETE `/auth/signout`**](#delete-authsignout) - Sign out.
+
+### POST `/auth/github`
+
+Sign in with Github.
+
+#### Usage Notes
+
+- Should pass in type as "code" along with state and code received from Github.
+
+#### Request Body
+
+```json
+{
+ "type":"code","state":"eyJyYW5kb20iOiIxOGY0NDIzZjExY2FiM2ZkOTRiNDZlMzU0ZWU1MDNlZjEyODk1MmY3YzViMDgxNjczMDkwMzVhYzU3ZjNkYjgxIiwicGF0aCI6IiJ9","code":"ccd85e1fbfae2924588a"
+}
+  
+```
+
+#### Content Type
+
+1. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**       | **Value**                       |
+| -------------- | ------------------------------- |
+| `Content-Type` | application/json; charset=utf-8 |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDUyMjU0ODQsImlhdCI6MTc0NTIyMzY4NCwiaXNzIjoibWVhc3VyZSIsIm90aSI6ImU0N2FjNDlkLTA2OTctNGU4NS04NjA3LTFhMzQ1MzZjMDRlMyIsInN1YiI6IjgzNTI4M2E1LWNkZGMtNDcyYi04NGFkLTVlYTMzMTllZmVlZCJ9.UA-rtIY8TPjB3gkt0xgxTTXWa84uB6nr9vMyg0gMnSI",
+    "refresh_token": "yJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9eyJleHAiOjE3NDU4Mjg0ODQsImp0aSI6ImYwY2NlMjViLTkyOWQtNGI4ZS1iOTgyLWM1YmRlOWJmZmJlYyJ9.1-meGfGQ8i9IlNxKXmBlDc4lEu-O63jG2vrd7yP0-j8",
+    "session_id": "afae8473-2419-4303-a262-2aea520de295",
+    "user_id": "835283a5-cddc-472b-84ad-5ea3319efeed",
+    "own_team_id": "e47ac49d-0697-4e85-8607-1a34536c04e3"
+  }
+  
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |  |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### POST `/auth/google`
+
+Sign in with Google.
+
+#### Usage Notes
+
+- Should pass in credential, state and nonce received from Google.
+
+#### Request Body
+
+```json
+{
+  "credential":"eyJhbGciOiJSUzI1NiIsImtpZCI6ImMzN2RhNzVjOWZiZTE4YzJjZTkxMjViOWFhMWYzMDBkY2IzMWU4ZDkiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI3MTUwNjUzODk3NTYtMG5lamVnZnJhNmVyY28zdTE3MnZqZ2lib3QyYTZwNHYuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI3MTUwNjUzODk3NTYtMG5lamVnZnJhNmVyY28zdTE3MnZqZ2lib3QyYTZwNHYuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDAxNTg0ODAwMzg3MDM2ODQwMDQiLCJlbWFpbCI6ImFudXBjb3drdXI4OUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibm9uY2UiOiJhYzc3ZDhmZWExNjc4MzE2NTI0MTVhNGViZmNlZDViZDRjM2E0MzAyNmI0ZTVmNGVhZTYyMGRmMzhiMWM4YmJhIiwibmJmIjoxNzQ0OTgwNDY3LCJuYW1lIjoiQW51cCBDb3drdXIiLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jSnhYOUNxVm5EemktLUhFa1ZqSU5tbXY2dGpHM1Rlb3RPQWdYZTVpNFNNdVRCS3VYZ2g9czk2LWMiLCJnaXZlbl9uYW1lIjoiQW51cCIsImZhbWlseV9uYW1lIjoiQ293a3VyIiwiaWF0IjoxNzQ0OTgwNzY3LCJleHAiOjE3NDQ5ODQzNjcsImp0aSI6IjgwYTMxYjZjZjc3OTlkMWEwNTIyMGNlNzcyZjZlZDA2NTliMzZjYmQifQ.tsPn8osrQgLzO4XVn579S3aloF20oK8GHXLHSjg2NWmZeOtugoX51pWZiZSEZb_N9YDAwz4ld0oerd392uL79bkvzxaAWfhHa4-7XDIuOxlai3ekJbUkg07OzYpQ7vf2JQpPDeie54Zp45RRbV8xgUYzmdHi_h7WmfNX2n2Pdn0MidJdxCkCXlqQMxF-kN-VCb1yPiT78KhaWPufJRrtkCwpesE_LYMm1LMhr87zGawf8x8KOv_vMl_W1mZf8VyyVTxUlNhCxFqdMNq0rKChC2EuMGrwRVnCWOYzY0O6ff-2RL9OFFVxOQ8ferHgqNtlp6DtQFVLnypAoY0Kxb5PnQ","state":"eyJyYW5kb20iOiJiMGNkMTBjNzViOTI3NjQ1MmM4NTRlMzJiMjlkOTI1ZmI0YjkyNGI5ODFkZDQ0ZjM4OTMwYWQwYzU2YjEzMDk3IiwicGF0aCI6IiJ9","nonce":"e7d285dbf441b9a24228e00fe8188628"
+}
+```
+
+#### Content Type
+
+1. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**       | **Value**                       |
+| -------------- | ------------------------------- |
+| `Content-Type` | application/json; charset=utf-8 |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDUyMjU2NTksImlhdCI6MTc0NTIyMzg1OSwiaXNzIjoibWVhc3VyZSIsIm90aSI6ImU0N2FjNDlkLTA2OTctNGU4NS04NjA3LTFhMzQ1MzZjMDRlMyIsInN1YiI6IjgzNTI4M2E1LWNkZGMtNDcyYi04NGFkLTVlYTMzMTllZmVlZCJ9.XzbpImWw9GXFlIXHCu92QNsA1D8m_Y9ZFVDEDqG_wtM",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDU4Mjg2NTksImp0aSI6Ijg0Njk3ODhkLWVjNTEtNDdkNi1hM2RkLTRhYWY2NzI4ZmYzNyJ9.MeMIsk1KEHvPa2AAbDBQWqeKJwQcxbk1lXb7Mhcz-uQ",
+    "session_id": "afae8473-2419-4303-a262-2aea520de295",
+    "user_id": "835283a5-cddc-472b-84ad-5ea3319efeed",
+    "own_team_id": "e47ac49d-0697-4e85-8607-1a34536c04e3"
+  }
+  
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |  |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### POST `/auth/refresh`
+
+Refresh session.
+
+#### Usage Notes
+
+- Should pass in refresh token as cookies or in auth header.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the session's refresh token in `Authorization: Bearer <refresh-token>` format unless you are using cookies to send refresh tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDUyMjU2NTksImlhdCI6MTc0NTIyMzg1OSwiaXNzIjoibWVhc3VyZSIsIm90aSI6ImU0N2FjNDlkLTA2OTctNGU4NS04NjA3LTFhMzQ1MzZjMDRlMyIsInN1YiI6IjgzNTI4M2E1LWNkZGMtNDcyYi04NGFkLTVlYTMzMTllZmVlZCJ9.XzbpImWw9GXFlIXHCu92QNsA1D8m_Y9ZFVDEDqG_wtM",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDU4Mjg2NTksImp0aSI6Ijg0Njk3ODhkLWVjNTEtNDdkNi1hM2RkLTRhYWY2NzI4ZmYzNyJ9.MeMIsk1KEHvPa2AAbDBQWqeKJwQcxbk1lXb7Mhcz-uQ"
+  }
+  
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's refresh token is invalid or has expired.                                                             |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/auth/session`
+
+Fetch session.
+
+#### Usage Notes
+
+- Only active sessions that have not been cleaned up will receive a response. Invalid sessions return an error.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "user": {
+        "id": "835283a5-cddc-472b-84ad-5ea3319efeed",
+        "own_team_id": "e47ac49d-0697-4e85-8607-1a34536c04e3",
+        "name": "Dummy User",
+        "email": "dummy@gmail.com",
+        "confirmed_at": "2024-06-19T22:14:49.77Z",
+        "last_sign_in_at": "2024-06-19T22:14:49.77Z",
+        "created_at": "2024-06-19T22:14:49.77Z",
+        "updated_at": "2024-06-19T22:14:49.77Z",
+    }
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### DELETE `/auth/signout`
+
+Sign out.
+
+#### Usage Notes
+
+- Only active sessions that have not been cleaned up will receive a response. Invalid sessions return an error.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's refresh token in `Authorization: Bearer <access-refresh>` format unless you are using cookies to send refresh tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok": true
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's refresh token is invalid or has expired.                                                             |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
 
 ## Apps
 
@@ -247,6 +677,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 - [**GET `/apps/:id/bugReports/plots/instances`**](#get-appsidbugreportsplotsinstances) - Fetch an app's bug report instances plot with optional filters.
 - [**GET `/apps/:id/bugReports/:bugReportId`**](#get-appsidbugreportsbugreportid) - Fetch a bug report.
 - [**PATCH `/apps/:id/bugReports/:bugReportId`**](#patch-appsidbugreportsbugreportid) - Update a bug report's status.
+- [**GET `/apps/:id/alerts`**](#get-appsidalerts) - Fetch an app's alerts with optional filters.
 
 ### GET `/apps/:id/journey`
 
@@ -264,11 +695,11 @@ Fetch an app's issue journey map. Filter time range using `from` &amp; `to` quer
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -418,11 +849,11 @@ Fetch an app's health metrics. Filter time range using `from` &amp; `to` query s
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -536,11 +967,11 @@ Fetch an app's filters.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -710,11 +1141,11 @@ Fetch an app's crash overview.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -740,45 +1171,65 @@ These headers must be present in each request.
     },
     "results": [
       {
-        "id": "01903291-1eb4-7b81-854b-fd9d3bbccb4b",
-        "app_id": "fddf4d6d-1df1-45f8-8bc7-9730f2236cb0",
-        "name": "java.lang.IllegalStateException@RxJava2CallAdapterFactory.java:118",
-        "fingerprint": "c37a8c1cc1c037f9",
-        "count": 41,
-        "percentage_contribution": 77.35849,
-        "created_at": "2024-06-19T22:14:49.77Z",
-        "updated_at": "2024-06-19T22:15:25.636Z"
-      },
-      {
-        "id": "01903291-6652-7ecf-9a6d-53ef16b6203a",
-        "app_id": "fddf4d6d-1df1-45f8-8bc7-9730f2236cb0",
-        "name": "java.lang.IllegalStateException@RxJava2CallAdapterFactory.java:118",
-        "fingerprint": "c3ea8c1cc1d033f9",
-        "count": 6,
-        "percentage_contribution": 11.320755,
-        "created_at": "2024-06-19T22:15:08.109Z",
-        "updated_at": "2024-06-19T22:15:23.134Z"
-      },
-      {
-        "id": "01903291-7992-7c4f-b98e-6f8e93417695",
-        "app_id": "fddf4d6d-1df1-45f8-8bc7-9730f2236cb0",
-        "name": "java.lang.IllegalStateException@RxJava2CallAdapterFactory.java:118",
-        "fingerprint": "c3faac1cc1c037bb",
-        "count": 4,
-        "percentage_contribution": 7.5471697,
-        "created_at": "2024-06-19T22:15:13.038Z",
-        "updated_at": "2024-06-19T22:15:21.224Z"
-      },
-      {
-        "id": "01903291-8379-79ee-8a27-678368a0a5b8",
-        "app_id": "fddf4d6d-1df1-45f8-8bc7-9730f2236cb0",
-        "name": "java.lang.IllegalStateException@RxJava2CallAdapterFactory.java:118",
-        "fingerprint": "c37acc1cc0c037bb",
-        "count": 2,
-        "percentage_contribution": 3.7735848,
-        "created_at": "2024-06-19T22:15:15.573Z",
-        "updated_at": "2024-06-19T22:15:19.957Z"
-      }
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "id": "0a674646a76ebe4aa378b8e1aaa49d61",
+            "type": "java.lang.IllegalAccessException",
+            "message": "This is a new exception",
+            "method_name": "onClick",
+            "file_name": "ExceptionDemoActivity",
+            "line_number": 0,
+            "count": 11,
+            "percentage_contribution": 36.67,
+            "updated_at": "2025-06-13T14:08:58.228662166Z"
+        },
+        {
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "id": "b98e7b3ee2144b658ee613ab18a4326f",
+            "type": "java.lang.StackOverflowError",
+            "message": "stack size 8188KB",
+            "method_name": "recursiveFunction",
+            "file_name": "ExceptionDemoActivity.kt",
+            "line_number": 195,
+            "count": 5,
+            "percentage_contribution": 16.67,
+            "updated_at": "2025-06-13T14:08:58.253760541Z"
+        },
+        {
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "id": "2ca7a0d943d923ee99af0e94d89ee0bc",
+            "type": "java.lang.OutOfMemoryError",
+            "message": "Failed to allocate a 104857616 byte allocation with 25165824 free bytes and 88MB until OOM, target footprint 133174272, growth limit 201326592",
+            "method_name": "onClick",
+            "file_name": "ExceptionDemoActivity",
+            "line_number": 0,
+            "count": 4,
+            "percentage_contribution": 13.33,
+            "updated_at": "2025-06-13T14:08:58.084689791Z"
+        },
+        {
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "id": "f94859bc4b47fbf05b4eec2a300de0a4",
+            "type": "sh.measure.sample.CustomException",
+            "message": "This is a nested custom exception",
+            "method_name": "onClick",
+            "file_name": "ExceptionDemoActivity",
+            "line_number": 0,
+            "count": 4,
+            "percentage_contribution": 13.33,
+            "updated_at": "2025-06-13T14:08:57.940485305Z"
+        },
+        {
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "id": "c4ee2ff2e2496be30848cf500300be56",
+            "type": "android.app.RemoteServiceException$CrashedByAdbException",
+            "message": "shell-induced crash",
+            "method_name": "throwRemoteServiceException",
+            "file_name": "ActivityThread.java",
+            "line_number": 1990,
+            "count": 3,
+            "percentage_contribution": 10,
+            "updated_at": "2025-06-13T14:08:56.040462013Z"
+        }
     ]
   }
   ```
@@ -830,11 +1281,11 @@ Fetch an app's crash overview instances plot aggregated by date range & version.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -934,11 +1385,11 @@ Fetch an app's crash detail.
 
 #### Authorization &amp; Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -1176,11 +1627,11 @@ Fetch an app's crash detail instances aggregrated by date range & version.
 
 #### Authorization &amp; Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -1274,11 +1725,11 @@ Fetch an app's crash journey map.
 
 #### Authorization &amp; Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -1411,11 +1862,11 @@ Fetch an app's ANR overview.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -1441,25 +1892,29 @@ These headers must be present in each request.
     },
     "results": [
       {
-        "id": "01903291-c21a-7e2a-923d-90d3793a8fb0",
-        "app_id": "2b7ddad4-40a6-42a7-9e21-a90577e08263",
-        "name": "sh.measure.android.anr.AnrError@ExceptionDemoActivity.kt:62",
-        "fingerprint": "c37ac85cc1d013f9",
-        "count": 3,
-        "percentage_contribution": 75,
-        "created_at": "2024-06-19T22:15:31.608Z",
-        "updated_at": "2024-06-19T22:15:34.659Z"
-      },
-      {
-        "id": "01903291-cc74-793b-ba28-842ffecdb774",
-        "app_id": "2b7ddad4-40a6-42a7-9e21-a90577e08263",
-        "name": "sh.measure.android.anr.AnrError@ExceptionDemoActivity.kt:66",
-        "fingerprint": "8368c85cc1c013f9",
-        "count": 1,
-        "percentage_contribution": 25,
-        "created_at": "2024-06-19T22:15:34.258Z",
-        "updated_at": "2024-06-19T22:15:34.258Z"
-      }
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "id": "09ef78940bd258030ebe3937bf1e32a2",
+            "type": "sh.measure.android.anr.AnrError",
+            "message": "Application Not Responding for at least 5s",
+            "method_name": "run",
+            "file_name": "CpuUsageCollector",
+            "line_number": 0,
+            "count": 1,
+            "percentage_contribution": 50,
+            "updated_at": "2025-06-13T14:08:58.003350625Z"
+        },
+        {
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "id": "19f5125829c0477f56a6e610cd81b735",
+            "type": "sh.measure.android.anr.AnrError",
+            "message": "Application Not Responding for at least 5s",
+            "method_name": "sleep",
+            "file_name": "Thread.java",
+            "line_number": -2,
+            "count": 1,
+            "percentage_contribution": 50,
+            "updated_at": "2025-06-13T14:08:56.313369888Z"
+        }
     ]
   }
   ```
@@ -1511,11 +1966,11 @@ Fetch an app's ANR overview instances plot aggregated by date range & version.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -1615,11 +2070,11 @@ Fetch an app's ANR detail.
 
 #### Authorization &amp; Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -1890,11 +2345,11 @@ Fetch an app's ANR detail instances aggregated by date range & version.
 
 #### Authorization &amp; Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -1979,11 +2434,11 @@ Fetch an app's ANR journey map.
 
 #### Authorization &amp; Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -2136,11 +2591,11 @@ Fetch an app's sessions by applying various optional filters.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -2388,11 +2843,11 @@ Fetch an app's session replay.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -3109,11 +3564,11 @@ Fetch an app's alert preferences for current user.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -3205,11 +3660,11 @@ Update an app's alert preferences for current user.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -3279,11 +3734,11 @@ Modify the name of an app.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -3345,11 +3800,11 @@ Fetch an app's settings.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -3419,11 +3874,11 @@ Update an app's settings.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -3508,11 +3963,11 @@ These shortcodes can then be used in other app APIs which accept different filte
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -3574,11 +4029,11 @@ Fetch an app's root span names list with optional filters.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -3658,11 +4113,11 @@ Fetch a span's list of instances with optional filters.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -3797,11 +4252,11 @@ Fetch a span's metrics plot with optional filters.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -3875,11 +4330,11 @@ Fetch a trace.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -3987,11 +4442,11 @@ Fetch an app's bug reports by applying various optional filters.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -4023,6 +4478,7 @@ These headers must be present in each request.
         "status": 0,
         "description": "Unresponsive button. Kept tapping but nothing happens",
         "timestamp": "2024-12-16T03:31:07.127Z",
+        "updated_at": "2024-12-16T03:31:07.127Z",
         "attribute": {
           "installation_id": "00000000-0000-0000-0000-000000000000",
           "app_version": "0.9.0-SNAPSHOT.debug",
@@ -4064,6 +4520,7 @@ These headers must be present in each request.
         "status": 0,
         "description": "This app sucks!",
         "timestamp": "2024-11-18T14:14:41.622Z",
+        "updated_at": "2024-11-18T14:14:41.622Z",
         "attribute": {
           "installation_id": "00000000-0000-0000-0000-000000000000",
           "app_version": "0.9.0-SNAPSHOT.debug",
@@ -4105,6 +4562,7 @@ These headers must be present in each request.
         "status": 0,
         "description": "Screen too slow to load. I'm switching to another app!!!",
         "timestamp": "2024-11-14T04:55:19.37Z",
+        "updated_at": "2024-11-14T04:55:19.37Z",
         "attribute": {
           "installation_id": "00000000-0000-0000-0000-000000000000",
           "app_version": "0.9.0-SNAPSHOT.debug",
@@ -4146,6 +4604,7 @@ These headers must be present in each request.
         "status": 1,
         "description": "Can't click button. Screen frozen.",
         "timestamp": "2024-07-25T07:26:16.44Z",
+        "updated_at": "2024-07-25T07:26:16.44Z",
         "attribute": {
           "installation_id": "00000000-0000-0000-0000-000000000000",
           "app_version": "1.0",
@@ -4187,6 +4646,7 @@ These headers must be present in each request.
         "status": 0,
         "description": "Clicking button leads to crash.",
         "timestamp": "2024-06-13T13:37:23.33Z",
+        "updated_at": "2024-06-13T13:37:23.33Z",
         "attribute": {
           "installation_id": "00000000-0000-0000-0000-000000000000",
           "app_version": "1.0",
@@ -4283,11 +4743,11 @@ Fetch an app's bug report instances plot by applying various optional filters.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -4383,11 +4843,11 @@ Fetch a bug report.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -4413,6 +4873,7 @@ These headers must be present in each request.
     "status": 0,
     "description": "This app sucks!",
     "timestamp": "2024-11-18T14:14:41.622Z",
+    "updated_at": "2024-11-18T14:14:41.622Z",
     "attribute": {
       "installation_id": "00000000-0000-0000-0000-000000000000",
       "app_version": "0.9.0-SNAPSHOT.debug",
@@ -4507,11 +4968,11 @@ Update a bug reports's status.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -4563,6 +5024,140 @@ List of HTTP status codes for success and failures.
 
 </details>
 
+### GET `/apps/:id/alerts`
+
+Fetch an app's alerts by applying various optional filters.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include sessions after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
+  - `offset` (_optional_) - Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
+  - `limit` (_optional_) - Number of items to return. Used for pagination. Should be used along with `offset`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+- Pass `limit` and `offset` values to paginate results
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "meta": {
+        "next": true,
+        "previous": false
+    },
+    "results": [
+        {
+            "id": "83e9d75c-b3df-432f-af80-ac6f60a9a36e",
+            "team_id": "29f0f5b2-f03f-4dbe-bd18-acf163b91965",
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "entity_id": "09ef78940bd258030ebe3937bf1e32a2",
+            "type": "anr_spike",
+            "message": "ANRs are spiking at CpuUsageCollector: run() - Application Not Responding for at least 5s",
+            "url": "http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/anrs/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/09ef78940bd258030ebe3937bf1e32a2/sh.measure.android.anr.AnrError@CpuUsageCollector",
+            "created_at": "2025-07-10T11:35:48.069383Z",
+            "updated_at": "2025-07-10T11:35:48.069383Z"
+        },
+        {
+            "id": "003e09e7-b8cf-45c6-b714-2c3149909fc5",
+            "team_id": "29f0f5b2-f03f-4dbe-bd18-acf163b91965",
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "entity_id": "19f5125829c0477f56a6e610cd81b735",
+            "type": "anr_spike",
+            "message": "ANRs are spiking at Thread.java: sleep() - Application Not Responding for at least 5s",
+            "url": "http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/anrs/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/19f5125829c0477f56a6e610cd81b735/sh.measure.android.anr.AnrError@Thread.java",
+            "created_at": "2025-07-10T11:35:48.065612Z",
+            "updated_at": "2025-07-10T11:35:48.065613Z"
+        },
+        {
+            "id": "865363ff-f960-492d-8a67-a134f242d290",
+            "team_id": "29f0f5b2-f03f-4dbe-bd18-acf163b91965",
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "entity_id": "f94859bc4b47fbf05b4eec2a300de0a4",
+            "type": "crash_spike",
+            "message": "Crashes are spiking at ExceptionDemoActivity: onClick() - This is a nested custom exception",
+            "url": "http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/crashes/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/f94859bc4b47fbf05b4eec2a300de0a4/sh.measure.sample.CustomException@ExceptionDemoActivity",
+            "created_at": "2025-07-10T11:35:48.057192Z",
+            "updated_at": "2025-07-10T11:35:48.057192Z"
+        },
+        {
+            "id": "e9b43259-bf7b-4f32-98d8-8195891e1aab",
+            "team_id": "29f0f5b2-f03f-4dbe-bd18-acf163b91965",
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "entity_id": "2ca7a0d943d923ee99af0e94d89ee0bc",
+            "type": "crash_spike",
+            "message": "Crashes are spiking at ExceptionDemoActivity: onClick() - Failed to allocate a 104857616 byte allocation with 25165824 free bytes and 88MB until OOM, target footprint 133174272, growth limit 201326592",
+            "url": "http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/crashes/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/2ca7a0d943d923ee99af0e94d89ee0bc/java.lang.OutOfMemoryError@ExceptionDemoActivity",
+            "created_at": "2025-07-10T11:35:48.052805Z",
+            "updated_at": "2025-07-10T11:35:48.052806Z"
+        },
+        {
+            "id": "2161d773-c822-47a3-9df7-da6f33f67e6a",
+            "team_id": "29f0f5b2-f03f-4dbe-bd18-acf163b91965",
+            "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+            "entity_id": "e60607f81e351b2e9596faa8eb853e70",
+            "type": "crash_spike",
+            "message": "Crashes are spiking at ZygoteInit.java: main() - Unhandled Exception",
+            "url": "http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/crashes/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/e60607f81e351b2e9596faa8eb853e70/java.lang.IllegalAccessException@ZygoteInit.java",
+            "created_at": "2025-07-10T11:35:48.04831Z",
+            "updated_at": "2025-07-10T11:35:48.04831Z"
+        }
+    ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
 ## Teams
 
 - [**POST `/teams`**](#post-teams) - Create new team. Access token holder becomes the owner.
@@ -4570,12 +5165,18 @@ List of HTTP status codes for success and failures.
 - [**GET `/teams/:id/apps`**](#get-teamsidapps) - Fetch list of apps for a team.
 - [**GET `/teams/:id/apps/:id`**](#get-teamsidappsid) - Fetch details of an app for a team.
 - [**POST `/teams/:id/apps`**](#post-teamsidapps) - Create a new app for a team.
+- [**GET `/teams/:id/invites`**](#get-teamsidinvites) - Fetch valid pending invites for a team.
 - [**POST `/teams/:id/invite`**](#post-teamsidinvite) - Invite new members (both existing & non measure users) to a team.
+- [**PATCH `/teams/:id/invite/:id`**](#patch-teamsidinviteid) - Resend a team invite.
+- [**DELETE `/teams/:id/invite/:id`**](#delete-teamsidinviteid) - Delete a team invite.
 - [**PATCH `/teams/:id/rename`**](#patch-teamsidrename) -  Rename a team.
 - [**GET `/teams/:id/members`**](#get-teamsidmembers) -  Fetch list of team members for a team.
 - [**DELETE `/teams/:id/members/:id`**](#delete-teamsidmembersid) -  Remove a member from a team.
 - [**PATCH `/teams/:id/members/:id/role`**](#patch-teamsidmembersid) -  Change role of a member of a team.
 - [**GET `/teams/:id/authz`**](#get-teamsidauthz) -  Fetch authorization details of access token holder for a team.
+- [**GET `/teams/:id/usage`**](#get-teamsidusage) -  Fetch data usage details for a team.
+- [**GET `/teams/:id/slack`**](#get-teamsidslack) -  Fetch Slack details for a team.
+- [**PATCH `/teams/:id/slack/status`**](#patch-teamsidslackstatus) -  Update a team's Slack integration status to active or inactive.
 
 ### POST `/teams`
 
@@ -4583,11 +5184,11 @@ Create a new team. Only owners of existing team can create new teams.
 
 #### Authorization &amp; Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -4660,11 +5261,11 @@ Fetch list of teams of access token holder.
 
 #### Authorization &amp; Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -4739,11 +5340,11 @@ Fetch list of apps for a team
 
 #### Authorization &amp; Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -4843,11 +5444,11 @@ Fetch details of an app for a team
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -4936,11 +5537,11 @@ Create a new app for a team
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -5006,7 +5607,95 @@ List of HTTP status codes for success and failures.
 
 </details>
 
-### POST `/auth/invite`
+### GET `/teams/:id/invites`
+
+Fetch valid pending invites for a team
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI as the first ID
+- Only valid invites are returned. Expired invites are ignored.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+    [
+      {
+          "id": "4ce39d97-f8cd-419c-9a68-36b7d49eab9f",
+          "invited_by_user_id": "0c367906-7a66-4103-a3ae-cb40a40def35",
+          "invited_by_email": "admin@acme.com",
+          "invited_to_team_id": "00000000-0000-0000-0000-000000000000",
+          "role": "admin",
+          "email": "member1@acme.com",
+          "created_at": "2025-04-26T12:57:33.463326Z",
+          "updated_at": "2025-04-26T12:57:33.463326Z",
+          "valid_until": "2025-04-28T12:57:33.463326Z"
+      },
+      {
+          "id": "8c618258-8c35-4d52-9880-7b1f1de85a53",
+          "invited_by_user_id": "0c367906-7a66-4103-a3ae-cb40a40def35",
+          "invited_by_email": "owner@acme.com",
+          "invited_to_team_id": "00000000-0000-0000-0000-000000000000",
+          "role": "developer",
+          "email": "member2@acme.com",
+          "created_at": "2025-04-26T12:57:41.236412Z",
+          "updated_at": "2025-04-26T12:57:41.236412Z",
+          "valid_until": "2025-04-28T12:57:41.236412Z"
+      }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### POST `/teams/:id/invite`
 
 Invite new members (both existing & non measure users) to a team
 
@@ -5030,16 +5719,19 @@ Invite new members (both existing & non measure users) to a team
 
 #### Authorization & Content Type
 
-1. Set content type as `Content-Type: application/json; charset=utf-8`
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
-These headers must be present in each request.
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
 
-| **Name**       | **Value**                       |
-| -------------- | ------------------------------- |
-| `Content-Type` | application/json; charset=utf-8 |
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
 </details>
 
 #### Response Body
@@ -5052,6 +5744,140 @@ These headers must be present in each request.
   ```json
   {
     "ok":"invited newuser@gmail.com"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### PATCH `/teams/:id/invite/:id`
+
+Resend a team invite
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI
+- Invite's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok":"Resent invite 3bbc91df-9ad8-445a-b60b-9ca603140cd1"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### DELETE `/teams/:id/invite/:id`
+
+Delete a team invite
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI
+- Invite's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok":"Removed invite 3bbc91df-9ad8-445a-b60b-9ca603140cd1"
   }
   ```
 
@@ -5102,11 +5928,11 @@ Rename a team
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -5168,11 +5994,11 @@ Fetch list of team members for a team
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -5250,11 +6076,11 @@ Remove a member from a team
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -5325,11 +6151,11 @@ Change role of a member of a team
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -5383,7 +6209,7 @@ List of HTTP status codes for success and failures.
 
 ### GET `/teams/:id/authz`
 
-Fetch authorization details of access token holder for a team.
+Fetch authorization details of members for a team. Oldest members appear first in the list of members.
 
 #### Usage Notes
 
@@ -5394,11 +6220,11 @@ Fetch authorization details of access token holder for a team.
 
 #### Authorization & Content Type
 
-1. Set the user's access token in `Authorization: Bearer <access-token>` format
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
 
 2. Set content type as `Content-Type: application/json; charset=utf-8`
 
-These headers must be present in each request.
+The required headers must be present in each request.
 
 <details>
   <summary>Request Headers - Click to expand</summary>
@@ -5460,6 +6286,455 @@ These headers must be present in each request.
             }
         }
     ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/teams/:id/usage`
+
+Fetch data usage details for a team. Returns data for 3 months including current month.
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+    [
+      {
+          "app_id": "b5417416-5b61-42c5-8e21-862e4b8c3b36",
+          "app_name": "Wikipedia",
+          "monthly_app_usage": [
+              {
+                  "month_year": "Jun 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Jul 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Aug 2025",
+                  "event_count": 1374,
+                  "session_count": 0,
+                  "trace_count": 71,
+                  "span_count": 71
+              }
+          ]
+      },
+      {
+          "app_id": "8af8fb8e-e37a-4b56-82a0-905c12852240",
+          "app_name": "iOS Wikipedia",
+          "monthly_app_usage": [
+              {
+                  "month_year": "Jun 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Jul 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Aug 2025",
+                  "event_count": 5907,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              }
+          ]
+      },
+      {
+          "app_id": "36213dc3-fb23-454f-be9f-94cb327a4823",
+          "app_name": "Flutter Sample iOS Debug",
+          "monthly_app_usage": [
+              {
+                  "month_year": "Jun 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Jul 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Aug 2025",
+                  "event_count": 463,
+                  "session_count": 0,
+                  "trace_count": 6,
+                  "span_count": 10
+              }
+          ]
+      },
+      {
+          "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+          "app_name": "Sample",
+          "monthly_app_usage": [
+              {
+                  "month_year": "Jun 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Jul 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Aug 2025",
+                  "event_count": 5003,
+                  "session_count": 38,
+                  "trace_count": 407,
+                  "span_count": 518
+              }
+          ]
+      },
+      {
+          "app_id": "1156ec93-1e69-4952-a470-31af0de94497",
+          "app_name": "iOS Sample",
+          "monthly_app_usage": [
+              {
+                  "month_year": "Jun 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Jul 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Aug 2025",
+                  "event_count": 2306,
+                  "session_count": 0,
+                  "trace_count": 32,
+                  "span_count": 32
+              }
+          ]
+      },
+      {
+          "app_id": "f220a1b1-0738-43be-820c-4225f7b12698",
+          "app_name": "Flutter Sample Android",
+          "monthly_app_usage": [
+              {
+                  "month_year": "Jun 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Jul 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Aug 2025",
+                  "event_count": 196,
+                  "session_count": 0,
+                  "trace_count": 1,
+                  "span_count": 1
+              }
+          ]
+      },
+      {
+          "app_id": "816b93d6-1d01-45a9-81b8-e363dbdf314c",
+          "app_name": "Flutter Sample Android Debug",
+          "monthly_app_usage": [
+              {
+                  "month_year": "Jun 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Jul 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Aug 2025",
+                  "event_count": 391,
+                  "session_count": 0,
+                  "trace_count": 7,
+                  "span_count": 11
+              }
+          ]
+      },
+      {
+          "app_id": "6ee68015-8da7-46fb-8afb-c25394e2bdf3",
+          "app_name": "Flutter Sample iOS",
+          "monthly_app_usage": [
+              {
+                  "month_year": "Jun 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Jul 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Aug 2025",
+                  "event_count": 110,
+                  "session_count": 0,
+                  "trace_count": 3,
+                  "span_count": 3
+              }
+          ]
+      },
+      {
+          "app_id": "426c19c0-e0ef-4c82-a3e0-4802cf0e7bd1",
+          "app_name": "PocketCasts",
+          "monthly_app_usage": [
+              {
+                  "month_year": "Jun 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Jul 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              },
+              {
+                  "month_year": "Aug 2025",
+                  "event_count": 0,
+                  "session_count": 0,
+                  "trace_count": 0,
+                  "span_count": 0
+              }
+          ]
+      }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/teams/:id/slack`
+
+Fetch Slack details for a team. Returns Slack workspace name and active or inactive status if team has slack connected. Returns null if team doesn't have Slack connected.
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+    {
+      "slack_team_name":"Measure",
+      "is_active":true
+    }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### PATCH `/teams/:id/slack/status`
+
+Update active or inactive status for a team's Slack integration.
+
+#### Usage Notes
+
+- Teams's UUID must be passed in the URI as the first ID
+
+#### Request body
+
+```json
+{
+  "is_active": false
+}
+```
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok" : "done"
   }
   ```
 

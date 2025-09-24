@@ -38,12 +38,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent should not return nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -92,12 +91,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -144,12 +142,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -178,13 +175,21 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             offset: 1234,
             frameIndex: 0,
             symbolAddress: "0x0000000100000000",
-            inApp: true
+            inApp: true,
+            className: "EventSerializer",
+            methodName: "serialize",
+            fileName: "EventSerializer.swift",
+            lineNumber: 102,
+            columnNumber: 12,
+            moduleName: "measure",
+            instructionAddress: "0x0000000000000000"
         )
 
         // Binary image setup
         let binaryImage = BinaryImage(
             startAddress: "1081da000",
             endAddress: "1081fffff",
+            baseAddress: nil,
             system: false,
             name: "DemoApp",
             arch: "x86_64",
@@ -208,7 +213,9 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             exceptions: [exceptionDetail],
             foreground: true,
             threads: [ThreadDetail(name: "main", frames: [stackFrame], sequence: 1)],
-            binaryImages: [binaryImage]
+            binaryImages: [binaryImage],
+            framework: "ios",
+            error: nil
         )
 
         // Event setup
@@ -226,13 +233,12 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
         // Deserialize and validate
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -256,6 +262,13 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
                         XCTAssertEqual(firstFrame["frame_index"] as? Number, 0)
                         XCTAssertEqual(firstFrame["symbol_address"] as? String, "0x0000000100000000")
                         XCTAssertEqual(firstFrame["in_app"] as? Bool, true)
+                        XCTAssertEqual(firstFrame["class_name"] as? String, "EventSerializer")
+                        XCTAssertEqual(firstFrame["method_name"] as? String, "serialize")
+                        XCTAssertEqual(firstFrame["file_name"] as? String, "EventSerializer.swift")
+                        XCTAssertEqual(firstFrame["line_num"] as? Number, 102)
+                        XCTAssertEqual(firstFrame["col_num"] as? Number, 12)
+                        XCTAssertEqual(firstFrame["module_name"] as? String, "measure")
+                        XCTAssertEqual(firstFrame["instruction_address"] as? String, "0x0000000000000000")
                     } else {
                         XCTFail("Stack frames are not present in the exception details.")
                     }
@@ -286,7 +299,8 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
                     XCTAssertEqual(firstBinaryImage["name"] as? String, "DemoApp")
                     XCTAssertEqual(firstBinaryImage["arch"] as? String, "x86_64")
                     XCTAssertEqual(firstBinaryImage["uuid"] as? String, "a02da00e792a395aa1d40cc1f071946f")
-                    XCTAssertEqual(firstBinaryImage["path"] as? String, "/Users/edpu/Library/Developer/CoreSimulator/Devices/B2E2BC7F-41AA-45C4-B5BC-68BC02E0AD8B/data/Containers/Bundle/Application/4E7208D5-F723-4FBF-95F1-8A51C5E37A64/DemoApp.app/DemoApp")
+                    XCTAssertEqual(firstBinaryImage["path"] as? String,
+                                   "/Users/edpu/Library/Developer/CoreSimulator/Devices/B2E2BC7F-41AA-45C4-B5BC-68BC02E0AD8B/data/Containers/Bundle/Application/4E7208D5-F723-4FBF-95F1-8A51C5E37A64/DemoApp.app/DemoApp") // swiftlint:disable:this line_length
                 } else {
                     XCTFail("Binary images are not present.")
                 }
@@ -325,12 +339,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
                 XCTAssertEqual(jsonDict["id"] as? String, "eventId")
@@ -361,12 +374,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             userTriggered: false
         )
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: EventEntity(event, needsReporting: true)) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: EventEntity(event, needsReporting: true)) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -419,12 +431,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -455,12 +466,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -492,12 +502,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -540,12 +549,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -589,12 +597,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -633,12 +640,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -679,12 +685,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -727,12 +732,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -781,12 +785,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
@@ -801,7 +804,7 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
                 if let requestHeaders = httpDataDict["request_headers"] as? [String: String] {
                     XCTAssertEqual(requestHeaders["Content-Type"], "application/json")
-                    XCTAssertEqual(requestHeaders["Authorization"], "Bearertoken")
+                    XCTAssertEqual(requestHeaders["Authorization"], "Bearer token")
                 } else {
                     XCTFail("Request headers are not serialized correctly.")
                 }
@@ -840,12 +843,11 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
 
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonString = eventSerializer.getSerialisedEvent(for: eventEntity) else {
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
             XCTFail("getSerialisedEvent cannot be nil")
             return
         }
 
-        let jsonData = Data(jsonString.utf8)
         do {
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 

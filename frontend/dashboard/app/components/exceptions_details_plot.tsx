@@ -1,12 +1,11 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
 import { ResponsiveLine } from '@nivo/line'
-import { ExceptionsDetailsPlotApiStatus, ExceptionsType, fetchExceptionsDetailsPlotFromServer } from '../api/api_calls';
-import { useRouter } from 'next/navigation';
-import { formatDateToHumanReadableDate } from '../utils/time_utils';
-import { Filters } from './filters';
-import LoadingSpinner from './loading_spinner';
+import React, { useEffect, useState } from 'react'
+import { ExceptionsDetailsPlotApiStatus, ExceptionsType, fetchExceptionsDetailsPlotFromServer } from '../api/api_calls'
+import { formatDateToHumanReadableDate } from '../utils/time_utils'
+import { Filters } from './filters'
+import LoadingSpinner from './loading_spinner'
 
 interface ExceptionsDetailsPlotProps {
   exceptionsType: ExceptionsType,
@@ -23,10 +22,8 @@ type ExceptionsDetailsPlot = {
 }[]
 
 const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exceptionsType, exceptionsGroupId, filters }) => {
-  const router = useRouter()
-
-  const [exceptionsDetailsPlotApiStatus, setExceptionsDetailsPlotApiStatus] = useState(ExceptionsDetailsPlotApiStatus.Loading);
-  const [plot, setPlot] = useState<ExceptionsDetailsPlot>();
+  const [exceptionsDetailsPlotApiStatus, setExceptionsDetailsPlotApiStatus] = useState(ExceptionsDetailsPlotApiStatus.Loading)
+  const [plot, setPlot] = useState<ExceptionsDetailsPlot>()
 
   const getExceptionsDetailsPlot = async () => {
     // Don't try to fetch plot if filters aren't ready
@@ -36,7 +33,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
 
     setExceptionsDetailsPlotApiStatus(ExceptionsDetailsPlotApiStatus.Loading)
 
-    const result = await fetchExceptionsDetailsPlotFromServer(exceptionsType, exceptionsGroupId, filters, router)
+    const result = await fetchExceptionsDetailsPlotFromServer(exceptionsType, exceptionsGroupId, filters)
 
     switch (result.status) {
       case ExceptionsDetailsPlotApiStatus.Error:
@@ -62,10 +59,10 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
 
   useEffect(() => {
     getExceptionsDetailsPlot()
-  }, [exceptionsType, exceptionsGroupId, filters]);
+  }, [exceptionsType, exceptionsGroupId, filters])
 
   return (
-    <div className="flex border border-black font-body items-center justify-center w-full h-[32rem]">
+    <div className="flex font-body items-center justify-center w-full h-[32rem]">
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Loading && <LoadingSpinner />}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.Error && <p className="text-lg font-display text-center p-4">Error fetching plot, please change filters or refresh page to try again</p>}
       {exceptionsDetailsPlotApiStatus === ExceptionsDetailsPlotApiStatus.NoData && <p className="text-lg font-display text-center p-4">No Data</p>}
@@ -73,8 +70,10 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
         <ResponsiveLine
           data={plot!}
           curve="monotoneX"
+          enableArea={true}
+          areaOpacity={0.1}
           colors={{ scheme: 'nivo' }}
-          margin={{ top: 40, right: 60, bottom: 120, left: 60 }}
+          margin={{ top: 40, right: 60, bottom: 180, left: 50 }}
           xFormat="time:%Y-%m-%d"
           xScale={{
             format: '%Y-%m-%d',
@@ -84,7 +83,7 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
           }}
           yScale={{
             type: 'linear',
-            min: 'auto',
+            min: 0,
             max: 'auto'
           }}
           yFormat=" >-.2f"
@@ -107,9 +106,10 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
             legendPosition: 'middle'
           }}
           pointSize={6}
-          pointBorderWidth={2}
+          pointBorderWidth={1.5}
+          pointColor={"rgba(255, 255, 255, 255)"}
           pointBorderColor={{
-            from: 'color',
+            from: 'serieColor',
             modifiers: [
               [
                 'darker',
@@ -119,10 +119,12 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
           }}
           pointLabelYOffset={-12}
           useMesh={true}
+          enableGridX={false}
+          enableGridY={false}
           enableSlices="x"
           sliceTooltip={({ slice }) => {
             return (
-              <div className="bg-neutral-950 text-white flex flex-col p-2 text-xs">
+              <div className="bg-neutral-800 text-white flex flex-col p-2 text-xs rounded-md">
                 <p className='p-2'>Date: {formatDateToHumanReadableDate(slice.points[0].data.xFormatted.toString())}</p>
                 {slice.points.map((point) => (
                   <div className="flex flex-row items-center p-2" key={point.id}>
@@ -140,6 +142,6 @@ const ExceptionsDetailsPlot: React.FC<ExceptionsDetailsPlotProps> = ({ exception
     </div>
   )
 
-};
+}
 
-export default ExceptionsDetailsPlot;
+export default ExceptionsDetailsPlot

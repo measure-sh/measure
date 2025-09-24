@@ -17,7 +17,7 @@ class UserAttributeProcessorTest {
     private val logger = NoopLogger()
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val prefsStorage =
-        PrefsStorageImpl(logger, InstrumentationRegistry.getInstrumentation().context)
+        PrefsStorageImpl(InstrumentationRegistry.getInstrumentation().context)
     private val userAttributeProcessor =
         UserAttributeProcessor(logger, prefsStorage, executorService)
 

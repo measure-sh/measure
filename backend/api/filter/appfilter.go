@@ -2,6 +2,7 @@ package filter
 
 import (
 	"backend/api/event"
+	"backend/api/opsys"
 	"backend/api/pairs"
 	"backend/api/server"
 	"backend/api/text"
@@ -9,10 +10,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"slices"
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
@@ -51,6 +53,9 @@ type AppFilter struct {
 
 	// ID is the unique id of the app.
 	AppID uuid.UUID
+
+	// AppOSName is the OSName vaue of the app.
+	AppOSName string
 
 	// From represents the lower time bound of
 	// the filter time range.
@@ -651,15 +656,33 @@ func (af *AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes
 		return
 	}
 
+	v := &Versions{}
+
 	for rows.Next() {
 		var version string
 		var code string
 		if err = rows.Scan(&version, &code); err != nil {
 			return
 		}
-		versions = append(versions, version)
-		versionCodes = append(versionCodes, code)
+
+		v.Add(version, code)
 	}
+
+	// attempt to sort versions depending on
+	// app os requirements and conventions
+	switch opsys.ToFamily(af.AppOSName) {
+	case opsys.AppleFamily:
+		if !v.IsValidSemver() {
+			break
+		}
+
+		if err = v.SemverSortByVersionDesc(); err != nil {
+			return
+		}
+	}
+
+	versions = v.Versions()
+	versionCodes = v.Codes()
 
 	err = rows.Err()
 
@@ -1114,10 +1137,28 @@ func (af *AppFilter) GetExcludedVersions(ctx context.Context) (versions Versions
 		return
 	}
 
-	for i := 0; i < count; i++ {
-		if !slices.Contains(af.Versions, allVersions[i]) && !slices.Contains(af.VersionCodes, allCodes[i]) {
-			versions.Add(allVersions[i], allCodes[i])
+	versions = exclude(allVersions, allCodes, af.Versions, af.VersionCodes)
+
+	return
+}
+
+// exclude figures out the set of excluded versions
+// from sets of all versions and sets of selected
+// versions.
+func exclude(allV, allC, selV, selC []string) (versions Versions) {
+	selCount := make(map[string]int)
+	for i := range selV {
+		key := selV[i] + "\x00" + selC[i]
+		selCount[key]++
+	}
+
+	for i := range allV {
+		key := allV[i] + "\x00" + allC[i]
+		if selCount[key] > 0 {
+			selCount[key]--
+			continue
 		}
+		versions.Add(allV[i], allC[i])
 	}
 
 	return
@@ -1128,6 +1169,68 @@ func (af *AppFilter) GetExcludedVersions(ctx context.Context) (versions Versions
 func (v *Versions) Add(name, code string) {
 	v.names = append(v.names, name)
 	v.codes = append(v.codes, code)
+}
+
+// IsValidSemver determines if all version names
+// adhere to semver specification.
+func (v Versions) IsValidSemver() bool {
+	if len(v.names) < 1 {
+		return false
+	}
+
+	for _, name := range v.names {
+		if _, err := semver.Parse(name); err != nil {
+			return false
+		}
+	}
+	return true
+}
+
+// SemverSortByVersionDesc sorts version names in
+// descending semver order keeping version code in
+// lock-step with version name.
+// Assumes version name is valid semver.
+func (v *Versions) SemverSortByVersionDesc() (err error) {
+	if len(v.names) < 1 {
+		return
+	}
+
+	type pair struct {
+		ver  semver.Version
+		name string
+		code string
+	}
+
+	pairs := make([]pair, len(v.names))
+
+	for i, name := range v.names {
+		semver, err := semver.Parse(name)
+		if err != nil {
+			return err
+		}
+		pairs[i] = pair{
+			ver:  semver,
+			name: name,
+			code: v.codes[i],
+		}
+	}
+
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i].ver.GT(pairs[j].ver)
+	})
+
+	sortedNames := make([]string, len(pairs))
+	sortedCodes := make([]string, len(pairs))
+
+	for i, p := range pairs {
+		sortedNames[i] = p.name
+		sortedCodes[i] = p.code
+	}
+
+	v.names = sortedNames
+	v.codes = sortedCodes
+
+	return
 }
 
 // HasVersions returns true if at least

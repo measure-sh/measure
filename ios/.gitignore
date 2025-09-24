@@ -1,4 +1,11 @@
 MeasureSDK.xcodeproj/xcuserdata/
 MeasureSDK.xcodeproj/project.xcworkspace/xcuserdata
+Measure.xcworkspace/xcuserdata/
 .build/
 Package.resolved
+DemoApp/Pods
+DemoApp/DemoApp.xcodeproj/xcuserdata/
+DemoApp/DemoApp.xcodeproj/project.xcworkspace/xcuserdata
+DemoApp/DemoApp.xcworkspace/xcuserdata/
+DemoAppSwiftUI/DemoAppSwiftUI.xcodeproj/xcuserdata/
+DemoAppSwiftUI/DemoAppSwiftUI.xcodeproj/project.xcworkspace/xcuserdata

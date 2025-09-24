@@ -1,10 +1,11 @@
 package event
 
 import (
-	"backend/api/platform"
+	"backend/api/opsys"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -66,6 +67,7 @@ const (
 	maxCustomNameChars                        = 64
 	maxBugReportScreenShots                   = 5
 	maxBugReportDescChars                     = 4000
+	maxErrorMetaBytes                         = 4096 // Maximum size for marshaled Error.Meta in bytes
 	customNameKeyPattern                      = "^[a-zA-Z0-9_-]+$"
 )
 
@@ -95,6 +97,7 @@ const TypeCPUUsage = "cpu_usage"
 const TypeNavigation = "navigation"
 const TypeScreenView = "screen_view"
 const TypeBugReport = "bug_report"
+const TypeSessionStart = "session_start"
 
 const NetworkGeneration2G = "2g"
 const NetworkGeneration3G = "3g"
@@ -161,6 +164,7 @@ var androidValidTypes = []string{
 	TypeString,
 	TypeCustom,
 	TypeBugReport,
+	TypeSessionStart,
 }
 
 // iOSValidTypes defines a whitelist for all
@@ -178,6 +182,7 @@ var iOSValidTypes = []string{
 	TypeString,
 	TypeCustom,
 	TypeBugReport,
+	TypeSessionStart,
 }
 
 // ValidLifecycleActivityTypes defines allowed
@@ -242,15 +247,15 @@ var ValidNetworkGenerations = []string{
 
 // getValidLifecycleAppTypes defines valid
 // `lifecycle_app.type` values according
-// to the platform.
-func getValidLifecycleAppTypes(p string) (types []string) {
-	switch p {
-	case platform.Android:
+// to the OS.
+func getValidLifecycleAppTypes(osName string) (types []string) {
+	switch opsys.ToFamily(osName) {
+	case opsys.Android:
 		types = []string{
 			LifecycleAppTypeBackground,
 			LifecycleAppTypeForeground,
 		}
-	case platform.IOS:
+	case opsys.AppleFamily:
 		types = []string{
 			LifecycleAppTypeBackground,
 			LifecycleAppTypeForeground,
@@ -333,25 +338,44 @@ type Exception struct {
 	Fingerprint  string         `json:"fingerprint"`
 	Foreground   bool           `json:"foreground" binding:"required"`
 	BinaryImages []BinaryImage  `json:"binary_images,omitempty"`
+	Framework    string         `json:"framework"`
+	Error        *Error         `json:"error"`
+}
+
+// Error represents a generic error object that occurred
+// during the app's execution.
+// Only relevant to Apple apps for now. But can be
+// extended for other OS/platform apps as well.
+type Error struct {
+	// NumCode represents the numeric error code.
+	NumCode int `json:"numcode"`
+	// Code represents the string error code.
+	Code string `json:"code"`
+	// Meta represents arbitrary metadata
+	// associated with the error.
+	Meta map[string]any `json:"meta"`
 }
 
 // BinaryImage represents each binary image
 // entry as appearning in an Apple crash
 // report.
 //
-// Only applicable for Darwin apps.
+// Only applicable for Apple apps.
 type BinaryImage struct {
 	// StartAddr is the address where the binary
 	// is loaded in virtual memory.
 	StartAddr string `json:"start_addr" binding:"required"`
 	// EndAddr is the upper memory boundary of
 	// the binary.
-	EndAddr string `json:"end_addr" binding:"required"`
+	EndAddr string `json:"end_addr"`
+	// BaseAddr is the base memory address of
+	// the binary.
+	BaseAddr string `json:"base_addr"`
 	// System indicates a system binary marker.
-	System bool `json:"system" binding:"required"`
+	System bool `json:"system"`
 	// Name is the name of the app, framework
 	// or library binary.
-	Name string `json:"name" binding:"required"`
+	Name string `json:"name"`
 	// Arch is the CPU architecture the binary
 	// is compiled for.
 	Arch string `json:"arch" binding:"required"`
@@ -360,7 +384,7 @@ type BinaryImage struct {
 	Uuid string `json:"uuid" binding:"required"`
 	// Path is path where the binary was
 	// located at runtime.
-	Path string `json:"path" binding:"required"`
+	Path string `json:"path"`
 }
 
 // FingerprintComputer describes the behavior
@@ -564,6 +588,10 @@ type BugReport struct {
 	Description string `json:"description" binding:"required"`
 }
 
+type SessionStart struct {
+	// No fields are required for this event.
+}
+
 type EventField struct {
 	ID                      uuid.UUID                `json:"id"`
 	IPv4                    net.IP                   `json:"inet_ipv4"`
@@ -603,6 +631,7 @@ type EventField struct {
 	ScreenView              *ScreenView              `json:"screen_view,omitempty"`
 	BugReport               *BugReport               `json:"bug_report,omitempty"`
 	Custom                  *Custom                  `json:"custom,omitempty"`
+	SessionStart            *SessionStart            `json:"session_start,omitempty"`
 }
 
 // Compute computes the most accurate cold launch timing
@@ -814,9 +843,30 @@ func (e EventField) IsScreenView() bool {
 func (e EventField) NeedsSymbolication() (result bool) {
 	result = false
 
-	switch e.Attribute.Platform {
-	case platform.Android:
-		if e.IsException() || e.IsANR() {
+	if e.Type == TypeException {
+		switch e.Exception.GetFramework() {
+		case FrameworkJVM:
+			result = true
+		case FrameworkApple:
+			// some Apple exceptions may just contain
+			// Error with no stacktraces. skip those
+			// exceptions.
+			if e.Exception.HasExceptions() {
+				return true
+			}
+			result = false
+		case FrameworkDart:
+			if e.Exception.Exceptions[0].Frames[0].InstructionAddr != "" {
+				result = true
+			}
+		}
+
+		return
+	}
+
+	switch strings.ToLower(e.Attribute.OSName) {
+	case opsys.Android:
+		if e.IsANR() {
 			result = true
 			return
 		}
@@ -855,11 +905,6 @@ func (e EventField) NeedsSymbolication() (result bool) {
 			result = true
 			return
 		}
-	case platform.IOS:
-		if e.IsException() {
-			result = true
-			return
-		}
 	}
 
 	return
@@ -874,17 +919,17 @@ func (e EventField) HasAttachments() bool {
 // Validate validates the event for data
 // integrity.
 func (e *EventField) Validate() error {
-	switch e.Attribute.Platform {
-	case platform.Android:
+	switch opsys.ToFamily(e.Attribute.OSName) {
+	case opsys.Android:
 		if !slices.Contains(androidValidTypes, e.Type) {
 			return fmt.Errorf(`%q is not a valid event type for Android`, e.Type)
 		}
-	case platform.IOS:
+	case opsys.AppleFamily:
 		if !slices.Contains(iOSValidTypes, e.Type) {
 			return fmt.Errorf(`%q is not a valid event type for iOS`, e.Type)
 		}
 	default:
-		return fmt.Errorf(`%q is not a valid platform value`, e.Attribute.Platform)
+		return fmt.Errorf(`%q is not a valid os_name value`, e.Attribute.OSName)
 	}
 
 	if e.ID == uuid.Nil {
@@ -910,8 +955,74 @@ func (e *EventField) Validate() error {
 	}
 
 	if e.IsException() {
-		if len(e.Exception.Exceptions) < 1 || len(e.Exception.Threads) < 1 {
-			return fmt.Errorf(`%q must contain at least one exception & thread`, `exception`)
+		f := e.Exception.GetFramework()
+		switch f {
+		case FrameworkApple:
+			// Apple exceptions may contain error with stacktrace or
+			// may not contain error. If it does not contain error,
+			// then validate that stacktrace must be present.
+			if !e.Exception.HasError() {
+				if len(e.Exception.Exceptions) < 1 {
+					return fmt.Errorf(`%q must contain at least one exception`, `exception`)
+				}
+				if len(e.Exception.Threads) < 1 {
+					return fmt.Errorf(`%q must contain at least one thread`, `exception.threads`)
+				}
+			}
+
+			for i, bi := range e.Exception.BinaryImages {
+				if bi.StartAddr == "" {
+					return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `start_addr`)
+				}
+				if bi.EndAddr == "" {
+					return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `end_addr`)
+				}
+				if bi.Name == "" {
+					return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `name`)
+				}
+				if bi.Path == "" {
+					return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `path`)
+				}
+			}
+		case FrameworkJVM:
+			if len(e.Exception.Exceptions) < 1 {
+				return fmt.Errorf(`%q must contain at least one exception`, `exception`)
+			}
+			if len(e.Exception.Threads) < 1 {
+				return fmt.Errorf(`%q must contain at least one thread`, `exception.threads`)
+			}
+		case FrameworkDart:
+			if len(e.Exception.Exceptions) < 1 {
+				return fmt.Errorf(`%q must contain at least one exception`, `exception`)
+			}
+
+			if len(e.Exception.BinaryImages) > 1 {
+				return fmt.Errorf(`%q must contain at most one binary image`, `exception.binary_images`)
+			}
+
+			for i := range e.Exception.BinaryImages {
+				if e.Exception.BinaryImages[i].Arch == "" {
+					return fmt.Errorf(`%q must not be empty`, `exception.binary_images[0].arch`)
+				}
+				if e.Exception.BinaryImages[i].BaseAddr == "" {
+					return fmt.Errorf(`%q must not be empty`, `exception.binary_images[0].base_addr`)
+				}
+			}
+		default:
+			return fmt.Errorf(`%q is not a valid framework for %q.`, f, `exception.framework`)
+		}
+
+		// Validate Error.Meta size if Error is present in the exception
+		if e.Exception.Error != nil && e.Exception.Error.Meta != nil {
+			metaBytes, err := json.Marshal(e.Exception.Error.Meta)
+			if err != nil {
+				// This error occurs if Meta contains types that cannot be marshaled (e.g., channels, functions).
+				// For userInfo-like data (typically strings, numbers, booleans, arrays, maps), this should be rare.
+				return fmt.Errorf("failed to marshal exception.error.meta for size validation: %w", err)
+			}
+			if len(metaBytes) > maxErrorMetaBytes {
+				return fmt.Errorf("'exception.error.meta' JSON size (%d bytes) exceeds maximum allowed (%d bytes)", len(metaBytes), maxErrorMetaBytes)
+			}
 		}
 	}
 
@@ -1052,7 +1163,7 @@ func (e *EventField) Validate() error {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `lifecycle_app.type`, maxLifecycleAppTypeChars)
 		}
 
-		validTypes := getValidLifecycleAppTypes(e.Attribute.Platform)
+		validTypes := getValidLifecycleAppTypes(strings.ToLower(e.Attribute.OSName))
 
 		if !slices.Contains(validTypes, e.LifecycleApp.Type) {
 			return fmt.Errorf(`%q contains invalid lifecycle app type`, `lifecycle_app.type`)
@@ -1217,23 +1328,29 @@ func (e *EventField) Validate() error {
 	return nil
 }
 
-// GetPlatform determines the exception belongs
-// to which platform.
-func (e Exception) GetPlatform() (p string) {
-	p = platform.Unknown
-	if len(e.Exceptions) < 1 || len(e.Threads) < 1 {
-		return p
+// GetFramework returns the exception framework
+// in a backwards compatible way.
+func (e Exception) GetFramework() (f string) {
+	// if we have the framework, just use it
+	// no need to infer
+	// could be "dart"
+	if e.Framework != "" {
+		return e.Framework
 	}
 
-	// If ExceptionUnitiOS is not nil, then we can
-	// safely assume the platform as iOS
-	if e.Exceptions[0].ExceptionUnitiOS != nil && e.Exceptions[0].Signal != "" {
-		p = platform.IOS
-	} else {
-		p = platform.Android
+	// Apple exception or error or error with exception
+	if e.HasExceptions() {
+		if e.Exceptions[0].ExceptionUnitiOS != nil && e.Exceptions[0].Signal != "" {
+			return FrameworkApple
+		}
+	} else if e.HasError() {
+		return FrameworkApple
 	}
 
-	return
+	// for backward compatibility
+	// nothing above matched, so must
+	// be JVM
+	return FrameworkJVM
 }
 
 // IsNested returns true in case of
@@ -1249,14 +1366,40 @@ func (e Exception) IsNested() bool {
 // for certain OutOfMemory stacktraces in
 // Android.
 func (e Exception) HasNoFrames() bool {
-	switch e.GetPlatform() {
-	case platform.Android:
+	switch e.GetFramework() {
+	case FrameworkJVM:
 		return len(e.Exceptions[len(e.Exceptions)-1].Frames) == 0
-	case platform.IOS:
+	case FrameworkApple:
+		if !e.HasExceptions() {
+			return true
+		}
+		return len(e.Exceptions[0].Frames) == 0
+	case FrameworkDart:
 		return len(e.Exceptions[0].Frames) == 0
 	}
 
 	return false
+}
+
+// HasExceptions returns true if the exception
+// contains exception units.
+func (e Exception) HasExceptions() bool {
+	return len(e.Exceptions) > 0
+}
+
+// HasError tells if the exception has an error.
+// An AppleFamily Exception may optionally have
+// an associated Error.
+func (e Exception) HasError() bool {
+	if e.Error == nil {
+		return false
+	}
+
+	if e.Error.Code == "" && e.Error.NumCode == 0 && len(e.Error.Meta) == 0 {
+		return false
+	}
+
+	return true
 }
 
 // GetRelevantFrame finds and returns the first
@@ -1284,7 +1427,7 @@ func (e Exception) GetRelevantFrame() (frame Frame) {
 		return e.Exceptions[unitIndex].Frames[frameIndex]
 	} else {
 		// if there is no in app frame then
-		// use then fallback to the first unit's
+		// fallback to the first unit's
 		// first frame.
 		return e.Exceptions[0].Frames[0]
 	}
@@ -1300,28 +1443,46 @@ func (e Exception) GetTitle() string {
 // GetType provides the type of
 // the exception.
 func (e Exception) GetType() string {
-	switch e.GetPlatform() {
+	unknown := "unknown type"
+
+	switch e.GetFramework() {
 	default:
-		return "unknown type"
-	case platform.Android:
+		return unknown
+	case FrameworkJVM:
 		return e.Exceptions[len(e.Exceptions)-1].Type
-	case platform.IOS:
+	case FrameworkApple:
+		if !e.HasExceptions() && e.HasError() {
+			if e.Error != nil && e.Error.Code != "" {
+				return e.Error.Code
+			}
+			return unknown
+		}
 		return e.Exceptions[0].Signal
+	case FrameworkDart:
+		// We do not look for the deepest exception
+		// as only the top most exception unit
+		// contains the type.
+		return e.Exceptions[0].Type
 	}
 }
 
 // GetMessage provides the message of
 // the exception.
 func (e Exception) GetMessage() string {
-	switch e.GetPlatform() {
+	switch e.GetFramework() {
 	default:
 		return "unknown message"
-	case platform.Android:
+	case FrameworkJVM:
 		return e.Exceptions[len(e.Exceptions)-1].Message
-	case platform.IOS:
+	case FrameworkApple:
 		// iOS doesn't have a typical message to
 		// use for an exception
 		return ""
+	case FrameworkDart:
+		// We do not look for the deepest exception
+		// as only the top most exception unit
+		// contains the message.
+		return e.Exceptions[0].Message
 	}
 }
 
@@ -1333,11 +1494,13 @@ func (e Exception) GetFileName() string {
 		return ""
 	}
 
-	switch e.GetPlatform() {
-	case platform.Android:
+	switch e.GetFramework() {
+	case FrameworkJVM:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
-	case platform.IOS:
+	case FrameworkApple:
 		return e.GetRelevantFrame().FileName
+	case FrameworkDart:
+		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
 	}
 
 	return ""
@@ -1345,17 +1508,19 @@ func (e Exception) GetFileName() string {
 
 // GetLineNumber provides the line number of
 // the exception.
-func (e Exception) GetLineNumber() int {
+func (e Exception) GetLineNumber() int32 {
 	// some exception may have zero frames
 	if e.HasNoFrames() {
 		return 0
 	}
 
-	switch e.GetPlatform() {
-	case platform.Android:
-		return e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum
-	case platform.IOS:
-		return e.GetRelevantFrame().LineNum
+	switch e.GetFramework() {
+	case FrameworkJVM:
+		return int32(e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum)
+	case FrameworkDart:
+		return int32(e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum)
+	case FrameworkApple:
+		return int32(e.GetRelevantFrame().LineNum)
 	}
 
 	return 0
@@ -1369,11 +1534,13 @@ func (e Exception) GetMethodName() string {
 		return ""
 	}
 
-	switch e.GetPlatform() {
-	case platform.Android:
+	switch e.GetFramework() {
+	case FrameworkJVM:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
-	case platform.IOS:
+	case FrameworkApple:
 		return e.GetRelevantFrame().MethodName
+	case FrameworkDart:
+		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
 	}
 
 	return ""
@@ -1397,8 +1564,9 @@ func (e Exception) GetDisplayTitle() string {
 func (e Exception) Stacktrace() string {
 	var b strings.Builder
 
-	switch e.GetPlatform() {
-	case platform.Android:
+	f := e.GetFramework()
+	switch f {
+	case FrameworkJVM:
 		for i := len(e.Exceptions) - 1; i >= 0; i-- {
 			firstException := i == len(e.Exceptions)-1
 			lastException := i == 0
@@ -1423,14 +1591,47 @@ func (e Exception) Stacktrace() string {
 
 			for j := range e.Exceptions[i].Frames {
 				lastFrame := j == len(e.Exceptions[i].Frames)-1
-				frame := e.Exceptions[i].Frames[j].String()
+				frame := e.Exceptions[i].Frames[j].String(f)
 				b.WriteString(FramePrefix + frame)
 				if !lastFrame || !lastException {
 					b.WriteString("\n")
 				}
 			}
 		}
-	case platform.IOS:
+	case FrameworkDart:
+		// Dart Stacktrace syntax
+		//
+		// See more: https://dart.dev/guides/language/language-tour#stack-traces
+		//
+		// symbolicated
+		// #00      <method-name> (<module-name>/<file-name>:<line-number>)
+		// #01      <method-name> (<module-name>/<file-name>:<line-number>)
+		var buf strings.Builder
+
+		for i := len(e.Exceptions) - 1; i >= 0; i-- {
+			exception := e.Exceptions[i]
+			for j, frame := range exception.Frames {
+				var fileLocation string
+				if frame.ModuleName == "" && frame.FileName == "" && frame.LineNum == 0 {
+					fileLocation = ""
+				} else {
+					fileLocation = fmt.Sprintf("(%s%s:%d)", frame.ModuleName, frame.FileName, frame.LineNum)
+				}
+
+				frameNum := fmt.Sprintf("#%02d", j)
+				buf.WriteString(fmt.Sprintf("%s      %s %s\n", frameNum, frame.MethodName, fileLocation))
+			}
+			if i > 0 {
+				buf.WriteString("===== asynchronous gap ===========================\n")
+			}
+		}
+		// Remove the trailing newline if it exists
+		result := buf.String()
+		if len(result) > 0 && result[len(result)-1] == '\n' {
+			result = result[:len(result)-1]
+		}
+		return result
+	case FrameworkApple:
 		// iOS Stacktrace syntax
 		//
 		// See more: https://developer.apple.com/documentation/xcode/adding-identifiable-symbol-names-to-a-crash-report
@@ -1459,12 +1660,14 @@ func (e Exception) Stacktrace() string {
 		for _, exception := range e.Exceptions {
 			b.WriteString(exception.ThreadName + ":\n")
 			for _, frame := range exception.Frames {
-				fmt.Fprintln(t, frame.String())
+				fmt.Fprintln(t, frame.String(f))
 			}
 		}
 
 		t.Flush()
 		b.WriteString(buf.String())
+	default:
+		fmt.Printf("unknown framework %s\n", f)
 	}
 
 	return b.String()
@@ -1473,7 +1676,16 @@ func (e Exception) Stacktrace() string {
 // ComputeFingerprint computes a fingerprint
 // for the exception.
 func (e *Exception) ComputeFingerprint() (err error) {
-	if len(e.Exceptions) == 0 {
+	framework := e.GetFramework()
+
+	// don't compute fingerprint for exceptions that contain error
+	// but does not contain any exceptions
+	if framework == FrameworkApple && e.HasError() && !e.HasExceptions() {
+		return nil
+	}
+
+	// but for computing fingerprint having a stacktrace is essential
+	if !e.HasExceptions() {
 		return errors.New("error computing exception fingerprint: no exceptions found")
 	}
 
@@ -1485,8 +1697,8 @@ func (e *Exception) ComputeFingerprint() (err error) {
 	// parts of the input
 	sep := ":"
 
-	switch e.GetPlatform() {
-	case platform.Android:
+	switch framework {
+	case FrameworkJVM:
 		// get the innermost exception
 		innermostException := e.Exceptions[len(e.Exceptions)-1]
 
@@ -1506,7 +1718,7 @@ func (e *Exception) ComputeFingerprint() (err error) {
 				input += sep + fileName
 			}
 		}
-	case platform.IOS:
+	case FrameworkApple:
 		// initialize with the exception type
 		input = e.GetType()
 
@@ -1521,12 +1733,30 @@ func (e *Exception) ComputeFingerprint() (err error) {
 		if frame.FileName != "" {
 			input += sep + frame.FileName
 		}
+	case FrameworkDart:
+		// get the outermost exception
+		outermostException := e.Exceptions[0]
+
+		// initialize fingerprint data with the exception type
+		input = outermostException.Type
+
+		if len(outermostException.Frames) > 0 {
+			methodName := outermostException.Frames[0].MethodName
+			fileName := outermostException.Frames[0].FileName
+
+			// Include any non-empty information
+			if methodName != "" {
+				input += sep + methodName
+			}
+			if fileName != "" {
+				input += sep + fileName
+			}
+		}
 	default:
-		return errors.New("failed to compute fingerprint for unknown platform")
+		return errors.New("failed to compute fingerprint for unknown framework")
 	}
 
 	// Compute the fingerprint
-	// e.Fingerprint = computeFingerprint(input)
 	hash := md5.Sum([]byte(input))
 	e.Fingerprint = hex.EncodeToString(hash[:])
 
@@ -1579,11 +1809,11 @@ func (a ANR) GetFileName() string {
 
 // GetLineNumber provides the line number of
 // the ANR.
-func (a ANR) GetLineNumber() int {
+func (a ANR) GetLineNumber() int32 {
 	if a.HasNoFrames() {
-		return 0
+		return int32(0)
 	}
-	return a.Exceptions[len(a.Exceptions)-1].Frames[0].LineNum
+	return int32(a.Exceptions[len(a.Exceptions)-1].Frames[0].LineNum)
 }
 
 // GetMethodName provides the method name of
@@ -1630,7 +1860,7 @@ func (a ANR) Stacktrace() string {
 
 		for j := range a.Exceptions[i].Frames {
 			lastFrame := j == len(a.Exceptions[i].Frames)-1
-			frame := a.Exceptions[i].Frames[j].String()
+			frame := a.Exceptions[i].Frames[j].String(FrameworkJVM)
 			b.WriteString(FramePrefix + frame)
 			if !lastFrame || !lastException {
 				b.WriteString("\n")

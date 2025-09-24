@@ -1,5 +1,5 @@
 //
-//  EventProcessorTests.swift
+//  signalProcessorTests.swift
 //  MeasureSDKTests
 //
 //  Created by Adwin Ross on 26/09/24.
@@ -8,8 +8,8 @@
 @testable import Measure
 import XCTest
 
-final class EventProcessorTests: XCTestCase {
-    var eventProcessor: EventProcessor!
+final class SignalProcessorTests: XCTestCase {
+    var signalProcessor: SignalProcessor!
     var idProvider: MockIdProvider!
     var logger: MockLogger!
     var configProvider: MockConfigProvider!
@@ -20,6 +20,7 @@ final class EventProcessorTests: XCTestCase {
     var crashDataPersistence: MockCrashDataPersistence!
     var sessionManager: MockSessionManager!
     var eventStore: MockEventStore!
+    var spanStore: MockSpanStore!
     var screenshotGenerator: MockScreenshotGenerator!
     var fileManagerHelper = FileManagerHelper()
     let attributes = Attributes(
@@ -52,7 +53,8 @@ final class EventProcessorTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        idProvider = MockIdProvider("event-id")
+        idProvider = MockIdProvider()
+        idProvider.uuId = "event-id"
         logger = MockLogger()
         timeProvider = BaseTimeProvider()
         configProvider = MockConfigProvider(enableLogging: false,
@@ -64,7 +66,8 @@ final class EventProcessorTests: XCTestCase {
                                             scaledTouchSlop: 20,
                                             maxAttachmentSizeInEventsBatchInBytes: 30000,
                                             maxEventsInBatch: 500)
-        randomizer = MockRandomizer(0.5)
+        randomizer = MockRandomizer()
+        randomizer.randomFloat = 0.5
         coreDataManager = MockCoreDataManager()
         sessionStore = BaseSessionStore(coreDataManager: coreDataManager,
                                         logger: logger)
@@ -74,11 +77,12 @@ final class EventProcessorTests: XCTestCase {
         sessionManager = MockSessionManager(sessionId: "session-id-1")
         screenshotGenerator = MockScreenshotGenerator()
         eventStore = MockEventStore()
+        spanStore = MockSpanStore()
     }
 
     override func tearDown() {
         super.tearDown()
-        eventProcessor = nil
+        signalProcessor = nil
         idProvider = nil
         logger = nil
         configProvider = nil
@@ -124,21 +128,24 @@ final class EventProcessorTests: XCTestCase {
             attributes.measureSdkVersion = "0.0.1"
             attributes.appUniqueId = "unique-id"
         }
-        eventProcessor = BaseEventProcessor(logger: logger,
-                                            idProvider: idProvider,
-                                            sessionManager: sessionManager,
-                                            attributeProcessors: [attributeProcessor],
-                                            configProvider: configProvider,
-                                            timeProvider: BaseTimeProvider(),
-                                            crashDataPersistence: crashDataPersistence,
-                                            eventStore: eventStore)
-        eventProcessor.track(data: exception,
+        signalProcessor = BaseSignalProcessor(logger: logger,
+                                              idProvider: idProvider,
+                                              sessionManager: sessionManager,
+                                              attributeProcessors: [attributeProcessor],
+                                              configProvider: configProvider,
+                                              timeProvider: BaseTimeProvider(),
+                                              crashDataPersistence: crashDataPersistence,
+                                              eventStore: eventStore,
+                                              spanStore: spanStore,
+                                              measureDispatchQueue: MockMeasureDispatchQueue())
+        signalProcessor.track(data: exception,
                              timestamp: 1_000_000_000,
                              type: .exception,
                              attributes: nil,
                              sessionId: nil,
-                             attachments: [Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
-                             userDefinedAttributes: nil)
+                             attachments: [MsrAttachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
+                             userDefinedAttributes: nil,
+                             threadName: nil)
 
         // Check if latest attributes are saved when an event is tracked
         XCTAssertEqual(crashDataPersistence.attribute, attributes)
@@ -156,10 +163,14 @@ final class EventProcessorTests: XCTestCase {
         XCTAssertEqual(event.timestamp, "1970-01-12T13:46:40.000Z")
         XCTAssertEqual(event.type, .exception)
         XCTAssertEqual(event.attachments?.count, 1)
-        XCTAssertEqual(event.attachments?.first, Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path"))
+        XCTAssertEqual(event.attachments?.first?.name, "file-name")
+        XCTAssertEqual(event.attachments?.first?.type, .screenshot)
+        XCTAssertEqual(event.attachments?.first?.size, 10)
+        XCTAssertEqual(event.attachments?.first?.id, "id")
+        XCTAssertEqual(event.attachments?.first?.path, "file-path")
         XCTAssertEqual(event.userTriggered, false)
         XCTAssertEqual(event.attributes, attributes)
-        XCTAssertEqual(event.data, exception)
+        XCTAssertEqual(event.exception, exception)
     }
 
     func testTrackExceptionEventWithAllData() { // swiftlint:disable:this function_body_length
@@ -170,14 +181,16 @@ final class EventProcessorTests: XCTestCase {
         let attributeProcessor = MockAttributeProcessor { attributes in
             attributes.threadName = "com.thread.main"
         }
-        eventProcessor = BaseEventProcessor(logger: logger,
-                                            idProvider: idProvider,
-                                            sessionManager: sessionManager,
-                                            attributeProcessors: [attributeProcessor],
-                                            configProvider: configProvider,
-                                            timeProvider: BaseTimeProvider(),
-                                            crashDataPersistence: crashDataPersistence,
-                                            eventStore: eventStore)
+        signalProcessor = BaseSignalProcessor(logger: logger,
+                                              idProvider: idProvider,
+                                              sessionManager: sessionManager,
+                                              attributeProcessors: [attributeProcessor],
+                                              configProvider: configProvider,
+                                              timeProvider: BaseTimeProvider(),
+                                              crashDataPersistence: crashDataPersistence,
+                                              eventStore: eventStore,
+                                              spanStore: spanStore,
+                                              measureDispatchQueue: MockMeasureDispatchQueue())
         let attributes = Attributes(
             threadName: "main",
             deviceName: "iPhone",
@@ -232,13 +245,14 @@ final class EventProcessorTests: XCTestCase {
             measureSdkVersion: "0.0.1",
             appUniqueId: "unique-id"
         )
-        eventProcessor.track(data: exception,
+        signalProcessor.track(data: exception,
                              timestamp: 1_000_000_000,
                              type: .exception,
                              attributes: attributes,
                              sessionId: "session-id-2",
-                             attachments: [Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
-                             userDefinedAttributes: nil)
+                             attachments: [MsrAttachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path")],
+                             userDefinedAttributes: nil,
+                             threadName: nil)
 
         // Check if latest attributes are saved when an event is tracked
         XCTAssertEqual(crashDataPersistence.attribute, updatedAttributes)
@@ -256,9 +270,13 @@ final class EventProcessorTests: XCTestCase {
         XCTAssertEqual(event.timestamp, "1970-01-12T13:46:40.000Z")
         XCTAssertEqual(event.type, .exception)
         XCTAssertEqual(event.attachments?.count, 1)
-        XCTAssertEqual(event.attachments?.first, Attachment(name: "file-name", type: .screenshot, size: 10, id: "id", path: "file-path"))
+        XCTAssertEqual(event.attachments?.first?.name, "file-name")
+        XCTAssertEqual(event.attachments?.first?.type, .screenshot)
+        XCTAssertEqual(event.attachments?.first?.size, 10)
+        XCTAssertEqual(event.attachments?.first?.id, "id")
+        XCTAssertEqual(event.attachments?.first?.path, "file-path")
         XCTAssertEqual(event.userTriggered, false)
         XCTAssertEqual(event.attributes, updatedAttributes)
-        XCTAssertEqual(event.data, exception)
+        XCTAssertEqual(event.exception, exception)
     }
 }

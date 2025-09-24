@@ -1,6 +1,5 @@
 import com.diffplug.gradle.spotless.SpotlessExtension
 import com.vanniktech.maven.publish.GradlePublishPlugin
-import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -36,7 +35,7 @@ version = properties["MEASURE_PLUGIN_VERSION_NAME"] as String
 
 mavenPublishing {
     coordinates(group as String, artifactId, version as String)
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
+    publishToMavenCentral(automaticRelease = true)
     configure(
         GradlePublishPlugin(),
     )

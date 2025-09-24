@@ -16,6 +16,7 @@ final class BatchCreatorTests: XCTestCase {
     var timeProvider: MockTimeProvider!
     var eventStore: MockEventStore!
     var batchStore: MockBatchStore!
+    var spanStore: MockSpanStore!
 
     override func setUp() {
         super.setUp()
@@ -25,6 +26,7 @@ final class BatchCreatorTests: XCTestCase {
         timeProvider = MockTimeProvider()
         eventStore = MockEventStore()
         batchStore = MockBatchStore()
+        spanStore = MockSpanStore()
 
         batchCreator = BaseBatchCreator(
             logger: logger,
@@ -32,7 +34,8 @@ final class BatchCreatorTests: XCTestCase {
             configProvider: configProvider,
             timeProvider: timeProvider,
             eventStore: eventStore,
-            batchStore: batchStore
+            batchStore: batchStore,
+            spanStore: spanStore
         )
     }
 
@@ -50,59 +53,62 @@ final class BatchCreatorTests: XCTestCase {
     func testCreateWithNoEvents() {
         eventStore.events = []
 
-        let result = batchCreator.create(sessionId: nil)
-
-        XCTAssertNil(result)
-        let batches = batchStore.getBatches(5)
-        XCTAssertTrue(batches.isEmpty)
+        batchCreator.create(sessionId: nil) { result in
+            XCTAssertNil(result)
+            self.batchStore.getBatches(5) { batches in
+                XCTAssertTrue(batches.isEmpty)
+            }
+        }
     }
 
     func testCreateWithEventsButExceedsAttachmentSize() {
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 200))
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 300))
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 200)) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 300)) {}
         configProvider.maxAttachmentSizeInEventsBatchInBytes = 100
         configProvider.maxEventsInBatch = 2
 
-        let result = batchCreator.create(sessionId: nil)
-        let batches = batchStore.getBatches(5)
-
-        XCTAssertNil(result)
-        XCTAssertTrue(batches.isEmpty)
+        batchCreator.create(sessionId: nil) { result in
+            XCTAssertNil(result)
+            self.batchStore.getBatches(5) { batches in
+                XCTAssertTrue(batches.isEmpty)
+            }
+        }
     }
 
     func testCreateSuccessfulBatch() {
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 100))
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200))
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 100)) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200)) {}
         configProvider.maxAttachmentSizeInEventsBatchInBytes = 300
         configProvider.maxEventsInBatch = 2
-        idProvider.idString = "batch1"
+        idProvider.uuId = "batch1"
         timeProvider.current = 1727272496000
 
-        let result = batchCreator.create(sessionId: nil)
+        batchCreator.create(sessionId: nil) { result in
+            XCTAssertNotNil(result)
+            XCTAssertEqual(result?.batchId, "batch1")
+            XCTAssertTrue(((result?.eventIds.contains("1")) != nil))
+            XCTAssertTrue(((result?.eventIds.contains("2")) != nil))
 
-        XCTAssertNotNil(result)
-        XCTAssertEqual(result?.batchId, "batch1")
-        XCTAssertTrue(((result?.eventIds.contains("1")) != nil))
-        XCTAssertTrue(((result?.eventIds.contains("2")) != nil))
+            XCTAssertEqual(self.batchStore.batches.count, 1)
+            XCTAssertEqual(self.batchStore.batches.first?.batchId, "batch1")
+            XCTAssertTrue(((result?.eventIds.contains("1")) != nil))
+            XCTAssertTrue(((result?.eventIds.contains("2")) != nil))
 
-        XCTAssertEqual(batchStore.batches.count, 1)
-        XCTAssertEqual(batchStore.batches.first?.batchId, "batch1")
-        XCTAssertTrue(((result?.eventIds.contains("1")) != nil))
-        XCTAssertTrue(((result?.eventIds.contains("2")) != nil))
-
-        XCTAssertEqual(eventStore.events.first?.batchId, "batch1")
+            XCTAssertEqual(self.eventStore.events.first?.batchId, "batch1")
+        }
     }
 
     func testCreateReturnsNilIfNoEventsToBatchAfterFiltering() {
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 200))
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 300))
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 200)) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 300)) {}
         configProvider.maxAttachmentSizeInEventsBatchInBytes = 100
         configProvider.maxEventsInBatch = 2
 
-        let result = batchCreator.create(sessionId: nil)
-        let batches = batchStore.getBatches(5)
-
-        XCTAssertNil(result)
-        XCTAssertTrue(batches.isEmpty)
+        batchCreator.create(sessionId: nil) { result in
+            XCTAssertNil(result)
+            self.batchStore.getBatches(5) { batches in
+                XCTAssertTrue(batches.isEmpty)
+            }
+        }
     }
 }

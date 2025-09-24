@@ -22,6 +22,7 @@ type BugReport struct {
 	Status               uint8              `json:"status" binding:"required"`
 	Description          string             `json:"description" binding:"required"`
 	Timestamp            *time.Time         `json:"timestamp" binding:"required"`
+	UpdatedAt            *time.Time         `json:"updated_at" binding:"required"`
 	Attribute            *event.Attribute   `json:"attribute" binding:"required"`
 	UserDefinedAttribute event.UDAttribute  `json:"user_defined_attribute" binding:"required"`
 	Attachments          []event.Attachment `json:"attachments" binding:"required"`
@@ -184,6 +185,7 @@ func GetBugReportsWithFilter(ctx context.Context, af *filter.AppFilter) (bugRepo
 		Select("event_id").
 		Select("session_id").
 		Select("timestamp").
+		Select("updated_at").
 		Select("status").
 		Select("description").
 		Select("tupleElement(app_version, 1)").
@@ -306,6 +308,7 @@ func GetBugReportsWithFilter(ctx context.Context, af *filter.AppFilter) (bugRepo
 			&bugReport.EventID,
 			&bugReport.SessionID,
 			&bugReport.Timestamp,
+			&bugReport.UpdatedAt,
 			&bugReport.Status,
 			&bugReport.Description,
 			&bugReport.Attribute.AppVersion,
@@ -394,6 +397,7 @@ func GetBugReportById(ctx context.Context, bugReportId string) (bugReport BugRep
 		Select("app_id").
 		Select("session_id").
 		Select("timestamp").
+		Select("updated_at").
 		Select("status").
 		Select("description").
 		Select("tupleElement(app_version, 1)").
@@ -432,6 +436,7 @@ func GetBugReportById(ctx context.Context, bugReportId string) (bugReport BugRep
 		&bugReport.AppID,
 		&bugReport.SessionID,
 		&bugReport.Timestamp,
+		&bugReport.UpdatedAt,
 		&bugReport.Status,
 		&bugReport.Description,
 		&bugReport.Attribute.AppVersion,
@@ -494,6 +499,7 @@ func UpdateBugReportStatusById(ctx context.Context, bugReportId string, status u
         app_id,
         session_id,
         timestamp,
+		now64(9, 'UTC') AS updated_at,
         '%d' AS status,
         description,
         app_version,
@@ -511,7 +517,7 @@ func UpdateBugReportStatusById(ctx context.Context, bugReportId string, status u
         device_thermal_throttling_enabled,
         user_defined_attribute,
         attachments
-    FROM bug_reports
+    FROM bug_reports FINAL
     WHERE event_id = toUUID('%s')
     `, status, bugReportId)
 

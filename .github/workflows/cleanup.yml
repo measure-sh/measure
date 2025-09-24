@@ -9,7 +9,7 @@ on:
       - backend/cleanup/**/*.sum
   push:
     branches:
-      - 'main'
+      - "main"
     paths:
       - .github/workflows/cleanup.yml
       - backend/cleanup/dockerfile
@@ -17,11 +17,14 @@ on:
       - backend/cleanup/**/*.mod
       - backend/cleanup/**/*.sum
     tags:
-      - 'v*'
+      - "v*"
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: measure-sh/cleanup
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -29,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ["1.22.x"]
+        go-version: ["1.24.x", "1.25.x"]
     defaults:
       run:
         working-directory: backend/cleanup
@@ -54,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ["1.22.x"]
+        go-version: ["1.24.x", "1.25.x"]
     defaults:
       run:
         working-directory: backend/cleanup
@@ -73,7 +76,7 @@ jobs:
         run: go get .
       - name: Test with ${{ matrix.go-version }}
         run: go test ./...
-  
+
   push:
     name: Build and push image
     runs-on: ubuntu-latest

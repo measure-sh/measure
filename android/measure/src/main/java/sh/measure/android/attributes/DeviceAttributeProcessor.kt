@@ -4,8 +4,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.system.OsConstants
-import sh.measure.android.logger.LogLevel
-import sh.measure.android.logger.Logger
 import sh.measure.android.utils.LocaleProvider
 import sh.measure.android.utils.OsSysConfProvider
 
@@ -14,7 +12,6 @@ import sh.measure.android.utils.OsSysConfProvider
  * attributes are expected to be constant during the session and are computed once.
  */
 internal class DeviceAttributeProcessor(
-    private val logger: Logger,
     private val context: Context,
     private val localeProvider: LocaleProvider,
     private val osSysConfProvider: OsSysConfProvider,
@@ -38,7 +35,6 @@ internal class DeviceAttributeProcessor(
             Attribute.OS_NAME_KEY to "android",
             Attribute.OS_VERSION_KEY to Build.VERSION.SDK_INT.toString(),
             Attribute.OS_PAGE_SIZE to getPageSizeKB(),
-            Attribute.PLATFORM_KEY to "android",
         )
     }
 
@@ -82,7 +78,6 @@ internal class DeviceAttributeProcessor(
                 ) || Build.PRODUCT.contains("emulator") || Build.PRODUCT.contains("simulator")
                 )
         } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Error detecting emulator", e)
             // assume it's a physical device
             false
         }

@@ -11,12 +11,13 @@ import Foundation
 protocol SessionManager {
     var sessionId: String { get }
     var shouldReportSession: Bool { get }
-    func start()
+    func start(onNewSession: (String?) -> Void)
     func applicationDidEnterBackground()
     func applicationWillEnterForeground()
     func applicationWillTerminate()
     func onEventTracked(_ event: EventEntity)
     func setPreviousSessionCrashed(_ crashed: Bool)
+    func markCurrentSessionAsCrashed()
 }
 
 /// `BaseSessionManager`  is responsible for creating and managing sessions within the Measure SDK.
@@ -74,15 +75,15 @@ final class BaseSessionManager: SessionManager {
     }
 
     private func createNewSession() {
-        currentSessionId = idProvider.createId()
-        logger.log(level: .info, message: "New session created", error: nil, data: nil)
+        currentSessionId = idProvider.uuid()
+        logger.log(level: .info, message: "New session created: \(currentSessionId ?? "nil")", error: nil, data: nil)
         shouldReportSession = shouldMarkSessionForExport()
         let session = SessionEntity(sessionId: sessionId,
                                     pid: ProcessInfo.processInfo.processIdentifier,
                                     createdAt: Number(timeProvider.now()),
                                     needsReporting: shouldReportSession,
                                     crashed: false)
-        sessionStore.insertSession(session)
+        sessionStore.insertSession(session) {}
         let recentSession = RecentSession(id: session.sessionId,
                                           createdAt: session.createdAt,
                                           versionCode: versionCode)
@@ -96,7 +97,7 @@ final class BaseSessionManager: SessionManager {
 
         if let recentSession = userDefaultStorage.getRecentSession(), recentSession.lastEventTime != 0 {
             let elapsedTime = timeProvider.now() - recentSession.lastEventTime
-            if elapsedTime <= configProvider.sessionEndLastEventThresholdMs {
+            if elapsedTime <= configProvider.sessionEndLastEventThresholdMs && !recentSession.crashed {
                 return recentSession.id
             }
         }
@@ -152,27 +153,31 @@ final class BaseSessionManager: SessionManager {
         if let currentVersion = appVersionInfo.getAppVersion() {
             userDefaultStorage.setRecentAppVersion(currentVersion)
         }
-        
+
         if let currentBuild = appVersionInfo.getBuildNumber() {
             userDefaultStorage.setRecentBuildNumber(currentBuild)
         }
     }
 
-    func start() {
+    func start(onNewSession: (String?) -> Void) {
         if isAppVersionUpdated() || isAppBuildNumberUpdated() {
             logger.log(level: .info, message: "Ending previous session as app version or build number has been updated.", error: nil, data: nil)
             createNewSession()
+            onNewSession(currentSessionId)
         } else if isFrameworkVersionUpdated() {
             logger.log(level: .info, message: "Ending previous session as SDK version has been updated.", error: nil, data: nil)
             createNewSession()
+            onNewSession(currentSessionId)
         } else if isSessonDurationThreadholdReached() {
             logger.log(level: .info, message: "Ending previous session as maxSessionDurationMs threshold is reached.", error: nil, data: nil)
             createNewSession()
+            onNewSession(currentSessionId)
         } else if let recentSessionId = getRecentSessionId() {
             logger.log(level: .info, message: "Continuing previous session \(recentSessionId)", error: nil, data: nil)
             currentSessionId = recentSessionId
         } else {
             createNewSession()
+            onNewSession(currentSessionId)
         }
     }
 
@@ -203,9 +208,31 @@ final class BaseSessionManager: SessionManager {
     func setPreviousSessionCrashed(_ crashed: Bool) {
         self.previousSessionCrashed = crashed
         if let recentSession = userDefaultStorage.getRecentSession(), previousSessionCrashed {
-            sessionStore.markCrashedSession(sessionId: recentSession.id)
+            sessionStore.markCrashedSession(sessionId: recentSession.id) {}
             sessionStore.updateNeedsReporting(sessionId: recentSession.id, needsReporting: true)
             eventStore.updateNeedsReportingForAllEvents(sessionId: recentSession.id, needsReporting: true)
+        }
+    }
+
+    func markCurrentSessionAsCrashed() {
+        sessionStore.markCrashedSession(sessionId: sessionId) {}
+
+        sessionStore.getSession(byId: sessionId) { [weak self] session in
+            guard let self, let session else { return }
+
+            let recentSession = RecentSession(
+                id: session.sessionId,
+                createdAt: session.createdAt,
+                crashed: true,
+                versionCode: versionCode
+            )
+            self.userDefaultStorage.setRecentSession(recentSession)
+
+            if !self.shouldReportSession {
+                self.sessionStore.updateNeedsReporting(sessionId: self.sessionId, needsReporting: true)
+                self.eventStore.updateNeedsReportingForAllEvents(sessionId: self.sessionId, needsReporting: true)
+                self.shouldReportSession = true
+            }
         }
     }
 

@@ -68,7 +68,7 @@ To reset all data and run all migrations, run:
 > [!CAUTION]
 >
 > ## Destructive Action
-> 
+>
 > Resetting database will **DELETE** all data in your Postgres database.
 > If you want need the data later, make sure you take a backup first.
 
@@ -84,11 +84,11 @@ Find a few examples of writing migration SQL scripts below.
 
 ```sql
 -- migrate:up
-create table if not exists public.users (
+create table if not exists measure.users (
     id uuid primary key not null,
     name text
 );
 
 -- migrate:down
-drop table if exists public.users;
+drop table if exists measure.users;
 ```

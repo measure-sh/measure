@@ -19,7 +19,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/bodgit/sevenzip"
 	"github.com/dustin/go-humanize"
-	"github.com/shirou/gopsutil/disk"
+	"github.com/shirou/gopsutil/v4/disk"
 	drive "google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
 )

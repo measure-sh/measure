@@ -1,14 +1,28 @@
 FROM node:lts-alpine AS base
 
 FROM base AS builder
+ARG NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_OAUTH_GOOGLE_KEY
+ARG NEXT_PUBLIC_OAUTH_GITHUB_KEY
+ARG NEXT_PUBLIC_SLACK_CLIENT_ID
+
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN apk add --no-cache ca-certificates && npm ci
 COPY . .
-RUN npm run build
+RUN NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED} \
+    NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
+    NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \
+    NEXT_PUBLIC_OAUTH_GOOGLE_KEY=${NEXT_PUBLIC_OAUTH_GOOGLE_KEY} \
+    NEXT_PUBLIC_OAUTH_GITHUB_KEY=${NEXT_PUBLIC_OAUTH_GITHUB_KEY} \
+    NEXT_PUBLIC_SLACK_CLIENT_ID=${NEXT_PUBLIC_SLACK_CLIENT_ID} \
+    npm run build
 
 FROM base
 WORKDIR /app
+ENV NODE_ENV=production
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static

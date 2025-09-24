@@ -10,7 +10,7 @@ import XCTest
 
 final class BaseCustomEventCollectorTests: XCTestCase {
     private var logger: MockLogger!
-    private var eventProcessor: MockEventProcessor!
+    private var signalProcessor: MockSignalProcessor!
     private var timeProvider: MockTimeProvider!
     private var configProvider: MockConfigProvider!
     private var eventCollector: BaseCustomEventCollector!
@@ -19,7 +19,7 @@ final class BaseCustomEventCollectorTests: XCTestCase {
         super.setUp()
 
         logger = MockLogger()
-        eventProcessor = MockEventProcessor()
+        signalProcessor = MockSignalProcessor()
         timeProvider = MockTimeProvider()
         configProvider = MockConfigProvider()
 
@@ -31,7 +31,7 @@ final class BaseCustomEventCollectorTests: XCTestCase {
 
         eventCollector = BaseCustomEventCollector(
             logger: logger,
-            eventProcessor: eventProcessor,
+            signalProcessor: signalProcessor,
             timeProvider: timeProvider,
             configProvider: configProvider
         )
@@ -46,27 +46,26 @@ final class BaseCustomEventCollectorTests: XCTestCase {
 
         eventCollector.trackEvent(name: "custom_event", attributes: attributes, timestamp: 123456789)
 
-        XCTAssertNotNil(eventProcessor.data)
-        XCTAssertEqual(eventProcessor.timestamp, 123456789)
-        XCTAssertEqual(eventProcessor.type, .custom)
-        XCTAssertTrue(eventProcessor.userDefinedAttributes!.contains("Alice"))
-        XCTAssertTrue(eventProcessor.userDefinedAttributes!.contains("true"))
+        XCTAssertNotNil(signalProcessor.data)
+        XCTAssertEqual(signalProcessor.timestamp, 123456789)
+        XCTAssertEqual(signalProcessor.type, .custom)
+        XCTAssertTrue(signalProcessor.userDefinedAttributes!.contains("Alice"))
+        XCTAssertTrue(signalProcessor.userDefinedAttributes!.contains("true"))
     }
 
     func testTrackEvent_whenDisabled_doesNotSendToProcessor() {
         eventCollector.disable()
         eventCollector.trackEvent(name: "custom_event", attributes: [:], timestamp: nil)
 
-        XCTAssertNil(eventProcessor.data)
+        XCTAssertNil(signalProcessor.data)
     }
 
     func testTrackEvent_whenNameIsEmpty_logsWarning() {
         eventCollector.enable()
         eventCollector.trackEvent(name: "", attributes: [:], timestamp: nil)
 
-        XCTAssertNil(eventProcessor.data)
-        XCTAssertEqual(logger.logs.count, 1)
-        XCTAssertTrue(logger.logs[0].contains("Event name is empty"))
+        XCTAssertNil(signalProcessor.data)
+        XCTAssertTrue(logger.logs[1].contains("Event name is empty"))
     }
 
     func testTrackEvent_whenNameExceedsMaxLength_logsWarning() {
@@ -74,18 +73,16 @@ final class BaseCustomEventCollectorTests: XCTestCase {
         let longName = String(repeating: "a", count: configProvider.maxEventNameLength + 1)
         eventCollector.trackEvent(name: longName, attributes: [:], timestamp: nil)
 
-        XCTAssertNil(eventProcessor.data)
-        XCTAssertEqual(logger.logs.count, 1)
-        XCTAssertTrue(logger.logs[0].contains("exceeded max allowed length"))
+        XCTAssertNil(signalProcessor.data)
+        XCTAssertTrue(logger.logs[1].contains("exceeded max allowed length"))
     }
 
     func testTrackEvent_whenNameDoesNotMatchRegex_logsWarning() {
         eventCollector.enable()
         eventCollector.trackEvent(name: "invalid name!", attributes: [:], timestamp: nil)
 
-        XCTAssertNil(eventProcessor.data)
-        XCTAssertEqual(logger.logs.count, 1)
-        XCTAssertTrue(logger.logs[0].contains("does not match the allowed pattern"))
+        XCTAssertNil(signalProcessor.data)
+        XCTAssertTrue(logger.logs[1].contains("does not match the allowed pattern"))
     }
 
     func testTrackEvent_whenTooManyAttributes_logsWarning() {
@@ -95,9 +92,8 @@ final class BaseCustomEventCollectorTests: XCTestCase {
 
         eventCollector.trackEvent(name: "custom_event", attributes: attributes, timestamp: nil)
 
-        XCTAssertNil(eventProcessor.data)
-        XCTAssertEqual(logger.logs.count, 1)
-        XCTAssertTrue(logger.logs[0].contains("contains more than max allowed attributes"))
+        XCTAssertNil(signalProcessor.data)
+        XCTAssertTrue(logger.logs[1].contains("contains more than max allowed attributes"))
     }
 
     func testTrackEvent_whenAttributeKeyExceedsMaxLength_logsWarning() {
@@ -108,9 +104,8 @@ final class BaseCustomEventCollectorTests: XCTestCase {
 
         eventCollector.trackEvent(name: "custom_event", attributes: attributes, timestamp: nil)
 
-        XCTAssertNil(eventProcessor.data)
-        XCTAssertEqual(logger.logs.count, 1)
-        XCTAssertTrue(logger.logs[0].contains("contains invalid attribute key"))
+        XCTAssertNil(signalProcessor.data)
+        XCTAssertTrue(logger.logs[1].contains("contains invalid attribute key"))
     }
 
     func testTrackEvent_whenAttributeValueExceedsMaxLength_logsWarning() {
@@ -121,8 +116,7 @@ final class BaseCustomEventCollectorTests: XCTestCase {
 
         eventCollector.trackEvent(name: "custom_event", attributes: attributes, timestamp: nil)
 
-        XCTAssertNil(eventProcessor.data)
-        XCTAssertEqual(logger.logs.count, 1)
-        XCTAssertTrue(logger.logs[0].contains("contains invalid attribute value"))
+        XCTAssertNil(signalProcessor.data)
+        XCTAssertTrue(logger.logs[1].contains("contains invalid attribute value"))
     }
 }

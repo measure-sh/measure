@@ -10,6 +10,7 @@ import Foundation
 
 final class MockSystemFileManager: SystemFileManager {
     var crashFilePath: URL?
+    var directoryPath: String?
     var savedFiles: [String: Data] = [:]
 
     func getCrashFilePath() -> URL? {
@@ -25,5 +26,9 @@ final class MockSystemFileManager: SystemFileManager {
     func retrieveFile(name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> Data? {
         let fileKey = folderName != nil ? "\(folderName!)/\(name)" : name
         return savedFiles[fileKey]
+    }
+
+    func getDirectoryPath(directory: FileManager.SearchPathDirectory) -> String? {
+        return directoryPath
     }
 }

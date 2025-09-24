@@ -1,9 +1,11 @@
 package sh.measure.android.events
 
 import sh.measure.android.SessionManager
+import sh.measure.android.appexit.AppExit
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
+import sh.measure.android.attributes.StringAttr
 import sh.measure.android.attributes.appendAttributes
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.exceptions.ExceptionData
@@ -40,7 +42,7 @@ internal interface SignalProcessor {
     fun <T> track(
         data: T,
         timestamp: Long,
-        type: String,
+        type: EventType,
         attributes: MutableMap<String, Any?> = mutableMapOf(),
         userDefinedAttributes: Map<String, AttributeValue> = mapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
@@ -50,12 +52,26 @@ internal interface SignalProcessor {
     )
 
     /**
+     * App exit events can be triggered for an older session. This method is used to track app exit
+     * events for a specific session with the attributes provided.
+     */
+    fun trackAppExit(
+        data: AppExit,
+        timestamp: Long,
+        type: EventType,
+        threadName: String,
+        sessionId: String,
+        appVersion: String?,
+        appBuild: String?,
+    )
+
+    /**
      * Tracks a user defined event with the given data, timestamp and type.
      */
     fun <T> trackUserTriggered(
         data: T,
         timestamp: Long,
-        type: String,
+        type: EventType,
         attachments: MutableList<Attachment> = mutableListOf(),
         userDefinedAttributes: Map<String, AttributeValue> = mapOf(),
     )
@@ -68,10 +84,12 @@ internal interface SignalProcessor {
     fun trackCrash(
         data: ExceptionData,
         timestamp: Long,
-        type: String,
+        type: EventType,
         attributes: MutableMap<String, Any?> = mutableMapOf(),
         userDefinedAttributes: Map<String, AttributeValue> = mapOf(),
         attachments: MutableList<Attachment> = mutableListOf(),
+        threadName: String? = null,
+        takeScreenshot: Boolean = true,
     )
 
     fun trackSpan(spanData: SpanData)
@@ -84,7 +102,6 @@ internal class SignalProcessorImpl(
     private val idProvider: IdProvider,
     private val sessionManager: SessionManager,
     private val attributeProcessors: List<AttributeProcessor>,
-    private val eventTransformer: EventTransformer,
     private val exceptionExporter: ExceptionExporter,
     private val screenshotCollector: ScreenshotCollector,
     private val configProvider: ConfigProvider,
@@ -93,7 +110,7 @@ internal class SignalProcessorImpl(
     override fun <T> trackUserTriggered(
         data: T,
         timestamp: Long,
-        type: String,
+        type: EventType,
         attachments: MutableList<Attachment>,
         userDefinedAttributes: Map<String, AttributeValue>,
     ) {
@@ -113,7 +130,7 @@ internal class SignalProcessorImpl(
     override fun <T> track(
         data: T,
         timestamp: Long,
-        type: String,
+        type: EventType,
         attributes: MutableMap<String, Any?>,
         userDefinedAttributes: Map<String, AttributeValue>,
         attachments: MutableList<Attachment>,
@@ -136,46 +153,69 @@ internal class SignalProcessorImpl(
                             userTriggered = userTriggered,
                             userDefinedAttributes = userDefinedAttributes,
                             sessionId = sessionId,
-                        )
-                        applyAttributes(event, resolvedThreadName)
-                        val transformedEvent = InternalTrace.trace(
-                            label = { "msr-transform-event" },
-                            block = { eventTransformer.transform(event) },
-                        )
-
-                        if (transformedEvent != null) {
-                            InternalTrace.trace(label = { "msr-store-event" }, block = {
-                                signalStore.store(event)
-                                onEventTracked(event)
-                                logger.log(
-                                    LogLevel.Debug,
-                                    "Event processed: ${event.type}, ${event.id}",
-                                )
-                            })
-                        } else {
-                            logger.log(LogLevel.Debug, "Event dropped: $type")
+                        ) ?: return@trace
+                        applyAttributes(attributes, event, resolvedThreadName)
+                        InternalTrace.trace(label = { "msr-store-event" }, block = {
+                            signalStore.store(event)
+                            onEventTracked(event)
+                        })
+                        if (type == EventType.BUG_REPORT) {
+                            sessionManager.markSessionWithBugReport()
                         }
                     },
                 )
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(
-                LogLevel.Error,
-                "Failed to submit event processing task to executor",
-                e,
-            )
+            logger.log(LogLevel.Error, "Failed to process event", e)
         }
+    }
+
+    // This method does not apply event transformer or trigger onEventTracked callback as the
+    // app exit event is triggered for a previous session and doesn't need to update state
+    // or transform the event.
+    override fun trackAppExit(
+        data: AppExit,
+        timestamp: Long,
+        type: EventType,
+        threadName: String,
+        sessionId: String,
+        appVersion: String?,
+        appBuild: String?,
+    ) {
+        InternalTrace.trace(
+            label = { "msr-trackEvent" },
+            block = {
+                val attributes = mutableMapOf<String, Any?>()
+                val event = createEvent(
+                    data = data,
+                    timestamp = timestamp,
+                    type = type,
+                    attachments = mutableListOf(),
+                    attributes = attributes,
+                    userTriggered = false,
+                    userDefinedAttributes = mutableMapOf(),
+                    sessionId = sessionId,
+                ) ?: return@trace
+                applyAttributes(attributes, event, threadName)
+                event.updateVersionAttribute(appVersion, appBuild)
+                InternalTrace.trace(label = { "msr-store-event" }, block = {
+                    signalStore.store(event)
+                })
+            },
+        )
     }
 
     override fun trackCrash(
         data: ExceptionData,
         timestamp: Long,
-        type: String,
+        type: EventType,
         attributes: MutableMap<String, Any?>,
         userDefinedAttributes: Map<String, AttributeValue>,
         attachments: MutableList<Attachment>,
+        threadName: String?,
+        takeScreenshot: Boolean,
     ) {
-        val threadName = Thread.currentThread().name
+        val threadName = threadName ?: Thread.currentThread().name
         val event = createEvent(
             data = data,
             timestamp = timestamp,
@@ -184,18 +224,15 @@ internal class SignalProcessorImpl(
             attributes = attributes,
             userTriggered = false,
             userDefinedAttributes = userDefinedAttributes,
-        )
-        if (configProvider.trackScreenshotOnCrash) {
+        ) ?: return
+        if (configProvider.trackScreenshotOnCrash && takeScreenshot) {
             addScreenshotAsAttachment(event)
         }
-        applyAttributes(event, threadName)
-        eventTransformer.transform(event)?.let {
-            signalStore.store(event)
-            onEventTracked(event)
-            sessionManager.markCrashedSession(event.sessionId)
-            exceptionExporter.export(event.sessionId)
-            logger.log(LogLevel.Debug, "Event processed: $type, ${event.id}")
-        } ?: logger.log(LogLevel.Debug, "Event dropped: $type")
+        applyAttributes(attributes, event, threadName)
+        signalStore.store(event)
+        onEventTracked(event)
+        sessionManager.markCrashedSession(event.sessionId)
+        exceptionExporter.export(event.sessionId)
     }
 
     override fun trackSpan(spanData: SpanData) {
@@ -204,26 +241,37 @@ internal class SignalProcessorImpl(
                 { "msr-store-span" },
                 {
                     signalStore.store(spanData)
-                    logger.log(LogLevel.Info, "Span processed: ${spanData.name}")
+                    if (logger.enabled) {
+                        logger.log(
+                            LogLevel.Debug,
+                            "Span processed: ${spanData.name}, ${spanData.duration}ms",
+                        )
+                    }
                 },
             )
         }
     }
 
     private fun <T> onEventTracked(event: Event<T>) {
+        if (logger.enabled) {
+            logger.log(LogLevel.Debug, "Event processed: ${event.type}, ${event.data}")
+        }
         sessionManager.onEventTracked(event)
     }
 
     private fun <T> createEvent(
         timestamp: Long,
-        type: String,
+        type: EventType,
         data: T,
         attachments: MutableList<Attachment>,
         attributes: MutableMap<String, Any?>,
         userDefinedAttributes: Map<String, AttributeValue> = mutableMapOf(),
         userTriggered: Boolean,
         sessionId: String? = null,
-    ): Event<T> {
+    ): Event<T>? {
+        if (!validateUserDefinedAttributes(type.value, userDefinedAttributes)) {
+            return null
+        }
         val id = idProvider.uuid()
         val resolvedSessionId = sessionId ?: sessionManager.getSessionId()
         return Event(
@@ -239,9 +287,16 @@ internal class SignalProcessorImpl(
         )
     }
 
-    private fun <T> applyAttributes(event: Event<T>, threadName: String) {
+    private fun <T> applyAttributes(
+        attributes: MutableMap<String, Any?>,
+        event: Event<T>,
+        threadName: String,
+    ) {
         InternalTrace.trace(label = { "msr-apply-attributes" }, block = {
             event.appendAttribute(Attribute.THREAD_NAME, threadName)
+            if (!attributes.contains(Attribute.PLATFORM_KEY)) {
+                event.appendAttribute(Attribute.PLATFORM_KEY, "android")
+            }
             event.appendAttributes(attributeProcessors)
         })
     }
@@ -259,5 +314,60 @@ internal class SignalProcessorImpl(
                 )
             }
         })
+    }
+
+    // This is a quick way to update the version attributes for app exit events.
+    // AppExit events are tracked for older sessions, and the version attributes are not
+    // available at that time. Instead of changing the flow of tracking events, we apply the
+    // attributes as is and then mutate them here.
+    private fun Event<AppExit>.updateVersionAttribute(appVersion: String?, appBuild: String?) {
+        if (appVersion != null) {
+            attributes[Attribute.APP_VERSION_KEY] = appVersion
+        }
+        if (appBuild != null) {
+            attributes[Attribute.APP_BUILD_KEY] = appBuild
+        }
+    }
+
+    private fun validateUserDefinedAttributes(
+        event: String,
+        attributes: Map<String, AttributeValue>,
+    ): Boolean {
+        if (attributes.size > configProvider.maxUserDefinedAttributesPerEvent) {
+            logger.log(
+                LogLevel.Error,
+                "Invalid event($event): exceeds maximum of ${configProvider.maxUserDefinedAttributesPerEvent} attributes",
+            )
+            return false
+        }
+
+        return attributes.all { (key, value) ->
+            val isKeyValid = isKeyValid(key)
+            val isValueValid = isValueValid(value)
+            if (!isKeyValid) {
+                logger.log(
+                    LogLevel.Error,
+                    "Invalid event($event): invalid attribute key: $key",
+                )
+            }
+            if (!isValueValid) {
+                logger.log(
+                    LogLevel.Error,
+                    "Invalid event($event): invalid attribute value: $value",
+                )
+            }
+            isKeyValid && isValueValid
+        }
+    }
+
+    private fun isKeyValid(key: String): Boolean {
+        return key.length <= configProvider.maxUserDefinedAttributeKeyLength
+    }
+
+    private fun isValueValid(value: AttributeValue): Boolean {
+        return when (value) {
+            is StringAttr -> value.value.length <= configProvider.maxUserDefinedAttributeValueLength
+            else -> true
+        }
     }
 }

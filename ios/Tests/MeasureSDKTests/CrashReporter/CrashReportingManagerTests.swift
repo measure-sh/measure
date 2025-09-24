@@ -11,7 +11,7 @@ import CrashReporter
 
 final class CrashReportingManagerTests: XCTestCase {
     var crashReportingManager: CrashReportingManager!
-    var eventProcessor: MockEventProcessor!
+    var signalProcessor: MockSignalProcessor!
     var crashDataPersistence: MockCrashDataPersistence!
     var systemCrashReporter: MockSystemCrashReporter!
     var systemFileManager: MockSystemFileManager!
@@ -53,28 +53,29 @@ final class CrashReportingManagerTests: XCTestCase {
         crashDataPersistence = MockCrashDataPersistence(attribute: attributes,
                                                         sessionId: "session-id",
                                                         isForeground: true)
-        eventProcessor = MockEventProcessor()
+        signalProcessor = MockSignalProcessor()
         if let data = fileManagerHelper.loadFileData(fileName: "backgroundThreadException", fileExtension: "plcrash") {
             systemCrashReporter = MockSystemCrashReporter(hasPendingCrashReport: true,
                                                           crashData: data)
         }
         systemFileManager = MockSystemFileManager()
-        idProvider = MockIdProvider("uuid")
+        idProvider = MockIdProvider()
+        idProvider.uuId = "uuid"
         configProvider = MockConfigProvider()
         crashReportingManager = CrashReportingManager(logger: MockLogger(),
-                                                      eventProcessor: eventProcessor,
+                                                      signalProcessor: signalProcessor,
                                                       crashDataPersistence: crashDataPersistence,
                                                       crashReporter: systemCrashReporter,
                                                       systemFileManager: systemFileManager,
                                                       idProvider: idProvider,
                                                       configProvider: configProvider)
-        crashReportingManager.enableCrashReporting()
+        crashReportingManager.enable()
     }
 
     override func tearDown() {
         super.tearDown()
         crashReportingManager = nil
-        eventProcessor = nil
+        signalProcessor = nil
         crashDataPersistence = nil
         systemCrashReporter = nil
         systemFileManager = nil
@@ -84,13 +85,13 @@ final class CrashReportingManagerTests: XCTestCase {
 
     func testInsertSession() {
         crashReportingManager.trackException()
-        XCTAssertEqual(eventProcessor.attachments, nil)
-        XCTAssertEqual(eventProcessor.sessionId, "session-id")
-        XCTAssertEqual(eventProcessor.type, .exception)
-        XCTAssertEqual(eventProcessor.attributes, attributes)
+        XCTAssertEqual(signalProcessor.attachments, nil)
+        XCTAssertEqual(signalProcessor.sessionId, "session-id")
+        XCTAssertEqual(signalProcessor.type, .exception)
+        XCTAssertEqual(signalProcessor.attributes, attributes)
 
-        XCTAssertEqual(eventProcessor.timestamp, 1726903016000)
-        guard let exceptionJson = fileManagerHelper.getException(fileName: "backgroundThreadException", fileExtension: "json"), let eventException = eventProcessor.data as? Exception else {
+        XCTAssertEqual(signalProcessor.timestamp, 1726903016000)
+        guard let exceptionJson = fileManagerHelper.getException(fileName: "backgroundThreadException", fileExtension: "json"), let eventException = signalProcessor.data as? Exception else {
             XCTFail("Failed to read JSON file from test bundle.")
             return
         }

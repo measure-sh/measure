@@ -23,6 +23,12 @@ measure.sh is designed from the ground up for easy self-hosting. Follow along to
   - [3. Start the containers](#3-start-the-containers)
   - [4. Access your Measure dashboard](#4-access-your-measure-dashboard)
 - [Frequently Asked Questions](#frequently-asked-questions)
+  - [Q. Can I use podman instead of docker?](#q-can-i-use-podman-instead-of-docker)
+  - [Q. I made some mistake and want to start the installation over?](#q-i-made-some-mistake-and-want-to-start-the-installation-over)
+  - [Q. How to perform healthcheck of Measure services?](#q-how-to-perform-healthcheck-of-measure-services)
+  - [Q. Can I host Measure behind a VPN?](#q-can-i-host-measure-behind-a-vpn)
+  - [Q. I'm using nginx as a reverse proxy. What configurations should I change?](#q-im-using-nginx-as-a-reverse-proxy-what-configurations-should-i-change)
+  - [Q. How to add or update environment variables?](#q-how-to-add-or-update-environment-variables)
   - [Q. Why does ClickHouse consume high amount of CPU or memory?](#q-why-does-clickhouse-consume-high-amount-of-cpu-or-memory)
 
 ## Objectives
@@ -69,36 +75,48 @@ Let's start by moving to your home directory.
 cd ~
 ```
 
-Clone the repository with git and change to the `measure` directory.
-
-```sh
-git clone https://github.com/measure-sh/measure.git && cd measure
-```
-
-Checkout to git a tag. Replace `GIT-TAG` with an existing git tag. You can find out the latest stable release tag from the [releases](https://github.com/measure-sh/measure/releases) page.
+Choose a git tag. You can find out the latest stable release tag from the [releases](https://github.com/measure-sh/measure/releases) page.
 
 > [!IMPORTANT]
 >
 > Always choose a tag matching the format `v[MAJOR].[MINOR].[PATCH]`, for example: `v1.2.3`.
 > These tags are tailored for self host deployments.
 
+Clone the repository with git and change to the `measure` directory. Replace `GIT-TAG` with your chosen git tag.
+
 ```sh
-git checkout GIT-TAG
+git clone https://github.com/measure-sh/measure.git -b GIT-TAG && cd measure
 ```
 
-Next, change into the `self-host` directory. All commands will be run mostly from this directory.
+### 3. Run the `install.sh` script
+
+Next, change into the `self-host` directory. All successive commands will be run from this directory.
 
 ```sh
 cd self-host
 ```
-
-### 3. Run the `install.sh` script
 
 Run the install script with `sudo`.
 
 ```sh
 sudo ./install.sh
 ```
+
+> [!NOTE]
+>
+> To use **podman** instead of **docker**, use the *--podman* flag.
+>
+> ```sh
+> sudo ./install.sh --podman
+> ```
+>
+> This would install the following packages.
+> - [podman](https://podman.io/)
+> - [podman-docker](https://packages.debian.org/bookworm/podman-docker)
+> - [podman-compose](https://github.com/containers/podman-compose)
+> - [docker-compose](https://github.com/docker/compose)
+>
+> You can continue to use regular docker commands like, `docker ps -a` or `docker compose ps -a`. It should work seamlessly.
 
 The measure.sh install script will check your system's requirements and start the installation. It can take a few minutes to complete.
 
@@ -129,7 +147,19 @@ For the next few prompts, you'll need to obtain a Google & GitHub OAuth Applicat
 
 Once you have created the above apps, copy the key and secrets and enter in the relevant prompts.
 
-At this point, the install script will attempt to start all the Measure docker compose services. You should see a similar output.
+Next, you'll need to set up an SMTP email provider. This is used to send emails for team invites, alerts and so on. Follow the below link to obtain SMTP credentials:
+
+- [Set up SMTP email provider](./smtp-email.md)
+
+Once your provider is set up, copy the values and enter in the relevant prompts.
+
+Optionally, you can set up a Slack app if you want to recieve alert notications in your Slack workspace. Follow the below link to create and configure a Slack app:
+
+- [Set up Slack Integration](./slack.md)
+
+Once your slack integration is set up, copy the values and enter in the relevant prompts. If you wish to ignore it, enter dummy values and proceed.
+
+Once completed, the install script will attempt to start all the Measure docker compose services. You should see a similar output.
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/b33fbca4-4567-4077-9432-8be9f9c8b078" alt="Successful installation" />
@@ -224,11 +254,11 @@ Find out the suitable version from the [list of release tags](https://github.com
 > Always choose a tag matching the format `v[MAJOR].[MINOR].[PATCH]`, for example: `v1.2.3`.
 > These tags are tailored for self host deployments.
 
-Run `git fetch` to fetch all tags.
+Run `git fetch --tags` to fetch all tags.
 
 ```sh
 git reset --hard # reset local modifications, if any
-git fetch
+git fetch --tags
 ```
 
 Checkout to a particular git tag.
@@ -256,11 +286,18 @@ It'll take a few minutes for the upgrade to complete.
 
 ## Run on macOS locally
 
-You can run measure.sh locally on macOS for trying it out quickly, but keep in mind that not all features may not work as expected on macOS.
+You can run measure.sh locally on macOS for trying it out quickly, but keep in mind that not all features may work as expected on macOS.
 
 > [!WARNING]
 >
+> ### macOS Compatibility
+>
 > Not all features on macOS may work as expected. Don't use this setup for production. This guide was tested on macOS 14.6, though older or newer versions of macOS may work too.
+>
+> ### Using Podman on macOS
+>
+> Podman on macOS runs containers inside a virtual machine. Make sure to allocate sufficient memory (at least 8 GB)
+> to the podman machine. Low memory may crash the application or lead to instability.
 
 ### System Requirements
 
@@ -269,32 +306,23 @@ Make sure the following requirements are met before proceeding.
 | Name           | Version  |
 | -------------- | -------- |
 | Docker         | v26.1+   |
+| Podman         | v5.0.3+  |
 | Docker Compose | v2.27.3+ |
 | node           | v20+     |
 
 ### 1. Clone the measure repo
 
-Clone the repository with git and change to the `measure` directory.
-
-```sh
-git clone https://github.com/measure-sh/measure.git && cd measure
-```
-
-Checkout to git a tag. Replace `GIT-TAG` with an existing git tag. You can find out the latest stable release tag from the [releases](https://github.com/measure-sh/measure/releases) page.
+Choose a git a tag to use. You can find out the latest stable release tag from the [releases](https://github.com/measure-sh/measure/releases) page.
 
 > [!IMPORTANT]
 >
 > Always choose a tag matching the format `v[MAJOR].[MINOR].[PATCH]`, for example: `v1.2.3`.
 > These tags are tailored for self host deployments.
 
-```sh
-git checkout GIT-TAG
-```
-
-Next, change to the `self-host` directory. All commands will be run from the `self-host` directory after this point.
+Clone the repository with git and change to the `measure` directory. Replace `GIT-TAG` with your chosen git tag.
 
 ```sh
-cd self-host
+git clone https://github.com/measure-sh/measure.git -b GIT-TAG && cd measure/self-host
 ```
 
 ### 2. Run `config.sh` script to configure
@@ -305,12 +333,26 @@ Run the `config.sh` script to auto configure most settings.
 ./config.sh
 ```
 
+> [!NOTE]
+>
+> For production usage, use the *--production* flag.
+>
+> ```sh
+> ./config.sh --production
+> ```
+
 To continue, you'll need to obtain a Google & GitHub OAuth Application's credentials. This is required to setup authentication in Measure dashboard. Follow the below links to obtain Google & GitHub OAuth credentials.
 
 - [Create a Google OAuth App](./google-oauth.md)
 - [Create a GitHub OAuth App](./github-oauth.md)
 
-Once you have created the above apps, copy the key and secrets and enter in the relevant prompts.
+Once you have created the above apps, copy the key and secrets and enter them in the relevant prompts.
+
+Next, you'll need to set up an SMTP email provider. This is used to send emails for team invites, alerts and so on. Follow the below link to obtain SMTP credentials:
+
+- [Set up SMTP email provider](./smtp-email.md)
+
+Once your provider is set up, copy the values and enter them in the relevant prompts.
 
 ### 3. Start the containers
 
@@ -318,7 +360,6 @@ To start the containers in production mode, run.
 
 ```sh
 docker compose -f compose.yml -f compose.prod.yml \
-  --profile init \
   --profile migrate \
   up --build
 ```
@@ -332,6 +373,118 @@ Visit [Dashboard](http://localhost:3000/auth/login) to access your dashboard and
 ## Frequently Asked Questions
 
 Typical questions asked by other self host-ers.
+
+### Q. Can I use podman instead of docker?
+
+Yes, you can. Use the `--podman` flag when running the installation script.
+
+```sh
+sudo ./install.sh --podman
+```
+
+You can administer the instance using docker and docker compose commands as if you were using docker.
+
+### Q. I made some mistake and want to start the installation over?
+
+If you want to start over the installation from a clean slate, do the following.
+
+1. **Run the following from the `self-host` directory**
+
+    ```sh
+    sudo docker compose down --rmi --remove-orphans --volumes
+    ```
+
+2. **Remove the cloned `measure` directory**
+
+    ```sh
+    rm -rf ~/measure
+    ```
+
+3. **Repeat the installation process from start**
+
+### Q. How to perform healthcheck of Measure services?
+
+To perform health check for the API service, use:
+
+```sh
+curl -s https://measure.yourcompany.com | grep measure
+
+# local environment
+curl -s http://localhost:3000 | grep measure
+```
+
+To perform health check for the Dashboard service, use:
+
+```sh
+curl -s https://measure-api.yourcompany.com/ping | grep pong
+
+# local environment
+curl -s http://localhost:8080/ping | grep pong
+```
+
+Replace the domain names accordingly. These health check endpoints are useful when defining Measure services as backends for a load balancer or proxy.
+
+### Q. Can I host Measure behind a VPN?
+
+Absolutely! Hosting Measure behind a VPN is a great way to shield it from public internet. Though, keep the following in mind.
+
+1. **Measure API service must be accessible on public internet.** This allows the Measure SDK in your mobile app to communicate to the Measure backend.
+2. **Measure Dashboard service must bind on the private address.** Typically, proxy servers will listen on all network interfaces. When hosting behind a VPN, make sure to bind the Dashboard service on a private IP only. This is essential to achieve network level isolation. For example, the Caddy configuration would look like:
+
+    ```
+    measure.yourcompany.com {
+      # listen only on private IP
+      # change the IP accordingly
+      bind 10.0.0.1
+      reverse_proxy http://localhost:3000
+    }
+
+    measure-api.yourcompany.com {
+      reverse_proxy http://localhost:8080
+    }
+    ```
+
+[Read more on `bind`.](https://caddyserver.com/docs/caddyfile/directives/bind)
+
+In the above setup, only authorized VPN users will be able to access the Measure Dashboard, without disrupting ingestion of events coming from Measure SDKs.
+
+### Q. I'm using nginx as a reverse proxy. What configurations should I change?
+
+When using nginx, make sure to increase the `client_max_body_size` to sufficiently large value like `1024M` (1 GiB). This ensures large debug mapping files, like proguard and macho files will not fail to upload.
+
+```
+http {
+  # other configuration
+
+  client_max_body_size 1024M;
+
+  # other configuration
+}
+```
+
+### Q. How to add or update environment variables?
+
+There are 2 dotenv files that define all environment variables.
+
+- **`self-host/.env`** Contains all backend service envionment variables
+- **`frontend/dashboard/.env.local`** Contains nextjs environment variables
+
+You would need to shutdown existing compose services and then start them again for the updated environment variables to take effect.
+
+To do that, run from inside the `self-host` directory.
+
+```sh
+sudo docker compose -f compose.yml -f compose.prod.yml \
+  --profile init \
+  --profile migrate \
+  down
+```
+
+Then run the `./install.sh` script.
+
+```sh
+sudo ./install.sh
+```
 
 ### Q. Why does ClickHouse consume high amount of CPU or memory?
 

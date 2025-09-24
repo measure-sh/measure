@@ -44,7 +44,7 @@ func newAppSettings(appId uuid.UUID) *AppSettings {
 }
 
 func (pref *AppSettings) update() error {
-	stmt := sqlf.PostgreSQL.Update("public.app_settings").
+	stmt := sqlf.PostgreSQL.Update("app_settings").
 		Set("retention_period", pref.RetentionPeriod).
 		Set("updated_at", pref.UpdatedAt).
 		Where("app_id = ?", pref.AppId)
@@ -68,7 +68,7 @@ func getAppSettings(appId uuid.UUID) (*AppSettings, error) {
 		Select("retention_period").
 		Select("created_at").
 		Select("updated_at").
-		From("public.app_settings").
+		From("app_settings").
 		Where("app_id = ?", appId)
 	defer stmt.Close()
 
@@ -78,7 +78,7 @@ func getAppSettings(appId uuid.UUID) (*AppSettings, error) {
 	if err != nil && err == pgx.ErrNoRows {
 		pref = *newAppSettings(appId)
 
-		stmt := sqlf.PostgreSQL.InsertInto("public.app_settings").
+		stmt := sqlf.PostgreSQL.InsertInto("app_settings").
 			Set("app_id", pref.AppId).
 			Set("retention_period", pref.RetentionPeriod).
 			Set("created_at", pref.CreatedAt).

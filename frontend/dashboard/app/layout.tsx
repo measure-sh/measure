@@ -2,6 +2,7 @@ import { HighlightInit } from '@highlight-run/next/client'
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Josefin_Sans, Space_Mono } from 'next/font/google'
+import { Toaster } from './components/toaster'
 
 const josefin_sans = Josefin_Sans({
   subsets: ['latin'], display: 'swap', weight: ['100', '200', '300', '400', '500', '600', '700'],
@@ -13,9 +14,42 @@ const space_mono = Space_Mono({
   variable: '--font-space-mono'
 })
 
+const title = 'Measure'
+const description = 'Open source tool to monitor mobile apps'
+const siteName = 'measure.sh'
+const previewImage = 'https://measure.sh/images/social_preview.png'
+
 export const metadata: Metadata = {
-  title: 'Measure',
-  description: 'Open Source Mobile App Monitoring'
+  title: {
+    default: title,
+    template: `%s | ${title}`,
+  },
+
+  description: description,
+
+  openGraph: {
+    title: title,
+    description: description,
+    url: '/',
+    siteName: siteName,
+    images: [
+      {
+        url: previewImage,
+        width: 1200,
+        height: 630,
+        alt: 'Measure preview image',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+
+  twitter: {
+    card: 'summary_large_image',
+    title: title,
+    description: description,
+    images: [previewImage],
+  },
 }
 
 export const viewport: Viewport = {
@@ -44,7 +78,10 @@ export default function RootLayout({
         }}
       />
       <html lang="en">
-        <body className={`${josefin_sans.variable} ${space_mono.variable}`}>{children}</body>
+        <body className={`${josefin_sans.variable} ${space_mono.variable}`}>
+          {children}
+          <Toaster />
+        </body>
       </html>
     </>
   )

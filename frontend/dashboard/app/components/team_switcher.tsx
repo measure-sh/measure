@@ -1,6 +1,12 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from 'react';
+import { DropdownMenuSeparator } from '@radix-ui/react-dropdown-menu'
+import { ChevronsUpDown } from 'lucide-react'
+import React, { useState } from 'react'
+import { Team } from '../api/api_calls'
+import { Button } from './button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from './dropdown_menu'
+import LoadingSpinner from './loading_spinner'
 
 export enum TeamsSwitcherStatus {
   Loading,
@@ -9,95 +15,50 @@ export enum TeamsSwitcherStatus {
 }
 
 interface TeamSwitcherProps {
-  items: string[];
-  initialItemIndex?: number;
-  teamsSwitcherStatus: TeamsSwitcherStatus;
-  onChangeSelectedItem?: (item: string) => void;
+  items: Team[] | null
+  initialItemIndex?: number
+  teamsSwitcherStatus: TeamsSwitcherStatus
+  onChangeSelectedItem?: (item: Team) => void
 }
 
 const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ items, initialItemIndex = 0, teamsSwitcherStatus, onChangeSelectedItem }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<string | null>(null);
-  const teamSwitcherRef = useRef<HTMLDivElement | null>(null);
+  const [selectedItem, setSelectedItem] = useState<Team | null>(null)
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        teamSwitcherRef.current &&
-        !teamSwitcherRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    const handleFocusIn = (event: FocusEvent) => {
-      if (
-        teamSwitcherRef.current &&
-        !teamSwitcherRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('focusin', handleFocusIn);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('focusin', handleFocusIn);
-    };
-  }, []);
-
-  const toggleTeamSwitcher = () => {
-    setIsOpen(!isOpen);
-  };
-
-  const selectItem = (item: string) => {
-    setSelectedItem(item);
-    setIsOpen(false);
+  const selectItem = (item: Team) => {
+    setSelectedItem(item)
     if (onChangeSelectedItem) {
-      onChangeSelectedItem(item);
+      onChangeSelectedItem(item)
     }
-  };
+  }
 
   return (
-    <div className="z-50 relative w-40 self-center inline-block text-left" ref={teamSwitcherRef} >
-      <button
-        type="button"
-        onClick={toggleTeamSwitcher}
-        disabled={teamsSwitcherStatus === TeamsSwitcherStatus.Loading || teamsSwitcherStatus === TeamsSwitcherStatus.Error}
-        className="aspect-square w-full text-xl font-display border border-black rounded-full outline-hidden hover:enabled:bg-yellow-200 focus:enabled:bg-yellow-200 active:enabled:bg-yellow-300">
-        {teamsSwitcherStatus == TeamsSwitcherStatus.Loading && <p className="pl-8 truncate w-max">Updating...</p>}
-        {teamsSwitcherStatus == TeamsSwitcherStatus.Error && <p className="pl-8 truncate w-max">Error</p>}
-        {teamsSwitcherStatus == TeamsSwitcherStatus.Success &&
-          <div className="flex flex-row justify-center">
-            <p className="pl-8 truncate w-max">{selectedItem ? selectedItem : items[initialItemIndex]}</p>
-            <p className="pl-3 pr-4 pt-1 text-sm">⏷</p>
-          </div>}
-      </button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild className='w-full select-none'>
+        <Button
+          variant="outline"
+          className="flex justify-between w-full font-display border border-black select-none"
+          disabled={teamsSwitcherStatus === TeamsSwitcherStatus.Loading || teamsSwitcherStatus === TeamsSwitcherStatus.Error}
+        >
+          {teamsSwitcherStatus == TeamsSwitcherStatus.Loading && <LoadingSpinner />}
+          {teamsSwitcherStatus == TeamsSwitcherStatus.Error && <p>Teams Fetch Error</p>}
+          {teamsSwitcherStatus == TeamsSwitcherStatus.Success && <span className="truncate">{selectedItem ? selectedItem.name : items![initialItemIndex].name}</span>}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        className='select-none'
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
+        <DropdownMenuLabel className='font-display'>Select Team</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {teamsSwitcherStatus === TeamsSwitcherStatus.Success && items?.map((item, index) => (
+          <DropdownMenuItem key={index} onClick={() => selectItem(item)} className='font-body'>
+            {item.name}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
 
-      {isOpen && (
-        <div className="origin-top-right absolute left-0 mt-2 w-48 rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
-          <div
-            role="menu"
-            aria-orientation="vertical"
-            aria-labelledby="options-menu"
-          >
-            {items.map((item) => (
-              <button
-                key={item}
-                onClick={() => selectItem(item)}
-                className="block w-full px-2 py-2 text-white bg-neutral-950 font-display text-left hover:text-black hover:bg-yellow-200 active:bg-yellow-300 outline-hidden focus:bg-yellow-200"
-                role="menuitem"
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default TeamSwitcher;
+export default TeamSwitcher

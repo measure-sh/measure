@@ -2,15 +2,15 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
-	"time"
+	"os"
 
 	"backend/api/inet"
 	"backend/api/measure"
 	"backend/api/server"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
@@ -58,22 +58,13 @@ func main() {
 
 	// SDK routes
 	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
-	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuild)
+	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuilds)
 
-	cors := cors.New(cors.Config{
-		AllowOrigins:     []string{config.SiteOrigin},
-		AllowMethods:     []string{"GET", "OPTIONS", "PATCH", "DELETE", "PUT"},
-		AllowHeaders:     []string{"Authorization", "Content-Type"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	})
-
-	// Dashboard routes
-	// Any route below this point will use CORS
-	r.Use(cors)
-
-	// Proxy route
-	r.GET("/attachments", measure.ProxyAttachment)
+	// Proxy routes
+	r.GET("/proxy/attachments", measure.ProxyAttachment)
+	if !config.IsCloud() {
+		r.PUT("/proxy/symbols", measure.ProxySymbol)
+	}
 
 	// Auth routes
 	auth := r.Group("/auth")
@@ -81,8 +72,11 @@ func main() {
 		auth.POST("github", measure.SigninGitHub)
 		auth.POST("google", measure.SigninGoogle)
 		auth.POST("refresh", measure.ValidateRefreshToken(), measure.RefreshToken)
+		auth.GET("session", measure.ValidateAccessToken(), measure.GetAuthSession)
 		auth.DELETE("signout", measure.ValidateRefreshToken(), measure.Signout)
 	}
+
+	// Dashboard routes
 
 	apps := r.Group("/apps", measure.ValidateAccessToken())
 	{
@@ -118,6 +112,7 @@ func main() {
 		apps.GET(":id/bugReports/plots/instances", measure.GetBugReportsInstancesPlot)
 		apps.GET(":id/bugReports/:bugReportId", measure.GetBugReport)
 		apps.PATCH(":id/bugReports/:bugReportId", measure.UpdateBugReportStatus)
+		apps.GET(":id/alerts", measure.GetAlertsOverview)
 	}
 
 	teams := r.Group("/teams", measure.ValidateAccessToken())
@@ -125,16 +120,34 @@ func main() {
 		teams.POST("", measure.CreateTeam)
 		teams.GET("", measure.GetTeams)
 		teams.GET(":id/apps", measure.GetTeamApps)
-		teams.GET(":id/usage", measure.GetUsage)
 		teams.GET(":id/apps/:appId", measure.GetTeamApp)
 		teams.POST(":id/apps", measure.CreateApp)
+		teams.GET(":id/invites", measure.GetValidTeamInvites)
 		teams.POST(":id/invite", measure.InviteMembers)
+		teams.PATCH(":id/invite/:inviteId", measure.ResendInvite)
+		teams.DELETE(":id/invite/:inviteId", measure.RemoveInvite)
 		teams.PATCH(":id/rename", measure.RenameTeam)
 		teams.PATCH(":id/members/:memberId/role", measure.ChangeMemberRole)
 		teams.GET(":id/authz", measure.GetAuthzRoles)
 		teams.GET(":id/members", measure.GetTeamMembers)
 		teams.DELETE(":id/members/:memberId", measure.RemoveTeamMember)
+		teams.GET(":id/usage", measure.GetUsage)
+		teams.GET(":id/slack", measure.GetTeamSlack)
+		teams.PATCH(":id/slack/status", measure.UpdateTeamSlackStatus)
 	}
 
-	r.Run(":8080") // listen and serve on 0.0.0.0:8080
+	slack := r.Group("/slack")
+	{
+		slack.POST("/connect", measure.ConnectTeamSlack)
+		slack.POST("/events", measure.HandleSlackEvents)
+	}
+
+	// listen and serve on 0.0.0.0:${PORT}
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	if err := r.Run(":" + port); err != nil {
+		fmt.Printf("Failed to listen and serve on 0.0.0.0:%s\n", port)
+	}
 }

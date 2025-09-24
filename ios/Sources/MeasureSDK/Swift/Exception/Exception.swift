@@ -23,11 +23,19 @@ struct Exception: Codable {
     /// An optional array of all the `BinaryImage` needed for symbolication.
     let binaryImages: [BinaryImage]?
 
+    /// Specifies the framework where the exception originated from.
+    let framework: String?
+
+    /// An optional object for tracking error(s).
+    let error: MsrError?
+
     enum CodingKeys: String, CodingKey {
         case handled
         case exceptions
         case foreground
         case threads
         case binaryImages = "binary_images"
+        case framework
+        case error
     }
 }

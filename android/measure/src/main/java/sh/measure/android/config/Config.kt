@@ -1,5 +1,6 @@
 package sh.measure.android.config
 
+import android.hardware.SensorManager
 import sh.measure.android.events.EventType
 
 internal data class Config(
@@ -15,9 +16,11 @@ internal data class Config(
     override val samplingRateForErrorFreeSessions: Float = DefaultConfig.SESSION_SAMPLING_RATE,
     override val autoStart: Boolean = DefaultConfig.AUTO_START,
     override val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
-    override val enableShakeToLaunchBugReport: Boolean = DefaultConfig.ENABLE_SHAKE_TO_LAUNCH_BUG_REPORT,
     override val trackActivityLoadTime: Boolean = DefaultConfig.TRACK_ACTIVITY_LOAD_TIME,
     override val trackFragmentLoadTime: Boolean = DefaultConfig.TRACK_FRAGMENT_LOAD_TIME,
+    override val disallowedCustomHeaders: List<String> = DefaultConfig.DISALLOWED_CUSTOM_HEADERS,
+    override val maxDiskUsageInMb: Int = DefaultConfig.MAX_ESTIMATED_DISK_USAGE_IN_MB,
+    override val requestHeadersProvider: MsrRequestHeadersProvider? = null,
 ) : InternalConfig, IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25
@@ -36,19 +39,19 @@ internal data class Config(
     override val sessionEndLastEventThresholdMs: Long = 20 * 60 * 1000 // 20 minutes
     override val maxSessionDurationMs: Long = 6 * 60 * 60 * 1000 // 6 hours
     override val maxEventNameLength: Int = 64 // 64 chars
-    override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+\$"
+    override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+$"
     override val maxUserDefinedAttributesPerEvent: Int = 100
     override val maxUserDefinedAttributeKeyLength: Int = 256 // 256 chars
     override val maxUserDefinedAttributeValueLength: Int = 256 // 256 chars
-    override val eventTypeExportAllowList: List<String> = listOf(
+    override val eventTypeExportAllowList: List<EventType> = listOf(
         EventType.COLD_LAUNCH,
         EventType.HOT_LAUNCH,
         EventType.WARM_LAUNCH,
         EventType.LIFECYCLE_ACTIVITY,
         EventType.LIFECYCLE_FRAGMENT,
         EventType.SCREEN_VIEW,
+        EventType.SESSION_START,
     )
-    override val maxSignalsInDatabase: Int = 50_000
     override val maxSpanNameLength: Int = 64
     override val maxCheckpointNameLength: Int = 64
     override val maxCheckpointsPerSpan: Int = 100
@@ -56,7 +59,8 @@ internal data class Config(
     override val inMemorySignalsQueueFlushRateMs: Long = 3000
     override val maxAttachmentsInBugReport: Int = 5
     override val maxDescriptionLengthInBugReport: Int = 4000
-    override val shakeAccelerationThreshold: Float = 20f
-    override val shakeMinTimeIntervalMs: Long = 1500
-    override val shakeSlop: Int = 3
+    override val shakeAccelerationThreshold: Float = 2.5f * SensorManager.GRAVITY_EARTH
+    override val shakeMinTimeIntervalMs: Long = 5000
+    override val shakeSlop: Int = 2
+    override val estimatedEventSizeInKb: Int = 10 // 10KB
 }

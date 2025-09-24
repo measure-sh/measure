@@ -23,13 +23,16 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: measure-sh/migrator
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ["1.22.x"]
+        go-version: ["1.24.x", "1.25.x"]
     defaults:
       run:
         working-directory: backend/migrator
@@ -54,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ["1.22.x"]
+        go-version: ["1.24.x", "1.25.x"]
     defaults:
       run:
         working-directory: backend/migrator
@@ -111,7 +114,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
             org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/backend/migrator/dockerfile
-            org.opencontainers.image.description=Measure Migrator
+            org.opencontainers.image.description=Measure Migrator Server
             org.opencontainers.image.licenses=Apache-2.0
 
       - name: Generate artifact attestation

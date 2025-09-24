@@ -39,11 +39,11 @@ internal class DataCleanupServiceImpl(
             ioExecutor.submit {
                 val currentSessionId = sessionManager.getSessionId()
                 deleteSessionsNotMarkedForReporting(currentSessionId)
-                trimEventsAndSpans()
+                trimEventsAndSpans(currentSessionId)
                 deleteBugReports(currentSessionId)
             }
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Failed to submit data cleanup task to executor", e)
+            logger.log(LogLevel.Debug, "Failed to submit data cleanup task to executor", e)
         }
     }
 
@@ -60,27 +60,27 @@ internal class DataCleanupServiceImpl(
                 }
             }
         } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Failed to clean up stale bug reports", e)
+            logger.log(LogLevel.Debug, "Failed to clean up stale bug reports", e)
         }
     }
 
-    private fun trimEventsAndSpans() {
+    private fun trimEventsAndSpans(currentSessionId: String) {
         val eventsCount = database.getEventsCount()
         val spansCount = database.getSpansCount()
         val totalSignals = eventsCount + spansCount
-        if (totalSignals <= configProvider.maxSignalsInDatabase) {
+        val estimatedSizeInMb = (totalSignals * configProvider.estimatedEventSizeInKb) / 1024
+
+        if (estimatedSizeInMb <= configProvider.maxDiskUsageInMb.coerceIn(20, 1500)) {
             return
         }
-        logger.log(
-            LogLevel.Warning,
-            "Total signals ($totalSignals) exceeds the limit, deleting the oldest session.",
-        )
-        deleteOldestSession()
+        deleteOldestSession(currentSessionId)
     }
 
-    private fun deleteOldestSession() {
+    private fun deleteOldestSession(currentSessionId: String) {
         database.getOldestSession()?.let {
-            deleteSessions(listOf(it))
+            if (it != currentSessionId) {
+                deleteSessions(listOf(it))
+            }
         }
     }
 
@@ -102,11 +102,6 @@ internal class DataCleanupServiceImpl(
         fileStorage.deleteEventsIfExist(eventIds, attachmentIds)
         // deleting sessions from db will also delete events for the session as they ar
         // e cascaded deletes.
-        val result = database.deleteSessions(sessionIds)
-        if (result) {
-            logger.log(LogLevel.Debug, "Deleted ${eventIds.size} events")
-        } else {
-            logger.log(LogLevel.Warning, "Failed to delete ${eventIds.size} events")
-        }
+        database.deleteSessions(sessionIds)
     }
 }

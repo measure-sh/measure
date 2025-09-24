@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import sh.measure.android.NativeBridge
@@ -49,7 +50,7 @@ class AnrCollectorTest {
         anrCollector.onAnrDetected(timestamp)
 
         // Then
-        val typeCaptor = argumentCaptor<String>()
+        val typeCaptor = argumentCaptor<EventType>()
         val timestampCaptor = argumentCaptor<Long>()
         val dataCaptor = argumentCaptor<ExceptionData>()
         val attributesCaptor = argumentCaptor<MutableMap<String, Any?>>()
@@ -65,6 +66,8 @@ class AnrCollectorTest {
             attributes = attributesCaptor.capture(),
             userDefinedAttributes = userDefinedAttributeCaptor.capture(),
             attachments = attachmentsCaptor.capture(),
+            threadName = eq(null),
+            takeScreenshot = eq(false),
         )
 
         assertEquals(EventType.ANR, typeCaptor.firstValue)

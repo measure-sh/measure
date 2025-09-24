@@ -35,25 +35,27 @@ type GitHubToken struct {
 
 // GitHubUser represents the GitHub user.
 type GitHubUser struct {
-	ID       int    `json:"id"`
-	Login    string `json:"login"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Company  string `json:"company"`
-	Location string `json:"location"`
+	ID        int    `json:"id"`
+	Login     string `json:"login"`
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	AvatarUrl string `json:"avatar_url"`
+	Company   string `json:"company"`
+	Location  string `json:"location"`
 }
 
 // GoogleUser represents the Google user.
 type GoogleUser struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Email   string `json:"email"`
+	Picture string `json:"picture"`
 }
 
 // Save saves the authentication state.
 func (as AuthState) Save(ctx context.Context) (err error) {
 	stmt := sqlf.PostgreSQL.
-		InsertInto("public.auth_states").
+		InsertInto("auth_states").
 		Set("id", uuid.New()).
 		Set("state", as.State).
 		Set("oauth_provider", as.OAuthProvider)
@@ -71,7 +73,7 @@ func (as AuthState) Save(ctx context.Context) (err error) {
 // GetOAuthState find an oauth state by state.
 func GetOAuthState(ctx context.Context, state, provider string) (authState AuthState, err error) {
 	stmt := sqlf.PostgreSQL.
-		From("public.auth_states").
+		From("auth_states").
 		Select("state").
 		Where("state = ? and oauth_provider = ?", state, provider).
 		Limit(1)
@@ -88,7 +90,7 @@ func GetOAuthState(ctx context.Context, state, provider string) (authState AuthS
 // RemoveOAuthState removes an oauth state.
 func RemoveOAuthState(ctx context.Context, state, provider string) (err error) {
 	stmt := sqlf.PostgreSQL.
-		DeleteFrom("public.auth_states").
+		DeleteFrom("auth_states").
 		Where("state = ? and oauth_provider = ?", state, provider)
 
 	defer stmt.Close()

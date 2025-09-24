@@ -1,16 +1,16 @@
 -- migrate:up
-create table if not exists public.roles (
+create table if not exists measure.roles (
     name varchar(256) primary key not null check (name in ('owner', 'admin', 'developer', 'viewer'))
 );
 
-comment on column public.roles.name is 'unique role name';
+comment on column measure.roles.name is 'unique role name';
 
 -- seed data in to roles table
-insert into public.roles(name) values
+insert into measure.roles(name) values
     ('owner'),
     ('admin'),
     ('developer'),
     ('viewer')
 
 -- migrate:down
-drop table if exists public.roles;
+drop table if exists measure.roles;

@@ -1,14 +1,17 @@
 package sh.measure.android.storage
 
+import sh.measure.android.events.EventType
+
 internal object DbConstants {
     const val DATABASE_NAME = "measure.db"
-    const val DATABASE_VERSION = DbVersion.V3
+    const val DATABASE_VERSION = DbVersion.V4
 }
 
 internal object DbVersion {
     const val V1 = 1
     const val V2 = 2
     const val V3 = 3
+    const val V4 = 4
 }
 
 internal object EventTable {
@@ -76,6 +79,8 @@ internal object AppExitTable {
     const val COL_SESSION_ID = "session_id"
     const val COL_PID = "pid"
     const val COL_CREATED_AT = "created_at"
+    const val COL_APP_BUILD = "app_build"
+    const val COL_APP_VERSION = "app_version"
 }
 
 internal object SpansTable {
@@ -181,6 +186,8 @@ internal object Sql {
             ${AppExitTable.COL_SESSION_ID} TEXT NOT NULL,
             ${AppExitTable.COL_PID} INTEGER NOT NULL,
             ${AppExitTable.COL_CREATED_AT} INTEGER NOT NULL,
+            ${AppExitTable.COL_APP_BUILD} TEXT,
+            ${AppExitTable.COL_APP_VERSION} TEXT,
             PRIMARY KEY (${AppExitTable.COL_SESSION_ID}, ${AppExitTable.COL_PID})
         )
     """
@@ -225,7 +232,7 @@ internal object Sql {
         eventCount: Int,
         ascending: Boolean,
         sessionId: String?,
-        eventTypeAllowList: List<String>,
+        eventTypeAllowList: List<EventType>,
     ): String {
         if (sessionId != null) {
             /**
@@ -270,7 +277,7 @@ internal object Sql {
                 JOIN ${SessionsTable.TABLE_NAME} s ON e.${EventTable.COL_SESSION_ID} = s.${SessionsTable.COL_SESSION_ID}
                 WHERE eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
                 AND (
-                    e.${EventTable.COL_TYPE} IN (${eventTypeAllowList.joinToString(", ") { "'$it'" }})
+                    e.${EventTable.COL_TYPE} IN (${eventTypeAllowList.joinToString(", ") { "'${it.value}'" }})
                     OR (s.${SessionsTable.COL_NEEDS_REPORTING} = 1)
                 )
                 ORDER BY e.${EventTable.COL_TIMESTAMP} ${if (ascending) "ASC" else "DESC"}
@@ -442,7 +449,9 @@ internal object Sql {
         return """
             SELECT
                 ${AppExitTable.COL_SESSION_ID},
-                ${AppExitTable.COL_CREATED_AT}
+                ${AppExitTable.COL_CREATED_AT},
+                ${AppExitTable.COL_APP_VERSION},
+                ${AppExitTable.COL_APP_BUILD}
             FROM ${AppExitTable.TABLE_NAME}
             WHERE ${AppExitTable.COL_PID} = $pid 
             ORDER BY ${AppExitTable.COL_CREATED_AT} DESC

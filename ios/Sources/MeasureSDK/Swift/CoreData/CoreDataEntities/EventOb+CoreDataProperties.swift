@@ -9,7 +9,6 @@
 import Foundation
 import CoreData
 
-
 extension EventOb {
 
     @nonobjc class func fetchRequest() -> NSFetchRequest<EventOb> {
@@ -44,5 +43,5 @@ extension EventOb {
     @NSManaged var userDefinedAttributes: String?
     @NSManaged var userTriggered: Bool
     @NSManaged var warmLaunch: Data?
-
+    @NSManaged var bugReport: Data?
 }

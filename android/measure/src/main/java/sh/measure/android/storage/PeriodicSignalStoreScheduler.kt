@@ -35,7 +35,7 @@ internal class PeriodicSignalStoreScheduler(
                 TimeUnit.MILLISECONDS,
             )
         } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Error, "Failed to start periodic signal store scheduler", e)
+            logger.log(LogLevel.Debug, "Failed to start periodic signal store scheduler", e)
             return
         }
     }

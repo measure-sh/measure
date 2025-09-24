@@ -1,7 +1,7 @@
 'use client'
 
-import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
 import { formatToCamelCase } from '../utils/string_utils'
+import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
 
 type SessionTimelineEventCellProps = {
   eventType: string
@@ -61,7 +61,7 @@ export default function SessionTimelineEventCell({
 
   function getTitleFromEventType() {
     if (eventType === "exception" || eventType === "anr") {
-      return eventDetails.type + ": " + eventDetails.message
+      return `${eventDetails.type}${eventDetails.message ? `: ${eventDetails.message}` : ""}`
     }
 
     if (eventType === "bug_report") {
@@ -158,7 +158,7 @@ export default function SessionTimelineEventCell({
   }
 
   return (
-    <button className={`group w-full px-2 py-4 outline-hidden font-display hover:bg-yellow-200 active:bg-yellow-300 focus-visible:outline-yellow-200 ${selected ? 'bg-neutral-800 text-white' : ''} hover:text-black`}
+    <button className={`group w-full px-2 py-4 outline-hidden font-display hover:bg-yellow-200 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] ${selected ? 'bg-neutral-800 text-white' : ''} hover:text-black`}
       onClick={() => onClick(index)}>
       <div className="flex flex-row items-center" id={`event-cell-title-${eventType}-${index}`}>
         <div className={`w-2 h-2 rounded-full ${getColorFromEventType()}`} />

@@ -10,5 +10,6 @@ import Foundation
 struct BatchEntity {
     let batchId: String
     let eventIds: [String]
+    let spanIds: [String]
     let createdAt: Int64
 }

@@ -10,9 +10,11 @@ import org.gradle.internal.impldep.org.junit.rules.TemporaryFolder
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.File
 import java.time.Duration
 
 class BuildUploadTaskTest {
@@ -23,6 +25,12 @@ class BuildUploadTaskTest {
     private lateinit var task: BuildUploadTask
     private lateinit var mockWebServer: MockWebServer
     private val retriesCount = 2
+    private val customHeaders = mapOf(
+        "msr-req-id" to "requestId",
+        "customHeader" to "customHeaderValue"
+    )
+    private val disallowedCustomHeader = "msr-req-id"
+    private val allowedCustomHeaders = customHeaders.keys.minus(disallowedCustomHeader)
 
     @Before
     fun setup() {
@@ -40,6 +48,9 @@ class BuildUploadTaskTest {
         val appSizeFile = temporaryFolder.newFile("appSize.txt").apply {
             writeText(appSize)
         }
+        // Create an empty directory for Flutter symbols
+        val flutterSymbolsDir = temporaryFolder.newFolder("flutter_symbols")
+        
         val buildServiceRegistry =
             (project as ProjectInternal).services.get(BuildServiceRegistry::class.java)
         val httpClient = buildServiceRegistry.registerIfAbsent(
@@ -53,6 +64,8 @@ class BuildUploadTaskTest {
         task.manifestDataProperty.set(manifestDataFile)
         task.mappingFileProperty.set(mappingFile)
         task.appSizeFileProperty.set(appSizeFile)
+        task.flutterSymbolsDirProperty.set(project.file(flutterSymbolsDir))
+        task.requestHeadersProperty.set(customHeaders)
     }
 
     @After
@@ -61,12 +74,13 @@ class BuildUploadTaskTest {
     }
 
     @Test
-    fun `BuildUploadTaskTest sends request to upload mapping file`() {
+    fun `sends request to upload mapping file`() {
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
         task.upload()
         val recordedRequest = mockWebServer.takeRequest()
         assertEquals("PUT", recordedRequest.method)
         val requestBody = recordedRequest.body.readUtf8()
+        val requestHeaders = recordedRequest.headers
 
         // println(requestBody)
 
@@ -82,6 +96,64 @@ class BuildUploadTaskTest {
         assertTrue(requestBody.contains("aab"))
         assertTrue(requestBody.contains("name=\"mapping_type\""))
         assertTrue(requestBody.contains("proguard"))
+        assertTrue(requestBody.contains("name=\"os_name\""))
+        assertTrue(requestBody.contains("android"))
+        assertTrue(
+            requestHeaders.names().containsAll(allowedCustomHeaders)
+        )
+        assertTrue(requestHeaders.names().none { it in disallowedCustomHeader })
+    }
+    
+    @Test
+    fun `sends request with Flutter symbols when available`() {
+        // Create a Flutter symbols file in the Flutter symbols directory
+        val flutterSymbolsDir = temporaryFolder.root.resolve("flutter_symbols")
+        val symbolsFile = File(flutterSymbolsDir, "app.android-arm64.symbols")
+        symbolsFile.writeText("flutter symbols data")
+        
+        mockWebServer.enqueue(MockResponse().setResponseCode(200))
+        task.upload()
+        val recordedRequest = mockWebServer.takeRequest()
+        assertEquals("PUT", recordedRequest.method)
+        val requestBody = recordedRequest.body.readUtf8()
+        
+        // Verify basic request parts
+        assertTrue(requestBody.contains("name=\"app_unique_id\""))
+        assertTrue(requestBody.contains("sh.measure.sample"))
+        
+        // Verify Flutter symbols are included
+        assertTrue(requestBody.contains("name=\"mapping_type\""))
+        assertTrue(requestBody.contains("elf_debug"))
+        assertTrue(requestBody.contains("app.android-arm64.symbols"))
+        assertTrue(requestBody.contains("flutter symbols data"))
+    }
+
+    @Test
+    fun `sends request with API_KEY in the header`() {
+        mockWebServer.enqueue(MockResponse().setResponseCode(200))
+        task.upload()
+        val recordedRequest = mockWebServer.takeRequest()
+        val requestHeaders = recordedRequest.headers
+        assertTrue(requestHeaders.names().contains(HEADER_AUTHORIZATION))
+        assertTrue(requestHeaders.values(HEADER_AUTHORIZATION).contains("Bearer msrsh_123"))
+    }
+
+    @Test
+    fun `sends request with custom headers`() {
+        mockWebServer.enqueue(MockResponse().setResponseCode(200))
+        task.upload()
+        val recordedRequest = mockWebServer.takeRequest()
+        val requestHeaders = recordedRequest.headers
+        assertTrue(requestHeaders.names().containsAll(allowedCustomHeaders))
+    }
+
+    @Test
+    fun `disallowed custom headers are filtered`() {
+        mockWebServer.enqueue(MockResponse().setResponseCode(200))
+        task.upload()
+        val recordedRequest = mockWebServer.takeRequest()
+        val requestHeaders = recordedRequest.headers
+        assertFalse(requestHeaders.names().contains("msr-req-id"))
     }
 
     private val appSize = """
@@ -91,7 +163,7 @@ class BuildUploadTaskTest {
 
     private fun manifestData(url: String): String {
         return """
-            {"apiKey":"api-key","apiUrl":"$url","versionCode":"7575527","appUniqueId":"sh.measure.sample","versionName":"1.23.12"}
+            {"apiKey":"msrsh_123","apiUrl":"$url","versionCode":"7575527","appUniqueId":"sh.measure.sample","versionName":"1.23.12"}
         """.trimIndent()
     }
 }

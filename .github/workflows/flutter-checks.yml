@@ -1,0 +1,51 @@
+name: Flutter Checks
+permissions:
+  contents: read
+  pull-requests: read
+
+on:
+  pull_request:
+    paths:
+      - 'flutter/**'
+      - 'android/measure/api/**'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'flutter/**'
+
+env:
+  JAVA_VERSION: 17
+  JAVA_DISTRIBUTION: 'temurin'
+  GITHUB_ACTOR: ${{ github.actor }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  flutter-checks:
+    name: Flutter checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter
+    timeout-minutes: 15
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@f2c4f6686ca8e8d6e6d0f28410eeef506ed66aff
+        with:
+          channel: stable
+          flutter-version: 3.32.7
+
+      - name: Install Melos
+        run: dart pub global activate melos 5.3.0
+
+      - name: Bootstrap workspace
+        run: melos bootstrap
+
+      - name: Analyze all packages
+        run: melos run analyze
+
+      - name: Run all tests
+        run: melos run test:all

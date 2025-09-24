@@ -1,0 +1,143 @@
+name: Publish OCI images
+
+on:
+  push:
+    branches:
+      - "cloud*"
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE_NAME: measure-sh/api
+
+jobs:
+  build-test-api:
+    name: Build & Test API
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.24.x", "1.25.x"]
+    defaults:
+      run:
+        working-directory: backend/api
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set Go module cache
+        run: echo "GOMODCACHE=$RUNNER_TEMP/gomodcache-${{ matrix.go-version }}" >> "$GITHUB_ENV"
+
+      - name: Setup Go ${{ matrix.go-version}}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache-dependency-path: backend/api/go.sum
+
+      - name: Display go version
+        run: go version
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build with ${{ matrix.go-version }}
+        run: go build -v ./...
+
+      - name: Test with ${{ matrix.go-version }}
+        run: go test ./...
+
+  build-test-dashboard:
+    name: Build & Test dashboard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend/dashboard
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Install dependencies for CI
+        run: npm ci
+
+      - name: Run Jest tests
+        run: npm test
+
+  trigger-cloud-deploy:
+    name: Trigger Cloud Deploy
+    runs-on: ubuntu-latest
+    needs: [build-test-api, build-test-dashboard]
+    steps:
+      - name: Dispatch Cloud Deploy
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.CLOUD_DISPATCH_TOKEN }}
+          repository: measure-sh/cloud
+          event-type: "cloud-deploy"
+          client-payload: |-
+            {
+              "ref_type": "${{ github.ref_type }}",
+              "ref": "${{ github.ref }}",
+              "ref_name": "${{ github.ref_name }}",
+              "sha": "${{ github.sha }}"
+            }
+  # env:
+  #   CLOUD_DISPATCH_PAT: ${{ secrets.CLOUD_DISPATCH_PAT }}
+  #   TARGET_REPO: ${{ gitub.repository/owner }}
+  # run: |
+  #   TARGET_REPO="${{ github.repository_owner }}/cloud"
+
+  # push-api:
+  #   name: Build and push image
+  #   runs-on: ubuntu-latest
+  #   # if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
+  #   needs: [build-api, test-api]
+  #   permissions:
+  #     contents: read
+  #     packages: write
+  #     attestations: write
+  #     id-token: write
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+
+  #     - name: Login to Container Registry
+  #       uses: docker/login-action@v3
+  #       with:
+  #         registry: ${{ env.REGISTRY }}
+  #         username: ${{ github.actor }}
+  #         password: ${{ secrets.GITHUB_TOKEN }}
+
+  #     - name: Extract metadata (tags, labels) for Docker
+  #       id: meta
+  #       uses: docker/metadata-action@v5
+  #       with:
+  #         images: ${{ env.REGISTRY }}/${{ env.API_IMAGE_NAME }}
+  #         tags: |
+  #           type=ref,event=branch
+
+  #     - name: Build and push OCI image
+  #       id: push
+  #       uses: docker/build-push-action@v6
+  #       with:
+  #         context: backend/api
+  #         file: backend/api/dockerfile
+  #         push: true
+  #         tags: ${{ steps.meta.outputs.tags }}
+  #         labels: |
+  #           org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/backend/api/dockerfile
+  #           org.opencontainers.image.description=Measure API Server
+  #           org.opencontainers.image.licenses=Apache-2.0
+
+  #     - name: Generate artifact attestation
+  #       uses: actions/attest-build-provenance@v1
+  #       with:
+  #         subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+  #         subject-digest: ${{ steps.push.outputs.digest }}
+  #         push-to-registry: false

@@ -1,7 +1,6 @@
 package sh.measure.android.storage
 
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import sh.measure.android.appexit.AppExit
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.Event
@@ -9,6 +8,7 @@ import sh.measure.android.events.EventType
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.okhttp.HttpData
+import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.tracing.SpanData
 import sh.measure.android.utils.IdProvider
 import java.io.File
@@ -48,49 +48,57 @@ internal class SignalStoreImpl(
     private val isFlushing = AtomicBoolean(false)
 
     override fun store(spanData: SpanData) {
-        if (!spanData.isSampled) {
-            // Do not store spans that are not sampled
-            return
-        }
-        val spanEntity = spanData.toSpanEntity()
-        val isQueueFull = !spanQueue.offer(spanEntity)
-        if (isQueueFull) {
-            database.insertSpan(spanEntity)
-            flush()
+        try {
+            if (!spanData.isSampled) {
+                // Do not store spans that are not sampled
+                return
+            }
+            val spanEntity = spanData.toSpanEntity()
+            val isQueueFull = !spanQueue.offer(spanEntity)
+            if (isQueueFull) {
+                database.insertSpan(spanEntity)
+                flush()
+            }
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Failed to store span ${spanData.name}", e)
         }
     }
 
     override fun <T> store(event: Event<T>) {
-        val eventEntity = event.toEventEntity()
-        if (eventEntity == null) {
-            logger.log(
-                LogLevel.Error,
-                "Failed to store event(${event.type}), event will be dropped.",
-            )
-            return
-        }
-        val isCrashEvent =
-            eventEntity.type == EventType.ANR || eventEntity.type == EventType.EXCEPTION
-
-        when {
-            isCrashEvent -> {
-                val success = database.insertEvent(eventEntity)
-                flush()
-                if (!success) {
-                    handleEventInsertionFailure(eventEntity)
-                }
+        try {
+            val eventEntity = event.toEventEntity()
+            if (eventEntity == null) {
+                logger.log(
+                    LogLevel.Debug,
+                    "Failed to store event(${event.type}): unable to convert event to EventEntity",
+                )
+                return
             }
+            val isCrashEvent =
+                eventEntity.type == EventType.ANR || eventEntity.type == EventType.EXCEPTION
 
-            else -> {
-                val isQueueFull = !eventQueue.offer(eventEntity)
-                if (isQueueFull) {
+            when {
+                isCrashEvent -> {
                     val success = database.insertEvent(eventEntity)
                     flush()
                     if (!success) {
                         handleEventInsertionFailure(eventEntity)
                     }
                 }
+
+                else -> {
+                    val isQueueFull = !eventQueue.offer(eventEntity)
+                    if (isQueueFull) {
+                        val success = database.insertEvent(eventEntity)
+                        flush()
+                        if (!success) {
+                            handleEventInsertionFailure(eventEntity)
+                        }
+                    }
+                }
             }
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Failed to store event ${event.type}", e)
         }
     }
 
@@ -108,25 +116,11 @@ internal class SignalStoreImpl(
 
                 val success = database.insertSignals(eventEntities, spanEntities)
                 if (!success) {
-                    logger.log(
-                        LogLevel.Error,
-                        "SignalStore: failed to insert ${eventEntities.size} events and ${spanEntities.size} spans",
-                    )
                     handleEventsInsertionFailure(eventEntities)
-                } else {
-                    logger.log(
-                        LogLevel.Info,
-                        "SignalStore: successfully inserted ${eventEntities.size} events and ${spanEntities.size} spans",
-                    )
                 }
             } finally {
                 isFlushing.set(false)
             }
-        } else {
-            logger.log(
-                LogLevel.Info,
-                "SignalStore: a flush is already in progress, skipping this request",
-            )
         }
     }
 
@@ -222,14 +216,14 @@ internal class SignalStoreImpl(
     }
 
     private fun handleEventsInsertionFailure(events: List<EventEntity>) {
-        // TODO(android): handle event insertion failure for exception/ANR events
+        // TODO: handle event insertion failure for exception/ANR events
         // Event insertions typically fail due to cases we can't do much about.
         // However, given the way the SDK is setup, if the application crashes even before
         // the session can be inserted into the database, we'll miss out on capturing
         // the exception. This case needs to be handled.
         logger.log(
-            LogLevel.Error,
-            "SignalStore: failed to insert event into database, deleting related files",
+            LogLevel.Debug,
+            "Failed to store events: event insertion failed, deleting related files",
         )
         events.forEach { event ->
             handleEventInsertionFailure(event)
@@ -247,7 +241,7 @@ internal class SignalStoreImpl(
         if (attachmentEntities.isNullOrEmpty()) {
             return null
         }
-        return Json.encodeToString(attachmentEntities)
+        return jsonSerializer.encodeToString(attachmentEntities)
     }
 
     /**
@@ -285,7 +279,10 @@ internal class SignalStoreImpl(
                 }
 
                 else -> {
-                    logger.log(LogLevel.Error, "SignalStore: attachment has no path or bytes")
+                    logger.log(
+                        LogLevel.Debug,
+                        "Failed to store attachment: neither path nor bytes are available",
+                    )
                     null
                 }
             }
@@ -301,7 +298,7 @@ internal class SignalStoreImpl(
             return try {
                 if (file.exists()) file.length() else 0
             } catch (e: SecurityException) {
-                logger.log(LogLevel.Error, "SignalStore: failed to calculate attachment size", e)
+                logger.log(LogLevel.Debug, "Failed to calculate attachment size", e)
                 0
             }
         }

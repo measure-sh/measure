@@ -14,9 +14,10 @@ internal object DbMigrations {
                     when (version) {
                         DbVersion.V2 -> migrateToV2(db)
                         DbVersion.V3 -> migrateToV3(db)
+                        DbVersion.V4 -> migrateToV4(db)
                         else -> logger.log(
-                            LogLevel.Warning,
-                            "No migration found for version $version",
+                            LogLevel.Debug,
+                            "Db migration failed: $version not found ",
                         )
                     }
                 }
@@ -25,7 +26,7 @@ internal object DbMigrations {
                 db.endTransaction()
             }
         } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Unable to migrate db from $oldVersion->$newVersion", e)
+            logger.log(LogLevel.Debug, "Db migration failed from $oldVersion->$newVersion", e)
         }
     }
 
@@ -55,5 +56,10 @@ internal object DbMigrations {
                 GROUP BY ${EventsBatchTable.COL_BATCH_ID}
             """.trimIndent(),
         )
+    }
+
+    private fun migrateToV4(db: SQLiteDatabase) {
+        db.execSQL("ALTER TABLE ${AppExitTable.TABLE_NAME} ADD COLUMN ${AppExitTable.COL_APP_BUILD} TEXT DEFAULT NULL;")
+        db.execSQL("ALTER TABLE ${AppExitTable.TABLE_NAME} ADD COLUMN ${AppExitTable.COL_APP_VERSION} TEXT DEFAULT NULL;")
     }
 }

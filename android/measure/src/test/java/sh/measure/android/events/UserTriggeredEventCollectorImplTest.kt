@@ -8,9 +8,11 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
+import sh.measure.android.attributes.StringAttr
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeProcessInfoProvider
+import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.utils.AndroidTimeProvider
@@ -18,12 +20,14 @@ import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TestClock
 
 class UserTriggeredEventCollectorImplTest {
+    private val logger = NoopLogger()
     private val signalProcessor: SignalProcessor = mock()
     private val timeProvider = AndroidTimeProvider(TestClock.create())
     private val processInfoProvider: ProcessInfoProvider = FakeProcessInfoProvider()
     private val configProvider = FakeConfigProvider()
 
     private val userTriggeredEventCollector = UserTriggeredEventCollectorImpl(
+        logger,
         signalProcessor,
         timeProvider,
         processInfoProvider,
@@ -34,7 +38,7 @@ class UserTriggeredEventCollectorImplTest {
     fun `tracks screen view event`() {
         val screenName = "screen-name"
         userTriggeredEventCollector.register()
-        userTriggeredEventCollector.trackScreenView(screenName)
+        userTriggeredEventCollector.trackScreenView(screenName, emptyMap())
         verify(signalProcessor).trackUserTriggered(
             data = ScreenViewData(name = screenName),
             type = EventType.SCREEN_VIEW,
@@ -43,18 +47,47 @@ class UserTriggeredEventCollectorImplTest {
     }
 
     @Test
+    fun `tracks screen view event with user-defined attributes`() {
+        val screenName = "screen-name"
+        val attributes = mapOf("key" to StringAttr("value"))
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackScreenView(screenName, attributes)
+        verify(signalProcessor).trackUserTriggered(
+            data = ScreenViewData(name = screenName),
+            type = EventType.SCREEN_VIEW,
+            timestamp = timeProvider.now(),
+            userDefinedAttributes = attributes,
+        )
+    }
+
+    @Test
     fun `tracks handled exception event`() {
         val exception = Exception()
-        val data = TestData.getExceptionData(handled = true, exception = exception)
 
         userTriggeredEventCollector.register()
-        userTriggeredEventCollector.trackHandledException(exception)
+        userTriggeredEventCollector.trackHandledException(exception, emptyMap())
         verify(signalProcessor).trackUserTriggered(
-            data = data,
-            type = EventType.EXCEPTION,
-            timestamp = timeProvider.now(),
-            attachments = mutableListOf(),
-            userDefinedAttributes = mutableMapOf(),
+            data = any<ExceptionData>(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.EXCEPTION),
+            attachments = eq(mutableListOf()),
+            userDefinedAttributes = eq(mapOf()),
+        )
+    }
+
+    @Test
+    fun `tracks handled exception event with attributes`() {
+        val exception = Exception()
+
+        userTriggeredEventCollector.register()
+        val attributes = mapOf("key" to StringAttr("value"))
+        userTriggeredEventCollector.trackHandledException(exception, attributes)
+        verify(signalProcessor).trackUserTriggered(
+            data = any<ExceptionData>(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.EXCEPTION),
+            attachments = eq(mutableListOf()),
+            userDefinedAttributes = eq(attributes),
         )
     }
 
@@ -102,7 +135,7 @@ class UserTriggeredEventCollectorImplTest {
     fun `disables collection on unregistered`() {
         val exception = Exception()
         userTriggeredEventCollector.unregister()
-        userTriggeredEventCollector.trackHandledException(exception)
+        userTriggeredEventCollector.trackHandledException(exception, emptyMap())
         verify(signalProcessor, never()).trackUserTriggered(
             any<ExceptionData>(),
             any(),

@@ -16,88 +16,142 @@ protocol LifecycleCollector {
     func processControllerLifecycleEvent(_ vcLifecycleType: VCLifecycleEventType, for viewController: UIViewController)
     func processSwiftUILifecycleEvent(_ swiftUILifecycleType: SwiftUILifecycleType, for viewName: String)
     func enable()
+    func disable()
 }
 
-class BaseLifecycleCollector: LifecycleCollector {
-    private let eventProcessor: EventProcessor
+final class BaseLifecycleCollector: LifecycleCollector {
+    private let signalProcessor: SignalProcessor
     private let timeProvider: TimeProvider
+    private let tracer: Tracer
+    private let configProvider: ConfigProvider
     private let logger: Logger
+    private var isEnabled = AtomicBool(false)
+    private var activeSpans: [String: Span] = [:]
 
-    init(eventProcessor: EventProcessor, timeProvider: TimeProvider, logger: Logger) {
-        self.eventProcessor = eventProcessor
+    init(signalProcessor: SignalProcessor,
+         timeProvider: TimeProvider,
+         tracer: Tracer,
+         configProvider: ConfigProvider,
+         logger: Logger) {
+        self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
+        self.tracer = tracer
+        self.configProvider = configProvider
         self.logger = logger
     }
 
     func enable() {
-        UIViewController.swizzleLifecycleMethods()
-        LifecycleManager.shared.setLifecycleCollector(self)
+        isEnabled.setTrueIfFalse {
+            UIViewController.swizzleLifecycleMethods()
+            LifecycleManager.shared.setLifecycleCollector(self)
+            logger.log(level: .info, message: "LifecycleCollector enabled.", error: nil, data: nil)
+        }
+    }
+
+    func disable() {
+        isEnabled.setFalseIfTrue {
+            logger.log(level: .info, message: "LifecycleCollector disabled.", error: nil, data: nil)
+        }
     }
 
     func applicationDidEnterBackground() {
-        eventProcessor.track(data: ApplicationLifecycleData(type: .background),
-                             timestamp: timeProvider.now(),
-                             type: .lifecycleApp,
-                             attributes: nil,
-                             sessionId: nil,
-                             attachments: nil,
-                             userDefinedAttributes: nil)
+        trackEvent(ApplicationLifecycleData(type: .background), type: .lifecycleApp)
     }
 
     func applicationWillEnterForeground() {
-        eventProcessor.track(data: ApplicationLifecycleData(type: .foreground),
-                             timestamp: timeProvider.now(),
-                             type: .lifecycleApp,
-                             attributes: nil,
-                             sessionId: nil,
-                             attachments: nil,
-                             userDefinedAttributes: nil)
+        trackEvent(ApplicationLifecycleData(type: .foreground), type: .lifecycleApp)
     }
 
     func applicationWillTerminate() {
-        eventProcessor.track(data: ApplicationLifecycleData(type: .terminated),
-                             timestamp: timeProvider.now(),
-                             type: .lifecycleApp,
-                             attributes: nil,
-                             sessionId: nil,
-                             attachments: nil,
-                             userDefinedAttributes: nil)
+        trackEvent(ApplicationLifecycleData(type: .terminated), type: .lifecycleApp)
     }
 
     func processControllerLifecycleEvent(_ vcLifecycleType: VCLifecycleEventType, for viewController: UIViewController) {
+        guard isEnabled.get() else { return }
+
         let className = String(describing: type(of: viewController))
 
-        // Define the list of excluded class names
-        let excludedClassNames = [
-            "UIHostingController",
-            "UIKitNavigationController",
-            "NavigationStackHostingController",
-            "NotifyingMulticolumnSplitViewController",
-            "StyleContextSplitViewNavigationController"
-        ]
+        guard !configProvider.lifecycleViewControllerExcludeList.contains(where: { className.contains($0) }) else { return }
 
-        // Check if the class name contains any of the excluded substrings
-        let shouldTrackEvent = !excludedClassNames.contains { className.contains($0) }
+        trackEvent(VCLifecycleData(type: vcLifecycleType.stringValue, className: className), type: .lifecycleViewController)
 
-        if shouldTrackEvent {
-            eventProcessor.track(
-                data: VCLifecycleData(type: vcLifecycleType.stringValue, className: className),
-                timestamp: timeProvider.now(),
-                type: .lifecycleViewController,
-                attributes: nil,
-                sessionId: nil,
-                attachments: nil,
-                userDefinedAttributes: nil)
+        guard configProvider.trackViewControllerLoadTime else { return }
+
+        switch vcLifecycleType {
+        case .loadView:
+            startViewControllerTtidSpan(for: viewController, className: className, checkpoint: CheckpointName.vcLoadView)
+        case .viewDidLoad:
+            // Only start span in viewDidLoad if we haven't already started it in loadView
+            let key = ObjectIdentifier(viewController).debugDescription
+            if activeSpans[key] == nil {
+                startViewControllerTtidSpan(for: viewController, className: className, checkpoint: CheckpointName.vcViewDidLoad)
+            } else if let span = activeSpans[key] {
+                span.setCheckpoint(CheckpointName.vcViewDidLoad)
+            }
+        case .viewWillAppear:
+            addCheckpoint(for: viewController, checkpoint: CheckpointName.vcViewWillAppear)
+        case .viewDidAppear:
+            endViewControllerTtidSpan(for: viewController, className: className)
+        default:
+            break
         }
     }
 
     func processSwiftUILifecycleEvent(_ swiftUILifecycleType: SwiftUILifecycleType, for className: String) {
-        eventProcessor.track(data: SwiftUILifecycleData(type: swiftUILifecycleType, className: className),
-                             timestamp: timeProvider.now(),
-                             type: .lifecycleSwiftUI,
-                             attributes: nil,
-                             sessionId: nil,
-                             attachments: nil,
-                             userDefinedAttributes: nil)
+        trackEvent(
+            SwiftUILifecycleData(type: swiftUILifecycleType, className: className),
+            type: .lifecycleSwiftUI
+        )
+    }
+
+    // MARK: - TTID Span Tracking
+
+    private func startViewControllerTtidSpan(for viewController: UIViewController, className: String, checkpoint: String) {
+        let spanName = SpanName.viewControllerTtidSpan(className: className, maxLength: configProvider.maxSpanNameLength)
+        let span = tracer
+            .spanBuilder(name: spanName)
+            .startSpan()
+            .setCheckpoint(checkpoint)
+
+        if viewController.isInitialViewController {
+            span.setAttribute(AttributeName.appStartupFirstViewController, value: true)
+        }
+
+        let key = ObjectIdentifier(viewController).debugDescription
+        activeSpans[key] = span
+    }
+
+    private func addCheckpoint(for viewController: UIViewController, checkpoint: String) {
+        let key = ObjectIdentifier(viewController).debugDescription
+
+        guard let span = activeSpans[key] else { return }
+
+        span.setCheckpoint(checkpoint)
+    }
+
+    private func endViewControllerTtidSpan(for viewController: UIViewController, className: String) {
+        let key = ObjectIdentifier(viewController).debugDescription
+
+        guard let span = activeSpans[key] else { return }
+
+        span.setCheckpoint(CheckpointName.vcViewDidAppear)
+
+        DispatchQueue.main.async {
+            span.setStatus(.ok).end()
+            self.activeSpans.removeValue(forKey: key)
+        }
+    }
+
+    // MARK: - Event tracking
+
+    private func trackEvent(_ data: Codable, type: EventType) {
+        signalProcessor.track(data: data,
+                              timestamp: timeProvider.now(),
+                              type: type,
+                              attributes: nil,
+                              sessionId: nil,
+                              attachments: nil,
+                              userDefinedAttributes: nil,
+                              threadName: nil)
     }
 }

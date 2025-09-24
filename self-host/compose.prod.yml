@@ -2,23 +2,85 @@ services:
   dashboard:
     build:
       dockerfile: dockerfile.prod
+      args:
+        - NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED:-1}
+        - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+        - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+        - NEXT_PUBLIC_OAUTH_GOOGLE_KEY=${OAUTH_GOOGLE_KEY}
+        - NEXT_PUBLIC_OAUTH_GITHUB_KEY=${OAUTH_GITHUB_KEY}
+        - NEXT_PUBLIC_SLACK_CLIENT_ID=${NEXT_PUBLIC_SLACK_CLIENT_ID}
     environment:
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
-    volumes: !reset null
+    develop: !reset null
     restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
 
   api:
     environment:
       - GIN_MODE=release
     develop: !reset null
     restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
 
   cleanup:
     environment:
       - GIN_MODE=release
     develop: !reset null
     restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
+  alerts:
+    environment:
+      - GIN_MODE=release
+    develop: !reset null
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
+  metering:
+    environment:
+      - GIN_MODE=release
+    develop: !reset null
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
+  symboloader:
+    environment:
+      - GIN_MODE=release
+    develop: !reset null
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
+  migrator:
+    develop: !reset null
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
 
   symbolicator:
     volumes:
@@ -28,12 +90,48 @@ services:
       # see: https://docs.docker.com/reference/compose-file/merge/#unique-resources
       - ./symbolicator/config.prod.yml:/etc/symbolicator/config.yml:ro
     restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
 
-  migrator:
-    develop: !reset null
+  minio:
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
+  dbmate-postgres:
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
+  dbmate-clickhouse:
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
+  postgres:
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
 
   clickhouse:
     ports:
       !reset # see: https://docs.docker.com/compose/compose-file/13-merge/#reset-value
       - "9000:9000/tcp"
     restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5

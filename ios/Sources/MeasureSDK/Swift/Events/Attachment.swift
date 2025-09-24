@@ -7,31 +7,31 @@
 
 import Foundation
 
-struct Attachment: Codable {
+public class MsrAttachment: NSObject, Codable {
     /// The name of the attachment, e.g. "screenshot.png".
-    let name: String
+    public let name: String
 
     /// The type of the attachment.
-    let type: AttachmentType
+    public let type: AttachmentType
 
     /// An optional byte array representing the attachment (not encoded).
-    var bytes: Data?
+    public var bytes: Data?
 
     /// An optional path to the attachment (not encoded).
-    var path: String?
+    public var path: String?
 
     /// Size of the attachment in bytes
-    var size: Int64
+    public var size: Int64
 
     /// A unique id for the image
-    var id: String
+    public var id: String
 
-    init(name: String,
-         type: AttachmentType,
-         size: Int64,
-         id: String,
-         bytes: Data? = nil,
-         path: String? = nil) {
+    public init(name: String,
+                type: AttachmentType,
+                size: Int64,
+                id: String,
+                bytes: Data? = nil,
+                path: String? = nil) {
         precondition(bytes != nil || path != nil, "Failed to create Attachment. Either bytes or path must be provided")
         precondition(bytes == nil || path == nil, "Failed to create Attachment. Only one of bytes or path must be provided")
 

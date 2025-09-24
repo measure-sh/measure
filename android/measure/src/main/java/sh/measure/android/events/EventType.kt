@@ -1,25 +1,33 @@
 package sh.measure.android.events
 
-internal object EventType {
-    const val STRING = "string"
-    const val EXCEPTION = "exception"
-    const val ANR = "anr"
-    const val APP_EXIT = "app_exit"
-    const val CLICK: String = "gesture_click"
-    const val LONG_CLICK: String = "gesture_long_click"
-    const val SCROLL: String = "gesture_scroll"
-    const val LIFECYCLE_ACTIVITY: String = "lifecycle_activity"
-    const val LIFECYCLE_FRAGMENT: String = "lifecycle_fragment"
-    const val LIFECYCLE_APP: String = "lifecycle_app"
-    const val COLD_LAUNCH: String = "cold_launch"
-    const val WARM_LAUNCH: String = "warm_launch"
-    const val HOT_LAUNCH: String = "hot_launch"
-    const val NETWORK_CHANGE: String = "network_change"
-    const val HTTP: String = "http"
-    const val MEMORY_USAGE: String = "memory_usage"
-    const val TRIM_MEMORY: String = "trim_memory"
-    const val CPU_USAGE: String = "cpu_usage"
-    const val SCREEN_VIEW: String = "screen_view"
-    const val CUSTOM: String = "custom"
-    const val BUG_REPORT: String = "bug_report"
+internal enum class EventType(val value: String) {
+    STRING("string"),
+    EXCEPTION("exception"),
+    ANR("anr"),
+    APP_EXIT("app_exit"),
+    CLICK("gesture_click"),
+    LONG_CLICK("gesture_long_click"),
+    SCROLL("gesture_scroll"),
+    LIFECYCLE_ACTIVITY("lifecycle_activity"),
+    LIFECYCLE_FRAGMENT("lifecycle_fragment"),
+    LIFECYCLE_APP("lifecycle_app"),
+    COLD_LAUNCH("cold_launch"),
+    WARM_LAUNCH("warm_launch"),
+    HOT_LAUNCH("hot_launch"),
+    NETWORK_CHANGE("network_change"),
+    HTTP("http"),
+    MEMORY_USAGE("memory_usage"),
+    TRIM_MEMORY("trim_memory"),
+    CPU_USAGE("cpu_usage"),
+    SCREEN_VIEW("screen_view"),
+    CUSTOM("custom"),
+    BUG_REPORT("bug_report"),
+    SESSION_START("session_start"),
+    ;
+
+    companion object {
+        fun fromValue(value: String): EventType? {
+            return entries.find { it.value == value }
+        }
+    }
 }

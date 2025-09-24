@@ -1,0 +1,23 @@
+PODS:
+  - measure-sh (0.6.0):
+    - PLCrashReporter (= 1.11.2)
+  - PLCrashReporter (1.11.2)
+
+DEPENDENCIES:
+  - measure-sh (from `../../`)
+
+SPEC REPOS:
+  trunk:
+    - PLCrashReporter
+
+EXTERNAL SOURCES:
+  measure-sh:
+    :path: "../../"
+
+SPEC CHECKSUMS:
+  measure-sh: 12885ddb1cd8c67cb318611a6f9d387e25afba8a
+  PLCrashReporter: 499c53b0104f95c302d94fd723ebb03c56d9bac8
+
+PODFILE CHECKSUM: eca229ccc523688877a34e50f11f504a0fe75bed
+
+COCOAPODS: 1.16.2

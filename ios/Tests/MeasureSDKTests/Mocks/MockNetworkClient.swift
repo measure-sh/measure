@@ -15,7 +15,7 @@ final class MockNetworkClient: NetworkClient {
     var executedEvents: [EventEntity] = []
     var executeCalled = false
 
-    func execute(batchId: String, events: [EventEntity]) -> HttpResponse {
+    func execute(batchId: String, events: [EventEntity], spans: [SpanEntity]) -> HttpResponse {
         executeCalled = true
         executedBatchId = batchId
         executedEvents = events

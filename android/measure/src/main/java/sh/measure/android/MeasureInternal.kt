@@ -7,6 +7,8 @@ import android.os.Build
 import androidx.annotation.MainThread
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.MsrShakeListener
+import sh.measure.android.config.ClientInfo
+import sh.measure.android.events.EventType
 import sh.measure.android.lifecycle.AppLifecycleListener
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.tracing.Span
@@ -54,38 +56,39 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private val periodicSignalStoreScheduler by lazy { measureInitializer.periodicSignalStoreScheduler }
     private val executorServiceRegistry by lazy { measureInitializer.executorServiceRegistry }
     private val shakeBugReportCollector by lazy { measureInitializer.shakeBugReportCollector }
+    private val internalSignalCollector by lazy { measureInitializer.internalSignalCollector }
+    private val fileStorage by lazy { measureInitializer.fileStorage }
     private var isStarted: Boolean = false
     private var startLock = Any()
 
-    fun init() {
-        logger.log(LogLevel.Debug, "Starting Measure SDK")
-        manifestReader.load()?.let {
-            if (it.url == null) {
-                logger.log(
-                    LogLevel.Error,
-                    "sh.measure.android.API_URL is missing in the manifest, skipping initialization",
-                )
-                return
-            }
-
-            if (it.apiKey == null) {
-                logger.log(
-                    LogLevel.Error,
-                    "sh.measure.android.API_KEY is missing in the manifest, skipping initialization",
-                )
-                return
-            }
-            // This is not very elegant, but can't find a better way to do this given the way the
-            // SDK is initialized.
-            configProvider.setMeasureUrl(it.url)
-            networkClient.init(baseUrl = it.url, apiKey = it.apiKey)
+    fun init(clientInfo: ClientInfo? = null) {
+        if (!setupNetworkClient(clientInfo)) {
+            return
         }
-        sessionManager.init()
-        registerCallbacks()
-        registerAlwaysOnCollectors()
+
+        // initialize a session
+        val sessionInitResult = sessionManager.init()
+
+        // All events are processed on a single thread in a queue.
+        // So, the first event will always be a session start event
+        // as we initialize all other collectors after this event
+        // is triggered.
+        trackSessionStart(sessionInitResult)
+
+        // setup lifecycle state
+        appLifecycleManager.addListener(this)
+        resumedActivityProvider.register()
+        appLifecycleManager.register()
+
+        // always collect app launch events
+        appLaunchCollector.register()
+
+        // start SDK
         if (configProvider.autoStart) {
             start()
         }
+
+        logger.log(LogLevel.Debug, "Initialization complete")
     }
 
     fun start() {
@@ -93,6 +96,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
             if (!isStarted) {
                 registerCollectors()
                 isStarted = true
+                logger.log(LogLevel.Debug, "Started")
             }
         }
     }
@@ -102,18 +106,53 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
             if (isStarted) {
                 unregisterCollectors()
                 isStarted = false
+                logger.log(LogLevel.Debug, "Stopped")
             }
         }
     }
 
-    private fun registerAlwaysOnCollectors() {
-        resumedActivityProvider.register()
-        appLaunchCollector.register()
-        appLifecycleManager.register()
+    // Validates and initializes the network client, returns true if initialization was successful,
+    // false otherwise.
+    private fun setupNetworkClient(clientInfo: ClientInfo?): Boolean {
+        return if (clientInfo != null) {
+            initializeWithCredentials(clientInfo.apiUrl, clientInfo.apiKey)
+        } else {
+            initializeFromManifest()
+        }
     }
 
-    private fun registerCallbacks() {
-        appLifecycleManager.addListener(this)
+    private fun validateApiCredentials(apiUrl: String?, apiKey: String?): String? {
+        return when {
+            apiUrl.isNullOrEmpty() -> "API URL is missing"
+            apiKey.isNullOrEmpty() -> "API Key is missing"
+            !apiKey.startsWith("msrsh") -> "invalid API Key"
+            else -> null
+        }
+    }
+
+    private fun initializeFromManifest(): Boolean {
+        val manifest = manifestReader.load()
+        if (manifest == null) {
+            return false
+        }
+
+        return initializeWithCredentials(manifest.url, manifest.apiKey)
+    }
+
+    private fun initializeWithCredentials(apiUrl: String?, apiKey: String?): Boolean {
+        val validationError = validateApiCredentials(apiUrl, apiKey)
+
+        return if (validationError != null) {
+            logger.log(
+                LogLevel.Error,
+                "Failed to initialize Measure SDK, $validationError",
+            )
+            false
+        } else {
+            configProvider.setMeasureUrl(apiUrl!!)
+            networkClient.init(baseUrl = apiUrl, apiKey = apiKey!!)
+            true
+        }
     }
 
     private fun registerCollectors() {
@@ -176,12 +215,12 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         userAttributeProcessor.clearUserId()
     }
 
-    fun trackScreenView(screenName: String) {
-        userTriggeredEventCollector.trackScreenView(screenName)
+    fun trackScreenView(screenName: String, attributes: Map<String, AttributeValue>) {
+        userTriggeredEventCollector.trackScreenView(screenName, attributes)
     }
 
-    fun trackHandledException(throwable: Throwable) {
-        userTriggeredEventCollector.trackHandledException(throwable)
+    fun trackHandledException(throwable: Throwable, attributes: Map<String, AttributeValue>) {
+        userTriggeredEventCollector.trackHandledException(throwable, attributes)
     }
 
     fun createSpan(name: String): SpanBuilder? {
@@ -203,7 +242,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     fun getSessionId(): String? {
         return try {
             sessionManager.getSessionId()
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             return null
         }
     }
@@ -271,20 +310,96 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         )
     }
 
-    fun enableShakeToLaunchBugReport(takeScreenshot: Boolean) {
-        shakeBugReportCollector.enableAutoLaunch(takeScreenshot)
-    }
-
-    fun disableShakeToLaunchBugReport() {
-        shakeBugReportCollector.disableAutoLaunch()
-    }
-
     fun setShakeListener(shakeListener: MsrShakeListener?) {
         shakeBugReportCollector.setShakeListener(shakeListener)
     }
 
-    fun isShakeToLaunchBugReportEnabled(): Boolean {
-        return shakeBugReportCollector.isShakeToLaunchBugReportEnabled()
+    fun internalTrackEvent(
+        data: MutableMap<String, Any?>,
+        type: String,
+        timestamp: Long,
+        attributes: MutableMap<String, Any?>,
+        userDefinedAttrs: MutableMap<String, AttributeValue>,
+        attachments: MutableList<MsrAttachment>,
+        userTriggerEvent: Boolean,
+        sessionId: String?,
+        threadName: String?,
+    ) {
+        if (isStarted) {
+            internalSignalCollector.trackEvent(
+                data = data,
+                type = type,
+                timestamp = timestamp,
+                attributes = attributes,
+                userDefinedAttrs = userDefinedAttrs,
+                attachments = attachments,
+                userTriggered = userTriggerEvent,
+                sessionId = sessionId,
+                threadName = threadName,
+            )
+        }
+    }
+
+    fun internalTrackSpan(
+        name: String,
+        traceId: String,
+        spanId: String,
+        parentId: String?,
+        startTime: Long,
+        endTime: Long,
+        duration: Long,
+        status: Int,
+        attributes: MutableMap<String, Any?>,
+        userDefinedAttrs: Map<String, Any>,
+        checkpoints: Map<String, Long>,
+        hasEnded: Boolean,
+        isSampled: Boolean,
+    ) {
+        if (isStarted) {
+            internalSignalCollector.trackSpan(
+                name = name,
+                traceId = traceId,
+                spanId = spanId,
+                parentId = parentId,
+                startTime = startTime,
+                endTime = endTime,
+                duration = duration,
+                status = status,
+                attributes = attributes,
+                userDefinedAttrs = userDefinedAttrs,
+                checkpoints = checkpoints,
+                hasEnded = hasEnded,
+                isSampled = isSampled,
+            )
+        }
+    }
+
+    fun getAttachmentDirectory(): String? {
+        return fileStorage.getAttachmentDirectory()
+    }
+
+    private fun trackSessionStart(sessionInitResult: SessionInitResult) {
+        when (sessionInitResult) {
+            is SessionInitResult.NewSessionCreated -> {
+                signalProcessor.track(
+                    SessionStartData,
+                    timestamp = timeProvider.now(),
+                    type = EventType.SESSION_START,
+                    sessionId = sessionInitResult.sessionId,
+                )
+                logger.log(
+                    LogLevel.Debug,
+                    "New session created with ID: ${sessionInitResult.sessionId}",
+                )
+            }
+
+            is SessionInitResult.SessionResumed -> {
+                logger.log(
+                    LogLevel.Debug,
+                    "Session resumed with ID: ${sessionInitResult.sessionId}",
+                )
+            }
+        }
     }
 
     private fun unregisterCollectors() {

@@ -86,6 +86,8 @@ class SessionManagerTest {
                 needsReporting = false,
                 crashed = false,
                 supportsAppExit = false,
+                appVersion = packageInfoProvider.appVersion,
+                appBuild = packageInfoProvider.getVersionCode(),
             ),
         )
     }
@@ -286,5 +288,28 @@ class SessionManagerTest {
         val sessionIds = listOf("session-id-1", "session-id-2")
         sessionManager.markCrashedSessions(sessionIds)
         verify(database).markCrashedSessions(sessionIds)
+    }
+
+    @Test
+    fun `returns correct result on initialization`() {
+        val initialTime = timeProvider.elapsedRealtime
+        val r1 = sessionManager.init()
+
+        // verify result
+        assertEquals(SessionInitResult.NewSessionCreated(sessionManager.getSessionId()), r1)
+
+        // setup recent session mock
+        val session = RecentSession(
+            id = "previous-session-id",
+            lastEventTime = initialTime,
+            createdAt = initialTime - Duration.ofMinutes(3).toMillis(),
+            crashed = false,
+            versionCode = packageInfoProvider.getVersionCode(),
+        )
+        `when`(prefsStorage.getRecentSession()).thenReturn(session)
+
+        // verify result
+        val r2 = sessionManager.init()
+        assertEquals(SessionInitResult.SessionResumed(sessionManager.getSessionId()), r2)
     }
 }

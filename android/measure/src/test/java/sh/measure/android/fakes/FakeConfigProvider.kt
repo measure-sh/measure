@@ -1,7 +1,10 @@
 package sh.measure.android.fakes
 
+import android.hardware.SensorManager
 import sh.measure.android.config.ConfigProvider
+import sh.measure.android.config.MsrRequestHeadersProvider
 import sh.measure.android.config.ScreenshotMaskLevel
+import sh.measure.android.events.EventType
 
 internal class FakeConfigProvider : ConfigProvider {
     override fun loadNetworkConfig() {
@@ -13,10 +16,9 @@ internal class FakeConfigProvider : ConfigProvider {
     override var screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.SensitiveFieldsOnly
     override var screenshotMaskHexColor: String = "#222222"
     override var screenshotCompressionQuality: Int = 25
-    override val eventTypeExportAllowList: List<String> = emptyList()
-    override val maxSignalsInDatabase: Int = 50_000
-    override var trackHttpHeaders: Boolean = false
-    override var trackHttpBody: Boolean = false
+    override val eventTypeExportAllowList: List<EventType> = emptyList()
+    override var trackHttpHeaders: Boolean = true
+    override var trackHttpBody: Boolean = true
     override var httpHeadersBlocklist: List<String> = emptyList()
     override var httpUrlBlocklist: List<String> = emptyList()
     override var httpUrlAllowlist: List<String> = emptyList()
@@ -30,7 +32,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var sessionEndLastEventThresholdMs: Long = 20 * 60 * 1000 // 20 minutes
     override var maxSessionDurationMs: Long = 6 * 60 * 60 * 1000 // 6 hours
     override var maxEventNameLength: Int = 64
-    override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+\$"
+    override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+$"
     override val maxUserDefinedAttributesPerEvent: Int = 100
     override var maxUserDefinedAttributeKeyLength: Int = 64
     override var maxUserDefinedAttributeValueLength: Int = 256
@@ -43,29 +45,31 @@ internal class FakeConfigProvider : ConfigProvider {
     override val inMemorySignalsQueueFlushRateMs: Long = 3000
     override val maxAttachmentsInBugReport: Int = 5
     override val maxDescriptionLengthInBugReport: Int = 1000
-    override val shakeAccelerationThreshold: Float = 20f
-    override val shakeMinTimeIntervalMs: Long = 1500
-    override val shakeSlop: Int = 3
-    override val enableShakeToLaunchBugReport: Boolean = false
+    override val shakeAccelerationThreshold: Float = 2.5f * SensorManager.GRAVITY_EARTH
+    override val shakeMinTimeIntervalMs: Long = 5000
+    override val shakeSlop: Int = 2
     override val trackActivityLoadTime: Boolean = true
     override val trackFragmentLoadTime: Boolean = true
+    override val disallowedCustomHeaders: List<String> =
+        listOf("Content-Type", "msr-req-id", "Authorization", "Content-Length")
+    override val requestHeadersProvider: MsrRequestHeadersProvider? = null
+    override val estimatedEventSizeInKb: Int = 15
+    override val maxDiskUsageInMb: Int = 50
 
-    var shouldTrackHttpBody = false
+    var shouldTrackHttpBody = true
 
     override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
         return shouldTrackHttpBody
     }
 
-    var shouldTrackHttpUrl = false
+    var shouldTrackHttpUrl = true
 
     override fun shouldTrackHttpUrl(url: String): Boolean {
         return shouldTrackHttpUrl
     }
 
-    var headerKeysToBlock = emptyList<String>()
-
     override fun shouldTrackHttpHeader(key: String): Boolean {
-        return !headerKeysToBlock.any { key.contains(it, ignoreCase = true) }
+        return !httpHeadersBlocklist.any { key.contains(it, ignoreCase = true) }
     }
 
     override fun setMeasureUrl(url: String) {

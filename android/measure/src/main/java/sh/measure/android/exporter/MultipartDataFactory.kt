@@ -1,8 +1,8 @@
 package sh.measure.android.exporter
 
-import kotlinx.serialization.json.Json
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.storage.FileStorage
 import java.io.InputStream
 
@@ -71,7 +71,7 @@ internal class MultipartDataFactoryImpl(
 
             else -> {
                 logger.log(
-                    LogLevel.Error,
+                    LogLevel.Debug,
                     "Event packet (id=${eventPacket.eventId}) does not contain serialized data or file path",
                 )
                 null
@@ -105,7 +105,7 @@ internal class MultipartDataFactoryImpl(
     private fun getFileInputStream(filePath: String): InputStream? {
         return fileStorage.getFile(filePath)?.inputStream().also { fileInputStream ->
             if (fileInputStream == null) {
-                logger.log(LogLevel.Error, "No file found at path: $filePath")
+                logger.log(LogLevel.Debug, "No file found at path: $filePath")
             }
         }
     }
@@ -117,7 +117,7 @@ internal class MultipartDataFactoryImpl(
         if (serializedData.isNullOrEmpty()) {
             return null
         }
-        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$serializedData,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
+        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"${type.value}\",\"${type.value}\":$serializedData,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
     }
 
     private fun EventPacket.getFromFileData(): String? {
@@ -128,10 +128,10 @@ internal class MultipartDataFactoryImpl(
         if (data.isNullOrEmpty()) {
             return null
         }
-        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"$type\",\"$type\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
+        return "{\"id\":\"$eventId\",\"session_id\":\"$sessionId\",\"user_triggered\":$userTriggered,\"timestamp\":\"$timestamp\",\"type\":\"${type.value}\",\"${type.value}\":$data,\"attachments\":$serializedAttachments,\"attribute\":$serializedAttributes,\"user_defined_attribute\":$serializedUserDefinedAttributes}"
     }
 
     private fun SpanPacket.getSerializedData(): String {
-        return Json.encodeToString(SpanPacket.serializer(), this)
+        return jsonSerializer.encodeToString(SpanPacket.serializer(), this)
     }
 }
