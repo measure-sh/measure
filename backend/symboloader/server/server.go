@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"cloud.google.com/go/cloudsqlconn"
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
