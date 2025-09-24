@@ -56,7 +56,7 @@ export async function GET(request: Request) {
   const data = await res.json();
 
   // Create a response with redirect
-  let response = NextResponse.redirect(
+  const response = NextResponse.redirect(
     // Redirect to overview page with own team Id
     new URL(`${origin}/${data.own_team_id}/overview`),
     { status: 303 },
