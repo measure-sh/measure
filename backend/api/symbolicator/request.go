@@ -36,11 +36,7 @@ type SymbolicatorRequest struct {
 // with modified timeout values to
 // support higher throughput.
 var httpClient = &http.Client{
-	Timeout:   30 * time.Second,
-	Transport: &http.Transport{
-		// MaxIdleConns:        100,
-		// MaxIdleConnsPerHost: 20,
-	},
+	Timeout: 30 * time.Second,
 }
 
 // makeRequest sends the symbolicator request
