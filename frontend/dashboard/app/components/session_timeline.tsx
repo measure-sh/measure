@@ -618,7 +618,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({ teamId, appId, sessio
         <DropdownSelect type={DropdownSelectType.MultiString} title="Event types" items={eventTypes} initialSelected={selectedEventTypes} onChangeSelected={(items) => setSelectedEventTypes(items as string[])} />
       </div>
       {/* Events*/}
-      <div className='flex flex-row mt-4 border border-black rounded-md w-full h-96'>
+      <div className='flex flex-row mt-4 border border-black rounded-md w-full h-[600px]'>
         <div className='h-full w-2/3 overflow-auto overscroll-y-contain divide-y' ref={eventListContainerRef}
           onScroll={handleEventsScroll}
         >

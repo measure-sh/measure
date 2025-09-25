@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"regexp"
 	"slices"
@@ -65,6 +66,8 @@ const (
 	maxUserDefAttrsKeyChars                   = 256
 	maxUserDefAttrsValsChars                  = 256
 	maxCustomNameChars                        = 64
+	maxLayoutElementIDChars                   = 512
+	maxLayoutElementLabelChars                = 512
 	maxBugReportScreenShots                   = 5
 	maxBugReportDescChars                     = 4000
 	maxErrorMetaBytes                         = 4096 // Maximum size for marshaled Error.Meta in bytes
@@ -584,6 +587,108 @@ type Custom struct {
 	Name string `json:"name" binding:"required"`
 }
 
+type LayoutElementType string
+
+const (
+	LayoutElementTypeContainer LayoutElementType = "container"
+	LayoutElementTypeText      LayoutElementType = "text"
+	LayoutElementTypeInput     LayoutElementType = "input"
+	LayoutElementTypeButton    LayoutElementType = "button"
+	LayoutElementTypeImage     LayoutElementType = "image"
+	LayoutElementTypeVideo     LayoutElementType = "video"
+	LayoutElementTypeList      LayoutElementType = "list"
+	LayoutElementTypeIcon      LayoutElementType = "icon"
+	LayoutElementTypeCheckbox  LayoutElementType = "checkbox"
+	LayoutElementTypeRadio     LayoutElementType = "radio"
+	LayoutElementTypeDropdown  LayoutElementType = "dropdown"
+	LayoutElementTypeSlider    LayoutElementType = "slider"
+	LayoutElementTypeProgress  LayoutElementType = "progress"
+)
+
+type LayoutElement struct {
+	ID         string            `json:"id" binding:"required"`
+	Label      string            `json:"label" binding:"required"`
+	Type       LayoutElementType `json:"type" binding:"required"`
+	X          float64           `json:"x" binding:"required"`
+	Y          float64           `json:"y" binding:"required"`
+	Width      float64           `json:"width" binding:"required"`
+	Height     float64           `json:"height" binding:"required"`
+	Scrollable bool              `json:"scrollable" binding:"required"`
+	Highlight  bool              `json:"highlighted" binding:"required"`
+	Children   []LayoutElement   `json:"children" binding:"required"`
+}
+
+// Validate recursively validates LayoutElement and all its children
+func (le *LayoutElement) Validate() error {
+	if le == nil {
+		return fmt.Errorf("layout validation failed")
+	}
+
+	// Validate ID
+	if le.ID == "" {
+		return fmt.Errorf("ID is missing")
+	}
+	if len(le.ID) > maxLayoutElementIDChars {
+		return fmt.Errorf("ID is too long: '%s' (length: %d, max: %d)", le.ID, len(le.ID), maxLayoutElementIDChars)
+	}
+
+	// Validate Label
+	if le.Label == "" {
+		return fmt.Errorf("label is missing")
+	}
+	if len(le.Label) > maxLayoutElementLabelChars {
+		return fmt.Errorf("label is too long: '%s' (length: %d, max: %d)", le.Label, len(le.Label), maxLayoutElementLabelChars)
+	}
+
+	// Validate X coordinate
+	if math.IsNaN(le.X) || math.IsInf(le.X, 0) {
+		return fmt.Errorf("x coordinate must be a valid number, got: %v", le.X)
+	}
+
+	// Validate Y coordinate
+	if math.IsNaN(le.Y) || math.IsInf(le.Y, 0) {
+		return fmt.Errorf("y coordinate must be a valid number, got: %v", le.Y)
+	}
+
+	// Validate Width
+	if math.IsNaN(le.Width) || math.IsInf(le.Width, 0) {
+		return fmt.Errorf("width must be a valid number, got: %v", le.Width)
+	}
+
+	// Validate Height
+	if math.IsNaN(le.Height) || math.IsInf(le.Height, 0) {
+		return fmt.Errorf("height must be a valid number, got: %v", le.Height)
+	}
+
+	// Validate Type
+	switch le.Type {
+	case LayoutElementTypeContainer,
+		LayoutElementTypeText,
+		LayoutElementTypeInput,
+		LayoutElementTypeButton,
+		LayoutElementTypeImage,
+		LayoutElementTypeVideo,
+		LayoutElementTypeList,
+		LayoutElementTypeIcon,
+		LayoutElementTypeCheckbox,
+		LayoutElementTypeRadio,
+		LayoutElementTypeDropdown,
+		LayoutElementTypeSlider,
+		LayoutElementTypeProgress:
+	default:
+		return fmt.Errorf("invalid element type: '%s'", le.Type)
+	}
+
+	// Recursively validate children
+	for _, child := range le.Children {
+		if err := child.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 type BugReport struct {
 	Description string `json:"description" binding:"required"`
 }
@@ -631,6 +736,7 @@ type EventField struct {
 	ScreenView              *ScreenView              `json:"screen_view,omitempty"`
 	BugReport               *BugReport               `json:"bug_report,omitempty"`
 	Custom                  *Custom                  `json:"custom,omitempty"`
+	LayoutSnapshot          *LayoutElement           `json:"layout_snapshot,omitempty"`
 	SessionStart            *SessionStart            `json:"session_start,omitempty"`
 }
 
@@ -914,6 +1020,10 @@ func (e EventField) NeedsSymbolication() (result bool) {
 // at least 1 attachment.
 func (e EventField) HasAttachments() bool {
 	return len(e.Attachments) > 0
+}
+
+func (e EventField) HasLayoutSnapshot() bool {
+	return e.LayoutSnapshot != nil
 }
 
 // Validate validates the event for data
@@ -1322,6 +1432,12 @@ func (e *EventField) Validate() error {
 		re := regexp.MustCompile(customNameKeyPattern)
 		if !re.MatchString(e.Custom.Name) {
 			return fmt.Errorf("%q custom event name must match this regular expression pattern %q", `custom.name`, customNameKeyPattern)
+		}
+	}
+
+	if e.HasLayoutSnapshot() {
+		if err := e.LayoutSnapshot.Validate(); err != nil {
+			return fmt.Errorf("layout snapshot is not valid: %w", err)
 		}
 	}
 
