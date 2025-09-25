@@ -93,7 +93,7 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `creates new session when last event occurred more than 20 minutes ago`() {
+    fun `creates new session when last event occurred more than 3 minutes ago`() {
         // Given
         val initialTime = testClock.epochTime()
 
@@ -106,8 +106,8 @@ class SessionManagerTest {
         )
         `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
 
-        // Advance time beyond the 20-minute session timeout
-        testClock.advance(Duration.ofMinutes(21))
+        // Advance time beyond the 3-minute session timeout
+        testClock.advance(Duration.ofMinutes(4))
 
         // When
         sessionManager.init()
@@ -118,7 +118,7 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `continues previous session when last event occurred less than 20 minutes ago`() {
+    fun `continues previous session when last event occurred less than 3 minutes ago`() {
         // Given
         val initialTime = testClock.epochTime()
 
@@ -131,8 +131,8 @@ class SessionManagerTest {
         )
         `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
 
-        // Advance time beyond the 20-minute session timeout
-        testClock.advance(Duration.ofMinutes(5))
+        // Advance time beyond the 3-minute session timeout
+        testClock.advance(Duration.ofMinutes(1))
 
         // When
         sessionManager.init()
@@ -143,12 +143,12 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `creates new session if previous session happened more than 6 hours ago, even if last event happened within 20 minutes`() {
+    fun `creates new session if previous session happened more than 1 hour ago, even if last event happened within 3 minutes`() {
         // Given
         val previousSessionCreatedTime = testClock.epochTime()
-        // Last event happened within 20 minutes of next session.
+        // Last event happened within 3 minutes of next session.
         val lastEventTime =
-            previousSessionCreatedTime + Duration.ofHours(7).toMillis() - Duration.ofMinutes(5)
+            previousSessionCreatedTime + Duration.ofHours(1).toMillis() - Duration.ofMinutes(3)
                 .toMillis()
         val previousSession = RecentSession(
             id = "previous-session-id",
@@ -160,7 +160,7 @@ class SessionManagerTest {
         `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
 
         // Advance time by 7 hours
-        testClock.advance(Duration.ofHours(7))
+        testClock.advance(Duration.ofHours(1))
         // When
         sessionManager.init()
         val sessionId = sessionManager.getSessionId()
@@ -170,7 +170,7 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `creates new session if last session crashed, even if last event happened within 20 minutes`() {
+    fun `creates new session if last session crashed, even if last event happened within 3 minutes`() {
         // Given
         val initialTime = testClock.epochTime()
         val previousSession = RecentSession(
@@ -183,7 +183,7 @@ class SessionManagerTest {
         `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
 
         // Advance time by 10 minutes
-        testClock.advance(Duration.ofMinutes(10))
+        testClock.advance(Duration.ofMinutes(1))
         // When
         sessionManager.init()
         val sessionId = sessionManager.getSessionId()
