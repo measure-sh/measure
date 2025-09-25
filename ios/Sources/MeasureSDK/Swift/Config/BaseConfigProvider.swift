@@ -33,6 +33,10 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var maxExportJitterInterval: Int {
+        return getMergedConfig(\.maxExportJitterInterval)
+    }
+
     var maxDiskUsageInMb: Int {
         return getMergedConfig(\.maxDiskUsageInMb)
     }

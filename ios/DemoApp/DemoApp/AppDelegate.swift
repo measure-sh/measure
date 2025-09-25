@@ -13,8 +13,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
-        let clientInfo = ClientInfo(apiKey: "msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c",
-                                    apiUrl: "http://localhost:8080")
+        let clientInfo = ClientInfo(apiKey: "msrsh_7e73654ab96c7ddc3f0e62f9a1eaefa9fa11ebfd9c92db8b3b51c4337d39cb4f_06380546",
+                                    apiUrl: "https://staging-ingest.measure.sh")
         final class CustomHeaderProvider: NSObject, MsrRequestHeadersProvider {
             private var requestHeaders: NSDictionary = ["key1": "value1", "key2": "value2"]
 

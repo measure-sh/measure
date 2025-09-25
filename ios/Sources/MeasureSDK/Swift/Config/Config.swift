@@ -60,6 +60,7 @@ struct Config: InternalConfig, MeasureConfig {
     let disallowedCustomHeaders: [String]
     let lifecycleViewControllerExcludeList: [String]
     let estimatedEventSizeInKb: Int
+    let maxExportJitterInterval: Int
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
@@ -152,5 +153,6 @@ struct Config: InternalConfig, MeasureConfig {
             "UISystemInputAssistantViewController"
         ]
         self.estimatedEventSizeInKb = 10 // 10 KB
+        self.maxExportJitterInterval = 20
     }
 }
