@@ -6,6 +6,7 @@ import { ReactNode } from 'react'
 import { cn } from '../utils/shadcn_utils'
 import { formatDateToHumanReadableDateTime, formatMillisToHumanReadable } from '../utils/time_utils'
 import { buttonVariants } from './button'
+import LayoutSnapshot from './layout_snapshot'
 
 type SessionTimelineEventDetailsProps = {
   teamId: string
@@ -100,6 +101,18 @@ export default function SessionTimelineEventDetails({
     )
   }
 
+  function getLayoutSnapshotsFromEventDetails(): ReactNode {
+    if (eventDetails.layout_snapshot !== undefined && eventDetails.layout_snapshot !== null) {
+      if (eventType === 'gesture_click' || eventType === 'gesture_long_click' || eventType === 'gesture_scroll') {
+        return (
+          <div className='flex flex-wrap gap-8 px-4 pt-4 items-center'>
+            <LayoutSnapshot layout={eventDetails.layout_snapshot} width={211} height={366} />
+          </div>
+        )
+      }
+    }
+  }
+
   function getAttachmentsFromEventDetails(): ReactNode {
     if (eventDetails.attachments !== undefined && eventDetails.attachments !== null && eventDetails.attachments.length > 0) {
       if ((eventType === "exception" && eventDetails.user_triggered === false) || eventType === 'anr' || eventType === 'gesture_click' || eventType === 'gesture_long_click' || eventType === 'gesture_scroll' || eventType === 'bug_report') {
@@ -152,6 +165,7 @@ export default function SessionTimelineEventDetails({
     <div
       className="flex flex-col items-center bg-neutral-800 h-full selection:bg-yellow-200/50 font-display overflow-y-auto overscroll-y-contain break-words"
     >
+      {getLayoutSnapshotsFromEventDetails()}
       {getAttachmentsFromEventDetails()}
       {getDetailsLinkFromEventDetails()}
       {getBodyFromEventDetails()}
