@@ -1,4 +1,3 @@
-// app/posthog-server.js
 import { PostHog } from 'posthog-node'
 
 let posthogInstance = null

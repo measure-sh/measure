@@ -335,7 +335,15 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
+	if err = chconn.Exec(ctx, "truncate table ai_metrics;"); err != nil {
+		return
+	}
+
 	if _, err = pgconn.Exec(ctx, "truncate table metrics_reporting;"); err != nil {
+		return
+	}
+
+	if _, err = pgconn.Exec(ctx, "truncate table mcp_keys;"); err != nil {
 		return
 	}
 

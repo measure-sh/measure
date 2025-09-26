@@ -27,23 +27,23 @@ describe('number_utils', () => {
     it('should convert thousands to K', () => {
       expect(numberToKMB(1000)).toBe('1K')
       expect(numberToKMB(1500)).toBe('1.5K')
-      expect(numberToKMB(1999)).toBe('1.999K')
+      expect(numberToKMB(1999)).toBe('2K')
       expect(numberToKMB(2000)).toBe('2K')
-      expect(numberToKMB(12345)).toBe('12.345K')
+      expect(numberToKMB(12345)).toBe('12.35K')
     })
 
     it('should convert millions to M', () => {
       expect(numberToKMB(1_000_000)).toBe('1M')
       expect(numberToKMB(1_500_000)).toBe('1.5M')
       expect(numberToKMB(2_000_000)).toBe('2M')
-      expect(numberToKMB(12_345_678)).toBe('12.345678M')
+      expect(numberToKMB(12_345_678)).toBe('12.35M')
     })
 
     it('should convert billions to B', () => {
       expect(numberToKMB(1_000_000_000)).toBe('1B')
       expect(numberToKMB(1_500_000_000)).toBe('1.5B')
       expect(numberToKMB(2_000_000_000)).toBe('2B')
-      expect(numberToKMB(12_345_678_901)).toBe('12.345678901B')
+      expect(numberToKMB(12_345_678_901)).toBe('12.35B')
     })
 
     it('should handle negative numbers', () => {

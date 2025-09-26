@@ -1,15 +1,18 @@
 "use client"
 
-import { TraceApiStatus, emptyTrace, fetchTraceFromServer } from "@/app/api/api_calls"
+import { SessionTimelineApiStatus, TraceApiStatus, emptyTrace, fetchSessionTimelineFromServer, fetchTraceFromServer } from "@/app/api/api_calls"
 import { buttonVariants } from "@/app/components/button"
 import LoadingSpinner from "@/app/components/loading_spinner"
 import TraceViz from "@/app/components/trace_viz"
+import { useAIChatContext } from "@/app/context/ai_chat_context"
 import { cn } from "@/app/utils/shadcn_utils"
 import { formatDateToHumanReadableDateTime, formatMillisToHumanReadable } from "@/app/utils/time_utils"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
 export default function TraceDetails({ params }: { params: { teamId: string, appId: string, traceId: string } }) {
+  const { setPageContext } = useAIChatContext()
+
   const [trace, setTrace] = useState(emptyTrace)
   const [traceApiStatus, setTraceApiStatus] = useState(TraceApiStatus.Loading)
 
@@ -21,10 +24,43 @@ export default function TraceDetails({ params }: { params: { teamId: string, app
     switch (result.status) {
       case TraceApiStatus.Error:
         setTraceApiStatus(TraceApiStatus.Error)
+        setPageContext({
+          appId: params.appId,
+          enable: false,
+          fileName: "",
+          action: "",
+          content: ""
+        })
         break
       case TraceApiStatus.Success:
         setTraceApiStatus(TraceApiStatus.Success)
         setTrace(result.data)
+        getSessionTimelineAndSetPageContext(params.appId, result.data.session_id, result.data)
+        break
+    }
+  }
+
+  const getSessionTimelineAndSetPageContext = async (appId: string, sessionId: string, trace: any) => {
+    const result = await fetchSessionTimelineFromServer(appId, sessionId)
+
+    switch (result.status) {
+      case SessionTimelineApiStatus.Error:
+        setPageContext({
+          appId: appId,
+          enable: true,
+          fileName: 'trace_details',
+          action: `Attach Trace Details`,
+          content: JSON.stringify(trace)
+        })
+        break
+      case SessionTimelineApiStatus.Success:
+        setPageContext({
+          appId: appId,
+          enable: true,
+          fileName: 'trace_details',
+          action: `Attach Trace Details`,
+          content: "trace:" + JSON.stringify(trace) + "\nsessionTimeline:" + JSON.stringify(result.data)
+        })
         break
     }
   }
@@ -55,6 +91,7 @@ export default function TraceDetails({ params }: { params: { teamId: string, app
           <div className="py-4" />
           <TraceViz inputTrace={trace} />
         </div>}
+      <div className="py-4" />
     </div>
 
   )

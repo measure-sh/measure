@@ -49,6 +49,7 @@ feature's documentation to understand its underlying mechanism and enhance your 
   happens
 * [**App Size Monitoring**](features/feature-app-size-monitoring.md) — Monitor app size changes
 * [**Alert Notifications**](features/feature-alerts.md) — Receive Crash & ANR spike alerts and Daily Summaries for core app metrics.
+* [**Measure AI**](features/feature-ai.md) — Debug Crashes & ANRs with AI assistance.
 
 # Configuration Options
 

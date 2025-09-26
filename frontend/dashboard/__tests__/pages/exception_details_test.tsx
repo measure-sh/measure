@@ -17,6 +17,20 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }))
 
+// Mock AIChatContext
+jest.mock('@/app/context/ai_chat_context', () => ({
+    useAIChatContext: jest.fn(() => ({
+        pageContext: {
+            enable: false,
+            action: "",
+            content: "",
+            fileName: "",
+        },
+        setPageContext: jest.fn(),
+    })),
+    AIChatProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+
 // Mock time utils
 jest.mock('@/app/utils/time_utils', () => ({
     formatDateToHumanReadableDateTime: jest.fn(() => 'January 1, 2020 12:00 AM'),
@@ -41,6 +55,12 @@ jest.mock('@/app/api/api_calls', () => ({
         Loading: 'loading',
         Error: 'error',
         Success: 'success'
+    },
+    SessionTimelineApiStatus: {
+        Loading: 'Loading',
+        Success: 'Success',
+        Error: 'Error',
+        Cancelled: 'Cancelled',
     },
     ExceptionsType: {
         Crash: 'crash',
@@ -128,6 +148,398 @@ jest.mock('@/app/api/api_calls', () => ({
                     }
                 ],
                 meta: { previous: true, next: true },
+            }
+        })
+    ),
+    fetchSessionTimelineFromServer: jest.fn(() =>
+        Promise.resolve({
+            status: 'success',
+            data: {
+                "app_id": "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
+                "attribute": {
+                    "installation_id": "1fefa265-9e6b-45d8-aa83-23b03070c06e",
+                    "app_version": "0.11.0-SNAPSHOT",
+                    "app_build": "29137627",
+                    "app_unique_id": "sh.measure.sample",
+                    "measure_sdk_version": "0.11.0-SNAPSHOT",
+                    "platform": "android",
+                    "thread_name": "msr-default",
+                    "user_id": "dummy-user-id",
+                    "device_name": "sunfish",
+                    "device_model": "Pixel 4a",
+                    "device_manufacturer": "Google",
+                    "device_type": "phone",
+                    "device_is_foldable": false,
+                    "device_is_physical": true,
+                    "device_density_dpi": 440,
+                    "device_width_px": 1080,
+                    "device_height_px": 2138,
+                    "device_density": 2.75,
+                    "device_locale": "en-US",
+                    "device_low_power_mode": false,
+                    "device_thermal_throttling_enabled": false,
+                    "device_cpu_arch": "",
+                    "os_name": "android",
+                    "os_version": "33",
+                    "os_page_size": 0,
+                    "network_type": "wifi",
+                    "network_provider": "unknown",
+                    "network_generation": "unknown"
+                },
+                "cpu_usage": [
+                    {
+                        "timestamp": "2025-05-26T11:12:43.525Z",
+                        "value": 0
+                    },
+                    {
+                        "timestamp": "2025-05-26T11:12:46.528Z",
+                        "value": 1.625
+                    },
+                    {
+                        "timestamp": "2025-05-26T11:12:49.529Z",
+                        "value": 0.625
+                    },
+                    {
+                        "timestamp": "2025-05-26T11:12:52.53Z",
+                        "value": 2.666666666666667
+                    }
+                ],
+                "duration": 10741,
+                "memory_usage": [
+                    {
+                        "java_max_heap": 262144,
+                        "java_total_heap": 262144,
+                        "java_free_heap": 259685,
+                        "total_pss": 10846,
+                        "rss": 105040,
+                        "native_total_heap": 12612,
+                        "native_free_heap": 1170,
+                        "interval": 0,
+                        "timestamp": "2025-05-26T11:12:43.58Z"
+                    },
+                    {
+                        "java_max_heap": 262144,
+                        "java_total_heap": 65536,
+                        "java_free_heap": 58687,
+                        "total_pss": 57496,
+                        "rss": 135104,
+                        "native_total_heap": 17752,
+                        "native_free_heap": 1259,
+                        "interval": 2056,
+                        "timestamp": "2025-05-26T11:12:45.622Z"
+                    },
+                    {
+                        "java_max_heap": 262144,
+                        "java_total_heap": 65536,
+                        "java_free_heap": 58391,
+                        "total_pss": 57572,
+                        "rss": 135240,
+                        "native_total_heap": 17752,
+                        "native_free_heap": 1229,
+                        "interval": 2043,
+                        "timestamp": "2025-05-26T11:12:47.679Z"
+                    },
+                    {
+                        "java_max_heap": 262144,
+                        "java_total_heap": 65536,
+                        "java_free_heap": 57931,
+                        "total_pss": 59015,
+                        "rss": 136396,
+                        "native_total_heap": 18520,
+                        "native_free_heap": 1314,
+                        "interval": 2055,
+                        "timestamp": "2025-05-26T11:12:49.711Z"
+                    },
+                    {
+                        "java_max_heap": 262144,
+                        "java_total_heap": 65536,
+                        "java_free_heap": 57162,
+                        "total_pss": 59904,
+                        "rss": 137996,
+                        "native_total_heap": 19544,
+                        "native_free_heap": 1307,
+                        "interval": 2032,
+                        "timestamp": "2025-05-26T11:12:51.738Z"
+                    },
+                    {
+                        "java_max_heap": 262144,
+                        "java_total_heap": 16384,
+                        "java_free_heap": 7298,
+                        "total_pss": 60499,
+                        "rss": 138700,
+                        "native_total_heap": 19544,
+                        "native_free_heap": 1218,
+                        "interval": 2028,
+                        "timestamp": "2025-05-26T11:12:53.8Z"
+                    }
+                ],
+                "memory_usage_absolute": null,
+                "session_id": "81f06f23-4291-4590-a5df-c96d57d3c692",
+                "threads": {
+                    "main": [
+                        {
+                            "event_type": "custom",
+                            "user_defined_attribute": {
+                                "boolean": false,
+                                "double": 1.7976931348623157e+308,
+                                "float": 3.4028235e+38,
+                                "integer": 2147483647,
+                                "long": "9223372036854775807",
+                                "string": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in"
+                            },
+                            "thread_name": "main",
+                            "user_triggered": true,
+                            "name": "custom-app-start\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+                            "timestamp": "2025-05-26T11:12:43.532Z"
+                        },
+                        {
+                            "event_type": "lifecycle_activity",
+                            "user_defined_attribute": null,
+                            "thread_name": "main",
+                            "type": "created",
+                            "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                            "intent": "",
+                            "saved_instance_state": false,
+                            "timestamp": "2025-05-26T11:12:43.549Z"
+                        },
+                        {
+                            "event_type": "lifecycle_app",
+                            "user_defined_attribute": null,
+                            "thread_name": "main",
+                            "type": "foreground",
+                            "timestamp": "2025-05-26T11:12:43.594Z"
+                        },
+                        {
+                            "event_type": "lifecycle_activity",
+                            "user_defined_attribute": null,
+                            "thread_name": "main",
+                            "type": "resumed",
+                            "class_name": "sh.measure.sample.ExceptionDemoActivity",
+                            "intent": "",
+                            "saved_instance_state": false,
+                            "timestamp": "2025-05-26T11:12:43.596Z"
+                        },
+                        {
+                            "event_type": "cold_launch",
+                            "user_defined_attribute": null,
+                            "thread_name": "main",
+                            "duration": 238,
+                            "timestamp": "2025-05-26T11:12:43.672Z"
+                        },
+                        {
+                            "event_type": "gesture_scroll",
+                            "user_defined_attribute": null,
+                            "thread_name": "main",
+                            "target": "android.widget.ScrollView",
+                            "target_id": "sv_container",
+                            "x": 302,
+                            "y": 1978,
+                            "end_x": 208,
+                            "end_y": 1374,
+                            "direction": "up",
+                            "timestamp": "2025-05-26T11:12:49.251Z",
+                            "attachments": [
+                                {
+                                    "id": "d2c8f7e4-91ab-4e75-b6fd-2c4f0de6e391",
+                                    "name": "snapshot.json",
+                                    "type": "layout_snapshot_json",
+                                    "key": "d2c8f7e4-91ab-4e75-b6fd-2c4f0de6e391.json",
+                                    "location": "http://localhost:8080/proxy/attachments?payload=%2Fmsr-attachments-sandbox%2Fd2c8f7e4-91ab-4e75-b6fd-2c4f0de6e391.json%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3Dminio%252F20251010%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20251010T121043Z%26X-Amz-Expires%3D172800%26X-Amz-SignedHeaders%3Dhost%26x-id%3DGetObject%26X-Amz-Signature%3D8911ccb55945c42c95c861f0b626ce4a5faedf9ef161bbbc6b6f2ef6164c991c"
+                                },
+                                {
+                                    "id": "4fa83c7d-2b19-4a07-9f8e-63b36d0a1d92",
+                                    "name": "snapshot.json",
+                                    "type": "layout_snapshot_json",
+                                    "key": "4fa83c7d-2b19-4a07-9f8e-63b36d0a1d92.json",
+                                    "location": "http://localhost:8080/proxy/attachments?payload=%2Fmsr-attachments-sandbox%2F4fa83c7d-2b19-4a07-9f8e-63b36d0a1d92.json%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3Dminio%252F20251010%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20251010T121043Z%26X-Amz-Expires%3D172800%26X-Amz-SignedHeaders%3Dhost%26x-id%3DGetObject%26X-Amz-Signature%3Dcd389ca06244ea544e199397286f75d22ef7f385e6108a394c4b6e4a1a99cf59"
+                                }
+                            ]
+                        },
+                        {
+                            "event_type": "gesture_click",
+                            "user_defined_attribute": null,
+                            "thread_name": "main",
+                            "target": "com.google.android.material.textview.MaterialTextView",
+                            "target_id": "btn_bug_report",
+                            "width": 1080,
+                            "height": 154,
+                            "x": 125,
+                            "y": 1601,
+                            "timestamp": "2025-05-26T11:12:50.05Z",
+                            "attachments": [
+                                {
+                                    "id": "f3a9d7c1-62b5-4a2a-9d14-8f2bc3fbce47",
+                                    "name": "snapshot.json",
+                                    "type": "layout_snapshot_json",
+                                    "key": "f3a9d7c1-62b5-4a2a-9d14-8f2bc3fbce47.json",
+                                    "location": "http://localhost:8080/proxy/attachments?payload=%2Fmsr-attachments-sandbox%2Ff3a9d7c1-62b5-4a2a-9d14-8f2bc3fbce47.json%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3Dminio%252F20251010%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20251010T121043Z%26X-Amz-Expires%3D172800%26X-Amz-SignedHeaders%3Dhost%26x-id%3DGetObject%26X-Amz-Signature%3D209ae68a2cb0db7ab95fe8098df71993eab22969cd32aa0eb254e087b9444a22"
+                                },
+                                {
+                                    "id": "8c6facd3-b962-44b4-8803-1e775ba88f91",
+                                    "name": "snapshot.svg",
+                                    "type": "layout_snapshot",
+                                    "key": "8c6facd3-b962-44b4-8803-1e775ba88f91.svg",
+                                    "location": "http://localhost:8080/proxy/attachments?payload=%2Fmsr-attachments-sandbox%2F8c6facd3-b962-44b4-8803-1e775ba88f91.svg%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3Dminio%252F20251010%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20251010T121043Z%26X-Amz-Expires%3D172800%26X-Amz-SignedHeaders%3Dhost%26x-id%3DGetObject%26X-Amz-Signature%3D91860caaef1688229a3b354b99ecff9411ac61a137ce7621e515013553ed3276"
+                                }
+                            ]
+                        },
+                        {
+                            "bug_report_id": "f917ce21-9b8e-479d-9daa-888e32c66739",
+                            "event_type": "bug_report",
+                            "user_defined_attribute": {
+                                "is_premium": true
+                            },
+                            "thread_name": "main",
+                            "description": "Custom bug report",
+                            "timestamp": "2025-05-26T11:12:50.069Z",
+                            "attachments": [
+                                {
+                                    "id": "f34247a5-f0c1-4808-aa1d-c957e6214743",
+                                    "name": "snapshot.svg",
+                                    "type": "screenshot",
+                                    "key": "f34247a5-f0c1-4808-aa1d-c957e6214743.svg",
+                                    "location": "http://localhost:8080/proxy/attachments?payload=%2Fmsr-attachments-sandbox%2Ff34247a5-f0c1-4808-aa1d-c957e6214743.svg%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3Dminio%252F20251010%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20251010T121043Z%26X-Amz-Expires%3D172800%26X-Amz-SignedHeaders%3Dhost%26x-id%3DGetObject%26X-Amz-Signature%3D166f67162ef6a3b3654213d55263bc46c07868ec692323239fd3603213bb6c41"
+                                }
+                            ]
+                        },
+                        {
+                            "event_type": "gesture_scroll",
+                            "user_defined_attribute": null,
+                            "thread_name": "main",
+                            "target": "android.widget.ScrollView",
+                            "target_id": "sv_container",
+                            "x": 212,
+                            "y": 847,
+                            "end_x": 128,
+                            "end_y": 1449,
+                            "direction": "down",
+                            "timestamp": "2025-05-26T11:12:50.549Z",
+                            "attachments": null
+                        },
+                        {
+                            "event_type": "gesture_scroll",
+                            "user_defined_attribute": null,
+                            "thread_name": "main",
+                            "target": "android.widget.ScrollView",
+                            "target_id": "sv_container",
+                            "x": 275,
+                            "y": 1909,
+                            "end_x": 158,
+                            "end_y": 1144,
+                            "direction": "up",
+                            "timestamp": "2025-05-26T11:12:51.291Z",
+                            "attachments": null
+                        },
+                        {
+                            "event_type": "gesture_click",
+                            "user_defined_attribute": null,
+                            "thread_name": "main",
+                            "target": "com.google.android.material.textview.MaterialTextView",
+                            "target_id": "btn_generate_span",
+                            "width": 1080,
+                            "height": 154,
+                            "x": 131,
+                            "y": 1979,
+                            "timestamp": "2025-05-26T11:12:52.278Z",
+                            "attachments": [
+                                {
+                                    "id": "125df6e5-1e45-4380-bcc6-8c13e50439f8",
+                                    "name": "snapshot.svg",
+                                    "type": "layout_snapshot",
+                                    "key": "125df6e5-1e45-4380-bcc6-8c13e50439f8.svg",
+                                    "location": "http://localhost:8080/proxy/attachments?payload=%2Fmsr-attachments-sandbox%2F125df6e5-1e45-4380-bcc6-8c13e50439f8.svg%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3Dminio%252F20251010%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20251010T121043Z%26X-Amz-Expires%3D172800%26X-Amz-SignedHeaders%3Dhost%26x-id%3DGetObject%26X-Amz-Signature%3D32879b7cf840d3b3be16c20c179f59569b67001092a19220274e3d05fc505a21"
+                                }
+                            ]
+                        },
+                        {
+                            "event_type": "gesture_scroll",
+                            "user_defined_attribute": null,
+                            "thread_name": "main",
+                            "target": "android.widget.ScrollView",
+                            "target_id": "sv_container",
+                            "x": 187,
+                            "y": 1092,
+                            "end_x": 151,
+                            "end_y": 1674,
+                            "direction": "down",
+                            "timestamp": "2025-05-26T11:12:53.097Z",
+                            "attachments": null
+                        },
+                        {
+                            "event_type": "gesture_click",
+                            "user_defined_attribute": null,
+                            "thread_name": "main",
+                            "target": "com.google.android.material.textview.MaterialTextView",
+                            "target_id": "btn_single_exception",
+                            "width": 1080,
+                            "height": 154,
+                            "x": 103,
+                            "y": 515,
+                            "timestamp": "2025-05-26T11:12:54.253Z",
+                            "attachments": [
+                                {
+                                    "id": "0b35e832-5677-4d46-9dc8-9f1395c5d597",
+                                    "name": "snapshot.svg",
+                                    "type": "layout_snapshot",
+                                    "key": "0b35e832-5677-4d46-9dc8-9f1395c5d597.svg",
+                                    "location": "http://localhost:8080/proxy/attachments?payload=%2Fmsr-attachments-sandbox%2F0b35e832-5677-4d46-9dc8-9f1395c5d597.svg%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3Dminio%252F20251010%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20251010T121043Z%26X-Amz-Expires%3D172800%26X-Amz-SignedHeaders%3Dhost%26x-id%3DGetObject%26X-Amz-Signature%3D02bd2237d5d5c5d5d58d4854f545e72562fc01aac39546497539962efccaf12d"
+                                }
+                            ]
+                        },
+                        {
+                            "event_type": "exception",
+                            "user_defined_attribute": null,
+                            "user_triggered": false,
+                            "group_id": "9b71282275e88a68b38fe69a1bda0ea7",
+                            "type": "java.lang.IllegalAccessException",
+                            "message": "This is a new exception",
+                            "method_name": "onClick",
+                            "file_name": "SourceFile",
+                            "line_number": 102,
+                            "thread_name": "main",
+                            "handled": false,
+                            "stacktrace": "java.lang.IllegalAccessException: This is a new exception\n\tat L3.n.onClick(SourceFile:102)\n\tat android.view.View.performClick(View.java:7542)\n\tat android.view.View.performClickInternal(View.java:7519)\n\tat android.view.View.-$$Nest$mperformClickInternal\n\tat android.view.View$PerformClick.run(View.java:29476)\n\tat android.os.Handler.handleCallback(Handler.java:942)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loopOnce(Looper.java:201)\n\tat android.os.Looper.loop(Looper.java:288)\n\tat android.app.ActivityThread.main(ActivityThread.java:7918)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.IllegalAccessException: This is a new exception\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)\nCaused by: java.lang.reflect.InvocationTargetException\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:558)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)",
+                            "foreground": true,
+                            "error": null,
+                            "timestamp": "2025-05-26T11:12:54.266Z",
+                            "attachments": [
+                                {
+                                    "id": "cb66672a-cbf2-4977-95e6-b7ee1302c1e9",
+                                    "name": "screenshot.webp",
+                                    "type": "screenshot",
+                                    "key": "cb66672a-cbf2-4977-95e6-b7ee1302c1e9.webp",
+                                    "location": "http://localhost:8080/proxy/attachments?payload=%2Fmsr-attachments-sandbox%2Fcb66672a-cbf2-4977-95e6-b7ee1302c1e9.webp%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3Dminio%252F20251010%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20251010T121043Z%26X-Amz-Expires%3D172800%26X-Amz-SignedHeaders%3Dhost%26x-id%3DGetObject%26X-Amz-Signature%3D17320dd0027d71aeb4633af471a9f2265c94024af41e670aa0da4fcfe89109a3"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "traces": [
+                    {
+                        "trace_id": "5cea4773a565f73e85002b44bfb44a30",
+                        "trace_name": "activity.onCreate",
+                        "thread_name": "main",
+                        "start_time": "2025-05-26T11:12:43.549Z",
+                        "end_time": "2025-05-26T11:12:43.59Z",
+                        "duration": 41
+                    },
+                    {
+                        "trace_id": "b6284daf4a993e8ae1695d567e998520",
+                        "trace_name": "Activity TTID sh.measure.sample.ExceptionDemoActivity",
+                        "thread_name": "main",
+                        "start_time": "2025-05-26T11:12:43.545Z",
+                        "end_time": "2025-05-26T11:12:43.672Z",
+                        "duration": 127
+                    },
+                    {
+                        "trace_id": "cc75bad89fbeae1a039b05abfd33efd8",
+                        "trace_name": "SampleApp.onCreate",
+                        "thread_name": "main",
+                        "start_time": "2025-05-26T11:12:43.507Z",
+                        "end_time": "2025-05-26T11:12:43.532Z",
+                        "duration": 25
+                    }
+                ]
             }
         })
     ),

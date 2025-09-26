@@ -6,7 +6,9 @@ import LoadingBar from '@/app/components/loading_bar'
 import Paginator from '@/app/components/paginator'
 import SpanMetricsPlot from '@/app/components/span_metrics_plot'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
+import { useAIChatContext } from '@/app/context/ai_chat_context'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -23,6 +25,7 @@ const paginationOffsetUrlKey = "po"
 export default function TracesOverview({ params }: { params: { teamId: string } }) {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { setPageContext } = useAIChatContext()
 
     const initialState: PageState = {
         spansApiStatus: SpansApiStatus.Loading,
@@ -65,6 +68,16 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                 filters: updatedFilters,
                 // Reset pagination on filters change if previous filters were not default filters
                 paginationOffset: pageState.filters.serialisedFilters && searchParams.get(paginationOffsetUrlKey) ? 0 : pageState.paginationOffset
+            })
+        }
+
+        if (updatedFilters.app?.id) {
+            setPageContext({
+                appId: updatedFilters.app!.id,
+                enable: false,
+                fileName: "",
+                action: "",
+                content: ""
             })
         }
     }
@@ -157,22 +170,13 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                                 return (
                                     <TableRow
                                         key={`${idx}-${span_id}`}
-                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
-                                        tabIndex={0}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault()
-                                                router.push(traceHref)
-                                            }
-                                        }}
+                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none cursor-pointer"
                                     >
                                         <TableCell className="w-[60%] relative p-0">
-                                            <a
+                                            <Link
                                                 href={traceHref}
-                                                className="absolute inset-0 z-10 cursor-pointer"
-                                                tabIndex={-1}
+                                                className="absolute inset-0 z-10"
                                                 aria-label={`ID: ${trace_id}`}
-                                                style={{ display: 'block' }}
                                             />
                                             <div className="pointer-events-none p-4">
                                                 <p className='text-xs truncate text-gray-500 select-none'>ID: {trace_id}</p>
@@ -183,12 +187,10 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[20%] text-center relative p-0">
-                                            <a
+                                            <Link
                                                 href={traceHref}
-                                                className="absolute inset-0 z-10 cursor-pointer"
-                                                tabIndex={-1}
-                                                aria-hidden="true"
-                                                style={{ display: 'block' }}
+                                                className="absolute inset-0 z-10"
+                                                aria-label={`Time: ${formatDateToHumanReadableDate(start_time)} ${formatDateToHumanReadableTime(start_time)}`}
                                             />
                                             <div className="pointer-events-none p-4">
                                                 <p className='truncate select-none'>{formatDateToHumanReadableDate(start_time)}</p>
@@ -197,24 +199,20 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[10%] text-center truncate select-none relative p-0">
-                                            <a
+                                            <Link
                                                 href={traceHref}
-                                                className="absolute inset-0 z-10 cursor-pointer"
-                                                tabIndex={-1}
-                                                aria-hidden="true"
-                                                style={{ display: 'block' }}
+                                                className="absolute inset-0 z-10"
+                                                aria-label={`Duration: ${formatMillisToHumanReadable(duration)}`}
                                             />
                                             <div className="pointer-events-none p-4">
                                                 {formatMillisToHumanReadable(duration)}
                                             </div>
                                         </TableCell>
                                         <TableCell className={`w-[10%] text-center truncate select-none relative p-0 ${status === 1 ? "text-green-600" : status === 2 ? "text-red-600" : ""}`}>
-                                            <a
+                                            <Link
                                                 href={traceHref}
-                                                className="absolute inset-0 z-10 cursor-pointer"
-                                                tabIndex={-1}
-                                                aria-hidden="true"
-                                                style={{ display: 'block' }}
+                                                className="absolute inset-0 z-10"
+                                                aria-label={`Status: ${status === 0 ? 'Unset' : status === 1 ? 'Okay' : 'Error'}`}
                                             />
                                             <div className="pointer-events-none p-4">
                                                 {status === 0 ? 'Unset' : status === 1 ? 'Okay' : 'Error'}
@@ -225,6 +223,7 @@ export default function TracesOverview({ params }: { params: { teamId: string } 
                             })}
                         </TableBody>
                     </Table>
+                    <div className="py-4" />
                 </div>}
         </div>
     )

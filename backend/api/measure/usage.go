@@ -11,6 +11,25 @@ import (
 	"github.com/leporo/sqlf"
 )
 
+type AiUsageReport struct {
+	TeamId       string `json:"team_id"`
+	UserId       string `json:"user_id"`
+	Source       string `json:"source"`
+	Model        string `json:"model"`
+	InputTokens  uint64 `json:"input_tokens"`
+	OutputTokens uint64 `json:"output_tokens"`
+}
+
+type AiUsage struct {
+	TeamId         string           `json:"team_id"`
+	MonthlyAiUsage []MonthlyAiUsage `json:"monthly_ai_usage"`
+}
+
+type MonthlyAiUsage struct {
+	MonthName       string `json:"month_year"`
+	TotalTokenCount uint64 `json:"total_token_count"`
+}
+
 type AppUsage struct {
 	AppId           string            `json:"app_id"`
 	AppName         string            `json:"app_name"`
@@ -159,6 +178,61 @@ func GetUsage(c *gin.Context) {
 		return
 	}
 
+	// Query ai metrics for team
+	aiMetricsStmt := sqlf.
+		From(`ai_metrics`).
+		Select("team_id").
+		Select("formatDateTime(toStartOfMonth(timestamp), '%b %Y') AS month_year").
+		Select("sumMerge(input_token_count) + sumMerge(output_token_count) AS total_token_count").
+		Where("timestamp >= addMonths(toStartOfMonth(?), -2) AND timestamp < toStartOfMonth(addMonths(?, 1))", now, now).
+		GroupBy("team_id, toStartOfMonth(timestamp)").
+		OrderBy("team_id, toStartOfMonth(timestamp) DESC")
+
+	defer aiMetricsStmt.Close()
+
+	aiMetricsRows, err := server.Server.ChPool.Query(ctx, aiMetricsStmt.String(), aiMetricsStmt.Args()...)
+	if err != nil {
+		msg := fmt.Sprintf("error occurred while querying AI metrics for team: %s", teamId)
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	aiUsageMap := make(map[string]*AiUsage)
+
+	// Initialize aiUsageMap
+	aiUsageMap[teamId.String()] = &AiUsage{
+		TeamId:         teamId.String(),
+		MonthlyAiUsage: make([]MonthlyAiUsage, 0, 3),
+	}
+
+	// Populate aiUsageMap with metrics rows from DB
+	for aiMetricsRows.Next() {
+		var teamId, monthYear string
+		var totalTokenCount uint64
+
+		if err := aiMetricsRows.Scan(&teamId, &monthYear, &totalTokenCount); err != nil {
+			msg := fmt.Sprintf("error occurred while scanning AI metrics row for team: %s", teamId)
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			return
+		}
+
+		if aiUsage, exists := aiUsageMap[teamId]; exists {
+			aiUsage.MonthlyAiUsage = append(aiUsage.MonthlyAiUsage, MonthlyAiUsage{
+				MonthName:       monthYear,
+				TotalTokenCount: totalTokenCount,
+			})
+		}
+	}
+
+	if err := aiMetricsRows.Err(); err != nil {
+		msg := fmt.Sprintf("error occurred while iterating AI metrics rows for team: %s", teamId)
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
 	// Ensure all apps have entries for all three months by adding 0 values for missing months
 	for _, appUsage := range appUsageMap {
 		monthDataMap := make(map[string]MonthlyAppUsage)
@@ -183,11 +257,117 @@ func GetUsage(c *gin.Context) {
 		appUsage.MonthlyAppUsage = newMonthlyAppUsage
 	}
 
+	// Ensure all AI usages have entries for all three months by adding 0 values for missing months
+	for _, aiUsage := range aiUsageMap {
+		monthDataMap := make(map[string]MonthlyAiUsage)
+		for _, usage := range aiUsage.MonthlyAiUsage {
+			monthDataMap[usage.MonthName] = usage
+		}
+
+		newMonthlyAiUsage := make([]MonthlyAiUsage, 0, 3)
+		for _, monthName := range monthNames {
+			if usage, exists := monthDataMap[monthName]; exists {
+				newMonthlyAiUsage = append(newMonthlyAiUsage, usage)
+			} else {
+				newMonthlyAiUsage = append(newMonthlyAiUsage, MonthlyAiUsage{
+					MonthName:       monthName,
+					TotalTokenCount: 0,
+				})
+			}
+		}
+		aiUsage.MonthlyAiUsage = newMonthlyAiUsage
+	}
+
 	// Convert map to slice for JSON response
-	var result []AppUsage
+	var appUsageResult []AppUsage
 	for _, appUsage := range appUsageMap {
-		result = append(result, *appUsage)
+		appUsageResult = append(appUsageResult, *appUsage)
+	}
+
+	var aiUsageResult []AiUsage
+	for _, aiUsage := range aiUsageMap {
+		aiUsageResult = append(aiUsageResult, *aiUsage)
+	}
+
+	result := gin.H{
+		"app_usage": appUsageResult,
+		"ai_usage":  aiUsageResult,
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+func ReportAiUsage(c *gin.Context) {
+	ctx := c.Request.Context()
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	var aiUsageReport AiUsageReport
+
+	if err := c.ShouldBindJSON(&aiUsageReport); err != nil {
+		msg := "failed to parse AI usage payload"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if ok, err := PerformAuthz(userId, teamId.String(), *ScopeTeamRead); err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	} else if !ok {
+		msg := fmt.Sprintf(`you don't have permissions for team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	if ok, err := PerformAuthz(userId, teamId.String(), *ScopeAppRead); err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	} else if !ok {
+		msg := fmt.Sprintf(`you don't have permissions to read apps in team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	var team = new(Team)
+	team.ID = &teamId
+
+	// insert metrics into clickhouse table
+	metricsSelectStmt := sqlf.
+		Select("? AS team_id", team.ID).
+		Select("? AS timestamp", time.Now()).
+		Select("? AS user_id", aiUsageReport.UserId).
+		Select("? AS source", aiUsageReport.Source).
+		Select("? AS model", aiUsageReport.Model).
+		Select("sumState(CAST(? AS UInt32)) AS input_token_count", aiUsageReport.InputTokens).
+		Select("sumState(CAST(? AS UInt32)) AS output_token_count", aiUsageReport.OutputTokens)
+	selectSQL := metricsSelectStmt.String()
+	args := metricsSelectStmt.Args()
+	defer metricsSelectStmt.Close()
+	metricsInsertStmt := "INSERT INTO ai_metrics " + selectSQL
+
+	if err := server.Server.ChPool.Exec(ctx, metricsInsertStmt, args...); err != nil {
+		msg := `failed to insert ai metrics into clickhouse`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok": "done",
+	})
 }

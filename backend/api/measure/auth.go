@@ -56,6 +56,27 @@ func extractToken(c *gin.Context) (token string) {
 	return
 }
 
+// extractMcpKey extracts the MCP key
+// from the Authorization header.
+func extractMcpKey(c *gin.Context) (token string) {
+	authHeader := c.GetHeader("Authorization")
+	splitToken := strings.Split(authHeader, "Bearer ")
+
+	if len(splitToken) != 2 {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	token = strings.TrimSpace(splitToken[1])
+
+	if token == "" {
+		c.AbortWithStatus((http.StatusUnauthorized))
+		return
+	}
+
+	return
+}
+
 // extractRefreshToken extracts the refresh token
 // from the cookie or Authorization header
 func extractRefreshToken(c *gin.Context) (token string) {
@@ -141,6 +162,100 @@ func ValidateAccessToken() gin.HandlerFunc {
 			return
 		}
 
+		c.Next()
+	}
+}
+
+// ValidateMcpKey validates the Measure MCP key.
+func ValidateMcpKey() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		key := extractMcpKey(c)
+
+		userId, teamId, err := DecodeMcpKey(c, key)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "invalid MCP key",
+			})
+			return
+		}
+
+		if userId == nil {
+			msg := "no user found for this MCP key"
+			fmt.Println(msg)
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": msg})
+			return
+		}
+
+		if teamId == nil {
+			msg := "no team found for this MCP key"
+			fmt.Println(msg)
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": msg})
+			return
+		}
+
+		c.Set("userId", userId.String())
+		c.Set("teamId", teamId.String())
+		c.Next()
+	}
+}
+
+// ValidateAccessTokenOrMcpKey validates the Measure access token or MCP key. If either one succeeds, the request is allowed.
+func ValidateAccessTokenOrMcpKey() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := extractToken(c)
+
+		// Try access token validation first
+		accessToken, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				err := fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+				return nil, err
+			}
+
+			return server.Server.Config.AccessTokenSecret, nil
+		})
+
+		// If access token is valid, use it
+		if err == nil {
+			if claims, ok := accessToken.Claims.(jwt.MapClaims); ok {
+				sessionId := claims["jti"]
+				c.Set("sessionId", sessionId)
+
+				userId := claims["sub"]
+				c.Set("userId", userId)
+
+				c.Next()
+				return
+			}
+		}
+
+		// Access token failed, try MCP key
+		key := extractMcpKey(c)
+		userId, teamId, err := DecodeMcpKey(c, key)
+		if err != nil {
+			// Both validations failed
+			fmt.Println("both access token and MCP key validation failed")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "invalid access token or MCP key",
+			})
+			return
+		}
+
+		if userId == nil {
+			msg := "no user found for this MCP key"
+			fmt.Println(msg)
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": msg})
+			return
+		}
+
+		if teamId == nil {
+			msg := "no team found for this MCP key"
+			fmt.Println(msg)
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": msg})
+			return
+		}
+
+		c.Set("userId", userId.String())
+		c.Set("teamId", teamId.String())
 		c.Next()
 	}
 }
@@ -964,6 +1079,58 @@ func RefreshToken(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"access_token":  newSession.AccessToken,
 		"refresh_token": newSession.RefreshToken,
+	})
+}
+
+// GetUser returns the current user information
+func GetUser(c *gin.Context) {
+	userId := c.GetString("userId")
+
+	ctx := c.Request.Context()
+
+	if userId == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Not authenticated",
+		})
+		return
+	}
+
+	user := &User{
+		ID: &userId,
+	}
+
+	ownTeam, err := user.getOwnTeam(ctx)
+	if err != nil {
+		msg := "Unable to get user's team"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	err = user.getUserDetails(ctx)
+
+	if err != nil {
+		msg := "Unable to get user details"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user": gin.H{
+			"id":              userId,
+			"own_team_id":     ownTeam.ID,
+			"name":            user.Name,
+			"email":           user.Email,
+			"confirmed_at":    user.ConfirmedAt,
+			"last_sign_in_at": user.LastSignInAt,
+			"created_at":      user.CreatedAt,
+			"updated_at":      user.UpdatedAt,
+		},
 	})
 }
 

@@ -2,6 +2,8 @@
 
 import { ExceptionsOverviewApiStatus, ExceptionsType, FilterSource, emptyExceptionsOverviewResponse, fetchExceptionsOverviewFromServer } from '@/app/api/api_calls'
 import Paginator from '@/app/components/paginator'
+import { useAIChatContext } from '@/app/context/ai_chat_context'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import ExceptionsOverviewPlot from './exceptions_overview_plot'
@@ -29,6 +31,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
 
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { setPageContext } = useAIChatContext()
 
   const initialState: PageState = {
     exceptionsOverviewApiStatus: ExceptionsOverviewApiStatus.Loading,
@@ -72,6 +75,16 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
         // Reset pagination on filters change if previous filters were not default filters
         keyId: pageState.filters.serialisedFilters && searchParams.get(keyIdUrlKey) ? null : pageState.keyId,
         limit: pageState.filters.serialisedFilters && searchParams.get(paginationLimitUrlKey) ? defaultPaginationLimit : pageState.limit
+      })
+    }
+
+    if (updatedFilters.app?.id) {
+      setPageContext({
+        appId: updatedFilters.app!.id,
+        enable: false,
+        fileName: "",
+        action: "",
+        content: ""
       })
     }
   }
@@ -193,22 +206,13 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
                   return (
                     <TableRow
                       key={`${idx}-${id}`}
-                      className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
-                      tabIndex={0}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault()
-                          router.push(href)
-                        }
-                      }}
+                      className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none cursor-pointer"
                     >
                       <TableCell className="w-[60%] relative p-0">
-                        <a
+                        <Link
                           href={href}
-                          className="absolute inset-0 z-10 cursor-pointer"
-                          tabIndex={-1}
+                          className="absolute inset-0 z-10"
                           aria-label={`${file_name !== '' ? file_name : 'unknown_file'}: ${method_name !== '' ? method_name : 'unknown_method'}()`}
-                          style={{ display: 'block' }}
                         />
                         <div className="pointer-events-none p-4">
                           <p className="truncate select-none">
@@ -221,24 +225,20 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
                         </div>
                       </TableCell>
                       <TableCell className="w-[20%] text-center truncate select-none relative p-0">
-                        <a
+                        <Link
                           href={href}
-                          className="absolute inset-0 z-10 cursor-pointer"
-                          tabIndex={-1}
+                          className="absolute inset-0 z-10"
                           aria-hidden="true"
-                          style={{ display: 'block' }}
                         />
                         <div className="pointer-events-none p-4">
                           {count}
                         </div>
                       </TableCell>
                       <TableCell className="w-[20%] text-center truncate select-none relative p-0">
-                        <a
+                        <Link
                           href={href}
-                          className="absolute inset-0 z-10 cursor-pointer"
-                          tabIndex={-1}
+                          className="absolute inset-0 z-10"
                           aria-hidden="true"
-                          style={{ display: 'block' }}
                         />
                         <div className="pointer-events-none p-4">
                           {percentage_contribution}%
@@ -250,6 +250,7 @@ export const ExceptionsOverview: React.FC<ExceptionsOverviewProps> = ({ exceptio
               )}
             </TableBody>
           </Table>
+          <div className='py-4' />
         </div>}
     </div >
   )
