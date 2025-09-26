@@ -99,10 +99,10 @@ class MeasurePlugin : Plugin<Project> {
             buildUploadTaskName(variant),
             BuildUploadTask::class.java,
         ) {
-            it.manifestDataProperty.set(manifestDataFileProvider(project, variant))
+            it.manifestFileProperty.set(manifestDataFileProvider(project, variant))
             it.mappingFileProperty.set(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
             it.flutterSymbolsDirProperty.set(getFlutterSymbolsDirPath(project))
-            it.appSizeFileProperty.set(appSizeFileProvider(project, variant))
+            it.buildMetadataFileProperty.set(appSizeFileProvider(project, variant))
             it.retriesProperty.set(DEFAULT_RETRIES)
             it.usesService(httpClientProvider)
             it.httpClientProvider.set(httpClientProvider)
