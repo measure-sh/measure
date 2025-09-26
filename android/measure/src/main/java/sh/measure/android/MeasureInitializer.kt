@@ -293,6 +293,7 @@ internal class MeasureInitializerImpl(
     private val periodicHeartbeat: Heartbeat = HeartbeatImpl(
         logger,
         executorServiceRegistry.defaultExecutor(),
+        randomizer,
     ),
     override val periodicExporter: PeriodicExporter = PeriodicExporterImpl(
         logger = logger,

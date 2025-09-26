@@ -77,6 +77,8 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { traceSamplingRate }
     override val eventsBatchingIntervalMs: Long
         get() = getMergedConfig { eventsBatchingIntervalMs }
+    override val eventsBatchingJitterMs: Long
+        get() = getMergedConfig { eventsBatchingJitterMs }
     override val maxEventsInBatch: Int
         get() = getMergedConfig { maxEventsInBatch }
     override val httpContentTypeAllowlist: List<String>

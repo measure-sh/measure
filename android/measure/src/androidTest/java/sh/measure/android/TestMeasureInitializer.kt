@@ -130,7 +130,7 @@ internal class TestMeasureInitializer(
     override val logger: Logger = AndroidLogger(configProvider.enableLogging),
     override val timeProvider: TimeProvider = AndroidTimeProvider(AndroidSystemClock()),
     override val executorServiceRegistry: ExecutorServiceRegistry = ExecutorServiceRegistryImpl(),
-    private val fileStorage: FileStorage = FileStorageImpl(
+    override val fileStorage: FileStorage = FileStorageImpl(
         rootDir = application.filesDir.path,
         logger = logger,
     ),
@@ -375,7 +375,6 @@ internal class TestMeasureInitializer(
         logger,
         timeProvider,
         configProvider,
-        tracer,
     ),
     override val appLaunchCollector: AppLaunchCollector = AppLaunchCollector(
         application = application,
@@ -426,8 +425,8 @@ internal class TestMeasureInitializer(
     override val shakeBugReportCollector: ShakeBugReportCollector = ShakeBugReportCollector(
         shakeDetector = AccelerometerShakeDetector(
             sensorManager = systemServiceProvider.sensorManager,
-            timeProvider = timeProvider,
             configProvider = configProvider,
+            logger = logger,
         ),
     ),
     override val internalSignalCollector: InternalSignalCollector = InternalSignalCollector(

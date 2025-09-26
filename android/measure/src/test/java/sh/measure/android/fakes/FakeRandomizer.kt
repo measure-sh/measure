@@ -11,11 +11,17 @@ internal class FakeRandomizer : Randomizer {
 
     var randomLong: Long = 100L
 
+    var randomInt: Int = 10
+
     override fun random(): Double {
         return randomDouble
     }
 
     override fun nextLong(): Long {
         return randomLong
+    }
+
+    override fun nextInt(bound: Int): Int {
+        return randomInt
     }
 }

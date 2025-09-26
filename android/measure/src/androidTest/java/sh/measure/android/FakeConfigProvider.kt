@@ -40,6 +40,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override val traceSamplingRate: Float = 1f
     override var maxAttachmentSizeInEventsBatchInBytes: Int = 1_000_000
     override var eventsBatchingIntervalMs: Long = 1_000_000
+    override var eventsBatchingJitterMs: Long = 1_000_000
     override var maxEventsInBatch: Int = 1_000_000
     override var httpContentTypeAllowlist: List<String> = emptyList()
     override var defaultHttpHeadersBlocklist: List<String> = emptyList()

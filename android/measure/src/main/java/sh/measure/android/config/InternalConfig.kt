@@ -14,6 +14,11 @@ internal interface InternalConfig {
     val eventsBatchingIntervalMs: Long
 
     /**
+     * The jitter to add to [eventsBatchingIntervalMs]. Defaults to 20000ms.
+     */
+    val eventsBatchingJitterMs: Long
+
+    /**
      * The maximum number of events to export in /events API. Defaults to 500.
      */
     val maxEventsInBatch: Int

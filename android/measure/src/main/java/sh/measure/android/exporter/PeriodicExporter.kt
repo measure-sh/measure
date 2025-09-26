@@ -43,11 +43,17 @@ internal class PeriodicExporterImpl(
     }
 
     override fun register() {
-        heartbeat.start(intervalMs = configProvider.eventsBatchingIntervalMs)
+        heartbeat.start(
+            intervalMs = configProvider.eventsBatchingIntervalMs,
+            jitterMs = configProvider.eventsBatchingJitterMs,
+        )
     }
 
     override fun resume() {
-        heartbeat.start(intervalMs = configProvider.eventsBatchingIntervalMs)
+        heartbeat.start(
+            intervalMs = configProvider.eventsBatchingIntervalMs,
+            jitterMs = configProvider.eventsBatchingJitterMs,
+        )
     }
 
     override fun unregister() {
