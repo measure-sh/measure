@@ -4,6 +4,7 @@ import { FilterSource } from '@/app/api/api_calls'
 import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/components/filters'
 import MetricsOverview from '@/app/components/metrics_overview'
 import SessionsVsExceptionsPlot from '@/app/components/sessions_vs_exceptions_overview_plot'
+import { useAIChatContext } from '@/app/context/ai_chat_context'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -13,6 +14,7 @@ interface PageState {
 
 export default function Overview({ params }: { params: { teamId: string } }) {
   const router = useRouter()
+  const { setPageContext } = useAIChatContext()
 
   const initialState: PageState = {
     filters: defaultFilters,
@@ -32,6 +34,16 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     if (pageState.filters.ready !== updatedFilters.ready || pageState.filters.serialisedFilters !== updatedFilters.serialisedFilters) {
       updatePageState({
         filters: updatedFilters
+      })
+    }
+
+    if (updatedFilters.app?.id) {
+      setPageContext({
+        appId: updatedFilters.app!.id,
+        enable: false,
+        fileName: "",
+        action: "",
+        content: ""
       })
     }
   }
@@ -84,6 +96,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
               filters={pageState.filters} />}
         </>
       )}
+      <div className="py-4" />
     </div>
   )
 }

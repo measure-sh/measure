@@ -3,10 +3,13 @@
 import { SessionTimelineApiStatus, emptySessionTimeline, fetchSessionTimelineFromServer } from "@/app/api/api_calls"
 import LoadingSpinner from "@/app/components/loading_spinner"
 import SessionTimeline from "@/app/components/session_timeline"
+import { useAIChatContext } from "@/app/context/ai_chat_context"
 import { formatMillisToHumanReadable } from "@/app/utils/time_utils"
 import { useEffect, useState } from "react"
 
 export default function Session({ params }: { params: { teamId: string, appId: string, sessionId: string } }) {
+  const { setPageContext } = useAIChatContext()
+
   const [sessionTimeline, setSessionTimeline] = useState(emptySessionTimeline)
   const [sessionTimelineApiStatus, setSessionTimelineApiStatus] = useState(SessionTimelineApiStatus.Loading)
 
@@ -18,10 +21,24 @@ export default function Session({ params }: { params: { teamId: string, appId: s
     switch (result.status) {
       case SessionTimelineApiStatus.Error:
         setSessionTimelineApiStatus(SessionTimelineApiStatus.Error)
+        setPageContext({
+          appId: params.appId,
+          enable: false,
+          fileName: "",
+          action: "",
+          content: ""
+        })
         break
       case SessionTimelineApiStatus.Success:
         setSessionTimelineApiStatus(SessionTimelineApiStatus.Success)
         setSessionTimeline(result.data)
+        setPageContext({
+          appId: params.appId,
+          enable: true,
+          fileName: 'session_timeline',
+          action: `Attach Session Details`,
+          content: "sessionTimeline:" + JSON.stringify(sessionTimeline)
+        })
         break
     }
   }
@@ -49,7 +66,8 @@ export default function Session({ params }: { params: { teamId: string, appId: s
           <div className="py-6" />
           <SessionTimeline teamId={params.teamId} appId={params.appId} sessionTimeline={sessionTimeline} />
         </div>}
-    </div>
 
+      <div className="py-4" />
+    </div>
   )
 }
