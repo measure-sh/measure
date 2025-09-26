@@ -112,6 +112,7 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
                 />
               ))}
             </div>}
+          <div className="py-4" />
         </div>}
     </div>
   )

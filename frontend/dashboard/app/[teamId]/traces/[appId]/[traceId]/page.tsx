@@ -55,6 +55,7 @@ export default function TraceDetails({ params }: { params: { teamId: string, app
           <div className="py-4" />
           <TraceViz inputTrace={trace} />
         </div>}
+      <div className="py-4" />
     </div>
 
   )

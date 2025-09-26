@@ -132,6 +132,7 @@ export default function UserJourneys({ params }: { params: { teamId: string } })
           </div>
         </>
       )}
+      <div className="py-4" />
     </div>
   )
 }

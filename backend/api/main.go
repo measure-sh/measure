@@ -133,6 +133,7 @@ func main() {
 		teams.GET(":id/members", measure.GetTeamMembers)
 		teams.DELETE(":id/members/:memberId", measure.RemoveTeamMember)
 		teams.GET(":id/usage", measure.GetUsage)
+		teams.POST(":id/usage/ai", measure.ReportAiUsage)
 		teams.GET(":id/slack", measure.GetTeamSlack)
 		teams.PATCH(":id/slack/status", measure.UpdateTeamSlackStatus)
 	}

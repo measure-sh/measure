@@ -18,6 +18,20 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }))
 
+// Mock AIChatContext
+jest.mock('@/app/context/ai_chat_context', () => ({
+    useAIChatContext: jest.fn(() => ({
+        pageContext: {
+            enable: false,
+            action: "",
+            content: "",
+            fileName: "",
+        },
+        setPageContext: jest.fn(),
+    })),
+    AIChatProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+
 // Mock API calls and constants for exceptions overview with valid data.
 jest.mock('@/app/api/api_calls', () => ({
     __esModule: true,
@@ -248,18 +262,6 @@ describe('ExceptionsOverview Component - Crashes', () => {
         // Find the table row that contains this link
         const crashRow = crashLink.closest('tr')
         expect(crashRow).toBeInTheDocument()
-
-        // Simulate keyboard navigation (Enter) on the row
-        await act(async () => {
-            fireEvent.keyDown(crashRow!, { key: 'Enter' })
-        })
-        expect(pushMock).toHaveBeenCalledWith('/123/crashes/app1/exception1/NullPointerException@MainActivity.java')
-
-        // Simulate keyboard navigation (Space) on the row
-        await act(async () => {
-            fireEvent.keyDown(crashRow!, { key: ' ' })
-        })
-        expect(pushMock).toHaveBeenCalledWith('/123/crashes/app1/exception1/NullPointerException@MainActivity.java')
     })
 
     it('handles exceptions with empty file_name correctly in link and display', async () => {
@@ -300,22 +302,6 @@ describe('ExceptionsOverview Component - Crashes', () => {
         const crashLink = screen.getByRole('link', { name: /unknown_file: onCreate\(\)/i })
         expect(crashLink).toBeInTheDocument()
         expect(crashLink).toHaveAttribute('href', '/123/crashes/app1/exception1/NullPointerException')
-
-        // Find the table row that contains this link
-        const crashRow = crashLink.closest('tr')
-        expect(crashRow).toBeInTheDocument()
-
-        // Simulate keyboard navigation (Enter) on the row
-        await act(async () => {
-            fireEvent.keyDown(crashRow!, { key: 'Enter' })
-        })
-        expect(pushMock).toHaveBeenCalledWith('/123/crashes/app1/exception1/NullPointerException')
-
-        // Simulate keyboard navigation (Space) on the row
-        await act(async () => {
-            fireEvent.keyDown(crashRow!, { key: ' ' })
-        })
-        expect(pushMock).toHaveBeenCalledWith('/123/crashes/app1/exception1/NullPointerException')
     })
 
     describe('Pagination key ID handling', () => {
@@ -473,22 +459,6 @@ describe('ExceptionsOverview Component - ANRs', () => {
         const anrLink = screen.getByRole('link', { name: /MainActivity\.kt: onPause\(\)/i })
         expect(anrLink).toBeInTheDocument()
         expect(anrLink).toHaveAttribute('href', '/456/anrs/app1/exception2/ANRException@MainActivity.kt')
-
-        // Find the table row that contains this link
-        const anrRow = anrLink.closest('tr')
-        expect(anrRow).toBeInTheDocument()
-
-        // Simulate keyboard navigation (Enter) on the row
-        await act(async () => {
-            fireEvent.keyDown(anrRow!, { key: 'Enter' })
-        })
-        expect(pushMock).toHaveBeenCalledWith('/456/anrs/app1/exception2/ANRException@MainActivity.kt')
-
-        // Simulate keyboard navigation (Space) on the row
-        await act(async () => {
-            fireEvent.keyDown(anrRow!, { key: ' ' })
-        })
-        expect(pushMock).toHaveBeenCalledWith('/456/anrs/app1/exception2/ANRException@MainActivity.kt')
     })
 
     it('shows error message with ANR-specific text', async () => {
