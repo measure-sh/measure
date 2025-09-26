@@ -347,3 +347,6 @@ set VERSION $(git cliff --bumped-version) && git tag -s $VERSION -m $VERSION && 
 - Public facing docs should be in [docs](../README.md) folder - API requests & responses, self host guide, SDK guides and so on
 - Main folder of subproject should link to main guide. ex: [frontend README](../../frontend/README.md) has link to self hosting and local dev guide
 - Non public facing docs can stay in sub folder. ex: [backend benchmarking README](../../backend/benchmarking/README.md) which describes its purpose
+
+### Updating Documentation
+- When updating docs in the `docs` folder, the `docs-embeddings.json` file needs to be updated so that the AI assistant can reference them. To update the embedding, you should run `npm run generate-docs-embeddings` from inside the `frontend/dashboard` folder. You will need to have [setup AI Integration](../hosting/ai.md) before running the command so that it can access the embedding model and update the embedding file. This file needs to be committed as part of the same PR that updates the docs.
