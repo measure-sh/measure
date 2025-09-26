@@ -26,6 +26,7 @@ internal data class Config(
     override val screenshotCompressionQuality: Int = 25
     override val maxAttachmentSizeInEventsBatchInBytes: Int = 3_000_000 // 3 MB
     override val eventsBatchingIntervalMs: Long = 30_000 // 30 seconds
+    override val eventsBatchingJitterMs: Long = 20_000 // 20 seconds
     override val maxEventsInBatch: Int = 500
     override val httpContentTypeAllowlist: List<String> = listOf("application/json")
     override val defaultHttpHeadersBlocklist: List<String> = listOf(

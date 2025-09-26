@@ -12,6 +12,11 @@ internal interface Randomizer {
      * Returns the next pseudorandom, uniformly distributed long value.
      */
     fun nextLong(): Long
+
+    /**
+     * Returns a random int between 0 (inclusive) and the specified bound (exclusive).
+     */
+    fun nextInt(bound: Int): Int
 }
 
 internal class RandomizerImpl : Randomizer {
@@ -23,5 +28,9 @@ internal class RandomizerImpl : Randomizer {
 
     override fun nextLong(): Long {
         return random.nextLong()
+    }
+
+    override fun nextInt(bound: Int): Int {
+        return random.nextInt(bound)
     }
 }
