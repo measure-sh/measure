@@ -1579,10 +1579,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move docker compose by @detj
 - Streamline self-host by @detj
 - Change commitlint config (#54) by @detj in #54
-- Add husky & commitlint (#36) by @detj
-- Improve landing page copy by @anupcowkur
-- Expose clickhouse http port by @detj
-- Remove unused imports by @anupcowkur
+- Add husky & commitlint (#36) by @detj in #36
+- Improve landing page copy by @anupcowkur in #37
+- Expose clickhouse http port by @detj in #33
+- Remove unused imports by @anupcowkur in #28
 - Link contribution guidelines in README by @anupcowkur
 - Improve security by @detj
 - Add docker-compose script by @detj
