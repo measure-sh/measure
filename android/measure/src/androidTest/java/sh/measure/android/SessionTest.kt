@@ -96,24 +96,4 @@ class SessionTest {
             Assert.assertEquals(2, sessionCount)
         }
     }
-
-    @Test
-    fun createsNewSessionOnInitializationWhenMaxSessionDurationForPreviousSessionHasBeenReached() {
-        // Given
-        robot.initializeMeasure(MeasureConfig(enableLogging = true))
-        robot.setSessionMaxDurationConfig(5000L)
-        robot.setSessionEndThresholdConfig(10000L)
-        ActivityScenario.launch(TestActivity::class.java).use {
-            // When
-            it.moveToState(Lifecycle.State.RESUMED)
-            robot.moveAppToBackground()
-            robot.incrementTimeBeyondMaxSessionDuration()
-            robot.openAppFromRecent()
-            it.moveToState(Lifecycle.State.RESUMED)
-
-            // Then
-            val sessionCount = robot.getSessionCount()
-            Assert.assertEquals(2, sessionCount)
-        }
-    }
 }

@@ -87,8 +87,6 @@ internal class ConfigProviderImpl(
         get() = getMergedConfig { defaultHttpHeadersBlocklist }
     override val sessionEndLastEventThresholdMs: Long
         get() = getMergedConfig { sessionEndLastEventThresholdMs }
-    override val maxSessionDurationMs: Long
-        get() = getMergedConfig { maxSessionDurationMs }
     override val maxAttachmentSizeInEventsBatchInBytes: Int
         get() = getMergedConfig { maxAttachmentSizeInEventsBatchInBytes }
     override val maxEventNameLength: Int

@@ -35,17 +35,9 @@ internal interface InternalConfig {
     val defaultHttpHeadersBlocklist: List<String>
 
     /**
-     * The threshold after which a session is considered ended. Defaults to 20 minutes.
+     * The threshold after which a session is considered ended. Defaults to 3 minutes.
      */
     val sessionEndLastEventThresholdMs: Long
-
-    /**
-     * The maximum duration for a session. Used when the app comes to foreground, sessions which
-     * remain in foreground for more than this time will still continue.
-     *
-     * Defaults to 6 hours.
-     */
-    val maxSessionDurationMs: Long
 
     /**
      * The maximum length of a custom event. Defaults to 64 chars.
