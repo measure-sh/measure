@@ -853,7 +853,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Accept session if no mapping file (#97) by @detj in #97
 - (**backend**): Retrace symbolication algorithm (#93) by @detj in #93
 - (**backend**): App_exit symbolication (#91) by @detj in #91
-- (**backend**): Change names of exception columns (#52) by @detj in #52
+- (**backend**): Change names of exception columns (#52) by @detj
 - (**frontend**): Use node env for auth.ts jest test by @anupcowkur in #1060
 - (**webapp**): Remove env checks causing vercel build failure by @anupcowkur in #983
 - (**webapp**): Import lottie dynamically to fix ssr error by @anupcowkur in #963
@@ -1579,10 +1579,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move docker compose by @detj
 - Streamline self-host by @detj
 - Change commitlint config (#54) by @detj in #54
-- Add husky & commitlint (#36) by @detj in #36
-- Improve landing page copy by @anupcowkur in #37
-- Expose clickhouse http port by @detj in #33
-- Remove unused imports by @anupcowkur in #28
+- Add husky & commitlint (#36) by @detj
+- Improve landing page copy by @anupcowkur
+- Expose clickhouse http port by @detj
+- Remove unused imports by @anupcowkur
 - Link contribution guidelines in README by @anupcowkur
 - Improve security by @detj
 - Add docker-compose script by @detj
