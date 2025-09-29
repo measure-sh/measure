@@ -26,6 +26,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var samplingRateForErrorFreeSessions: Float = 1.0f
     override var maxAttachmentSizeInEventsBatchInBytes: Int = 3
     override var eventsBatchingIntervalMs: Long = 30_000 // 30 seconds
+    override var eventsBatchingJitterMs: Long = 20_000 // 20 seconds
     override var maxEventsInBatch: Int = 100
     override var httpContentTypeAllowlist: List<String> = emptyList()
     override var defaultHttpHeadersBlocklist: List<String> = emptyList()
