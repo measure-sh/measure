@@ -228,9 +228,6 @@ internal class SessionManagerImpl(
             // session.
             return false
         }
-        if (sessionDuration >= configProvider.maxSessionDurationMs) {
-            return false
-        }
 
         if (packageInfoProvider.getVersionCode() != recentSession.versionCode) {
             // The app version has changed since last session, create a new session.

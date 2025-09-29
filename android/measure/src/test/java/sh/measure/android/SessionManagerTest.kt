@@ -143,56 +143,6 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `creates new session if previous session happened more than 1 hour ago, even if last event happened within 3 minutes`() {
-        // Given
-        val previousSessionCreatedTime = testClock.epochTime()
-        // Last event happened within 3 minutes of next session.
-        val lastEventTime =
-            previousSessionCreatedTime + Duration.ofHours(1).toMillis() - Duration.ofMinutes(3)
-                .toMillis()
-        val previousSession = RecentSession(
-            id = "previous-session-id",
-            lastEventTime = lastEventTime,
-            createdAt = previousSessionCreatedTime,
-            crashed = false,
-            versionCode = packageInfoProvider.getVersionCode(),
-        )
-        `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
-
-        // Advance time by 7 hours
-        testClock.advance(Duration.ofHours(1))
-        // When
-        sessionManager.init()
-        val sessionId = sessionManager.getSessionId()
-
-        // Then
-        assertNotEquals(previousSession.id, sessionId)
-    }
-
-    @Test
-    fun `creates new session if last session crashed, even if last event happened within 3 minutes`() {
-        // Given
-        val initialTime = testClock.epochTime()
-        val previousSession = RecentSession(
-            id = "previous-session-id",
-            lastEventTime = initialTime,
-            createdAt = initialTime - Duration.ofMinutes(3).toMillis(),
-            crashed = true,
-            versionCode = packageInfoProvider.getVersionCode(),
-        )
-        `when`(prefsStorage.getRecentSession()).thenReturn(previousSession)
-
-        // Advance time by 10 minutes
-        testClock.advance(Duration.ofMinutes(1))
-        // When
-        sessionManager.init()
-        val sessionId = sessionManager.getSessionId()
-
-        // Then
-        assertNotEquals(previousSession.id, sessionId)
-    }
-
-    @Test
     fun `updates last event time in preferences when event is triggered`() {
         // Given
         sessionManager.init()

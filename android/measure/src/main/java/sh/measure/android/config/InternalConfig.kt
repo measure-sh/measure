@@ -35,14 +35,6 @@ internal interface InternalConfig {
     val sessionEndLastEventThresholdMs: Long
 
     /**
-     * The maximum duration for a session. Used when the app comes to foreground, sessions which
-     * remain in foreground for more than this time will still continue.
-     *
-     * Defaults to 1 hour.
-     */
-    val maxSessionDurationMs: Long
-
-    /**
      * The maximum length of a custom event. Defaults to 64 chars.
      */
     val maxEventNameLength: Int

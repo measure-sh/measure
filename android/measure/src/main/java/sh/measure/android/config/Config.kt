@@ -37,7 +37,6 @@ internal data class Config(
         "X-Api-Key",
     )
     override val sessionEndLastEventThresholdMs: Long = 3 * 60 * 1000 // 3 minutes
-    override val maxSessionDurationMs: Long = 1 * 60 * 60 * 1000 // 1 hour
     override val maxEventNameLength: Int = 64 // 64 chars
     override val customEventNameRegex: String = "^[a-zA-Z0-9_-]+$"
     override val maxUserDefinedAttributesPerEvent: Int = 100

@@ -56,10 +56,6 @@ class SessionTestRobot {
         testClock.advance(configProvider.sessionEndLastEventThresholdMs - 1000)
     }
 
-    fun incrementTimeBeyondMaxSessionDuration() {
-        testClock.advance(configProvider.maxSessionDurationMs + 100)
-    }
-
     fun moveAppToBackground() {
         testClock.advance(1000)
         device.pressHome()
@@ -91,13 +87,5 @@ class SessionTestRobot {
             attributes = mutableMapOf(),
             attachments = mutableListOf(),
         )
-    }
-
-    fun setSessionMaxDurationConfig(maxDuration: Long) {
-        configProvider.maxSessionDurationMs = maxDuration
-    }
-
-    fun setSessionEndThresholdConfig(threshold: Long) {
-        configProvider.sessionEndLastEventThresholdMs = threshold
     }
 }
