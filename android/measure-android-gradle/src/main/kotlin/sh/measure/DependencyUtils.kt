@@ -15,7 +15,7 @@ import sh.measure.asm.ModuleInfo
  * @param group The group of the library.
  * @param name The name of the library.
  * @param minVersion The minimum version of the library that is compatible. This version is inclusive.
- * @param maxVersion The maximum version of the library that is compatible. This version is exclusive.
+ * @param maxVersion The maximum version of the library that is compatible. This version is inclusive.
  */
 fun Map<ModuleInfo, SemVer>.isVersionCompatible(
     group: String,
@@ -24,7 +24,7 @@ fun Map<ModuleInfo, SemVer>.isVersionCompatible(
     maxVersion: SemVer,
 ): Boolean {
     val version: SemVer = this.getOrDefault(ModuleInfo(group, name), SemVer())
-    return version >= minVersion && version < maxVersion
+    return version >= minVersion && version <= maxVersion
 }
 
 /**
