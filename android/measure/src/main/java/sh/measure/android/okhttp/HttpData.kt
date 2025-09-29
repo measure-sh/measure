@@ -1,7 +1,9 @@
 package sh.measure.android.okhttp
 
+import android.annotation.SuppressLint
 import kotlinx.serialization.Serializable
 
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class HttpData(
     /**

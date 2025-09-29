@@ -31,6 +31,11 @@ internal class OkHttpEventCollectorImpl(
         LazyThreadSafetyMode.NONE,
     ) { mutableMapOf() }
 
+    companion object {
+        private const val MAX_BODY_SIZE_BYTES = 256 * 1024L
+        private const val BODY_TRUNCATED_MESSAGE = "\n... [Body truncated - exceeded 256KB limit]"
+    }
+
     override fun register() {
         enabled.compareAndSet(false, true)
     }
@@ -157,19 +162,31 @@ internal class OkHttpEventCollectorImpl(
         httpDataBuilders.remove(key)
     }
 
-    /**
-     * Takes a snapshot of the response body and returns it as a [ByteString]. Reading the response
-     * body directly from the [Response] object clears the buffer, so we need to take a snapshot
-     * instead of reading it directly.
-     */
     private fun getResponseBodyByteString(response: Response): ByteString? {
         response.body?.let { responseBody ->
             try {
                 val source = responseBody.source()
-                val maxBufferSize = 1024 * 1024L // 1MB limit
-                source.request(minOf(maxBufferSize, responseBody.contentLength()))
-                return source.buffer.use {
-                    it.snapshot()
+                val contentLength = responseBody.contentLength()
+                val requestSize = if (contentLength < 0) {
+                    MAX_BODY_SIZE_BYTES
+                } else {
+                    minOf(MAX_BODY_SIZE_BYTES, contentLength)
+                }
+                source.request(requestSize)
+
+                return source.buffer.use { buffer ->
+                    val actualSize = buffer.size
+
+                    if (actualSize <= MAX_BODY_SIZE_BYTES) {
+                        buffer.snapshot()
+                    } else {
+                        val truncatedBytes = buffer.readByteString(MAX_BODY_SIZE_BYTES)
+                        Buffer().use { tempBuffer ->
+                            tempBuffer.write(truncatedBytes)
+                            tempBuffer.writeUtf8(BODY_TRUNCATED_MESSAGE)
+                            tempBuffer.readByteString()
+                        }
+                    }
                 }
             } catch (e: IOException) {
                 logger.log(LogLevel.Debug, "Failed to read response body", e)
@@ -183,11 +200,26 @@ internal class OkHttpEventCollectorImpl(
             val requestCopy = request.newBuilder().build()
             val requestBody = requestCopy.body
             if (requestBody != null) {
-                val readByteArray = Buffer().use {
-                    requestBody.writeTo(it)
-                    it.readByteArray()
+                val contentLength = requestBody.contentLength()
+                if (contentLength > MAX_BODY_SIZE_BYTES) {
+                    return Buffer().use { buffer ->
+                        requestBody.writeTo(buffer)
+                        val truncatedBytes = buffer.readByteArray(MAX_BODY_SIZE_BYTES)
+                        truncatedBytes + BODY_TRUNCATED_MESSAGE.toByteArray()
+                    }
+                } else {
+                    return Buffer().use { buffer ->
+                        requestBody.writeTo(buffer)
+                        val actualSize = buffer.size
+
+                        if (actualSize <= MAX_BODY_SIZE_BYTES) {
+                            buffer.readByteArray()
+                        } else {
+                            val truncatedBytes = buffer.readByteArray(MAX_BODY_SIZE_BYTES)
+                            truncatedBytes + BODY_TRUNCATED_MESSAGE.toByteArray()
+                        }
+                    }
                 }
-                return readByteArray
             }
         } catch (e: IOException) {
             logger.log(LogLevel.Debug, "Failed to read request body", e)
