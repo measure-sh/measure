@@ -15,8 +15,8 @@ class NavigationTransformer : AsmBytecodeTransformer() {
     // Tested from 2.4.0, 2.3.5 does not have navigation-compose package
     override val minVersion = SemVer(2, 4, 0)
 
-    // Tested up-to 2.9.2
-    override val maxVersion = SemVer(2, 9, 2)
+    // Tested up-to 2.9.5
+    override val maxVersion = SemVer(2, 9, 5)
 }
 
 abstract class NavigationVisitorFactory :
