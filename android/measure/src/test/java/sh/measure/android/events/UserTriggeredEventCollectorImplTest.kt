@@ -5,6 +5,7 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
@@ -15,6 +16,7 @@ import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
 import sh.measure.android.navigation.ScreenViewData
+import sh.measure.android.okhttp.HttpData
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TestClock
@@ -142,6 +144,307 @@ class UserTriggeredEventCollectorImplTest {
             any(),
             any(),
             any(),
+        )
+    }
+
+    @Test
+    fun `tracks http event with valid data`() {
+        val url = "https://api.example.com/users"
+        val method = "get"
+        val startTime = 1000L
+        val endTime = 2000L
+        val client = "okhttp"
+        val statusCode = 200
+
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackHttp(
+            url = url,
+            method = method,
+            startTime = startTime,
+            endTime = endTime,
+            client = client,
+            statusCode = statusCode,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = null,
+            responseHeaders = null,
+            requestBody = null,
+            responseBody = null,
+        )
+
+        verify(signalProcessor).track(
+            data = any<HttpData>(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.HTTP),
+            attributes = any(),
+            userDefinedAttributes = any(),
+            attachments = any(),
+            threadName = anyOrNull(),
+            sessionId = anyOrNull(),
+            userTriggered = eq(true),
+        )
+    }
+
+    @Test
+    fun `tracks http event with all optional fields`() {
+        val url = "https://api.example.com/users"
+        val method = "post"
+        val startTime = 1000L
+        val endTime = 2000L
+        val client = "okhttp"
+        val statusCode = 201
+        val requestHeaders = mutableMapOf("Content-Type" to "application/json")
+        val responseHeaders = mutableMapOf("X-Request-Id" to "123")
+        val requestBody = "{\"name\":\"test\"}"
+        val responseBody = "{\"id\":1}"
+
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackHttp(
+            url = url,
+            method = method,
+            startTime = startTime,
+            endTime = endTime,
+            client = client,
+            statusCode = statusCode,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = requestHeaders,
+            responseHeaders = responseHeaders,
+            requestBody = requestBody,
+            responseBody = responseBody,
+        )
+
+        verify(signalProcessor).track(
+            data = any<HttpData>(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.HTTP),
+            attributes = any(),
+            userDefinedAttributes = any(),
+            attachments = any(),
+            threadName = anyOrNull(),
+            sessionId = anyOrNull(),
+            userTriggered = eq(true),
+        )
+    }
+
+    @Test
+    fun `does not track http event when url is empty`() {
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackHttp(
+            url = "",
+            method = "get",
+            startTime = 1000L,
+            endTime = 2000L,
+            client = "okhttp",
+            statusCode = 200,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = null,
+            responseHeaders = null,
+            requestBody = null,
+            responseBody = null,
+        )
+
+        verify(signalProcessor, never()).track(
+            any<HttpData>(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+        )
+    }
+
+    @Test
+    fun `does not track http event with invalid method`() {
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackHttp(
+            url = "https://api.example.com/users",
+            method = "invalid",
+            startTime = 1000L,
+            endTime = 2000L,
+            client = "okhttp",
+            statusCode = 200,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = null,
+            responseHeaders = null,
+            requestBody = null,
+            responseBody = null,
+        )
+
+        verify(signalProcessor, never()).track(
+            any<HttpData>(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+        )
+    }
+
+    @Test
+    fun `does not track http event when start time is zero or negative`() {
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackHttp(
+            url = "https://api.example.com/users",
+            method = "get",
+            startTime = 0L,
+            endTime = 2000L,
+            client = "okhttp",
+            statusCode = 200,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = null,
+            responseHeaders = null,
+            requestBody = null,
+            responseBody = null,
+        )
+
+        verify(signalProcessor, never()).track(
+            any<HttpData>(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+        )
+    }
+
+    @Test
+    fun `does not track http event when end time is less than start time`() {
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackHttp(
+            url = "https://api.example.com/users",
+            method = "get",
+            startTime = 2000L,
+            endTime = 1000L,
+            client = "okhttp",
+            statusCode = 200,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = null,
+            responseHeaders = null,
+            requestBody = null,
+            responseBody = null,
+        )
+
+        verify(signalProcessor, never()).track(
+            any<HttpData>(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+        )
+    }
+
+    @Test
+    fun `does not track http event with invalid status code`() {
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackHttp(
+            url = "https://api.example.com/users",
+            method = "get",
+            startTime = 1000L,
+            endTime = 2000L,
+            client = "okhttp",
+            statusCode = 999,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = null,
+            responseHeaders = null,
+            requestBody = null,
+            responseBody = null,
+        )
+
+        verify(signalProcessor, never()).track(
+            any<HttpData>(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+        )
+    }
+
+    @Test
+    fun `tracks http event with null status code`() {
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackHttp(
+            url = "https://api.example.com/users",
+            method = "get",
+            startTime = 1000L,
+            endTime = 2000L,
+            client = "okhttp",
+            statusCode = null,
+            failureReason = "timeout",
+            failureDescription = "Connection timeout",
+            requestHeaders = null,
+            responseHeaders = null,
+            requestBody = null,
+            responseBody = null,
+        )
+
+        verify(signalProcessor).track(
+            data = any<HttpData>(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.HTTP),
+            attributes = any(),
+            userDefinedAttributes = any(),
+            attachments = any(),
+            threadName = anyOrNull(),
+            sessionId = anyOrNull(),
+            userTriggered = eq(true),
+        )
+    }
+
+    @Test
+    fun `tracks http event with all valid http methods`() {
+        val methods = listOf("get", "post", "put", "delete", "patch")
+        userTriggeredEventCollector.register()
+
+        methods.forEach { method ->
+            userTriggeredEventCollector.trackHttp(
+                url = "https://api.example.com/users",
+                method = method,
+                startTime = 1000L,
+                endTime = 2000L,
+                client = "okhttp",
+                statusCode = 200,
+                failureReason = null,
+                failureDescription = null,
+                requestHeaders = null,
+                responseHeaders = null,
+                requestBody = null,
+                responseBody = null,
+            )
+        }
+
+        verify(signalProcessor, org.mockito.Mockito.times(methods.size)).track(
+            data = any<HttpData>(),
+            timestamp = any(),
+            type = eq(EventType.HTTP),
+            attributes = any(),
+            userDefinedAttributes = any(),
+            attachments = any(),
+            threadName = anyOrNull(),
+            sessionId = anyOrNull(),
+            userTriggered = any(),
         )
     }
 }

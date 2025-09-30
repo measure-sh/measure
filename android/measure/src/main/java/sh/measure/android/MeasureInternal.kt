@@ -378,6 +378,35 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         return fileStorage.getAttachmentDirectory()
     }
 
+    fun trackHttpEvent(
+        url: String,
+        method: String,
+        startTime: Long,
+        endTime: Long,
+        statusCode: Int?,
+        error: Exception?,
+        requestHeaders: MutableMap<String, String>?,
+        responseHeaders: MutableMap<String, String>?,
+        requestBody: String?,
+        responseBody: String?,
+        client: String,
+    ) {
+        userTriggeredEventCollector.trackHttp(
+            url,
+            method,
+            startTime,
+            endTime,
+            client,
+            statusCode,
+            error?.javaClass?.name,
+            error?.message,
+            requestHeaders,
+            responseHeaders,
+            requestBody,
+            responseBody,
+        )
+    }
+
     private fun trackSessionStart(sessionInitResult: SessionInitResult) {
         when (sessionInitResult) {
             is SessionInitResult.NewSessionCreated -> {
