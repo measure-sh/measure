@@ -495,6 +495,59 @@ object Measure {
     }
 
     /**
+     * Tracks a HTTP event. Note that if you're using the Measure gradle plugin,
+     * OkHttp events will be automatically tracked. This method is useful if you
+     * use any other HTTP client.
+     *
+     * Usage notes:
+     * - Always set the `statusCode` in case of a response or `error` in case the request failed.
+     * - Use `SystemClock.elapsedRealtime` for start and end time to avoid clock skew issues.
+     * - Use `requestHeaders`, `responseHeaders`, `requestBody` and `responseBody` only when
+     * required as they can increase the amount of data to be stored and sent considerably.
+     *
+     * @param url The URL to which the request was made
+     * @param method The HTTP method used for the request
+     * @param startTime The time when the HTTP request started, it is recommended to use `SystemClock.elapsedRealtime()`
+     * @param endTime The time when the HTTP request ended, it is recommended to use `SystemClock.elapsedRealtime()`
+     * @param client The name of the HTTP client used, optional
+     * @param statusCode The HTTP status code of the response received
+     * @param error The exception if the request fails.
+     * @param requestHeaders The HTTP headers in the request
+     * @param responseHeaders The HTTP headers in the response
+     * @param requestBody An optional request body
+     * @param responseBody An optional response body
+     */
+    fun trackHttpEvent(
+        url: String,
+        method: String,
+        startTime: Long,
+        endTime: Long,
+        statusCode: Int? = null,
+        error: Exception? = null,
+        requestHeaders: MutableMap<String, String>? = null,
+        responseHeaders: MutableMap<String, String>? = null,
+        requestBody: String? = null,
+        responseBody: String? = null,
+        client: String = "unknown",
+    ) {
+        if (isInitialized.get()) {
+            measure.trackHttpEvent(
+                url,
+                method,
+                startTime,
+                endTime,
+                statusCode,
+                error,
+                requestHeaders,
+                responseHeaders,
+                requestBody,
+                responseBody,
+                client,
+            )
+        }
+    }
+
+    /**
      * An internal method to track events from cross-platform frameworks
      * like Flutter and React Native.
      *
@@ -681,7 +734,8 @@ object Measure {
 
     private fun storeProcessImportanceState() {
         try {
-            LaunchState.processImportanceOnInit = measure.processInfoProvider.getProcessImportance()
+            LaunchState.processImportanceOnInit =
+                measure.processInfoProvider.getProcessImportance()
         } catch (e: Throwable) {
             measure.logger.log(
                 LogLevel.Debug,
