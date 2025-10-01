@@ -1197,22 +1197,6 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			row.
 				Set(`custom.name`, nil)
 		}
-
-		// layout snapshot
-		if e.events[i].HasLayoutSnapshot() {
-			// store layout snapshot as json string
-			jsonBytes, err := json.Marshal(e.events[i].LayoutSnapshot)
-			if err != nil {
-				fmt.Println("failed to marshal layout snapshot:", err)
-				continue
-			}
-
-			row.
-				Set(`layout_snapshot`, string(jsonBytes))
-		} else {
-			row.
-				Set(`layout_snapshot`, nil)
-		}
 	}
 
 	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
