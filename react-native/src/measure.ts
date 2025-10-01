@@ -64,7 +64,8 @@ export const Measure = {
         _measureInitializer = new BaseMeasureInitializer(client, config);
         _measureInternal = new MeasureInternal(_measureInitializer);
 
-        _measureInternal.init(client, config)
+        _measureInternal
+          .init(client, config)
           .then(() => resolve())
           .catch((error) => {
             _initializationPromise = null;
@@ -84,7 +85,9 @@ export const Measure = {
    */
   start(): Promise<any> {
     if (!_measureInternal) {
-      return Promise.reject(new Error('Measure is not initialized. Call init() first.'));
+      return Promise.reject(
+        new Error('Measure is not initialized. Call init() first.')
+      );
     }
     return _measureInternal.start();
   },
@@ -94,8 +97,54 @@ export const Measure = {
    */
   stop(): Promise<any> {
     if (!_measureInternal) {
-      return Promise.reject(new Error('Measure is not initialized. Call init() first.'));
+      return Promise.reject(
+        new Error('Measure is not initialized. Call init() first.')
+      );
     }
     return _measureInternal.stop();
+  },
+
+  /**
+   * Tracks a custom event with optional attributes and timestamp.
+   *
+   * Event names should be clear and consistent to aid in dashboard searches.
+   *
+   * For now, this simply logs the event and its attributes to the console.
+   * A future version will send the event to the Measure SDK for full tracking.
+   *
+   * @param name - The name of the event (max 64 characters).
+   * @param attributes - Optional key-value pairs providing additional context.
+   * @param timestamp - Optional timestamp in milliseconds (defaults to current time).
+   *
+   * @example
+   * ```ts
+   * import { Measure } from '@measure/react-native';
+   *
+   * Measure.trackEvent("user_signup", {
+   *   user_name: "Alice",
+   *   premium_user: true,
+   *   signup_age: 23,
+   * }).catch((err) => {
+   *   console.error("Failed to track event:", err);
+   * });
+   * ```
+   */
+  trackEvent(
+    name: string,
+    attributes?: Record<string, string | number | boolean>,
+    timestamp?: number
+  ): Promise<void> {
+    if (!_measureInternal) {
+      return Promise.reject(
+        new Error('Measure is not initialized. Call init() first.')
+      );
+    }
+
+    try {
+      _measureInternal.trackEvent(name, attributes, timestamp);
+      return Promise.resolve();
+    } catch (error) {
+      return Promise.reject(error);
+    }
   },
 };
