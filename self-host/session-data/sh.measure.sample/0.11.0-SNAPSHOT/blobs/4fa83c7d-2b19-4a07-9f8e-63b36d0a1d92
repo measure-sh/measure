@@ -1,0 +1,297 @@
+{
+  "id": "screen_feed",
+  "label": "Home Feed Screen",
+  "type": "container",
+  "x": 0,
+  "y": 0,
+  "width": 640,
+  "height": 360,
+  "scrollable": true,
+  "highlighted": false,
+  "children": [
+    {
+      "id": "header_bar",
+      "label": "Top Navigation",
+      "type": "container",
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 50,
+      "scrollable": false,
+      "highlighted": false,
+      "children": [
+        {
+          "id": "logo_text",
+          "label": "AppName",
+          "type": "text",
+          "x": 20,
+          "y": 10,
+          "width": 100,
+          "height": 30,
+          "scrollable": false,
+          "highlighted": false,
+          "children": []
+        },
+        {
+          "id": "search_icon",
+          "label": "Search",
+          "type": "image",
+          "x": 560,
+          "y": 10,
+          "width": 30,
+          "height": 30,
+          "scrollable": false,
+          "highlighted": false,
+          "children": []
+        },
+        {
+          "id": "inbox_icon",
+          "label": "Messages",
+          "type": "image",
+          "x": 600,
+          "y": 10,
+          "width": 30,
+          "height": 30,
+          "scrollable": false,
+          "highlighted": false,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "story_row",
+      "label": "Stories",
+      "type": "list",
+      "x": 0,
+      "y": 60,
+      "width": 640,
+      "height": 80,
+      "scrollable": true,
+      "highlighted": false,
+      "children": [
+        {
+          "id": "story_1",
+          "label": "User Story 1",
+          "type": "image",
+          "x": 10,
+          "y": 0,
+          "width": 60,
+          "height": 60,
+          "scrollable": false,
+          "highlighted": false,
+          "children": []
+        },
+        {
+          "id": "story_2",
+          "label": "User Story 2",
+          "type": "image",
+          "x": 80,
+          "y": 0,
+          "width": 60,
+          "height": 60,
+          "scrollable": false,
+          "highlighted": false,
+          "children": []
+        },
+        {
+          "id": "story_3",
+          "label": "User Story 3",
+          "type": "image",
+          "x": 150,
+          "y": 0,
+          "width": 60,
+          "height": 60,
+          "scrollable": false,
+          "highlighted": false,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "feed_scroll",
+      "label": "Feed Posts",
+      "type": "list",
+      "x": 0,
+      "y": 150,
+      "width": 640,
+      "height": 210,
+      "scrollable": true,
+      "highlighted": false,
+      "children": [
+        {
+          "id": "post_1",
+          "label": "First Post",
+          "type": "container",
+          "x": 0,
+          "y": 0,
+          "width": 640,
+          "height": 200,
+          "scrollable": false,
+          "highlighted": false,
+          "children": [
+            {
+              "id": "post_1_header",
+              "label": "User Info",
+              "type": "container",
+              "x": 10,
+              "y": 10,
+              "width": 300,
+              "height": 40,
+              "scrollable": false,
+              "highlighted": false,
+              "children": [
+                {
+                  "id": "avatar_1",
+                  "label": "User Avatar",
+                  "type": "image",
+                  "x": 0,
+                  "y": 0,
+                  "width": 40,
+                  "height": 40,
+                  "scrollable": false,
+                  "highlighted": false,
+                  "children": []
+                },
+                {
+                  "id": "username_1",
+                  "label": "John Doe",
+                  "type": "text",
+                  "x": 50,
+                  "y": 10,
+                  "width": 200,
+                  "height": 20,
+                  "scrollable": false,
+                  "highlighted": false,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "post_1_img",
+              "label": "Post Image",
+              "type": "image",
+              "x": 320,
+              "y": 10,
+              "width": 300,
+              "height": 140,
+              "scrollable": false,
+              "highlighted": true,
+              "children": []
+            },
+            {
+              "id": "post_1_actions",
+              "label": "Action Bar",
+              "type": "container",
+              "x": 10,
+              "y": 150,
+              "width": 300,
+              "height": 40,
+              "scrollable": false,
+              "highlighted": false,
+              "children": [
+                {
+                  "id": "like_btn_1",
+                  "label": "Like",
+                  "type": "button",
+                  "x": 0,
+                  "y": 0,
+                  "width": 60,
+                  "height": 30,
+                  "scrollable": false,
+                  "highlighted": false,
+                  "children": []
+                },
+                {
+                  "id": "comment_btn_1",
+                  "label": "Comment",
+                  "type": "button",
+                  "x": 70,
+                  "y": 0,
+                  "width": 80,
+                  "height": 30,
+                  "scrollable": false,
+                  "highlighted": false,
+                  "children": []
+                },
+                {
+                  "id": "share_btn_1",
+                  "label": "Share",
+                  "type": "button",
+                  "x": 160,
+                  "y": 0,
+                  "width": 70,
+                  "height": 30,
+                  "scrollable": false,
+                  "highlighted": false,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "post_2",
+          "label": "Second Post",
+          "type": "container",
+          "x": 0,
+          "y": 210,
+          "width": 640,
+          "height": 150,
+          "scrollable": false,
+          "highlighted": false,
+          "children": [
+            {
+              "id": "post_2_header",
+              "label": "User Info",
+              "type": "container",
+              "x": 10,
+              "y": 10,
+              "width": 300,
+              "height": 40,
+              "scrollable": false,
+              "highlighted": false,
+              "children": [
+                {
+                  "id": "avatar_2",
+                  "label": "User Avatar",
+                  "type": "image",
+                  "x": 0,
+                  "y": 0,
+                  "width": 40,
+                  "height": 40,
+                  "scrollable": false,
+                  "highlighted": false,
+                  "children": []
+                },
+                {
+                  "id": "username_2",
+                  "label": "Jane Smith",
+                  "type": "text",
+                  "x": 50,
+                  "y": 10,
+                  "width": 200,
+                  "height": 20,
+                  "scrollable": false,
+                  "highlighted": false,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "post_2_text",
+              "label": "Caption",
+              "type": "text",
+              "x": 10,
+              "y": 60,
+              "width": 620,
+              "height": 80,
+              "scrollable": false,
+              "highlighted": false,
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

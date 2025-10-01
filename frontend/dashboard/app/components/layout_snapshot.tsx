@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react'
 
 export type LayoutElementType =
     | "container"
@@ -15,9 +15,9 @@ export type LayoutElementType =
     | "radio"
     | "dropdown"
     | "slider"
-    | "progress";
+    | "progress"
 
-export const LayoutSnapshotStripedBgImage = `repeating-linear-gradient(45deg, #fef08a 0, #fef08a 1px, transparent 5px, transparent 10px)`;
+export const LayoutSnapshotStripedBgImage = `repeating-linear-gradient(45deg, #fef08a 0, #fef08a 1px, transparent 5px, transparent 10px)`
 
 type LayoutElement = {
     id: string
@@ -33,7 +33,7 @@ type LayoutElement = {
 }
 
 type LayoutSnapshotProps = {
-    layout: LayoutElement
+    layoutUrl: string
     width: number
     height: number
 }
@@ -92,12 +92,62 @@ function LayoutElementNode({
     )
 }
 
-export default function LayoutSnapshot({ layout, width, height }: LayoutSnapshotProps) {
+export default function LayoutSnapshot({ layoutUrl, width, height }: LayoutSnapshotProps) {
+    const verticalOrienationWidth = 211
+    const verticalOrienationHeight = 366
+    const horizontalOrienationWidth = 366
+    const horizontalOrienationHeight = 211
+
+    const [layout, setLayout] = useState<LayoutElement | null>(null)
     const [hoveredId, setHoveredId] = useState<string | null>(null)
     const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null)
 
-    const scaleX = width / layout.width
-    const scaleY = height / layout.height
+    const fetchLayout = async () => {
+        try {
+            const response = await fetch(layoutUrl)
+            if (!response.ok) {
+                throw new Error(`Failed to fetch layout: ${response.statusText}`)
+            }
+            const data = await response.json()
+            setLayout(data)
+        } catch (error) {
+            console.error('Error fetching layout:', error)
+        }
+    }
+
+    useEffect(() => {
+        fetchLayout()
+    }, [layoutUrl])
+
+    if (!layout) {
+        return (
+            <div
+                className="relative overflow-hidden animate-pulse bg-gray-600"
+                style={{ width, height }}
+            />
+        )
+    }
+
+    // Determine base dimensions based on orientation
+    let baseWidth = verticalOrienationWidth
+    let baseHeight = verticalOrienationHeight
+
+    if (layout.width > layout.height) {
+        baseWidth = horizontalOrienationWidth
+        baseHeight = horizontalOrienationHeight
+    }
+
+    // First scaling layer: scale base dimensions to fit within passed width/height
+    const containerScaleX = width / baseWidth
+    const containerScaleY = height / baseHeight
+    const containerScale = Math.min(containerScaleX, containerScaleY) // maintain aspect ratio
+
+    const scaledWidth = baseWidth * containerScale
+    const scaledHeight = baseHeight * containerScale
+
+    // Second scaling layer: scale layout coordinates to scaled dimensions
+    const scaleX = (scaledWidth / layout.width)
+    const scaleY = (scaledHeight / layout.height)
 
     const findHoveredLabel = (element: LayoutElement, id: string | null): string | null => {
         if (!id) return null
@@ -118,7 +168,7 @@ export default function LayoutSnapshot({ layout, width, height }: LayoutSnapshot
     return (
         <div
             className="relative overflow-hidden"
-            style={{ width, height }}
+            style={{ width: scaledWidth, height: scaledHeight }}
             onMouseMove={handleMouseMove}
         >
             <LayoutElementNode

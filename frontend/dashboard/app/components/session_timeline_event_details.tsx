@@ -101,36 +101,50 @@ export default function SessionTimelineEventDetails({
     )
   }
 
-  function getLayoutSnapshotsFromEventDetails(): ReactNode {
-    if (eventDetails.layout_snapshot !== undefined && eventDetails.layout_snapshot !== null) {
+  function getJsonLayoutSnapshotsFromEventDetails(): ReactNode {
+    if (eventDetails.attachments !== undefined && eventDetails.attachments !== null && eventDetails.attachments.length > 0) {
       if (eventType === 'gesture_click' || eventType === 'gesture_long_click' || eventType === 'gesture_scroll') {
         return (
-          <div className='flex flex-wrap gap-8 px-4 pt-4 items-center'>
-            <LayoutSnapshot layout={eventDetails.layout_snapshot} width={211} height={366} />
+          <div className='flex flex-col gap-8 p-4 items-center'>
+            {eventDetails.attachments.filter((attachment: {
+              key: string, location: string, type: string
+            }) => attachment.type === 'layout_snapshot_json')
+              .map((attachment: {
+                key: string, location: string
+              }) => (
+                <LayoutSnapshot
+                  key={attachment.key}
+                  width={350}
+                  height={350}
+                  layoutUrl={attachment.location} />
+              ))}
           </div>
         )
       }
     }
   }
 
-  function getAttachmentsFromEventDetails(): ReactNode {
+  function getImageLayoutSnapshotsFromEventDetails(): ReactNode {
     if (eventDetails.attachments !== undefined && eventDetails.attachments !== null && eventDetails.attachments.length > 0) {
       if ((eventType === "exception" && eventDetails.user_triggered === false) || eventType === 'anr' || eventType === 'gesture_click' || eventType === 'gesture_long_click' || eventType === 'gesture_scroll' || eventType === 'bug_report') {
         return (
-          <div className='flex flex-wrap gap-8 px-4 pt-4 items-center'>
-            {eventDetails.attachments.map((attachment: {
-              key: string, location: string
-            }, index: number) => (
-              <Image
-                key={attachment.key}
-                className='border border-black'
-                src={attachment.location}
-                width={150}
-                height={150}
-                unoptimized={true}
-                alt={`Screenshot ${index}`}
-              />
-            ))}
+          <div className='flex flex-wrap gap-8 p-4 items-center'>
+            {eventDetails.attachments.filter((attachment: {
+              key: string, location: string, type: string
+            }) => attachment.type === 'layout_snapshot')
+              .map((attachment: {
+                key: string, location: string
+              }, index: number) => (
+                <Image
+                  key={attachment.key}
+                  className='border border-black'
+                  src={attachment.location}
+                  width={150}
+                  height={150}
+                  unoptimized={true}
+                  alt={`Screenshot ${index}`}
+                />
+              ))}
           </div>)
       }
     }
@@ -165,8 +179,8 @@ export default function SessionTimelineEventDetails({
     <div
       className="flex flex-col items-center bg-neutral-800 h-full selection:bg-yellow-200/50 font-display overflow-y-auto overscroll-y-contain break-words"
     >
-      {getLayoutSnapshotsFromEventDetails()}
-      {getAttachmentsFromEventDetails()}
+      {getJsonLayoutSnapshotsFromEventDetails()}
+      {getImageLayoutSnapshotsFromEventDetails()}
       {getDetailsLinkFromEventDetails()}
       {getBodyFromEventDetails()}
     </div>

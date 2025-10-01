@@ -1447,7 +1447,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`toString(screen_view.name) `,
 		`bug_report.description`,
 		`custom.name`,
-		`layout_snapshot`,
 	}
 
 	switch opsys.ToFamily(a.OSName) {
@@ -1557,7 +1556,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		var userDefAttr map[string][]any
 		var bugReport event.BugReport
 		var custom event.Custom
-		var layoutSnapshot string
 
 		var coldLaunchDuration uint32
 		var warmLaunchDuration uint32
@@ -1722,9 +1720,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 
 			// custom
 			&custom.Name,
-
-			// layout snapshot
-			&layoutSnapshot,
 		}
 
 		switch opsys.ToFamily(a.OSName) {
@@ -1862,12 +1857,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			ev.LogString = &logString
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureLongClick:
-			// unmarshal layout snapshot if any
-			if layoutSnapshot != "" {
-				if err := json.Unmarshal([]byte(layoutSnapshot), &ev.LayoutSnapshot); err != nil {
-					return nil, err
-				}
-			}
 			// only unmarshal attachments if more than
 			// 8 characters
 			if len(attachments) > 8 {
@@ -1878,12 +1867,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			ev.GestureLongClick = &gestureLongClick
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureClick:
-			// unmarshal layout snapshot if any
-			if layoutSnapshot != "" {
-				if err := json.Unmarshal([]byte(layoutSnapshot), &ev.LayoutSnapshot); err != nil {
-					return nil, err
-				}
-			}
 			// only unmarshal attachments if more than
 			// 8 characters
 			if len(attachments) > 8 {
@@ -1897,12 +1880,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			ev.GestureClick = &gestureClick
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureScroll:
-			// unmarshal layout snapshot if any
-			if layoutSnapshot != "" {
-				if err := json.Unmarshal([]byte(layoutSnapshot), &ev.LayoutSnapshot); err != nil {
-					return nil, err
-				}
-			}
 			// only unmarshal attachments if more than
 			// 8 characters
 			if len(attachments) > 8 {
