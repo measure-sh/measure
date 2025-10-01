@@ -30,9 +30,6 @@ protocol InternalConfig {
     /// The request timeout interval for all tasks within sessions based on this configuration
     var timeoutIntervalForRequest: TimeInterval { get }
 
-    /// The maximum duration for a session. Used when the app comes to foreground, sessions which remain in foreground for more than this time will still continue. Defaults to 6 hours.
-    var maxSessionDurationMs: Number { get }
-
     /// The interval at which CPU related data is collected. Defaults to 3 seconds.
     var cpuTrackingIntervalMs: UnsignedNumber { get }
 
