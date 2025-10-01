@@ -104,4 +104,7 @@ protocol InternalConfig {
 
     /// The estimated size of one event on disk (in kilobytes).
     var estimatedEventSizeInKb: Int { get }
+
+    /// The maximum jitter interval to apply when scheduling batch exports. A random delay between 0 and this value (in seconds) will be added. Defaults to 20 seconds.
+    var maxExportJitterInterval: Int { get }
 }
