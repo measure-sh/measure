@@ -2,11 +2,11 @@ package sh.measure.android.layoutinspector
 
 internal fun List<Node>.generateSvg(targetNode: Node?, width: Int, height: Int): String {
     val uniqueNodes = this.distinctBy { node ->
-        "${node.x},${node.y},${node.width},${node.height}"
+        "${node.positionX},${node.positionY},${node.width},${node.height}"
     }
 
-    val textNodes = uniqueNodes.filter { it.isText }
-    val nonTextNodes = uniqueNodes.filter { !it.isText }
+    val textNodes = uniqueNodes.filter { it.type == ElementType.TEXT }
+    val nonTextNodes = uniqueNodes.filter { it.type != ElementType.TEXT }
 
     return buildString {
         // SVG header with viewBox
@@ -75,8 +75,8 @@ internal fun List<Node>.generateSvg(targetNode: Node?, width: Int, height: Int):
 private fun StringBuilder.appendRect(node: Node, isTarget: Boolean) {
     // Only include non-zero coordinates
     val coordinates = buildString {
-        if (node.x != 0) append(""" x="${node.x}"""")
-        if (node.y != 0) append(""" y="${node.y}"""")
+        if (node.positionX != 0) append(""" x="${node.positionX}"""")
+        if (node.positionY != 0) append(""" y="${node.positionY}"""")
     }
 
     val targetClass = if (isTarget) """ class="target-rect"""" else ""

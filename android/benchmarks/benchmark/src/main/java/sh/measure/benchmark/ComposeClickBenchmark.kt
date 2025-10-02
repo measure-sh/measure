@@ -29,10 +29,6 @@ class ComposeClickBenchmark {
                     sectionName = "msr-trackGesture",
                     mode = TraceSectionMetric.Mode.Average,
                 ),
-                TraceSectionMetric(
-                    sectionName = "msr-generateSvgAttachment",
-                    mode = TraceSectionMetric.Mode.Average,
-                ),
                 MemoryUsageMetric(
                     MemoryUsageMetric.Mode.Max, listOf(MemoryUsageMetric.SubMetric.HeapSize),
                 ),
@@ -43,7 +39,7 @@ class ComposeClickBenchmark {
                 pressHome()
                 startActivityAndWait()
                 device.findObject(By.text("Compose Target Finder Benchmark")).click()
-                waitForSvgGenerationDelay()
+                waitForThrottlingDelay()
 
                 device.waitForIdle()
             },
@@ -52,15 +48,15 @@ class ComposeClickBenchmark {
                 val button = By.res("compose_button")
                 device.wait(Until.hasObject(button), 30_000)
                 device.findObject(button).click()
-                waitForSvgGenerationDelay()
+                waitForThrottlingDelay()
                 device.waitForIdle()
             }
         }
     }
 
-    // See [LayoutInspectionThrottler] which skips svg generation based on
-    // a delay. Adding the delay here to ensure SVG is generated for each repetition
-    private fun waitForSvgGenerationDelay() {
+    // See [LayoutInspectionThrottler] which skips layout snapshot generation based on
+    // a delay.
+    private fun waitForThrottlingDelay() {
         SystemClock.sleep(800)
     }
 }

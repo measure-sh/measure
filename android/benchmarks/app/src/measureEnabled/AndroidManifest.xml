@@ -31,7 +31,7 @@
 
         <meta-data
             android:name="sh.measure.android.API_KEY"
-            android:value="YOUR_API_KEY" />
+            android:value="msrsh_12345" />
 
         <meta-data
             android:name="sh.measure.android.API_URL"

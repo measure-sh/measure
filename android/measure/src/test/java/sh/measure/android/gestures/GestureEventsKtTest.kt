@@ -2,6 +2,7 @@ package sh.measure.android.gestures
 
 import org.junit.Assert
 import org.junit.Test
+import sh.measure.android.layoutinspector.ElementType
 import sh.measure.android.layoutinspector.Node
 
 class ClickDataTest {
@@ -17,9 +18,10 @@ class ClickDataTest {
         )
         val target = Node(
             id = "button",
-            className = "android.widget.Button",
-            x = 10,
-            y = 20,
+            label = "android.widget.Button",
+            type = ElementType.CONTAINER,
+            positionX = 10,
+            positionY = 20,
             width = 100,
             height = 50,
         )
@@ -27,7 +29,7 @@ class ClickDataTest {
             gesture = detectedGesture,
             node = target,
         )
-        Assert.assertEquals(target.className, result.target)
+        Assert.assertEquals(target.label, result.target)
         Assert.assertEquals(target.id, result.target_id)
         Assert.assertEquals(target.width, result.width)
         Assert.assertEquals(target.height, result.height)
@@ -50,9 +52,10 @@ internal class LongClickDataTest {
         )
         val target = Node(
             id = "button",
-            className = "android.widget.Button",
-            x = 10,
-            y = 20,
+            label = "android.widget.Button",
+            type = ElementType.CONTAINER,
+            positionX = 10,
+            positionY = 20,
             width = 100,
             height = 50,
         )
@@ -60,7 +63,7 @@ internal class LongClickDataTest {
             gesture = detectedGesture,
             node = target,
         )
-        Assert.assertEquals(target.className, result.target)
+        Assert.assertEquals(target.label, result.target)
         Assert.assertEquals(target.id, result.target_id)
         Assert.assertEquals(target.width, result.width)
         Assert.assertEquals(target.height, result.height)
@@ -86,9 +89,10 @@ internal class ScrollDataTest {
         )
         val node = Node(
             id = "scroll_view",
-            className = "android.widget.ScrollView",
-            x = 10,
-            y = 20,
+            label = "android.widget.ScrollView",
+            type = ElementType.CONTAINER,
+            positionX = 10,
+            positionY = 20,
             width = 100,
             height = 50,
         )
@@ -96,7 +100,7 @@ internal class ScrollDataTest {
             gesture = detectedGesture,
             node = node,
         )
-        Assert.assertEquals(node.className, result.target)
+        Assert.assertEquals(node.label, result.target)
         Assert.assertEquals(node.id, result.target_id)
         Assert.assertEquals(detectedGesture.x, result.x)
         Assert.assertEquals(detectedGesture.y, result.y)

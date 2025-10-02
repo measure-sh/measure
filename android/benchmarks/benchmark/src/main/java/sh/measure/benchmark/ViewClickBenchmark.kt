@@ -29,10 +29,6 @@ class ViewClickBenchmark {
                     sectionName = "msr-trackGesture",
                     mode = TraceSectionMetric.Mode.Average,
                 ),
-                TraceSectionMetric(
-                    sectionName = "msr-generateSvgAttachment",
-                    mode = TraceSectionMetric.Mode.Average,
-                ),
                 MemoryUsageMetric(
                     MemoryUsageMetric.Mode.Max, listOf(MemoryUsageMetric.SubMetric.HeapSize),
                 ),
@@ -43,7 +39,7 @@ class ViewClickBenchmark {
                 pressHome()
                 startActivityAndWait()
                 device.findObject(By.text("View Target Finder Benchmark")).click()
-                waitForSvgGenerationDelay()
+                waitForThrottlingDelay()
                 device.waitForIdle()
             },
         ) {
@@ -51,14 +47,14 @@ class ViewClickBenchmark {
                 val button = By.res("sh.measure.test.benchmark", "btn_view_click")
                 device.wait(Until.hasObject(button), 3_000)
                 device.findObject(button).click()
-                waitForSvgGenerationDelay()
+                waitForThrottlingDelay()
             }
         }
     }
 
-    // See [LayoutInspectionThrottler] which skips svg generation based on
-    // a delay. Adding the delay here to ensure SVG is generated for each repetition
-    private fun waitForSvgGenerationDelay() {
+    // See [LayoutInspectionThrottler] which skips layout snapshot generation based on
+    // a delay.
+    private fun waitForThrottlingDelay() {
         SystemClock.sleep(800)
     }
 }

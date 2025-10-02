@@ -19,11 +19,13 @@ class SvgGeneratorKtTest {
     fun `non text nodes are properly grouped and styled`() {
         val childNode = Node(
             id = "node1",
-            className = "FrameLayout",
-            x = 15,
-            y = 25,
+            label = "FrameLayout",
+            type = ElementType.CONTAINER,
+            positionX = 15,
+            positionY = 25,
             width = 35,
             height = 45,
+            children = emptyList(),
         )
         val svg = listOf(childNode).generateSvg(null, 100, 100)
 
@@ -35,12 +37,13 @@ class SvgGeneratorKtTest {
     fun `text nodes are properly grouped and styled`() {
         val textNode = Node(
             id = "text1",
-            className = "TextView",
-            x = 5,
-            y = 15,
+            label = "TextView",
+            type = ElementType.TEXT,
+            positionX = 5,
+            positionY = 15,
             width = 25,
             height = 35,
-            isText = true,
+            children = emptyList(),
         )
         val svg = listOf(textNode).generateSvg(null, 100, 100)
 
@@ -52,11 +55,13 @@ class SvgGeneratorKtTest {
     fun `target node is properly highlighted`() {
         val targetNode = Node(
             id = "target1",
-            className = "TargetView",
-            x = 10,
-            y = 20,
+            label = "TargetView",
+            type = ElementType.CONTAINER,
+            positionX = 10,
+            positionY = 20,
             width = 30,
             height = 40,
+            children = emptyList(),
         )
         val svg = listOf(targetNode).generateSvg(targetNode, 100, 100)
 
@@ -67,27 +72,33 @@ class SvgGeneratorKtTest {
     fun `duplicate nodes are filtered out`() {
         val node1 = Node(
             id = "node1",
-            className = "DuplicateView",
-            x = 10,
-            y = 20,
+            label = "DuplicateView",
+            type = ElementType.CONTAINER,
+            positionX = 10,
+            positionY = 20,
             width = 30,
             height = 40,
+            children = emptyList(),
         )
         val node2 = Node(
             id = "node2",
-            className = "DuplicateView",
-            x = 10,
-            y = 20,
+            label = "DuplicateView",
+            type = ElementType.CONTAINER,
+            positionX = 10,
+            positionY = 20,
             width = 30,
             height = 40,
+            children = emptyList(),
         )
         val node3 = Node(
             id = "node3",
-            className = "UniqueView",
-            x = 15,
-            y = 25,
+            label = "UniqueView",
+            type = ElementType.CONTAINER,
+            positionX = 15,
+            positionY = 25,
             width = 35,
             height = 45,
+            children = emptyList(),
         )
 
         val svg = listOf(node1, node2, node3).generateSvg(null, 100, 100)
@@ -102,11 +113,13 @@ class SvgGeneratorKtTest {
     fun `zero coordinates are omitted`() {
         val node = Node(
             id = "zero1",
-            className = "ZeroView",
-            x = 0,
-            y = 0,
+            label = "ZeroView",
+            type = ElementType.CONTAINER,
+            positionX = 0,
+            positionY = 0,
             width = 30,
             height = 40,
+            children = emptyList(),
         )
         val svg = listOf(node).generateSvg(null, 100, 100)
 
@@ -120,28 +133,33 @@ class SvgGeneratorKtTest {
         val nodes = listOf(
             Node(
                 id = "node1",
-                className = "FrameLayout",
-                x = 10,
-                y = 20,
+                label = "FrameLayout",
+                type = ElementType.CONTAINER,
+                positionX = 10,
+                positionY = 20,
                 width = 30,
                 height = 40,
+                children = emptyList(),
             ),
             Node(
                 id = "node2",
-                className = "ImageView",
-                x = 15,
-                y = 25,
+                label = "ImageView",
+                type = ElementType.CONTAINER,
+                positionX = 15,
+                positionY = 25,
                 width = 35,
                 height = 45,
+                children = emptyList(),
             ),
             Node(
                 id = "text1",
-                className = "TextView",
-                x = 5,
-                y = 15,
+                label = "TextView",
+                type = ElementType.TEXT,
+                positionX = 5,
+                positionY = 15,
                 width = 25,
                 height = 35,
-                isText = true,
+                children = emptyList(),
             ),
         )
 

@@ -19,7 +19,7 @@ internal data class ClickData(
     companion object {
         fun fromTargetNode(gesture: DetectedGesture.Click, node: Node): ClickData {
             return ClickData(
-                target = node.className,
+                target = node.label,
                 target_id = node.id,
                 width = node.width,
                 height = node.height,
@@ -47,7 +47,7 @@ internal data class LongClickData(
     companion object {
         fun fromTargetNode(gesture: DetectedGesture.LongClick, node: Node): LongClickData {
             return LongClickData(
-                target = node.className,
+                target = node.label,
                 target_id = node.id,
                 width = node.width,
                 height = node.height,
@@ -76,7 +76,7 @@ internal data class ScrollData(
     companion object {
         fun fromTargetNode(gesture: DetectedGesture.Scroll, node: Node): ScrollData {
             return ScrollData(
-                target = node.className,
+                target = node.label,
                 target_id = node.id,
                 x = gesture.x,
                 y = gesture.y,

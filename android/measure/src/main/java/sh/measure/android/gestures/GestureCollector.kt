@@ -1,7 +1,5 @@
 package sh.measure.android.gestures
 
-import android.os.Build
-import android.util.DisplayMetrics
 import android.view.MotionEvent
 import android.view.Window
 import curtains.Curtains
@@ -106,7 +104,6 @@ internal class GestureCollector(
                     gesture,
                     targetNode,
                     layoutSnapshot,
-                    window,
                 )
 
                 is DetectedGesture.LongClick -> handleLongClick(gesture, targetNode)
@@ -123,13 +120,11 @@ internal class GestureCollector(
         gesture: DetectedGesture.Click,
         targetNode: Node,
         layoutSnapshot: LayoutSnapshot,
-        window: Window,
     ) {
-        val (width, height) = getScreenWidthHeight(window)
         val data = ClickData.fromTargetNode(gesture, targetNode)
         listener?.onClick(data)
         if (layoutSnapshotThrottler.shouldTakeSnapshot()) {
-            trackClickWithSnapshotAsync(gesture, data, layoutSnapshot, targetNode, width, height)
+            trackClickWithSnapshotAsync(gesture, data, layoutSnapshot)
         } else {
             trackClick(gesture, data)
         }
@@ -139,14 +134,11 @@ internal class GestureCollector(
         gesture: DetectedGesture.Click,
         data: ClickData,
         layoutSnapshot: LayoutSnapshot,
-        targetNode: Node,
-        width: Int,
-        height: Int,
     ) {
         val threadName = Thread.currentThread().name
         try {
             defaultExecutor.submit {
-                val attachment = layoutSnapshot.generateSvgAttachment(targetNode, width, height)
+                val attachment = layoutSnapshot.toJsonAttachment()
                 signalProcessor.track(
                     timestamp = gesture.timestamp,
                     type = EventType.CLICK,
@@ -199,24 +191,5 @@ internal class GestureCollector(
             gesture,
             motionEvent,
         )
-    }
-
-    // This is required for setting the correct SVG size.
-    // The window size can change when device is rotated, folded/unfolded
-    // or app is resized, Also, certain views like ViewPager do not respect viewport
-    // size, and draw outside of it to improve scroll perf leading to some content being rendered
-    // outside visible bounds of screen.
-    private fun getScreenWidthHeight(window: Window): Pair<Int, Int> {
-        return if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            val displayMetrics = DisplayMetrics()
-            @Suppress("DEPRECATION")
-            window.windowManager.defaultDisplay.getMetrics(displayMetrics)
-            Pair(displayMetrics.widthPixels, displayMetrics.heightPixels)
-        } else {
-            val bounds = window.windowManager.currentWindowMetrics.bounds
-            val width = bounds.width()
-            val height = bounds.height()
-            Pair(width, height)
-        }
     }
 }

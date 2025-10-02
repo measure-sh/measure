@@ -36,9 +36,7 @@ internal object LayoutInspector {
      * @return A [LayoutSnapshot] containing information about all visible views and compose elements,
      *         including which element would consume the gesture
      */
-    fun capture(
-        rootView: View,
-    ): LayoutSnapshot {
+    fun capture(rootView: View): LayoutSnapshot {
         return parseLayoutInternal(rootView, null, null)
     }
 
@@ -65,61 +63,86 @@ internal object LayoutInspector {
         gesture: DetectedGesture?,
         motionEvent: MotionEvent?,
     ): LayoutSnapshot {
-        val nodes = mutableListOf<Node>()
-
-        fun traverseView(view: View) {
+        fun traverseView(view: View): Node? {
             if (view.visibility != View.VISIBLE) {
-                return
+                return null
             }
 
             // Ignore any views that contain Flutter UI as the
             // Flutter SDK will track gestures on its own.
             if (view.javaClass.name == FLUTTER_VIEW_CLASS_NAME) {
-                return
+                return null
             }
 
             if (ComposeHelper.isComposeView(view)) {
+                // Compose nodes don't have parent-child relationships in semantics API
+                // So we create a wrapper node with compose children as flat list
                 val composeNodes = parseComposeView(view, gesture, motionEvent)
-                nodes.addAll(composeNodes)
+                if (composeNodes.isEmpty()) {
+                    return null
+                }
+                val location = IntArray(2)
+                view.getLocationInWindow(location)
+                return Node(
+                    id = view.getResName(),
+                    label = view.javaClass.name,
+                    type = ElementType.CONTAINER,
+                    positionX = location[0],
+                    positionY = location[1],
+                    width = view.width,
+                    height = view.height,
+                    scrollable = false,
+                    highlighted = false,
+                    children = composeNodes,
+                    gesture = null,
+                )
             } else if (view is ViewGroup) {
                 if (view.isNotEmpty() && view.width > 0 && view.height > 0) {
-                    val node = createViewNode(view, gesture, motionEvent)
-                    nodes.add(node)
+                    val children = mutableListOf<Node>()
                     for (i in 0 until view.childCount) {
-                        traverseView(view.getChildAt(i))
+                        traverseView(view.getChildAt(i))?.let { children.add(it) }
                     }
+                    val node = createViewNode(view, gesture, motionEvent, children)
+                    return node
                 }
             } else {
                 val node = createViewNode(view, gesture, motionEvent)
                 if (node.width > 0 && node.height > 0) {
-                    nodes.add(node)
+                    return node
                 }
             }
+            return null
         }
-        traverseView(rootView)
-        return LayoutSnapshot(nodes)
+
+        val rootNode = traverseView(rootView)
+        return LayoutSnapshot(rootNode)
     }
 
     private fun createViewNode(
         view: View,
         gesture: DetectedGesture?,
         motionEvent: MotionEvent?,
+        children: List<Node> = emptyList(),
     ): Node {
         val location = IntArray(2)
         view.getLocationInWindow(location)
 
         val willConsumeGesture = willConsumeGesture(view, gesture, motionEvent)
+        val isText = view is TextView && !view.isClickable
+        val isScrollable = canScroll(view)
 
         return Node(
             id = view.getResName(),
-            className = view.javaClass.name,
-            x = location[0],
-            y = location[1],
+            label = view.javaClass.name,
+            type = if (isText) ElementType.TEXT else ElementType.CONTAINER,
+            positionX = location[0],
+            positionY = location[1],
             width = view.width,
             height = view.height,
-            willConsumeGesture = willConsumeGesture,
+            scrollable = isScrollable,
+            highlighted = willConsumeGesture,
+            children = children,
             gesture = if (willConsumeGesture) gesture else null,
-            isText = view is TextView && !view.isClickable,
         )
     }
 
@@ -209,16 +232,20 @@ internal object LayoutInspector {
                     false
                 }
 
+                val hasScrollAction =
+                    semanticsNode.config.getOrNull(SemanticsActions.ScrollBy) != null
+
                 val node = Node(
                     id = testTag,
-                    className = view.javaClass.name,
-                    x = (viewLocation[0] + semanticsNode.boundsInWindow.left).toInt(),
-                    y = (viewLocation[1] + semanticsNode.boundsInWindow.top).toInt(),
+                    label = view.javaClass.name,
+                    type = if (isText) ElementType.TEXT else ElementType.CONTAINER,
+                    positionX = (viewLocation[0] + semanticsNode.boundsInWindow.left).toInt(),
+                    positionY = (viewLocation[1] + semanticsNode.boundsInWindow.top).toInt(),
                     width = semanticsNode.boundsInWindow.width.toInt(),
                     height = semanticsNode.boundsInWindow.height.toInt(),
-                    willConsumeGesture = willConsumeGesture,
+                    scrollable = hasScrollAction,
+                    highlighted = willConsumeGesture,
                     gesture = if (willConsumeGesture) gesture else null,
-                    isText = isText,
                 )
                 if (node.width > 0 && node.height > 0) {
                     nodes.add(node)

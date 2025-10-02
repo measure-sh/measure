@@ -75,7 +75,7 @@ internal class AttachmentHelper(
                     }
                 }
             }
-        } catch (e: RejectedExecutionException) {
+        } catch (_: RejectedExecutionException) {
             onError?.invoke()
         }
     }
@@ -87,32 +87,32 @@ internal class AttachmentHelper(
         onError: (() -> Unit)?,
     ) {
         val window = activity.window ?: run {
-            logger.log(LogLevel.Debug, "Failed to take screenshot, window is null")
+            logger.log(LogLevel.Debug, "Failed to take snapshot, window is null")
             onError?.invoke()
             return
         }
 
         val decorView = window.peekDecorView() ?: run {
-            logger.log(LogLevel.Debug, "Failed to take screenshot, decor view is null")
+            logger.log(LogLevel.Debug, "Failed to take snapshot, decor view is null")
             onError?.invoke()
             return
         }
 
-        val view = decorView.rootView ?: run {
-            logger.log(LogLevel.Debug, "Failed to take screenshot, root view is null")
+        val rootView = decorView.rootView ?: run {
+            logger.log(LogLevel.Debug, "Failed to take snapshot, root view is null")
             onError?.invoke()
             return
         }
 
-        val width = view.width
-        val height = view.height
+        val width = rootView.width
+        val height = rootView.height
         if (width <= 0 || height <= 0) {
-            logger.log(LogLevel.Debug, "Failed to take screenshot, invalid view bounds")
+            logger.log(LogLevel.Debug, "Failed to take snapshot, invalid view bounds")
             onError?.invoke()
             return
         }
-        val snapshot = LayoutInspector.capture(view)
-        onComplete(snapshot.generateSvgMsrAttachment(null, width, height))
+        val snapshot = LayoutInspector.capture(rootView)
+        onComplete(snapshot.toJsonMsrAttachment())
     }
 
     fun imageUriToAttachment(
@@ -186,7 +186,7 @@ internal class AttachmentHelper(
                             ),
                         )
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     onError?.let { mainHandler.post(it) }
                 }
             }
