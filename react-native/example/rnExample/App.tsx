@@ -43,7 +43,7 @@ const App = (): React.JSX.Element => {
       [], // httpHeadersBlocklist
       [], // httpUrlBlocklist
       [], // httpUrlAllowlist
-      false, // autoStart
+      true, // autoStart
       true, // trackViewControllerLoadTime
     );
 
@@ -76,7 +76,7 @@ const App = (): React.JSX.Element => {
         {
           id: 'event',
           title: 'Track Custom Event',
-          onPress: () => console.log('Track event'),
+          onPress: () => trackCustomEvent(),
         },
         {
           id: 'crash',
@@ -89,6 +89,14 @@ const App = (): React.JSX.Element => {
 
   const stopMeasure = () => {
     Measure.stop();
+  };
+
+  const trackCustomEvent = () => {
+    Measure.trackEvent('button_click', {
+      screen: 'Home',
+      action: 'Track Custom Event',
+      timestamped: true,
+    });
   };
 
   const startMeasure = () => {
