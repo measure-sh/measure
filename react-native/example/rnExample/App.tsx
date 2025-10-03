@@ -65,6 +65,14 @@ const App = (): React.JSX.Element => {
       .catch((error: any) => console.error('Failed to stop Measure SDK:', error));
   };
 
+  const trackCustomEvent = () => {
+    Measure.trackEvent('button_click', {
+      screen: 'Home',
+      action: 'Track Custom Event',
+      timestamped: true,
+    });
+  };
+
   /** === Simulation Helpers === */
   const simulateJSException = () => {
     throw new Error('Simulated JavaScript exception');
@@ -98,7 +106,12 @@ const App = (): React.JSX.Element => {
         {
           id: 'event',
           title: 'Track Custom Event',
-          onPress: () => console.log('Event pressed'),
+          onPress: () => trackCustomEvent(),
+        },
+        {
+          id: 'crash',
+          title: 'Simulate Crash',
+          onPress: () => console.log('Simulate crash'),
         },
       ],
     },

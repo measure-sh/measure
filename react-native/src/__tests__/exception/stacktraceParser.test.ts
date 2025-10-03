@@ -1,4 +1,4 @@
-import { parseStacktrace } from "../exception/stacktraceParser";
+import { parseStacktrace } from "../../exception/stacktraceParser";
 
 describe("parseStacktrace", () => {
   it("parses a Chrome/V8 style stack trace", () => {

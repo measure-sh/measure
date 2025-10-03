@@ -5,6 +5,7 @@ import {
   type MeasureInitializer,
 } from './measureInitializer';
 import { MeasureInternal } from './measureInternal';
+import type { ValidAttributeValue } from './utils/attributeValueValidator';
 
 let _initializationPromise: Promise<void> | null = null;
 let _measureInitializer: MeasureInitializer;
@@ -131,7 +132,7 @@ export const Measure = {
    */
   trackEvent(
     name: string,
-    attributes?: Record<string, string | number | boolean>,
+    attributes?: Record<string, ValidAttributeValue>,
     timestamp?: number
   ): Promise<void> {
     if (!_measureInternal) {
@@ -140,11 +141,7 @@ export const Measure = {
       );
     }
 
-    try {
-      _measureInternal.trackEvent(name, attributes, timestamp);
-      return Promise.resolve();
-    } catch (error) {
-      return Promise.reject(error);
-    }
+    console.log('Measure.ts Custom event tracked: button_click $attributes', attributes);
+    return _measureInternal.trackEvent(name, attributes, timestamp);
   },
 };

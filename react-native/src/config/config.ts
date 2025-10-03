@@ -14,6 +14,7 @@ export class Config implements InternalConfig, MeasureConfigInterface {
   httpUrlAllowlist: string[];
   autoStart: boolean;
   trackViewControllerLoadTime: boolean;
+  customEventNameRegex: string;
 
   constructor(
     enableLogging?: boolean,
@@ -38,6 +39,7 @@ export class Config implements InternalConfig, MeasureConfigInterface {
     this.autoStart = autoStart ?? DefaultConfig.autoStart;
     this.trackViewControllerLoadTime = trackViewControllerLoadTime ?? DefaultConfig.trackViewControllerLoadTime;
     this.maxEventNameLength = 64;
+    this.customEventNameRegex = DefaultConfig.customEventNameRegex;
 
     if (!(this.samplingRateForErrorFreeSessions >= 0 && this.samplingRateForErrorFreeSessions <= 1)) {
       console.warn('samplingRateForErrorFreeSessions must be between 0.0 and 1.0');
