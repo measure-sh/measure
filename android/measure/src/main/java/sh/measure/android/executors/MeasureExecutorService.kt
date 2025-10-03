@@ -60,7 +60,7 @@ internal class MeasureExecutorServiceImpl @TestOnly constructor(private val exec
         executorService.shutdown()
         try {
             executorService.awaitTermination(30, TimeUnit.SECONDS)
-        } catch (ie: InterruptedException) {
+        } catch (_: InterruptedException) {
             // ignore interrupted exceptions
         }
     }

@@ -50,7 +50,7 @@ class DatabaseTest {
             it.moveToNext()
             assertEquals(EventTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
-            assertEquals(AttachmentTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
+            assertEquals(AttachmentV1Table.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
             assertEquals(BatchesTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
@@ -307,7 +307,7 @@ class DatabaseTest {
         )
 
         // when
-        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(100)
+        val eventsToBatch = database.getUnBatchedEvents(100)
 
         // then
         assertEquals(2, eventsToBatch.size)
@@ -334,7 +334,7 @@ class DatabaseTest {
         database.insertEvent(event2)
         database.insertEvent(event3)
 
-        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(100)
+        val eventsToBatch = database.getUnBatchedEvents(100)
         assertEquals(1, eventsToBatch.size)
     }
 
@@ -360,7 +360,7 @@ class DatabaseTest {
         database.insertEvent(event3)
 
         val eventsToBatch =
-            database.getUnBatchedEventsWithAttachmentSize(100, sessionId = "session-id-1")
+            database.getUnBatchedEvents(100, sessionId = "session-id-1")
         assertEquals(2, eventsToBatch.size)
     }
 
@@ -405,7 +405,7 @@ class DatabaseTest {
         database.insertEvent(nonLaunchEvent)
 
         // when
-        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(
+        val eventsToBatch = database.getUnBatchedEvents(
             100,
             // allow all launch event types
             eventTypeExportAllowList = listOf(
@@ -446,7 +446,7 @@ class DatabaseTest {
         database.insertEvent(event5)
 
         // when
-        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(3)
+        val eventsToBatch = database.getUnBatchedEvents(3)
 
         // then
         assertEquals(3, eventsToBatch.size)
@@ -524,66 +524,6 @@ class DatabaseTest {
 
         // then
         assertEquals(0, eventPackets.size)
-    }
-
-    @Test
-    fun `getAttachmentPackets returns empty list if events do not contain attachments`() {
-        // given
-        val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
-        val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
-        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
-        database.insertEvent(event1)
-        database.insertEvent(event2)
-
-        // when
-        val attachmentPackets = database.getAttachmentPackets(listOf(event1.id, event2.id))
-
-        // then
-        assertEquals(0, attachmentPackets.size)
-    }
-
-    @Test
-    fun `getAttachmentPackets returns attachment packets when events contain attachments`() {
-        // given
-        val eventWithAttachment = TestData.getEventEntity(
-            eventId = "event-id-1",
-            sessionId = "session-id-1",
-            attachmentEntities = listOf(TestData.getAttachmentEntity(id = "attachment-id-1")),
-        )
-        val eventWithMultipleAttachments = TestData.getEventEntity(
-            eventId = "event-id-2",
-            sessionId = "session-id-1",
-            attachmentEntities = listOf(
-                TestData.getAttachmentEntity(id = "attachment-id-2"),
-                TestData.getAttachmentEntity(id = "attachment-id-3"),
-            ),
-        )
-        val eventWithDifferentSession = TestData.getEventEntity(
-            eventId = "event-id-3",
-            sessionId = "session-id-2",
-            attachmentEntities = listOf(TestData.getAttachmentEntity(id = "attachment-id-4")),
-        )
-        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
-        database.insertSession(TestData.getSessionEntity(id = "session-id-2"))
-        database.insertEvent(eventWithAttachment)
-        database.insertEvent(eventWithMultipleAttachments)
-        database.insertEvent(eventWithDifferentSession)
-
-        // when
-        val attachmentPackets = database.getAttachmentPackets(
-            listOf(
-                eventWithAttachment.id,
-                eventWithMultipleAttachments.id,
-                eventWithDifferentSession.id,
-            ),
-        )
-
-        // then
-        assertEquals(4, attachmentPackets.size)
-        assertEquals("attachment-id-1", attachmentPackets[0].id)
-        assertEquals("attachment-id-2", attachmentPackets[1].id)
-        assertEquals("attachment-id-3", attachmentPackets[2].id)
-        assertEquals("attachment-id-4", attachmentPackets[3].id)
     }
 
     @Test
@@ -930,6 +870,49 @@ class DatabaseTest {
     }
 
     @Test
+    fun `deleteSessions also deletes attachments for the session`() {
+        // given
+        database.insertSession(TestData.getSessionEntity("session-id-1"))
+        database.insertSession(TestData.getSessionEntity("session-id-2"))
+        val attachmentToDelete = TestData.getAttachmentEntity(id = "attachment-1")
+        val attachmentToNotDelete = TestData.getAttachmentEntity(id = "attachment-2")
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-id-1",
+                attachmentEntities = listOf(attachmentToDelete),
+                sessionId = "session-id-1",
+            ),
+        )
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-id-2",
+                attachmentEntities = listOf(
+                    attachmentToNotDelete,
+                ),
+                sessionId = "session-id-2",
+            ),
+        )
+
+        // when
+        database.deleteSessions(listOf("session-id-1"))
+
+        // then
+        database.readableDatabase.query(
+            AttachmentV1Table.TABLE_NAME,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+        ).use {
+            assertEquals(1, it.count)
+            it.moveToFirst()
+            assertEquals("attachment-2", it.getString(it.getColumnIndex(AttachmentV1Table.COL_ID)))
+        }
+    }
+
+    @Test
     fun `getEventsForSessions returns all event Ids for given session Ids`() {
         // given
         val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
@@ -1028,7 +1011,7 @@ class DatabaseTest {
     }
 
     @Test
-    fun `deleteBatch deletes all events, attachments and spans for the batch`() {
+    fun `deleteBatch deletes all events and spans for the batch`() {
         // given
         val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
         val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
@@ -1088,9 +1071,6 @@ class DatabaseTest {
             assertEquals(0, it.count)
         }
         queryAllSpans(database.writableDatabase).use {
-            assertEquals(0, it.count)
-        }
-        queryAllAttachments(database.writableDatabase).use {
             assertEquals(0, it.count)
         }
     }
@@ -1202,6 +1182,207 @@ class DatabaseTest {
         assertNull(session?.appBuild)
     }
 
+    @Test
+    fun `updateAttachmentUrl updates upload URL and expiration for attachments`() {
+        // given
+        val attachment1 = TestData.getAttachmentEntity(id = "attachment-1")
+        val attachment2 = TestData.getAttachmentEntity(id = "attachment-2")
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-1",
+                sessionId = "session-id",
+                attachmentEntities = listOf(attachment1, attachment2),
+            ),
+        )
+
+        val signedAttachments = listOf(
+            sh.measure.android.exporter.SignedAttachment(
+                id = "attachment-1",
+                type = "screenshot",
+                filename = "screenshot.png",
+                uploadUrl = "https://example.com/upload/attachment-1?signed=true",
+                expiresAt = "2025-08-13T01:59:45.577889184Z",
+                headers = mapOf(),
+            ),
+            sh.measure.android.exporter.SignedAttachment(
+                id = "attachment-2",
+                type = "layout_snapshot",
+                filename = "layout.json",
+                uploadUrl = "https://example.com/upload/attachment-2?signed=true",
+                expiresAt = "2025-08-13T02:00:00.000000000Z",
+                headers = mapOf(),
+            ),
+        )
+
+        // when
+        val result = database.updateAttachmentUrls(signedAttachments)
+
+        // then
+        assertTrue(result)
+        database.readableDatabase.query(
+            AttachmentV1Table.TABLE_NAME,
+            null,
+            "${AttachmentV1Table.COL_ID} = ?",
+            arrayOf("attachment-1"),
+            null,
+            null,
+            null,
+        ).use {
+            it.moveToFirst()
+            assertEquals(
+                "https://example.com/upload/attachment-1?signed=true",
+                it.getString(it.getColumnIndex(AttachmentV1Table.COL_UPLOAD_URL)),
+            )
+            assertEquals(
+                "2025-08-13T01:59:45.577889184Z",
+                it.getString(it.getColumnIndex(AttachmentV1Table.COL_URL_EXPIRES_AT)),
+            )
+        }
+        database.readableDatabase.query(
+            AttachmentV1Table.TABLE_NAME,
+            null,
+            "${AttachmentV1Table.COL_ID} = ?",
+            arrayOf("attachment-2"),
+            null,
+            null,
+            null,
+        ).use {
+            it.moveToFirst()
+            assertEquals(
+                "https://example.com/upload/attachment-2?signed=true",
+                it.getString(it.getColumnIndex(AttachmentV1Table.COL_UPLOAD_URL)),
+            )
+            assertEquals(
+                "2025-08-13T02:00:00.000000000Z",
+                it.getString(it.getColumnIndex(AttachmentV1Table.COL_URL_EXPIRES_AT)),
+            )
+        }
+    }
+
+    @Test
+    fun `updateAttachmentUrl returns false when attachment does not exist`() {
+        // given
+        val signedAttachments = listOf(
+            sh.measure.android.exporter.SignedAttachment(
+                id = "non-existent-attachment",
+                type = "screenshot",
+                filename = "screenshot.png",
+                uploadUrl = "https://example.com/upload/attachment?signed=true",
+                expiresAt = "2025-08-13T01:59:45.577889184Z",
+                headers = mapOf(),
+            ),
+        )
+
+        // when
+        val result = database.updateAttachmentUrls(signedAttachments)
+
+        // then
+        assertFalse(result)
+    }
+
+    @Test
+    fun `updateAttachmentUrl returns true for empty list`() {
+        // when
+        val result = database.updateAttachmentUrls(emptyList())
+
+        // then
+        assertTrue(result)
+    }
+
+    @Test
+    fun `updateAttachmentUrl updates only matching attachments in transaction`() {
+        // given
+        val attachment1 = TestData.getAttachmentEntity(id = "attachment-1")
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-1",
+                sessionId = "session-id",
+                attachmentEntities = listOf(attachment1),
+            ),
+        )
+
+        val signedAttachments = listOf(
+            sh.measure.android.exporter.SignedAttachment(
+                id = "attachment-1",
+                type = "screenshot",
+                filename = "screenshot.png",
+                uploadUrl = "https://example.com/upload/attachment-1?signed=true",
+                expiresAt = "2025-08-13T01:59:45.577889184Z",
+                headers = mapOf(),
+            ),
+            sh.measure.android.exporter.SignedAttachment(
+                id = "non-existent",
+                type = "screenshot",
+                filename = "screenshot2.png",
+                uploadUrl = "https://example.com/upload/non-existent?signed=true",
+                expiresAt = "2025-08-13T01:59:45.577889184Z",
+                headers = mapOf(),
+            ),
+        )
+
+        // when
+        val result = database.updateAttachmentUrls(signedAttachments)
+
+        // then - should fail because one attachment doesn't exist (transaction rolled back)
+        assertFalse(result)
+        database.readableDatabase.query(
+            AttachmentV1Table.TABLE_NAME,
+            null,
+            "${AttachmentV1Table.COL_ID} = ?",
+            arrayOf("attachment-1"),
+            null,
+            null,
+            null,
+        ).use {
+            it.moveToFirst()
+            // URL should still be null since transaction was rolled back
+            assertNull(it.getString(it.getColumnIndex(AttachmentV1Table.COL_UPLOAD_URL)))
+        }
+    }
+
+    @Test
+    fun `deleteAttachment deletes the attachment`() {
+        // given
+        val attachment1 = TestData.getAttachmentEntity(id = "attachment-1")
+        val attachment2 = TestData.getAttachmentEntity(id = "attachment-2")
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-1",
+                sessionId = "session-id",
+                attachmentEntities = listOf(attachment1, attachment2),
+            ),
+        )
+        val signedAttachments = listOf(
+            sh.measure.android.exporter.SignedAttachment(
+                id = "attachment-1",
+                type = "screenshot",
+                filename = "screenshot.png",
+                uploadUrl = "https://example.com/upload/attachment-1?signed=true",
+                expiresAt = "2025-08-13T01:59:45.577889184Z",
+                headers = mapOf(),
+            ),
+            sh.measure.android.exporter.SignedAttachment(
+                id = "attachment-2",
+                type = "layout_snapshot",
+                filename = "layout.json",
+                uploadUrl = "https://example.com/upload/attachment-2?signed=true",
+                expiresAt = "2025-08-13T02:00:00.000000000Z",
+                headers = mapOf(),
+            ),
+        )
+        database.updateAttachmentUrls(signedAttachments)
+
+        // when
+        database.deleteAttachment("attachment-1")
+
+        // then
+        val remaining = database.getAttachmentsToUpload(100, emptyList())
+        assertEquals(1, remaining.size)
+    }
+
     private fun queryAllEvents(db: SQLiteDatabase): Cursor {
         return db.query(
             EventTable.TABLE_NAME,
@@ -1217,18 +1398,6 @@ class DatabaseTest {
     private fun queryAllSpans(db: SQLiteDatabase): Cursor {
         return db.query(
             SpansTable.TABLE_NAME,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-        )
-    }
-
-    private fun queryAllAttachments(db: SQLiteDatabase): Cursor {
-        return db.query(
-            AttachmentTable.TABLE_NAME,
             null,
             null,
             null,
@@ -1279,9 +1448,9 @@ class DatabaseTest {
 
     private fun queryAttachmentsForEvent(db: SQLiteDatabase, eventId: String): Cursor {
         return db.query(
-            AttachmentTable.TABLE_NAME,
+            AttachmentV1Table.TABLE_NAME,
             null,
-            "${AttachmentTable.COL_EVENT_ID} = ?",
+            "${AttachmentV1Table.COL_EVENT_ID} = ?",
             arrayOf(eventId),
             null,
             null,
@@ -1334,31 +1503,31 @@ class DatabaseTest {
     ) {
         assertEquals(
             attachmentEntity.id,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_ID)),
+            cursor.getString(cursor.getColumnIndex(AttachmentV1Table.COL_ID)),
         )
         assertEquals(
             attachmentEntity.type,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_TYPE)),
+            cursor.getString(cursor.getColumnIndex(AttachmentV1Table.COL_TYPE)),
         )
         assertEquals(
             attachmentEntity.path,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_FILE_PATH)),
+            cursor.getString(cursor.getColumnIndex(AttachmentV1Table.COL_FILE_PATH)),
         )
         assertEquals(
             attachmentEntity.name,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_NAME)),
+            cursor.getString(cursor.getColumnIndex(AttachmentV1Table.COL_NAME)),
         )
         assertEquals(
             event.timestamp,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_TIMESTAMP)),
+            cursor.getString(cursor.getColumnIndex(AttachmentV1Table.COL_TIMESTAMP)),
         )
         assertEquals(
             event.sessionId,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_SESSION_ID)),
+            cursor.getString(cursor.getColumnIndex(AttachmentV1Table.COL_SESSION_ID)),
         )
         assertEquals(
             event.id,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_EVENT_ID)),
+            cursor.getString(cursor.getColumnIndex(AttachmentV1Table.COL_EVENT_ID)),
         )
     }
 

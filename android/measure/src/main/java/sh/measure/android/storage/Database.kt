@@ -6,14 +6,17 @@ import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
+import kotlinx.serialization.encodeToString
 import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.events.EventType
 import sh.measure.android.exporter.AttachmentPacket
 import sh.measure.android.exporter.Batch
 import sh.measure.android.exporter.EventPacket
+import sh.measure.android.exporter.SignedAttachment
 import sh.measure.android.exporter.SpanPacket
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.utils.iso8601Timestamp
 import java.io.Closeable
 
@@ -37,14 +40,14 @@ internal interface Database : Closeable {
      * @param eventTypeExportAllowList The list of event types that should be included in the result
      * regardless of session ID or whether the session is marked as "needs reporting" or not.
      *
-     * @return a map of event Id to the size of attachments in the event in bytes.
+     * @return a list of event IDs.
      */
-    fun getUnBatchedEventsWithAttachmentSize(
+    fun getUnBatchedEvents(
         eventCount: Int,
         ascending: Boolean = true,
         sessionId: String? = null,
         eventTypeExportAllowList: List<EventType> = emptyList(),
-    ): LinkedHashMap<String, Long>
+    ): List<String>
 
     fun getUnBatchedSpans(
         spanCount: Int,
@@ -72,13 +75,6 @@ internal interface Database : Closeable {
      * @param spanIds The list of span IDs to get the span packets for.
      */
     fun getSpanPackets(spanIds: List<String>): List<SpanPacket>
-
-    /**
-     * Returns a list of attachment packets for the given event IDs.
-     *
-     * @param eventIds The list of event IDs to fetch attachments for.
-     */
-    fun getAttachmentPackets(eventIds: List<String>): List<AttachmentPacket>
 
     /**
      * Returns a map of batch IDs to event IDs that have not been synced with the server in
@@ -201,6 +197,33 @@ internal interface Database : Closeable {
      * tracked.
      */
     fun markSessionWithBugReport(sessionId: String)
+
+    /**
+     * Updates attachment URLs and expiration timestamps from the signed attachments response.
+     *
+     * @param signedAttachments The list of signed attachments containing upload URLs and expiration times.
+     * @return `true` if all attachments were successfully updated, `false` otherwise.
+     */
+    fun updateAttachmentUrls(signedAttachments: List<SignedAttachment>): Boolean
+
+    /**
+     * Returns a list of attachments that need to be uploaded.
+     * @param maxCount The maximum number of attachments to return.
+     * @param excludeIds List of attachment IDs to exclude (e.g., already in progress).
+     */
+    fun getAttachmentsToUpload(maxCount: Int, excludeIds: List<String>): List<AttachmentPacket>
+
+    /**
+     * Deletes an attachment from the database.
+     * @param attachmentId The ID of the attachment to delete.
+     */
+    fun deleteAttachment(attachmentId: String): Boolean
+
+    /**
+     * Deletes multiple attachments from database.
+     * @param attachmentIds The IDs of attachments to delete
+     */
+    fun deleteAttachments(attachmentIds: List<String>)
 }
 
 /**
@@ -216,7 +239,7 @@ internal class DatabaseImpl(
         try {
             db.execSQL(Sql.CREATE_SESSIONS_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_TABLE)
-            db.execSQL(Sql.CREATE_ATTACHMENTS_TABLE)
+            db.execSQL(Sql.CREATE_ATTACHMENTS_V1_TABLE)
             db.execSQL(Sql.CREATE_BATCHES_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_BATCH_TABLE)
             db.execSQL(Sql.CREATE_APP_EXIT_TABLE)
@@ -270,16 +293,16 @@ internal class DatabaseImpl(
 
             event.attachmentEntities?.forEach { attachment ->
                 val attachmentValues = ContentValues().apply {
-                    put(AttachmentTable.COL_ID, attachment.id)
-                    put(AttachmentTable.COL_EVENT_ID, event.id)
-                    put(AttachmentTable.COL_TYPE, attachment.type)
-                    put(AttachmentTable.COL_TIMESTAMP, event.timestamp)
-                    put(AttachmentTable.COL_SESSION_ID, event.sessionId)
-                    put(AttachmentTable.COL_FILE_PATH, attachment.path)
-                    put(AttachmentTable.COL_NAME, attachment.name)
+                    put(AttachmentV1Table.COL_ID, attachment.id)
+                    put(AttachmentV1Table.COL_EVENT_ID, event.id)
+                    put(AttachmentV1Table.COL_TYPE, attachment.type)
+                    put(AttachmentV1Table.COL_TIMESTAMP, event.timestamp)
+                    put(AttachmentV1Table.COL_SESSION_ID, event.sessionId)
+                    put(AttachmentV1Table.COL_FILE_PATH, attachment.path)
+                    put(AttachmentV1Table.COL_NAME, attachment.name)
                 }
                 val attachmentResult =
-                    writableDatabase.insert(AttachmentTable.TABLE_NAME, null, attachmentValues)
+                    writableDatabase.insert(AttachmentV1Table.TABLE_NAME, null, attachmentValues)
                 if (attachmentResult == -1L) {
                     logger.log(
                         LogLevel.Debug,
@@ -306,28 +329,26 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun getUnBatchedEventsWithAttachmentSize(
+    override fun getUnBatchedEvents(
         eventCount: Int,
         ascending: Boolean,
         sessionId: String?,
         eventTypeExportAllowList: List<EventType>,
-    ): LinkedHashMap<String, Long> {
+    ): List<String> {
         val query =
             Sql.getEventsBatchQuery(eventCount, ascending, sessionId, eventTypeExportAllowList)
         val cursor = readableDatabase.rawQuery(query, null)
-        val eventIdAttachmentSizeMap = LinkedHashMap<String, Long>()
+        val eventIds = mutableListOf<String>()
 
         cursor.use {
             while (it.moveToNext()) {
                 val eventIdIndex = cursor.getColumnIndex(EventTable.COL_ID)
-                val attachmentsSizeIndex = cursor.getColumnIndex(EventTable.COL_ATTACHMENT_SIZE)
                 val eventId = cursor.getString(eventIdIndex)
-                val attachmentSize = cursor.getLong(attachmentsSizeIndex)
-                eventIdAttachmentSizeMap[eventId] = attachmentSize
+                eventIds.add(eventId)
             }
         }
 
-        return eventIdAttachmentSizeMap
+        return eventIds
     }
 
     override fun getUnBatchedSpans(
@@ -504,22 +525,6 @@ internal class DatabaseImpl(
                 )
             }
             return spanPackets
-        }
-    }
-
-    override fun getAttachmentPackets(eventIds: List<String>): List<AttachmentPacket> {
-        readableDatabase.rawQuery(Sql.getAttachmentsForEventIds(eventIds), null).use {
-            val attachmentPackets = mutableListOf<AttachmentPacket>()
-            while (it.moveToNext()) {
-                val idIndex = it.getColumnIndex(AttachmentTable.COL_ID)
-                val filePathIndex = it.getColumnIndex(AttachmentTable.COL_FILE_PATH)
-
-                val id = it.getString(idIndex)
-                val filePath = it.getString(filePathIndex)
-
-                attachmentPackets.add(AttachmentPacket(id, filePath))
-            }
-            return attachmentPackets
         }
     }
 
@@ -731,10 +736,10 @@ internal class DatabaseImpl(
         val attachmentEntities = mutableListOf<AttachmentEntity>()
         readableDatabase.rawQuery(Sql.getAttachmentsForEventIds(eventIds), null).use {
             while (it.moveToNext()) {
-                val attachmentIdIndex = it.getColumnIndex(AttachmentTable.COL_ID)
-                val typeIndex = it.getColumnIndex(AttachmentTable.COL_TYPE)
-                val filePathIndex = it.getColumnIndex(AttachmentTable.COL_FILE_PATH)
-                val nameIndex = it.getColumnIndex(AttachmentTable.COL_NAME)
+                val attachmentIdIndex = it.getColumnIndex(AttachmentV1Table.COL_ID)
+                val typeIndex = it.getColumnIndex(AttachmentV1Table.COL_TYPE)
+                val filePathIndex = it.getColumnIndex(AttachmentV1Table.COL_FILE_PATH)
+                val nameIndex = it.getColumnIndex(AttachmentV1Table.COL_NAME)
 
                 val attachmentId = it.getString(attachmentIdIndex)
                 val type = it.getString(typeIndex)
@@ -910,17 +915,17 @@ internal class DatabaseImpl(
                 // Batch insert attachments for this event
                 event.attachmentEntities?.forEach { attachment ->
                     val attachmentValues = ContentValues(7).apply {
-                        put(AttachmentTable.COL_ID, attachment.id)
-                        put(AttachmentTable.COL_EVENT_ID, event.id)
-                        put(AttachmentTable.COL_TYPE, attachment.type)
-                        put(AttachmentTable.COL_TIMESTAMP, event.timestamp)
-                        put(AttachmentTable.COL_SESSION_ID, event.sessionId)
-                        put(AttachmentTable.COL_FILE_PATH, attachment.path)
-                        put(AttachmentTable.COL_NAME, attachment.name)
+                        put(AttachmentV1Table.COL_ID, attachment.id)
+                        put(AttachmentV1Table.COL_EVENT_ID, event.id)
+                        put(AttachmentV1Table.COL_TYPE, attachment.type)
+                        put(AttachmentV1Table.COL_TIMESTAMP, event.timestamp)
+                        put(AttachmentV1Table.COL_SESSION_ID, event.sessionId)
+                        put(AttachmentV1Table.COL_FILE_PATH, attachment.path)
+                        put(AttachmentV1Table.COL_NAME, attachment.name)
                     }
 
                     if (writableDatabase.insert(
-                            AttachmentTable.TABLE_NAME,
+                            AttachmentV1Table.TABLE_NAME,
                             null,
                             attachmentValues,
                         ) == -1L
@@ -968,6 +973,114 @@ internal class DatabaseImpl(
 
     override fun markSessionWithBugReport(sessionId: String) {
         writableDatabase.execSQL(Sql.markSessionWithBugReport(sessionId))
+    }
+
+    override fun updateAttachmentUrls(signedAttachments: List<SignedAttachment>): Boolean {
+        if (signedAttachments.isEmpty()) {
+            return true
+        }
+
+        writableDatabase.beginTransaction()
+        try {
+            signedAttachments.forEach { attachment ->
+                val values = ContentValues().apply {
+                    put(AttachmentV1Table.COL_UPLOAD_URL, attachment.uploadUrl)
+                    put(AttachmentV1Table.COL_URL_EXPIRES_AT, attachment.expiresAt)
+                    put(
+                        AttachmentV1Table.COL_URL_HEADERS,
+                        jsonSerializer.encodeToString(attachment.headers),
+                    )
+                }
+
+                val result = writableDatabase.update(
+                    AttachmentV1Table.TABLE_NAME,
+                    values,
+                    "${AttachmentV1Table.COL_ID} = ?",
+                    arrayOf(attachment.id),
+                )
+
+                if (result == 0) {
+                    return false
+                }
+            }
+            writableDatabase.setTransactionSuccessful()
+            return true
+        } finally {
+            writableDatabase.endTransaction()
+        }
+    }
+
+    override fun getAttachmentsToUpload(
+        maxCount: Int,
+        excludeIds: List<String>,
+    ): List<AttachmentPacket> {
+        val attachments = mutableListOf<AttachmentPacket>()
+        try {
+            readableDatabase.rawQuery(Sql.getAttachmentsToUpload(maxCount, excludeIds), null).use {
+                while (it.moveToNext()) {
+                    val idIndex = it.getColumnIndex(AttachmentV1Table.COL_ID)
+                    val urlIndex = it.getColumnIndex(AttachmentV1Table.COL_UPLOAD_URL)
+                    val expiresAtIndex = it.getColumnIndex(AttachmentV1Table.COL_URL_EXPIRES_AT)
+                    val typeIndex = it.getColumnIndex(AttachmentV1Table.COL_TYPE)
+                    val nameIndex = it.getColumnIndex(AttachmentV1Table.COL_NAME)
+                    val filePathIndex = it.getColumnIndex(AttachmentV1Table.COL_FILE_PATH)
+                    val sessionIdIndex = it.getColumnIndex(AttachmentV1Table.COL_SESSION_ID)
+                    val headersIndex = it.getColumnIndex(AttachmentV1Table.COL_URL_HEADERS)
+
+                    val id = it.getString(idIndex)
+                    val url = it.getString(urlIndex)
+                    val expiresAt = it.getString(expiresAtIndex)
+                    val type = it.getString(typeIndex)
+                    val name = it.getString(nameIndex)
+                    val filePath = it.getString(filePathIndex)
+                    val sessionId = it.getString(sessionIdIndex)
+                    val headers = it.getString(headersIndex)
+                    attachments.add(
+                        AttachmentPacket(
+                            id = id,
+                            url = url,
+                            type = type,
+                            expiresAt = expiresAt,
+                            name = name,
+                            path = filePath,
+                            sessionId = sessionId,
+                            headers = jsonSerializer.decodeFromString(headers),
+                        ),
+                    )
+                }
+            }
+            return attachments
+        } catch (e: Exception) {
+            logger.log(LogLevel.Debug, "Failed to get attachments to upload", e)
+            return emptyList()
+        }
+    }
+
+    override fun deleteAttachment(attachmentId: String): Boolean {
+        return try {
+            val rowsDeleted = writableDatabase.delete(
+                AttachmentV1Table.TABLE_NAME,
+                "${AttachmentV1Table.COL_ID} = ?",
+                arrayOf(attachmentId),
+            )
+            rowsDeleted > 0
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Failed to delete attachment $attachmentId", e)
+            false
+        }
+    }
+
+    override fun deleteAttachments(attachmentIds: List<String>) {
+        if (attachmentIds.isEmpty()) {
+            return
+        }
+        val placeholders = attachmentIds.joinToString { "?" }
+        val whereClause = "${AttachmentV1Table.COL_ID} IN ($placeholders)"
+        writableDatabase.delete(
+            AttachmentV1Table.TABLE_NAME,
+            whereClause,
+            attachmentIds.toTypedArray(),
+        )
     }
 
     override fun getSessionForAppExit(pid: Int): AppExitCollector.Session? {
@@ -1030,10 +1143,13 @@ internal class DatabaseImpl(
 
     override fun getAttachmentsForEvents(events: List<String>): List<String> {
         val attachmentIds = mutableListOf<String>()
-        readableDatabase.rawQuery(Sql.getAttachmentsForEvents(events), null).use {
-            while (it.moveToNext()) {
-                val attachmentIdIndex = it.getColumnIndex(AttachmentTable.COL_ID)
-                val attachmentId = it.getString(attachmentIdIndex)
+        readableDatabase.rawQuery(Sql.getAttachmentsForEvents(events), null).use { cursor ->
+            val attachmentIdIndex = cursor.getColumnIndex(AttachmentV1Table.COL_ID)
+            if (attachmentIdIndex == -1) {
+                return attachmentIds
+            }
+            while (cursor.moveToNext()) {
+                val attachmentId = cursor.getString(attachmentIdIndex)
                 attachmentIds.add(attachmentId)
             }
         }

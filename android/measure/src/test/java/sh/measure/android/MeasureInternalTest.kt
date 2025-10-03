@@ -64,6 +64,7 @@ class MeasureInternalTest {
         `when`(initializer.executorServiceRegistry).thenReturn(mock())
         `when`(initializer.shakeBugReportCollector).thenReturn(mock())
         `when`(initializer.internalSignalCollector).thenReturn(mock())
+        `when`(initializer.attachmentExporter).thenReturn(mock())
 
         return initializer
     }

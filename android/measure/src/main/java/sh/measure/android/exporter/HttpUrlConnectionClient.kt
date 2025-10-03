@@ -1,56 +1,60 @@
 package sh.measure.android.exporter
 
 import okio.BufferedSink
-import okio.Source
 import okio.buffer
 import okio.sink
 import okio.source
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import java.io.IOException
-import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.MalformedURLException
 import java.net.URL
 
 internal interface HttpClient {
-    fun sendMultipartRequest(
+    fun sendJsonRequest(
         url: String,
         method: String,
         headers: Map<String, String>,
-        multipartData: List<MultipartData>,
+        jsonWriter: (BufferedSink) -> Unit,
+    ): HttpResponse
+
+    fun uploadFile(
+        url: String,
+        contentType: String,
+        headers: Map<String, String>,
+        fileSize: Long,
+        fileWriter: (BufferedSink) -> Unit,
     ): HttpResponse
 }
 
 /**
- * An Http client that uses `HttpURLConnection` to send multipart requests. This class
- * can be extended to support non-multipart requests in future.
+ * An Http client that uses `HttpURLConnection` to send JSON requests.
  *
- * The main feature of this client is that it streams files part of the request directly to the
- * socket, which allows to send large files without loading them entirely into the memory. It also
+ * The main feature of this client is that it streams JSON content directly to the
+ * socket, which allows to send large payloads without loading them entirely into the memory. It also
  * configures the `HttpUrlConnection` to `setChunkedStreamingMode` to avoid buffering the request
  * body in memory.
  */
 internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient {
     private val connectionTimeoutMs = 30_000
     private val readTimeoutMs = 10_000
-    private val boundary = "--boundary-7MA4YWxkTrZu0gW"
     private val maxRedirects = 5
 
-    override fun sendMultipartRequest(
+    override fun sendJsonRequest(
         url: String,
         method: String,
         headers: Map<String, String>,
-        multipartData: List<MultipartData>,
+        jsonWriter: (BufferedSink) -> Unit,
     ): HttpResponse {
-        return sendMultiPartRequestWithRedirects(url, method, headers, multipartData, 0)
+        return sendJsonRequestWithRedirects(url, method, headers, jsonWriter, 0)
     }
 
-    private fun sendMultiPartRequestWithRedirects(
+    private fun sendJsonRequestWithRedirects(
         url: String,
         method: String,
         headers: Map<String, String>,
-        multipartData: List<MultipartData>,
+        jsonWriter: (BufferedSink) -> Unit,
         redirectCount: Int,
     ): HttpResponse {
         if (redirectCount >= maxRedirects) {
@@ -61,17 +65,18 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
             connection = createConnection(url, method, headers)
             val outputStream = getOutputStream(connection)
             logger.log(LogLevel.Debug, "Sending request to measure: $url")
-            streamMultipartData(outputStream, multipartData)
+            jsonWriter(outputStream)
+            outputStream.flush()
             if (isRedirect(connection.responseCode)) {
                 val location = connection.getHeaderField("Location")
                     ?: throw IOException("Redirect location is missing")
                 val newUrl = resolveRedirectUrl(url, location)
                 connection.disconnect()
-                return sendMultiPartRequestWithRedirects(
+                return sendJsonRequestWithRedirects(
                     url = newUrl,
                     method = method,
                     headers = headers,
-                    multipartData = multipartData,
+                    jsonWriter = jsonWriter,
                     redirectCount = redirectCount + 1,
                 )
             }
@@ -83,11 +88,32 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
         }
     }
 
+    override fun uploadFile(
+        url: String,
+        contentType: String,
+        headers: Map<String, String>,
+        fileSize: Long,
+        fileWriter: (BufferedSink) -> Unit,
+    ): HttpResponse {
+        var connection: HttpURLConnection? = null
+        return try {
+            connection = createFileUploadConnection(url, contentType, headers, fileSize)
+            logger.log(LogLevel.Debug, "Uploading file to: $url")
+            connection.outputStream.sink().buffer().use { sink ->
+                fileWriter(sink)
+                sink.flush()
+            }
+            processResponse(connection)
+        } catch (e: IOException) {
+            HttpResponse.Error.UnknownError(e)
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
     private fun isRedirect(responseCode: Int): Boolean {
         // Handling only 307 (Temporary Redirect) and 308 (Permanent Redirect) as the redirection
         // status codes.
-        // 301, 302, and 303 change the method of the request to GET which is not suitable for
-        // multipart requests.
         // https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/307
         return responseCode == 307 || responseCode == 308
     }
@@ -114,78 +140,33 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
             setChunkedStreamingMode(0)
             connectTimeout = connectionTimeoutMs
             readTimeout = readTimeoutMs
-            setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+            setRequestProperty("Content-Type", "application/json")
             headers.forEach { (key, value) -> setRequestProperty(key, value) }
         }
     }
 
-    private fun streamMultipartData(
-        outputStream: BufferedSink,
-        multipartData: List<MultipartData>,
-    ) {
-        multipartData.forEach { data ->
-            when (data) {
-                is MultipartData.FormField -> writeFormField(outputStream, data)
-                is MultipartData.FileData -> writeFileData(outputStream, data)
-            }
-        }
-
-        writeClosingBoundary(outputStream)
-    }
-
-    private fun writeBoundary(sink: BufferedSink) {
-        sink.writeUtf8("--$boundary\r\n")
-    }
-
-    private fun writeHeaders(
-        sink: BufferedSink,
+    private fun createFileUploadConnection(
+        url: String,
+        contentType: String,
         headers: Map<String, String>,
-    ) {
-        headers.forEach { (key, value) ->
-            sink.writeUtf8("$key: $value\r\n")
+        fileSize: Long,
+    ): HttpURLConnection {
+        return (URL(url).openConnection() as HttpURLConnection).apply {
+            requestMethod = "PUT"
+            doOutput = true
+            useCaches = false
+            if (fileSize > 0) {
+                setFixedLengthStreamingMode(fileSize)
+            } else {
+                setChunkedStreamingMode(0)
+            }
+            setRequestProperty("Content-Type", contentType)
+            headers.forEach { (key, value) ->
+                setRequestProperty(key, value)
+            }
+            connectTimeout = connectionTimeoutMs
+            readTimeout = connectionTimeoutMs
         }
-        sink.writeUtf8("\r\n")
-    }
-
-    private fun writeContent(sink: BufferedSink, content: String) {
-        sink.writeUtf8(content)
-        sink.writeUtf8("\r\n")
-        sink.flush()
-    }
-
-    private fun writeClosingBoundary(sink: BufferedSink) {
-        sink.writeUtf8("--$boundary--\r\n")
-        sink.flush()
-    }
-
-    private fun writeFormField(sink: BufferedSink, data: MultipartData.FormField) {
-        val (headers, content) = getFormFieldPart(data)
-        writeBoundary(sink)
-        writeHeaders(sink, headers)
-        writeContent(sink, content)
-    }
-
-    private fun writeFileData(sink: BufferedSink, data: MultipartData.FileData) {
-        val (headers, source) = getFileDataPart(data)
-        writeBoundary(sink)
-        writeHeaders(sink, headers)
-        sink.writeAll(source)
-        sink.writeUtf8("\r\n")
-        sink.flush()
-    }
-
-    private fun getFormFieldPart(data: MultipartData.FormField): Pair<Map<String, String>, String> {
-        val headers = mapOf(
-            "Content-Disposition" to "form-data; name=\"${data.name}\"",
-        )
-        return headers to data.value
-    }
-
-    private fun getFileDataPart(data: MultipartData.FileData): Pair<Map<String, String>, Source> {
-        val headers = mapOf(
-            "Content-Disposition" to "form-data; name=\"${data.name}\"; filename=\"${data.filename}\"",
-        )
-        return headers to data.inputStream.source()
     }
 
     private fun getOutputStream(connection: HttpURLConnection): BufferedSink {
@@ -207,7 +188,7 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
                     connection.errorStream?.source()?.buffer()?.readString(Charsets.UTF_8)
                 }
             }
-        } catch (e: IOException) {
+        } catch (_: IOException) {
             null
         }
     }
@@ -222,13 +203,4 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
             else -> HttpResponse.Error.UnknownError()
         }
     }
-}
-
-internal sealed class MultipartData {
-    data class FormField(val name: String, val value: String) : MultipartData()
-    data class FileData(
-        val name: String,
-        val filename: String,
-        val inputStream: InputStream,
-    ) : MultipartData()
 }

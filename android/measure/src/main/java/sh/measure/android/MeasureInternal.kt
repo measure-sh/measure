@@ -49,6 +49,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
     private val networkChangesCollector by lazy { measureInitializer.networkChangesCollector }
     private val appExitCollector by lazy { measureInitializer.appExitCollector }
     private val periodicExporter by lazy { measureInitializer.periodicExporter }
+    private val attachmentExporter by lazy { measureInitializer.attachmentExporter }
     private val userAttributeProcessor by lazy { measureInitializer.userAttributeProcessor }
     private val configProvider by lazy { measureInitializer.configProvider }
     private val dataCleanupService by lazy { measureInitializer.dataCleanupService }
@@ -169,6 +170,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         httpEventCollector.register()
         powerStateProvider.register()
         periodicExporter.resume()
+        attachmentExporter.register()
         spanCollector.register()
         customEventCollector.register()
         periodicSignalStoreScheduler.register()
@@ -185,6 +187,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
                 cpuUsageCollector.resume()
                 memoryUsageCollector.resume()
                 periodicExporter.resume()
+                attachmentExporter.register()
             }
         }
     }
@@ -196,6 +199,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
                 cpuUsageCollector.pause()
                 memoryUsageCollector.pause()
                 periodicExporter.pause()
+                attachmentExporter.unregister()
                 powerStateProvider.unregister()
                 networkChangesCollector.unregister()
                 periodicSignalStoreScheduler.onAppBackground()
@@ -445,6 +449,7 @@ internal class MeasureInternal(measureInitializer: MeasureInitializer) : AppLife
         httpEventCollector.unregister()
         powerStateProvider.unregister()
         periodicExporter.unregister()
+        attachmentExporter.unregister()
         spanCollector.unregister()
         customEventCollector.unregister()
         periodicSignalStoreScheduler.unregister()

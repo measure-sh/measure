@@ -73,13 +73,13 @@ internal class DataCleanupServiceImpl(
         if (estimatedSizeInMb <= configProvider.maxDiskUsageInMb.coerceIn(20, 1500)) {
             return
         }
-        deleteOldestSession(currentSessionId)
-    }
-
-    private fun deleteOldestSession(currentSessionId: String) {
         database.getOldestSession()?.let {
             if (it != currentSessionId) {
                 deleteSessions(listOf(it))
+                logger.log(
+                    LogLevel.Debug,
+                    "DataCleanup: deleted session $it estimated storage: $estimatedSizeInMb, maxAllowed: ${configProvider.maxDiskUsageInMb}",
+                )
             }
         }
     }
@@ -90,7 +90,13 @@ internal class DataCleanupServiceImpl(
             filterSessionIds = listOf(currentSessionId),
             maxCount = MAX_SESSIONS_TO_QUERY,
         )
-        deleteSessions(sessionIds)
+        if (sessionIds.isNotEmpty()) {
+            deleteSessions(sessionIds)
+            logger.log(
+                LogLevel.Debug,
+                "DataCleanup: deleted sessions not marked for reporting ${sessionIds.joinToString()}",
+            )
+        }
     }
 
     private fun deleteSessions(sessionIds: List<String>) {
@@ -98,10 +104,11 @@ internal class DataCleanupServiceImpl(
             return
         }
         val eventIds = database.getEventsForSessions(sessionIds)
+        fileStorage.deleteEventsIfExist(eventIds)
         val attachmentIds = database.getAttachmentsForEvents(eventIds)
-        fileStorage.deleteEventsIfExist(eventIds, attachmentIds)
-        // deleting sessions from db will also delete events for the session as they ar
-        // e cascaded deletes.
+        fileStorage.deleteAttachmentsIfExist(attachmentIds)
+        // deleting sessions from db will also delete events, spans and attachments for the session
+        // as they are cascaded deletes.
         database.deleteSessions(sessionIds)
     }
 }
