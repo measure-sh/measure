@@ -50,7 +50,7 @@ class DatabaseTest {
             it.moveToNext()
             assertEquals(EventTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
-            assertEquals(AttachmentTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
+            assertEquals(AttachmentV1Table.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
             assertEquals(BatchesTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
@@ -930,6 +930,48 @@ class DatabaseTest {
     }
 
     @Test
+    fun `deleteSessions also deletes attachments for the session`() {
+        // given
+        database.insertSession(TestData.getSessionEntity("session-id-1"))
+        database.insertSession(TestData.getSessionEntity("session-id-2"))
+        val attachmentToDelete = TestData.getAttachmentEntity(id = "attachment-1")
+        val attachmentToNotDelete = TestData.getAttachmentEntity(id = "attachment-2")
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-id-1",
+                attachmentEntities = listOf(attachmentToDelete),
+                sessionId = "session-id-1"
+            )
+        )
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-id-2",
+                attachmentEntities = listOf(
+                    attachmentToNotDelete
+                ), sessionId = "session-id-2"
+            )
+        )
+
+        // when
+        database.deleteSessions(listOf("session-id-1"))
+
+        // then
+        database.readableDatabase.query(
+            AttachmentV1Table.TABLE_NAME,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+        ).use {
+            assertEquals(1, it.count)
+            it.moveToFirst()
+            assertEquals("attachment-2", it.getString(it.getColumnIndex(AttachmentV1Table.COL_ID)))
+        }
+    }
+
+    @Test
     fun `getEventsForSessions returns all event Ids for given session Ids`() {
         // given
         val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
@@ -1028,7 +1070,7 @@ class DatabaseTest {
     }
 
     @Test
-    fun `deleteBatch deletes all events, attachments and spans for the batch`() {
+    fun `deleteBatch deletes all events and spans for the batch`() {
         // given
         val event1 = TestData.getEventEntity(eventId = "event-id-1", sessionId = "session-id-1")
         val event2 = TestData.getEventEntity(eventId = "event-id-2", sessionId = "session-id-1")
@@ -1088,9 +1130,6 @@ class DatabaseTest {
             assertEquals(0, it.count)
         }
         queryAllSpans(database.writableDatabase).use {
-            assertEquals(0, it.count)
-        }
-        queryAllAttachments(database.writableDatabase).use {
             assertEquals(0, it.count)
         }
     }
@@ -1228,7 +1267,7 @@ class DatabaseTest {
 
     private fun queryAllAttachments(db: SQLiteDatabase): Cursor {
         return db.query(
-            AttachmentTable.TABLE_NAME,
+            AttachmentV1Table.TABLE_NAME,
             null,
             null,
             null,
@@ -1279,9 +1318,9 @@ class DatabaseTest {
 
     private fun queryAttachmentsForEvent(db: SQLiteDatabase, eventId: String): Cursor {
         return db.query(
-            AttachmentTable.TABLE_NAME,
+            AttachmentV1Table.TABLE_NAME,
             null,
-            "${AttachmentTable.COL_EVENT_ID} = ?",
+            "${AttachmentV1Table.COL_EVENT_ID} = ?",
             arrayOf(eventId),
             null,
             null,
@@ -1334,31 +1373,31 @@ class DatabaseTest {
     ) {
         assertEquals(
             attachmentEntity.id,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_ID)),
+            cursor.getString(cursor.getColumnIndex(AttachmentV1Table.COL_ID)),
         )
         assertEquals(
             attachmentEntity.type,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_TYPE)),
+            cursor.getString(cursor.getColumnIndex(AttachmentV1Table.COL_TYPE)),
         )
         assertEquals(
             attachmentEntity.path,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_FILE_PATH)),
+            cursor.getString(cursor.getColumnIndex(AttachmentV1Table.COL_FILE_PATH)),
         )
         assertEquals(
             attachmentEntity.name,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_NAME)),
+            cursor.getString(cursor.getColumnIndex(AttachmentV1Table.COL_NAME)),
         )
         assertEquals(
             event.timestamp,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_TIMESTAMP)),
+            cursor.getString(cursor.getColumnIndex(AttachmentV1Table.COL_TIMESTAMP)),
         )
         assertEquals(
             event.sessionId,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_SESSION_ID)),
+            cursor.getString(cursor.getColumnIndex(AttachmentV1Table.COL_SESSION_ID)),
         )
         assertEquals(
             event.id,
-            cursor.getString(cursor.getColumnIndex(AttachmentTable.COL_EVENT_ID)),
+            cursor.getString(cursor.getColumnIndex(AttachmentV1Table.COL_EVENT_ID)),
         )
     }
 

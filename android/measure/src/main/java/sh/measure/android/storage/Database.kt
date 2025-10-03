@@ -216,7 +216,7 @@ internal class DatabaseImpl(
         try {
             db.execSQL(Sql.CREATE_SESSIONS_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_TABLE)
-            db.execSQL(Sql.CREATE_ATTACHMENTS_TABLE)
+            db.execSQL(Sql.CREATE_ATTACHMENTS_V1_TABLE)
             db.execSQL(Sql.CREATE_BATCHES_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_BATCH_TABLE)
             db.execSQL(Sql.CREATE_APP_EXIT_TABLE)
@@ -270,16 +270,16 @@ internal class DatabaseImpl(
 
             event.attachmentEntities?.forEach { attachment ->
                 val attachmentValues = ContentValues().apply {
-                    put(AttachmentTable.COL_ID, attachment.id)
-                    put(AttachmentTable.COL_EVENT_ID, event.id)
-                    put(AttachmentTable.COL_TYPE, attachment.type)
-                    put(AttachmentTable.COL_TIMESTAMP, event.timestamp)
-                    put(AttachmentTable.COL_SESSION_ID, event.sessionId)
-                    put(AttachmentTable.COL_FILE_PATH, attachment.path)
-                    put(AttachmentTable.COL_NAME, attachment.name)
+                    put(AttachmentV1Table.COL_ID, attachment.id)
+                    put(AttachmentV1Table.COL_EVENT_ID, event.id)
+                    put(AttachmentV1Table.COL_TYPE, attachment.type)
+                    put(AttachmentV1Table.COL_TIMESTAMP, event.timestamp)
+                    put(AttachmentV1Table.COL_SESSION_ID, event.sessionId)
+                    put(AttachmentV1Table.COL_FILE_PATH, attachment.path)
+                    put(AttachmentV1Table.COL_NAME, attachment.name)
                 }
                 val attachmentResult =
-                    writableDatabase.insert(AttachmentTable.TABLE_NAME, null, attachmentValues)
+                    writableDatabase.insert(AttachmentV1Table.TABLE_NAME, null, attachmentValues)
                 if (attachmentResult == -1L) {
                     logger.log(
                         LogLevel.Debug,
@@ -511,8 +511,8 @@ internal class DatabaseImpl(
         readableDatabase.rawQuery(Sql.getAttachmentsForEventIds(eventIds), null).use {
             val attachmentPackets = mutableListOf<AttachmentPacket>()
             while (it.moveToNext()) {
-                val idIndex = it.getColumnIndex(AttachmentTable.COL_ID)
-                val filePathIndex = it.getColumnIndex(AttachmentTable.COL_FILE_PATH)
+                val idIndex = it.getColumnIndex(AttachmentV1Table.COL_ID)
+                val filePathIndex = it.getColumnIndex(AttachmentV1Table.COL_FILE_PATH)
 
                 val id = it.getString(idIndex)
                 val filePath = it.getString(filePathIndex)
@@ -731,10 +731,10 @@ internal class DatabaseImpl(
         val attachmentEntities = mutableListOf<AttachmentEntity>()
         readableDatabase.rawQuery(Sql.getAttachmentsForEventIds(eventIds), null).use {
             while (it.moveToNext()) {
-                val attachmentIdIndex = it.getColumnIndex(AttachmentTable.COL_ID)
-                val typeIndex = it.getColumnIndex(AttachmentTable.COL_TYPE)
-                val filePathIndex = it.getColumnIndex(AttachmentTable.COL_FILE_PATH)
-                val nameIndex = it.getColumnIndex(AttachmentTable.COL_NAME)
+                val attachmentIdIndex = it.getColumnIndex(AttachmentV1Table.COL_ID)
+                val typeIndex = it.getColumnIndex(AttachmentV1Table.COL_TYPE)
+                val filePathIndex = it.getColumnIndex(AttachmentV1Table.COL_FILE_PATH)
+                val nameIndex = it.getColumnIndex(AttachmentV1Table.COL_NAME)
 
                 val attachmentId = it.getString(attachmentIdIndex)
                 val type = it.getString(typeIndex)
@@ -910,17 +910,17 @@ internal class DatabaseImpl(
                 // Batch insert attachments for this event
                 event.attachmentEntities?.forEach { attachment ->
                     val attachmentValues = ContentValues(7).apply {
-                        put(AttachmentTable.COL_ID, attachment.id)
-                        put(AttachmentTable.COL_EVENT_ID, event.id)
-                        put(AttachmentTable.COL_TYPE, attachment.type)
-                        put(AttachmentTable.COL_TIMESTAMP, event.timestamp)
-                        put(AttachmentTable.COL_SESSION_ID, event.sessionId)
-                        put(AttachmentTable.COL_FILE_PATH, attachment.path)
-                        put(AttachmentTable.COL_NAME, attachment.name)
+                        put(AttachmentV1Table.COL_ID, attachment.id)
+                        put(AttachmentV1Table.COL_EVENT_ID, event.id)
+                        put(AttachmentV1Table.COL_TYPE, attachment.type)
+                        put(AttachmentV1Table.COL_TIMESTAMP, event.timestamp)
+                        put(AttachmentV1Table.COL_SESSION_ID, event.sessionId)
+                        put(AttachmentV1Table.COL_FILE_PATH, attachment.path)
+                        put(AttachmentV1Table.COL_NAME, attachment.name)
                     }
 
                     if (writableDatabase.insert(
-                            AttachmentTable.TABLE_NAME,
+                            AttachmentV1Table.TABLE_NAME,
                             null,
                             attachmentValues,
                         ) == -1L
@@ -1032,7 +1032,7 @@ internal class DatabaseImpl(
         val attachmentIds = mutableListOf<String>()
         readableDatabase.rawQuery(Sql.getAttachmentsForEvents(events), null).use {
             while (it.moveToNext()) {
-                val attachmentIdIndex = it.getColumnIndex(AttachmentTable.COL_ID)
+                val attachmentIdIndex = it.getColumnIndex(AttachmentV1Table.COL_ID)
                 val attachmentId = it.getString(attachmentIdIndex)
                 attachmentIds.add(attachmentId)
             }
