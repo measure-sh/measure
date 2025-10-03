@@ -7,8 +7,8 @@ import {
   initializeNativeSDK,
   start,
   stop,
-  trackEvent as nativeTrackEvent,
 } from './native/measureBridge';
+import type { ValidAttributeValue } from './utils/attributeValueValidator';
 
 export class MeasureInternal {
   private measureInitializer: MeasureInitializer;
@@ -31,6 +31,9 @@ export class MeasureInternal {
   }
 
   init(client: Client, config: MeasureConfig | null): Promise<any> {
+    if (config?.autoStart) {
+      this.registerCollectors();
+    }
     return initializeNativeSDK(
       client,
       config ??
@@ -51,6 +54,7 @@ export class MeasureInternal {
   }
 
   start = (): Promise<any> => {
+    this.registerCollectors();
     return start();
   };
 
@@ -60,51 +64,22 @@ export class MeasureInternal {
 
   trackEvent = (
     name: string,
-    attributes?: Record<string, string | number | boolean>,
+    attributes?: Record<string, ValidAttributeValue>,
     timestamp?: number
   ): Promise<void> => {
-    if (!name || name.length === 0) {
-      this.measureInitializer.logger.internalLog(
-        'warning',
-        '[MeasureInternal] trackEvent called with empty name, ignoring.'
-      );
-      return Promise.reject(
-        new Error('[MeasureInternal] trackEvent called with empty name.')
-      );
-    }
-
-    const eventTimestamp = timestamp ?? Date.now();
-
-    this.measureInitializer.logger.internalLog(
-      'info',
-      '[MeasureInternal] trackEvent',
-      { name, attributes: attributes ?? {}, timestamp: eventTimestamp }
+    console.log('MeasureInternal.ts Custom event tracked: button_click $attributes', attributes);
+    return this.measureInitializer.customEventCollector.trackCustomEvent(
+      name,
+      attributes ?? {},
+      timestamp
     );
-
-    // Bridge to native
-    return nativeTrackEvent(
-      { name }, // data
-      'custom', // type
-      eventTimestamp,
-      attributes ?? {}, // attributes
-      {}, // userDefinedAttrs
-      true, // userTriggered
-      undefined, // sessionId (optional for now)
-      undefined, // threadName (optional for now)
-      [] // attachments
-    )
-      .then(() => {
-        this.measureInitializer.logger.internalLog(
-          'info',
-          `[MeasureInternal] Successfully tracked event '${name}'`
-        );
-      })
-      .catch((err) => {
-        this.measureInitializer.logger.internalLog(
-          'error',
-          `[MeasureInternal] Failed to track event '${name}': ${err}`
-        );
-        throw err;
-      });
   };
+
+  registerCollectors(): void {
+    this.measureInitializer.customEventCollector.register();
+  }
+
+  unregisterCollectors(): void {
+    this.measureInitializer.customEventCollector.unregister();
+  }
 }

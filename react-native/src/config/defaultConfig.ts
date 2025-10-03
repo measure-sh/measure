@@ -15,5 +15,6 @@ export const DefaultConfig = {
     "msr-req-id",
     "Authorization",
     "Content-Length"
-  ]
+  ],
+  customEventNameRegex: "^[a-zA-Z0-9_-]+\$"
 };

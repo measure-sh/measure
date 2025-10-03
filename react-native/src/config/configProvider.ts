@@ -94,4 +94,8 @@ export class BaseConfigProvider implements ConfigProvider {
   get maxEventNameLength(): number {
     return this.getMergedConfig('maxEventNameLength');
   }
+
+  get customEventNameRegex(): string {
+    return this.getMergedConfig('customEventNameRegex');
+  }
 }
