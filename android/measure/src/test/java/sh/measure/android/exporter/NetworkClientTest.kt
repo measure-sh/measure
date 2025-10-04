@@ -18,13 +18,11 @@ import sh.measure.android.storage.FileStorage
 class NetworkClientTest {
     private val fileStorage = mock<FileStorage>()
     private val httpClient = mock<HttpUrlConnectionClient>()
-    private val multipartDataFactory = mock<MultipartDataFactory>()
     private val configProvider = FakeConfigProvider()
     private val networkClient: NetworkClient = NetworkClientImpl(
         logger = NoopLogger(),
         fileStorage = fileStorage,
         httpClient = httpClient,
-        multipartDataFactory = multipartDataFactory,
         configProvider = configProvider,
     ).apply {
         init(apiKey = "secret", baseUrl = "http://localhost:8080")
@@ -44,7 +42,6 @@ class NetworkClientTest {
             logger = errorLogger,
             fileStorage = fileStorage,
             httpClient = httpClient,
-            multipartDataFactory = multipartDataFactory,
             configProvider = configProvider,
         )
 
@@ -57,60 +54,27 @@ class NetworkClientTest {
     fun `execute sends request with correct URL and headers`() {
         val eventPackets = listOf<EventPacket>()
         val spanPackets = listOf<SpanPacket>()
-        val multipartData = listOf<MultipartData>()
 
-        `when`(multipartDataFactory.createFromEventPacket(any())).thenReturn(null)
-        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
+        `when`(httpClient.sendJsonRequest(anyString(), anyString(), any(), any())).thenReturn(
             HttpResponse.Success(),
         )
 
         networkClient.execute("batch123", eventPackets, spanPackets)
 
-        verify(httpClient).sendMultipartRequest(
+        verify(httpClient).sendJsonRequest(
             eq("http://localhost:8080/events"),
             eq("PUT"),
             eq(
                 mapOf("msr-req-id" to "batch123", "Authorization" to "Bearer secret"),
             ),
-            eq(multipartData),
-        )
-    }
-
-    @Test
-    fun `execute prepares multipart data correctly`() {
-        val eventPacket = mock<EventPacket>()
-        val spanPacket = mock<SpanPacket>()
-        val eventMultipartData = mock<MultipartData>()
-        val spanMultipartData = mock<MultipartData>()
-
-        `when`(multipartDataFactory.createFromEventPacket(eventPacket)).thenReturn(
-            eventMultipartData,
-        )
-        `when`(multipartDataFactory.createFromSpanPacket(spanPacket)).thenReturn(
-            spanMultipartData,
-        )
-        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
-            HttpResponse.Success(),
-        )
-
-        networkClient.execute(
-            "batch123",
-            listOf(eventPacket),
-            listOf(spanPacket),
-        )
-
-        verify(httpClient).sendMultipartRequest(
             any(),
-            any(),
-            any(),
-            eq(listOf(eventMultipartData, spanMultipartData)),
         )
     }
 
     @Test
     fun `execute handles successful response`() {
         val successResponse = HttpResponse.Success()
-        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
+        `when`(httpClient.sendJsonRequest(anyString(), anyString(), any(), any())).thenReturn(
             successResponse,
         )
 
@@ -122,7 +86,7 @@ class NetworkClientTest {
     @Test
     fun `execute handles rate limit error`() {
         val rateLimitResponse = HttpResponse.Error.RateLimitError()
-        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
+        `when`(httpClient.sendJsonRequest(anyString(), anyString(), any(), any())).thenReturn(
             rateLimitResponse,
         )
 
@@ -134,7 +98,7 @@ class NetworkClientTest {
     @Test
     fun `execute handles client error`() {
         val clientErrorResponse = HttpResponse.Error.ClientError(400)
-        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
+        `when`(httpClient.sendJsonRequest(anyString(), anyString(), any(), any())).thenReturn(
             clientErrorResponse,
         )
 
@@ -146,7 +110,7 @@ class NetworkClientTest {
     @Test
     fun `execute handles server error`() {
         val serverErrorResponse = HttpResponse.Error.ServerError(500)
-        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
+        `when`(httpClient.sendJsonRequest(anyString(), anyString(), any(), any())).thenReturn(
             serverErrorResponse,
         )
 
@@ -158,7 +122,7 @@ class NetworkClientTest {
     @Test
     fun `execute handles unknown error`() {
         val exception = RuntimeException("Unknown error")
-        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenThrow(
+        `when`(httpClient.sendJsonRequest(anyString(), anyString(), any(), any())).thenThrow(
             exception,
         )
 
@@ -174,7 +138,6 @@ class NetworkClientTest {
             logger = NoopLogger(),
             fileStorage = fileStorage,
             httpClient = httpClient,
-            multipartDataFactory = multipartDataFactory,
             configProvider = configProvider,
         )
 
@@ -189,13 +152,13 @@ class NetworkClientTest {
         val eventPackets = listOf<EventPacket>()
         val spanPackets = listOf<SpanPacket>()
 
-        `when`(httpClient.sendMultipartRequest(anyString(), anyString(), any(), any())).thenReturn(
+        `when`(httpClient.sendJsonRequest(anyString(), anyString(), any(), any())).thenReturn(
             HttpResponse.Success(),
         )
 
         networkClient.execute("batch123", eventPackets, spanPackets)
 
-        verify(httpClient).sendMultipartRequest(
+        verify(httpClient).sendJsonRequest(
             eq("http://localhost:8080/events"),
             any(),
             any(),

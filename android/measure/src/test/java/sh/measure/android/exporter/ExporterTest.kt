@@ -184,7 +184,7 @@ internal class ExporterTest {
     }
 
     @Test
-    fun `deletes the batch, events, spans and attachments on client error`() {
+    fun `deletes the batch, events and spans on client error`() {
         `when`(
             networkClient.execute(
                 any(),
@@ -192,27 +192,17 @@ internal class ExporterTest {
                 any(),
             ),
         ).thenReturn(HttpResponse.Error.ClientError(400))
-        val attachment1 = AttachmentEntity("attachment1", "type", "name", "path")
-        val attachmentPath = getPathForAttachment(attachment1)
         insertSessionInDb("sessionId")
-        insertEventInDb(
-            "sessionId",
-            "event1",
-            attachmentEntities = listOf(attachment1),
-            attachmentSize = 100,
-        )
+        insertEventInDb("sessionId", "event1")
         insertEventInDb("sessionId", "event2")
         insertSpanInDb("sessionId", "span1")
         val eventIds = listOf("event1", "event2")
         val spanIds = listOf("span1")
         insertBatchInDb(Batch("batch1", eventIds = eventIds, spanIds = spanIds))
-        insertAttachmentToStorage(attachment1)
 
-        // ensure batch, events, attachments are in storage
+        // ensure batch, events are in storage
         val eventsBeforeExport = database.getEvents(eventIds)
         Assert.assertEquals(2, eventsBeforeExport.size)
-        Assert.assertEquals(1, eventsBeforeExport[0].attachmentEntities?.size)
-        Assert.assertNotNull(fileStorage.getFile(attachmentPath))
         Assert.assertEquals(1, database.getBatches(1).size)
         queryAllSpans().use {
             Assert.assertEquals(1, it.count)
@@ -220,12 +210,11 @@ internal class ExporterTest {
 
         exporter.export(Batch("batch1", eventIds = eventIds, spanIds = spanIds))
 
-        // ensure batch, events, attachments are deleted from storage
+        // ensure batch, events are deleted from storage
         Assert.assertEquals(
             0,
             database.getEvents(eventIds).size,
         )
-        Assert.assertNull(fileStorage.getFile(attachmentPath))
         Assert.assertEquals(0, database.getBatches(1).size)
         queryAllSpans().use {
             Assert.assertEquals(0, it.count)

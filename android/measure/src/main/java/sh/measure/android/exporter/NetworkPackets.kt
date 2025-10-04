@@ -1,5 +1,6 @@
 package sh.measure.android.exporter
 
+import android.annotation.SuppressLint
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
@@ -24,6 +25,7 @@ internal data class EventPacket(
     val serializedUserDefinedAttributes: String?,
 )
 
+@SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class SpanPacket(
     @SerialName("name")
