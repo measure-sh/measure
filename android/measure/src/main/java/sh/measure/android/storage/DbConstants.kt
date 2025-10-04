@@ -263,7 +263,7 @@ internal object Sql {
              * ```
              */
             return """
-                SELECT e.${EventTable.COL_ID}, e.${EventTable.COL_ATTACHMENT_SIZE} 
+                SELECT e.${EventTable.COL_ID}
                 FROM ${EventTable.TABLE_NAME} e
                 LEFT JOIN ${EventsBatchTable.TABLE_NAME} eb ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
                 WHERE eb.${EventsBatchTable.COL_EVENT_ID} IS NULL

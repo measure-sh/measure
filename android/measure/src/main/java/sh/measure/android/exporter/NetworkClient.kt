@@ -11,7 +11,6 @@ internal interface NetworkClient {
     fun execute(
         batchId: String,
         eventPackets: List<EventPacket>,
-        attachmentPackets: List<AttachmentPacket>,
         spanPackets: List<SpanPacket>,
     ): HttpResponse
 }
@@ -43,7 +42,6 @@ internal class NetworkClientImpl(
     override fun execute(
         batchId: String,
         eventPackets: List<EventPacket>,
-        attachmentPackets: List<AttachmentPacket>,
         spanPackets: List<SpanPacket>,
     ): HttpResponse {
         if (!isInitialized()) {
@@ -54,7 +52,7 @@ internal class NetworkClientImpl(
         }
 
         val headers = createHeaders(batchId)
-        val multipartData = prepareMultipartData(eventPackets, attachmentPackets, spanPackets)
+        val multipartData = prepareMultipartData(eventPackets, spanPackets)
 
         return try {
             httpClient.sendMultipartRequest(eventsUrl.toString(), "PUT", headers, multipartData)
@@ -101,19 +99,15 @@ internal class NetworkClientImpl(
 
     private fun prepareMultipartData(
         eventPackets: List<EventPacket>,
-        attachmentPackets: List<AttachmentPacket>,
         spanPackets: List<SpanPacket>,
     ): List<MultipartData> {
         val events = eventPackets.mapNotNull {
             multipartDataFactory.createFromEventPacket(it)
         }
-        val attachments = attachmentPackets.mapNotNull {
-            multipartDataFactory.createFromAttachmentPacket(it)
-        }
         val spans = spanPackets.map {
             multipartDataFactory.createFromSpanPacket(it)
         }
-        return events + attachments + spans
+        return events + spans
     }
 
     private fun sanitizedCustomHeaders(): Map<String, String>? {

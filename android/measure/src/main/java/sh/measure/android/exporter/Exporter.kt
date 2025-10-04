@@ -53,13 +53,12 @@ internal class ExporterImpl(
                 )
                 return null
             }
-            val attachments = database.getAttachmentPackets(batch.eventIds)
             logger.log(
                 LogLevel.Debug,
                 "Exporting batch ${batch.batchId} with ${events.size} events and ${spans.size} spans",
             )
-            val response = networkClient.execute(batch.batchId, events, attachments, spans)
-            handleBatchProcessingResult(response, batch.batchId, events, spans, attachments)
+            val response = networkClient.execute(batch.batchId, events, spans)
+            handleBatchProcessingResult(response, batch.batchId, events, spans)
             return response
         } finally {
             // always remove the batch from the list of batches in transit
@@ -80,16 +79,15 @@ internal class ExporterImpl(
         batchId: String,
         events: List<EventPacket>,
         spans: List<SpanPacket>,
-        attachments: List<AttachmentPacket>,
     ) {
         when (response) {
             is HttpResponse.Success -> {
                 logger.log(LogLevel.Debug, "Successfully exported batch $batchId")
-                deleteBatch(events, spans, attachments, batchId)
+                deleteBatch(events, spans, batchId)
             }
 
             is HttpResponse.Error.ClientError -> {
-                deleteBatch(events, spans, attachments, batchId)
+                deleteBatch(events, spans, batchId)
                 logger.log(
                     LogLevel.Debug,
                     "Failed to export batch $batchId, response code: ${response.code}",
@@ -120,12 +118,11 @@ internal class ExporterImpl(
     private fun deleteBatch(
         events: List<EventPacket>,
         spans: List<SpanPacket>,
-        attachments: List<AttachmentPacket>,
         batchId: String,
     ) {
         val eventIds = events.map { it.eventId }
         val spanIds = spans.map { it.spanId }
         database.deleteBatch(batchId, eventIds = eventIds, spanIds = spanIds)
-        fileStorage.deleteEventsIfExist(eventIds, attachments.map { it.id })
+        fileStorage.deleteEventsIfExist(eventIds)
     }
 }

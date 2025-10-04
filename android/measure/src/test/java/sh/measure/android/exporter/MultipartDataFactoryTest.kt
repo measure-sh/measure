@@ -5,7 +5,6 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.mock
-import sh.measure.android.exporter.MultipartDataFactoryImpl.Companion.ATTACHMENT_NAME_PREFIX
 import sh.measure.android.exporter.MultipartDataFactoryImpl.Companion.EVENT_FORM_NAME
 import sh.measure.android.exporter.MultipartDataFactoryImpl.Companion.SPAN_FORM_NAME
 import sh.measure.android.fakes.NoopLogger
@@ -14,7 +13,6 @@ import sh.measure.android.logger.Logger
 import sh.measure.android.storage.FileStorage
 import sh.measure.android.utils.iso8601Timestamp
 import java.io.File
-import java.io.InputStream
 
 class MultipartDataFactoryTest {
     private val logger: Logger = NoopLogger()
@@ -80,38 +78,6 @@ class MultipartDataFactoryTest {
         `when`(fileStorage.getFile("/path/to/nonexistent.json")).thenReturn(null)
 
         val result = multipartDataFactory.createFromEventPacket(eventPacket)
-
-        assertNull(result)
-    }
-
-    @Test
-    fun `createFromAttachmentPacket returns FileData when file exists`() {
-        val attachmentPacket = TestData.getAttachmentPacket(
-            id = "attachment-id",
-            filePath = "/path/to/attachment.png",
-        )
-        `when`(fileStorage.getFile(attachmentPacket.filePath)).thenReturn(fakeFile)
-
-        val result = multipartDataFactory.createFromAttachmentPacket(attachmentPacket)
-
-        assert(result is MultipartData.FileData)
-        assertEquals(
-            "${ATTACHMENT_NAME_PREFIX}attachment-id",
-            (result as MultipartData.FileData).name,
-        )
-        assertEquals("${ATTACHMENT_NAME_PREFIX}attachment-id", result.filename)
-        assertEquals(getFakeFileContent(), result.inputStream.readAsString())
-    }
-
-    @Test
-    fun `createFromAttachmentPacket returns null when file not found`() {
-        val attachmentPacket = TestData.getAttachmentPacket(
-            id = "attachment-id",
-            filePath = "/path/to/invalid_path",
-        )
-        `when`(fileStorage.getFile(attachmentPacket.filePath)).thenReturn(null)
-
-        val result = multipartDataFactory.createFromAttachmentPacket(attachmentPacket)
 
         assertNull(result)
     }
@@ -185,9 +151,5 @@ class MultipartDataFactoryTest {
 
     private fun getFakeFileContent(): String {
         return "lorem ipsum dolor sit amet"
-    }
-
-    private fun InputStream.readAsString(): String {
-        return bufferedReader().use { it.readText() }
     }
 }

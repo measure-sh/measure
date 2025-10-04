@@ -37,14 +37,14 @@ internal interface Database : Closeable {
      * @param eventTypeExportAllowList The list of event types that should be included in the result
      * regardless of session ID or whether the session is marked as "needs reporting" or not.
      *
-     * @return a map of event Id to the size of attachments in the event in bytes.
+     * @return a list of event IDs.
      */
-    fun getUnBatchedEventsWithAttachmentSize(
+    fun getUnBatchedEvents(
         eventCount: Int,
         ascending: Boolean = true,
         sessionId: String? = null,
         eventTypeExportAllowList: List<EventType> = emptyList(),
-    ): LinkedHashMap<String, Long>
+    ): List<String>
 
     fun getUnBatchedSpans(
         spanCount: Int,
@@ -306,28 +306,26 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun getUnBatchedEventsWithAttachmentSize(
+    override fun getUnBatchedEvents(
         eventCount: Int,
         ascending: Boolean,
         sessionId: String?,
         eventTypeExportAllowList: List<EventType>,
-    ): LinkedHashMap<String, Long> {
+    ): List<String> {
         val query =
             Sql.getEventsBatchQuery(eventCount, ascending, sessionId, eventTypeExportAllowList)
         val cursor = readableDatabase.rawQuery(query, null)
-        val eventIdAttachmentSizeMap = LinkedHashMap<String, Long>()
+        val eventIds = mutableListOf<String>()
 
         cursor.use {
             while (it.moveToNext()) {
                 val eventIdIndex = cursor.getColumnIndex(EventTable.COL_ID)
-                val attachmentsSizeIndex = cursor.getColumnIndex(EventTable.COL_ATTACHMENT_SIZE)
                 val eventId = cursor.getString(eventIdIndex)
-                val attachmentSize = cursor.getLong(attachmentsSizeIndex)
-                eventIdAttachmentSizeMap[eventId] = attachmentSize
+                eventIds.add(eventId)
             }
         }
 
-        return eventIdAttachmentSizeMap
+        return eventIds
     }
 
     override fun getUnBatchedSpans(

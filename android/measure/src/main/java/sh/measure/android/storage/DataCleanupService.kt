@@ -98,8 +98,8 @@ internal class DataCleanupServiceImpl(
             return
         }
         val eventIds = database.getEventsForSessions(sessionIds)
-        val attachmentIds = database.getAttachmentsForEvents(eventIds)
-        fileStorage.deleteEventsIfExist(eventIds, attachmentIds)
+        // TODO: delete attachments from file storage
+        fileStorage.deleteEventsIfExist(eventIds)
         // deleting sessions from db will also delete events for the session as they ar
         // e cascaded deletes.
         database.deleteSessions(sessionIds)

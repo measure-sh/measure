@@ -47,21 +47,17 @@ internal class BatchCreatorImpl(
 
     override fun create(sessionId: String?): Batch? {
         synchronized(batchCreationLock) {
-            val eventToAttachmentSizeMap =
-                database.getUnBatchedEventsWithAttachmentSize(
+            val eventIds =
+                database.getUnBatchedEvents(
                     configProvider.maxEventsInBatch,
                     sessionId = sessionId,
                     eventTypeExportAllowList = configProvider.eventTypeExportAllowList,
                 )
-            if (eventToAttachmentSizeMap.isEmpty()) {
-                return null
-            }
-
-            val eventIds = filterEventsForMaxAttachmentSize(eventToAttachmentSizeMap)
             val spanIds = database.getUnBatchedSpans(configProvider.maxEventsInBatch)
 
             if (spanIds.isEmpty() && eventIds.isEmpty()) {
                 logger.log(LogLevel.Debug, "No events or spans to batch")
+                return null
             }
 
             val batchId = idProvider.uuid()
@@ -83,13 +79,5 @@ internal class BatchCreatorImpl(
                 spanIds = spanIds,
             )
         }
-    }
-
-    private fun filterEventsForMaxAttachmentSize(eventToAttachmentSizeMap: LinkedHashMap<String, Long>): List<String> {
-        var totalSize = 0L
-        return eventToAttachmentSizeMap.asSequence().takeWhile { (_, size) ->
-            totalSize += size
-            totalSize <= configProvider.maxAttachmentSizeInEventsBatchInBytes
-        }.map { (key, _) -> key }.toList()
     }
 }

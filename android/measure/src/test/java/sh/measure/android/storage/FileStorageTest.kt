@@ -65,31 +65,25 @@ class FileStorageTest {
     }
 
     @Test
-    fun `deletes event and attachment files`() {
+    fun `deletes event files`() {
         val eventId = "123"
-        val attachmentId = "456"
         val serializedData = "serialized-data"
         fileStorage.writeEventData(eventId, serializedData)
-        fileStorage.writeAttachment(attachmentId, byteArrayOf(1, 2, 3))
 
-        fileStorage.deleteEventIfExist(eventId, listOf(attachmentId))
+        fileStorage.deleteEventIfExist(eventId)
 
         assertNull(fileStorage.getFile("$rootDir/measure/$eventId"))
-        assertNull(fileStorage.getFile("$rootDir/measure/$attachmentId"))
     }
 
     @Test
     fun `deletes events and their attachment files`() {
         val eventId = "123"
-        val attachmentId = "456"
         val serializedData = "serialized-data"
         fileStorage.writeEventData(eventId, serializedData)
-        fileStorage.writeAttachment(attachmentId, byteArrayOf(1, 2, 3))
 
-        fileStorage.deleteEventsIfExist(listOf(eventId), listOf(attachmentId))
+        fileStorage.deleteEventsIfExist(listOf(eventId))
 
         assertNull(fileStorage.getFile("$rootDir/measure/$eventId"))
-        assertNull(fileStorage.getFile("$rootDir/measure/$attachmentId"))
     }
 
     @Test

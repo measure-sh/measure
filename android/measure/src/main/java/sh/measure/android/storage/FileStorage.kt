@@ -29,20 +29,18 @@ internal interface FileStorage {
     fun writeAttachment(attachmentId: String, bytes: ByteArray): String?
 
     /**
-     * Deletes events and their attachments.
+     * Deletes events.
      *
      * @param eventIds The list of event ids to delete.
-     * @param attachmentIds The list of attachment ids to delete.
      */
-    fun deleteEventsIfExist(eventIds: List<String>, attachmentIds: List<String>)
+    fun deleteEventsIfExist(eventIds: List<String>)
 
     /**
-     * Deletes an event and its attachments.
+     * Deletes an event.
      *
      * @param eventId The event id to delete.
-     * @param attachmentIds The list of attachment ids to delete.
      */
-    fun deleteEventIfExist(eventId: String, attachmentIds: List<String>)
+    fun deleteEventIfExist(eventId: String)
 
     /**
      * Returns all files in the measure directory.
@@ -115,8 +113,8 @@ internal class FileStorageImpl(
         }
     }
 
-    override fun deleteEventIfExist(eventId: String, attachmentIds: List<String>) {
-        deleteEventsIfExist(listOf(eventId), attachmentIds)
+    override fun deleteEventIfExist(eventId: String) {
+        deleteEventsIfExist(listOf(eventId))
     }
 
     override fun getAllFiles(limit: Int): List<File> {
@@ -166,8 +164,8 @@ internal class FileStorageImpl(
         return dirPath
     }
 
-    override fun deleteEventsIfExist(eventIds: List<String>, attachmentIds: List<String>) {
-        (eventIds + attachmentIds).forEach { id ->
+    override fun deleteEventsIfExist(eventIds: List<String>) {
+        eventIds.forEach { id ->
             getFile("$rootDir/$MEASURE_DIR/$id")?.delete()
         }
     }

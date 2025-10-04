@@ -307,7 +307,7 @@ class DatabaseTest {
         )
 
         // when
-        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(100)
+        val eventsToBatch = database.getUnBatchedEvents(100)
 
         // then
         assertEquals(2, eventsToBatch.size)
@@ -334,7 +334,7 @@ class DatabaseTest {
         database.insertEvent(event2)
         database.insertEvent(event3)
 
-        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(100)
+        val eventsToBatch = database.getUnBatchedEvents(100)
         assertEquals(1, eventsToBatch.size)
     }
 
@@ -360,7 +360,7 @@ class DatabaseTest {
         database.insertEvent(event3)
 
         val eventsToBatch =
-            database.getUnBatchedEventsWithAttachmentSize(100, sessionId = "session-id-1")
+            database.getUnBatchedEvents(100, sessionId = "session-id-1")
         assertEquals(2, eventsToBatch.size)
     }
 
@@ -405,7 +405,7 @@ class DatabaseTest {
         database.insertEvent(nonLaunchEvent)
 
         // when
-        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(
+        val eventsToBatch = database.getUnBatchedEvents(
             100,
             // allow all launch event types
             eventTypeExportAllowList = listOf(
@@ -446,7 +446,7 @@ class DatabaseTest {
         database.insertEvent(event5)
 
         // when
-        val eventsToBatch = database.getUnBatchedEventsWithAttachmentSize(3)
+        val eventsToBatch = database.getUnBatchedEvents(3)
 
         // then
         assertEquals(3, eventsToBatch.size)

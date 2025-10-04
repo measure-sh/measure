@@ -48,7 +48,7 @@ class DataCleanupServiceTest {
         `when`(database.getEventsCount()).thenReturn(1000)
         dataCleanupService.clearStaleData()
 
-        verify(fileStorage, never()).deleteEventsIfExist(any(), any())
+        verify(fileStorage, never()).deleteEventsIfExist(any())
         verify(database, never()).deleteSessions(any())
     }
 
@@ -56,10 +56,8 @@ class DataCleanupServiceTest {
     fun `given sessions that do not need reporting exist, deletes sessions and events from database and file storage`() {
         val sessionIds = listOf("session1", "session2")
         val eventIds = listOf("event1", "event2")
-        val attachmentIds = listOf("attachment1", "attachment2")
         `when`(database.getSessionIds(any(), any(), eq(1))).thenReturn(sessionIds)
         `when`(database.getEventsForSessions(sessionIds)).thenReturn(eventIds)
-        `when`(database.getAttachmentsForEvents(eventIds)).thenReturn(attachmentIds)
         `when`(database.deleteSessions(sessionIds)).thenReturn(true)
 
         // report lower number of events than threshold to avoid triggering deletion of oldest
@@ -68,7 +66,7 @@ class DataCleanupServiceTest {
 
         dataCleanupService.clearStaleData()
 
-        verify(fileStorage, times(1)).deleteEventsIfExist(eventIds, attachmentIds)
+        verify(fileStorage, times(1)).deleteEventsIfExist(eventIds)
         verify(database, times(1)).deleteSessions(sessionIds)
     }
 
@@ -80,7 +78,6 @@ class DataCleanupServiceTest {
         `when`(database.getSpansCount()).thenReturn(0)
         `when`(database.getOldestSession()).thenReturn("session1")
         `when`(database.getEventsForSessions(listOf("session1"))).thenReturn(listOf("event1"))
-        `when`(database.getAttachmentsForEvents(listOf("event1"))).thenReturn(listOf("attachment1"))
         `when`(database.deleteSessions(listOf("session1"))).thenReturn(true)
 
         // return empty list of session ids to avoid triggering deletion of sessions
@@ -94,7 +91,7 @@ class DataCleanupServiceTest {
 
         dataCleanupService.clearStaleData()
 
-        verify(fileStorage, times(1)).deleteEventsIfExist(listOf("event1"), listOf("attachment1"))
+        verify(fileStorage, times(1)).deleteEventsIfExist(listOf("event1"))
         verify(database, times(1)).deleteSessions(listOf("session1"))
     }
 
