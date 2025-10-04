@@ -3,6 +3,7 @@ package sh.measure.android.exporter
 import androidx.annotation.VisibleForTesting
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.storage.Database
 import sh.measure.android.storage.FileStorage
 import java.util.concurrent.CopyOnWriteArrayList
@@ -83,6 +84,22 @@ internal class ExporterImpl(
         when (response) {
             is HttpResponse.Success -> {
                 logger.log(LogLevel.Debug, "Successfully exported batch $batchId")
+                val eventsResponse = parseEventsResponse(response.body)
+                if (eventsResponse != null) {
+                    val success = database.updateAttachmentUrl(eventsResponse.attachments)
+                    if (!success) {
+                        logger.log(
+                            LogLevel.Debug,
+                            "Failed to update attachment table with signed URLs"
+                        )
+                        // TODO: delete attachments as there is no way to retry
+                    } else {
+                        logger.log(
+                            LogLevel.Debug,
+                            "Successfully updated attachment table with signed URLs"
+                        )
+                    }
+                }
                 deleteBatch(events, spans, batchId)
             }
 
@@ -112,6 +129,21 @@ internal class ExporterImpl(
             else -> {
                 // No-op
             }
+        }
+    }
+
+    private fun parseEventsResponse(body: String?): EventsResponse? {
+        if (body.isNullOrEmpty()) {
+            return null
+        }
+        return try {
+            jsonSerializer.decodeFromString(
+                EventsResponse.serializer(),
+                body
+            )
+        } catch (e: Exception) {
+            logger.log(LogLevel.Debug, "Failed to parse /events response", e)
+            null
         }
     }
 

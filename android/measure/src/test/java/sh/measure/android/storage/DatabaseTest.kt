@@ -1241,6 +1241,161 @@ class DatabaseTest {
         assertNull(session?.appBuild)
     }
 
+    @Test
+    fun `updateAttachmentUrl updates upload URL and expiration for attachments`() {
+        // given
+        val attachment1 = TestData.getAttachmentEntity(id = "attachment-1")
+        val attachment2 = TestData.getAttachmentEntity(id = "attachment-2")
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-1",
+                sessionId = "session-id",
+                attachmentEntities = listOf(attachment1, attachment2),
+            ),
+        )
+
+        val signedAttachments = listOf(
+            sh.measure.android.exporter.SignedAttachment(
+                id = "attachment-1",
+                type = "screenshot",
+                filename = "screenshot.png",
+                uploadUrl = "https://example.com/upload/attachment-1?signed=true",
+                expiresAt = "2025-08-13T01:59:45.577889184Z",
+            ),
+            sh.measure.android.exporter.SignedAttachment(
+                id = "attachment-2",
+                type = "layout_snapshot",
+                filename = "layout.json",
+                uploadUrl = "https://example.com/upload/attachment-2?signed=true",
+                expiresAt = "2025-08-13T02:00:00.000000000Z",
+            ),
+        )
+
+        // when
+        val result = database.updateAttachmentUrl(signedAttachments)
+
+        // then
+        assertTrue(result)
+        database.readableDatabase.query(
+            AttachmentV1Table.TABLE_NAME,
+            null,
+            "${AttachmentV1Table.COL_ID} = ?",
+            arrayOf("attachment-1"),
+            null,
+            null,
+            null,
+        ).use {
+            it.moveToFirst()
+            assertEquals(
+                "https://example.com/upload/attachment-1?signed=true",
+                it.getString(it.getColumnIndex(AttachmentV1Table.COL_UPLOAD_URL)),
+            )
+            assertEquals(
+                "2025-08-13T01:59:45.577889184Z",
+                it.getString(it.getColumnIndex(AttachmentV1Table.COL_URL_EXPIRES_AT)),
+            )
+        }
+        database.readableDatabase.query(
+            AttachmentV1Table.TABLE_NAME,
+            null,
+            "${AttachmentV1Table.COL_ID} = ?",
+            arrayOf("attachment-2"),
+            null,
+            null,
+            null,
+        ).use {
+            it.moveToFirst()
+            assertEquals(
+                "https://example.com/upload/attachment-2?signed=true",
+                it.getString(it.getColumnIndex(AttachmentV1Table.COL_UPLOAD_URL)),
+            )
+            assertEquals(
+                "2025-08-13T02:00:00.000000000Z",
+                it.getString(it.getColumnIndex(AttachmentV1Table.COL_URL_EXPIRES_AT)),
+            )
+        }
+    }
+
+    @Test
+    fun `updateAttachmentUrl returns false when attachment does not exist`() {
+        // given
+        val signedAttachments = listOf(
+            sh.measure.android.exporter.SignedAttachment(
+                id = "non-existent-attachment",
+                type = "screenshot",
+                filename = "screenshot.png",
+                uploadUrl = "https://example.com/upload/attachment?signed=true",
+                expiresAt = "2025-08-13T01:59:45.577889184Z",
+            ),
+        )
+
+        // when
+        val result = database.updateAttachmentUrl(signedAttachments)
+
+        // then
+        assertFalse(result)
+    }
+
+    @Test
+    fun `updateAttachmentUrl returns true for empty list`() {
+        // when
+        val result = database.updateAttachmentUrl(emptyList())
+
+        // then
+        assertTrue(result)
+    }
+
+    @Test
+    fun `updateAttachmentUrl updates only matching attachments in transaction`() {
+        // given
+        val attachment1 = TestData.getAttachmentEntity(id = "attachment-1")
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-1",
+                sessionId = "session-id",
+                attachmentEntities = listOf(attachment1),
+            ),
+        )
+
+        val signedAttachments = listOf(
+            sh.measure.android.exporter.SignedAttachment(
+                id = "attachment-1",
+                type = "screenshot",
+                filename = "screenshot.png",
+                uploadUrl = "https://example.com/upload/attachment-1?signed=true",
+                expiresAt = "2025-08-13T01:59:45.577889184Z",
+            ),
+            sh.measure.android.exporter.SignedAttachment(
+                id = "non-existent",
+                type = "screenshot",
+                filename = "screenshot2.png",
+                uploadUrl = "https://example.com/upload/non-existent?signed=true",
+                expiresAt = "2025-08-13T01:59:45.577889184Z",
+            ),
+        )
+
+        // when
+        val result = database.updateAttachmentUrl(signedAttachments)
+
+        // then - should fail because one attachment doesn't exist (transaction rolled back)
+        assertFalse(result)
+        database.readableDatabase.query(
+            AttachmentV1Table.TABLE_NAME,
+            null,
+            "${AttachmentV1Table.COL_ID} = ?",
+            arrayOf("attachment-1"),
+            null,
+            null,
+            null,
+        ).use {
+            it.moveToFirst()
+            // URL should still be null since transaction was rolled back
+            assertNull(it.getString(it.getColumnIndex(AttachmentV1Table.COL_UPLOAD_URL)))
+        }
+    }
+
     private fun queryAllEvents(db: SQLiteDatabase): Cursor {
         return db.query(
             EventTable.TABLE_NAME,

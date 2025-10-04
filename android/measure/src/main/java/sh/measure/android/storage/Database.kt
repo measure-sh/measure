@@ -11,6 +11,7 @@ import sh.measure.android.events.EventType
 import sh.measure.android.exporter.AttachmentPacket
 import sh.measure.android.exporter.Batch
 import sh.measure.android.exporter.EventPacket
+import sh.measure.android.exporter.SignedAttachment
 import sh.measure.android.exporter.SpanPacket
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -201,6 +202,14 @@ internal interface Database : Closeable {
      * tracked.
      */
     fun markSessionWithBugReport(sessionId: String)
+
+    /**
+     * Updates attachment URLs and expiration timestamps from the signed attachments response.
+     *
+     * @param signedAttachments The list of signed attachments containing upload URLs and expiration times.
+     * @return `true` if all attachments were successfully updated, `false` otherwise.
+     */
+    fun updateAttachmentUrl(signedAttachments: List<SignedAttachment>): Boolean
 }
 
 /**
@@ -966,6 +975,37 @@ internal class DatabaseImpl(
 
     override fun markSessionWithBugReport(sessionId: String) {
         writableDatabase.execSQL(Sql.markSessionWithBugReport(sessionId))
+    }
+
+    override fun updateAttachmentUrl(signedAttachments: List<SignedAttachment>): Boolean {
+        if (signedAttachments.isEmpty()) {
+            return true
+        }
+
+        writableDatabase.beginTransaction()
+        try {
+            signedAttachments.forEach { attachment ->
+                val values = ContentValues().apply {
+                    put(AttachmentV1Table.COL_UPLOAD_URL, attachment.uploadUrl)
+                    put(AttachmentV1Table.COL_URL_EXPIRES_AT, attachment.expiresAt)
+                }
+
+                val result = writableDatabase.update(
+                    AttachmentV1Table.TABLE_NAME,
+                    values,
+                    "${AttachmentV1Table.COL_ID} = ?",
+                    arrayOf(attachment.id)
+                )
+
+                if (result == 0) {
+                    return false
+                }
+            }
+            writableDatabase.setTransactionSuccessful()
+            return true
+        } finally {
+            writableDatabase.endTransaction()
+        }
     }
 
     override fun getSessionForAppExit(pid: Int): AppExitCollector.Session? {

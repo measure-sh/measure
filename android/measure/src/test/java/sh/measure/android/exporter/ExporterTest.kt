@@ -221,6 +221,117 @@ internal class ExporterTest {
         }
     }
 
+    @Test
+    fun `updates attachment table with signed URLs from events response on successful export`() {
+        val attachment1 = AttachmentEntity(
+            id = "attachment-1",
+            type = "screenshot",
+            path = "path/to/attachment1",
+            name = "screenshot.png",
+        )
+        val attachment2 = AttachmentEntity(
+            id = "attachment-2",
+            type = "layout_snapshot",
+            path = "path/to/attachment2",
+            name = "layout.json",
+        )
+        val eventsResponseJson = """
+            {
+                "attachments": [
+                    {
+                        "id": "attachment-1",
+                        "type": "screenshot",
+                        "filename": "screenshot.png",
+                        "upload_url": "https://example.com/upload/attachment-1?signed=true",
+                        "expires_at": "2025-08-13T01:59:45.577889184Z"
+                    },
+                    {
+                        "id": "attachment-2",
+                        "type": "layout_snapshot",
+                        "filename": "layout.json",
+                        "upload_url": "https://example.com/upload/attachment-2?signed=true",
+                        "expires_at": "2025-08-13T01:59:45.577889184Z"
+                    }
+                ]
+            }
+        """.trimIndent()
+        `when`(networkClient.execute(any(), any(), any())).thenReturn(
+            HttpResponse.Success(eventsResponseJson),
+        )
+
+        insertSessionInDb("sessionId")
+        insertEventInDb(
+            "sessionId",
+            "event1",
+            attachmentEntities = listOf(attachment1, attachment2),
+            attachmentSize = 1000,
+        )
+        val eventIds = listOf("event1")
+        insertBatchInDb(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+
+        exporter.export(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+
+        // Verify attachment URLs were updated in database
+        val attachmentPackets = database.getAttachmentPackets(eventIds)
+        Assert.assertEquals(2, attachmentPackets.size)
+    }
+
+    @Test
+    fun `handles empty attachments list in events response`() {
+        val eventsResponseJson = """
+            {
+                "attachments": []
+            }
+        """.trimIndent()
+        `when`(networkClient.execute(any(), any(), any())).thenReturn(
+            HttpResponse.Success(eventsResponseJson),
+        )
+
+        insertSessionInDb("sessionId")
+        insertEventInDb("sessionId", "event1")
+        val eventIds = listOf("event1")
+        insertBatchInDb(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+
+        exporter.export(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+
+        // Should complete successfully without errors
+        Assert.assertEquals(0, database.getEvents(eventIds).size)
+    }
+
+    @Test
+    fun `handles null response body gracefully`() {
+        `when`(networkClient.execute(any(), any(), any())).thenReturn(
+            HttpResponse.Success(null),
+        )
+
+        insertSessionInDb("sessionId")
+        insertEventInDb("sessionId", "event1")
+        val eventIds = listOf("event1")
+        insertBatchInDb(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+
+        exporter.export(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+
+        // Should complete successfully without errors
+        Assert.assertEquals(0, database.getEvents(eventIds).size)
+    }
+
+    @Test
+    fun `handles malformed events response body`() {
+        `when`(networkClient.execute(any(), any(), any())).thenReturn(
+            HttpResponse.Success("invalid json"),
+        )
+
+        insertSessionInDb("sessionId")
+        insertEventInDb("sessionId", "event1")
+        val eventIds = listOf("event1")
+        insertBatchInDb(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+
+        exporter.export(Batch("batch1", eventIds = eventIds, spanIds = emptyList()))
+
+        // Should complete successfully without errors, events should still be deleted
+        Assert.assertEquals(0, database.getEvents(eventIds).size)
+    }
+
     private fun queryAllSpans(): Cursor {
         return database.writableDatabase.query(
             SpansTable.TABLE_NAME,
@@ -231,13 +342,6 @@ internal class ExporterTest {
             null,
             null,
         )
-    }
-
-    private fun getPathForAttachment(attachment1: AttachmentEntity) =
-        "$rootDir/measure/${attachment1.id}"
-
-    private fun insertAttachmentToStorage(attachment1: AttachmentEntity) {
-        fileStorage.writeAttachment(attachment1.id, "content".toByteArray())
     }
 
     private fun insertEventInDb(
