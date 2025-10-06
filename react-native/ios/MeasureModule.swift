@@ -27,7 +27,9 @@ class MeasureModule: NSObject, RCTBridgeModule {
             return
         }
         
-        Measure.initialize(with: clientInfo, config: config)
+        DispatchQueue.main.async {
+            Measure.initialize(with: clientInfo, config: config)
+        }
         resolve("Native Measure SDK initialized successfully")
     }
     

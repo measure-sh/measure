@@ -8,6 +8,7 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.UiThreadUtil
 import sh.measure.android.Measure
 import sh.measure.android.MsrAttachment
 import sh.measure.android.config.ClientInfo
@@ -29,7 +30,10 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
             val clientInfo = ClientInfo.fromJson(clientJson)
             val config = MeasureConfig.fromJson(configJson)
 
-            Measure.init(context, measureConfig = config, clientInfo = clientInfo)
+            UiThreadUtil.runOnUiThread {
+                Measure.init(context, measureConfig = config, clientInfo = clientInfo)
+            }
+
             promise.resolve("Native Measure SDK initialized successfully")
         } catch (e: Exception) {
             promise.reject(ErrorCode.INIT_ERROR, "Failed to initialize Measure SDK", e)
