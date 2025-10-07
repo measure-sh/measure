@@ -58,12 +58,24 @@ export async function POST(request: Request) {
   });
 
   if (!res.ok) {
-    let body = "";
+    let body: { error?: string; details?: string } | string = "";
     try {
       body = await res.json();
     } catch (error) {
       console.error("Error parsing Google login error response JSON:", error);
       body = await res.text();
+    }
+
+    // Check if allowlist banned this identity
+    if (typeof body === "object" && body.error === "allowlist_banned") {
+      console.log("GitHub login failure: allowlist banned");
+
+      const parsedUrl = new URL(errRedirectUrl);
+      if (body?.details) {
+        parsedUrl.searchParams.set("message", body.details);
+      }
+
+      return NextResponse.redirect(parsedUrl.toString(), { status: 302 });
     }
 
     console.log(
