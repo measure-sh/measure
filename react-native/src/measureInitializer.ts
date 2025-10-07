@@ -9,6 +9,7 @@ import { MeasureConfig } from './config/measureConfig';
 import { MeasureLogger, type Logger } from './utils/logger';
 import { MeasureTimeProvider, type TimeProvider } from './utils/timeProvider';
 import { CustomEventCollector } from './events/customEventCollector';
+import { UserTriggeredEventCollector } from './events/userTriggeredEventCollector';
 
 export interface MeasureInitializer {
   logger: Logger;
@@ -18,6 +19,7 @@ export interface MeasureInitializer {
   config: Config;
   timeProvider: TimeProvider;
   customEventCollector: CustomEventCollector;
+  userTriggeredEventCollector: UserTriggeredEventCollector;
 }
 
 export class BaseMeasureInitializer implements MeasureInitializer {
@@ -28,6 +30,7 @@ export class BaseMeasureInitializer implements MeasureInitializer {
   config: Config;
   timeProvider: TimeProvider;
   customEventCollector: CustomEventCollector;
+  userTriggeredEventCollector: UserTriggeredEventCollector;
 
   constructor(client: Client, config: MeasureConfig | null) {
     this.logger = new MeasureLogger(
@@ -55,6 +58,11 @@ export class BaseMeasureInitializer implements MeasureInitializer {
     );
     this.timeProvider = new MeasureTimeProvider();
     this.customEventCollector = new CustomEventCollector({
+      logger: this.logger,
+      timeProvider: this.timeProvider,
+      configProvider: this.configProvider,
+    });
+    this.userTriggeredEventCollector = new UserTriggeredEventCollector({
       logger: this.logger,
       timeProvider: this.timeProvider,
       configProvider: this.configProvider,

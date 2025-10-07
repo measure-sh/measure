@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,12 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from './AppNavigator';
+import {
+  Measure,
+} from '@measuresh/react-native';
 
 type ComponentScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -25,6 +28,17 @@ export default function ComponentScreen() {
   const [textValue, setTextValue] = useState('');
   const [isEnabled, setIsEnabled] = useState(false);
 
+  useFocusEffect(
+    useCallback(() => {
+      Measure.trackScreenView('ComponentScreen', {
+    screen: 'Home',
+    action: 'Track Custom Event',
+    timestamped: true,
+  })
+        .catch(err => console.error('Failed to track screen view:', err));
+    }, [])
+  );
+  
   const showAlert = () => {
     Alert.alert('Hello!', 'This is a sample alert.', [{ text: 'OK' }]);
   };

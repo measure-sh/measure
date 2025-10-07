@@ -75,6 +75,17 @@ export class MeasureInternal {
     );
   };
 
+  trackScreenView = (
+    screenName: string,
+    attributes?: Record<string, ValidAttributeValue>
+  ): Promise<void> => {
+    console.log('MeasureInternal.ts Screen view tracked:', screenName, attributes);
+    return this.measureInitializer.userTriggeredEventCollector.trackScreenView(
+      screenName,
+      attributes ?? {},
+    );
+  };
+
   registerCollectors(): void {
     this.measureInitializer.customEventCollector.register();
   }

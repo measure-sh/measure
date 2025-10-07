@@ -54,8 +54,6 @@ const trackCustomEvent = () => {
     screen: 'Home',
     action: 'Track Custom Event',
     timestamped: true,
-    objecttype: { id: '12345', name: 'Test Object' },
-    arraytype: ['value1', 'value2'],
   });
   console.log('Custom event tracked: button_click');
 };
