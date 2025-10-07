@@ -22,14 +22,14 @@ func main() {
 
 	defer server.Server.PgPool.Close()
 
-	// close clickhouse connection pool at shutdown
+	// Close ClickHouse connection pool at shutdown
 	defer func() {
 		if err := server.Server.ChPool.Close(); err != nil {
 			log.Fatalf("Unable to close clickhouse connection: %v", err)
 		}
 	}()
 
-	// close geo ip database at shutdown
+	// Close geo ip database at shutdown
 	defer func() {
 		if err := inet.Close(); err != nil {
 			log.Fatalf("Unable to close geo ip db: %v", err)
@@ -39,7 +39,7 @@ func main() {
 	r := gin.Default()
 
 	closeTracer := config.InitTracer()
-	// close otel tracer
+	// Close OTel tracer
 	defer func() {
 		if err := closeTracer(context.Background()); err != nil {
 			log.Fatalf("Unable to close otel tracer: %v", err)
@@ -142,7 +142,7 @@ func main() {
 		slack.POST("/events", measure.HandleSlackEvents)
 	}
 
-	// listen and serve on 0.0.0.0:${PORT}
+	// Listen and serve on 0.0.0.0:${PORT}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

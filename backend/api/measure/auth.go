@@ -1,6 +1,7 @@
 package measure
 
 import (
+	"backend/api/allowlist"
 	"backend/api/authsession"
 	"backend/api/cipher"
 	"backend/api/server"
@@ -21,6 +22,11 @@ import (
 	"github.com/leporo/sqlf"
 	"google.golang.org/api/idtoken"
 )
+
+// MSRAllowlistAuthErr represents the error condition
+// when an identity doesn't pass the allowlist
+// authentication filter.
+var MSRAllowlistAuthErr = errors.New("allowlist_banned")
 
 // extractToken extracts the access token
 // from the cookie or Authorization header.
@@ -323,6 +329,16 @@ func SigninGitHub(c *gin.Context) {
 			return
 		}
 
+		// TODO: Remove allowlist filter when appropriate
+		config := server.Server.Config
+		if config.IsCloud() && !allowlist.IsAllowed(ghUser.Email) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error":   MSRAllowlistAuthErr.Error(),
+				"details": fmt.Sprintf("Your email %q is not allowlisted. Please contact us at support@measure.sh", ghUser.Email),
+			})
+			return
+		}
+
 		userMeta, err := json.Marshal(ghUser)
 		if err != nil {
 			return
@@ -526,6 +542,16 @@ func SigninGoogle(c *gin.Context) {
 		Name:    payload.Claims["name"].(string),
 		Email:   payload.Claims["email"].(string),
 		Picture: payload.Claims["picture"].(string),
+	}
+
+	// TODO: Remove allowlist filter when appropriate
+	config := server.Server.Config
+	if config.IsCloud() && !allowlist.IsAllowed(googUser.Email) {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"error":   MSRAllowlistAuthErr.Error(),
+			"details": fmt.Sprintf("Your email %q is not allowlisted. Please contact us at support@measure.sh", googUser.Email),
+		})
+		return
 	}
 
 	userMeta, err := json.Marshal(googUser)
@@ -760,7 +786,7 @@ func ConnectSlackApp(c *gin.Context) {
 		Set("created_at", time.Now()).
 		Set("updated_at", time.Now())
 
-	query := stmt.String() + ` ON CONFLICT (team_id) DO UPDATE SET 
+	query := stmt.String() + ` ON CONFLICT (team_id) DO UPDATE SET
 		slack_team_id = EXCLUDED.slack_team_id,
 		slack_team_name = EXCLUDED.slack_team_name,
 		enterprise_id = EXCLUDED.enterprise_id,
