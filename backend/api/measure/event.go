@@ -7,6 +7,7 @@ import (
 	"backend/api/group"
 	"backend/api/inet"
 	"backend/api/numeric"
+	"backend/api/objstore"
 	"backend/api/opsys"
 	"backend/api/server"
 	"backend/api/span"
@@ -18,12 +19,18 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"time"
 
+	credentials "cloud.google.com/go/iam/credentials/apiv1"
+	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
+	"cloud.google.com/go/storage"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -39,6 +46,10 @@ var maxBatchSize = 20 * 1024 * 1024
 // retryAfter is the default duration an event
 // request should be retried after.
 const retryAfter = 60 * time.Second
+
+// ExpiryDuration is the default expiry duration
+// for signed upload URLs.
+const ExpiryDuration = time.Hour * 24 * 7
 
 const (
 	// pending represents that the event request
@@ -85,7 +96,34 @@ type eventreq struct {
 	events                 []event.EventField
 	spans                  []span.SpanField
 	attachments            map[uuid.UUID]*blob
+	attachmentUploadInfos  []AttachmentUploadInfo
 	createdAt              time.Time
+}
+
+// The json events request.
+type EventsJsonRequest struct {
+	Events []event.EventField `json:"events"`
+	Spans  []span.SpanField   `json:"spans"`
+}
+
+// AttachmentUploadInfo contains the signed URL
+// and related metadata for clients to upload
+// attachments.
+type AttachmentUploadInfo struct {
+	ID        uuid.UUID         `json:"id"`
+	Type      string            `json:"type"`
+	Filename  string            `json:"filename"`
+	UploadURL string            `json:"upload_url"`
+	ExpiresAt time.Time         `json:"expires_at"`
+	Headers   map[string]string `json:"headers,omitempty"`
+	Key       string            `json:"-"`
+	Location  string            `json:"-"`
+}
+
+// Response represents the response data for
+// JSON-based events request.
+type Response struct {
+	AttachmentUploadInfo []AttachmentUploadInfo `json:"attachments"`
 }
 
 // status defines the status of processing
@@ -156,9 +194,9 @@ func (e *eventreq) bumpSymbolication() {
 	e.symbolicationAttempted = e.symbolicationAttempted + 1
 }
 
-// read parses and validates the event request payload for
+// readMultipartRequest parses and validates the event request payload for
 // events and attachments.
-func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
+func (e *eventreq) readMultipartRequest(c *gin.Context, appId uuid.UUID) error {
 	reqIdKey := `msr-req-id`
 	reqIdVal := c.Request.Header.Get(reqIdKey)
 	if reqIdVal == "" {
@@ -237,7 +275,7 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 
 		// attachment blobs must be present if
 		// any event has attachments
-		if e.hasAttachments() && len(form.File) < 1 {
+		if e.hasAttachmentBlobs() && len(form.File) < 1 {
 			return fmt.Errorf(`some events has attachments, but payload does not contain any attachment blob`)
 		}
 
@@ -334,6 +372,138 @@ func (e *eventreq) read(c *gin.Context, appId uuid.UUID) error {
 		if e.attachments[blobId] != nil {
 			e.attachments[blobId].header = header
 		}
+	}
+
+	return nil
+}
+
+// readJsonRequest parses and validates the JSON event request payload for
+// events and spans. Attachment metadata is extracted but files are not
+// uploaded inline - signed URLs will be returned for separate upload.
+func (e *eventreq) readJsonRequest(c *gin.Context, appId uuid.UUID) error {
+	reqIdKey := `msr-req-id`
+	reqIdVal := c.Request.Header.Get(reqIdKey)
+	if reqIdVal == "" {
+		return fmt.Errorf("no %q header value found", reqIdKey)
+	}
+
+	reqId, err := uuid.Parse(reqIdVal)
+	if err != nil {
+		return fmt.Errorf("%q value is not a valid UUID", reqIdKey)
+	}
+
+	e.id = reqId
+	payload := EventsJsonRequest{}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		return err
+	}
+
+	if len(payload.Events) < 1 && len(payload.Spans) < 1 {
+		return fmt.Errorf(`payload must contain at least 1 event or 1 span`)
+	}
+
+	dupEvent := make(map[uuid.UUID]struct{})
+
+	for i := range payload.Events {
+		ev := payload.Events[i]
+
+		// discard batch if duplicate event ids found
+		_, ok := dupEvent[ev.ID]
+		if ok {
+			return fmt.Errorf("duplicate event id %q found, discarding batch", ev.ID)
+		}
+		dupEvent[ev.ID] = struct{}{}
+
+		bytes, err := json.Marshal(ev)
+		if err != nil {
+			return err
+		}
+
+		e.bumpSize(int64(len(bytes)))
+		ev.AppID = appId
+
+		if ev.NeedsSymbolication() {
+			e.symbolicateEvents[ev.ID] = i
+		}
+
+		if ev.IsUnhandledException() {
+			e.exceptionIds = append(e.exceptionIds, i)
+		}
+
+		if ev.IsANR() {
+			e.anrIds = append(e.anrIds, i)
+		}
+
+		for _, attachment := range ev.Attachments {
+			attachmentUploadInfo := AttachmentUploadInfo{
+				ID:       attachment.ID,
+				Type:     attachment.Type,
+				Filename: attachment.Name,
+			}
+
+			e.attachmentUploadInfos = append(e.attachmentUploadInfos, attachmentUploadInfo)
+		}
+
+		// compute launch timings
+		if ev.IsColdLaunch() {
+			ev.ColdLaunch.Compute()
+
+			// log anomalous cold launch durations
+			if ev.ColdLaunch.Duration >= event.NominalColdLaunchThreshold {
+				fmt.Printf("anomaly in cold_launch duration compute. nominal_threshold: < %q actual: %d os_name: %q os_version: %q\n", event.NominalColdLaunchThreshold, ev.ColdLaunch.Duration.Milliseconds(), ev.Attribute.OSName, ev.Attribute.OSVersion)
+			}
+		}
+		if ev.IsWarmLaunch() {
+			ev.WarmLaunch.Compute()
+
+			// log anomalous warm launch durations
+			if !ev.WarmLaunch.IsLukewarm && ev.WarmLaunch.AppVisibleUptime <= 0 {
+				fmt.Printf("anomaly in warm_launch duration compute with invalid app_visible_uptime for non-lukewarm warm_launch. process_start_uptime: %d process_start_requested_uptime: %d content_provider_attach_uptime: %d os_name: %q os_version: %q\n", ev.WarmLaunch.ProcessStartUptime, ev.WarmLaunch.ProcessStartRequestedUptime, ev.WarmLaunch.ContentProviderAttachUptime, ev.Attribute.OSName, ev.Attribute.OSVersion)
+			}
+		}
+		if ev.IsHotLaunch() {
+			ev.HotLaunch.Compute()
+		}
+
+		// read OS name from payload if we haven't figured out already
+		if e.osName == "" {
+			e.osName = strings.ToLower(ev.Attribute.OSName)
+		}
+
+		e.events = append(e.events, ev)
+	}
+
+	dupSpan := make(map[string]struct{})
+
+	for i := range payload.Spans {
+		sp := payload.Spans[i]
+
+		// discard batch if duplicate span ids found
+		_, ok := dupSpan[sp.SpanID]
+		if ok {
+			return fmt.Errorf("duplicate span id %q found, discarding batch", sp.SpanID)
+		}
+		dupSpan[sp.SpanID] = struct{}{}
+
+		bytes, err := json.Marshal(sp)
+		if err != nil {
+			return err
+		}
+
+		e.bumpSize(int64(len(bytes)))
+		sp.AppID = appId
+
+		if sp.NeedsSymbolication() {
+			e.symbolicateSpans[sp.SpanName] = i
+		}
+
+		// read OS name from payload if we haven't figured out already
+		if e.osName == "" {
+			e.osName = strings.ToLower(sp.Attributes.OSName)
+		}
+
+		e.spans = append(e.spans, sp)
 	}
 
 	return nil
@@ -488,10 +658,16 @@ func (e eventreq) hasANRs() bool {
 	return len(e.anrIds) > 0
 }
 
-// hasAttachments returns true if payload
-// contains attachments to be processed.
-func (e eventreq) hasAttachments() bool {
+// hasAttachmentBlobs returns true if payload
+// contains attachment blobs to be processed.
+func (e eventreq) hasAttachmentBlobs() bool {
 	return len(e.attachments) > 0
+}
+
+// hasAttachmentUploadInfos returns true if payload
+// contains attachment upload infos to be processed.
+func (e eventreq) hasAttachmentUploadInfos() bool {
+	return len(e.attachmentUploadInfos) > 0
 }
 
 // getUnhandledExceptions returns unhandled excpetions
@@ -591,7 +767,7 @@ func (e eventreq) validate() error {
 			}
 		}
 
-		if e.hasAttachments() {
+		if e.hasAttachmentBlobs() || e.hasAttachmentUploadInfos() {
 			for j := range e.events[i].Attachments {
 				if err := e.events[i].Attachments[j].Validate(); err != nil {
 					return err
@@ -698,6 +874,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				return err
 			}
 			attachments = string(marshalledAttachments)
+			fmt.Println("Marshaled Attachments:", attachments)
 		}
 
 		row := stmt.NewRow().
@@ -1272,7 +1449,11 @@ func (e *eventreq) countMetrics() (sessionCount, eventCount, spanCount, traceCou
 		}
 	}
 
-	attachmentCount = uint32(len(e.attachments))
+	if e.hasAttachmentBlobs() {
+		attachmentCount = uint32(len(e.attachments))
+	} else if e.hasAttachmentUploadInfos() {
+		attachmentCount = uint32(len(e.attachmentUploadInfos))
+	}
 
 	traceCount = uint32(0)
 	for _, span := range e.spans {
@@ -2083,6 +2264,117 @@ func GetIssuesPlot(ctx context.Context, g group.IssueGroup, af *filter.AppFilter
 	return
 }
 
+// generateAttachmentUploadURLs generates signed URLs for attachments
+// to be uploaded by the client in JSON flow.
+func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
+	config := server.Server.Config
+
+	if config.IsCloud() {
+		// GCS flow for cloud deployments
+		client, err := objstore.CreateGCSClient(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create GCS client: %w", err)
+		}
+
+		// for creating signed URLs, we need to tie the service account
+		// identity along with the credentials. otherwise, the signed
+		// URLs can't be generated and won't work as expected.
+		iamClient, err := credentials.NewIamCredentialsClient(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create IAM client: %w", err)
+		}
+		defer iamClient.Close()
+
+		signBytes := func(b []byte) ([]byte, error) {
+			resp, err := iamClient.SignBlob(ctx, &credentialspb.SignBlobRequest{
+				Name:    "projects/-/serviceAccounts/" + config.ServiceAccountEmail,
+				Payload: b,
+			})
+			if err != nil {
+				return nil, err
+			}
+			return resp.SignedBlob, nil
+		}
+
+		for i := range e.attachmentUploadInfos {
+			id := e.attachmentUploadInfos[i].ID
+			filename := e.attachmentUploadInfos[i].Filename
+			ext := filepath.Ext(filename)
+
+			// Generate upload key and location
+			uploadKey := id.String() + ext
+			uploadLocation := event.BuildAttachmentLocation(uploadKey)
+			expiry := time.Now().Add(ExpiryDuration)
+
+			metadata := []string{
+				fmt.Sprintf("x-goog-meta-original_file_name: %s", filename),
+			}
+
+			signOptions := &storage.SignedURLOptions{
+				GoogleAccessID: config.ServiceAccountEmail,
+				SignBytes:      signBytes,
+				Scheme:         storage.SigningSchemeV4,
+				Method:         "PUT",
+				Expires:        expiry,
+				Headers:        metadata,
+			}
+
+			url, err := objstore.CreateGCSPUTPreSignedURL(client, config.AttachmentsBucket, uploadKey, signOptions)
+			if err != nil {
+				return fmt.Errorf("failed to create GCS PUT pre-signed URL for %v: %w", filename, err)
+			}
+
+			// Update the attachment info with URL and metadata
+			e.attachmentUploadInfos[i].UploadURL = url
+			e.attachmentUploadInfos[i].ExpiresAt = expiry
+			e.attachmentUploadInfos[i].Headers = map[string]string{
+				"x-goog-meta-original_file_name": filename,
+			}
+			e.attachmentUploadInfos[i].Key = uploadKey
+			e.attachmentUploadInfos[i].Location = uploadLocation
+		}
+	} else {
+		// S3 flow for self-hosted deployments
+		client := objstore.CreateS3Client(ctx, config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, config.AttachmentsBucketRegion, config.AWSEndpoint)
+
+		for i := range e.attachmentUploadInfos {
+			id := e.attachmentUploadInfos[i].ID
+			filename := e.attachmentUploadInfos[i].Filename
+			ext := filepath.Ext(filename)
+
+			// Generate upload key and location (same format as multipart flow)
+			uploadKey := id.String() + ext
+			uploadLocation := event.BuildAttachmentLocation(uploadKey)
+
+			signedUrl, err := objstore.CreateS3PUTPreSignedURL(ctx, client, &s3.PutObjectInput{
+				Bucket: aws.String(config.AttachmentsBucket),
+				Key:    aws.String(uploadKey),
+				Metadata: map[string]string{
+					"original_file_name": filename,
+				},
+			}, s3.WithPresignExpires(time.Duration(ExpiryDuration)))
+
+			if err != nil {
+				return fmt.Errorf("failed to create S3 PUT pre-signed URL for %v: %w", filename, err)
+			}
+
+			// proxy the url for self-hosted
+			proxyUrl := fmt.Sprintf("%s/proxy/attachments?payload=%s", config.APIOrigin, url.QueryEscape(signedUrl))
+
+			// Update the attachment info with URL and metadata
+			e.attachmentUploadInfos[i].UploadURL = proxyUrl
+			e.attachmentUploadInfos[i].ExpiresAt = time.Now().Add(ExpiryDuration)
+			e.attachmentUploadInfos[i].Headers = map[string]string{
+				"x-amz-meta-original_file_name": filename,
+			}
+			e.attachmentUploadInfos[i].Key = uploadKey
+			e.attachmentUploadInfos[i].Location = uploadLocation
+		}
+	}
+
+	return nil
+}
+
 func PutEvents(c *gin.Context) {
 	appId, err := uuid.Parse(c.GetString("appId"))
 	if err != nil {
@@ -2114,13 +2406,26 @@ func PutEvents(c *gin.Context) {
 		createdAt:         time.Now(),
 	}
 
-	if err := eventReq.read(c, appId); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
+	isJsonRequest := strings.HasPrefix(c.ContentType(), "application/json")
+
+	if isJsonRequest {
+		if err := eventReq.readJsonRequest(c, appId); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	} else {
+		if err := eventReq.readMultipartRequest(c, appId); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
 	}
 
 	if err := eventReq.validate(); err != nil {
@@ -2279,7 +2584,7 @@ func PutEvents(c *gin.Context) {
 		eventReq.bumpSymbolication()
 	}
 
-	if eventReq.hasAttachments() {
+	if eventReq.hasAttachmentBlobs() {
 		// start span to trace attachment uploads
 		uploadAttachmentsTracer := otel.Tracer("upload-attachments-tracer")
 		_, uploadAttachmentSpan := uploadAttachmentsTracer.Start(ctx, "upload-attachments")
@@ -2313,6 +2618,35 @@ func PutEvents(c *gin.Context) {
 
 				eventReq.events[i].Attachments[j].Location = attachment.location
 				eventReq.events[i].Attachments[j].Key = attachment.key
+			}
+		}
+	}
+	if eventReq.hasAttachmentUploadInfos() {
+		if err := eventReq.generateAttachmentUploadURLs(ctx); err != nil {
+			msg := `failed to generate attachment upload URLs`
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+
+		// Update event attachments with key and location from upload infos
+		for i := range eventReq.events {
+			if !eventReq.events[i].HasAttachments() {
+				continue
+			}
+
+			for j := range eventReq.events[i].Attachments {
+				id := eventReq.events[i].Attachments[j].ID
+				// Find the corresponding attachment upload info
+				for _, uploadInfo := range eventReq.attachmentUploadInfos {
+					if uploadInfo.ID == id {
+						eventReq.events[i].Attachments[j].Location = uploadInfo.Location
+						eventReq.events[i].Attachments[j].Key = uploadInfo.Key
+						break
+					}
+				}
 			}
 		}
 	}
@@ -2482,5 +2816,11 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
+	if isJsonRequest {
+		c.JSON(http.StatusOK, Response{
+			AttachmentUploadInfo: eventReq.attachmentUploadInfos,
+		})
+	} else {
+		c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
+	}
 }
