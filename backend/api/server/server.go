@@ -1,6 +1,7 @@
 package server
 
 import (
+	"backend/api/allowlist"
 	"backend/api/inet"
 	"context"
 	"fmt"
@@ -401,6 +402,11 @@ func Init(config *ServerConfig) {
 		if err != nil {
 			log.Printf("failed to create email client: %s", err)
 		}
+	}
+
+	// init auth allowlist
+	if err := allowlist.Init(); err != nil {
+		log.Printf("failed to initialize auth allowlist: %v\n", err)
 	}
 
 	Server = &server{

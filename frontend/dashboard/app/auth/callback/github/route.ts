@@ -11,6 +11,7 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const state = searchParams.get("state");
   const errRedirectUrl = `${origin}/auth/login?error=Could not sign in with GitHub`;
+
   if (!code) {
     console.log("GitHub login failure: no nonce");
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
@@ -34,12 +35,24 @@ export async function GET(request: Request) {
   });
 
   if (!res.ok) {
-    let body = "";
+    let body: { error?: string; details?: string } | string;
     try {
       body = await res.json();
     } catch (error) {
       console.error("Error parsing GitHub login error response JSON:", error);
       body = await res.text();
+    }
+
+    // Check if allowlist banned this identity
+    if (typeof body === "object" && body.error === "allowlist_banned") {
+      console.log("GitHub login failure: allowlist banned");
+
+      const parsedUrl = new URL(errRedirectUrl);
+      if (body?.details) {
+        parsedUrl.searchParams.set("message", body.details);
+      }
+
+      return NextResponse.redirect(parsedUrl.toString(), { status: 302 });
     }
 
     console.log(
