@@ -334,7 +334,7 @@ func SigninGitHub(c *gin.Context) {
 		if config.IsCloud() && !allowlist.IsAllowed(ghUser.Email) {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 				"error":   MSRAllowlistAuthErr.Error(),
-				"details": fmt.Sprintf("You are not part of the Measure Private alpha. Please contact us at support@measure.sh", ghUser.Email),
+				"details": "You are not part of the Measure Private alpha. Please contact us at support@measure.sh",
 			})
 			return
 		}
@@ -549,7 +549,7 @@ func SigninGoogle(c *gin.Context) {
 	if config.IsCloud() && !allowlist.IsAllowed(googUser.Email) {
 		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 			"error":   MSRAllowlistAuthErr.Error(),
-			"details": fmt.Sprintf("You are not part of the Measure Private alpha. Please contact us at support@measure.sh"),
+			"details": "You are not part of the Measure Private alpha. Please contact us at support@measure.sh",
 		})
 		return
 	}
