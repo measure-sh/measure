@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"cloud.google.com/go/cloudsqlconn"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -23,9 +22,8 @@ import (
 var Server *server
 
 type server struct {
-	PgPool  *pgxpool.Pool
-	RpgPool *pgxpool.Pool
-	Config  *ServerConfig
+	PgPool *pgxpool.Pool
+	Config *ServerConfig
 }
 
 type PostgresConfig struct {
@@ -118,26 +116,11 @@ func NewConfig() *ServerConfig {
 func Init(config *ServerConfig) {
 	ctx := context.Background()
 	var pgPool *pgxpool.Pool
-	var rPgPool *pgxpool.Pool
 
 	// read/write pool
 	oConfig, err := pgxpool.ParseConfig(config.PG.DSN)
 	if err != nil {
 		log.Fatalf("Unable to parse postgres connection string: %v\n", err)
-	}
-	oConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-		_, err := conn.Exec(ctx, "SET role operator")
-		return err
-	}
-
-	// reader pool
-	rConfig, err := pgxpool.ParseConfig(config.PG.DSN)
-	if err != nil {
-		log.Fatalf("Unable to parse reader postgres connection string: %v\n", err)
-	}
-	rConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-		_, err := conn.Exec(ctx, "SET role reader")
-		return err
 	}
 
 	if config.IsCloud() {
@@ -150,7 +133,7 @@ func Init(config *ServerConfig) {
 			cloudsqlconn.WithLazyRefresh(),
 		)
 		if err != nil {
-			fmt.Println("Failed to dial postgress connection.")
+			fmt.Println("Failed to dial postgres connection.")
 		}
 
 		csqlConnName := os.Getenv("CSQL_CONN_NAME")
@@ -162,11 +145,6 @@ func Init(config *ServerConfig) {
 			fmt.Printf("Dialing network: %s, address: %s\n", network, address)
 			return d.Dial(ctx, csqlConnName, cloudsqlconn.WithPrivateIP())
 		}
-
-		rConfig.ConnConfig.DialFunc = func(ctx context.Context, network string, address string) (net.Conn, error) {
-			fmt.Printf("Dialing reader network: %s, address: %s\n", network, address)
-			return d.Dial(ctx, csqlConnName, cloudsqlconn.WithPrivateIP())
-		}
 	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, oConfig)
@@ -175,16 +153,9 @@ func Init(config *ServerConfig) {
 	}
 	pgPool = pool
 
-	rPool, err := pgxpool.NewWithConfig(ctx, rConfig)
-	if err != nil {
-		log.Fatalf("Unable to create reader PG connection pool: %v\n", err)
-	}
-	rPgPool = rPool
-
 	Server = &server{
-		PgPool:  pgPool,
-		RpgPool: rPgPool,
-		Config:  config,
+		PgPool: pgPool,
+		Config: config,
 	}
 }
 
