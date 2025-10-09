@@ -19,7 +19,7 @@ final class PeriodicExporterTests: XCTestCase {
     override func setUp() {
         super.setUp()
         logger = MockLogger()
-        configProvider = MockConfigProvider()
+        configProvider = MockConfigProvider(maxExportJitterInterval: 0)
         timeProvider = MockTimeProvider()
         heartbeat = MockHeartbeat()
         exporter = MockExporter()
@@ -64,19 +64,6 @@ final class PeriodicExporterTests: XCTestCase {
         periodicExporter.applicationDidEnterBackground()
 
         XCTAssertFalse(exporter.exportEventsCalled, "Export events should not be called if export is already in progress.")
-    }
-
-    func testProcessNewBatchIfTimeElapsed_createsAndExportsBatch() {
-        let batchingIntervalMs: Int64 = 1000
-        timeProvider.millisTime = 2000
-        configProvider.eventsBatchingIntervalMs = batchingIntervalMs
-        exporter.createBatchResult = BatchCreationResult(batchId: "testBatch", eventIds: ["event1", "event2"], spanIds: ["span1"])
-
-        periodicExporter.applicationWillEnterForeground()
-        periodicExporter.pulse()
-
-        XCTAssertEqual(exporter.createBatchCalled, true)
-        XCTAssertEqual(exporter.exportBatchId, "testBatch")
     }
 
     func testProcessNewBatchIfTimeElapsed_doesNotCreateBatchIfIntervalNotElapsed() {

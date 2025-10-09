@@ -71,6 +71,7 @@ final class MockMeasureInitializer: MeasureInitializer {  // swiftlint:disable:t
     let screenshotGenerator: ScreenshotGenerator
     let exceptionGenerator: ExceptionGenerator
     let measureDispatchQueue: MeasureDispatchQueue
+    let attributeValueValidator: AttributeValueValidator
 
     init(client: Client? = nil, // swiftlint:disable:this function_body_length
          configProvider: ConfigProvider? = nil,
@@ -127,7 +128,8 @@ final class MockMeasureInitializer: MeasureInitializer {  // swiftlint:disable:t
          tracer: Tracer? = nil,
          internalSignalCollector: InternalSignalCollector? = nil,
          exceptionGenerator: ExceptionGenerator? = nil,
-         measureDispatchQueue: MeasureDispatchQueue? = nil) {
+         measureDispatchQueue: MeasureDispatchQueue? = nil,
+         attributeValueValidator: AttributeValueValidator? = nil) {
         self.client = client ?? ClientInfo(apiKey: "test", apiUrl: "https://test.com")
         self.configProvider = configProvider ?? BaseConfigProvider(defaultConfig: Config(),
                                                                    configLoader: BaseConfigLoader())
@@ -276,16 +278,19 @@ final class MockMeasureInitializer: MeasureInitializer {  // swiftlint:disable:t
         self.networkChangeCollector = networkChangeCollector ?? BaseNetworkChangeCollector(logger: self.logger,
                                                                                            signalProcessor: self.signalProcessor,
                                                                                            timeProvider: self.timeProvider)
+        self.attributeValueValidator = attributeValueValidator ?? BaseAttributeValueValidator(configProvider: self.configProvider, logger: self.logger)
         self.customEventCollector = customEventCollector ?? BaseCustomEventCollector(logger: self.logger,
                                                                                      signalProcessor: self.signalProcessor,
                                                                                      timeProvider: self.timeProvider,
-                                                                                     configProvider: self.configProvider)
+                                                                                     configProvider: self.configProvider,
+                                                                                     attributeValueValidator: self.attributeValueValidator)
         self.exceptionGenerator = exceptionGenerator ?? BaseExceptionGenerator(crashReporter: self.systemCrashReporter,
                                                                                logger: self.logger)
         self.userTriggeredEventCollector = userTriggeredEventCollector ?? BaseUserTriggeredEventCollector(signalProcessor: self.signalProcessor,
                                                                                                           timeProvider: self.timeProvider,
                                                                                                           logger: self.logger,
-                                                                                                          exceptionGenerator: self.exceptionGenerator)
+                                                                                                          exceptionGenerator: self.exceptionGenerator,
+                                                                                                          attributeValueValidator: self.attributeValueValidator)
         self.dataCleanupService = dataCleanupService ?? BaseDataCleanupService(eventStore: self.eventStore,
                                                                                spanStore: self.spanStore,
                                                                                sessionStore: self.sessionStore,

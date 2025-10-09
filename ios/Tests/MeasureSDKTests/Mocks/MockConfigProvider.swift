@@ -55,6 +55,7 @@ final class MockConfigProvider: ConfigProvider {
     var disallowedCustomHeaders: [String]
     var maxDiskUsageInMb: Int
     var estimatedEventSizeInKb: Int
+    var maxExportJitterInterval: Int
 
     init(enableLogging: Bool = false,  // swiftlint:disable:this function_body_length
          trackScreenshotOnCrash: Bool = true,
@@ -110,7 +111,8 @@ final class MockConfigProvider: ConfigProvider {
          requestHeadersProvider: MsrRequestHeadersProvider? = nil,
          disallowedCustomHeaders: [String] = ["Content-Type", "msr-req-id", "Authorization", "Content-Length"],
          maxDiskUsageInMb: Int = 50,
-         estimatedEventSizeInKb: Int = 10) {
+         estimatedEventSizeInKb: Int = 10,
+         maxExportJitterInterval: Int = 20) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
@@ -174,6 +176,7 @@ final class MockConfigProvider: ConfigProvider {
         ]
         self.maxDiskUsageInMb = maxDiskUsageInMb
         self.estimatedEventSizeInKb = estimatedEventSizeInKb
+        self.maxExportJitterInterval = maxExportJitterInterval
     }
 
     func loadNetworkConfig() {}
