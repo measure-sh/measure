@@ -53,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Improve os name & version display formatting by @anupcowkur in #2500
 - (**frontend**): Remove "v" prefix from app version by @anupcowkur in #2499
 
+### :coffin: Removed
+
+- (**backend**): Remove fly deploy (#2721) by @detj in #2721
+
 ### :books: Documentation
 
 - (**backend**): Update slack docs by @anupcowkur in #2647
