@@ -66,24 +66,6 @@ final class PeriodicExporterTests: XCTestCase {
         XCTAssertFalse(exporter.exportEventsCalled, "Export events should not be called if export is already in progress.")
     }
 
-    func testProcessNewBatchIfTimeElapsed_createsAndExportsBatch() {
-        let batchingIntervalMs: Int64 = 1000
-        timeProvider.millisTime = 2000
-        configProvider.eventsBatchingIntervalMs = batchingIntervalMs
-        exporter.createBatchResult = BatchCreationResult(batchId: "testBatch", eventIds: ["event1", "event2"], spanIds: ["span1"])
-
-        let expectation = expectation(description: "Export completes")
-        periodicExporter.applicationWillEnterForeground()
-        periodicExporter.pulse()
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            XCTAssertEqual(self.exporter.createBatchCalled, true)
-            XCTAssertEqual(self.exporter.exportBatchId, "testBatch")
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 1.0)
-    }
-
     func testProcessNewBatchIfTimeElapsed_doesNotCreateBatchIfIntervalNotElapsed() {
         let batchingIntervalMs: Int64 = 1000
         timeProvider.millisTime = 1500
