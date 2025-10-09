@@ -62,6 +62,7 @@ func main() {
 
 	// Proxy routes
 	r.GET("/proxy/attachments", measure.ProxyAttachment)
+	r.PUT("/proxy/attachments", measure.ProxyAttachment)
 	if !config.IsCloud() {
 		r.PUT("/proxy/symbols", measure.ProxySymbol)
 	}
