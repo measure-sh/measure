@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Fix postgres connection for all services (#2717) by @detj in #2717
 - (**backend**): Pin go version for all services (#2715) by @detj in #2715
 - (**backend**): Use go 1.25.0-alpine for api service (#2713) by @detj in #2713
 - (**backend**): Implement an allowlist for filtering authentication (#2711) by @detj in #2711
