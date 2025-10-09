@@ -33,6 +33,7 @@ let package = Package(
             path: "ios/Sources/MeasureSDK/Swift",
             resources: [
                 .process("XCDataModel/MeasureModel.xcdatamodeld"),
+                .process("XCDataModel/MeasureModelV1ToV2.xcmappingmodel"),
                 .copy("Resources/PrivacyInfo.xcprivacy")
             ]
         ),

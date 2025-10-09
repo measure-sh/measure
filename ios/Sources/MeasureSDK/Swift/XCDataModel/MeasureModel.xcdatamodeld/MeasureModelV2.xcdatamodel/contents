@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A354" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="AttachmentOb" representedClassName="AttachmentOb" syncable="YES">
+        <attribute name="attachmentSize" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="bytes" optional="YES" attributeType="Binary"/>
+        <attribute name="id" optional="YES" attributeType="String"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="path" optional="YES" attributeType="String"/>
+        <attribute name="type" optional="YES" attributeType="String"/>
+        <attribute name="uploadUrl" optional="YES" attributeType="String"/>
+        <relationship name="eventRel" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="EventOb" inverseName="attachmentsRel" inverseEntity="EventOb"/>
+    </entity>
+    <entity name="BatchOb" representedClassName="BatchOb" syncable="YES">
+        <attribute name="batchId" attributeType="String"/>
+        <attribute name="createdAt" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="eventId" attributeType="String"/>
+        <attribute name="spanIds" optional="YES" attributeType="String"/>
+    </entity>
+    <entity name="EventOb" representedClassName="EventOb" syncable="YES">
+        <attribute name="attributes" optional="YES" attributeType="Binary"/>
+        <attribute name="batchId" optional="YES" attributeType="String"/>
+        <attribute name="bugReport" optional="YES" attributeType="Binary"/>
+        <attribute name="coldLaunch" optional="YES" attributeType="Binary"/>
+        <attribute name="cpuUsage" optional="YES" attributeType="Binary"/>
+        <attribute name="customEvent" optional="YES" attributeType="Binary"/>
+        <attribute name="exception" optional="YES" attributeType="Binary"/>
+        <attribute name="gestureClick" optional="YES" attributeType="Binary"/>
+        <attribute name="gestureLongClick" optional="YES" attributeType="Binary"/>
+        <attribute name="gestureScroll" optional="YES" attributeType="Binary"/>
+        <attribute name="hotLaunch" optional="YES" attributeType="Binary"/>
+        <attribute name="http" optional="YES" attributeType="Binary"/>
+        <attribute name="id" attributeType="String" defaultValueString=""/>
+        <attribute name="lifecycleApp" optional="YES" attributeType="Binary"/>
+        <attribute name="lifecycleSwiftUI" optional="YES" attributeType="Binary"/>
+        <attribute name="lifecycleViewController" optional="YES" attributeType="Binary"/>
+        <attribute name="memoryUsage" optional="YES" attributeType="Binary"/>
+        <attribute name="needsReporting" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="networkChange" optional="YES" attributeType="Binary"/>
+        <attribute name="screenView" optional="YES" attributeType="Binary"/>
+        <attribute name="sessionId" attributeType="String" defaultValueString=""/>
+        <attribute name="timestamp" attributeType="String"/>
+        <attribute name="timestampInMillis" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="type" attributeType="String" defaultValueString=""/>
+        <attribute name="userDefinedAttributes" optional="YES" attributeType="String"/>
+        <attribute name="userTriggered" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="warmLaunch" optional="YES" attributeType="Binary"/>
+        <relationship name="attachmentsRel" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="AttachmentOb" inverseName="eventRel" inverseEntity="AttachmentOb"/>
+    </entity>
+    <entity name="SessionOb" representedClassName="SessionOb" syncable="YES">
+        <attribute name="crashed" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="createdAt" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="needsReporting" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="pid" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="sessionId" attributeType="String" defaultValueString=""/>
+    </entity>
+    <entity name="SpanOb" representedClassName="SpanOb" syncable="YES">
+        <attribute name="attributes" optional="YES" attributeType="Binary"/>
+        <attribute name="batchId" optional="YES" attributeType="String"/>
+        <attribute name="checkpoints" optional="YES" attributeType="Binary"/>
+        <attribute name="duration" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="endTime" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="endTimeString" attributeType="String"/>
+        <attribute name="hasEnded" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isSampled" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="parentId" optional="YES" attributeType="String"/>
+        <attribute name="sessionId" attributeType="String"/>
+        <attribute name="spanId" attributeType="String"/>
+        <attribute name="startTime" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="startTimeString" attributeType="String"/>
+        <attribute name="status" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="traceId" attributeType="String"/>
+        <attribute name="userDefinedAttrs" optional="YES" attributeType="Binary"/>
+    </entity>
+</model>

@@ -16,7 +16,10 @@ Pod::Spec.new do |spec|
   spec.pod_target_xcconfig = {
     "DEFINES_MODULE" => "YES"
   }
-  spec.resources    = ["ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModel.xcdatamodeld"]
+  spec.resources    = [
+    "ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModel.xcdatamodeld",
+    "ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModelV1ToV2.xcmappingmodel" 
+  ]
   spec.frameworks   = "Foundation", "UIKit", "CoreData"
   spec.dependency "PLCrashReporter", "1.11.2"
 end

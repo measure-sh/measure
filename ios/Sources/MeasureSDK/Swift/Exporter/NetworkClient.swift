@@ -32,7 +32,7 @@ final class BaseNetworkClient: NetworkClient {
             if let serialisedEvent = eventSerializer.getSerialisedEvent(for: event) {
                 multipartData.append(.formField(name: formFieldEvent, value: serialisedEvent))
             }
-            if let attachments = event.getAttachments() {
+            if let attachments = event.attachments {
                 for attachment in attachments {
                     if let bytes = attachment.bytes {
                         multipartData.append(.fileData(name: "blob-\(attachment.id)", filename: attachment.name, data: bytes))

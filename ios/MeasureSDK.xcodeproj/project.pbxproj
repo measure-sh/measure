@@ -189,11 +189,9 @@
 		52B7F17C2D75808D001498BC /* LaunchCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1302D757F81001498BC /* LaunchCollectorTests.swift */; };
 		52B7F17D2D7580AD001498BC /* XCTextCase+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1032D757F81001498BC /* XCTextCase+Extension.swift */; };
 		52B7F18F2D76AFBB001498BC /* EventOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1892D76AFBB001498BC /* EventOb+CoreDataClass.swift */; };
-		52B7F1902D76AFBB001498BC /* EventOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F18A2D76AFBB001498BC /* EventOb+CoreDataProperties.swift */; };
 		52B7F1912D76AFBB001498BC /* SessionOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F18B2D76AFBB001498BC /* SessionOb+CoreDataClass.swift */; };
 		52B7F1922D76AFBB001498BC /* SessionOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F18C2D76AFBB001498BC /* SessionOb+CoreDataProperties.swift */; };
 		52B7F1952D76AFBB001498BC /* EventOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1892D76AFBB001498BC /* EventOb+CoreDataClass.swift */; };
-		52B7F1962D76AFBB001498BC /* EventOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F18A2D76AFBB001498BC /* EventOb+CoreDataProperties.swift */; };
 		52B7F1972D76AFBB001498BC /* SessionOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F18B2D76AFBB001498BC /* SessionOb+CoreDataClass.swift */; };
 		52B7F1982D76AFBB001498BC /* SessionOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F18C2D76AFBB001498BC /* SessionOb+CoreDataProperties.swift */; };
 		52B7F19C2D76B423001498BC /* LifecycleManager_Internal.h in Headers */ = {isa = PBXBuildFile; fileRef = 52B7F19B2D76B423001498BC /* LifecycleManager_Internal.h */; };
@@ -247,6 +245,11 @@
 		CF83E3212E0FF85C00FE7041 /* MsrRequestHeadersProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF83E3202E0FF85C00FE7041 /* MsrRequestHeadersProvider.swift */; };
 		CF86818F2DB6541F00C62DA5 /* SpanId.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF86818D2DB6541F00C62DA5 /* SpanId.swift */; };
 		CF8681902DB6541F00C62DA5 /* TraceId.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF86818E2DB6541F00C62DA5 /* TraceId.swift */; };
+		CF893DD22E950A7E00D99D45 /* MeasureModelV1ToV2.xcmappingmodel in Sources */ = {isa = PBXBuildFile; fileRef = CF893DD12E950A7E00D99D45 /* MeasureModelV1ToV2.xcmappingmodel */; };
+		CF893DD52E950BF000D99D45 /* EventToAttachmentMigrationPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF893DD42E950BF000D99D45 /* EventToAttachmentMigrationPolicy.swift */; };
+		CF893DDB2E950DEE00D99D45 /* EventOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF893DDA2E950DEE00D99D45 /* EventOb+CoreDataProperties.swift */; };
+		CF893DE22E950F6900D99D45 /* AttachmentOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF893DE02E950F6900D99D45 /* AttachmentOb+CoreDataClass.swift */; };
+		CF893DE32E950F6900D99D45 /* AttachmentOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF893DE12E950F6900D99D45 /* AttachmentOb+CoreDataProperties.swift */; };
 		CF9D74C52E6169F3007D6D30 /* LifecycleManagerInternal.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9D74C42E6169F3007D6D30 /* LifecycleManagerInternal.swift */; };
 		CF9D75792E66C0FA007D6D30 /* SessionStartData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9D75782E66C0FA007D6D30 /* SessionStartData.swift */; };
 		CFB838212DAFEF780023592B /* SpanProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB838202DAFEF780023592B /* SpanProcessorTests.swift */; };
@@ -526,7 +529,6 @@
 		52B7F1302D757F81001498BC /* LaunchCollectorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LaunchCollectorTests.swift; sourceTree = "<group>"; };
 		52B7F1312D757F81001498BC /* LifecycleCollectorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LifecycleCollectorTests.swift; sourceTree = "<group>"; };
 		52B7F1892D76AFBB001498BC /* EventOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventOb+CoreDataClass.swift"; sourceTree = "<group>"; };
-		52B7F18A2D76AFBB001498BC /* EventOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		52B7F18B2D76AFBB001498BC /* SessionOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionOb+CoreDataClass.swift"; sourceTree = "<group>"; };
 		52B7F18C2D76AFBB001498BC /* SessionOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		52B7F19B2D76B423001498BC /* LifecycleManager_Internal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LifecycleManager_Internal.h; sourceTree = "<group>"; };
@@ -582,6 +584,12 @@
 		CF83E3202E0FF85C00FE7041 /* MsrRequestHeadersProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrRequestHeadersProvider.swift; sourceTree = "<group>"; };
 		CF86818D2DB6541F00C62DA5 /* SpanId.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanId.swift; sourceTree = "<group>"; };
 		CF86818E2DB6541F00C62DA5 /* TraceId.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceId.swift; sourceTree = "<group>"; };
+		CF893DD02E95096B00D99D45 /* MeasureModelV2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MeasureModelV2.xcdatamodel; sourceTree = "<group>"; };
+		CF893DD12E950A7E00D99D45 /* MeasureModelV1ToV2.xcmappingmodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcmappingmodel; path = MeasureModelV1ToV2.xcmappingmodel; sourceTree = "<group>"; };
+		CF893DD42E950BF000D99D45 /* EventToAttachmentMigrationPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventToAttachmentMigrationPolicy.swift; sourceTree = "<group>"; };
+		CF893DDA2E950DEE00D99D45 /* EventOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		CF893DE02E950F6900D99D45 /* AttachmentOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttachmentOb+CoreDataClass.swift"; sourceTree = "<group>"; };
+		CF893DE12E950F6900D99D45 /* AttachmentOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttachmentOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		CF9D74C42E6169F3007D6D30 /* LifecycleManagerInternal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleManagerInternal.swift; sourceTree = "<group>"; };
 		CF9D75782E66C0FA007D6D30 /* SessionStartData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStartData.swift; sourceTree = "<group>"; };
 		CFB838202DAFEF780023592B /* SpanProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanProcessorTests.swift; sourceTree = "<group>"; };
@@ -744,6 +752,7 @@
 		526D17B62D5A1913009A2E90 /* CoreData */ = {
 			isa = PBXGroup;
 			children = (
+				CF893DD32E950BBB00D99D45 /* Migration */,
 				52B7F17F2D76A32C001498BC /* CoreDataEntities */,
 				526D17B02D5A1913009A2E90 /* Entities */,
 				526D17B12D5A1913009A2E90 /* BatchStore.swift */,
@@ -950,6 +959,7 @@
 		526D18152D5A1913009A2E90 /* XCDataModel */ = {
 			isa = PBXGroup;
 			children = (
+				CF893DD12E950A7E00D99D45 /* MeasureModelV1ToV2.xcmappingmodel */,
 				520C23942D65EBFC00F1C680 /* MeasureModel.xcdatamodeld */,
 			);
 			path = XCDataModel;
@@ -1203,10 +1213,12 @@
 		52B7F17F2D76A32C001498BC /* CoreDataEntities */ = {
 			isa = PBXGroup;
 			children = (
+				CF893DE02E950F6900D99D45 /* AttachmentOb+CoreDataClass.swift */,
+				CF893DE12E950F6900D99D45 /* AttachmentOb+CoreDataProperties.swift */,
 				CFD88D622DAE36D30095115E /* BatchOb+CoreDataClass.swift */,
 				CFD88D632DAE36D30095115E /* BatchOb+CoreDataProperties.swift */,
 				52B7F1892D76AFBB001498BC /* EventOb+CoreDataClass.swift */,
-				52B7F18A2D76AFBB001498BC /* EventOb+CoreDataProperties.swift */,
+				CF893DDA2E950DEE00D99D45 /* EventOb+CoreDataProperties.swift */,
 				52B7F18B2D76AFBB001498BC /* SessionOb+CoreDataClass.swift */,
 				52B7F18C2D76AFBB001498BC /* SessionOb+CoreDataProperties.swift */,
 				CFB8382A2DB1597B0023592B /* SpanOb+CoreDataClass.swift */,
@@ -1295,6 +1307,14 @@
 				CF7CAE572D95344100E15CDB /* HttpEventValidatorTests.swift */,
 			);
 			path = Http;
+			sourceTree = "<group>";
+		};
+		CF893DD32E950BBB00D99D45 /* Migration */ = {
+			isa = PBXGroup;
+			children = (
+				CF893DD42E950BF000D99D45 /* EventToAttachmentMigrationPolicy.swift */,
+			);
+			path = Migration;
 			sourceTree = "<group>";
 		};
 		CFD88C6D2D9E94B40095115E /* Tracing */ = {
@@ -1571,11 +1591,14 @@
 				526D18892D5A1913009A2E90 /* SysCtl.swift in Sources */,
 				526D18522D5A1913009A2E90 /* ThreadDetail.swift in Sources */,
 				526D18362D5A1913009A2E90 /* MeasureConfig.swift in Sources */,
+				CF893DE22E950F6900D99D45 /* AttachmentOb+CoreDataClass.swift in Sources */,
+				CF893DE32E950F6900D99D45 /* AttachmentOb+CoreDataProperties.swift in Sources */,
 				526D18542D5A1913009A2E90 /* Exporter.swift in Sources */,
 				69C449692DA9266400E44CF4 /* InternalSignalCollector.swift in Sources */,
 				526D18542D5A1913009A2E90 /* Exporter.swift in Sources */,
 				CFBF626F2DB7ADA200D5ADFB /* SwizzlingUtility.swift in Sources */,
 				526D18222D5A1913009A2E90 /* MSRViewController.m in Sources */,
+				CF893DD22E950A7E00D99D45 /* MeasureModelV1ToV2.xcmappingmodel in Sources */,
 				CF1BB3BF2DC0BCA300588506 /* CGFloat+Extension.swift in Sources */,
 				CFD88C6E2D9E94B40095115E /* SpanProcessor.swift in Sources */,
 				CFD88C6F2D9E94B40095115E /* MsrSpan.swift in Sources */,
@@ -1658,7 +1681,6 @@
 				CF1BB4FD2DDF317300588506 /* MotionManager.swift in Sources */,
 				CF83E2E32E0D21EB00FE7041 /* MeasureDispatchQueue.swift in Sources */,
 				CF7CAE4A2D940E4700E15CDB /* AppVersionInfo.swift in Sources */,
-				52B7F1902D76AFBB001498BC /* EventOb+CoreDataProperties.swift in Sources */,
 				CF48773F2DEEB26B00311F57 /* UIApplication+Extension.swift in Sources */,
 				52B7F1912D76AFBB001498BC /* SessionOb+CoreDataClass.swift in Sources */,
 				CF48E3982E01866400FCD26D /* Error.swift in Sources */,
@@ -1693,6 +1715,7 @@
 				526D18722D5A1913009A2E90 /* CpuUsageCollector.swift in Sources */,
 				526D184A2D5A1913009A2E90 /* Event.swift in Sources */,
 				526D18452D5A1913009A2E90 /* Attachment.swift in Sources */,
+				CF893DDB2E950DEE00D99D45 /* EventOb+CoreDataProperties.swift in Sources */,
 				CF1BB5532DE4370A00588506 /* MsrDimensions.swift in Sources */,
 				526D186C2D5A1913009A2E90 /* MsrMoniterView.swift in Sources */,
 				526D183B2D5A1913009A2E90 /* CoreDataManager.swift in Sources */,
@@ -1708,6 +1731,7 @@
 				526D18942D5A1913009A2E90 /* SessionManager.swift in Sources */,
 				CFD88D112DA797A00095115E /* Tracer.swift in Sources */,
 				526D183C2D5A1913009A2E90 /* DataCleanupService.swift in Sources */,
+				CF893DD52E950BF000D99D45 /* EventToAttachmentMigrationPolicy.swift in Sources */,
 				526D182F2D5A1913009A2E90 /* UserAttributeProcessor.swift in Sources */,
 				526D18482D5A1913009A2E90 /* CustomEventCollector.swift in Sources */,
 				CFB8382C2DB1597B0023592B /* SpanOb+CoreDataClass.swift in Sources */,
@@ -1756,7 +1780,6 @@
 				CF1BB5042DDF669800588506 /* BugReportCollectorTests.swift in Sources */,
 				CFB8382E2DB1597B0023592B /* SpanOb+CoreDataClass.swift in Sources */,
 				CFB8382F2DB1597B0023592B /* SpanOb+CoreDataProperties.swift in Sources */,
-				52B7F1962D76AFBB001498BC /* EventOb+CoreDataProperties.swift in Sources */,
 				52B7F1972D76AFBB001498BC /* SessionOb+CoreDataClass.swift in Sources */,
 				52B7F1982D76AFBB001498BC /* SessionOb+CoreDataProperties.swift in Sources */,
 				52B7F15C2D757F81001498BC /* MockExporter.swift in Sources */,
@@ -2359,9 +2382,10 @@
 		520C23942D65EBFC00F1C680 /* MeasureModel.xcdatamodeld */ = {
 			isa = XCVersionGroup;
 			children = (
+				CF893DD02E95096B00D99D45 /* MeasureModelV2.xcdatamodel */,
 				520C23952D65EBFC00F1C680 /* MeasureModel.xcdatamodel */,
 			);
-			currentVersion = 520C23952D65EBFC00F1C680 /* MeasureModel.xcdatamodel */;
+			currentVersion = CF893DD02E95096B00D99D45 /* MeasureModelV2.xcdatamodel */;
 			path = MeasureModel.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;

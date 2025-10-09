@@ -43,3 +43,13 @@ public class MsrAttachment: NSObject, Codable {
         self.id = id
     }
 }
+
+struct MsrUploadAttachment {
+    let id: String
+    let name: String
+    let type: AttachmentType
+    let size: Number
+    let bytes: Data?
+    let path: String?
+    let uploadUrl: String
+}
