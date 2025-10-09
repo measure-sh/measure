@@ -18,7 +18,7 @@ clickhouse-client -n \
   <<-EOSQL
   create role if not exists operator;
   create role if not exists reader;
-  grant select, insert on $DB_NAME.* to operator;
+  grant select, insert, delete, update on $DB_NAME.* to operator;
   grant select on $DB_NAME.* to reader;
 
   create user if not exists '${CLICKHOUSE_OPERATOR_USER}' identified with sha256_password by '${CLICKHOUSE_OPERATOR_PASSWORD}' default role operator default database $DB_NAME;
