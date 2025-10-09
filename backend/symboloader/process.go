@@ -382,7 +382,7 @@ func (b *Build) load(ctx context.Context, id uuid.UUID) (err error) {
 
 	var mappingType string
 
-	if err := server.Server.RpgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&b.AppID, &b.VersionName, &b.VersionCode, &mappingType); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&b.AppID, &b.VersionName, &b.VersionCode, &mappingType); err != nil {
 		return err
 	}
 
@@ -401,7 +401,7 @@ func (b *Build) load(ctx context.Context, id uuid.UUID) (err error) {
 
 	defer stmtMappings.Close()
 
-	rows, _ := server.Server.RpgPool.Query(ctx, stmtMappings.String(), stmtMappings.Args()...)
+	rows, _ := server.Server.PgPool.Query(ctx, stmtMappings.String(), stmtMappings.Args()...)
 
 	for rows.Next() {
 		var mapping Mapping

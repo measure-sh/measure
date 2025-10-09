@@ -228,7 +228,7 @@ func getAppNameByID(ctx context.Context, appID uuid.UUID) (string, error) {
 		Where("id = ?", appID)
 	defer appNameStmt.Close()
 	var appName string
-	err := server.Server.RpgPool.QueryRow(ctx, appNameStmt.String(), appNameStmt.Args()...).Scan(&appName)
+	err := server.Server.PgPool.QueryRow(ctx, appNameStmt.String(), appNameStmt.Args()...).Scan(&appName)
 	if err != nil {
 		return "", err
 	}
@@ -480,7 +480,7 @@ func isInCooldown(ctx context.Context, teamID, appID uuid.UUID, entityID, alertT
 		Limit(1)
 	defer stmt.Close()
 	var createdAt time.Time
-	row := server.Server.RpgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
+	row := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...)
 	err := row.Scan(&createdAt)
 	if err != nil {
 		return false, nil // no previous alert
@@ -498,7 +498,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 		Where("team_id = ?", alert.TeamID)
 	defer memberStmt.Close()
 
-	memberRows, err := server.Server.RpgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
+	memberRows, err := server.Server.PgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
 	if err != nil {
 		fmt.Printf("Error fetching team members for team %v: %v\n", alert.TeamID, err)
 		return
@@ -519,7 +519,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 			Where("id = ?", userID)
 		defer emailStmt.Close()
 
-		err = server.Server.RpgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
+		err = server.Server.PgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
 		if err != nil {
 			fmt.Printf("Error fetching email for user %v: %v\n", userID, err)
 			continue
@@ -634,7 +634,7 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 		Where("team_id = ?", teamId)
 	defer memberStmt.Close()
 
-	memberRows, err := server.Server.RpgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
+	memberRows, err := server.Server.PgPool.Query(ctx, memberStmt.String(), memberStmt.Args()...)
 	if err != nil {
 		fmt.Printf("Error fetching team members for team %v: %v\n", teamId, err)
 		return
@@ -655,7 +655,7 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 			Where("id = ?", userID)
 		defer emailStmt.Close()
 
-		err = server.Server.RpgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
+		err = server.Server.PgPool.QueryRow(ctx, emailStmt.String(), emailStmt.Args()...).Scan(&emailAddr)
 		if err != nil {
 			fmt.Printf("Error fetching email for user %v: %v\n", userID, err)
 			continue

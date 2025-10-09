@@ -36,7 +36,6 @@ func main() {
 
 	// close postgres pool at shutdown
 	defer server.Server.PgPool.Close()
-	defer server.Server.RpgPool.Close()
 
 	// close clickhouse connection pool at shutdown
 	defer func() {

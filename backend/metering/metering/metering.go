@@ -33,7 +33,7 @@ func CalculateUsage(ctx context.Context) {
 		Select("name")
 	defer teamsQuery.Close()
 
-	teamRows, err := server.Server.RpgPool.Query(ctx, teamsQuery.String())
+	teamRows, err := server.Server.PgPool.Query(ctx, teamsQuery.String())
 	if err != nil {
 		log.Printf("failed to query teams: %v", err)
 		return
@@ -67,7 +67,7 @@ func CalculateUsage(ctx context.Context) {
 		defer lastReportedQuery.Close()
 
 		var lastReported *time.Time
-		err := server.Server.RpgPool.QueryRow(ctx, lastReportedQuery.String(), lastReportedQuery.Args()...).Scan(&lastReported)
+		err := server.Server.PgPool.QueryRow(ctx, lastReportedQuery.String(), lastReportedQuery.Args()...).Scan(&lastReported)
 		if err != nil {
 			log.Printf("failed to get last reported date for team %s (%s): %v", team.ID, team.Name, err)
 			continue

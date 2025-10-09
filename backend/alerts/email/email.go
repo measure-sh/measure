@@ -30,7 +30,7 @@ func SendPendingAlertEmails(ctx context.Context) error {
 		Where("channel = ?", "email").
 		OrderBy("created_at ASC").
 		Limit(250)
-	rows, err := server.Server.RpgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return fmt.Errorf("failed to query pending alert messages: %w", err)
 	}

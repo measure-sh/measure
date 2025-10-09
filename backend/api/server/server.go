@@ -31,8 +31,7 @@ import (
 var Server *server
 
 type server struct {
-	PgPool *pgxpool.Pool
-	// RpgPool *pgxpool.Pool
+	PgPool  *pgxpool.Pool
 	ChPool  driver.Conn
 	RchPool driver.Conn
 	Mail    *mail.Client

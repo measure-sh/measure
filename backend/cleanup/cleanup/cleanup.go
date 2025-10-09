@@ -546,7 +546,7 @@ func fetchAppRetentions(ctx context.Context) (retentions []AppRetention, err err
 
 	defer stmt.Close()
 
-	rows, err := server.Server.RpgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := server.Server.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return
 	}
