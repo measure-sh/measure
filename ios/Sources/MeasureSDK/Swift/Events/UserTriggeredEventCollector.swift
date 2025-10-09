@@ -21,12 +21,14 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
     private var isEnabled = AtomicBool(false)
     private let logger: Logger
     private let exceptionGenerator: ExceptionGenerator
+    private let attributeValueValidator: AttributeValueValidator
 
-    init(signalProcessor: SignalProcessor, timeProvider: TimeProvider, logger: Logger, exceptionGenerator: ExceptionGenerator) {
+    init(signalProcessor: SignalProcessor, timeProvider: TimeProvider, logger: Logger, exceptionGenerator: ExceptionGenerator, attributeValueValidator: AttributeValueValidator) {
         self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.logger = logger
         self.exceptionGenerator = exceptionGenerator
+        self.attributeValueValidator = attributeValueValidator
     }
 
     func enable() {
@@ -43,6 +45,7 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
 
     func trackScreenView(_ screenName: String, attributes: [String: AttributeValue]?) {
         guard isEnabled.get() else { return }
+        guard attributeValueValidator.validateAttributes(name: screenName, attributes: attributes) else { return }
 
         track(ScreenViewData(name: screenName), type: .screenView, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes))
     }

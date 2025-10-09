@@ -33,7 +33,8 @@ final class BaseCustomEventCollectorTests: XCTestCase {
             logger: logger,
             signalProcessor: signalProcessor,
             timeProvider: timeProvider,
-            configProvider: configProvider
+            configProvider: configProvider,
+            attributeValueValidator: BaseAttributeValueValidator(configProvider: configProvider, logger: logger)
         )
     }
 

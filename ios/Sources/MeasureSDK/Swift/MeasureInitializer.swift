@@ -72,6 +72,7 @@ protocol MeasureInitializer {
     var screenshotGenerator: ScreenshotGenerator { get }
     var exceptionGenerator: ExceptionGenerator { get }
     var measureDispatchQueue: MeasureDispatchQueue { get }
+    var attributeValueValidator: AttributeValueValidator { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -138,6 +139,7 @@ protocol MeasureInitializer {
 /// - `screenshotGenerator`: `ScreenshotGenerator` object responsible for generating a screenshot.
 /// - `exceptionGenerator`: `ExceptionGenerator` object responsible for generating `Exception` object for `Error` or `NSError`
 /// - `measureDispatchQueue`: `MeasureDispatchQueue` object to run tasks on a serial queue.
+/// - `attributeValueValidator`: `AttributeValueValidator` object to validate user defined attributes
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -202,6 +204,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let screenshotGenerator: ScreenshotGenerator
     let exceptionGenerator: ExceptionGenerator
     let measureDispatchQueue: MeasureDispatchQueue
+    let attributeValueValidator: AttributeValueValidator
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -365,22 +368,26 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.networkChangeCollector = BaseNetworkChangeCollector(logger: logger,
                                                                  signalProcessor: signalProcessor,
                                                                  timeProvider: timeProvider)
+        self.attributeValueValidator = BaseAttributeValueValidator(configProvider: configProvider,
+                                                                   logger: logger)
         self.customEventCollector = BaseCustomEventCollector(logger: logger,
                                                              signalProcessor: signalProcessor,
                                                              timeProvider: timeProvider,
-                                                             configProvider: configProvider)
+                                                             configProvider: configProvider,
+                                                             attributeValueValidator: attributeValueValidator)
         self.exceptionGenerator = BaseExceptionGenerator(crashReporter: systemCrashReporter,
                                                          logger: logger)
         self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(signalProcessor: signalProcessor,
                                                                            timeProvider: timeProvider,
                                                                            logger: logger,
-                                                                           exceptionGenerator: exceptionGenerator)
+                                                                           exceptionGenerator: exceptionGenerator,
+                                                                           attributeValueValidator: attributeValueValidator)
         self.dataCleanupService = BaseDataCleanupService(eventStore: eventStore,
                                                          spanStore: spanStore,
                                                          sessionStore: sessionStore,
                                                          logger: logger,
                                                          sessionManager: sessionManager,
-        configProvider: configProvider)
+                                                         configProvider: configProvider)
         self.client = client
         self.httpEventValidator = BaseHttpEventValidator()
         self.httpEventCollector = BaseHttpEventCollector(logger: logger,

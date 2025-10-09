@@ -19,7 +19,7 @@ final class PeriodicExporterTests: XCTestCase {
     override func setUp() {
         super.setUp()
         logger = MockLogger()
-        configProvider = MockConfigProvider()
+        configProvider = MockConfigProvider(maxExportJitterInterval: 0)
         timeProvider = MockTimeProvider()
         heartbeat = MockHeartbeat()
         exporter = MockExporter()
@@ -72,11 +72,16 @@ final class PeriodicExporterTests: XCTestCase {
         configProvider.eventsBatchingIntervalMs = batchingIntervalMs
         exporter.createBatchResult = BatchCreationResult(batchId: "testBatch", eventIds: ["event1", "event2"], spanIds: ["span1"])
 
+        let expectation = expectation(description: "Export completes")
         periodicExporter.applicationWillEnterForeground()
         periodicExporter.pulse()
 
-        XCTAssertEqual(exporter.createBatchCalled, true)
-        XCTAssertEqual(exporter.exportBatchId, "testBatch")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            XCTAssertEqual(self.exporter.createBatchCalled, true)
+            XCTAssertEqual(self.exporter.exportBatchId, "testBatch")
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
     }
 
     func testProcessNewBatchIfTimeElapsed_doesNotCreateBatchIfIntervalNotElapsed() {
