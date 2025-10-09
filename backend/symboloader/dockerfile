@@ -1,5 +1,5 @@
 #build stage
-FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:alpine AS builder
+FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:1.25.0-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /go/src/app
