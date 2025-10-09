@@ -1,10 +1,10 @@
-import { buildExceptionPayload } from "../exception/exceptionBuilder";
-import { setupErrorHandlers } from "../exception/measureErrorHandlers";
+import { buildExceptionPayload } from "../../exception/exceptionBuilder";
+import { setupErrorHandlers } from "../../exception/measureErrorHandlers";
 
-jest.mock("../exception/exceptionBuilder", () => ({
+jest.mock("../../exception/exceptionBuilder", () => ({
   buildExceptionPayload: jest.fn(() => ({ fake: "payload" })),
 }));
-jest.mock("../native/measureBridge", () => ({
+jest.mock("../../native/measureBridge", () => ({
   trackEvent: jest.fn(() => Promise.resolve()),
 }));
 

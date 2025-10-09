@@ -49,6 +49,17 @@ const simulateInfiniteLoop = () => {
   while (true) {}
 };
 
+const trackCustomEvent = () => {
+  Measure.trackEvent('button_click', {
+    screen: 'Home',
+    action: 'Track Custom Event',
+    timestamped: true,
+    objecttype: { id: '12345', name: 'Test Object' },
+    arraytype: ['value1', 'value2'],
+  });
+  console.log('Custom event tracked: button_click');
+};
+
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
 
@@ -70,7 +81,7 @@ export default function HomeScreen() {
         {
           id: 'event',
           title: 'Track Custom Event',
-          onPress: () => console.log('Event pressed'),
+          onPress: trackCustomEvent,
         },
       ],
     },
