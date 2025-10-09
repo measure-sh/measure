@@ -56,7 +56,7 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
 ## Resources
 
 - [**PUT `/events`**](#put-events) - Send a batch of events, spans, attachments, metrics and traces via this endpoint.
-- [**PUT `/builds`**]() - Send build mappings and build sizes via this API.
+- [**PUT `/builds`**](#put-builds) - Send build mappings and build sizes via this API.
 
 ### PUT `/events`
 
@@ -127,11 +127,48 @@ These headers must be present in each request.
 
 #### Response Body
 
-- For new event requests
+- For new event requests (Multipart)
 
   ```json
   {
     "ok": "accepted"
+  }
+  ```
+
+- For new event requests (JSON)
+
+  When event request contain attachments, the response has the following shape.
+
+  ```json
+  {
+      "attachments": [
+          {
+              "id": "42306fd7-cb17-4fa4-88dd-b40ce1ce34c4",
+              "type": "layout_snapshot",
+              "filename": "snapshot.svg",
+              "upload_url": "http://localhost:8080/proxy/attachments?payload=http%3A%2F%2Fminio%3A9000%2Fmsr-attachments-sandbox%2F42306fd7-cb17-4fa4-88dd-b40ce1ce34c4.svg%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3Dminio%252F20251008%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20251008T101412Z%26X-Amz-Expires%3D604800%26X-Amz-SignedHeaders%3Dhost%253Bx-amz-meta-original_file_name%26x-id%3DPutObject%26X-Amz-Signature%3D6b5922cacd3e017871decfdc885101bd727bf5ba50eeca54b257e7a1bbb1bd14",
+              "expires_at": "2025-10-15T10:14:12.870600803Z",
+              "headers": {
+                  "x-amz-meta-original_file_name": "snapshot.svg"
+              }
+          }
+      ]
+  }
+  ```
+
+  File upload requests must use the **PUT** http method. Example of a file upload request:
+
+  ```sh
+  curl -s -X PUT <upload_url> \
+    --header 'x-amz-meta-original_file_name: somefile.tgz'
+  ```
+
+
+  In case event request does not contain attachments, the response has the following shape:
+
+  ```json
+  {
+    "attachments": null
   }
   ```
 
@@ -170,6 +207,25 @@ These headers must be present in each request.
   ```
 
 #### Request Body
+
+The request body supports both multipart and `application/json` requests. Multipart requests will be deprecated in future versions, it only exists for backwards compatibility.
+
+##### JSON request body
+
+To understand the shape of the multipart/form-data payload, take a look at this sample request. You'll find detailed reference of `events` shapes below.
+
+**Example payload**
+
+<details>
+<summary>Expand</summary>
+
+```json
+{"events":[{"id":"576aa557-2580-4bb6-9941-ba90df6c3c0e","session_id":"9321a0be-906e-436b-91af-b47fb2e81cde","user_triggered":false,"timestamp":"2025-10-07T12:13:01.51700000Z","type":"gesture_click","gesture_click":{"target":"androidx.compose.ui.platform.AndroidComposeView","target_id":"item_0","width":1080,"height":242,"x":619.959,"y":195.93066,"touch_down_time":75761066,"touch_up_time":75761126},"attachments":[{"id":"42306fd7-cb17-4fa4-88dd-b40ce1ce34c4","type":"layout_snapshot","name":"snapshot.svg"}],"attribute":{"thread_name":"main","platform":"android","user_id":null,"device_name":"emu64a16k","device_model":"sdk_gphone16k_arm64","device_manufacturer":"Google","device_type":"phone","device_is_foldable":false,"device_is_physical":false,"device_density_dpi":440,"device_width_px":1080,"device_height_px":2220,"device_density":2.75,"device_locale":"en-US","os_name":"android","os_version":"36","os_page_size":16,"app_version":"0.13.0-SNAPSHOT.debug","app_build":"29330652","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.13.0-SNAPSHOT","installation_id":"4059d23f-34ce-4d2c-a015-bd8da0b101ae","network_type":"wifi","network_generation":"unknown","network_provider":"unknown","device_low_power_mode":false,"device_thermal_throttling_enabled":false},"user_defined_attribute":null}],"spans":[{"name":"activity.onCreate","trace_id":"d71f3d909689859469a7d9b38e605d56","span_id":"9f1890db9aedb305","parent_id":null,"session_id":"a2768feb-59cd-433f-bf00-d36ab297eddb","start_time":"2024-11-18T14:14:40.54500000Z","end_time":"2024-11-18T14:14:40.62000000Z","duration":75,"status":0,"attributes":{"thread_name":"main","user_id":null,"device_name":"emu64a16k","device_model":"sdk_gphone16k_arm64","device_manufacturer":"Google","device_locale":"en-US","os_name":"android","os_version":"35","platform":"android","app_version":"0.9.0-SNAPSHOT.debug","app_build":"900","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.9.0-SNAPSHOT","installation_id":"2ee2d03e-ed76-43e7-8d63-9e146f1df618","network_type":"wifi","network_generation":"unknown","network_provider":"unknown"},"checkpoints":[]}]}
+```
+
+</details>
+
+##### Multipart request body
 
 To understand the shape of the multipart/form-data payload, take a look at this sample request. You'll find detailed reference of `events` shapes below.
 
