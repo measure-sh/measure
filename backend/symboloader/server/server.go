@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"cloud.google.com/go/cloudsqlconn"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -122,6 +123,9 @@ func Init(config *ServerConfig) {
 	if err != nil {
 		log.Fatalf("Unable to parse postgres connection string: %v\n", err)
 	}
+
+	// See https://pkg.go.dev/github.com/jackc/pgx/v5#QueryExecMode
+	oConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 
 	if config.IsCloud() {
 		d, err := cloudsqlconn.NewDialer(ctx,

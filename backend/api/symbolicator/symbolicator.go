@@ -23,14 +23,14 @@ import (
 // request payload.
 //
 // set to `true` for quick debugging.
-const logRequest = false
+const logRequest = true
 
 // logResponse determines if symbolicator
 // should log the relevant parts of the
 // response payload.
 //
 // set to `true` for quick debugging.
-const logResponse = false
+const logResponse = true
 
 var ErrJVMSymbolicationFailure = errors.New("symbolicator received JVM errors")
 
@@ -353,7 +353,8 @@ func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.S
 		}
 
 		if logResponse {
-			bytes, err := json.MarshalIndent(js.response, "", "  ")
+			// bytes, err := json.MarshalIndent(js.response, "", "  ")
+			bytes, err := json.Marshal(js.response)
 			if err != nil {
 				panic(err)
 			}
