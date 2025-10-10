@@ -353,7 +353,8 @@ func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.S
 		}
 
 		if logResponse {
-			bytes, err := json.MarshalIndent(js.response, "", "  ")
+			// bytes, err := json.MarshalIndent(js.response, "", "  ")
+			bytes, err := json.Marshal(js.response)
 			if err != nil {
 				panic(err)
 			}
