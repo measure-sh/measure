@@ -1,6 +1,7 @@
 'use client'
 
 import { measureAuth, MeasureAuthSession } from "@/app/auth/measure_auth"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import GitHubSignIn from "./github-sign-in"
@@ -47,6 +48,17 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
       <div className="my-6 place-content-end" style={{ width: "400px" }}>
         {!loading && !session && !error && !message && <GitHubSignIn />}
       </div>
+      <p className="p-2 my-4 text-sm font-display text-gray-500">
+        Measure cloud is in limited to alpha users at the moment. Please{" "}
+        <Link
+          target="_blank"
+          className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500"
+          href="mailto:support@measure.sh"
+        >
+          contact us
+        </Link>{" "}
+        if you&apos;d like to be a part of it!
+      </p>
       <Messages />
     </div>
   )

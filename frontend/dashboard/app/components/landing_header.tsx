@@ -1,5 +1,6 @@
 "use client";
 
+import { KeyRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,8 +19,8 @@ export default function LandingHeader() {
       onFocus={() => setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
       className={`w-full flex flex-col z-50 bg-white fixed top-0 transition-transform duration-100 ease-in-out ${scrollDir === "scrolling down" && isFocused === false
-          ? "-translate-y-full"
-          : "translate-y-0"
+        ? "-translate-y-full"
+        : "translate-y-0"
         }`}
     >
       <div className="w-full flex flex-col md:flex-row space-between items-center py-4 pl-4 pr-2">
@@ -35,17 +36,26 @@ export default function LandingHeader() {
           />
         </button>
         <div className="py-2 md:py-0 md:flex md:grow" />
+        <Link href="https://github.com/measure-sh/measure" className={cn(buttonVariants({ variant: "outline" }), "font-display border border-black rounded-md select-none")}>
+          <Image
+            src='/images/github_logo.svg'
+            width={16}
+            height={16}
+            alt={'Github logo'} />
+          <p className='mt-1'>Self Host</p>
+        </Link>
+        <div className="px-2" />
         <Link
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "outline" }),
-            "font-display border border-black rounded-md select-none",
+            "font-display border border-black rounded-md select-none w-24",
           )}
         >
-          Login
+          <KeyRound />Login
         </Link>
       </div>
       <div className="w-full border-[0.1px] border-stone-900" />
-    </header>
+    </header >
   );
 }

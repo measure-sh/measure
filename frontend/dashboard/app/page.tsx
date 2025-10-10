@@ -1,5 +1,6 @@
 "use client"
 
+import { KeyRound } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -236,9 +237,13 @@ export default function Home() {
           </div>
         </div>
         <div className="py-12 md:py-16" />
-        <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Open Source and Self hosted</p>
+        <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Open Source</p>
         <div className="py-4" />
-        <p className="text-lg text-center leading-relaxed max-w-4xl font-body text-black">Your data never leaves your servers. Open Source with a welcoming community led by experienced mobile devs who&apos;ve shipped apps to hundreds of millions of users since the early days of iOS and Android.</p>
+        <p className="text-lg text-center leading-relaxed max-w-4xl font-body text-black">Full transparency with a welcoming community led by experienced mobile devs who have shipped apps to hundreds of millions of users since the early days of iOS and Android.</p>
+        <div className="py-12 md:py-16" />
+        <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Self host or Cloud</p>
+        <div className="py-4" />
+        <p className="text-lg text-center leading-relaxed max-w-4xl font-body text-black">Self host for full data privacy or use our cloud offering for avoiding infra headaches.</p>
         <div className="py-16" />
         <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Measure on every platform</p>
         <div className="py-4 md:py-8" />
@@ -261,17 +266,28 @@ export default function Home() {
           </div>
         </div>
         <div className="py-12 md:py-16" />
-        <p className="font-body text-black text-lg leading-relaxed max-w-4xl text-center">Let&apos;s get to the root cause:</p>
+        <p className="font-body text-black text-lg leading-relaxed max-w-4xl text-center">Let&apos;s get to the root cause...</p>
         <div className="py-2" />
-        <Link href="https://github.com/measure-sh/measure" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "m-4 font-display border border-black rounded-md select-none")}>
-          <Image
-            src='/images/github_logo.svg'
-            width={24}
-            height={24}
-            alt={'Github logo'} />
-          <div className='px-1' />
-          <p className='mt-1'>Get Started</p>
-        </Link>
+        <div className='flex flex-row items-center'>
+          <Link href="https://github.com/measure-sh/measure" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "m-4 font-display border border-black rounded-md select-none")}>
+            <Image
+              src='/images/github_logo.svg'
+              width={16}
+              height={16}
+              alt={'Github logo'} />
+            <p className='mt-1'>Self Host</p>
+          </Link>
+          <div className="px-2" />
+          <Link
+            href="/auth/login"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "lg" }),
+              "font-display border border-black rounded-md select-none w-32",
+            )}
+          >
+            <KeyRound />Login
+          </Link>
+        </div>
         <div className="py-24" />
       </div>
     </main>
