@@ -33,7 +33,7 @@ internal class AnrCollector(
             data = toMeasureException(anrError),
             timestamp = anrError.timestamp,
             type = EventType.ANR,
-            takeScreenshot = false,
+            takeScreenshot = true,
         )
     }
 
