@@ -20,17 +20,19 @@ final class BaseExporter: Exporter {
     private let batchStore: BatchStore
     private let eventStore: EventStore
     private let spanStore: SpanStore
+    private let attachmentStore: AttachmentStore
 
     private let maxExistingBatchesToExport = 5
     private var batchIdsInTransit = Set<String>()
 
-    init(logger: Logger, networkClient: NetworkClient, batchCreator: BatchCreator, batchStore: BatchStore, eventStore: EventStore, spanStore: SpanStore) {
+    init(logger: Logger, networkClient: NetworkClient, batchCreator: BatchCreator, batchStore: BatchStore, eventStore: EventStore, spanStore: SpanStore, attachmentStore: AttachmentStore) {
         self.logger = logger
         self.networkClient = networkClient
         self.batchCreator = batchCreator
         self.batchStore = batchStore
         self.eventStore = eventStore
         self.spanStore = spanStore
+        self.attachmentStore = attachmentStore
     }
 
     func createBatch(_ sessionId: String?, completion: @escaping (BatchCreationResult?) -> Void) {
@@ -90,18 +92,19 @@ final class BaseExporter: Exporter {
 
     private func handleBatchProcessingResult(response: HttpResponse, batchId: String, events: [EventEntity], spans: [SpanEntity]) {
         switch response {
-        case .success:
-            deleteEventsAndSpans(batchId: batchId, events: events, spans: spans)
+        case .success(let body):
+            self.parseAndSaveAttachmentMetadata(responseBody: body)
 
-            logger.internalLog(level: .debug, message: "Successfully sent batch \(batchId)", error: nil, data: nil)
+            self.deleteEventsAndSpans(batchId: batchId, events: events, spans: spans)
+            self.logger.internalLog(level: .debug, message: "Successfully sent batch \(batchId)", error: nil, data: nil)
         case .error(let errorType):
             switch errorType {
-                case .clientError(_, _): // swiftlint:disable:this empty_enum_arguments
-                deleteEventsAndSpans(batchId: batchId, events: events, spans: spans)
-                logger.internalLog(level: .error, message: "Client error while sending batch \(batchId), dropping the batch", error: nil, data: nil)
-                default:
-                    break
-                }
+            case .clientError(_, _):
+                self.deleteEventsAndSpans(batchId: batchId, events: events, spans: spans)
+                self.logger.internalLog(level: .error, message: "Client error while sending batch \(batchId), dropping the batch", error: nil, data: nil)
+            default:
+                break
+            }
         }
     }
 
@@ -112,4 +115,45 @@ final class BaseExporter: Exporter {
         eventStore.deleteEvents(eventIds: eventIds) {}
         batchStore.deleteBatch(batchId) {}
     }
+
+    private func parseAndSaveAttachmentMetadata(responseBody: String?) {
+        guard let responseBody, let data = responseBody.data(using: .utf8) else {
+            logger.internalLog(level: .error, message: "Failed to convert response body to Data.", error: nil, data: nil)
+            return
+        }
+        
+        do {
+            let json = try JSONDecoder().decode([String: [ResponseAttachment]].self, from: data)
+
+            guard let responseAttachments = json["attachments"] else {
+                return
+            }
+
+            for resAttachment in responseAttachments {
+                let headersData: Data?
+                if let headers = resAttachment.headers {
+                    headersData = try? JSONSerialization.data(withJSONObject: headers, options: [])
+                } else {
+                    headersData = nil
+                }
+
+                self.attachmentStore.updateUploadDetails(for: resAttachment.id,
+                                                         uploadUrl: resAttachment.upload_url,
+                                                         headers: headersData,
+                                                         expiresAt: resAttachment.expires_at,
+                                                         completion: {})
+            }
+        } catch {
+            logger.internalLog(level: .error, message: "Failed to decode batch response for attachments.", error: error, data: nil)
+        }
+    }
+}
+
+private struct ResponseAttachment: Codable {
+    let id: String
+    let type: String
+    let filename: String
+    let upload_url: String
+    let expires_at: String
+    let headers: [String: String]?
 }

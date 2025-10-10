@@ -43,15 +43,13 @@ final class BaseNetworkClient: NetworkClient {
             return .error(.unknownError("Failed to serialize batch JSON payload"))
         }
 
-        return httpClient.sendJsonRequest(
-            url: baseUrl.appendingPathComponent(eventsEndpoint),
-            method: .put,
-            headers: [
-                authorization: "\(bearer) \(apiKey)",
-                msrRequestId: batchId
-            ],
-            jsonBody: jsonBody
-        )
+        return httpClient.sendJsonRequest(url: baseUrl.appendingPathComponent(eventsEndpoint),
+                                          method: .put,
+                                          headers: [
+                                            authorization: "\(bearer) \(apiKey)",
+                                            msrRequestId: batchId
+                                          ],
+                                          jsonBody: jsonBody)
     }
 
     private func serializeEvents(events: [EventEntity]) -> [[String: Any]] {

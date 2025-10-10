@@ -64,6 +64,7 @@ protocol MeasureInitializer {
     var tracer: Tracer { get }
     var spanCollector: SpanCollector { get }
     var spanStore: SpanStore { get }
+    var attachmentStore: AttachmentStore { get }
     var internalSignalCollector: InternalSignalCollector { get set }
     var bugReportManager: BugReportManager { get }
     var bugReportCollector: BugReportCollector { get }
@@ -100,6 +101,7 @@ protocol MeasureInitializer {
 /// - `sessionStore`: `SessionStore` object that manages `Session` related operations
 /// - `eventStore`: `EventStore` object that manages `Event` related operations
 /// - `spanStore`: `SpanStore` object that manages `Span` related operations
+/// - `attachmentStore`: `AttachmentStore` object that manages `Attachment` related operations
 /// - `gestureCollector`: `GestureCollector` object which is responsible for detecting and saving gesture related data.
 /// - `lifecycleCollector`: `LifecycleCollector` object which is responsible for detecting and saving ViewController lifecycle events.
 /// - `cpuUsageCollector`: `CpuUsageCollector` object which is responsible for detecting and saving CPU usage data.
@@ -205,6 +207,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let exceptionGenerator: ExceptionGenerator
     let measureDispatchQueue: MeasureDispatchQueue
     let attributeValueValidator: AttributeValueValidator
+    let attachmentStore: AttachmentStore
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -313,12 +316,15 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                              eventStore: eventStore,
                                              batchStore: batchStore,
                                              spanStore: spanStore)
+        self.attachmentStore = BaseAttachmentStore(coreDataManager: coreDataManager,
+                                                   logger: logger)
         self.exporter = BaseExporter(logger: logger,
                                      networkClient: networkClient,
                                      batchCreator: batchCreator,
                                      batchStore: batchStore,
                                      eventStore: eventStore,
-                                     spanStore: spanStore)
+                                     spanStore: spanStore,
+                                     attachmentStore: attachmentStore)
         self.periodicExporter = BasePeriodicExporter(logger: logger,
                                                      configProvider: configProvider,
                                                      timeProvider: timeProvider,
