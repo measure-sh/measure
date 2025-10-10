@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Remove unused variable for dashboard service (#2722) by @detj in #2722
 - (**backend**): Support json events request (#2710) by @abhaysood in #2710
 - (**backend**): Fix postgres connection for all services (#2717) by @detj in #2717
 - (**backend**): Pin go version for all services (#2715) by @detj in #2715
