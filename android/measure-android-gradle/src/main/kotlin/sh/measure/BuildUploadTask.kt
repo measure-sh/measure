@@ -258,9 +258,10 @@ abstract class BuildUploadTask : DefaultTask() {
 
         executeHttpRequestWithRetry(client, request, operationName) { response ->
             if (response.isSuccessful) {
+                logger.info("measure: Successfully uploaded ${mapping.filename}")
                 true
             } else {
-                logger.error("measure: Failed to upload ${mapping.filename} to pre-signed URL, response code: ${response.code}")
+                logger.error("measure: Failed to upload ${mapping.filename}, response code: ${response.code}")
                 false
             }
         }

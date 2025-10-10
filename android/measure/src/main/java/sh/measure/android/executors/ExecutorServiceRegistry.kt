@@ -19,6 +19,11 @@ internal interface ExecutorServiceRegistry {
     fun eventExportExecutor(): MeasureExecutorService
 
     /**
+     * Returns an executor service dedicated to exporting attachments to network.
+     */
+    fun attachmentExportExecutor(): MeasureExecutorService
+
+    /**
      * An executor for running short lived tasks. Example: processing an event.
      */
     fun defaultExecutor(): MeasureExecutorService
@@ -42,8 +47,15 @@ internal class ExecutorServiceRegistryImpl : ExecutorServiceRegistry {
     }
 
     override fun eventExportExecutor(): MeasureExecutorService {
-        return executors.getOrPut(ExecutorServiceName.ExportExecutor) {
+        return executors.getOrPut(ExecutorServiceName.EventExportExecutor) {
             val threadFactory = namedThreadFactory("msr-export")
+            MeasureExecutorServiceImpl(threadFactory)
+        }
+    }
+
+    override fun attachmentExportExecutor(): MeasureExecutorService {
+        return executors.getOrPut(ExecutorServiceName.AttachmentExportExecutor) {
+            val threadFactory = namedThreadFactory("msr-attachment-export")
             MeasureExecutorServiceImpl(threadFactory)
         }
     }
@@ -58,5 +70,6 @@ internal class ExecutorServiceRegistryImpl : ExecutorServiceRegistry {
 private enum class ExecutorServiceName {
     IOExecutor,
     DefaultExecutor,
-    ExportExecutor,
+    EventExportExecutor,
+    AttachmentExportExecutor,
 }

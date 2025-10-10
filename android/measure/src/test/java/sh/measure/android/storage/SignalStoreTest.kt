@@ -410,10 +410,8 @@ internal class SignalStoreTest {
 
         // verify that the event and its attachments are deleted from file storage
         // attachment IDs are repeated because the event has two attachments
-        verify(fileStorage).deleteEventIfExist(
-            eventId = event.id,
-            attachmentIds = listOf(idProvider.id, idProvider.id),
-        )
+        verify(fileStorage).deleteEventIfExist(eventId = event.id)
+        verify(fileStorage).deleteAttachmentsIfExist(listOf(idProvider.id, idProvider.id))
     }
 
     @Test

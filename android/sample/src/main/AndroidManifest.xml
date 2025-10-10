@@ -70,13 +70,10 @@
 
         <meta-data
             android:name="sh.measure.android.API_KEY"
-            android:value="msrsh_a1a9d99a7fd0729549f380d80a8c78098b0f6e143c57c81c0dff9758d5849685_ab7c6629" />
+            android:value="msrsh_65d3b73d2127ca797ead326ab48be5cccaa109ad0206ef58d58a3123a067c773_62f65ae2" />
         <meta-data
             android:name="sh.measure.android.API_URL"
-            android:value="http://10.0.2.2:8080" />
-        <meta-data
-            android:name="sh.measure.android.BUILD_API_URL"
-            android:value="http://localhost:8080" />
+            android:value="https://staging-ingest.measure.sh" />
     </application>
 
 </manifest>

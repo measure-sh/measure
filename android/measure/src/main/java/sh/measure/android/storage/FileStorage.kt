@@ -32,17 +32,15 @@ internal interface FileStorage {
      * Deletes events and their attachments.
      *
      * @param eventIds The list of event ids to delete.
-     * @param attachmentIds The list of attachment ids to delete.
      */
-    fun deleteEventsIfExist(eventIds: List<String>, attachmentIds: List<String>)
+    fun deleteEventsIfExist(eventIds: List<String>)
 
     /**
      * Deletes an event and its attachments.
      *
      * @param eventId The event id to delete.
-     * @param attachmentIds The list of attachment ids to delete.
      */
-    fun deleteEventIfExist(eventId: String, attachmentIds: List<String>)
+    fun deleteEventIfExist(eventId: String)
 
     /**
      * Returns all files in the measure directory.
@@ -81,6 +79,11 @@ internal interface FileStorage {
      * exist yet.
      */
     fun getAttachmentDirectory(): String
+
+    /**
+     * Deletes attachments with given IDs.
+     */
+    fun deleteAttachmentsIfExist(attachmentIds: List<String>?)
 }
 
 private const val MEASURE_DIR = "measure"
@@ -115,8 +118,8 @@ internal class FileStorageImpl(
         }
     }
 
-    override fun deleteEventIfExist(eventId: String, attachmentIds: List<String>) {
-        deleteEventsIfExist(listOf(eventId), attachmentIds)
+    override fun deleteEventIfExist(eventId: String) {
+        deleteEventsIfExist(listOf(eventId))
     }
 
     override fun getAllFiles(limit: Int): List<File> {
@@ -166,8 +169,14 @@ internal class FileStorageImpl(
         return dirPath
     }
 
-    override fun deleteEventsIfExist(eventIds: List<String>, attachmentIds: List<String>) {
-        (eventIds + attachmentIds).forEach { id ->
+    override fun deleteEventsIfExist(eventIds: List<String>) {
+        eventIds.forEach { id ->
+            getFile("$rootDir/$MEASURE_DIR/$id")?.delete()
+        }
+    }
+
+    override fun deleteAttachmentsIfExist(attachmentIds: List<String>?) {
+        attachmentIds?.forEach { id ->
             getFile("$rootDir/$MEASURE_DIR/$id")?.delete()
         }
     }

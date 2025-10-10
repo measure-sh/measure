@@ -4,7 +4,7 @@ import sh.measure.android.events.EventType
 
 internal object DbConstants {
     const val DATABASE_NAME = "measure.db"
-    const val DATABASE_VERSION = DbVersion.V4
+    const val DATABASE_VERSION = DbVersion.V5
 }
 
 internal object DbVersion {
@@ -12,6 +12,7 @@ internal object DbVersion {
     const val V2 = 2
     const val V3 = 3
     const val V4 = 4
+    const val V5 = 5
 }
 
 internal object EventTable {
@@ -37,6 +38,20 @@ internal object AttachmentTable {
     const val COL_TIMESTAMP = "timestamp"
     const val COL_SESSION_ID = "session_id"
     const val COL_FILE_PATH = "file_path"
+    const val COL_NAME = "name"
+}
+
+internal object AttachmentV1Table {
+    const val TABLE_NAME = "attachments_v1"
+    const val COL_ID = "id"
+    const val COL_EVENT_ID = "event_id"
+    const val COL_TYPE = "type"
+    const val COL_TIMESTAMP = "timestamp"
+    const val COL_SESSION_ID = "session_id"
+    const val COL_FILE_PATH = "file_path"
+    const val COL_UPLOAD_URL = "url"
+    const val COL_URL_EXPIRES_AT = "url_expires_at"
+    const val COL_URL_HEADERS = "headers"
     const val COL_NAME = "name"
 }
 
@@ -126,16 +141,19 @@ internal object Sql {
         CREATE INDEX IF NOT EXISTS events_session_id_index ON ${EventTable.TABLE_NAME} (${EventTable.COL_SESSION_ID})
     """
 
-    const val CREATE_ATTACHMENTS_TABLE = """
-        CREATE TABLE IF NOT EXISTS ${AttachmentTable.TABLE_NAME} (
-            ${AttachmentTable.COL_ID} TEXT PRIMARY KEY,
-            ${AttachmentTable.COL_EVENT_ID} TEXT NOT NULL,
-            ${AttachmentTable.COL_TYPE} TEXT NOT NULL,
-            ${AttachmentTable.COL_TIMESTAMP} TEXT NOT NULL,
-            ${AttachmentTable.COL_SESSION_ID} TEXT NOT NULL,
-            ${AttachmentTable.COL_FILE_PATH} TEXT DEFAULT NULL,
-            ${AttachmentTable.COL_NAME} TEXT DEFAULT NULL,
-            FOREIGN KEY (${AttachmentTable.COL_EVENT_ID}) REFERENCES ${EventTable.TABLE_NAME}(${EventTable.COL_ID}) ON DELETE CASCADE
+    const val CREATE_ATTACHMENTS_V1_TABLE = """
+        CREATE TABLE IF NOT EXISTS ${AttachmentV1Table.TABLE_NAME} (
+            ${AttachmentV1Table.COL_ID} TEXT PRIMARY KEY,
+            ${AttachmentV1Table.COL_SESSION_ID} TEXT NOT NULL,
+            ${AttachmentV1Table.COL_EVENT_ID} TEXT NOT NULL,
+            ${AttachmentV1Table.COL_TYPE} TEXT NOT NULL,
+            ${AttachmentV1Table.COL_TIMESTAMP} TEXT NOT NULL,
+            ${AttachmentV1Table.COL_FILE_PATH} TEXT DEFAULT NULL,
+            ${AttachmentV1Table.COL_NAME} TEXT DEFAULT NULL,
+            ${AttachmentV1Table.COL_UPLOAD_URL} TEXT DEFAULT NULL,
+            ${AttachmentV1Table.COL_URL_EXPIRES_AT} TEXT DEFAULT NULL,
+            ${AttachmentV1Table.COL_URL_HEADERS} TEXT DEFAULT NULL,
+            FOREIGN KEY (${AttachmentV1Table.COL_SESSION_ID}) REFERENCES ${SessionsTable.TABLE_NAME}(${SessionsTable.COL_SESSION_ID}) ON DELETE CASCADE
         )
     """
 
@@ -247,7 +265,7 @@ internal object Sql {
              * ```
              */
             return """
-                SELECT e.${EventTable.COL_ID}, e.${EventTable.COL_ATTACHMENT_SIZE} 
+                SELECT e.${EventTable.COL_ID}
                 FROM ${EventTable.TABLE_NAME} e
                 LEFT JOIN ${EventsBatchTable.TABLE_NAME} eb ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
                 WHERE eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
@@ -351,14 +369,14 @@ internal object Sql {
     fun getAttachmentsForEventIds(eventIds: List<String>): String {
         return """
             SELECT 
-                ${AttachmentTable.COL_ID}, 
-                ${AttachmentTable.COL_EVENT_ID},
-                ${AttachmentTable.COL_TIMESTAMP},
-                ${AttachmentTable.COL_TYPE},
-                ${AttachmentTable.COL_FILE_PATH},
-                ${AttachmentTable.COL_NAME}
-            FROM ${AttachmentTable.TABLE_NAME}
-            WHERE ${AttachmentTable.COL_EVENT_ID} IN (${eventIds.joinToString(", ") { "\'$it\'" }})
+                ${AttachmentV1Table.COL_ID}, 
+                ${AttachmentV1Table.COL_EVENT_ID},
+                ${AttachmentV1Table.COL_TIMESTAMP},
+                ${AttachmentV1Table.COL_TYPE},
+                ${AttachmentV1Table.COL_FILE_PATH},
+                ${AttachmentV1Table.COL_NAME}
+            FROM ${AttachmentV1Table.TABLE_NAME}
+            WHERE ${AttachmentV1Table.COL_EVENT_ID} IN (${eventIds.joinToString(", ") { "\'$it\'" }})
         """
     }
 
@@ -396,9 +414,9 @@ internal object Sql {
 
     fun getAttachmentsForEvents(events: List<String>): String {
         return """
-            SELECT ${AttachmentTable.COL_ID}
-            FROM ${AttachmentTable.TABLE_NAME}
-            WHERE ${AttachmentTable.COL_EVENT_ID} IN (${events.joinToString(", ") { "\'$it\'" }})
+            SELECT ${AttachmentV1Table.COL_ID}
+            FROM ${AttachmentV1Table.TABLE_NAME}
+            WHERE ${AttachmentV1Table.COL_EVENT_ID} IN (${events.joinToString(", ") { "\'$it\'" }})
         """.trimIndent()
     }
 
@@ -482,6 +500,36 @@ internal object Sql {
             WHERE
                 ${SpansBatchTable.COL_BATCH_ID} 
                 IN (${batchIds.joinToString(", ") { "'$it'" }})
+        """.trimIndent()
+    }
+
+    fun getAttachmentsToUpload(maxCount: Int, excludeIds: List<String>): String {
+        val excludeClause = if (excludeIds.isNotEmpty()) {
+            val placeholders = excludeIds.joinToString(",") { "'$it'" }
+            "AND ${AttachmentV1Table.COL_ID} NOT IN ($placeholders)"
+        } else {
+            ""
+        }
+
+        return """
+            SELECT
+                ${AttachmentV1Table.COL_ID},
+                ${AttachmentV1Table.COL_EVENT_ID},
+                ${AttachmentV1Table.COL_SESSION_ID},
+                ${AttachmentV1Table.COL_TIMESTAMP},
+                ${AttachmentV1Table.COL_TYPE},
+                ${AttachmentV1Table.COL_FILE_PATH},
+                ${AttachmentV1Table.COL_NAME},
+                ${AttachmentV1Table.COL_UPLOAD_URL},
+                ${AttachmentV1Table.COL_URL_EXPIRES_AT},
+                ${AttachmentV1Table.COL_URL_HEADERS}
+            FROM
+                ${AttachmentV1Table.TABLE_NAME}
+            WHERE
+                ${AttachmentV1Table.COL_UPLOAD_URL} IS NOT NULL
+                $excludeClause
+            LIMIT
+                $maxCount
         """.trimIndent()
     }
 }

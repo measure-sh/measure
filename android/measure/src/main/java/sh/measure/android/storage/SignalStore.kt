@@ -231,10 +231,8 @@ internal class SignalStoreImpl(
     }
 
     private fun handleEventInsertionFailure(event: EventEntity) {
-        fileStorage.deleteEventIfExist(
-            event.id,
-            event.attachmentEntities?.map { it.id } ?: emptyList(),
-        )
+        fileStorage.deleteEventIfExist(event.id)
+        fileStorage.deleteAttachmentsIfExist(event.attachmentEntities?.map { it.id })
     }
 
     private fun serializeAttachmentEntities(attachmentEntities: List<AttachmentEntity>?): String? {

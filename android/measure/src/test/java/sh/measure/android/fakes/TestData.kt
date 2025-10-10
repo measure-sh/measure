@@ -15,7 +15,6 @@ import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.exceptions.ExceptionUnit
 import sh.measure.android.exceptions.Frame
-import sh.measure.android.exporter.AttachmentPacket
 import sh.measure.android.exporter.EventPacket
 import sh.measure.android.exporter.SpanPacket
 import sh.measure.android.gestures.ClickData
@@ -492,13 +491,6 @@ internal object TestData {
             spanIds = spanIds,
             createdAt = createdAt,
         )
-    }
-
-    fun getAttachmentPacket(
-        id: String = "attachment-id",
-        filePath: String = "/path/to/attachment.png",
-    ): AttachmentPacket {
-        return AttachmentPacket(id = id, filePath = filePath)
     }
 
     fun getAppExit(

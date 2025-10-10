@@ -15,25 +15,27 @@ internal class ImmediateExecutorService(private val resolvableFuture: Resolvable
 
     @Suppress("UNCHECKED_CAST")
     override fun <T> submit(callable: Callable<T>): Future<T> {
+        val future = ResolvableFuture.create<T>()
         return try {
             val result = callable.call()
-            (resolvableFuture as ResolvableFuture<T>).set(result)
-            resolvableFuture
+            future.set(result)
+            future
         } catch (e: Exception) {
-            (resolvableFuture as ResolvableFuture<T>).setException(e)
-            resolvableFuture
+            future.setException(e)
+            future
         }
     }
 
     @Suppress("UNCHECKED_CAST")
     override fun <T> schedule(callable: Callable<T>, delayMillis: Long): Future<T> {
+        val future = ResolvableFuture.create<T>()
         return try {
             val result = callable.call()
-            (resolvableFuture as ResolvableFuture<T>).set(result)
-            resolvableFuture
+            future.set(result)
+            future
         } catch (e: Exception) {
-            (resolvableFuture as ResolvableFuture<T>).setException(e)
-            resolvableFuture
+            future.setException(e)
+            future
         }
     }
 
