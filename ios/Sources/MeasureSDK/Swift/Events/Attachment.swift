@@ -52,4 +52,6 @@ struct MsrUploadAttachment {
     let bytes: Data?
     let path: String?
     let uploadUrl: String
+    let expiresAt: String?
+    let headers: Data?
 }

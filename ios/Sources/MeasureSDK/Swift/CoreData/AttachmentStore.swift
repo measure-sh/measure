@@ -10,9 +10,9 @@ import CoreData
 
 protocol AttachmentStore {
     func deleteAttachments(attachmentIds: [String], completion: @escaping () -> Void)
-    func updateUploadUrl(for attachmentId: String, uploadUrl: String, completion: @escaping () -> Void)
+    func updateUploadDetails(for attachmentId: String, uploadUrl: String, headers: Data?, expiresAt: String?, completion: @escaping () -> Void)
     func getAttachmentsForUpload(for eventId: String, completion: @escaping ([MsrUploadAttachment]) -> Void)
-    func getAttachmentsForUpload(completion: @escaping ([MsrUploadAttachment]) -> Void)
+    func getAttachmentsForUpload(batchSize: Int, completion: @escaping ([MsrUploadAttachment]) -> Void)
     func getOrphanedAttachments(completion: @escaping ([String]) -> Void)
 }
 
@@ -43,7 +43,7 @@ final class BaseAttachmentStore: AttachmentStore {
         }
     }
 
-    func updateUploadUrl(for attachmentId: String, uploadUrl: String, completion: @escaping () -> Void) {
+    func updateUploadDetails(for attachmentId: String, uploadUrl: String, headers: Data?, expiresAt: String?, completion: @escaping () -> Void) {
         coreDataManager.performBackgroundTask { [weak self] context in
             guard let self else { completion(); return }
 
@@ -54,12 +54,14 @@ final class BaseAttachmentStore: AttachmentStore {
             do {
                 if let attachmentOb = try context.fetch(fetchRequest).first {
                     attachmentOb.uploadUrl = uploadUrl
+                    attachmentOb.headers = headers         // ⬅️ NEW
+                    attachmentOb.expires_at = expiresAt    // ⬅️ NEW
                     try context.saveIfNeeded()
                 } else {
                     self.logger.internalLog(level: .warning, message: "Attachment with ID \(attachmentId) not found for URL update.", error: nil, data: nil)
                 }
             } catch {
-                self.logger.internalLog(level: .error, message: "Failed to update uploadUrl for attachment \(attachmentId).", error: error, data: nil)
+                self.logger.internalLog(level: .error, message: "Failed to update upload details for attachment \(attachmentId).", error: error, data: nil)
             }
             completion()
         }
@@ -92,14 +94,12 @@ final class BaseAttachmentStore: AttachmentStore {
             guard let self else { completion([]); return }
 
             let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
-            // Fetch attachments linked to the event AND which have a signed URL
             let eventPredicate = NSPredicate(format: "eventRel.id == %@", eventId)
             let urlPredicate = NSPredicate(format: "uploadUrl != nil")
             fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [eventPredicate, urlPredicate])
 
             do {
                 let attachments = try context.fetch(fetchRequest)
-                // Use the new toUploadEntity() conversion
                 let uploadAttachments = attachments.compactMap { $0.toUploadEntity() }
                 completion(uploadAttachments)
             } catch {
@@ -115,12 +115,10 @@ final class BaseAttachmentStore: AttachmentStore {
 
             let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "uploadUrl != nil")
-            
+
             do {
                 let attachments = try context.fetch(fetchRequest)
-
                 let uploadAttachments = attachments.compactMap { $0.toUploadEntity() }
-                
                 completion(uploadAttachments)
             } catch {
                 self.logger.internalLog(level: .error, message: "Failed to fetch all attachments with upload URLs.", error: error, data: nil)
@@ -146,6 +144,8 @@ extension AttachmentOb {
                                    size: attachmentSize,
                                    bytes: bytes,
                                    path: path,
-                                   uploadUrl: uploadUrl)
+                                   uploadUrl: uploadUrl,
+                                   expiresAt: expires_at,
+                                   headers: headers)
     }
 }

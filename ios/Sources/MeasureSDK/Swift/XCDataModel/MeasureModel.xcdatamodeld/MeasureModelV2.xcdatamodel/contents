@@ -3,6 +3,8 @@
     <entity name="AttachmentOb" representedClassName="AttachmentOb" syncable="YES">
         <attribute name="attachmentSize" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="bytes" optional="YES" attributeType="Binary"/>
+        <attribute name="expires_at" optional="YES" attributeType="String"/>
+        <attribute name="headers" optional="YES" attributeType="Binary"/>
         <attribute name="id" optional="YES" attributeType="String"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="path" optional="YES" attributeType="String"/>
