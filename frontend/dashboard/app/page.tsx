@@ -243,7 +243,7 @@ export default function Home() {
         <div className="py-12 md:py-16" />
         <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Self host or Cloud</p>
         <div className="py-4" />
-        <p className="text-lg text-center leading-relaxed max-w-4xl font-body text-black">Self host for full data privacy or use our cloud offering for avoiding infra headaches.</p>
+        <p className="text-lg text-center leading-relaxed max-w-4xl font-body text-black">Self host for full data privacy or use our cloud offering and avoid infra headaches.</p>
         <div className="py-16" />
         <p className="font-display font-regular text-black text-6xl max-w-4xl text-center">Measure on every platform</p>
         <div className="py-4 md:py-8" />
