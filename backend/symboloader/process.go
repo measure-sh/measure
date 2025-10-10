@@ -63,11 +63,12 @@ func (m *Mapping) extractDif() (err error) {
 	switch m.Type {
 	case symbol.TypeProguard.String():
 		contents := m.File
+		var compressedBytes []byte
 
 		// compress bytes using zstd, if not
 		// already compressed
 		if !codec.IsZstdCompressed(contents) {
-			contents, err = codec.CompressZstd(contents)
+			compressedBytes, err = codec.CompressZstd(contents)
 			if err != nil {
 				return
 			}
@@ -76,8 +77,13 @@ func (m *Mapping) extractDif() (err error) {
 		ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("guardsquare.com"))
 		debugId := uuid.NewSHA1(ns, contents)
 
+		// if already compressed, just use contents
+		if len(compressedBytes) == 0 {
+			compressedBytes = contents
+		}
+
 		m.Difs = append(m.Difs, &symbol.Dif{
-			Data: contents,
+			Data: compressedBytes,
 			Key:  symbol.BuildUnifiedLayout(debugId.String()) + "/proguard",
 		})
 	case symbol.TypeDsym.String():
