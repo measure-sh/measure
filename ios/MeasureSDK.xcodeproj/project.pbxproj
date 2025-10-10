@@ -205,6 +205,9 @@
 		CF1200002D9BF5A000A3FCF7 /* AtomicBool.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF12FFFF2D9BF5A000A3FCF7 /* AtomicBool.swift */; };
 		CF12A68E2E97A761001C8112 /* AttributeValueValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF12A68D2E97A761001C8112 /* AttributeValueValidator.swift */; };
 		CF12A6902E97B0A9001C8112 /* AttributeValueValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF12A68F2E97B0A9001C8112 /* AttributeValueValidatorTests.swift */; };
+		CF12A6F12E97CE70001C8112 /* AttachmentOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF12A6EF2E97CE70001C8112 /* AttachmentOb+CoreDataClass.swift */; };
+		CF12A6F22E97CE70001C8112 /* AttachmentOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF12A6F02E97CE70001C8112 /* AttachmentOb+CoreDataProperties.swift */; };
+		CF12A6F42E97D220001C8112 /* AttachmentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF12A6F32E97D220001C8112 /* AttachmentStore.swift */; };
 		CF1BB3B22DB8BD8900588506 /* SpanConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB3B12DB8BD8900588506 /* SpanConstants.swift */; };
 		CF1BB3B72DBA39FF00588506 /* LifecycleCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB3B62DBA39FF00588506 /* LifecycleCollectorTests.swift */; };
 		CF1BB3B92DBA3A7F00588506 /* MockTracer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB3B82DBA3A7F00588506 /* MockTracer.swift */; };
@@ -248,8 +251,6 @@
 		CF893DD22E950A7E00D99D45 /* MeasureModelV1ToV2.xcmappingmodel in Sources */ = {isa = PBXBuildFile; fileRef = CF893DD12E950A7E00D99D45 /* MeasureModelV1ToV2.xcmappingmodel */; };
 		CF893DD52E950BF000D99D45 /* EventToAttachmentMigrationPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF893DD42E950BF000D99D45 /* EventToAttachmentMigrationPolicy.swift */; };
 		CF893DDB2E950DEE00D99D45 /* EventOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF893DDA2E950DEE00D99D45 /* EventOb+CoreDataProperties.swift */; };
-		CF893DE22E950F6900D99D45 /* AttachmentOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF893DE02E950F6900D99D45 /* AttachmentOb+CoreDataClass.swift */; };
-		CF893DE32E950F6900D99D45 /* AttachmentOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF893DE12E950F6900D99D45 /* AttachmentOb+CoreDataProperties.swift */; };
 		CF9D74C52E6169F3007D6D30 /* LifecycleManagerInternal.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9D74C42E6169F3007D6D30 /* LifecycleManagerInternal.swift */; };
 		CF9D75792E66C0FA007D6D30 /* SessionStartData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9D75782E66C0FA007D6D30 /* SessionStartData.swift */; };
 		CFB838212DAFEF780023592B /* SpanProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB838202DAFEF780023592B /* SpanProcessorTests.swift */; };
@@ -541,6 +542,9 @@
 		69F6D44A2DFAA2D4000367EA /* ClientInfoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientInfoTests.swift; sourceTree = "<group>"; };
 		CF12A68D2E97A761001C8112 /* AttributeValueValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributeValueValidator.swift; sourceTree = "<group>"; };
 		CF12A68F2E97B0A9001C8112 /* AttributeValueValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributeValueValidatorTests.swift; sourceTree = "<group>"; };
+		CF12A6EF2E97CE70001C8112 /* AttachmentOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttachmentOb+CoreDataClass.swift"; sourceTree = "<group>"; };
+		CF12A6F02E97CE70001C8112 /* AttachmentOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttachmentOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		CF12A6F32E97D220001C8112 /* AttachmentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentStore.swift; sourceTree = "<group>"; };
 		CF12FFFF2D9BF5A000A3FCF7 /* AtomicBool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtomicBool.swift; sourceTree = "<group>"; };
 		CF1BB3B12DB8BD8900588506 /* SpanConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanConstants.swift; sourceTree = "<group>"; };
 		CF1BB3B62DBA39FF00588506 /* LifecycleCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleCollectorTests.swift; sourceTree = "<group>"; };
@@ -588,8 +592,6 @@
 		CF893DD12E950A7E00D99D45 /* MeasureModelV1ToV2.xcmappingmodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcmappingmodel; path = MeasureModelV1ToV2.xcmappingmodel; sourceTree = "<group>"; };
 		CF893DD42E950BF000D99D45 /* EventToAttachmentMigrationPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventToAttachmentMigrationPolicy.swift; sourceTree = "<group>"; };
 		CF893DDA2E950DEE00D99D45 /* EventOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
-		CF893DE02E950F6900D99D45 /* AttachmentOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttachmentOb+CoreDataClass.swift"; sourceTree = "<group>"; };
-		CF893DE12E950F6900D99D45 /* AttachmentOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttachmentOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		CF9D74C42E6169F3007D6D30 /* LifecycleManagerInternal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleManagerInternal.swift; sourceTree = "<group>"; };
 		CF9D75782E66C0FA007D6D30 /* SessionStartData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStartData.swift; sourceTree = "<group>"; };
 		CFB838202DAFEF780023592B /* SpanProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanProcessorTests.swift; sourceTree = "<group>"; };
@@ -752,15 +754,16 @@
 		526D17B62D5A1913009A2E90 /* CoreData */ = {
 			isa = PBXGroup;
 			children = (
-				CF893DD32E950BBB00D99D45 /* Migration */,
-				52B7F17F2D76A32C001498BC /* CoreDataEntities */,
-				526D17B02D5A1913009A2E90 /* Entities */,
+				CF12A6F32E97D220001C8112 /* AttachmentStore.swift */,
 				526D17B12D5A1913009A2E90 /* BatchStore.swift */,
 				526D17B22D5A1913009A2E90 /* CoreDataManager.swift */,
 				526D17B32D5A1913009A2E90 /* DataCleanupService.swift */,
 				526D17B42D5A1913009A2E90 /* EventStore.swift */,
-				CFD88D472DACD3710095115E /* SpanStore.swift */,
 				526D17B52D5A1913009A2E90 /* SessionStore.swift */,
+				CFD88D472DACD3710095115E /* SpanStore.swift */,
+				52B7F17F2D76A32C001498BC /* CoreDataEntities */,
+				526D17B02D5A1913009A2E90 /* Entities */,
+				CF893DD32E950BBB00D99D45 /* Migration */,
 			);
 			path = CoreData;
 			sourceTree = "<group>";
@@ -1213,8 +1216,8 @@
 		52B7F17F2D76A32C001498BC /* CoreDataEntities */ = {
 			isa = PBXGroup;
 			children = (
-				CF893DE02E950F6900D99D45 /* AttachmentOb+CoreDataClass.swift */,
-				CF893DE12E950F6900D99D45 /* AttachmentOb+CoreDataProperties.swift */,
+				CF12A6EF2E97CE70001C8112 /* AttachmentOb+CoreDataClass.swift */,
+				CF12A6F02E97CE70001C8112 /* AttachmentOb+CoreDataProperties.swift */,
 				CFD88D622DAE36D30095115E /* BatchOb+CoreDataClass.swift */,
 				CFD88D632DAE36D30095115E /* BatchOb+CoreDataProperties.swift */,
 				52B7F1892D76AFBB001498BC /* EventOb+CoreDataClass.swift */,
@@ -1591,8 +1594,6 @@
 				526D18892D5A1913009A2E90 /* SysCtl.swift in Sources */,
 				526D18522D5A1913009A2E90 /* ThreadDetail.swift in Sources */,
 				526D18362D5A1913009A2E90 /* MeasureConfig.swift in Sources */,
-				CF893DE22E950F6900D99D45 /* AttachmentOb+CoreDataClass.swift in Sources */,
-				CF893DE32E950F6900D99D45 /* AttachmentOb+CoreDataProperties.swift in Sources */,
 				526D18542D5A1913009A2E90 /* Exporter.swift in Sources */,
 				69C449692DA9266400E44CF4 /* InternalSignalCollector.swift in Sources */,
 				526D18542D5A1913009A2E90 /* Exporter.swift in Sources */,
@@ -1676,6 +1677,8 @@
 				526D187D2D5A1913009A2E90 /* UIColor+Extension.swift in Sources */,
 				CF12A68E2E97A761001C8112 /* AttributeValueValidator.swift in Sources */,
 				526D184B2D5A1913009A2E90 /* SignalProcessor.swift in Sources */,
+				CF12A6F12E97CE70001C8112 /* AttachmentOb+CoreDataClass.swift in Sources */,
+				CF12A6F22E97CE70001C8112 /* AttachmentOb+CoreDataProperties.swift in Sources */,
 				526D18552D5A1913009A2E90 /* EventSerializer.swift in Sources */,
 				52B7F18F2D76AFBB001498BC /* EventOb+CoreDataClass.swift in Sources */,
 				CF1BB4FD2DDF317300588506 /* MotionManager.swift in Sources */,
@@ -1697,6 +1700,7 @@
 				CFD88D0F2DA796A60095115E /* MsrSpanBuilder.swift in Sources */,
 				CF1BB54F2DE436F300588506 /* MsrColors.swift in Sources */,
 				526D18252D5A1913009A2E90 /* LaunchCallbacks.swift in Sources */,
+				CF12A6F42E97D220001C8112 /* AttachmentStore.swift in Sources */,
 				526D18592D5A1913009A2E90 /* NetworkClient.swift in Sources */,
 				CF48E3562DF95E8100FCD26D /* ExceptionGenerator.swift in Sources */,
 				526D184E2D5A1913009A2E90 /* UserTriggeredEventCollector.swift in Sources */,
