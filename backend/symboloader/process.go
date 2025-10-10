@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"strings"
 	"symboloader/cipher"
-	"symboloader/codec"
 	"symboloader/objstore"
 	"symboloader/server"
 	"symboloader/symbol"
@@ -63,27 +62,27 @@ func (m *Mapping) extractDif() (err error) {
 	switch m.Type {
 	case symbol.TypeProguard.String():
 		contents := m.File
-		var compressedBytes []byte
+		// var compressedBytes []byte
 
 		// compress bytes using zstd, if not
 		// already compressed
-		if !codec.IsZstdCompressed(contents) {
-			compressedBytes, err = codec.CompressZstd(contents)
-			if err != nil {
-				return
-			}
-		}
+		// if !codec.IsZstdCompressed(contents) {
+		// 	compressedBytes, err = codec.CompressZstd(contents)
+		// 	if err != nil {
+		// 		return
+		// 	}
+		// }
 
 		ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("guardsquare.com"))
 		debugId := uuid.NewSHA1(ns, contents)
 
 		// if already compressed, just use contents
-		if len(compressedBytes) == 0 {
-			compressedBytes = contents
-		}
+		// if len(compressedBytes) == 0 {
+		// 	compressedBytes = contents
+		// }
 
 		m.Difs = append(m.Difs, &symbol.Dif{
-			Data: compressedBytes,
+			Data: contents,
 			Key:  symbol.BuildUnifiedLayout(debugId.String()) + "/proguard",
 		})
 	case symbol.TypeDsym.String():
