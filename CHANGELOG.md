@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Improve concurrency safety of attachment upload operation (#2729) by @detj in #2729
 - (**backend**): Grant appropriate permissions for cleanup service (#2720) by @detj in #2720
 - (**backend**): Show first available user ID in session timeline by @anupcowkur in #2648
 - (**backend**): Correctly load lifecycle app and fragment events (#2638) by @abhaysood in #2638
