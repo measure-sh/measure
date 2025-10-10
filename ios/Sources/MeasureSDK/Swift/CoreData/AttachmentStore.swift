@@ -109,19 +109,20 @@ final class BaseAttachmentStore: AttachmentStore {
         }
     }
 
-    func getAttachmentsForUpload(completion: @escaping ([MsrUploadAttachment]) -> Void) {
+    func getAttachmentsForUpload(batchSize: Int, completion: @escaping ([MsrUploadAttachment]) -> Void) {
         coreDataManager.performBackgroundTask { [weak self] context in
             guard let self else { completion([]); return }
 
             let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "uploadUrl != nil")
+            fetchRequest.fetchLimit = batchSize
 
             do {
                 let attachments = try context.fetch(fetchRequest)
                 let uploadAttachments = attachments.compactMap { $0.toUploadEntity() }
                 completion(uploadAttachments)
             } catch {
-                self.logger.internalLog(level: .error, message: "Failed to fetch all attachments with upload URLs.", error: error, data: nil)
+                self.logger.internalLog(level: .error, message: "Failed to fetch attachments with upload URLs in batch.", error: error, data: nil)
                 completion([])
             }
         }

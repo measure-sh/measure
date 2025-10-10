@@ -495,16 +495,4 @@ struct EventEntity { // swiftlint:disable:this type_body_length
                      userTriggered: self.userTriggered,
                      userDefinedAttributes: self.userDefinedAttributes)
     }
-
-//    func getAttachments() -> [MsrAttachment]? {
-//        if let attachmentData = self.attachments {
-//            do {
-//                return try JSONDecoder().decode([MsrAttachment].self, from: attachmentData)
-//            } catch {
-//                return nil
-//            }
-//        } else {
-//            return nil
-//        }
-//    }
 } // swiftlint:disable:this file_length

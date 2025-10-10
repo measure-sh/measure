@@ -8,12 +8,12 @@
 import Foundation
 
 protocol HttpClient {
-    func sendMultipartRequest(url: URL, method: HttpMethod, headers: [String: String], multipartData: [MultipartData]) -> HttpResponse
+    func sendJsonRequest(url: URL, method: HttpMethod, headers: [String: String], jsonBody: Data) -> HttpResponse
+    func uploadFile(url: URL, method: HttpMethod, contentType: String, headers: [String: String], fileData: Data) -> HttpResponse
 }
 
 final class BaseHttpClient: HttpClient {
     private let logger: Logger
-    private let boundary = multipartBoundry
     private let maxRedirects = 5
     private let session: URLSession
     private let configProvider: ConfigProvider
@@ -26,35 +26,25 @@ final class BaseHttpClient: HttpClient {
         self.session = URLSession(configuration: configuration)
     }
 
-    func sendMultipartRequest(url: URL, method: HttpMethod, headers: [String: String], multipartData: [MultipartData]) -> HttpResponse {
-        return sendMultipartRequestWithRedirects(url: url, method: method, headers: headers, multipartData: multipartData, redirectCount: 0)
+    func sendJsonRequest(url: URL, method: HttpMethod, headers: [String: String], jsonBody: Data) -> HttpResponse {
+        return sendJsonRequestWithRedirects(url: url, method: method, headers: headers, jsonBody: jsonBody, redirectCount: 0)
     }
 
-    private func sendMultipartRequestWithRedirects(url: URL, method: HttpMethod, headers: [String: String], multipartData: [MultipartData], redirectCount: Int) -> HttpResponse {
+    private func sendJsonRequestWithRedirects(url: URL, method: HttpMethod, headers: [String: String], jsonBody: Data, redirectCount: Int) -> HttpResponse {
         if redirectCount >= maxRedirects {
+            self.logger.internalLog(level: .error, message: "Too many redirects for JSON request to \(url.absoluteString)", error: nil, data: nil)
             return .error(.unknownError("Too many redirects"))
         }
 
-        var request = createRequest(url: url, method: method, headers: headers)
-        let body = createMultipartBody(multipartData)
-        request.httpBody = body
+        var request = createJsonRequest(url: url, method: method, headers: headers)
+        request.httpBody = jsonBody
 
         let semaphore = DispatchSemaphore(value: 0)
         var response: HttpResponse!
 
         let task = session.dataTask(with: request) { data, urlResponse, error in
-            if let error = error {
-                self.logger.internalLog(level: .error, message: "Failed to send request: \(error.localizedDescription)", error: nil, data: nil)
-                response = .error(.unknownError(error.localizedDescription))
-            } else if let httpResponse = urlResponse as? HTTPURLResponse, self.isRedirect(httpResponse.statusCode) {
-                if let location = httpResponse.allHeaderFields["Location"] as? String, let newUrl = self.resolveRedirectUrl(baseUrl: url, location: location) {
-                    self.logger.internalLog(level: .info, message: "Redirecting to: \(newUrl.absoluteString)", error: nil, data: nil)
-                    response = self.sendMultipartRequestWithRedirects(url: newUrl, method: method, headers: headers, multipartData: multipartData, redirectCount: redirectCount + 1)
-                } else {
-                    response = .error(.unknownError("Redirect location missing"))
-                }
-            } else {
-                response = self.processResponse(data: data, urlResponse: urlResponse)
+            response = self.handleRequestCompletion(data: data, urlResponse: urlResponse, error: error) { newUrl in
+                self.sendJsonRequestWithRedirects(url: newUrl, method: method, headers: headers, jsonBody: jsonBody, redirectCount: redirectCount + 1)
             }
             semaphore.signal()
         }
@@ -65,6 +55,53 @@ final class BaseHttpClient: HttpClient {
         return response
     }
 
+    func uploadFile(url: URL, method: HttpMethod, contentType: String, headers: [String: String], fileData: Data) -> HttpResponse {
+        return uploadFileWithRedirects(url: url, method: method, contentType: contentType, headers: headers, fileData: fileData, redirectCount: 0)
+    }
+
+    private func uploadFileWithRedirects(url: URL, method: HttpMethod, contentType: String, headers: [String: String], fileData: Data, redirectCount: Int) -> HttpResponse {
+        if redirectCount >= maxRedirects {
+            self.logger.internalLog(level: .error, message: "Too many redirects for file upload to \(url.absoluteString)", error: nil, data: nil)
+            return .error(.unknownError("Too many redirects"))
+        }
+
+        var request = createFileUploadRequest(url: url, method: method, contentType: contentType, headers: headers, fileSize: Int64(fileData.count))
+        request.httpBody = fileData // Set the file body
+
+        let semaphore = DispatchSemaphore(value: 0)
+        var response: HttpResponse!
+
+        let task = session.dataTask(with: request) { data, urlResponse, error in
+            response = self.handleRequestCompletion(data: data, urlResponse: urlResponse, error: error) { newUrl in
+                // Handle recursive redirect for file upload
+                self.uploadFileWithRedirects(url: newUrl, method: method, contentType: contentType, headers: headers, fileData: fileData, redirectCount: redirectCount + 1)
+            }
+            semaphore.signal()
+        }
+
+        task.resume()
+        semaphore.wait()
+
+        return response
+    }
+
+    private func handleRequestCompletion(data: Data?, urlResponse: URLResponse?, error: Error?, redirectHandler: (URL) -> HttpResponse) -> HttpResponse {
+        if let error = error {
+            self.logger.internalLog(level: .error, message: "Failed to send request: \(error.localizedDescription)", error: nil, data: nil)
+            return .error(.unknownError(error.localizedDescription))
+        } else if let httpResponse = urlResponse as? HTTPURLResponse, self.isRedirect(httpResponse.statusCode) {
+            if let location = httpResponse.allHeaderFields["Location"] as? String, let newUrl = self.resolveRedirectUrl(baseUrl: urlResponse!.url!, location: location) {
+                self.logger.internalLog(level: .info, message: "Redirecting to: \(newUrl.absoluteString)", error: nil, data: nil)
+                return redirectHandler(newUrl)
+            } else {
+                return .error(.unknownError("Redirect location missing"))
+            }
+        } else {
+            return self.processResponse(data: data, urlResponse: urlResponse)
+        }
+    }
+
+
     private func isRedirect(_ statusCode: Int) -> Bool {
         return statusCode == 307 || statusCode == 308
     }
@@ -73,11 +110,12 @@ final class BaseHttpClient: HttpClient {
         return URL(string: location, relativeTo: baseUrl)
     }
 
-    func createRequest(url: URL, method: HttpMethod, headers: [String: String]) -> URLRequest {
+    func createJsonRequest(url: URL, method: HttpMethod, headers: [String: String]) -> URLRequest {
         var request = URLRequest(url: url)
         request.timeoutInterval = configProvider.timeoutIntervalForRequest
         request.httpMethod = method.rawValue
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
         if let customHeaders = getCustomHeaders() {
@@ -87,35 +125,38 @@ final class BaseHttpClient: HttpClient {
         return request
     }
 
-    func createMultipartBody(_ multipartData: [MultipartData]) -> Data {
-        var body = Data()
+    func createFileUploadRequest(url: URL, method: HttpMethod, contentType: String, headers: [String: String], fileSize: Int64) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = configProvider.timeoutIntervalForRequest
+        request.httpMethod = method.rawValue
 
-        for data in multipartData {
-            switch data {
-            case let .formField(name, value):
-                var value = value
-                body.append(Data("--\(boundary)\r\n".utf8))
-                body.append(Data("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".utf8))
-                value.append(Data("\r\n".utf8))
-                body.append(value)
-            case let .fileData(name, filename, data):
-                body.append(Data("--\(boundary)\r\n".utf8))
-                body.append(Data("Content-Disposition: form-data; name=\"\(name)\"; filename=\"\(filename)\"\r\n\r\n".utf8))
-                body.append(data)
-                body.append(Data("\r\n".utf8))
-            }
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+
+        headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
+        if let customHeaders = getCustomHeaders() {
+            customHeaders.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
         }
-        body.append(Data("--\(boundary)--\r\n".utf8))
-        return body
+
+        if headers["Content-Length"] == nil && headers["content-length"] == nil {
+            request.setValue("\(fileSize)", forHTTPHeaderField: "Content-Length")
+        }
+
+        return request
     }
 
+
     private func processResponse(data: Data?, urlResponse: URLResponse?) -> HttpResponse {
-        guard let httpResponse = urlResponse as? HTTPURLResponse,
-                let responseBody = data.flatMap({ String(data: $0, encoding: .utf8) }) else {
+        guard let httpResponse = urlResponse as? HTTPURLResponse else {
             return .error(.unknownError("Invalid response"))
         }
 
-        logger.internalLog(level: .info, message: "Response: \(responseBody)", error: nil, data: nil)
+        let responseBody = data.flatMap({ String(data: $0, encoding: .utf8) })
+
+        if let body = responseBody {
+            logger.internalLog(level: .info, message: "Response (\(httpResponse.statusCode)): \(body)", error: nil, data: nil)
+        } else {
+            logger.internalLog(level: .info, message: "Response (\(httpResponse.statusCode)): No body", error: nil, data: nil)
+        }
 
         switch httpResponse.statusCode {
         case 200..<300:

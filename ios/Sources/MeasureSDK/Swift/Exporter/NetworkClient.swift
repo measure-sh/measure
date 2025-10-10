@@ -27,35 +27,69 @@ final class BaseNetworkClient: NetworkClient {
     }
 
     func execute(batchId: String, events: [EventEntity], spans: [SpanEntity]) -> HttpResponse {
-        var multipartData = [MultipartData]()
-        for event in events {
-            if let serialisedEvent = eventSerializer.getSerialisedEvent(for: event) {
-                multipartData.append(.formField(name: formFieldEvent, value: serialisedEvent))
+        let serializedEvents = self.serializeEvents(events: events)
+        let serializedSpans = self.serializeSpans(spans: spans)
+        
+        if serializedEvents.isEmpty && serializedSpans.isEmpty {
+            return .success(body: "{}")
+        }
+
+        let payload: [String: Any] = [
+            "events": serializedEvents,
+            "spans": serializedSpans
+        ]
+
+        guard let jsonBody = try? JSONSerialization.data(withJSONObject: payload, options: []) else {
+            return .error(.unknownError("Failed to serialize batch JSON payload"))
+        }
+
+        return httpClient.sendJsonRequest(
+            url: baseUrl.appendingPathComponent(eventsEndpoint),
+            method: .put,
+            headers: [
+                authorization: "\(bearer) \(apiKey)",
+                msrRequestId: batchId
+            ],
+            jsonBody: jsonBody
+        )
+    }
+
+    private func serializeEvents(events: [EventEntity]) -> [[String: Any]] {
+        return events.compactMap { event in
+            guard let eventWrapperData = eventSerializer.getSerialisedEvent(for: event) else {
+                return [:]
             }
-            if let attachments = event.attachments {
-                for attachment in attachments {
-                    if let bytes = attachment.bytes {
-                        multipartData.append(.fileData(name: "blob-\(attachment.id)", filename: attachment.name, data: bytes))
-                    } else if attachment.path != nil, let image = systemFileManager.retrieveFile(name: attachment.name, folderName: nil, directory: .documentDirectory) {
-                        multipartData.append(.fileData(name: "blob-\(attachment.id)", filename: attachment.name, data: image))
-                    }
+
+            guard var fullEventDict = (try? JSONSerialization.jsonObject(with: eventWrapperData, options: [])) as? [String: Any] else {
+                return [:]
+            }
+
+            if let attachments = fullEventDict["attachments"] as? [[String: Any]] {
+                let cleanedAttachments = attachments.map { attachment in
+                    let requiredKeys: Set<String> = ["id", "name", "type"]
+                    return attachment.filter { requiredKeys.contains($0.key) }
                 }
+
+                fullEventDict["attachments"] = cleanedAttachments
             }
+
+            print("attachments: ", fullEventDict["attachments"])
+            return fullEventDict
         }
+    }
 
-        for spanEntity in spans {
-            let span = spanEntity.toSpanDataCodable()
+    private func serializeSpans(spans: [SpanEntity]) -> [[String: Any]] {
+        let encoder = JSONEncoder()
+        
+        return spans.compactMap { spanEntity in
+            let spanCodable = spanEntity.toSpanDataCodable()
 
-            let encoder = JSONEncoder()
-            if let data = try? encoder.encode(span) {
-                multipartData.append(.formField(name: formFieldSpan, value: data))
+            guard let data = try? encoder.encode(spanCodable) else { return nil }
+
+            guard let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
+                return nil
             }
+            return jsonObject
         }
-
-        return httpClient.sendMultipartRequest(url: baseUrl.appendingPathComponent(eventsEndpoint),
-                                               method: .put,
-                                               headers: [authorization: "\(bearer) \(apiKey)",
-                                                          msrRequestId: batchId],
-                                               multipartData: multipartData)
     }
 }
