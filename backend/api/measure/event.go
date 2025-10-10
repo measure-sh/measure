@@ -77,9 +77,10 @@ type blob struct {
 	// header is the file bytes which can be
 	// opened and read
 	header *multipart.FileHeader
-	// uploaded indicates if the blob was
-	// eventually uploaded after ingestion
-	uploaded bool
+	// uploadedAttempted indicates if the blob
+	// was attempted for upload at least once
+	// during ingestion.
+	uploadedAttempted bool
 }
 
 type eventreq struct {
@@ -184,9 +185,12 @@ func (e *eventreq) uploadAttachments() error {
 				fmt.Printf("failed to upload attachment async: key: %s : %v\n", key, err)
 				return
 			}
-
-			attachment.uploaded = true
 		}()
+
+		// this is just a soft flag to indicate the attachment upload
+		// has been attempted, but does not reflect actual upload completion
+		// or success.
+		attachment.uploadedAttempted = true
 	}
 
 	return nil
@@ -2621,7 +2625,7 @@ func PutEvents(c *gin.Context) {
 				if !ok {
 					continue
 				}
-				if !attachment.uploaded {
+				if !attachment.uploadedAttempted {
 					fmt.Printf("attachment %q failed to upload for event %q, skipping\n", attachment.id, id)
 					continue
 				}
