@@ -77,9 +77,10 @@ type blob struct {
 	// header is the file bytes which can be
 	// opened and read
 	header *multipart.FileHeader
-	// uploaded indicates if the blob was
-	// eventually uploaded after ingestion
-	uploaded bool
+	// uploadedAttempted indicates if the blob
+	// was attempted for upload at least once
+	// during ingestion.
+	uploadedAttempted bool
 }
 
 type eventreq struct {
@@ -144,7 +145,7 @@ func (s status) String() string {
 }
 
 // uploadAttachments prepares and uploads each attachment.
-func (e *eventreq) uploadAttachments(ctx context.Context) error {
+func (e *eventreq) uploadAttachments() error {
 	for id, attachment := range e.attachments {
 		ext := filepath.Ext(attachment.name)
 		key := attachment.id.String() + ext
@@ -171,12 +172,25 @@ func (e *eventreq) uploadAttachments(ctx context.Context) error {
 		eventAttachment.Reader = file
 
 		go func() {
-			if err := eventAttachment.Upload(ctx); err != nil {
+			defer file.Close()
+			// create fresh context for the upload
+			// operation. ensure uploads proceed even if
+			// the request fails for extra safety.
+			//
+			// better to be safe and process uploads as much
+			// as you can.
+			bgCtx := context.Background()
+
+			if err := eventAttachment.Upload(bgCtx); err != nil {
 				fmt.Printf("failed to upload attachment async: key: %s : %v\n", key, err)
+				return
 			}
 		}()
 
-		attachment.uploaded = true
+		// this is just a soft flag to indicate the attachment upload
+		// has been attempted, but does not reflect actual upload completion
+		// or success.
+		attachment.uploadedAttempted = true
 	}
 
 	return nil
@@ -2591,7 +2605,7 @@ func PutEvents(c *gin.Context) {
 
 		defer uploadAttachmentSpan.End()
 
-		if err := eventReq.uploadAttachments(ctx); err != nil {
+		if err := eventReq.uploadAttachments(); err != nil {
 			msg := `failed to upload attachments`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -2611,7 +2625,7 @@ func PutEvents(c *gin.Context) {
 				if !ok {
 					continue
 				}
-				if !attachment.uploaded {
+				if !attachment.uploadedAttempted {
 					fmt.Printf("attachment %q failed to upload for event %q, skipping\n", attachment.id, id)
 					continue
 				}
