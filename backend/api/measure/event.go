@@ -144,7 +144,7 @@ func (s status) String() string {
 }
 
 // uploadAttachments prepares and uploads each attachment.
-func (e *eventreq) uploadAttachments(ctx context.Context) error {
+func (e *eventreq) uploadAttachments() error {
 	for id, attachment := range e.attachments {
 		ext := filepath.Ext(attachment.name)
 		key := attachment.id.String() + ext
@@ -171,12 +171,22 @@ func (e *eventreq) uploadAttachments(ctx context.Context) error {
 		eventAttachment.Reader = file
 
 		go func() {
-			if err := eventAttachment.Upload(ctx); err != nil {
-				fmt.Printf("failed to upload attachment async: key: %s : %v\n", key, err)
-			}
-		}()
+			defer file.Close()
+			// create fresh context for the upload
+			// operation. ensure uploads proceed even if
+			// the request fails for extra safety.
+			//
+			// better to be safe and process uploads as much
+			// as you can.
+			bgCtx := context.Background()
 
-		attachment.uploaded = true
+			if err := eventAttachment.Upload(bgCtx); err != nil {
+				fmt.Printf("failed to upload attachment async: key: %s : %v\n", key, err)
+				return
+			}
+
+			attachment.uploaded = true
+		}()
 	}
 
 	return nil
@@ -2591,7 +2601,7 @@ func PutEvents(c *gin.Context) {
 
 		defer uploadAttachmentSpan.End()
 
-		if err := eventReq.uploadAttachments(ctx); err != nil {
+		if err := eventReq.uploadAttachments(); err != nil {
 			msg := `failed to upload attachments`
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
