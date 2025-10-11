@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Grant sufficient permissions to clickhouse role (#2735) by @detj in #2735
 - (**backend**): Cloud fix symbolication (#2733) by @detj in #2733
 - (**backend**): Improve concurrency safety of attachment upload operation (#2729) by @detj in #2729
 - (**backend**): Grant appropriate permissions for cleanup service (#2720) by @detj in #2720
