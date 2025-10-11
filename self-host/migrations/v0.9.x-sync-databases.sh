@@ -211,7 +211,7 @@ migrate_clickhouse_database() {
     --password "$admin_password" \
     --query "create role if not exists operator;" \
     --query "create role if not exists reader;" \
-    --query "grant select, insert on measure.* to operator;" \
+    --query "grant select, insert, delete, update on measure.* to operator;" \
     --query "grant select on measure.* to reader;" \
     --query "create user if not exists ${operator_user} identified with sha256_password by '${operator_password}' default role operator default database measure;" \
     --query "create user if not exists ${reader_user} identified with sha256_password by '${reader_password}' default role reader default database measure;" \
