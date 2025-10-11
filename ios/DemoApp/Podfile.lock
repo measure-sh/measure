@@ -15,7 +15,7 @@ EXTERNAL SOURCES:
     :path: "../../"
 
 SPEC CHECKSUMS:
-  measure-sh: 12885ddb1cd8c67cb318611a6f9d387e25afba8a
+  measure-sh: 1aa3cec697400a05f82f34b3e6ba21cb6dac1ef6
   PLCrashReporter: 499c53b0104f95c302d94fd723ebb03c56d9bac8
 
 PODFILE CHECKSUM: eca229ccc523688877a34e50f11f504a0fe75bed
