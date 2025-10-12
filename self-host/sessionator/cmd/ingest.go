@@ -61,6 +61,11 @@ var frequency uint
 // duration for virtual event batch ingestion.
 var duration time.Duration
 
+// buildProcessDelay is used to wait after a
+// builds upload call for letting the build
+// to process.
+var buildProcessDelay time.Duration
+
 // parallel is used to enable virtualization.
 var parallel bool
 
@@ -95,6 +100,10 @@ func init() {
 
 	ingestCmd.
 		Flags().
+		DurationVarP(&buildProcessDelay, "build-process-delay", "b", time.Second*5, "duration to wait for build to process.\n")
+
+	ingestCmd.
+		Flags().
 		BoolVarP(&dryRun, "dry-run", "n", false, "when true, all write operations are simulated")
 
 	ingestCmd.
@@ -107,7 +116,7 @@ func init() {
 
 	ingestCmd.
 		Flags().
-		StringSliceVar(&skipApps, "skip-apps", nil, "list of apps to skip ingestion")
+		StringSliceVar(&skipApps, "skip-apps", nil, "list of apps to skip ingestion.\nuse same app name from config.\nusage: --skip-apps=\"app-1,app-2\"")
 
 	ingestCmd.Flags().SortFlags = false
 }
@@ -166,6 +175,10 @@ func IngestSerial(apps *app.Apps, origin string) {
 
 		fmt.Printf("🟢 %s \n", status)
 		metrics.bumpBuild()
+
+		// wait for some duration for builds to process
+		fmt.Printf("Waiting %v for builds to process...\n", buildProcessDelay)
+		time.Sleep(buildProcessDelay)
 
 		for i := range app.EventAndSpanFiles {
 			eventAndSpanFile := app.EventAndSpanFiles[i]
@@ -233,6 +246,10 @@ func IngestParallel(apps *app.Apps, origin string) {
 
 		fmt.Printf("🟢 %s \n", status)
 		metrics.bumpBuild()
+
+		// wait for some duration for builds to process
+		fmt.Printf("Waiting %v for builds to process...\n", buildProcessDelay)
+		time.Sleep(buildProcessDelay)
 
 		count := int(frequency)
 		done := make(chan struct{})
