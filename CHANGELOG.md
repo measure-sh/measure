@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Make slack creds prompt optional by @anupcowkur in #2739
 - (**backend**): Add option to wait for build processing in sessionator (#2738) by @detj in #2738
 - (**backend**): Remove unused variable for dashboard service (#2722) by @detj in #2722
 - (**backend**): Support json events request (#2710) by @abhaysood in #2710
