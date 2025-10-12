@@ -157,7 +157,7 @@ Optionally, you can set up a Slack app if you want to recieve alert notications 
 
 - [Set up Slack Integration](./slack.md)
 
-Once your slack integration is set up, copy the values and enter in the relevant prompts. If you wish to ignore it, enter dummy values and proceed.
+Once your slack integration is set up, copy the values and enter in the relevant prompts. If you wish to ignore it, enter empty values and proceed.
 
 Once completed, the install script will attempt to start all the Measure docker compose services. You should see a similar output.
 
