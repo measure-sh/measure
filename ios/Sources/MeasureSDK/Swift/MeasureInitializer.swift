@@ -74,6 +74,7 @@ protocol MeasureInitializer {
     var exceptionGenerator: ExceptionGenerator { get }
     var measureDispatchQueue: MeasureDispatchQueue { get }
     var attributeValueValidator: AttributeValueValidator { get }
+    var attachmentExporter: AttachmentExporter { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -142,6 +143,7 @@ protocol MeasureInitializer {
 /// - `exceptionGenerator`: `ExceptionGenerator` object responsible for generating `Exception` object for `Error` or `NSError`
 /// - `measureDispatchQueue`: `MeasureDispatchQueue` object to run tasks on a serial queue.
 /// - `attributeValueValidator`: `AttributeValueValidator` object to validate user defined attributes
+/// - `attachmentExporter`: `AttachmentExporter` object that exports attachments.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -208,6 +210,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let measureDispatchQueue: MeasureDispatchQueue
     let attributeValueValidator: AttributeValueValidator
     let attachmentStore: AttachmentStore
+    let attachmentExporter: AttachmentExporter
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -318,13 +321,19 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                              spanStore: spanStore)
         self.attachmentStore = BaseAttachmentStore(coreDataManager: coreDataManager,
                                                    logger: logger)
+        self.attachmentExporter = BaseAttachmentExporter(logger: logger,
+                                                         attachmentStore: attachmentStore,
+                                                         httpClient: httpClient,
+                                                         exportQueue: MeasureQueue.attachmentExporter,
+                                                         configProvider: configProvider)
         self.exporter = BaseExporter(logger: logger,
                                      networkClient: networkClient,
                                      batchCreator: batchCreator,
                                      batchStore: batchStore,
                                      eventStore: eventStore,
                                      spanStore: spanStore,
-                                     attachmentStore: attachmentStore)
+                                     attachmentStore: attachmentStore,
+                                     attachmentExporter: attachmentExporter)
         self.periodicExporter = BasePeriodicExporter(logger: logger,
                                                      configProvider: configProvider,
                                                      timeProvider: timeProvider,

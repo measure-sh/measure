@@ -44,6 +44,8 @@ let layoutSnapshotDirectoryName = "layoutSnapshot"
 let fallbackApiUrl = "http://fallback"
 let recentAppVersion = "recentAppVersion"
 let recentAppBuildNumber = "recentAppBuildNumber"
+let screenshotContentType = "image/png"
+let layoutSnapshotContentType = "image/svg+xml"
 
 struct AttributeConstants {
     static let deviceManufacturer = "Apple"

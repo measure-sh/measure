@@ -21,11 +21,12 @@ final class BaseExporter: Exporter {
     private let eventStore: EventStore
     private let spanStore: SpanStore
     private let attachmentStore: AttachmentStore
+    private let attachmentExporter: AttachmentExporter
 
     private let maxExistingBatchesToExport = 5
     private var batchIdsInTransit = Set<String>()
 
-    init(logger: Logger, networkClient: NetworkClient, batchCreator: BatchCreator, batchStore: BatchStore, eventStore: EventStore, spanStore: SpanStore, attachmentStore: AttachmentStore) {
+    init(logger: Logger, networkClient: NetworkClient, batchCreator: BatchCreator, batchStore: BatchStore, eventStore: EventStore, spanStore: SpanStore, attachmentStore: AttachmentStore, attachmentExporter: AttachmentExporter) {
         self.logger = logger
         self.networkClient = networkClient
         self.batchCreator = batchCreator
@@ -33,6 +34,7 @@ final class BaseExporter: Exporter {
         self.eventStore = eventStore
         self.spanStore = spanStore
         self.attachmentStore = attachmentStore
+        self.attachmentExporter = attachmentExporter
     }
 
     func createBatch(_ sessionId: String?, completion: @escaping (BatchCreationResult?) -> Void) {
@@ -94,7 +96,7 @@ final class BaseExporter: Exporter {
         switch response {
         case .success(let body):
             self.parseAndSaveAttachmentMetadata(responseBody: body)
-
+            self.attachmentExporter.onNewAttachmentsAvailable()
             self.deleteEventsAndSpans(batchId: batchId, events: events, spans: spans)
             self.logger.internalLog(level: .debug, message: "Successfully sent batch \(batchId)", error: nil, data: nil)
         case .error(let errorType):

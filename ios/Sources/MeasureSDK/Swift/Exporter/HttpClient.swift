@@ -66,7 +66,7 @@ final class BaseHttpClient: HttpClient {
         }
 
         var request = createFileUploadRequest(url: url, method: method, contentType: contentType, headers: headers, fileSize: Int64(fileData.count))
-        request.httpBody = fileData // Set the file body
+        request.httpBody = fileData
 
         let semaphore = DispatchSemaphore(value: 0)
         var response: HttpResponse!
@@ -76,7 +76,7 @@ final class BaseHttpClient: HttpClient {
                 // Handle recursive redirect for file upload
                 self.uploadFileWithRedirects(url: newUrl, method: method, contentType: contentType, headers: headers, fileData: fileData, redirectCount: redirectCount + 1)
             }
-            semaphore.signal()
+            semaphore.signal()  
         }
 
         task.resume()

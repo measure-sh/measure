@@ -208,6 +208,7 @@
 		CF12A6F12E97CE70001C8112 /* AttachmentOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF12A6EF2E97CE70001C8112 /* AttachmentOb+CoreDataClass.swift */; };
 		CF12A6F22E97CE70001C8112 /* AttachmentOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF12A6F02E97CE70001C8112 /* AttachmentOb+CoreDataProperties.swift */; };
 		CF12A6F42E97D220001C8112 /* AttachmentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF12A6F32E97D220001C8112 /* AttachmentStore.swift */; };
+		CF12A7682E99318F001C8112 /* AttachmentExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF12A7672E99318F001C8112 /* AttachmentExporter.swift */; };
 		CF1BB3B22DB8BD8900588506 /* SpanConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB3B12DB8BD8900588506 /* SpanConstants.swift */; };
 		CF1BB3B72DBA39FF00588506 /* LifecycleCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB3B62DBA39FF00588506 /* LifecycleCollectorTests.swift */; };
 		CF1BB3B92DBA3A7F00588506 /* MockTracer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB3B82DBA3A7F00588506 /* MockTracer.swift */; };
@@ -545,6 +546,7 @@
 		CF12A6EF2E97CE70001C8112 /* AttachmentOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttachmentOb+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CF12A6F02E97CE70001C8112 /* AttachmentOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttachmentOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		CF12A6F32E97D220001C8112 /* AttachmentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentStore.swift; sourceTree = "<group>"; };
+		CF12A7672E99318F001C8112 /* AttachmentExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentExporter.swift; sourceTree = "<group>"; };
 		CF12FFFF2D9BF5A000A3FCF7 /* AtomicBool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtomicBool.swift; sourceTree = "<group>"; };
 		CF1BB3B12DB8BD8900588506 /* SpanConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanConstants.swift; sourceTree = "<group>"; };
 		CF1BB3B62DBA39FF00588506 /* LifecycleCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleCollectorTests.swift; sourceTree = "<group>"; };
@@ -825,6 +827,7 @@
 				526D17D32D5A1913009A2E90 /* HttpModels.swift */,
 				526D17D42D5A1913009A2E90 /* NetworkClient.swift */,
 				526D17D52D5A1913009A2E90 /* PeriodicExporter.swift */,
+				CF12A7672E99318F001C8112 /* AttachmentExporter.swift */,
 			);
 			path = Exporter;
 			sourceTree = "<group>";
@@ -1748,6 +1751,7 @@
 				526D18632D5A1913009A2E90 /* NetworkInterceptorProtocol.swift in Sources */,
 				526D188A2D5A1913009A2E90 /* SystemFileManager.swift in Sources */,
 				526D187A2D5A1913009A2E90 /* NSManagedObjectContext+Extension.swift in Sources */,
+				CF12A7682E99318F001C8112 /* AttachmentExporter.swift in Sources */,
 				526D18372D5A1913009A2E90 /* BatchEntity.swift in Sources */,
 				526D18492D5A1913009A2E90 /* CustomEventData.swift in Sources */,
 				526D18602D5A1913009A2E90 /* HttpEventCollector.swift in Sources */,

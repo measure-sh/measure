@@ -54,8 +54,8 @@ final class BaseAttachmentStore: AttachmentStore {
             do {
                 if let attachmentOb = try context.fetch(fetchRequest).first {
                     attachmentOb.uploadUrl = uploadUrl
-                    attachmentOb.headers = headers         // ⬅️ NEW
-                    attachmentOb.expires_at = expiresAt    // ⬅️ NEW
+                    attachmentOb.headers = headers
+                    attachmentOb.expires_at = expiresAt
                     try context.saveIfNeeded()
                 } else {
                     self.logger.internalLog(level: .warning, message: "Attachment with ID \(attachmentId) not found for URL update.", error: nil, data: nil)
