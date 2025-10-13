@@ -888,7 +888,6 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				return err
 			}
 			attachments = string(marshalledAttachments)
-			fmt.Println("Marshaled Attachments:", attachments)
 		}
 
 		row := stmt.NewRow().

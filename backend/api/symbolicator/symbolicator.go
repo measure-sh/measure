@@ -23,7 +23,7 @@ import (
 // request payload.
 //
 // set to `true` for quick debugging.
-const logRequest = true
+const logRequest = false
 
 // logResponse determines if symbolicator
 // should log the relevant parts of the
@@ -319,11 +319,15 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 	}
 
 	if s.jvmSymbolicator != nil {
-		s.jvmSymbolicator.symbolicate(events, spans, s.Origin, s.Sources, s.jvmLambdaWorkaround)
+		if err := s.jvmSymbolicator.symbolicate(events, spans, s.Origin, s.Sources, s.jvmLambdaWorkaround); err != nil {
+			return fmt.Errorf("jvm symbolication failed: %w", err)
+		}
 	}
 
 	if s.nativeSymbolicator != nil {
-		s.nativeSymbolicator.symbolicate(events, s.Origin, s.Sources)
+		if err := s.nativeSymbolicator.symbolicate(events, s.Origin, s.Sources); err != nil {
+			return fmt.Errorf("native symbolication failed: %w", err)
+		}
 	}
 
 	return
@@ -356,9 +360,9 @@ func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.S
 			// bytes, err := json.MarshalIndent(js.response, "", "  ")
 			bytes, err := json.Marshal(js.response)
 			if err != nil {
-				panic(err)
+				return err
 			}
-			fmt.Println(string(bytes))
+			fmt.Println("response:", string(bytes))
 		}
 
 		js.rewriteException(events, spans, lambdaWorkaround)
