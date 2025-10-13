@@ -18,14 +18,16 @@ final class BaseDataCleanupService: DataCleanupService {
     private let logger: Logger
     private let sessionManager: SessionManager
     private let configProvider: ConfigProvider
+    private let attachmentStore: AttachmentStore
 
-    init(eventStore: EventStore, spanStore: SpanStore, sessionStore: SessionStore, logger: Logger, sessionManager: SessionManager, configProvider: ConfigProvider) {
+    init(eventStore: EventStore, spanStore: SpanStore, sessionStore: SessionStore, logger: Logger, sessionManager: SessionManager, configProvider: ConfigProvider, attachmentStore: AttachmentStore) {
         self.eventStore = eventStore
         self.spanStore = spanStore
         self.sessionStore = sessionStore
         self.logger = logger
         self.sessionManager = sessionManager
         self.configProvider = configProvider
+        self.attachmentStore = attachmentStore
     }
 
     func clearStaleData(completion: @escaping () -> Void) {
@@ -128,6 +130,11 @@ final class BaseDataCleanupService: DataCleanupService {
 
         group.enter()
         spanStore.deleteSpans(sessionIds: sessionIds) {
+            group.leave()
+        }
+
+        group.enter()
+        attachmentStore.deleteAttachments(forSessionIds: sessionIds) {
             group.leave()
         }
 

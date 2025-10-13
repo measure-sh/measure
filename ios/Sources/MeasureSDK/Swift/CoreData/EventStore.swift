@@ -75,6 +75,7 @@ final class BaseEventStore: EventStore {
                     attachmentOb.id = attachment.id
                     attachmentOb.path = attachment.path
                     attachmentOb.attachmentSize = attachment.size
+                    attachmentOb.sessionId = event.sessionId
                     attachmentOb.eventRel = eventOb
                 }
             }

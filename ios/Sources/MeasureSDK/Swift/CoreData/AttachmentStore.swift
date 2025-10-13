@@ -13,7 +13,7 @@ protocol AttachmentStore {
     func updateUploadDetails(for attachmentId: String, uploadUrl: String, headers: Data?, expiresAt: String?, completion: @escaping () -> Void)
     func getAttachmentsForUpload(for eventId: String, completion: @escaping ([MsrUploadAttachment]) -> Void)
     func getAttachmentsForUpload(batchSize: Int, completion: @escaping ([MsrUploadAttachment]) -> Void)
-    func getOrphanedAttachments(completion: @escaping ([String]) -> Void)
+    func deleteAttachments(forSessionIds sessionIds: [String], completion: @escaping () -> Void)
 }
 
 final class BaseAttachmentStore: AttachmentStore {
@@ -67,28 +67,6 @@ final class BaseAttachmentStore: AttachmentStore {
         }
     }
 
-    func getOrphanedAttachments(completion: @escaping ([String]) -> Void) {
-        coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else { completion([]); return }
-
-            let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "eventRel == nil")
-            
-            fetchRequest.resultType = .dictionaryResultType
-            fetchRequest.propertiesToFetch = ["id"]
-
-            var orphanedIds: [String] = []
-            do {
-                let results = try context.fetch(fetchRequest) as? [[String: String]] ?? []
-                orphanedIds = results.compactMap { $0["id"] }
-                completion(orphanedIds)
-            } catch {
-                self.logger.internalLog(level: .error, message: "Failed to fetch orphaned attachment IDs.", error: error, data: nil)
-                completion([])
-            }
-        }
-    }
-
     func getAttachmentsForUpload(for eventId: String, completion: @escaping ([MsrUploadAttachment]) -> Void) {
         coreDataManager.performBackgroundTask { [weak self] context in
             guard let self else { completion([]); return }
@@ -125,6 +103,41 @@ final class BaseAttachmentStore: AttachmentStore {
                 self.logger.internalLog(level: .error, message: "Failed to fetch attachments with upload URLs in batch.", error: error, data: nil)
                 completion([])
             }
+        }
+    }
+
+    func deleteAttachments(forSessionIds sessionIds: [String], completion: @escaping () -> Void) {
+        guard !sessionIds.isEmpty else {
+            completion()
+            return
+        }
+
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else { completion(); return }
+
+            let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
+
+            fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
+
+            do {
+                let attachments = try context.fetch(fetchRequest)
+
+                self.logger.internalLog(level: .debug,
+                                        message: "Attempting to delete \(attachments.count) attachments across \(sessionIds.count) sessions.",
+                                        error: nil,
+                                        data: nil)
+
+                attachments.forEach { context.delete($0) }
+
+                try context.saveIfNeeded()
+            } catch {
+                self.logger.internalLog(level: .error,
+                                        message: "Failed to delete attachments for session IDs.",
+                                        error: error,
+                                        data: ["sessionIds": sessionIds])
+            }
+
+            completion()
         }
     }
 }

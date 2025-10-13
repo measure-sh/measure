@@ -8,6 +8,7 @@
         <attribute name="id" optional="YES" attributeType="String"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="path" optional="YES" attributeType="String"/>
+        <attribute name="sessionId" optional="YES" attributeType="String"/>
         <attribute name="type" optional="YES" attributeType="String"/>
         <attribute name="uploadUrl" optional="YES" attributeType="String"/>
         <relationship name="eventRel" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="EventOb" inverseName="attachmentsRel" inverseEntity="EventOb"/>

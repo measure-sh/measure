@@ -235,6 +235,8 @@
 		CF1BB5512DE4370000588506 /* MsrText.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB5502DE4370000588506 /* MsrText.swift */; };
 		CF1BB5532DE4370A00588506 /* MsrDimensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB5522DE4370A00588506 /* MsrDimensions.swift */; };
 		CF1BB5552DE4371600588506 /* MsrFonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB5542DE4371600588506 /* MsrFonts.swift */; };
+		CF3095292E9D011E002CAC1C /* AttachmentOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3095272E9D011E002CAC1C /* AttachmentOb+CoreDataClass.swift */; };
+		CF30952A2E9D011E002CAC1C /* AttachmentOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3095282E9D011E002CAC1C /* AttachmentOb+CoreDataProperties.swift */; };
 		CF48773F2DEEB26B00311F57 /* UIApplication+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF48773E2DEEB26B00311F57 /* UIApplication+Extension.swift */; };
 		CF4877412DEEB2C000311F57 /* UIWindow+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF4877402DEEB2C000311F57 /* UIWindow+Extension.swift */; };
 		CF48E3562DF95E8100FCD26D /* ExceptionGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF48E3552DF95E8100FCD26D /* ExceptionGenerator.swift */; };
@@ -574,6 +576,8 @@
 		CF1BB5502DE4370000588506 /* MsrText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrText.swift; sourceTree = "<group>"; };
 		CF1BB5522DE4370A00588506 /* MsrDimensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrDimensions.swift; sourceTree = "<group>"; };
 		CF1BB5542DE4371600588506 /* MsrFonts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrFonts.swift; sourceTree = "<group>"; };
+		CF3095272E9D011E002CAC1C /* AttachmentOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttachmentOb+CoreDataClass.swift"; sourceTree = "<group>"; };
+		CF3095282E9D011E002CAC1C /* AttachmentOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttachmentOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		CF48773E2DEEB26B00311F57 /* UIApplication+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIApplication+Extension.swift"; sourceTree = "<group>"; };
 		CF4877402DEEB2C000311F57 /* UIWindow+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIWindow+Extension.swift"; sourceTree = "<group>"; };
 		CF48E3552DF95E8100FCD26D /* ExceptionGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExceptionGenerator.swift; sourceTree = "<group>"; };
@@ -1219,6 +1223,8 @@
 		52B7F17F2D76A32C001498BC /* CoreDataEntities */ = {
 			isa = PBXGroup;
 			children = (
+				CF3095272E9D011E002CAC1C /* AttachmentOb+CoreDataClass.swift */,
+				CF3095282E9D011E002CAC1C /* AttachmentOb+CoreDataProperties.swift */,
 				CF12A6EF2E97CE70001C8112 /* AttachmentOb+CoreDataClass.swift */,
 				CF12A6F02E97CE70001C8112 /* AttachmentOb+CoreDataProperties.swift */,
 				CFD88D622DAE36D30095115E /* BatchOb+CoreDataClass.swift */,
@@ -1752,6 +1758,8 @@
 				526D188A2D5A1913009A2E90 /* SystemFileManager.swift in Sources */,
 				526D187A2D5A1913009A2E90 /* NSManagedObjectContext+Extension.swift in Sources */,
 				CF12A7682E99318F001C8112 /* AttachmentExporter.swift in Sources */,
+				CF3095292E9D011E002CAC1C /* AttachmentOb+CoreDataClass.swift in Sources */,
+				CF30952A2E9D011E002CAC1C /* AttachmentOb+CoreDataProperties.swift in Sources */,
 				526D18372D5A1913009A2E90 /* BatchEntity.swift in Sources */,
 				526D18492D5A1913009A2E90 /* CustomEventData.swift in Sources */,
 				526D18602D5A1913009A2E90 /* HttpEventCollector.swift in Sources */,

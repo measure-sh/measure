@@ -45,57 +45,6 @@ extension Measure.AttributeValue : Swift.Codable {
   #endif
   @objc deinit
 }
-public typealias AttachmentObCoreDataClassSet = Foundation.NSSet
-@_inheritsConvenienceInitializers @objc(AttachmentOb) nonisolated public class AttachmentOb : CoreData.NSManagedObject {
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc override nonisolated dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
-  #endif
-  @objc deinit
-}
-public typealias AttachmentObCoreDataPropertiesSet = Foundation.NSSet
-extension Measure.AttachmentOb {
-  @nonobjc public class func fetchRequest() -> CoreData.NSFetchRequest<Measure.AttachmentOb>
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var name: Swift.String? {
-    @objc get
-    @objc set
-  }
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var type: Swift.String? {
-    @objc get
-    @objc set
-  }
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var bytes: Foundation.Data? {
-    @objc get
-    @objc set
-  }
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var id: Swift.String? {
-    @objc get
-    @objc set
-  }
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var uploadUrl: Swift.String? {
-    @objc get
-    @objc set
-  }
-  #endif
-  @objc @NSManaged nonisolated dynamic public var attachmentSize: Swift.Int64 {
-    @objc get
-    @objc set
-  }
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var path: Swift.String? {
-    @objc get
-    @objc set
-  }
-  #endif
-}
 public protocol Span {
   var traceId: Swift.String { get }
   var spanId: Swift.String { get }
@@ -242,6 +191,75 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
   public var rawValue: Swift.Int {
     get
   }
+}
+public typealias AttachmentObCoreDataClassSet = Foundation.NSSet
+@_inheritsConvenienceInitializers @objc(AttachmentOb) nonisolated public class AttachmentOb : CoreData.NSManagedObject {
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc override nonisolated dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
+  #endif
+  @objc deinit
+}
+public typealias AttachmentObCoreDataPropertiesSet = Foundation.NSSet
+extension Measure.AttachmentOb {
+  @nonobjc public class func fetchRequest() -> CoreData.NSFetchRequest<Measure.AttachmentOb>
+  @objc @NSManaged nonisolated dynamic public var attachmentSize: Swift.Int64 {
+    @objc get
+    @objc set
+  }
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc @NSManaged nonisolated dynamic public var bytes: Foundation.Data? {
+    @objc get
+    @objc set
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc @NSManaged nonisolated dynamic public var expires_at: Swift.String? {
+    @objc get
+    @objc set
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc @NSManaged nonisolated dynamic public var headers: Foundation.Data? {
+    @objc get
+    @objc set
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc @NSManaged nonisolated dynamic public var id: Swift.String? {
+    @objc get
+    @objc set
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc @NSManaged nonisolated dynamic public var name: Swift.String? {
+    @objc get
+    @objc set
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc @NSManaged nonisolated dynamic public var path: Swift.String? {
+    @objc get
+    @objc set
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc @NSManaged nonisolated dynamic public var sessionId: Swift.String? {
+    @objc get
+    @objc set
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc @NSManaged nonisolated dynamic public var type: Swift.String? {
+    @objc get
+    @objc set
+  }
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc @NSManaged nonisolated dynamic public var uploadUrl: Swift.String? {
+    @objc get
+    @objc set
+  }
+  #endif
 }
 @objc public class BugReportConfig : ObjectiveC.NSObject {
   final public let colors: Measure.MsrColors
