@@ -23,7 +23,7 @@ import (
 // request payload.
 //
 // set to `true` for quick debugging.
-const logRequest = true
+const logRequest = false
 
 // logResponse determines if symbolicator
 // should log the relevant parts of the
@@ -340,15 +340,18 @@ func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.S
 
 		var respBody []byte
 		if respBody, err = sr.makeRequest(); err != nil {
+			fmt.Println("Error making jvm symbolicator request:", err)
 			return
 		}
 
 		if err = json.Unmarshal(respBody, &js.response); err != nil {
+			fmt.Println("Error unmarshalling jvm symbolicator response:", err)
 			return
 		}
 
 		if len(js.response.Errors) > 0 {
 			err = ErrJVMSymbolicationFailure
+			fmt.Println("Symbolication errors:", js.response.Errors)
 			return
 		}
 
