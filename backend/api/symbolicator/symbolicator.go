@@ -354,6 +354,15 @@ func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.S
 		if len(js.response.Errors) > 0 {
 			err = ErrJVMSymbolicationFailure
 			fmt.Println("JVM Symbolication errors:", js.response.Errors)
+
+			if logResponse {
+				bytes, err := json.Marshal(js.response)
+				if err != nil {
+					return err
+				}
+				fmt.Println("JVM Symbolication response:", string(bytes))
+			}
+
 			return
 		}
 
