@@ -353,6 +353,7 @@ func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.S
 
 		if len(js.response.Errors) > 0 {
 			err = ErrJVMSymbolicationFailure
+			fmt.Println("JVM Symbolication errors:", js.response.Errors)
 			return
 		}
 
