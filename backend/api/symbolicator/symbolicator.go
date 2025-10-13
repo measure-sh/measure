@@ -356,9 +356,9 @@ func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.S
 			// bytes, err := json.MarshalIndent(js.response, "", "  ")
 			bytes, err := json.Marshal(js.response)
 			if err != nil {
-				panic(err)
+				return err
 			}
-			fmt.Println(string(bytes))
+			fmt.Println("response:", string(bytes))
 		}
 
 		js.rewriteException(events, spans, lambdaWorkaround)
