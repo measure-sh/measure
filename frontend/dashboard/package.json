@@ -12,7 +12,6 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@highlight-run/next": "^7.5.12",
     "@nivo/bar": "^0.88.0",
     "@nivo/core": "^0.88.0",
     "@nivo/line": "^0.88.0",
@@ -44,6 +43,8 @@
     "luxon": "^3.4.4",
     "next": "^14.2.26",
     "postcss": "^8.4.39",
+    "posthog-js": "^1.275.1",
+    "posthog-node": "^5.9.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "sharp": "^0.34.3",

@@ -1,9 +1,12 @@
-import crypto from 'crypto'
-import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto';
+import { NextRequest, NextResponse } from 'next/server';
+import { getPosthogServer } from "../../../posthog-server";
 
 export const dynamic = "force-dynamic"
 
 const SALT = process.env.SLACK_OAUTH_STATE_SALT
+
+const posthog = getPosthogServer()
 
 function createTimeBasedState(userData: any): string {
   const now = Math.floor(Date.now() / (5 * 60 * 1000))
@@ -21,12 +24,20 @@ function createTimeBasedState(userData: any): string {
 }
 
 export async function POST(req: NextRequest) {
+  let err = ""
   try {
     const { userId, teamId, redirectUrl } = await req.json()
 
     if (!userId || !teamId || !redirectUrl) {
+      err = `Slack OAuth URL generation failure: userId, teamId, and redirectUrl are required`
+      posthog.captureException(err, {
+        source: 'slack_oauth_url_generation',
+        user_id: userId,
+        team_id: teamId
+      })
+      console.log(err)
       return NextResponse.json(
-        { error: 'userId, teamId, and redirectUrl are required' },
+        { error: err },
         { status: 400 }
       )
     }
@@ -42,6 +53,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: slackUrl.toString() })
   } catch (error) {
+    posthog.captureException(error, {
+      source: 'slack_oauth_url_generation',
+    })
+    console.error("Error generating Slack OAuth URL:", error)
     return NextResponse.json(
       { error: 'Invalid request body' },
       { status: 400 }

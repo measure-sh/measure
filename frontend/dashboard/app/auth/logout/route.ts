@@ -1,9 +1,12 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
+import { getPosthogServer } from "../../posthog-server";
 
 export const dynamic = "force-dynamic"
 
 const origin = process?.env?.NEXT_PUBLIC_SITE_URL
 const apiOrigin = process?.env?.API_BASE_URL
+
+const posthog = getPosthogServer()
 
 export async function DELETE(request: Request) {
   const cookies = request.headers.get("cookie")
@@ -14,13 +17,22 @@ export async function DELETE(request: Request) {
     headers: headers,
   })
 
+  let err = ""
   if (!res.ok) {
-    console.log(`Logout failure: post /auth/signout returned ${res.status}`)
+    err = `Logout failure: post /auth/signout returned ${res.status}`
+    posthog.captureException(err, {
+      source: 'logout'
+    })
+    console.log(err)
   }
 
   const data = await res.json()
   if (data.error) {
-    console.log(`Logout failure: post /auth/signout returned ${data.error}`)
+    err = `Logout failure: post /auth/signout returned ${data.error}`
+    posthog.captureException(err, {
+      source: 'logout'
+    })
+    console.log(err)
   }
 
   // Create a response with redirect

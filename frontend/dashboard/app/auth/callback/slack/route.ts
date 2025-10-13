@@ -1,11 +1,14 @@
-import crypto from 'crypto'
-import { NextResponse } from "next/server"
+import crypto from 'crypto';
+import { NextResponse } from "next/server";
+import { getPosthogServer } from "../../../posthog-server";
 
 export const dynamic = "force-dynamic"
 
 const origin = process?.env?.NEXT_PUBLIC_SITE_URL
 const apiOrigin = process?.env?.API_BASE_URL
 const SALT = process.env.SLACK_OAUTH_STATE_SALT
+
+const posthog = getPosthogServer()
 
 function verifyTimeBasedState(state: string) {
   try {
@@ -67,6 +70,11 @@ export async function GET(request: Request) {
       throw new Error('No state parameter provided')
     }
   } catch (err) {
+    posthog.captureException(err, {
+      source: 'slack_oauth_callback',
+      user_id: userId,
+      team_id: teamId
+    })
     console.error('State verification failed:', err)
     return NextResponse.redirect(
       `${returnUrl}?error=${encodeURIComponent('Invalid or expired OAuth state')}`,
@@ -80,6 +88,12 @@ export async function GET(request: Request) {
     const errorMessage = error === 'access_denied'
       ? 'Installation cancelled'
       : `Slack OAuth error: ${error}`
+
+    posthog.captureException(errorMessage, {
+      source: 'slack_oauth_callback',
+      user_id: userId,
+      team_id: teamId
+    })
     return NextResponse.redirect(
       `${returnUrl}?error=${encodeURIComponent(errorMessage)}`,
       { status: 302 }
@@ -88,6 +102,11 @@ export async function GET(request: Request) {
 
   if (!code) {
     console.log("Slack OAuth failure: no authorization code")
+    posthog.captureException("Slack OAuth failure: no authorization code", {
+      source: 'slack_oauth_callback',
+      user_id: userId,
+      team_id: teamId
+    })
     return NextResponse.redirect(
       `${returnUrl}?error=${encodeURIComponent('Could not connect Slack workspace')}`,
       { status: 302 }
@@ -114,6 +133,11 @@ export async function GET(request: Request) {
     const errorMessage = serverErrorMessage
       ? `${baseErrorMessage}: ${serverErrorMessage}`
       : baseErrorMessage
+    posthog.captureException(errorMessage, {
+      source: 'slack_oauth_callback',
+      user_id: userId,
+      team_id: teamId
+    })
     console.error(errorMessage)
     return NextResponse.redirect(
       `${returnUrl}?error=${encodeURIComponent(errorMessage)}`,

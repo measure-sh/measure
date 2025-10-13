@@ -1,7 +1,7 @@
 "use client"
 
-import { H } from '@highlight-run/next/client'
 import Link from 'next/link'
+import posthog from 'posthog-js'
 import { useEffect } from 'react'
 import { Button } from './components/button'
 
@@ -13,7 +13,7 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    H.consumeError(error)
+    posthog.captureException(error)
   }, [error])
 
   return (
