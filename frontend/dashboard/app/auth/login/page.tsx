@@ -3,6 +3,7 @@
 import { measureAuth, MeasureAuthSession } from "@/app/auth/measure_auth"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { posthog } from "posthog-js"
 import { useEffect, useState } from "react"
 import GitHubSignIn from "./github-sign-in"
 import GoogleSignIn from "./google-sign-in"
@@ -20,6 +21,10 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
     const { session } = await measureAuth.getSession()
     if (session) {
       setSession(session)
+      posthog.identify(
+        session.user.id,
+        { email: session.user.email, name: session.user.name, plan: "free" }
+      );
     }
     setLoading(false)
   }

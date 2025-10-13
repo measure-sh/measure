@@ -22,6 +22,33 @@ const nextConfig = {
       },
     ],
   },
+  async headers() {
+    // allow loading assets for PostHog session replays
+    return [
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: 'https://us.posthog.com',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET',
+          },
+        ],
+      },
+      {
+        source: '/fonts/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: 'https://us.posthog.com',
+          },
+        ],
+      },
+    ]
+  },
 };
 
 module.exports = nextConfig;

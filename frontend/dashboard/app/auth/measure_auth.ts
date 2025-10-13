@@ -1,4 +1,5 @@
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
+import posthog from "posthog-js"
 
 export type MeasureAuthSession = {
   user: {
@@ -99,6 +100,7 @@ export class MeasureAuth {
     } else if (res.status === 401) {
       error = new Error(`Unauthorized: ${json?.error}`)
     }
+
     if (error) {
       return { error }
     }
@@ -194,6 +196,9 @@ export class MeasureAuth {
       method: "DELETE",
       credentials: "include",
     })
+
+    // Reset posthog
+    posthog.reset()
 
     // Redirect to login page after successful logout
     this.redirectToLogin()

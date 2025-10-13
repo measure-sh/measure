@@ -1,8 +1,8 @@
-import { HighlightInit } from '@highlight-run/next/client'
-import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Josefin_Sans, Space_Mono } from 'next/font/google'
 import { Toaster } from './components/toaster'
+import { PostHogProvider } from './context/posthog'
+import './globals.css'
 
 const josefin_sans = Josefin_Sans({
   subsets: ['latin'], display: 'swap', weight: ['100', '200', '300', '400', '500', '600', '700'],
@@ -65,21 +65,11 @@ export default function RootLayout({
 }) {
   return (
     <>
-      <HighlightInit
-        projectId={process.env.NEXT_PUBLIC_HIGHLIGHT_PROJECT_ID}
-        serviceName={process.env.NEXT_PUBLIC_FRONTEND_SERVICE_NAME}
-        disableSessionRecording
-        excludedHostnames={['localhost']}
-        tracingOrigins
-        networkRecording={{
-          enabled: true,
-          recordHeadersAndBody: true,
-          urlBlocklist: [],
-        }}
-      />
       <html lang="en">
         <body className={`${josefin_sans.variable} ${space_mono.variable}`}>
-          {children}
+          <PostHogProvider>
+            {children}
+          </PostHogProvider>
           <Toaster />
         </body>
       </html>
