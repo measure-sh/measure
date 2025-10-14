@@ -16,6 +16,8 @@ final class BaseexporterTests: XCTestCase {
     private var eventStore: MockEventStore!
     private var exporter: BaseExporter!
     private var spanStore: MockSpanStore!
+    private var attachmentExporter: MockAttachmentExporter!
+    private var attachmentStore: MockAttachmentStore!
 
     override func setUp() {
         super.setUp()
@@ -25,13 +27,17 @@ final class BaseexporterTests: XCTestCase {
         batchStore = MockBatchStore()
         eventStore = MockEventStore()
         spanStore = MockSpanStore()
+        attachmentExporter = MockAttachmentExporter()
+        attachmentStore = MockAttachmentStore()
         exporter = BaseExporter(
             logger: logger,
             networkClient: networkClient,
             batchCreator: batchCreator,
             batchStore: batchStore,
             eventStore: eventStore,
-            spanStore: spanStore
+            spanStore: spanStore,
+            attachmentStore: attachmentStore,
+            attachmentExporter: attachmentExporter
         )
     }
 
@@ -39,8 +45,8 @@ final class BaseexporterTests: XCTestCase {
         let batchId = "batch1"
         let eventIds = ["event1", "event2"]
         let spanIds = ["span1", "span2"]
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 100)) {}
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200)) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1")) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2")) {}
 
         exporter.export(batchId: batchId, eventIds: eventIds, spanIds: spanIds) { response in
             XCTAssertNotNil(response)
@@ -79,8 +85,8 @@ final class BaseexporterTests: XCTestCase {
         let batchId = "batch1"
         let eventIds = ["event1", "event2"]
         let spanIds = ["span1", "span2"]
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 100)) {}
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200)) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1")) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2")) {}
 
         networkClient.response = .success(body: "success")
 
@@ -97,8 +103,8 @@ final class BaseexporterTests: XCTestCase {
         let batchId = "batch1"
         let eventIds = ["event1", "event2"]
         let spanIds = ["span1", "span2"]
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 100)) {}
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200)) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1")) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2")) {}
 
         networkClient.response = .error(.clientError(responseCode: 400, body: "error"))
 

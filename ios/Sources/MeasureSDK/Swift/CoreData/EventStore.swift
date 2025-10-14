@@ -15,7 +15,7 @@ protocol EventStore {
     func deleteEvents(eventIds: [String], completion: @escaping () -> Void)
     func deleteEvents(sessionIds: [String], completion: @escaping () -> Void)
     func getAllEvents(completion: @escaping ([EventEntity]?) -> Void)
-    func getUnBatchedEventsWithAttachmentSize(eventCount: Number, ascending: Bool, sessionId: String?, completion: @escaping ([String: Number]) -> Void)
+    func getUnBatchedEvents(eventCount: Number, ascending: Bool, sessionId: String?, completion: @escaping ([String]) -> Void)
     func updateBatchId(_ batchId: String, for events: [String])
     func updateNeedsReportingForAllEvents(sessionId: String, needsReporting: Bool)
     func getEventsCount(completion: @escaping (Int) -> Void)
@@ -147,14 +147,13 @@ final class BaseEventStore: EventStore {
         }
     }
 
-    func getUnBatchedEventsWithAttachmentSize(eventCount: Number, ascending: Bool, sessionId: String?, completion: @escaping ([String: Number]) -> Void) {
+    func getUnBatchedEvents(eventCount: Number, ascending: Bool, sessionId: String?, completion: @escaping ([String]) -> Void) {
         coreDataManager.performBackgroundTask { [weak self] context in
             guard let self else {
-                completion([:])
+                completion([])
                 return
             }
 
-            var result: [String: Number] = [:]
             let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
             fetchRequest.fetchLimit = Int(eventCount)
             fetchRequest.sortDescriptors = [NSSortDescriptor(key: "timestampInMillis", ascending: ascending)]
@@ -170,21 +169,11 @@ final class BaseEventStore: EventStore {
 
             do {
                 let events = try context.fetch(fetchRequest)
-                for event in events {
-                    if let id = event.id {
-                        let attachmentsSet = event.attachmentsRel as? Set<AttachmentOb> ?? []
-
-                        let totalSize = attachmentsSet.reduce(0) { sum, attachment in
-                            return sum + attachment.attachmentSize
-                        }
-
-                        result[id] = Number(totalSize)
-                    }
-                }
-                completion(result)
+                let eventIds = events.compactMap(\.id)
+                completion(eventIds)
             } catch {
                 logger.internalLog(level: .error, message: "Failed to fetch unbatched events.", error: error, data: nil)
-                completion(result)
+                completion([])
             }
         }
     }

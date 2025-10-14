@@ -237,6 +237,8 @@
 		CF1BB5552DE4371600588506 /* MsrFonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1BB5542DE4371600588506 /* MsrFonts.swift */; };
 		CF3095292E9D011E002CAC1C /* AttachmentOb+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3095272E9D011E002CAC1C /* AttachmentOb+CoreDataClass.swift */; };
 		CF30952A2E9D011E002CAC1C /* AttachmentOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3095282E9D011E002CAC1C /* AttachmentOb+CoreDataProperties.swift */; };
+		CF3095402E9D3E28002CAC1C /* MockAttachmentExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF30953F2E9D3E28002CAC1C /* MockAttachmentExporter.swift */; };
+		CF3095422E9D4D0B002CAC1C /* MockAttachmentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF3095412E9D4D0B002CAC1C /* MockAttachmentStore.swift */; };
 		CF48773F2DEEB26B00311F57 /* UIApplication+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF48773E2DEEB26B00311F57 /* UIApplication+Extension.swift */; };
 		CF4877412DEEB2C000311F57 /* UIWindow+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF4877402DEEB2C000311F57 /* UIWindow+Extension.swift */; };
 		CF48E3562DF95E8100FCD26D /* ExceptionGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF48E3552DF95E8100FCD26D /* ExceptionGenerator.swift */; };
@@ -578,6 +580,8 @@
 		CF1BB5542DE4371600588506 /* MsrFonts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrFonts.swift; sourceTree = "<group>"; };
 		CF3095272E9D011E002CAC1C /* AttachmentOb+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttachmentOb+CoreDataClass.swift"; sourceTree = "<group>"; };
 		CF3095282E9D011E002CAC1C /* AttachmentOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttachmentOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		CF30953F2E9D3E28002CAC1C /* MockAttachmentExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAttachmentExporter.swift; sourceTree = "<group>"; };
+		CF3095412E9D4D0B002CAC1C /* MockAttachmentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAttachmentStore.swift; sourceTree = "<group>"; };
 		CF48773E2DEEB26B00311F57 /* UIApplication+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIApplication+Extension.swift"; sourceTree = "<group>"; };
 		CF4877402DEEB2C000311F57 /* UIWindow+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIWindow+Extension.swift"; sourceTree = "<group>"; };
 		CF48E3552DF95E8100FCD26D /* ExceptionGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExceptionGenerator.swift; sourceTree = "<group>"; };
@@ -1119,7 +1123,9 @@
 			isa = PBXGroup;
 			children = (
 				CF7CAE4B2D940F2700E15CDB /* MockAppVersionInfo.swift */,
+				CF30953F2E9D3E28002CAC1C /* MockAttachmentExporter.swift */,
 				52B7F1072D757F81001498BC /* MockAttachmentProcessor.swift */,
+				CF3095412E9D4D0B002CAC1C /* MockAttachmentStore.swift */,
 				52B7F1082D757F81001498BC /* MockAttributeProcessor.swift */,
 				52B7F1092D757F81001498BC /* MockBatchCreator.swift */,
 				52B7F10A2D757F81001498BC /* MockBatchStore.swift */,
@@ -1822,6 +1828,7 @@
 				52B7F1432D757F81001498BC /* CustomEventCollectorTests.swift in Sources */,
 				CF7CAE4C2D940F2700E15CDB /* MockAppVersionInfo.swift in Sources */,
 				52B7F1472D757F81001498BC /* EventSerializerTests.swift in Sources */,
+				CF3095402E9D3E28002CAC1C /* MockAttachmentExporter.swift in Sources */,
 				52B7F1662D757F81001498BC /* MockSessionManager.swift in Sources */,
 				52B7F1552D757F81001498BC /* MockBatchCreator.swift in Sources */,
 				52B7F1382D757F81001498BC /* BaseConfigProviderTests.swift in Sources */,
@@ -1834,6 +1841,7 @@
 				52B7F1352D757F81001498BC /* ComputeOnceAttributeProcessorTests.swift in Sources */,
 				69F6D44B2DFAA2DA000367EA /* ClientInfoTests.swift in Sources */,
 				CFEC97EE2D9A76A5000CFB68 /* MockMeasureInitializer.swift in Sources */,
+				CF3095422E9D4D0B002CAC1C /* MockAttachmentStore.swift in Sources */,
 				52B7F16B2D757F81001498BC /* MockTimeProvider.swift in Sources */,
 				52B7F1652D757F81001498BC /* MockScreenshotGenerator.swift in Sources */,
 				52B7F1582D757F81001498BC /* MockConfigProvider.swift in Sources */,

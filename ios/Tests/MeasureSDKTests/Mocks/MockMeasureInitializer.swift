@@ -8,7 +8,7 @@
 import Foundation
 @testable import Measure
 
-final class MockMeasureInitializer: MeasureInitializer {  // swiftlint:disable:this type_body_length
+final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:this type_body_length
     let configProvider: ConfigProvider
     let client: Client
     let logger: Logger
@@ -72,6 +72,8 @@ final class MockMeasureInitializer: MeasureInitializer {  // swiftlint:disable:t
     let exceptionGenerator: ExceptionGenerator
     let measureDispatchQueue: MeasureDispatchQueue
     let attributeValueValidator: AttributeValueValidator
+    let attachmentStore: AttachmentStore
+    let attachmentExporter: AttachmentExporter
 
     init(client: Client? = nil, // swiftlint:disable:this function_body_length
          configProvider: ConfigProvider? = nil,
@@ -129,7 +131,9 @@ final class MockMeasureInitializer: MeasureInitializer {  // swiftlint:disable:t
          internalSignalCollector: InternalSignalCollector? = nil,
          exceptionGenerator: ExceptionGenerator? = nil,
          measureDispatchQueue: MeasureDispatchQueue? = nil,
-         attributeValueValidator: AttributeValueValidator? = nil) {
+         attributeValueValidator: AttributeValueValidator? = nil,
+         attachmentStore: AttachmentStore? = nil,
+         attachmentExporter: AttachmentExporter? = nil) {
         self.client = client ?? ClientInfo(apiKey: "test", apiUrl: "https://test.com")
         self.configProvider = configProvider ?? BaseConfigProvider(defaultConfig: Config(),
                                                                    configLoader: BaseConfigLoader())
@@ -140,6 +144,8 @@ final class MockMeasureInitializer: MeasureInitializer {  // swiftlint:disable:t
         self.coreDataManager = coreDataManager ?? BaseCoreDataManager(logger: self.logger)
         self.sessionStore = sessionStore ?? BaseSessionStore(coreDataManager: self.coreDataManager,
                                                              logger: self.logger)
+        self.attachmentStore = attachmentStore ?? BaseAttachmentStore(coreDataManager: self.coreDataManager,
+                                                                      logger: self.logger)
         self.eventStore = eventStore ?? BaseEventStore(coreDataManager: self.coreDataManager,
                                                        logger: self.logger)
         self.spanStore = spanStore ?? BaseSpanStore(coreDataManager: self.coreDataManager,
@@ -212,6 +218,11 @@ final class MockMeasureInitializer: MeasureInitializer {  // swiftlint:disable:t
                                                                 httpClient: self.httpClient,
                                                                 eventSerializer: EventSerializer(),
                                                                 systemFileManager: self.systemFileManager)
+        self.attachmentExporter = attachmentExporter ?? BaseAttachmentExporter(logger: self.logger,
+                                                                               attachmentStore: self.attachmentStore,
+                                                                               httpClient: self.httpClient,
+                                                                               exportQueue: MeasureQueue.periodicEventExporter,
+                                                                               configProvider: self.configProvider)
         self.heartbeat = heartbeat ?? BaseHeartbeat()
         self.batchStore = batchStore ?? BaseBatchStore(coreDataManager: self.coreDataManager,
                                                        logger: self.logger)
@@ -227,7 +238,9 @@ final class MockMeasureInitializer: MeasureInitializer {  // swiftlint:disable:t
                                                  batchCreator: self.batchCreator,
                                                  batchStore: self.batchStore,
                                                  eventStore: self.eventStore,
-                                                 spanStore: self.spanStore)
+                                                 spanStore: self.spanStore,
+                                                 attachmentStore: self.attachmentStore,
+                                                 attachmentExporter: self.attachmentExporter)
         self.periodicExporter = periodicExporter ?? BasePeriodicExporter(logger: self.logger,
                                                                          configProvider: self.configProvider,
                                                                          timeProvider: self.timeProvider,
@@ -296,7 +309,8 @@ final class MockMeasureInitializer: MeasureInitializer {  // swiftlint:disable:t
                                                                                sessionStore: self.sessionStore,
                                                                                logger: self.logger,
                                                                                sessionManager: self.sessionManager,
-                                                                               configProvider: self.configProvider)
+                                                                               configProvider: self.configProvider,
+                                                                               attachmentStore: self.attachmentStore)
         self.httpEventValidator = httpEventValidator ?? BaseHttpEventValidator()
         self.httpEventCollector = httpEventCollector ?? BaseHttpEventCollector(logger: self.logger,
                                                                                signalProcessor: self.signalProcessor,
