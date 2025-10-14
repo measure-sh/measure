@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Return attachment URLs for already seen requests (#2746) by @abhaysood in #2746
 - (**backend**): Improve symbolicator error logging (#2740) by @abhaysood in #2740
 - (**backend**): Make slack creds prompt optional by @anupcowkur in #2739
 - (**backend**): Add option to wait for build processing in sessionator (#2738) by @detj in #2738
