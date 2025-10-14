@@ -2694,7 +2694,8 @@ func PutEvents(c *gin.Context) {
 		msg := `failed to ingest events`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
+			"error":   msg,
+			"details": err.Error(),
 		})
 		return
 	}
@@ -2703,7 +2704,8 @@ func PutEvents(c *gin.Context) {
 		msg := `failed to ingest spans`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
+			"error":   msg,
+			"details": err.Error(),
 		})
 		return
 	}
