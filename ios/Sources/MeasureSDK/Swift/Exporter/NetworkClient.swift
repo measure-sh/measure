@@ -71,7 +71,6 @@ final class BaseNetworkClient: NetworkClient {
                 fullEventDict["attachments"] = cleanedAttachments
             }
 
-            print("attachments: ", fullEventDict["attachments"])
             return fullEventDict
         }
     }

@@ -22,6 +22,7 @@ internal class BaseAttachmentExporter: AttachmentExporter {
     private var isExportInProgress: Bool = false
     private let configProvider: ConfigProvider
     private let baseOffset: Double = 0.5
+    private let maxJitterTime: Double = 0.5
     
     init(logger: Logger, attachmentStore: AttachmentStore, httpClient: HttpClient, exportQueue: DispatchQueue, configProvider: ConfigProvider) {
         self.logger = logger
@@ -100,7 +101,8 @@ internal class BaseAttachmentExporter: AttachmentExporter {
                 return
             }
 
-            self.exportQueue.asyncAfter(deadline: .now() + baseOffset) {
+            let jitterMs = Double.random(in: 0...maxJitterTime)
+            self.exportQueue.asyncAfter(deadline: .now() + baseOffset + jitterMs) {
                 self.processAttachments(attachments: attachments, index: index + 1)
             }
         }
