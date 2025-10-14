@@ -2502,6 +2502,17 @@ func PutEvents(c *gin.Context) {
 			})
 			return
 		case done:
+			if isJsonRequest {
+				// for JSON requests, we return the attachment
+				// upload info again, so that the client can
+				// proceed to upload attachments if any.
+				c.JSON(http.StatusOK, Response{
+					AttachmentUploadInfo: eventReq.attachmentUploadInfos,
+				})
+				return
+			}
+
+			// multipart request
 			c.JSON(http.StatusAccepted, gin.H{
 				"ok": "accepted, known event request",
 			})
