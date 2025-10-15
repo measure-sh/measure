@@ -5,6 +5,16 @@ on:
     branches:
       - main
       - "cloud*"
+    paths:
+      # run on backend changes
+      - "backend/**/dockerfile"
+      - "backend/**/*.go"
+      - "backend/**/*.mod"
+      - "backend/**/*.sum"
+      - ".github/workflows/publish.yml"
+
+      # don't run on markdown changes
+      - "!**/*.md"
 
 permissions:
   contents: read
