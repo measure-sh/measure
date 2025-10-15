@@ -10,6 +10,6 @@ import Foundation
 import CoreData
 
 @objc(SpanOb)
-public class SpanOb: NSManagedObject {
+class SpanOb: NSManagedObject {
 
 }

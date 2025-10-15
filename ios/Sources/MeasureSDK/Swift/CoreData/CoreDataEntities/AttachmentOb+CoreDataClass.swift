@@ -6,12 +6,12 @@
 //
 //
 
-public import Foundation
-public import CoreData
+import Foundation
+import CoreData
 
-public typealias AttachmentObCoreDataClassSet = NSSet
+typealias AttachmentObCoreDataClassSet = NSSet
 
 @objc(AttachmentOb)
-public class AttachmentOb: NSManagedObject {
+class AttachmentOb: NSManagedObject {
 
 }

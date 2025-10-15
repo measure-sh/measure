@@ -11,13 +11,13 @@ import CoreData
 
 extension BatchOb {
 
-    @nonobjc public class func fetchRequest() -> NSFetchRequest<BatchOb> {
+    @nonobjc class func fetchRequest() -> NSFetchRequest<BatchOb> {
         return NSFetchRequest<BatchOb>(entityName: "BatchOb")
     }
 
-    @NSManaged public var batchId: String?
-    @NSManaged public var createdAt: Int64
-    @NSManaged public var eventId: String?
-    @NSManaged public var spanIds: String?
+    @NSManaged var batchId: String?
+    @NSManaged var createdAt: Int64
+    @NSManaged var eventId: String?
+    @NSManaged var spanIds: String?
 
 }
