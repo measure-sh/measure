@@ -3,7 +3,10 @@ import { trackEvent as nativeTrackEvent } from '../native/measureBridge';
 import type { TimeProvider } from '../utils/timeProvider';
 import type { ConfigProvider } from '../config/configProvider';
 import { EventType } from './eventType';
-import { validateAttributes, type ValidAttributeValue } from '../utils/attributeValueValidator';
+import {
+  validateAttributes,
+  type ValidAttributeValue,
+} from '../utils/attributeValueValidator';
 
 export class CustomEventCollector {
   private logger: Logger;
@@ -38,7 +41,6 @@ export class CustomEventCollector {
       return;
     }
 
-    console.log('trackCustomEvent', name, attributes, timestamp);
     if (!name || name.length === 0) {
       this.logger.log('error', 'Invalid event: name is empty');
       return;
@@ -58,8 +60,14 @@ export class CustomEventCollector {
       return;
     }
 
-    const safeAttributes = validateAttributes(attributes ?? {});
-    console.log('safeAttributes', safeAttributes);
+    const isValidAttributes = validateAttributes(attributes ?? {});
+    if (!isValidAttributes) {
+      this.logger.log(
+        'error',
+        `Invalid attributes provided for event(${name}). Dropping the event.`
+      );
+      return;
+    }
 
     try {
       await nativeTrackEvent(
@@ -67,7 +75,7 @@ export class CustomEventCollector {
         EventType.Custom,
         timestamp ?? this.timeProvider.now(),
         {},
-        safeAttributes,
+        attributes,
         true,
         undefined,
         undefined,

@@ -68,26 +68,21 @@ describe('CustomEventCollector', () => {
     expect(mockTrackEvent).not.toHaveBeenCalled();
   });
 
-  it('tracks event with safe attributes', async () => {
-    const attrs = { good: 'ok', bad: { nested: true } } as any;
-    await collector.trackCustomEvent('event1', attrs, 111);
+it('does not track event when attributes are invalid', async () => {
+  const attrs = { good: 'ok', bad: { nested: true } } as any;
 
-    expect(mockTrackEvent).toHaveBeenCalledWith(
-      { name: 'event1' },
-      EventType.Custom,
-      111,
-      {}, // attributes param
-      validateAttributes(attrs), // safeAttributes
-      true,
-      undefined,
-      undefined,
-      []
-    );
-    expect(logger.log).toHaveBeenCalledWith(
-      'info',
-      'Successfully tracked custom event: event1'
-    );
-  });
+  // Run the call — should detect invalid attributes and not track
+  await collector.trackCustomEvent('event1', attrs, 111);
+
+  // Expect that native trackEvent was never called
+  expect(mockTrackEvent).not.toHaveBeenCalled();
+
+  // Expect that an error was logged instead
+  expect(logger.log).toHaveBeenCalledWith(
+    'error',
+    'Invalid attributes provided for event(event1). Dropping the event.'
+  );
+});
 
   it('logs error if nativeTrackEvent throws', async () => {
     mockTrackEvent.mockRejectedValueOnce(new Error('boom'));

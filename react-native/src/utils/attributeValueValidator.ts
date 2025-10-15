@@ -1,34 +1,31 @@
 export type ValidAttributeValue = string | number | boolean;
 
 /**
- * Validates a dictionary of attributes for use in Measure events.
- * Only string, number, and boolean values are allowed.
- * Invalid entries are dropped and logged in development mode.
+ * Checks if all attributes in a dictionary are valid for Measure events.
+ * Only string, number, and boolean values are considered valid.
  *
  * @param attributes - The attributes object to validate.
- * @returns A new object containing only valid attribute key-value pairs.
+ * @returns `true` if all attributes are valid, otherwise `false`.
  */
 export function validateAttributes(
   attributes: Record<string, any>
-): Record<string, ValidAttributeValue> {
-  const validated: Record<string, ValidAttributeValue> = {};
-
+): boolean {
   for (const [key, value] of Object.entries(attributes)) {
-    if (
+    const isValid =
       typeof value === 'string' ||
       typeof value === 'number' ||
-      typeof value === 'boolean'
-    ) {
-      validated[key] = value;
-    } else {
+      typeof value === 'boolean';
+
+    if (!isValid) {
       if (__DEV__) {
         console.warn(
-          `[MeasureRN] Dropping invalid attribute '${key}' with value:`,
+          `[MeasureRN] Invalid attribute '${key}' with value:`,
           value
         );
       }
+      return false;
     }
   }
-  
-  return validated;
+
+  return true;
 }
