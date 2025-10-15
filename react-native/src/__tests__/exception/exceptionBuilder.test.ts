@@ -1,4 +1,4 @@
-import { buildExceptionPayload } from "../exception/exceptionBuilder";
+import { buildExceptionPayload } from "../../exception/exceptionBuilder";
 
 describe("buildExceptionPayload", () => {
   it("builds payload for Error object", () => {
