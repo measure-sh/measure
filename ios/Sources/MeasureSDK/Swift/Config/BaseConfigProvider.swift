@@ -33,6 +33,10 @@ final class BaseConfigProvider: ConfigProvider {
         self.cachedConfig = configLoader.getCachedConfig()
     }
 
+    var maxAttachmentsInBatch: Int {
+        return getMergedConfig(\.maxAttachmentsInBatch)
+    }
+
     var maxExportJitterInterval: Int {
         return getMergedConfig(\.maxExportJitterInterval)
     }

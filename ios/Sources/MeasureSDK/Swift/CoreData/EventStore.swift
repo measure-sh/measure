@@ -15,7 +15,7 @@ protocol EventStore {
     func deleteEvents(eventIds: [String], completion: @escaping () -> Void)
     func deleteEvents(sessionIds: [String], completion: @escaping () -> Void)
     func getAllEvents(completion: @escaping ([EventEntity]?) -> Void)
-    func getUnBatchedEventsWithAttachmentSize(eventCount: Number, ascending: Bool, sessionId: String?, completion: @escaping ([String: Number]) -> Void)
+    func getUnBatchedEvents(eventCount: Number, ascending: Bool, sessionId: String?, completion: @escaping ([String]) -> Void)
     func updateBatchId(_ batchId: String, for events: [String])
     func updateNeedsReportingForAllEvents(sessionId: String, needsReporting: Bool)
     func getEventsCount(completion: @escaping (Int) -> Void)
@@ -43,14 +43,12 @@ final class BaseEventStore: EventStore {
             eventOb.timestamp = event.timestamp
             eventOb.type = event.type
             eventOb.exception = event.exception
-            eventOb.attachments = event.attachments
             eventOb.attributes = event.attributes
             eventOb.userDefinedAttributes = event.userDefinedAttributes
             eventOb.gestureClick = event.gestureClick
             eventOb.gestureLongClick = event.gestureLongClick
             eventOb.gestureScroll = event.gestureScroll
             eventOb.userTriggered = event.userTriggered
-            eventOb.attachmentSize = event.attachmentSize
             eventOb.timestampInMillis = event.timestampInMillis
             eventOb.batchId = event.batchId
             eventOb.lifecycleApp = event.lifecycleApp
@@ -67,6 +65,20 @@ final class BaseEventStore: EventStore {
             eventOb.screenView = event.screenView
             eventOb.bugReport = event.bugReport
             eventOb.needsReporting = event.needsReporting
+            
+            if let attachments = event.attachments {
+                for attachment in attachments {
+                    let attachmentOb = AttachmentOb(context: context)
+                    attachmentOb.name = attachment.name
+                    attachmentOb.type = attachment.type.rawValue
+                    attachmentOb.bytes = attachment.bytes
+                    attachmentOb.id = attachment.id
+                    attachmentOb.path = attachment.path
+                    attachmentOb.attachmentSize = attachment.size
+                    attachmentOb.sessionId = event.sessionId
+                    attachmentOb.eventRel = eventOb
+                }
+            }
 
             do {
                 try context.saveIfNeeded()
@@ -117,6 +129,55 @@ final class BaseEventStore: EventStore {
         }
     }
 
+    func getAllEvents(completion: @escaping ([EventEntity]?) -> Void) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else {
+                completion(nil)
+                return
+            }
+
+            let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
+            do {
+                let events = try context.fetch(fetchRequest)
+                completion(events.compactMap { $0.toEntity() })
+            } catch {
+                logger.internalLog(level: .error, message: "Failed to fetch all events.", error: error, data: nil)
+                completion(nil)
+            }
+        }
+    }
+
+    func getUnBatchedEvents(eventCount: Number, ascending: Bool, sessionId: String?, completion: @escaping ([String]) -> Void) {
+        coreDataManager.performBackgroundTask { [weak self] context in
+            guard let self else {
+                completion([])
+                return
+            }
+
+            let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
+            fetchRequest.fetchLimit = Int(eventCount)
+            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "timestampInMillis", ascending: ascending)]
+
+            var predicates: [NSPredicate] = [
+                NSPredicate(format: "batchId == nil"),
+                NSPredicate(format: "needsReporting == %d", true)
+            ]
+            if let sessionId = sessionId {
+                predicates.append(NSPredicate(format: "sessionId == %@", sessionId))
+            }
+            fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+
+            do {
+                let events = try context.fetch(fetchRequest)
+                let eventIds = events.compactMap(\.id)
+                completion(eventIds)
+            } catch {
+                logger.internalLog(level: .error, message: "Failed to fetch unbatched events.", error: error, data: nil)
+                completion([])
+            }
+        }
+    }
+
     func deleteEvents(eventIds: [String], completion: @escaping () -> Void) {
         coreDataManager.performBackgroundTask { [weak self] context in
             guard let self else {
@@ -152,6 +213,7 @@ final class BaseEventStore: EventStore {
 
             do {
                 let events = try context.fetch(fetchRequest)
+                // Deleting the EventOb will NULLIFY the eventRel on AttachmentOb, preserving the attachment data
                 events.forEach { context.delete($0) }
                 try context.saveIfNeeded()
             } catch {
@@ -159,60 +221,6 @@ final class BaseEventStore: EventStore {
             }
 
             completion()
-        }
-    }
-
-    func getAllEvents(completion: @escaping ([EventEntity]?) -> Void) {
-        coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else {
-                completion(nil)
-                return
-            }
-
-            let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
-            do {
-                let events = try context.fetch(fetchRequest)
-                completion(events.compactMap { $0.toEntity() })
-            } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch all events.", error: error, data: nil)
-                completion(nil)
-            }
-        }
-    }
-
-    func getUnBatchedEventsWithAttachmentSize(eventCount: Number, ascending: Bool, sessionId: String?, completion: @escaping ([String: Number]) -> Void) {
-        coreDataManager.performBackgroundTask { [weak self] context in
-            guard let self else {
-                completion([:])
-                return
-            }
-
-            var result: [String: Number] = [:]
-            let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
-            fetchRequest.fetchLimit = Int(eventCount)
-            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "timestampInMillis", ascending: ascending)]
-
-            var predicates: [NSPredicate] = [
-                NSPredicate(format: "batchId == nil"),
-                NSPredicate(format: "needsReporting == %d", true)
-            ]
-            if let sessionId = sessionId {
-                predicates.append(NSPredicate(format: "sessionId == %@", sessionId))
-            }
-            fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
-
-            do {
-                let events = try context.fetch(fetchRequest)
-                for event in events {
-                    if let id = event.id {
-                        result[id] = event.attachmentSize
-                    }
-                }
-                completion(result)
-            } catch {
-                logger.internalLog(level: .error, message: "Failed to fetch unbatched events.", error: error, data: nil)
-                completion(result)
-            }
         }
     }
 
@@ -278,20 +286,41 @@ extension EventOb {
         guard let id = id, let sessionId = sessionId, let timestamp = timestamp, let type = type else {
             return nil
         }
+        
+        let attachmentsArray: [MsrAttachment]?
+        if let attachmentsSet = attachmentsRel as? Set<AttachmentOb>, !attachmentsSet.isEmpty {
+            attachmentsArray = attachmentsSet.compactMap { attachmentOb in
+                guard let attachmentTypeRawValue = attachmentOb.type,
+                      let attachmentType = AttachmentType(rawValue: attachmentTypeRawValue) else {
+                    return nil
+                }
+                
+                return MsrAttachment(
+                    name: attachmentOb.name ?? "",
+                    type: attachmentType,
+                    size: attachmentOb.attachmentSize,
+                    id: attachmentOb.id ?? UUID().uuidString,
+                    bytes: attachmentOb.bytes,
+                    path: attachmentOb.path
+                )
+            }
+        } else {
+            attachmentsArray = nil
+        }
+
         return EventEntity(
             id: id,
             sessionId: sessionId,
             timestamp: timestamp,
             type: type,
             exception: exception,
-            attachments: attachments,
+            attachments: attachmentsArray,
             attributes: attributes,
             userDefinedAttributes: userDefinedAttributes,
             gestureClick: gestureClick,
             gestureLongClick: gestureLongClick,
             gestureScroll: gestureScroll,
             userTriggered: userTriggered,
-            attachmentSize: attachmentSize,
             timestampInMillis: timestampInMillis,
             batchId: batchId,
             lifecycleApp: lifecycleApp,

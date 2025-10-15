@@ -15,6 +15,7 @@ final class DataCleanupServiceTests: XCTestCase {
     var eventStore: EventStore!
     var spanStore: SpanStore!
     var sessionStore: SessionStore!
+    var attachmentStore: AttachmentStore!
     var dataCleanupService: BaseDataCleanupService!
     var sessionManager: SessionManager!
     var configProvider: MockConfigProvider!
@@ -26,6 +27,7 @@ final class DataCleanupServiceTests: XCTestCase {
         eventStore = BaseEventStore(coreDataManager: coreDataManager, logger: logger)
         spanStore = BaseSpanStore(coreDataManager: coreDataManager, logger: logger)
         sessionStore = BaseSessionStore(coreDataManager: coreDataManager, logger: logger)
+        attachmentStore = BaseAttachmentStore(coreDataManager: coreDataManager, logger: logger)
         sessionManager = MockSessionManager(sessionId: "currentSession")
         configProvider = MockConfigProvider()
         dataCleanupService = BaseDataCleanupService(eventStore: eventStore,
@@ -33,14 +35,21 @@ final class DataCleanupServiceTests: XCTestCase {
                                                     sessionStore: sessionStore,
                                                     logger: logger,
                                                     sessionManager: sessionManager,
-                                                    configProvider: configProvider)
+                                                    configProvider: configProvider,
+                                                    attachmentStore: attachmentStore)
     }
 
     override func tearDown() {
+        logger = nil
         eventStore = nil
         coreDataManager = nil
         sessionStore = nil
         logger = nil
+        attachmentStore = nil
+        spanStore = nil
+        configProvider = nil
+        sessionManager = nil
+        dataCleanupService = nil
         super.tearDown()
     }
 

@@ -61,6 +61,7 @@ struct Config: InternalConfig, MeasureConfig {
     let lifecycleViewControllerExcludeList: [String]
     let estimatedEventSizeInKb: Int
     let maxExportJitterInterval: Int
+    let maxAttachmentsInBatch: Int
 
     internal init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
                   samplingRateForErrorFreeSessions: Float = DefaultConfig.sessionSamplingRate,
@@ -154,5 +155,6 @@ struct Config: InternalConfig, MeasureConfig {
         ]
         self.estimatedEventSizeInKb = 10 // 10 KB
         self.maxExportJitterInterval = 20
+        self.maxAttachmentsInBatch = 10
     }
 }

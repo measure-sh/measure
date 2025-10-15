@@ -13,7 +13,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
     let timestamp: String
     let type: String
     let exception: Data?
-    let attachments: Data?
+    let attachments: [MsrAttachment]?
     let attributes: Data?
     let userDefinedAttributes: String?
     let gestureClick: Data?
@@ -30,7 +30,6 @@ struct EventEntity { // swiftlint:disable:this type_body_length
     let networkChange: Data?
     let screenView: Data?
     let userTriggered: Bool
-    let attachmentSize: Number
     let timestampInMillis: Number
     var batchId: String?
     let http: Data?
@@ -46,7 +45,6 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.type = event.type.rawValue
         self.userTriggered = event.userTriggered
         self.timestampInMillis = event.timestampInMillis ?? 0
-        self.attachmentSize = event.attachments?.reduce(0) { $0 + $1.size } ?? 0
         self.batchId = nil
         self.userDefinedAttributes = event.userDefinedAttributes
         self.needsReporting = needsReporting
@@ -238,16 +236,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             self.attributes = nil
         }
 
-        if let attachments = event.attachments {
-            do {
-                let data = try JSONEncoder().encode(attachments)
-                self.attachments = data
-            } catch {
-                self.attachments = nil
-            }
-        } else {
-            self.attachments = nil
-        }
+        self.attachments = event.attachments
 
         if let bugReport = event.bugReport {
             do {
@@ -277,14 +266,13 @@ struct EventEntity { // swiftlint:disable:this type_body_length
          timestamp: String,
          type: String,
          exception: Data?,
-         attachments: Data?,
+         attachments: [MsrAttachment]?,
          attributes: Data?,
          userDefinedAttributes: String?,
          gestureClick: Data?,
          gestureLongClick: Data?,
          gestureScroll: Data?,
          userTriggered: Bool,
-         attachmentSize: Number,
          timestampInMillis: Number,
          batchId: String?,
          lifecycleApp: Data?,
@@ -314,7 +302,6 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.gestureClick = gestureClick
         self.gestureLongClick = gestureLongClick
         self.gestureScroll = gestureScroll
-        self.attachmentSize = attachmentSize
         self.timestampInMillis = timestampInMillis
         self.batchId = batchId
         self.lifecycleApp = lifecycleApp
@@ -486,17 +473,6 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             decodedData = nil
         }
 
-        let decodedAttachments: [MsrAttachment]?
-        if let attachmentData = self.attachments {
-            do {
-                decodedAttachments = try JSONDecoder().decode([MsrAttachment].self, from: attachmentData)
-            } catch {
-                decodedAttachments = nil
-            }
-        } else {
-            decodedAttachments = nil
-        }
-
         let decodedAttributes: Attributes?
         if let attributeData = self.attributes {
             do {
@@ -514,21 +490,9 @@ struct EventEntity { // swiftlint:disable:this type_body_length
                      timestampInMillis: self.timestampInMillis,
                      type: EventType(rawValue: self.type) ?? .exception,
                      data: decodedData,
-                     attachments: decodedAttachments,
+                     attachments: attachments,
                      attributes: decodedAttributes,
                      userTriggered: self.userTriggered,
                      userDefinedAttributes: self.userDefinedAttributes)
-    }
-
-    func getAttachments() -> [MsrAttachment]? {
-        if let attachmentData = self.attachments {
-            do {
-                return try JSONDecoder().decode([MsrAttachment].self, from: attachmentData)
-            } catch {
-                return nil
-            }
-        } else {
-            return nil
-        }
     }
 } // swiftlint:disable:this file_length

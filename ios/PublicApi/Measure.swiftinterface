@@ -96,37 +96,6 @@ public protocol SpanBuilder {
   func startSpan() -> any Measure.Span
   func startSpan(_ timestamp: Swift.Int64) -> any Measure.Span
 }
-@_inheritsConvenienceInitializers @objc(BatchOb) nonisolated public class BatchOb : CoreData.NSManagedObject {
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc override nonisolated dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
-  #endif
-  @objc deinit
-}
-extension Measure.BatchOb {
-  @nonobjc public class func fetchRequest() -> CoreData.NSFetchRequest<Measure.BatchOb>
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var batchId: Swift.String? {
-    @objc get
-    @objc set
-  }
-  #endif
-  @objc @NSManaged nonisolated dynamic public var createdAt: Swift.Int64 {
-    @objc get
-    @objc set
-  }
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var eventId: Swift.String? {
-    @objc get
-    @objc set
-  }
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var spanIds: Swift.String? {
-    @objc get
-    @objc set
-  }
-  #endif
-}
 @objc public class MsrText : ObjectiveC.NSObject {
   final public let reportBugTitle: Swift.String
   final public let descriptionPlaceholder: Swift.String
@@ -378,99 +347,6 @@ extension Measure.Measure {
   #if compiler(>=5.3) && $NonescapableTypes
   public static func internalGetAttachmentDirectory() -> Swift.String?
   #endif
-}
-@_inheritsConvenienceInitializers @objc(SpanOb) nonisolated public class SpanOb : CoreData.NSManagedObject {
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc override nonisolated dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
-  #endif
-  @objc deinit
-}
-extension Measure.SpanOb {
-  @nonobjc public class func fetchRequest() -> CoreData.NSFetchRequest<Measure.SpanOb>
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var attributes: Foundation.Data? {
-    @objc get
-    @objc set
-  }
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var batchId: Swift.String? {
-    @objc get
-    @objc set
-  }
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var checkpoints: Foundation.Data? {
-    @objc get
-    @objc set
-  }
-  #endif
-  @objc @NSManaged nonisolated dynamic public var duration: Swift.Int64 {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged nonisolated dynamic public var endTime: Swift.Int64 {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged nonisolated dynamic public var hasEnded: Swift.Bool {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged nonisolated dynamic public var isSampled: Swift.Bool {
-    @objc get
-    @objc set
-  }
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var name: Swift.String? {
-    @objc get
-    @objc set
-  }
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var parentId: Swift.String? {
-    @objc get
-    @objc set
-  }
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var sessionId: Swift.String? {
-    @objc get
-    @objc set
-  }
-  #endif
-  @objc @NSManaged nonisolated dynamic public var spanId: Swift.String {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged nonisolated dynamic public var startTime: Swift.Int64 {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged nonisolated dynamic public var status: Swift.Int64 {
-    @objc get
-    @objc set
-  }
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var traceId: Swift.String? {
-    @objc get
-    @objc set
-  }
-  #endif
-  #if compiler(>=5.3) && $NonescapableTypes
-  @objc @NSManaged nonisolated dynamic public var userDefinedAttrs: Foundation.Data? {
-    @objc get
-    @objc set
-  }
-  #endif
-  @objc @NSManaged nonisolated dynamic public var startTimeString: Swift.String {
-    @objc get
-    @objc set
-  }
-  @objc @NSManaged nonisolated dynamic public var endTimeString: Swift.String {
-    @objc get
-    @objc set
-  }
 }
 public struct MSRNetworkInterceptor {
   public static func enable(on sessionConfiguration: Foundation.URLSessionConfiguration)

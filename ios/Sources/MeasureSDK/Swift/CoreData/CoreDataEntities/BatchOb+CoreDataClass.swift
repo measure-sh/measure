@@ -10,6 +10,6 @@ import Foundation
 import CoreData
 
 @objc(BatchOb)
-public class BatchOb: NSManagedObject {
+class BatchOb: NSManagedObject {
 
 }

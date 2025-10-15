@@ -94,6 +94,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var periodicExporter: PeriodicExporter {
         return measureInitializer.periodicExporter
     }
+    private var attachmentExporter: AttachmentExporter {
+        return measureInitializer.attachmentExporter
+    }
     private var lifecycleCollector: LifecycleCollector {
         return measureInitializer.lifecycleCollector
     }
@@ -368,6 +371,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.crashReportManager.enable()
         self.spanCollector.enable()
         self.internalSignalCollector.enable()
+        self.attachmentExporter.enable()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let window = UIApplication.shared.windows.first {
                 self.gestureCollector.enable(for: window)
@@ -388,6 +392,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.crashReportManager.disable()
         self.spanCollector.disabled()
         self.internalSignalCollector.disable()
+        self.attachmentExporter.disable()
     }
 
     private func registerAlwaysOnCollectors() {

@@ -61,23 +61,9 @@ final class BatchCreatorTests: XCTestCase {
         }
     }
 
-    func testCreateWithEventsButExceedsAttachmentSize() {
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 200)) {}
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 300)) {}
-        configProvider.maxAttachmentSizeInEventsBatchInBytes = 100
-        configProvider.maxEventsInBatch = 2
-
-        batchCreator.create(sessionId: nil) { result in
-            XCTAssertNil(result)
-            self.batchStore.getBatches(5) { batches in
-                XCTAssertTrue(batches.isEmpty)
-            }
-        }
-    }
-
     func testCreateSuccessfulBatch() {
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 100)) {}
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 200)) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1")) {}
+        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2")) {}
         configProvider.maxAttachmentSizeInEventsBatchInBytes = 300
         configProvider.maxEventsInBatch = 2
         idProvider.uuId = "batch1"
@@ -95,20 +81,6 @@ final class BatchCreatorTests: XCTestCase {
             XCTAssertTrue(((result?.eventIds.contains("2")) != nil))
 
             XCTAssertEqual(self.eventStore.events.first?.batchId, "batch1")
-        }
-    }
-
-    func testCreateReturnsNilIfNoEventsToBatchAfterFiltering() {
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event1", attachmentSize: 200)) {}
-        eventStore.insertEvent(event: TestDataGenerator.generateEvents(id: "event2", attachmentSize: 300)) {}
-        configProvider.maxAttachmentSizeInEventsBatchInBytes = 100
-        configProvider.maxEventsInBatch = 2
-
-        batchCreator.create(sessionId: nil) { result in
-            XCTAssertNil(result)
-            self.batchStore.getBatches(5) { batches in
-                XCTAssertTrue(batches.isEmpty)
-            }
         }
     }
 }

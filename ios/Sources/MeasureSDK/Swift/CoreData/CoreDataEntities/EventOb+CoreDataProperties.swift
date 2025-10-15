@@ -1,13 +1,16 @@
 //
 //  EventOb+CoreDataProperties.swift
-//  MeasureSDK
+//  Measure
 //
-//  Created by Adwin Ross on 04/03/25.
+//  Created by Adwin Ross on 07/10/25.
 //
 //
 
 import Foundation
 import CoreData
+
+
+typealias EventObCoreDataPropertiesSet = NSSet
 
 extension EventOb {
 
@@ -15,10 +18,9 @@ extension EventOb {
         return NSFetchRequest<EventOb>(entityName: "EventOb")
     }
 
-    @NSManaged var attachments: Data?
-    @NSManaged var attachmentSize: Int64
     @NSManaged var attributes: Data?
     @NSManaged var batchId: String?
+    @NSManaged var bugReport: Data?
     @NSManaged var coldLaunch: Data?
     @NSManaged var cpuUsage: Data?
     @NSManaged var customEvent: Data?
@@ -43,5 +45,23 @@ extension EventOb {
     @NSManaged var userDefinedAttributes: String?
     @NSManaged var userTriggered: Bool
     @NSManaged var warmLaunch: Data?
-    @NSManaged var bugReport: Data?
+    @NSManaged var attachmentsRel: NSSet?
+
+}
+
+// MARK: Generated accessors for attachmentsRel
+extension EventOb {
+
+    @objc(addAttachmentsRelObject:)
+    @NSManaged public func addToAttachmentsRel(_ value: AttachmentOb)
+
+    @objc(removeAttachmentsRelObject:)
+    @NSManaged public func removeFromAttachmentsRel(_ value: AttachmentOb)
+
+    @objc(addAttachmentsRel:)
+    @NSManaged public func addToAttachmentsRel(_ values: NSSet)
+
+    @objc(removeAttachmentsRel:)
+    @NSManaged public func removeFromAttachmentsRel(_ values: NSSet)
+
 }

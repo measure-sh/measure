@@ -64,6 +64,7 @@ protocol MeasureInitializer {
     var tracer: Tracer { get }
     var spanCollector: SpanCollector { get }
     var spanStore: SpanStore { get }
+    var attachmentStore: AttachmentStore { get }
     var internalSignalCollector: InternalSignalCollector { get set }
     var bugReportManager: BugReportManager { get }
     var bugReportCollector: BugReportCollector { get }
@@ -73,6 +74,7 @@ protocol MeasureInitializer {
     var exceptionGenerator: ExceptionGenerator { get }
     var measureDispatchQueue: MeasureDispatchQueue { get }
     var attributeValueValidator: AttributeValueValidator { get }
+    var attachmentExporter: AttachmentExporter { get }
 }
 
 /// `BaseMeasureInitializer` is responsible for setting up the internal configuration
@@ -100,6 +102,7 @@ protocol MeasureInitializer {
 /// - `sessionStore`: `SessionStore` object that manages `Session` related operations
 /// - `eventStore`: `EventStore` object that manages `Event` related operations
 /// - `spanStore`: `SpanStore` object that manages `Span` related operations
+/// - `attachmentStore`: `AttachmentStore` object that manages `Attachment` related operations
 /// - `gestureCollector`: `GestureCollector` object which is responsible for detecting and saving gesture related data.
 /// - `lifecycleCollector`: `LifecycleCollector` object which is responsible for detecting and saving ViewController lifecycle events.
 /// - `cpuUsageCollector`: `CpuUsageCollector` object which is responsible for detecting and saving CPU usage data.
@@ -140,6 +143,7 @@ protocol MeasureInitializer {
 /// - `exceptionGenerator`: `ExceptionGenerator` object responsible for generating `Exception` object for `Error` or `NSError`
 /// - `measureDispatchQueue`: `MeasureDispatchQueue` object to run tasks on a serial queue.
 /// - `attributeValueValidator`: `AttributeValueValidator` object to validate user defined attributes
+/// - `attachmentExporter`: `AttachmentExporter` object that exports attachments.
 ///
 final class BaseMeasureInitializer: MeasureInitializer {
     let configProvider: ConfigProvider
@@ -205,6 +209,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let exceptionGenerator: ExceptionGenerator
     let measureDispatchQueue: MeasureDispatchQueue
     let attributeValueValidator: AttributeValueValidator
+    let attachmentStore: AttachmentStore
+    let attachmentExporter: AttachmentExporter
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
          client: Client) {
@@ -313,12 +319,21 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                              eventStore: eventStore,
                                              batchStore: batchStore,
                                              spanStore: spanStore)
+        self.attachmentStore = BaseAttachmentStore(coreDataManager: coreDataManager,
+                                                   logger: logger)
+        self.attachmentExporter = BaseAttachmentExporter(logger: logger,
+                                                         attachmentStore: attachmentStore,
+                                                         httpClient: httpClient,
+                                                         exportQueue: MeasureQueue.attachmentExporter,
+                                                         configProvider: configProvider)
         self.exporter = BaseExporter(logger: logger,
                                      networkClient: networkClient,
                                      batchCreator: batchCreator,
                                      batchStore: batchStore,
                                      eventStore: eventStore,
-                                     spanStore: spanStore)
+                                     spanStore: spanStore,
+                                     attachmentStore: attachmentStore,
+                                     attachmentExporter: attachmentExporter)
         self.periodicExporter = BasePeriodicExporter(logger: logger,
                                                      configProvider: configProvider,
                                                      timeProvider: timeProvider,
@@ -387,7 +402,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          sessionStore: sessionStore,
                                                          logger: logger,
                                                          sessionManager: sessionManager,
-                                                         configProvider: configProvider)
+                                                         configProvider: configProvider,
+                                                         attachmentStore: attachmentStore)
         self.client = client
         self.httpEventValidator = BaseHttpEventValidator()
         self.httpEventCollector = BaseHttpEventCollector(logger: logger,

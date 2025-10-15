@@ -104,4 +104,7 @@ protocol InternalConfig {
 
     /// The maximum jitter interval to apply when scheduling batch exports. A random delay between 0 and this value (in seconds) will be added. Defaults to 20 seconds.
     var maxExportJitterInterval: Int { get }
+
+    /// The maximum number of attachment to export in API. Defaults to 10.
+    var maxAttachmentsInBatch: Int { get }
 }
