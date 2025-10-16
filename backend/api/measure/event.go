@@ -2725,6 +2725,8 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
+	bucketUnhandledExceptionsSpan.End()
+
 	// start span to trace bucketing ANRs
 	bucketAnrsTracer := otel.Tracer("bucket-anrs-tracer")
 	_, bucketAnrsSpan := bucketAnrsTracer.Start(ctx, "bucket-anrs-exceptions")
@@ -2739,6 +2741,8 @@ func PutEvents(c *gin.Context) {
 		})
 		return
 	}
+
+	bucketAnrsSpan.End()
 
 	if !app.Onboarded && len(eventReq.events) > 0 {
 		firstEvent := eventReq.events[0]
