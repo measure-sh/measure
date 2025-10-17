@@ -1389,7 +1389,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		}
 	}
 
-	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
+	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
 }
 
 // ingestSpans writes the spans to database.
@@ -1449,7 +1449,7 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 			Set(`user_defined_attribute`, e.spans[i].UserDefinedAttribute.Parameterize())
 	}
 
-	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
+	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
 }
 
 func (e *eventreq) countMetrics() (sessionCount, eventCount, spanCount, traceCount, attachmentCount uint32) {
@@ -2694,7 +2694,8 @@ func PutEvents(c *gin.Context) {
 		msg := `failed to ingest events`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
+			"error":   msg,
+			"details": err.Error(),
 		})
 		return
 	}
@@ -2703,7 +2704,8 @@ func PutEvents(c *gin.Context) {
 		msg := `failed to ingest spans`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
+			"error":   msg,
+			"details": err.Error(),
 		})
 		return
 	}
@@ -2723,6 +2725,8 @@ func PutEvents(c *gin.Context) {
 		return
 	}
 
+	bucketUnhandledExceptionsSpan.End()
+
 	// start span to trace bucketing ANRs
 	bucketAnrsTracer := otel.Tracer("bucket-anrs-tracer")
 	_, bucketAnrsSpan := bucketAnrsTracer.Start(ctx, "bucket-anrs-exceptions")
@@ -2737,6 +2741,8 @@ func PutEvents(c *gin.Context) {
 		})
 		return
 	}
+
+	bucketAnrsSpan.End()
 
 	if !app.Onboarded && len(eventReq.events) > 0 {
 		firstEvent := eventReq.events[0]
@@ -2822,7 +2828,7 @@ func PutEvents(c *gin.Context) {
 	defer insertMetricsIngestionSelectStmt.Close()
 	insertMetricsIngestionFullStmt := "INSERT INTO ingestion_metrics " + selectSQL
 
-	if err := server.Server.ChPool.AsyncInsert(ctx, insertMetricsIngestionFullStmt, false, args...); err != nil {
+	if err := server.Server.ChPool.AsyncInsert(ctx, insertMetricsIngestionFullStmt, true, args...); err != nil {
 		msg := `failed to insert metrics into clickhouse`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{

@@ -30,7 +30,7 @@ const logRequest = false
 // response payload.
 //
 // set to `true` for quick debugging.
-const logResponse = true
+const logResponse = false
 
 var ErrJVMSymbolicationFailure = errors.New("symbolicator received JVM errors")
 

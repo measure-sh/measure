@@ -88,7 +88,7 @@ func (e *ExceptionGroup) Insert(ctx context.Context) (err error) {
 
 	defer stmt.Close()
 
-	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
+	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
 }
 
 // GetId provides the ANR's
@@ -126,7 +126,7 @@ func (a *ANRGroup) Insert(ctx context.Context) (err error) {
 
 	defer stmt.Close()
 
-	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), false, stmt.Args()...)
+	return server.Server.ChPool.AsyncInsert(ctx, stmt.String(), true, stmt.Args()...)
 }
 
 // ComputeCrashContribution computes percentage of crash contribution from

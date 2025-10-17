@@ -366,9 +366,12 @@ func Init(config *ServerConfig) {
 
 	if gin.Mode() == gin.ReleaseMode {
 		chOpts.Settings = clickhouse.Settings{
-			"use_query_cache":                1,
-			"query_cache_ttl":                600,
-			"query_cache_min_query_duration": 1000,
+			"wait_for_async_insert":         1,
+			"wait_for_async_insert_timeout": 1000,
+		}
+
+		chOpts.Compression = &clickhouse.Compression{
+			Method: clickhouse.CompressionLZ4,
 		}
 	}
 
