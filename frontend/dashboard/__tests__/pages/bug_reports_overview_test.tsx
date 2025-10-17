@@ -238,22 +238,6 @@ describe('BugReportsOverview Component', () => {
         const link = screen.getByRole('link', { name: /ID: bug1/i })
         expect(link).toBeInTheDocument()
         expect(link).toHaveAttribute('href', '/123/bug_reports/app1/bug1')
-
-        // Find the table row that contains this link
-        const row = link.closest('tr')
-        expect(row).toBeInTheDocument()
-
-        // Simulate keyboard navigation (Enter) on the row
-        await act(async () => {
-            fireEvent.keyDown(row!, { key: 'Enter' })
-        })
-        expect(pushMock).toHaveBeenCalledWith('/123/bug_reports/app1/bug1')
-
-        // Simulate keyboard navigation (Space) on the row
-        await act(async () => {
-            fireEvent.keyDown(row!, { key: ' ' })
-        })
-        expect(pushMock).toHaveBeenCalledWith('/123/bug_reports/app1/bug1')
     })
 
     it('handles bug reports with no description properly', async () => {

@@ -49,7 +49,8 @@ export default function Session({ params }: { params: { teamId: string, appId: s
           <div className="py-6" />
           <SessionTimeline teamId={params.teamId} appId={params.appId} sessionTimeline={sessionTimeline} />
         </div>}
-    </div>
 
+      <div className="py-4" />
+    </div>
   )
 }
