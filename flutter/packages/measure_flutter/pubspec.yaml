@@ -27,7 +27,8 @@ dev_dependencies:
   mocktail: ^1.0.4
   build_runner: ^2.4.15
   json_serializable: ^6.9.4
-
+  integration_test:
+    sdk: flutter
 flutter:
   plugin:
     platforms:

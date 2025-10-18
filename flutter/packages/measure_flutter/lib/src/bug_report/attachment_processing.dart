@@ -1,8 +1,19 @@
+import 'dart:convert';
 import 'dart:io';
-import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
+import 'package:measure_flutter/src/isolate/file_processing_isolate.dart';
+
+import '../gestures/layout_snapshot.dart';
+
+// Module-level reference to shared file processing isolate
+FileProcessingIsolate? _sharedWorker;
+
+/// Initialize the shared file processing isolate worker
+void initializeFileProcessingIsolate(FileProcessingIsolate worker) {
+  _sharedWorker = worker;
+}
 
 // Parameter classes
 class RgbaToJpegParams {
@@ -43,12 +54,24 @@ class CompressAndSaveParams {
   });
 }
 
+class WriteLayoutSnapshotParams {
+  final LayoutSnapshot snapshot;
+  final String fileName;
+  final String rootPath;
+
+  const WriteLayoutSnapshotParams({
+    required this.snapshot,
+    required this.fileName,
+    required this.rootPath,
+  });
+}
+
 class FileProcessingResult {
   final String? filePath;
   final String? error;
-  final int? compressedSize;
+  final int? size;
 
-  const FileProcessingResult({this.filePath, this.error, this.compressedSize});
+  const FileProcessingResult({this.filePath, this.error, this.size});
 }
 
 // Core processing functions
@@ -74,14 +97,28 @@ Future<Uint8List> convertImageToJpegInIsolate(ImageToJpegParams params) async {
   return Uint8List.fromList(encodedJpg);
 }
 
-Future<FileProcessingResult> compressAndSaveInIsolate(
-    CompressAndSaveParams params) async {
-  return await Isolate.run(() => _compressAndSave(params));
+Future<FileProcessingResult> compressAndSaveInIsolate(CompressAndSaveParams params) async {
+  final worker = _sharedWorker;
+  if (worker == null) {
+    return const FileProcessingResult(error: 'File processing isolate not initialized');
+  }
+  return worker.processImageCompression(params);
 }
 
-// Private helpers
-Future<FileProcessingResult> _compressAndSave(
-    CompressAndSaveParams params) async {
+Future<FileProcessingResult> writeJsonToFileInIsolate(WriteLayoutSnapshotParams params) async {
+  final worker = _sharedWorker;
+  if (worker == null) {
+    return const FileProcessingResult(error: 'File processing isolate not initialized');
+  }
+  return worker.processLayoutSnapshotWrite(
+    params.snapshot,
+    params.fileName,
+    params.rootPath,
+  );
+}
+
+/// Compress image and write to file
+Future<FileProcessingResult> compressAndSaveInIsolateWorker(CompressAndSaveParams params) async {
   try {
     final compressedBytes = await convertImageToJpegInIsolate(
       ImageToJpegParams(
@@ -90,27 +127,44 @@ Future<FileProcessingResult> _compressAndSave(
       ),
     );
 
-    final filePath =
-        await _writeFile(compressedBytes, params.fileName, params.rootPath);
+    final filePath = await _writeFile(compressedBytes, params.fileName, params.rootPath);
 
-    return filePath != null
-        ? FileProcessingResult(
-            filePath: filePath,
-            compressedSize: compressedBytes.length,
-          )
-        : FileProcessingResult(error: 'Failed to write file');
+    return FileProcessingResult(
+      filePath: filePath,
+      size: compressedBytes.length,
+    );
   } catch (e) {
     return FileProcessingResult(error: e.toString());
   }
 }
 
-Future<String?> _writeFile(
-    Uint8List data, String fileName, String rootPath) async {
+Future<String> _writeFile(Uint8List data, String fileName, String rootPath) async {
+  final file = File('$rootPath/$fileName');
+  await file.writeAsBytes(data);
+  return file.path;
+}
+
+/// Serialize JSON and write to file
+Future<FileProcessingResult> writeJsonToFileInIsolateWorker(
+  LayoutSnapshot snapshot,
+  String fileName,
+  String rootPath,
+) async {
   try {
-    final file = File('$rootPath/$fileName');
-    await file.writeAsBytes(data);
-    return file.path;
+    final jsonString = jsonEncode(snapshot.toJson());
+    final jsonBytes = utf8.encode(jsonString);
+
+    final filePath = await _writeFile(
+      Uint8List.fromList(jsonBytes),
+      fileName,
+      rootPath,
+    );
+
+    return FileProcessingResult(
+      filePath: filePath,
+      size: jsonBytes.length,
+    );
   } catch (e) {
-    return null;
+    return FileProcessingResult(error: e.toString());
   }
 }

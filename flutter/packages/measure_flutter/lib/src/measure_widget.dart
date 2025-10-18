@@ -58,11 +58,12 @@ class _MeasureWidgetState extends State<MeasureWidget> {
     return RepaintBoundary(
       key: _repaintBoundaryKey,
       child: MsrGestureDetector(
-        child: widget.child,
-        onClick: (clickData) => Measure.instance.trackClick(clickData),
-        onLongClick: (longClickData) =>
-            Measure.instance.trackLongClick(longClickData),
+        providedWidgetTypes: Measure.instance.getLayoutSnapshotWidgetTypes(),
+        onClick: (clickData, snapshot) => Measure.instance.trackClick(clickData, snapshot),
+        onLongClick: (longClickData, snapshot) =>
+            Measure.instance.trackLongClick(longClickData, snapshot),
         onScroll: (scrollData) => Measure.instance.trackScroll(scrollData),
+        child: widget.child,
       ),
     );
   }

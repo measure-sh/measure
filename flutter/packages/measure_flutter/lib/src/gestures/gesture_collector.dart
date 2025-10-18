@@ -1,5 +1,6 @@
 import 'dart:isolate';
 
+import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/gestures/long_click_data.dart';
 import 'package:measure_flutter/src/gestures/scroll_data.dart';
@@ -27,17 +28,23 @@ class GestureCollector {
     _isRegistered = false;
   }
 
-  void trackGestureClick(ClickData data, {bool isUserTriggered = false}) {
+  void trackGestureClick(
+    ClickData data, {
+    bool isUserTriggered = false,
+    List<MsrAttachment>? attachments,
+    int? timestamp,
+  }) {
     if (!_isRegistered) {
       return;
     }
     _signalProcessor.trackEvent(
       data: data,
       type: EventType.gestureClick,
-      timestamp: _timeProvider.now(),
+      timestamp: timestamp ?? _timeProvider.now(),
       userDefinedAttrs: {},
       userTriggered: isUserTriggered,
       threadName: Isolate.current.debugName ?? "unknown",
+      attachments: attachments,
     );
   }
 
@@ -56,7 +63,11 @@ class GestureCollector {
     );
   }
 
-  void trackGestureLongClick(LongClickData longClickData) {
+  void trackGestureLongClick(
+    LongClickData longClickData, {
+    List<MsrAttachment>? attachments,
+    int? timestamp,
+  }) {
     if (!_isRegistered) {
       return;
     }
@@ -64,10 +75,11 @@ class GestureCollector {
     _signalProcessor.trackEvent(
       data: longClickData,
       type: EventType.gestureLongClick,
-      timestamp: _timeProvider.now(),
+      timestamp: timestamp ?? _timeProvider.now(),
       userDefinedAttrs: {},
       userTriggered: false,
       threadName: Isolate.current.debugName ?? "unknown",
+      attachments: attachments,
     );
   }
 }

@@ -16,10 +16,14 @@ Future<void> main() async {
       autoStart: true,
       traceSamplingRate: 1,
       samplingRateForErrorFreeSessions: 1,
+      layoutSnapshotWidgetTypes: {
+        MyApp : 'MyApp',
+        MainScreen : 'MainScreen',
+      }
     ),
     clientInfo: ClientInfo(
-      apiKey: "msrsh-123",
-      apiUrl: "http://localhost:8080",
+      apiKey: "msrsh_0c89033fc9ca86c29ba0300452d65ee441a60aac5adc7c5ee2d5057ebcbb4133_2d215ff0",
+      apiUrl: "https://staging-ingest.measure.sh",
     ),
   );
 }

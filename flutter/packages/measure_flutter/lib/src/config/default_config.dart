@@ -1,3 +1,5 @@
+
+
 class DefaultConfig {
   static const bool enableLogging = false;
   static const bool trackScreenshotOnCrash = false;
@@ -26,4 +28,5 @@ class DefaultConfig {
   static const int maxUserDefinedAttributesPerEvent = 100;
   static const int maxUserDefinedAttributeKeyLength = 256;
   static const int maxUserDefinedAttributeValueLength = 256;
+  static const Map<Type, String> layoutSnapshotWidgetTypes = <Type, String>{};
 }

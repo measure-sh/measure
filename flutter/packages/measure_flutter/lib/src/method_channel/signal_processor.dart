@@ -1,7 +1,5 @@
 import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/config/config_provider.dart';
-import 'package:measure_flutter/src/logger/log_level.dart';
-import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/serialization/json_serializable.dart';
 import 'package:measure_flutter/src/tracing/span_data.dart';
