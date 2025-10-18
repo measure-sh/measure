@@ -67,7 +67,6 @@ export class MeasureInternal {
     attributes?: Record<string, ValidAttributeValue>,
     timestamp?: number
   ): Promise<void> => {
-    console.log('MeasureInternal.ts Custom event tracked: button_click $attributes', attributes);
     return this.measureInitializer.customEventCollector.trackCustomEvent(
       name,
       attributes ?? {},
@@ -75,11 +74,23 @@ export class MeasureInternal {
     );
   };
 
+  trackScreenView = (
+    screenName: string,
+    attributes?: Record<string, ValidAttributeValue>
+  ): Promise<void> => {
+    return this.measureInitializer.userTriggeredEventCollector.trackScreenView(
+      screenName,
+      attributes ?? {},
+    );
+  };
+
   registerCollectors(): void {
     this.measureInitializer.customEventCollector.register();
+    this.measureInitializer.userTriggeredEventCollector.register();
   }
 
   unregisterCollectors(): void {
     this.measureInitializer.customEventCollector.unregister();
+    this.measureInitializer.userTriggeredEventCollector.unregister();
   }
 }
