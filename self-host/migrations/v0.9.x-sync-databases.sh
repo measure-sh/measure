@@ -40,7 +40,7 @@ set_docker_compose() {
 # Shutdown if measure compose services are up
 shutdown_measure_services() {
   local running_services
-  running_services=$("$DOCKER_COMPOSE" ps -a -q | wc -l)
+  running_services=$($DOCKER_COMPOSE ps -a -q | wc -l)
   if [[ "$running_services" -gt 0 ]]; then
     echo "Shutting down measure services..."
     $DOCKER_COMPOSE \
