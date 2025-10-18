@@ -10,6 +10,14 @@ import Foundation
 /// Configuration Provider for the Measure SDK. See `BaseConfigProvider` for details.
 protocol ConfigProvider: MeasureConfig, InternalConfig {
     func loadNetworkConfig()
+    func shouldTrackHttpBody(url: String, contentType: String?) -> Bool
+    func shouldTrackHttpUrl(url: String) -> Bool
+    func shouldTrackHttpHeader(key: String) -> Bool
+
+    /// Sets the measure URL so that it can be added to the httpUrlBlocklist. Required as it can be any
+    /// URL when the SDK is running in self-hosted mode.
+    /// - Parameter url: The base URL of the Measure service.
+    func setMeasureUrl(url: String)
 }
 
 /// A configuration provider for the Measure SDK.
@@ -32,6 +40,14 @@ final class BaseConfigProvider: ConfigProvider {
         self.configLoader = configLoader
         self.cachedConfig = configLoader.getCachedConfig()
     }
+
+    private lazy var combinedHttpHeadersBlocklist: [String] = {
+        return self.defaultHttpHeadersBlocklist + self.httpHeadersBlocklist
+    }()
+
+    private lazy var combinedHttpUrlBlocklist: [String] = {
+        return self.httpUrlBlocklist
+    }()
 
     var maxAttachmentsInBatch: Int {
         return getMergedConfig(\.maxAttachmentsInBatch)
@@ -229,6 +245,47 @@ final class BaseConfigProvider: ConfigProvider {
         } else {
             return defaultConfig[keyPath: keyPath]
         }
+    }
+
+    func shouldTrackHttpBody(url: String, contentType: String?) -> Bool {
+        if !trackHttpBody {
+            return false
+        }
+
+        if contentType?.isEmpty ?? true {
+            return false
+        }
+
+        if !shouldTrackHttpUrl(url: url) {
+            return false
+        }
+
+        let nonNilContentType = contentType!
+        return httpContentTypeAllowlist.contains { allowlistEntry in
+            return nonNilContentType.lowercased().hasPrefix(allowlistEntry.lowercased())
+        }
+    }
+    
+    func shouldTrackHttpUrl(url: String) -> Bool {
+        if !httpUrlAllowlist.isEmpty {
+            return httpUrlAllowlist.contains { allowlistEntry in
+                return url.range(of: allowlistEntry, options: .caseInsensitive) != nil
+            }
+        }
+
+        return !combinedHttpUrlBlocklist.contains { blocklistEntry in
+            return url.range(of: blocklistEntry, options: .caseInsensitive) != nil
+        }
+    }
+    
+    func shouldTrackHttpHeader(key: String) -> Bool {
+        return !combinedHttpHeadersBlocklist.contains { blocklistEntry in
+            return key.range(of: blocklistEntry, options: .caseInsensitive) != nil
+        }
+    }
+
+    func setMeasureUrl(url: String) {
+        combinedHttpUrlBlocklist.append(url)
     }
 
     func loadNetworkConfig() {

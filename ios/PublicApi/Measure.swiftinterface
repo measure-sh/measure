@@ -347,6 +347,9 @@ extension Measure.Measure {
   #if compiler(>=5.3) && $NonescapableTypes
   public static func internalGetAttachmentDirectory() -> Swift.String?
   #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public static func trackHttpEvent(url: Swift.String, method: Swift.String, startTime: Swift.UInt64, endTime: Swift.UInt64, client: Swift.String = "unknown", statusCode: Swift.Int? = nil, error: (any Swift.Error)? = nil, requestHeaders: [Swift.String : Swift.String]? = nil, responseHeaders: [Swift.String : Swift.String]? = nil, requestBody: Swift.String? = nil, responseBody: Swift.String? = nil)
+  #endif
 }
 public struct MSRNetworkInterceptor {
   public static func enable(on sessionConfiguration: Foundation.URLSessionConfiguration)

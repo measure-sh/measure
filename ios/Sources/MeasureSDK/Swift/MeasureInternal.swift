@@ -326,6 +326,30 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         return systemFileManager.getDirectoryPath(directory: FileManager.SearchPathDirectory.documentDirectory)
     }
 
+    func trackHttpEvent(url: String,
+                        method: String,
+                        startTime: UInt64,
+                        endTime: UInt64,
+                        client: String = "unknown",
+                        statusCode: Int? = nil,
+                        error: Error? = nil,
+                        requestHeaders: [String: String]? = nil,
+                        responseHeaders: [String: String]? = nil,
+                        requestBody: String? = nil,
+                        responseBody: String? = nil) {
+        return userTriggeredEventCollector.trackHttpEvent(url: url,
+                                                          method: method,
+                                                          startTime: startTime,
+                                                          endTime: endTime,
+                                                          client: client,
+                                                          statusCode: statusCode,
+                                                          error: error,
+                                                          requestHeaders: requestHeaders,
+                                                          responseHeaders: responseHeaders,
+                                                          requestBody: requestBody,
+                                                          responseBody: responseBody)
+    }
+
     private func applicationDidEnterBackground() {
         self.crashDataPersistence.isForeground = false
         self.internalSignalCollector.isForeground = false

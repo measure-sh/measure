@@ -11,6 +11,7 @@ import UIKit
 
 struct SwiftUIDetailViewController: View {
     let crashTypes = [
+        "Trigger Http Event",
         "Abort",
         "Bad Pointer",
         "Corrupt Memory",
@@ -47,6 +48,12 @@ struct SwiftUIDetailViewController: View {
 
     func triggerCrash(type: String) { // swiftlint:disable:this cyclomatic_complexity function_body_length
         switch type {
+        case "Trigger Http Event":
+            let startTime = Measure.getCurrentTime()
+            Measure.trackHttpEvent(url: "https://www.linkedin.com/feed/",
+                                   method: "get",
+                                   startTime: UInt64(startTime),
+                                   endTime: UInt64(Measure.getCurrentTime()))
         case "Abort":
             abort()
         case "Bad Pointer":
