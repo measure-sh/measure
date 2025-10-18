@@ -1,4 +1,3 @@
-
 /// Represents a single layout node in the widget tree
 /// which can have nested children.
 class LayoutSnapshot {

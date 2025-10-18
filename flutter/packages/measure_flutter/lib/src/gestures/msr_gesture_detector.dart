@@ -72,14 +72,18 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
   }
 
   @visibleForTesting
-  void onPointerUp(PointerUpEvent event, double devicePixelRatio, Size screenSize) =>
+  void onPointerUp(
+          PointerUpEvent event, double devicePixelRatio, Size screenSize) =>
       _onPointerUp(event, devicePixelRatio, screenSize);
 
-  void _onPointerUp(PointerUpEvent event, double devicePixelRatio, Size screenSize) {
+  void _onPointerUp(
+      PointerUpEvent event, double devicePixelRatio, Size screenSize) {
     try {
       final location = _lastPointerDownLocation;
       final downTime = _pointerDownTime;
-      if (location == null || event.pointer != _lastPointerId || downTime == null) {
+      if (location == null ||
+          event.pointer != _lastPointerId ||
+          downTime == null) {
         return;
       }
 
@@ -88,7 +92,8 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
 
       if (delta.distanceSquared < _tapDeltaArea) {
         if (duration >= _longClickDuration) {
-          _handleLongClick(event.position, downTime, event.timeStamp, devicePixelRatio);
+          _handleLongClick(
+              event.position, downTime, event.timeStamp, devicePixelRatio);
         } else {
           _handleClick(event.position, devicePixelRatio, screenSize);
         }
@@ -132,7 +137,8 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
   }
 
   void _handleClick(Offset position, double devicePixelRatio, Size screenSize) {
-    final screenBounds = Rect.fromLTWH(0, 0, screenSize.width, screenSize.height);
+    final screenBounds =
+        Rect.fromLTWH(0, 0, screenSize.width, screenSize.height);
 
     // Capture tree and detect clicked element in a single pass
     final result = LayoutSnapshotCapture.captureTree(
@@ -145,13 +151,15 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
 
     if (result != null) {
       // Check if we detected a clickable element
-      if (result.detectedElement == null || result.detectedElementType == null) {
+      if (result.detectedElement == null ||
+          result.detectedElementType == null) {
         _log(LogLevel.debug, "No clickable element found at $position");
         return;
       }
 
       final label = _extractLabel(result.detectedElement!);
-      widget.onClick(
+      widget
+          .onClick(
         ClickData(
           target: result.detectedElementType!,
           x: (position.dx * devicePixelRatio).roundToDouble(),
@@ -161,7 +169,8 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
           touchUpTime: null,
         ),
         result.snapshot,
-      ).catchError((error, stackTrace) {
+      )
+          .catchError((error, stackTrace) {
         _logError('onClick', error, stackTrace);
       });
     }
@@ -181,13 +190,15 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
       providedWidgetsTypes: Measure.instance.getLayoutSnapshotWidgetTypes(),
     );
 
-    if (result?.detectedElement == null || result?.detectedElementType == null) {
+    if (result?.detectedElement == null ||
+        result?.detectedElementType == null) {
       _log(LogLevel.debug, "No clickable element found at $position");
       return;
     }
 
     final label = _extractLabel(result!.detectedElement!);
-    widget.onLongClick(
+    widget
+        .onLongClick(
       LongClickData(
         target: result.detectedElementType!,
         x: (position.dx * devicePixelRatio).roundToDouble(),
@@ -197,12 +208,14 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
         touchUpTime: null,
       ),
       result.snapshot,
-    ).catchError((error, stackTrace) {
+    )
+        .catchError((error, stackTrace) {
       _logError('onLongClick', error, stackTrace);
     });
   }
 
-  void _handleScrollEnd(Offset position, Offset delta, double devicePixelRatio) {
+  void _handleScrollEnd(
+      Offset position, Offset delta, double devicePixelRatio) {
     // Find the scrollable element
     final result = LayoutSnapshotCapture.captureTree(
       _clickTrackerElement,
@@ -212,7 +225,8 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
     );
 
     // For scroll, we look for scrollable elements at the position
-    if (result?.detectedElement == null || result?.detectedElementType == null) {
+    if (result?.detectedElement == null ||
+        result?.detectedElementType == null) {
       return;
     }
 
@@ -225,7 +239,8 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
       return;
     }
 
-    widget.onScroll(
+    widget
+        .onScroll(
       ScrollData(
         target: scrollableType,
         x: ((position.dx - delta.dx) * devicePixelRatio).roundToDouble(),
@@ -237,7 +252,8 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
         touchDownTime: null,
         touchUpTime: null,
       ),
-    ).catchError((error, stackTrace) {
+    )
+        .catchError((error, stackTrace) {
       _logError('onScroll', error, stackTrace);
     });
   }
@@ -280,9 +296,11 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
       case null:
         return false;
       case Axis.horizontal:
-        return scrollDirection == MsrScrollDirection.left || scrollDirection == MsrScrollDirection.right;
+        return scrollDirection == MsrScrollDirection.left ||
+            scrollDirection == MsrScrollDirection.right;
       case Axis.vertical:
-        return scrollDirection == MsrScrollDirection.up || scrollDirection == MsrScrollDirection.down;
+        return scrollDirection == MsrScrollDirection.up ||
+            scrollDirection == MsrScrollDirection.down;
     }
   }
 
@@ -299,10 +317,10 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
 
   void _logError(String method, Object exception, StackTrace stackTrace) {
     Measure.instance.getLogger()?.log(
-      LogLevel.error,
-      'Error in $method: $exception',
-      exception,
-      stackTrace,
-    );
+          LogLevel.error,
+          'Error in $method: $exception',
+          exception,
+          stackTrace,
+        );
   }
 }

@@ -1,4 +1,3 @@
-
 enum MsrScrollDirection {
   left,
   up,

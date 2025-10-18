@@ -129,7 +129,8 @@ class FileProcessingIsolate {
       _sendPort = await completer.future.timeout(
         _initTimeout,
         onTimeout: () {
-          throw TimeoutException('Failed to initialize file processing isolate');
+          throw TimeoutException(
+              'Failed to initialize file processing isolate');
         },
       );
 
@@ -335,7 +336,8 @@ class FileProcessingIsolate {
   }
 
   /// Handle JSON write in isolate
-  static Future<void> _handleJsonWrite(LayoutSnapshotWriteRequest request) async {
+  static Future<void> _handleJsonWrite(
+      LayoutSnapshotWriteRequest request) async {
     try {
       final result = await writeJsonToFileInIsolateWorker(
         request.snapshot,

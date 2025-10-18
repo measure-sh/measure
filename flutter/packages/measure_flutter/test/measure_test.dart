@@ -117,7 +117,7 @@ void main() {
       final measure = Measure.withMethodChannel(methodChannel);
 
       await measure.init(
-            () {},
+        () {},
         clientInfo: ClientInfo(
           apiKey: "msrsh-123",
           apiUrl: "https://example.com",

@@ -13,19 +13,16 @@ import '../utils/fake_image_picker_wrapper.dart';
 import '../utils/fake_measure.dart';
 import '../utils/fake_shake_detector.dart';
 import '../utils/noop_logger.dart';
-import '../utils/test_method_channel.dart';
 
 void main() {
   group('BugReport Widget Tests', () {
     final Logger logger = NoopLogger();
     late FakeMeasure fakeMeasure;
     late FakeConfigProvider configProvider;
-    late TestMethodChannel testMethodChannel;
 
     setUp(() {
       fakeMeasure = FakeMeasure();
       configProvider = FakeConfigProvider();
-      testMethodChannel = TestMethodChannel();
     });
 
     tearDown(() {

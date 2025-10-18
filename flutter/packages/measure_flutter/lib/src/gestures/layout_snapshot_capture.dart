@@ -56,14 +56,17 @@ class LayoutSnapshotCapture {
       if (rootElement == null) return null;
 
       // Find the topmost Scaffold to start capture from
-      final scaffoldElement = developer.Timeline.timeSync('findTopmostScaffold', () {
+      final scaffoldElement =
+          developer.Timeline.timeSync('findTopmostScaffold', () {
         return _findTopmostScaffold(rootElement);
       });
       final startElement = scaffoldElement ?? rootElement;
 
       // Get the starting element's render object and bounds
       final renderObject = startElement.renderObject;
-      if (renderObject == null || renderObject is! RenderBox || !renderObject.hasSize) {
+      if (renderObject == null ||
+          renderObject is! RenderBox ||
+          !renderObject.hasSize) {
         return null;
       }
 
@@ -72,7 +75,9 @@ class LayoutSnapshotCapture {
       final id = _extractKeyAsId(startElement);
 
       // Create context for tracking detected elements (if detection is enabled)
-      final context = (detectionPosition != null && detectionMode != null) ? _CaptureContext() : null;
+      final context = (detectionPosition != null && detectionMode != null)
+          ? _CaptureContext()
+          : null;
 
       // Collect filtered children (start from children to avoid duplicating the root)
       final children = <LayoutSnapshot>[];
@@ -145,7 +150,8 @@ class LayoutSnapshotCapture {
         detectedType = _getScrollableWidgetType(widget);
       }
 
-      if (detectedType != null && _hitTest(element, detectionPosition, rootElement)) {
+      if (detectedType != null &&
+          _hitTest(element, detectionPosition, rootElement)) {
         context.detectedElement = element;
         context.detectedElementType = detectedType;
       }
@@ -154,7 +160,8 @@ class LayoutSnapshotCapture {
     // Check if this element should be included in the snapshot (for tree inclusion)
     if (renderObject is RenderBox && renderObject.hasSize) {
       // Check if this is the detected element or if it matches the filter
-      final widgetType = _getFrameworkWidget(widget) ?? _getUserProvidedWidget(widget, providedWidgetsTypes);
+      final widgetType = _getFrameworkWidget(widget) ??
+          _getUserProvidedWidget(widget, providedWidgetsTypes);
       final isDetectedElement = (context?.detectedElement == element);
 
       // Include if it matches filter OR if it's the detected element
@@ -164,7 +171,9 @@ class LayoutSnapshotCapture {
         // Only include if within screen bounds (if bounds are provided)
         if (screenBounds == null || screenBounds.overlaps(bounds)) {
           // Use the detected type if this is the detected element, otherwise use filter type
-          final nodeType = isDetectedElement && widgetType == null ? context?.detectedElementType : widgetType;
+          final nodeType = isDetectedElement && widgetType == null
+              ? context?.detectedElementType
+              : widgetType;
           final children = <LayoutSnapshot>[];
 
           // Recursively collect children for this matched node
@@ -186,7 +195,8 @@ class LayoutSnapshotCapture {
 
           // Check if this element is highlighted (clicked)
           bool isHighlighted = false;
-          if (detectionMode == DetectionMode.click && context?.detectedElement == element) {
+          if (detectionMode == DetectionMode.click &&
+              context?.detectedElement == element) {
             isHighlighted = true;
           }
 
@@ -271,7 +281,8 @@ class LayoutSnapshotCapture {
       }
 
       // Check if this is a Scaffold or CupertinoPageScaffold
-      if (widget.runtimeType == Scaffold || widget.runtimeType == CupertinoPageScaffold) {
+      if (widget.runtimeType == Scaffold ||
+          widget.runtimeType == CupertinoPageScaffold) {
         // Keep updating to get the last (topmost) Scaffold
         topmostScaffold = element;
       }
@@ -289,7 +300,8 @@ class LayoutSnapshotCapture {
     if (rootElement == null) return false;
 
     final renderObject = element.renderObject;
-    if (renderObject == null || (renderObject is RenderBox && !renderObject.hasSize)) {
+    if (renderObject == null ||
+        (renderObject is RenderBox && !renderObject.hasSize)) {
       return false;
     }
 
@@ -303,7 +315,8 @@ class LayoutSnapshotCapture {
 
     // Check bounds
     final transform = renderObject.getTransformTo(rootElement.renderObject);
-    final paintBounds = MatrixUtils.transformRect(transform, renderObject.paintBounds);
+    final paintBounds =
+        MatrixUtils.transformRect(transform, renderObject.paintBounds);
     return paintBounds.contains(position);
   }
 
@@ -348,7 +361,8 @@ class LayoutSnapshotCapture {
   }
 
   /// Returns the widget type if it should be included in the layout snapshot.
-  static String? _getUserProvidedWidget(Widget widget, Map<Type, String>? providedWidgets) {
+  static String? _getUserProvidedWidget(
+      Widget widget, Map<Type, String>? providedWidgets) {
     final type = widget.runtimeType;
     if (providedWidgets?.keys.contains(type) == true) {
       return providedWidgets?[type];
@@ -377,7 +391,11 @@ class LayoutSnapshotCapture {
       ExpansionTile _ => 'ExpansionTile',
       Card _ => 'Card',
       InkWell w when w.onTap != null => 'InkWell',
-      GestureDetector w when w.onTap != null || w.onDoubleTap != null || w.onLongPress != null => 'GestureDetector',
+      GestureDetector w
+          when w.onTap != null ||
+              w.onDoubleTap != null ||
+              w.onLongPress != null =>
+        'GestureDetector',
       InkResponse w when w.onTap != null => 'InkResponse',
       InputChip w when w.onPressed != null => 'InputChip',
       ActionChip w when w.onPressed != null => 'ActionChip',

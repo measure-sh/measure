@@ -31,9 +31,12 @@ class Config implements InternalConfig, IMeasureConfig {
     this.maxEventNameLength = DefaultConfig.maxEventNameLength,
     this.customEventNameRegex = DefaultConfig.customEventNameRegex,
     this.maxDiskUsageInMb = DefaultConfig.maxDiskUsageInMb,
-    this.maxUserDefinedAttributeKeyLength = DefaultConfig.maxUserDefinedAttributeKeyLength,
-    this.maxUserDefinedAttributeValueLength = DefaultConfig.maxUserDefinedAttributeValueLength,
-    this.maxUserDefinedAttributesPerEvent = DefaultConfig.maxUserDefinedAttributesPerEvent,
+    this.maxUserDefinedAttributeKeyLength =
+        DefaultConfig.maxUserDefinedAttributeKeyLength,
+    this.maxUserDefinedAttributeValueLength =
+        DefaultConfig.maxUserDefinedAttributeValueLength,
+    this.maxUserDefinedAttributesPerEvent =
+        DefaultConfig.maxUserDefinedAttributesPerEvent,
     this.layoutSnapshotWidgetTypes = DefaultConfig.layoutSnapshotWidgetTypes,
   });
 

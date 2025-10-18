@@ -23,7 +23,10 @@ final class DefaultSignalProcessor extends SignalProcessor {
   final MsrMethodChannel channel;
   final ConfigProvider configProvider;
 
-  DefaultSignalProcessor({required this.logger, required this.channel, required this.configProvider});
+  DefaultSignalProcessor(
+      {required this.logger,
+      required this.channel,
+      required this.configProvider});
 
   @override
   Future<void> trackEvent<T extends JsonSerialized>({
@@ -41,13 +44,13 @@ final class DefaultSignalProcessor extends SignalProcessor {
     var json = data.toJson();
     logger.log(LogLevel.debug, "$type: $json");
     return channel.trackEvent(
-        data: json,
-        type: type,
-        timestamp: timestamp,
-        userDefinedAttrs: userDefinedAttrs,
-        userTriggered: userTriggered,
-        threadName: threadName,
-        attachments: attachments,
+      data: json,
+      type: type,
+      timestamp: timestamp,
+      userDefinedAttrs: userDefinedAttrs,
+      userTriggered: userTriggered,
+      threadName: threadName,
+      attachments: attachments,
     );
   }
 
@@ -57,8 +60,10 @@ final class DefaultSignalProcessor extends SignalProcessor {
     return channel.trackSpan(spanData);
   }
 
-  bool validateUserDefinedAttrs(String event, Map<String, AttributeValue> userDefinedAttrs) {
-    if (userDefinedAttrs.length > configProvider.maxUserDefinedAttributesPerEvent) {
+  bool validateUserDefinedAttrs(
+      String event, Map<String, AttributeValue> userDefinedAttrs) {
+    if (userDefinedAttrs.length >
+        configProvider.maxUserDefinedAttributesPerEvent) {
       logger.log(
         LogLevel.error,
         'Invalid event($event): exceeds maximum of ${configProvider.maxUserDefinedAttributesPerEvent} attributes',

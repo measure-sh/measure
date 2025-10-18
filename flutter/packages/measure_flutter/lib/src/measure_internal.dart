@@ -88,7 +88,8 @@ final class MeasureInternal {
     await initializer.fileProcessingIsolate.dispose();
   }
 
-  void trackCustomEvent(String name, int? timestamp, Map<String, AttributeValue> attributes) {
+  void trackCustomEvent(
+      String name, int? timestamp, Map<String, AttributeValue> attributes) {
     _customEventCollector.trackCustomEvent(name, timestamp, attributes);
   }
 
@@ -97,7 +98,8 @@ final class MeasureInternal {
     required bool handled,
     Map<String, AttributeValue> attributes = const {},
   }) {
-    return _exceptionCollector.trackError(details, handled: handled, attributes: attributes);
+    return _exceptionCollector.trackError(details,
+        handled: handled, attributes: attributes);
   }
 
   void triggerNativeCrash() {
@@ -184,8 +186,12 @@ final class MeasureInternal {
     return methodChannel.getSessionId();
   }
 
-  Future<void> trackBugReport(String description, List<MsrAttachment> attachments, Map<String, AttributeValue> attributes) async {
-    await _bugReportCollector.trackBugReport(description, attachments, attributes);
+  Future<void> trackBugReport(
+      String description,
+      List<MsrAttachment> attachments,
+      Map<String, AttributeValue> attributes) async {
+    await _bugReportCollector.trackBugReport(
+        description, attachments, attributes);
   }
 
   Future<MsrAttachment?> captureScreenshot() {
@@ -203,7 +209,8 @@ final class MeasureInternal {
     required BugReportTheme theme,
     required Map<String, AttributeValue>? attributes,
   }) {
-    return _bugReportCollector.createBugReport(key: key, screenshot: screenshot, theme: theme, attributes: attributes);
+    return _bugReportCollector.createBugReport(
+        key: key, screenshot: screenshot, theme: theme, attributes: attributes);
   }
 
   void setShakeListener(Function? onShake) {
@@ -223,7 +230,8 @@ final class MeasureInternal {
     );
   }
 
-  Future<void> trackLongClick(LongClickData longClickData, LayoutSnapshot? snapshot) async {
+  Future<void> trackLongClick(
+      LongClickData longClickData, LayoutSnapshot? snapshot) async {
     final timestamp = _timeProvider.now();
     MsrAttachment? attachment;
     if (snapshot != null) {

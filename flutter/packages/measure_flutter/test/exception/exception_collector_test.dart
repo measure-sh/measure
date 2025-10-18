@@ -16,7 +16,8 @@ import '../utils/noop_logger.dart';
 import '../utils/test_clock.dart';
 
 // Mock the isolate function
-Future<FileProcessingResult> mockCompressAndSaveInIsolate(CompressAndSaveParams params) async {
+Future<FileProcessingResult> mockCompressAndSaveInIsolate(
+    CompressAndSaveParams params) async {
   return FileProcessingResult(
     filePath: '/mock/path/screenshot.jpg',
     size: 1024,

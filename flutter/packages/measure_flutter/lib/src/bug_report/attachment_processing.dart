@@ -97,18 +97,22 @@ Future<Uint8List> convertImageToJpegInIsolate(ImageToJpegParams params) async {
   return Uint8List.fromList(encodedJpg);
 }
 
-Future<FileProcessingResult> compressAndSaveInIsolate(CompressAndSaveParams params) async {
+Future<FileProcessingResult> compressAndSaveInIsolate(
+    CompressAndSaveParams params) async {
   final worker = _sharedWorker;
   if (worker == null) {
-    return const FileProcessingResult(error: 'File processing isolate not initialized');
+    return const FileProcessingResult(
+        error: 'File processing isolate not initialized');
   }
   return worker.processImageCompression(params);
 }
 
-Future<FileProcessingResult> writeJsonToFileInIsolate(WriteLayoutSnapshotParams params) async {
+Future<FileProcessingResult> writeJsonToFileInIsolate(
+    WriteLayoutSnapshotParams params) async {
   final worker = _sharedWorker;
   if (worker == null) {
-    return const FileProcessingResult(error: 'File processing isolate not initialized');
+    return const FileProcessingResult(
+        error: 'File processing isolate not initialized');
   }
   return worker.processLayoutSnapshotWrite(
     params.snapshot,
@@ -118,7 +122,8 @@ Future<FileProcessingResult> writeJsonToFileInIsolate(WriteLayoutSnapshotParams 
 }
 
 /// Compress image and write to file
-Future<FileProcessingResult> compressAndSaveInIsolateWorker(CompressAndSaveParams params) async {
+Future<FileProcessingResult> compressAndSaveInIsolateWorker(
+    CompressAndSaveParams params) async {
   try {
     final compressedBytes = await convertImageToJpegInIsolate(
       ImageToJpegParams(
@@ -127,7 +132,8 @@ Future<FileProcessingResult> compressAndSaveInIsolateWorker(CompressAndSaveParam
       ),
     );
 
-    final filePath = await _writeFile(compressedBytes, params.fileName, params.rootPath);
+    final filePath =
+        await _writeFile(compressedBytes, params.fileName, params.rootPath);
 
     return FileProcessingResult(
       filePath: filePath,
@@ -138,7 +144,8 @@ Future<FileProcessingResult> compressAndSaveInIsolateWorker(CompressAndSaveParam
   }
 }
 
-Future<String> _writeFile(Uint8List data, String fileName, String rootPath) async {
+Future<String> _writeFile(
+    Uint8List data, String fileName, String rootPath) async {
   final file = File('$rootPath/$fileName');
   await file.writeAsBytes(data);
   return file.path;

@@ -5,16 +5,16 @@ import 'package:measure_flutter/src/screenshot/screenshot_collector.dart';
 import 'gestures/msr_gesture_detector.dart';
 
 /// A wrapper widget that enables automatic gesture tracking and screenshot capture.
-/// 
+///
 /// [MeasureWidget] should wrap your app's root widget to enable automatic
 /// tracking of user interactions (taps, long presses, scrolls) and provide
 /// screenshot capture capabilities for bug reports.
-/// 
+///
 /// **Features:**
 /// - Automatic gesture tracking (clicks, long presses, scrolls)
 /// - Screenshot capture capability via [RepaintBoundary]
 /// - Seamless integration with bug reporting
-/// 
+///
 /// **Usage:**
 /// ```dart
 /// class MyApp extends StatelessWidget {
@@ -29,7 +29,7 @@ import 'gestures/msr_gesture_detector.dart';
 ///   }
 /// }
 /// ```
-/// 
+///
 /// **Note:** Place [MeasureWidget] as high as possible in your widget tree
 /// to capture the maximum screen area for screenshots and gesture tracking.
 class MeasureWidget extends StatefulWidget {
@@ -59,7 +59,8 @@ class _MeasureWidgetState extends State<MeasureWidget> {
       key: _repaintBoundaryKey,
       child: MsrGestureDetector(
         providedWidgetTypes: Measure.instance.getLayoutSnapshotWidgetTypes(),
-        onClick: (clickData, snapshot) => Measure.instance.trackClick(clickData, snapshot),
+        onClick: (clickData, snapshot) =>
+            Measure.instance.trackClick(clickData, snapshot),
         onLongClick: (longClickData, snapshot) =>
             Measure.instance.trackLongClick(longClickData, snapshot),
         onScroll: (scrollData) => Measure.instance.trackScroll(scrollData),

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -8,8 +6,7 @@ import 'package:measure_flutter/measure_flutter.dart';
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('Layout snapshot captureTree performance test',
-      (WidgetTester tester) async {
+  testWidgets('Layout snapshot captureTree performance test', (WidgetTester tester) async {
     await Measure.instance.init(
       () {},
       config: const MeasureConfig(
@@ -59,8 +56,7 @@ Widget _buildDeeplyNestedButton(int depth) {
       Center(
         child: ElevatedButton(
           key: const ValueKey('test_button'),
-          onPressed: () {
-          },
+          onPressed: () {},
           child: const Text('Tap Me'),
         ),
       ),

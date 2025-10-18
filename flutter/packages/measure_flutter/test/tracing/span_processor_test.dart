@@ -104,31 +104,31 @@ void main() {
 
     test(
         "discards checkpoints to keep them within max checkpoints per span limit",
-            () {
-          final span = MsrSpan(
-            logger: logger,
-            spanProcessor: spanProcessor,
-            timeProvider: timeProvider,
-            isSampled: true,
-            name: "span-name",
-            spanId: "span-id",
-            traceId: "trace-id",
-            parentId: null,
-            startTime: timeProvider.now() - 1000,
-          );
+        () {
+      final span = MsrSpan(
+        logger: logger,
+        spanProcessor: spanProcessor,
+        timeProvider: timeProvider,
+        isSampled: true,
+        name: "span-name",
+        spanId: "span-id",
+        traceId: "trace-id",
+        parentId: null,
+        startTime: timeProvider.now() - 1000,
+      );
 
-          // Add one more checkpoint than the maximum allowed
-          for (int i = 0; i <= configProvider.maxCheckpointsPerSpan; i++) {
-            span.setCheckpoint("checkpoint");
-          }
+      // Add one more checkpoint than the maximum allowed
+      for (int i = 0; i <= configProvider.maxCheckpointsPerSpan; i++) {
+        span.setCheckpoint("checkpoint");
+      }
 
-          span.end();
+      span.end();
 
-          expect(
-            signalProcessor.trackedSpans.first.checkpoints.length,
-            configProvider.maxCheckpointsPerSpan,
-          );
-        });
+      expect(
+        signalProcessor.trackedSpans.first.checkpoints.length,
+        configProvider.maxCheckpointsPerSpan,
+      );
+    });
 
     test("discards span if duration is negative", () {
       final span = MsrSpan(

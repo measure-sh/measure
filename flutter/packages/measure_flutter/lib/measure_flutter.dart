@@ -543,7 +543,8 @@ class Measure implements MeasureApi {
   }) {
     if (_isInitialized) {
       final details = FlutterErrorDetails(exception: error, stack: stack);
-      return _measure.trackError(details, handled: true, attributes: attributes);
+      return _measure.trackError(details,
+          handled: true, attributes: attributes);
     }
     return Future.value();
   }
@@ -873,7 +874,8 @@ class Measure implements MeasureApi {
         attributes: attributes,
       );
     } else {
-      developer.log('Failed to open bug report, Measure SDK is not initialized');
+      developer
+          .log('Failed to open bug report, Measure SDK is not initialized');
       return SizedBox.shrink(key: key);
     }
   }
@@ -967,7 +969,8 @@ class Measure implements MeasureApi {
   /// **Note:** Consider using [MeasureWidget] wrapper for automatic
   /// gesture tracking instead of manual tracking.
   @override
-  Future<void> trackLongClick(LongClickData longClickData, LayoutSnapshot? snapshot) async {
+  Future<void> trackLongClick(
+      LongClickData longClickData, LayoutSnapshot? snapshot) async {
     if (isInitialized) {
       return _measure.trackLongClick(longClickData, snapshot);
     }
@@ -1123,7 +1126,8 @@ class Measure implements MeasureApi {
     }
   }
 
-  void _logInputConfig(bool enableLogging, Map<String, dynamic> jsonConfig, Map<String, String> jsonClientInfo) {
+  void _logInputConfig(bool enableLogging, Map<String, dynamic> jsonConfig,
+      Map<String, String> jsonClientInfo) {
     if (enableLogging) {
       developer.log(
         'Initializing measure-flutter with config: $jsonConfig',
