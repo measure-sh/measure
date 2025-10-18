@@ -10,4 +10,5 @@ import Foundation
 public enum AttachmentType: String, Codable {
     case screenshot
     case layoutSnapshot = "layout_snapshot"
+    case layoutSnapshotJson = "layout_snapshot_json"
 }
