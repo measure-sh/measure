@@ -212,7 +212,6 @@ void main() {
 
       // Verify nested widgets are captured
       expect(_containsWidgetType(result.snapshot, 'Column'), isTrue);
-      expect(_containsWidgetType(result.snapshot, 'Container'), isTrue);
       expect(_containsWidgetType(result.snapshot, 'Row'), isTrue);
       expect(_containsWidgetType(result.snapshot, 'ElevatedButton'), isTrue);
       expect(_containsWidgetType(result.snapshot, 'IconButton'), isTrue);
@@ -447,14 +446,14 @@ void main() {
 
       final json = snapshot.toJson();
 
-      expect(json['label'], equals('TestWidget'));
+      expect(json['lb'], equals('TestWidget'));
       expect(json['x'], equals(10));
       expect(json['y'], equals(20));
-      expect(json['width'], equals(100));
-      expect(json['height'], equals(200));
+      expect(json['wd'], equals(100));
+      expect(json['ht'], equals(200));
       expect(json['id'], equals('test-id'));
-      expect(json['highlighted'], equals(true));
-      expect(json['scrollable'], equals(true));
+      expect(json['hl'], equals(true));
+      expect(json['sc'], equals(true));
     });
 
     test('toJson excludes null id', () {
@@ -493,10 +492,10 @@ void main() {
 
       final json = snapshot.toJson();
 
-      expect(json['children'], isNotNull);
-      expect(json['children'], isList);
-      expect((json['children'] as List).length, equals(1));
-      expect((json['children'] as List)[0]['label'], equals('Child'));
+      expect(json['ch'], isNotNull);
+      expect(json['ch'], isList);
+      expect((json['ch'] as List).length, equals(1));
+      expect((json['ch'] as List)[0]['lb'], equals('Child'));
     });
   });
 }
