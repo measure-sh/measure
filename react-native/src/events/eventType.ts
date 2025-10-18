@@ -3,4 +3,5 @@
  */
 export enum EventType {
   Custom = 'custom',
+  ScreenView = 'screen_view',
 }

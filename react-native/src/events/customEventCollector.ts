@@ -8,7 +8,29 @@ import {
   type ValidAttributeValue,
 } from '../utils/attributeValueValidator';
 
-export class CustomEventCollector {
+export interface ICustomEventCollector {
+  /** Enables the collector. */
+  register(): void;
+
+  /** Disables the collector. */
+  unregister(): void;
+
+  /** Checks if the collector is currently enabled. */
+  isEnabled(): boolean;
+
+  /**
+   * Tracks a custom user-triggered event.
+   * @param name The name of the custom event.
+   * @param attributes Optional map of custom attributes.
+   * @param timestamp Optional custom timestamp.
+   */
+  trackCustomEvent(
+    name: string,
+    attributes?: Record<string, ValidAttributeValue>,
+    timestamp?: number
+  ): Promise<void>;
+}
+export class CustomEventCollector implements ICustomEventCollector {
   private logger: Logger;
   private timeProvider: TimeProvider;
   private configProvider: ConfigProvider;

@@ -141,7 +141,38 @@ export const Measure = {
       );
     }
 
-    console.log('Measure.ts Custom event tracked: button_click $attributes', attributes);
     return _measureInternal.trackEvent(name, attributes, timestamp);
+  },
+
+  /**
+   * Tracks a screen view event with optional attributes.
+   *
+   * This method should be used if your app uses a custom navigation system
+   * and you want to manually record screen view events.
+   *
+   * @param screenName - The name of the screen being viewed.
+   * @param attributes - Optional key-value pairs providing additional context.
+   *
+   * @example
+   * ```ts
+   * import { Measure } from '@measure/react-native';
+   *
+   * Measure.trackScreenView("Home", {
+   *   user_name: "Alice",
+   *   premium_user: true,
+   * });
+   * ```
+   */
+  trackScreenView(
+    screenName: string,
+    attributes?: Record<string, ValidAttributeValue>
+  ): Promise<void> {
+    if (!_measureInternal) {
+      return Promise.reject(
+        new Error('Measure is not initialized. Call init() first.')
+      );
+    }
+
+    return _measureInternal.trackScreenView(screenName, attributes);
   },
 };
