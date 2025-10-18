@@ -17,6 +17,7 @@ internal data class AttachmentPacket(
 ) {
     val contentType: String = when (type) {
         AttachmentType.LAYOUT_SNAPSHOT -> "image/svg+xml"
+        AttachmentType.LAYOUT_SNAPSHOT_JSON -> "application/json"
         AttachmentType.SCREENSHOT -> {
             if (name.endsWith(".webp")) {
                 "image/webp"
