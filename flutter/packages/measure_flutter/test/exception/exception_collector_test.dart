@@ -19,7 +19,7 @@ import '../utils/test_clock.dart';
 Future<FileProcessingResult> mockCompressAndSaveInIsolate(CompressAndSaveParams params) async {
   return FileProcessingResult(
     filePath: '/mock/path/screenshot.jpg',
-    compressedSize: 1024,
+    size: 1024,
   );
 }
 

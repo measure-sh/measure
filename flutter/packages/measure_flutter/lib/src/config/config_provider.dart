@@ -114,6 +114,9 @@ class ConfigProviderImpl implements ConfigProvider {
   int get maxUserDefinedAttributesPerEvent => _defaultConfig.maxUserDefinedAttributesPerEvent;
 
   @override
+  Map<Type, String> get layoutSnapshotWidgetTypes => _defaultConfig.layoutSnapshotWidgetTypes;
+
+  @override
   bool shouldTrackHttpBody(String url, String? contentType) {
     if (!trackHttpBody) {
       return false;

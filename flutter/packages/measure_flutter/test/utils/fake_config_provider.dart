@@ -30,14 +30,14 @@ class FakeConfigProvider implements ConfigProvider {
   int _maxUserDefinedAttributeValueLength = 100;
   int _maxUserDefinedAttributeKeyLength = 256;
   int _maxUserDefinedAttributesPerEvent = 256;
+  Map<Type, String> _layoutSnapshotWidgetTypes = {};
 
   // Getters
   @override
   bool get autoInitializeNativeSDK => _autoInitializeNativeSDK;
 
   @override
-  List<String> get defaultHttpContentTypeAllowlist =>
-      _defaultHttpContentTypeAllowlist;
+  List<String> get defaultHttpContentTypeAllowlist => _defaultHttpContentTypeAllowlist;
 
   @override
   List<String> get defaultHttpHeadersBlocklist => _defaultHttpHeadersBlocklist;
@@ -67,8 +67,7 @@ class FakeConfigProvider implements ConfigProvider {
   int get maxSpanNameLength => _maxSpanNameLength;
 
   @override
-  double get samplingRateForErrorFreeSessions =>
-      _samplingRateForErrorFreeSessions;
+  double get samplingRateForErrorFreeSessions => _samplingRateForErrorFreeSessions;
 
   @override
   double get traceSamplingRate => _traceSamplingRate;
@@ -118,14 +117,15 @@ class FakeConfigProvider implements ConfigProvider {
   @override
   int get maxUserDefinedAttributesPerEvent => _maxUserDefinedAttributesPerEvent;
 
+  @override
+  Map<Type, String> get layoutSnapshotWidgetTypes => _layoutSnapshotWidgetTypes;
+
   // Setters
   set autoInitializeNativeSDK(bool value) => _autoInitializeNativeSDK = value;
 
-  set defaultHttpContentTypeAllowlist(List<String> value) =>
-      _defaultHttpContentTypeAllowlist = value;
+  set defaultHttpContentTypeAllowlist(List<String> value) => _defaultHttpContentTypeAllowlist = value;
 
-  set defaultHttpHeadersBlocklist(List<String> value) =>
-      _defaultHttpHeadersBlocklist = value;
+  set defaultHttpHeadersBlocklist(List<String> value) => _defaultHttpHeadersBlocklist = value;
 
   set enableLogging(bool value) => _enableLogging = value;
 
@@ -146,8 +146,7 @@ class FakeConfigProvider implements ConfigProvider {
 
   set maxSpanNameLength(int value) => _maxSpanNameLength = value;
 
-  set samplingRateForErrorFreeSessions(double value) =>
-      _samplingRateForErrorFreeSessions = value;
+  set samplingRateForErrorFreeSessions(double value) => _samplingRateForErrorFreeSessions = value;
 
   set traceSamplingRate(double value) => _traceSamplingRate = value;
 
@@ -161,19 +160,15 @@ class FakeConfigProvider implements ConfigProvider {
 
   set trackHttpHeaders(bool value) => _trackHttpHeaders = value;
 
-  set trackViewControllerLoadTime(bool value) =>
-      _trackViewControllerLoadTime = value;
+  set trackViewControllerLoadTime(bool value) => _trackViewControllerLoadTime = value;
 
   set autoStart(bool value) => _autoStart = value;
 
-  set maxAttachmentsInBugReport(int value) =>
-      _maxAttachmentsInBugReport = value;
+  set maxAttachmentsInBugReport(int value) => _maxAttachmentsInBugReport = value;
 
-  set maxDescriptionLengthInBugReport(int value) =>
-      _maxDescriptionLengthInBugReport = value;
+  set maxDescriptionLengthInBugReport(int value) => _maxDescriptionLengthInBugReport = value;
 
-  set screenshotCompressionQuality(int value) =>
-      _screenshotCompressionQuality = value;
+  set screenshotCompressionQuality(int value) => _screenshotCompressionQuality = value;
 
   set customEventNameRegex(String value) => _customEventNameRegex = value;
 
@@ -187,6 +182,8 @@ class FakeConfigProvider implements ConfigProvider {
 
   set maxUserDefinedAttributesPerEvent(int value) => _maxUserDefinedAttributesPerEvent = value;
 
+  set layoutSnapshotWidgetTypes(Map<Type, String> value) => _layoutSnapshotWidgetTypes = value;
+
   // Methods
   @override
   bool shouldTrackHttpBody(String url, String? contentType) {
@@ -195,8 +192,7 @@ class FakeConfigProvider implements ConfigProvider {
 
   @override
   bool shouldTrackHttpHeader(String key) {
-    return _trackHttpHeaders &&
-        !_httpHeadersBlocklist.contains(key.toLowerCase());
+    return _trackHttpHeaders && !_httpHeadersBlocklist.contains(key.toLowerCase());
   }
 
   @override

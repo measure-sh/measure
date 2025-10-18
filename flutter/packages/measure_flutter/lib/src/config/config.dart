@@ -34,6 +34,7 @@ class Config implements InternalConfig, IMeasureConfig {
     this.maxUserDefinedAttributeKeyLength = DefaultConfig.maxUserDefinedAttributeKeyLength,
     this.maxUserDefinedAttributeValueLength = DefaultConfig.maxUserDefinedAttributeValueLength,
     this.maxUserDefinedAttributesPerEvent = DefaultConfig.maxUserDefinedAttributesPerEvent,
+    this.layoutSnapshotWidgetTypes = DefaultConfig.layoutSnapshotWidgetTypes,
   });
 
   @override
@@ -90,6 +91,8 @@ class Config implements InternalConfig, IMeasureConfig {
   final int maxUserDefinedAttributeKeyLength;
   @override
   final int maxUserDefinedAttributeValueLength;
+  @override
+  final Map<Type, String> layoutSnapshotWidgetTypes;
 
   @override
   List<String> get defaultHttpContentTypeAllowlist =>

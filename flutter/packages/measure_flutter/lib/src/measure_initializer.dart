@@ -1,3 +1,4 @@
+import 'package:measure_flutter/src/bug_report/attachment_processing.dart';
 import 'package:measure_flutter/src/bug_report/bug_report_collector.dart';
 import 'package:measure_flutter/src/bug_report/shake_detector.dart';
 import 'package:measure_flutter/src/config/config.dart';
@@ -5,7 +6,9 @@ import 'package:measure_flutter/src/config/measure_config.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/gestures/gesture_collector.dart';
+import 'package:measure_flutter/src/gestures/layout_snapshot_collector.dart';
 import 'package:measure_flutter/src/http/http_collector.dart';
+import 'package:measure_flutter/src/isolate/file_processing_isolate.dart';
 import 'package:measure_flutter/src/logger/flutter_logger.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/method_channel_callbacks.dart';
@@ -38,11 +41,13 @@ final class MeasureInitializer {
   late final HttpCollector _httpCollector;
   late final GestureCollector _gestureCollector;
   late final ScreenshotCollector _screenshotCollector;
+  late final LayoutSnapshotCollector _layoutSnapshotCollector;
   late final SignalProcessor _signalProcessor;
   late final SpanProcessor _spanProcessor;
   late final Tracer _tracer;
   late final FileStorage _fileStorage;
   late final ShakeDetector _shakeDetector;
+  late final FileProcessingIsolate _fileProcessingIsolate;
 
   Logger get logger => _logger;
 
@@ -66,6 +71,8 @@ final class MeasureInitializer {
 
   ScreenshotCollector get screenshotCollector => _screenshotCollector;
 
+  LayoutSnapshotCollector get layoutSnapshotCollector => _layoutSnapshotCollector;
+
   SignalProcessor get signalProcessor => _signalProcessor;
 
   IdProvider get idProvider => _idProvider;
@@ -79,6 +86,8 @@ final class MeasureInitializer {
   FileStorage get storage => _fileStorage;
 
   ShakeDetector get shakeDetector => _shakeDetector;
+
+  FileProcessingIsolate get fileProcessingIsolate => _fileProcessingIsolate;
 
   MeasureInitializer(MeasureConfig inputConfig) {
     _initializeDependencies(inputConfig);
@@ -119,13 +128,24 @@ final class MeasureInitializer {
       idProvider: _idProvider,
       configProvider: _configProvider,
     );
+    _fileStorage = FileStorage(methodChannel, logger);
+
+    // Create file processing isolate worker
+    _fileProcessingIsolate = FileProcessingIsolate(logger: _logger);
+    // Initialize the global reference for attachment_processing.dart
+    initializeFileProcessingIsolate(_fileProcessingIsolate);
+
+    _layoutSnapshotCollector = LayoutSnapshotCollector(
+      logger: logger,
+      idProvider: _idProvider,
+      fileStorage: _fileStorage,
+    );
     _customEventCollector = CustomEventCollector(
       logger: logger,
       signalProcessor: signalProcessor,
       timeProvider: timeProvider,
       configProvider: configProvider,
     );
-    _fileStorage = FileStorage(methodChannel, logger);
     _exceptionCollector = ExceptionCollector(
       logger: logger,
       signalProcessor: signalProcessor,

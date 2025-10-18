@@ -6,7 +6,6 @@ import 'package:measure_flutter/src/bug_report/ui/add_image_button.dart';
 import 'package:measure_flutter/src/bug_report/ui/bug_report.dart';
 import 'package:measure_flutter/src/bug_report/ui/bug_report_input.dart';
 import 'package:measure_flutter/src/bug_report/ui/screenshot_list_item.dart';
-import 'package:measure_flutter/src/logger/logger.dart';
 
 import '../utils/fake_config_provider.dart';
 import '../utils/fake_id_provider.dart';
@@ -177,15 +176,6 @@ void main() {
     });
 
     testWidgets('closes screen after sending bug report', (tester) async {
-      final measure = Measure.withMethodChannel(testMethodChannel);
-      await measure.init(
-        () {},
-        clientInfo: ClientInfo(
-          apiKey: "msrsh-123",
-          apiUrl: "https://example.com",
-        ),
-      );
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -219,7 +209,8 @@ void main() {
       await tester.pump();
 
       await tester.tap(find.widgetWithText(TextButton, 'Send'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('Report a Bug'), findsNothing);
       expect(find.text('Open Bug Report'), findsOneWidget);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:measure_flutter/src/gestures/click_data.dart';
+import 'package:measure_flutter/src/gestures/layout_snapshot.dart';
 import 'package:measure_flutter/src/gestures/long_click_data.dart';
 import 'package:measure_flutter/src/gestures/msr_gesture_detector.dart';
 import 'package:measure_flutter/src/gestures/scroll_data.dart';
@@ -10,16 +11,17 @@ void main() {
   group('MsrGestureDetector', () {
     Widget createTestWidget({
       Widget? child,
-      Function(ClickData)? onClick,
-      Function(LongClickData)? onLongClick,
-      Function(ScrollData)? onScroll,
+      Future<void> Function(ClickData, LayoutSnapshot?)? onClick,
+      Future<void> Function(LongClickData, LayoutSnapshot?)? onLongClick,
+      Future<void> Function(ScrollData)? onScroll,
     }) {
       return MaterialApp(
         home: Scaffold(
           body: MsrGestureDetector(
-            onClick: onClick ?? (data) {},
-            onLongClick: onLongClick ?? (data) {},
-            onScroll: onScroll ?? (data) {},
+            onClick: onClick ?? (data, snapshot) async {},
+            onLongClick: onLongClick ?? (data, snapshot) async {},
+            onScroll: onScroll ?? (data) async {},
+            providedWidgetTypes: {},
             child: child ??
                 SizedBox(
                   width: 200,
@@ -52,7 +54,7 @@ void main() {
         final clickEvents = <ClickData>[];
 
         await tester.pumpWidget(createTestWidget(
-          onClick: (data) => clickEvents.add(data),
+          onClick: (data, snapshot) async => clickEvents.add(data),
         ));
 
         // Tap the button
@@ -71,7 +73,7 @@ void main() {
         final clickEvents = <ClickData>[];
 
         await tester.pumpWidget(createTestWidget(
-          onClick: (data) => clickEvents.add(data),
+          onClick: (data, snapshot) async => clickEvents.add(data),
           child: SizedBox(
             width: 200,
             height: 200,
@@ -93,9 +95,10 @@ void main() {
         await tester.pumpWidget(MaterialApp(
           home: Scaffold(
             body: MsrGestureDetector(
-              onClick: (data) => clickEvents.add(data),
-              onLongClick: (data) {},
-              onScroll: (data) {},
+              onClick: (data, snapshot) async => clickEvents.add(data),
+              onLongClick: (data, snapshot) async {},
+              onScroll: (data) async {},
+              providedWidgetTypes: {},
               child: Column(
                 children: [
                   IconButton(
@@ -160,9 +163,10 @@ void main() {
         await tester.pumpWidget(MaterialApp(
           home: Scaffold(
             body: MsrGestureDetector(
-              onClick: (data) => clickEvents.add(data),
-              onLongClick: (data) {},
-              onScroll: (data) {},
+              onClick: (data, snapshot) async => clickEvents.add(data),
+              onLongClick: (data, snapshot) async {},
+              onScroll: (data) async {},
+              providedWidgetTypes: {},
               child: ElevatedButton(
                 onPressed: () {},
                 child: const Text(longText),
@@ -178,6 +182,58 @@ void main() {
         expect(clickEvents.first.targetId, hasLength(32));
         expect(clickEvents.first.targetId, endsWith('...'));
       });
+
+      testWidgets('should detect clicks with providedWidgetTypes',
+          (WidgetTester tester) async {
+        final clickEvents = <ClickData>[];
+
+        // Create a custom widget that's not in the default clickable list
+        Widget customClickableWidget = GestureDetector(
+          key: ValueKey('CustomWidget'),
+          onTap: () {},
+          child: Container(
+            width: 100,
+            height: 100,
+            color: Colors.blue,
+            child: const Text('Custom'),
+          ),
+        );
+
+        await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+            body: MsrGestureDetector(
+              onClick: (data, snapshot) async { clickEvents.add(data); },
+              onLongClick: (data, snapshot) async {},
+              onScroll: (data) async {},
+              providedWidgetTypes: {
+                GestureDetector: 'GestureDetector',
+                Container: 'Container',
+              },
+              child: Column(
+                children: [
+                  customClickableWidget,
+                  ElevatedButton(
+                    onPressed: () {},
+                    child: const Text('Standard Button'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ));
+
+        // Test custom widget with provided type
+        await tester.tap(find.byKey(ValueKey('CustomWidget')));
+        await tester.pump();
+        expect(clickEvents, hasLength(1));
+        expect(clickEvents.last.target, 'GestureDetector');
+
+        // Test standard button still works
+        await tester.tap(find.byType(ElevatedButton));
+        await tester.pump();
+        expect(clickEvents, hasLength(2));
+        expect(clickEvents.last.target, 'ElevatedButton');
+      });
     });
 
     group('Long Click Detection', () {
@@ -188,8 +244,8 @@ void main() {
 
         await tester.pumpWidget(
           createTestWidget(
-            onClick: (data) => clickEvents.add(data),
-            onLongClick: (data) => longClickEvents.add(data),
+            onClick: (data, snapshot) async => clickEvents.add(data),
+            onLongClick: (data, snapshot) async => longClickEvents.add(data),
           ),
         );
 
@@ -210,8 +266,9 @@ void main() {
         );
 
         // Directly test the event handlers
+        final screenSize = MediaQuery.of(tester.element(find.byType(ElevatedButton))).size;
         state.onPointerDown(downEvent);
-        state.onPointerUp(upEvent, 1);
+        state.onPointerUp(upEvent, 1.0, screenSize);
 
         await tester.pumpAndSettle();
 
@@ -229,10 +286,12 @@ void main() {
 
         await tester.pumpWidget(MaterialApp(
           home: Scaffold(
-            body: MsrGestureDetector(
-              onClick: (data) {},
-              onLongClick: (data) {},
-              onScroll: (data) => scrollEvents.add(data),
+            body:
+            MsrGestureDetector(
+              onClick: (data, snapshot) async {},
+              onLongClick: (data, snapshot) async {},
+              onScroll: (data) async => scrollEvents.add(data),
+              providedWidgetTypes: {},
               child: SizedBox(
                 height: 200,
                 child: ListView(
@@ -263,9 +322,10 @@ void main() {
         await tester.pumpWidget(MaterialApp(
           home: Scaffold(
             body: MsrGestureDetector(
-              onClick: (data) {},
-              onLongClick: (data) {},
-              onScroll: (data) => scrollEvents.add(data),
+              onClick: (data, snapshot) async {},
+              onLongClick: (data, snapshot) async {},
+              onScroll: (data) async { scrollEvents.add(data); },
+              providedWidgetTypes: {},
               child: SizedBox(
                 height: 200,
                 child: ListView(
@@ -296,7 +356,7 @@ void main() {
         final scrollEvents = <ScrollData>[];
 
         await tester.pumpWidget(createTestWidget(
-          onScroll: (data) => scrollEvents.add(data),
+          onScroll: (data) async => scrollEvents.add(data),
           child: SizedBox(
             width: 200,
             height: 200,
@@ -318,9 +378,10 @@ void main() {
         await tester.pumpWidget(MaterialApp(
           home: Scaffold(
             body: MsrGestureDetector(
-              onClick: (data) {},
-              onLongClick: (data) {},
-              onScroll: (data) => scrollEvents.add(data),
+              onClick: (data, snapshot) async {},
+              onLongClick: (data, snapshot) async {},
+              onScroll: (data) async { scrollEvents.add(data); },
+              providedWidgetTypes: {},
               child: SizedBox(
                 height: 200,
                 child: ListView(
@@ -354,9 +415,9 @@ void main() {
         final scrollEvents = <ScrollData>[];
 
         await tester.pumpWidget(createTestWidget(
-          onClick: (data) => clickEvents.add(data),
-          onLongClick: (data) => longClickEvents.add(data),
-          onScroll: (data) => scrollEvents.add(data),
+          onClick: (data, snapshot) async => clickEvents.add(data),
+          onLongClick: (data, snapshot) async => longClickEvents.add(data),
+          onScroll: (data) async => scrollEvents.add(data),
         ));
 
         // Start a gesture
@@ -377,7 +438,7 @@ void main() {
         final clickEvents = <ClickData>[];
 
         await tester.pumpWidget(createTestWidget(
-          onClick: (data) => clickEvents.add(data),
+          onClick: (data, snapshot) async => clickEvents.add(data),
         ));
 
         // Start first gesture
@@ -408,11 +469,12 @@ void main() {
         await tester.pumpWidget(MaterialApp(
           home: Scaffold(
             body: MsrGestureDetector(
-              onClick: (data) {
+              onClick: (data, snapshot) async {
                 throw Exception('Test exception');
               },
-              onLongClick: (data) {},
-              onScroll: (data) {},
+              onLongClick: (data, snapshot) async {},
+              onScroll: (data) async {},
+              providedWidgetTypes: {},
               child: ElevatedButton(
                 onPressed: () {},
                 child: const Text('Test Button'),
@@ -440,9 +502,10 @@ void main() {
         await tester.pumpWidget(MaterialApp(
           home: Scaffold(
             body: MsrGestureDetector(
-              onClick: (data) => clickEvents.add(data),
-              onLongClick: (data) {},
-              onScroll: (data) {},
+              onClick: (data, snapshot) async => clickEvents.add(data),
+              onLongClick: (data, snapshot) async {},
+              onScroll: (data) async {},
+              providedWidgetTypes: {},
               child: const SizedBox.shrink(),
             ),
           ),
@@ -464,9 +527,10 @@ void main() {
         await tester.pumpWidget(MaterialApp(
           home: Scaffold(
             body: MsrGestureDetector(
-              onClick: (data) => clickEvents.add(data),
-              onLongClick: (data) {},
-              onScroll: (data) {},
+              onClick: (data, snapshot) async => clickEvents.add(data),
+              onLongClick: (data, snapshot) async {},
+              onScroll: (data) async {},
+              providedWidgetTypes: {},
               child: Column(
                 children: [
                   // Wrap each widget to isolate them properly
@@ -534,9 +598,10 @@ void main() {
         await tester.pumpWidget(MaterialApp(
           home: Scaffold(
             body: MsrGestureDetector(
-              onClick: (data) => clickEvents.add(data),
-              onLongClick: (data) {},
-              onScroll: (data) {},
+              onClick: (data, snapshot) async => clickEvents.add(data),
+              onLongClick: (data, snapshot) async {},
+              onScroll: (data) async {},
+              providedWidgetTypes: {},
               child: IconButton(
                 onPressed: () {},
                 icon: const Icon(Icons.add),
@@ -564,9 +629,10 @@ void main() {
               MaterialApp(
                 home: Scaffold(
                   body: MsrGestureDetector(
-                    onClick: (data) {},
-                    onLongClick: (data) {},
-                    onScroll: (data) => scrollEvents.add(data),
+                    onClick: (data, snapshot) async {},
+                    onLongClick: (data, snapshot) async {},
+                    onScroll: (data) async { scrollEvents.add(data); },
+                    providedWidgetTypes: {},
                     child: SizedBox(
                       height: 300,
                       child: ListView(
@@ -625,9 +691,10 @@ void main() {
               MaterialApp(
                 home: Scaffold(
                   body: MsrGestureDetector(
-                    onClick: (data) {},
-                    onLongClick: (data) {},
-                    onScroll: (data) => scrollEvents.add(data),
+                    onClick: (data, snapshot) async {},
+                    onLongClick: (data, snapshot) async {},
+                    onScroll: (data) async { scrollEvents.add(data); },
+                    providedWidgetTypes: {},
                     child: SizedBox(
                       height: 200,
                       child: ListView(
@@ -687,9 +754,10 @@ void main() {
               MaterialApp(
                 home: Scaffold(
                   body: MsrGestureDetector(
-                    onClick: (data) {},
-                    onLongClick: (data) {},
-                    onScroll: (data) => scrollEvents.add(data),
+                    onClick: (data, snapshot) async {},
+                    onLongClick: (data, snapshot) async {},
+                    onScroll: (data) async { scrollEvents.add(data); },
+                    providedWidgetTypes: {},
                     child: SizedBox(
                       height: 300,
                       child: ListView(
