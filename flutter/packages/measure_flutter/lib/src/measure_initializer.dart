@@ -1,3 +1,4 @@
+import 'package:measure_flutter/src/bug_report/attachment_processing.dart';
 import 'package:measure_flutter/src/bug_report/bug_report_collector.dart';
 import 'package:measure_flutter/src/bug_report/shake_detector.dart';
 import 'package:measure_flutter/src/config/config.dart';
@@ -6,6 +7,7 @@ import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/gestures/gesture_collector.dart';
 import 'package:measure_flutter/src/http/http_collector.dart';
+import 'package:measure_flutter/src/isolate/file_processing_isolate.dart';
 import 'package:measure_flutter/src/logger/flutter_logger.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/method_channel_callbacks.dart';
@@ -43,6 +45,7 @@ final class MeasureInitializer {
   late final Tracer _tracer;
   late final FileStorage _fileStorage;
   late final ShakeDetector _shakeDetector;
+  late final FileProcessingIsolate _fileProcessingIsolate;
 
   Logger get logger => _logger;
 
@@ -80,6 +83,8 @@ final class MeasureInitializer {
 
   ShakeDetector get shakeDetector => _shakeDetector;
 
+  FileProcessingIsolate get fileProcessingIsolate => _fileProcessingIsolate;
+
   MeasureInitializer(MeasureConfig inputConfig) {
     _initializeDependencies(inputConfig);
   }
@@ -99,8 +104,7 @@ final class MeasureInitializer {
         httpUrlAllowlist: inputConfig.httpUrlAllowlist,
         autoInitializeNativeSDK: inputConfig.autoInitializeNativeSDK,
         trackActivityIntentData: inputConfig.trackActivityIntentData,
-        samplingRateForErrorFreeSessions:
-            inputConfig.samplingRateForErrorFreeSessions,
+        samplingRateForErrorFreeSessions: inputConfig.samplingRateForErrorFreeSessions,
         traceSamplingRate: inputConfig.traceSamplingRate,
         trackActivityLoadTime: inputConfig.trackActivityLoadTime,
         trackFragmentLoadTime: inputConfig.trackFragmentLoadTime,
@@ -112,20 +116,25 @@ final class MeasureInitializer {
     final randomizer = RandomizerImpl();
     _idProvider = IdProviderImpl(randomizer);
     _methodChannelCallbacks = MethodChannelCallbacks(_methodChannel, _logger);
-    _signalProcessor =
-        DefaultSignalProcessor(logger: logger, channel: _methodChannel, configProvider: _configProvider);
+    _signalProcessor = DefaultSignalProcessor(logger: logger, channel: _methodChannel, configProvider: _configProvider);
     _screenshotCollector = DefaultScreenshotCollector(
       logger: logger,
       idProvider: _idProvider,
       configProvider: _configProvider,
     );
+    _fileStorage = FileStorage(methodChannel, logger);
+
+    // Create file processing isolate worker
+    _fileProcessingIsolate = FileProcessingIsolate(logger: _logger);
+    // Initialize the global reference for attachment_processing.dart
+    initializeFileProcessingIsolate(_fileProcessingIsolate);
+
     _customEventCollector = CustomEventCollector(
       logger: logger,
       signalProcessor: signalProcessor,
       timeProvider: timeProvider,
       configProvider: configProvider,
     );
-    _fileStorage = FileStorage(methodChannel, logger);
     _exceptionCollector = ExceptionCollector(
       logger: logger,
       signalProcessor: signalProcessor,
@@ -142,7 +151,7 @@ final class MeasureInitializer {
       signalProcessor: signalProcessor,
       configProvider: configProvider,
     );
-    _gestureCollector = GestureCollector(signalProcessor, timeProvider);
+    _gestureCollector = GestureCollector(signalProcessor, timeProvider, _fileStorage, logger, _idProvider);
     _shakeDetector = ShakeDetectorImpl(
       methodChannel: _methodChannel,
       methodChannelCallbacks: methodChannelCallbacks,

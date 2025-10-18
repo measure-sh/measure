@@ -5,8 +5,6 @@ import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/config/config_provider.dart';
 import 'package:measure_flutter/src/exception/exception_data.dart';
 import 'package:measure_flutter/src/exception/exception_factory.dart';
-import 'package:measure_flutter/src/logger/log_level.dart';
-import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 import 'package:measure_flutter/src/screenshot/screenshot_collector.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
@@ -98,8 +96,12 @@ final class ExceptionCollector {
       );
 
       final filePath = result.filePath;
-      final compressedSize = result.compressedSize;
+      final compressedSize = result.size;
       if (filePath != null && compressedSize != null) {
+        logger.log(
+          LogLevel.debug,
+          'ExceptionCollector: Successfully stored screenshot attachment (id: ${screenshot.id}, size: $compressedSize bytes, path: $filePath)',
+        );
         attachments.add(
           MsrAttachment(
             name: screenshot.id,
@@ -109,6 +111,11 @@ final class ExceptionCollector {
             size: compressedSize,
             bytes: null,
           ),
+        );
+      } else {
+        logger.log(
+          LogLevel.debug,
+          'ExceptionCollector: Failed to store screenshot attachment: ${result.error}',
         );
       }
     }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 /// Text configuration for customizing the bug report UI labels and messages.
-/// 
+///
 /// [BugReportText] allows you to customize all user-facing text in the
 /// bug report widget to match your app's tone or support localization.
-/// 
+///
 /// **Example:**
 /// ```dart
 /// final customText = BugReportText(
@@ -63,10 +63,10 @@ class BugReportText {
 }
 
 /// Color configuration for customizing the bug report UI appearance.
-/// 
+///
 /// [BugReportColors] allows you to customize the colors used in the
 /// bug report widget to match your app's brand and design system.
-/// 
+///
 /// **Example:**
 /// ```dart
 /// final customColors = BugReportColors(
@@ -101,10 +101,10 @@ class BugReportColors {
 }
 
 /// Complete theme configuration for the bug report UI.
-/// 
+///
 /// [BugReportTheme] combines text and color customizations to provide
 /// a complete theming solution for the bug report widget.
-/// 
+///
 /// **Example:**
 /// ```dart
 /// final customTheme = BugReportTheme(
@@ -116,7 +116,7 @@ class BugReportColors {
 ///     primaryColor: Theme.of(context).primaryColor,
 ///   ),
 /// );
-/// 
+///
 /// // Use in bug report widget
 /// showDialog(
 ///   context: context,

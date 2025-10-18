@@ -37,6 +37,8 @@ abstract class IMeasureConfig {
   bool get trackViewControllerLoadTime;
 
   int get maxDiskUsageInMb;
+
+  Map<Type, String> get layoutSnapshotWidgetFilter;
 }
 
 /// Configuration class for Measure SDK
@@ -213,6 +215,39 @@ class MeasureConfig implements IMeasureConfig {
   @override
   final int maxDiskUsageInMb;
 
+  /// Specifies which widget types to capture when creating layout snapshots.
+  ///
+  /// Layout snapshots capture the structure of the widget tree at the time of user
+  /// interactions. To keep snapshots manageable, only widgets matching the types in
+  /// this map are included in the captured tree structure.
+  ///
+  /// The map keys are widget Types and the values are their display names. Since
+  /// widget type names can be obfuscated in release builds, you must provide
+  /// explicit display names that will be used in the snapshots.
+  ///
+  /// By default, common Flutter framework widgets (like `Text`, `Container`, `Row`,
+  /// `Column`, etc.) are automatically included. Use this property to add custom
+  /// widget types from your application that you want to track in layout snapshots.
+  ///
+  /// When a widget in the tree matches any type in this map, it will be captured
+  /// along with its position and properties in the snapshot, using the provided
+  /// display name.
+  ///
+  /// Example:
+  ///
+  /// ```dart
+  /// MeasureConfig(
+  ///   layoutSnapshotWidgetTypes: {
+  ///     MyCustomButton: 'MyCustomButton',
+  ///     ProductCard: 'ProductCard',
+  ///     UserProfileWidget: 'UserProfileWidget',
+  ///   }
+  /// )
+  /// ```
+  @override
+  @JsonKey(includeToJson: false, includeFromJson: false)
+  final Map<Type, String> layoutSnapshotWidgetFilter;
+
   /// Creates a new MeasureConfig instance
   const MeasureConfig({
     this.enableLogging = DefaultConfig.enableLogging,
@@ -232,6 +267,7 @@ class MeasureConfig implements IMeasureConfig {
     this.maxDiskUsageInMb = DefaultConfig.maxDiskUsageInMb,
     this.trackViewControllerLoadTime =
         DefaultConfig.trackViewControllerLoadTime,
+    this.layoutSnapshotWidgetFilter = DefaultConfig.layoutSnapshotWidgetFilter,
   })  : assert(
             samplingRateForErrorFreeSessions >= 0.0 &&
                 samplingRateForErrorFreeSessions <= 1.0,

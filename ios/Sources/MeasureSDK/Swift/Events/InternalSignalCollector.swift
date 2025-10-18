@@ -111,7 +111,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     type: .custom,
                     attributes: evaluatedAttributes,
                     sessionId: sessionId,
-                    attachments: nil,
+                    attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName
                 )
@@ -135,7 +135,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     type: .exception,
                     attributes: evaluatedAttributes,
                     sessionId: sessionId,
-                    attachments: nil,
+                    attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName
                 )
@@ -148,7 +148,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     type: .screenView,
                     attributes: evaluatedAttributes,
                     sessionId: sessionId,
-                    attachments: nil,
+                    attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName
                 )
@@ -161,7 +161,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     type: .http,
                     attributes: evaluatedAttributes,
                     sessionId: sessionId,
-                    attachments: nil,
+                    attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName
                 )

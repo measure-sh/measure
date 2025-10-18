@@ -1,3 +1,8 @@
+import 'package:json_annotation/json_annotation.dart';
+
 enum AttachmentType {
-  screenshot
+  @JsonValue('screenshot')
+  screenshot,
+  @JsonValue('layout_snapshot_json')
+  layoutSnapshotJson,
 }
