@@ -95,19 +95,13 @@ migrate_postgres_database() {
   echo "Migrating postgres database..."
   start_postgres_service
 
-  if ! $DOCKER_COMPOSE exec -T postgres psql -q -v ON_ERROR_STOP=1 -U postgres -d postgres <<-EOF
-  do \$\$
-  begin
-    if not exists (select 1 from pg_database where datname = 'measure') then
-      create database measure with template postgres;
-    end if;
-  end
-  \$\$;
-EOF
-  then
-    echo "Error: Failed to create or verify 'measure' database." >&2
-    shutdown_postgres_service
-    return 1
+  # create the database if it doesn't exist
+  if ! $DOCKER_COMPOSE exec -T postgres psql -q -U postgres -d postgres -t -c "select 1 from pg_database where datname = 'measure'" | grep -q 1; then
+    if ! $DOCKER_COMPOSE exec -T postgres psql -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c "create database measure with template postgres;"; then
+      echo "Error: Failed to create 'measure' database." >&2
+      shutdown_postgres_service
+      return 1
+    fi
   fi
 
   if ! $DOCKER_COMPOSE exec -T postgres psql -q -v ON_ERROR_STOP=1 -U postgres -d measure <<-EOF
