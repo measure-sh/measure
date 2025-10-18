@@ -170,7 +170,8 @@ class FakeMeasure implements MeasureApi {
   }
 
   @override
-  Future<void> trackLongClick(LongClickData longClickData, LayoutSnapshot? snapshot) async {
+  Future<void> trackLongClick(
+      LongClickData longClickData, LayoutSnapshot? snapshot) async {
     throw UnimplementedError();
   }
 

@@ -104,7 +104,8 @@ class BugReportCollector {
             ),
           );
         } else {
-          _logger.log(LogLevel.error, "BugReportCollector: Failed to process attachment: ${result.error}");
+          _logger.log(LogLevel.error,
+              "BugReportCollector: Failed to process attachment: ${result.error}");
         }
       }
 

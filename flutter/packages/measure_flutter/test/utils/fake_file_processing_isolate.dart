@@ -6,7 +6,6 @@ import 'package:measure_flutter/src/isolate/file_processing_isolate.dart';
 class FakeFileProcessingIsolate implements FileProcessingIsolate {
   bool shouldReturnError = false;
   bool shouldThrowException = false;
-  int _fileCounter = 0;
 
   @override
   Future<void> init() async {
@@ -32,9 +31,7 @@ class FakeFileProcessingIsolate implements FileProcessingIsolate {
       return const FileProcessingResult(error: 'Write failed');
     }
 
-    _fileCounter++;
     final filePath = '$rootPath/$fileName';
-    // Simulate serializing to JSON
     final jsonString = snapshot.toJson().toString();
     final size = jsonString.length;
 

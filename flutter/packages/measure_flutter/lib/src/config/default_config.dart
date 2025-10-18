@@ -1,5 +1,3 @@
-
-
 class DefaultConfig {
   static const bool enableLogging = false;
   static const bool trackScreenshotOnCrash = false;

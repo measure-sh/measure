@@ -159,7 +159,7 @@ packages:
     source: sdk
     version: "0.0.0"
   flutter_driver:
-    dependency: transitive
+    dependency: "direct dev"
     description: flutter
     source: sdk
     version: "0.0.0"

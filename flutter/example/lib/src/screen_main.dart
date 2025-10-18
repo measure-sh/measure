@@ -53,7 +53,7 @@ class _MainScreenState extends State<MainScreen> with MsrShakeDetectorMixin {
                     });
                     _onTrackingToggle(_isTrackingEnabled);
                   },
-                  activeColor: Colors.white,
+                  activeThumbColor: Colors.white,
                   activeTrackColor: Colors.white30,
                   inactiveThumbColor: Colors.white70,
                   inactiveTrackColor: Colors.white12,

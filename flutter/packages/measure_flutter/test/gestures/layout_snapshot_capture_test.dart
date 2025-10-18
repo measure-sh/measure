@@ -100,7 +100,8 @@ void main() {
       );
 
       final element = tester.element(find.byType(MaterialApp));
-      final buttonCenter = tester.getCenter(find.byKey(const ValueKey('test-button')));
+      final buttonCenter =
+          tester.getCenter(find.byKey(const ValueKey('test-button')));
 
       final result = LayoutSnapshotCapture.captureTree(
         element,
@@ -113,7 +114,8 @@ void main() {
       expect(result.detectedElementType, equals('ElevatedButton'));
 
       // The detected button should be highlighted in the tree
-      final buttonSnapshot = _findWidgetByType(result.snapshot, 'ElevatedButton');
+      final buttonSnapshot =
+          _findWidgetByType(result.snapshot, 'ElevatedButton');
       expect(buttonSnapshot, isNotNull);
       expect(buttonSnapshot!.highlighted, isTrue);
     });
@@ -169,7 +171,8 @@ void main() {
       final result = LayoutSnapshotCapture.captureTree(element);
 
       expect(result, isNotNull);
-      final buttonSnapshot = _findWidgetByType(result!.snapshot, 'ElevatedButton');
+      final buttonSnapshot =
+          _findWidgetByType(result!.snapshot, 'ElevatedButton');
       expect(buttonSnapshot, isNotNull);
       expect(buttonSnapshot!.id, equals('my-button-id'));
     });
@@ -181,19 +184,17 @@ void main() {
           home: Scaffold(
             body: Column(
               children: [
-                Container(
-                  child: Row(
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {},
-                        child: const Text('Button 1'),
-                      ),
-                      IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.star),
-                      ),
-                    ],
-                  ),
+                Row(
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {},
+                      child: const Text('Button 1'),
+                    ),
+                    IconButton(
+                      onPressed: () {},
+                      icon: const Icon(Icons.star),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -241,7 +242,8 @@ void main() {
       );
 
       final element = tester.element(find.byType(MaterialApp));
-      final button1Rect = tester.getRect(find.byKey(const ValueKey('button-1')));
+      final button1Rect =
+          tester.getRect(find.byKey(const ValueKey('button-1')));
 
       // Only capture widgets in the top portion of the screen
       final screenBounds = Rect.fromLTWH(0, 0, 400, button1Rect.bottom + 10);
@@ -319,7 +321,7 @@ void main() {
                 ),
               ),
             ],
-            onPopPage: (route, result) => false,
+            onDidRemovePage: (page) => false,
           ),
         ),
       );
@@ -355,7 +357,8 @@ void main() {
       final result = LayoutSnapshotCapture.captureTree(element);
 
       expect(result, isNotNull);
-      final buttonSnapshot = _findWidgetByType(result!.snapshot, 'ElevatedButton');
+      final buttonSnapshot =
+          _findWidgetByType(result!.snapshot, 'ElevatedButton');
 
       expect(buttonSnapshot, isNotNull);
       expect(buttonSnapshot!.width, greaterThan(0));
@@ -413,7 +416,7 @@ void main() {
                 ),
               ),
             ],
-            onPopPage: (route, result) => false,
+            onDidRemovePage: (page) => false,
           ),
         ),
       );

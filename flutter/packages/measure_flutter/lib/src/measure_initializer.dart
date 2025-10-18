@@ -71,7 +71,8 @@ final class MeasureInitializer {
 
   ScreenshotCollector get screenshotCollector => _screenshotCollector;
 
-  LayoutSnapshotCollector get layoutSnapshotCollector => _layoutSnapshotCollector;
+  LayoutSnapshotCollector get layoutSnapshotCollector =>
+      _layoutSnapshotCollector;
 
   SignalProcessor get signalProcessor => _signalProcessor;
 
@@ -121,8 +122,10 @@ final class MeasureInitializer {
     final randomizer = RandomizerImpl();
     _idProvider = IdProviderImpl(randomizer);
     _methodChannelCallbacks = MethodChannelCallbacks(_methodChannel, _logger);
-    _signalProcessor =
-        DefaultSignalProcessor(logger: logger, channel: _methodChannel, configProvider: _configProvider);
+    _signalProcessor = DefaultSignalProcessor(
+        logger: logger,
+        channel: _methodChannel,
+        configProvider: _configProvider);
     _screenshotCollector = DefaultScreenshotCollector(
       logger: logger,
       idProvider: _idProvider,

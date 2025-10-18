@@ -54,7 +54,7 @@ class FakeSignalProcessor implements SignalProcessor {
       threadName: threadName,
       attachments: attachments,
     ));
-    
+
     if (data is ExceptionData) {
       trackedExceptions.add(data);
     }

@@ -46,7 +46,8 @@ void main() {
       try {
         await autoStartMeasure.init();
 
-        expect(autoStartMeasure.initializer.exceptionCollector.isEnabled(), true);
+        expect(
+            autoStartMeasure.initializer.exceptionCollector.isEnabled(), true);
         expect(autoStartMeasure.initializer.bugReportCollector.isEnabled, true);
       } finally {
         await autoStartMeasure.unregisterCollectors();
@@ -66,18 +67,21 @@ void main() {
       await measureInternal.registerCollectors();
 
       expect(measureInternal.initializer.exceptionCollector.isEnabled(), true);
-      expect(measureInternal.initializer.customEventCollector.isEnabled(), true);
+      expect(
+          measureInternal.initializer.customEventCollector.isEnabled(), true);
       expect(measureInternal.initializer.bugReportCollector.isEnabled, true);
     });
 
-    test('unregisterCollectors unregisters all collectors and disposes isolate', () async {
+    test('unregisterCollectors unregisters all collectors and disposes isolate',
+        () async {
       await measureInternal.registerCollectors();
       expect(measureInternal.initializer.exceptionCollector.isEnabled(), true);
 
       await measureInternal.unregisterCollectors();
 
       expect(measureInternal.initializer.exceptionCollector.isEnabled(), false);
-      expect(measureInternal.initializer.customEventCollector.isEnabled(), false);
+      expect(
+          measureInternal.initializer.customEventCollector.isEnabled(), false);
       expect(measureInternal.initializer.bugReportCollector.isEnabled, false);
     });
 
@@ -103,7 +107,8 @@ void main() {
       expect(measureInternal.initializer.exceptionCollector.isEnabled(), true);
     });
 
-    test('file processing isolate is accessible after registerCollectors', () async {
+    test('file processing isolate is accessible after registerCollectors',
+        () async {
       await measureInternal.registerCollectors();
 
       final isolate = measureInternal.initializer.fileProcessingIsolate;

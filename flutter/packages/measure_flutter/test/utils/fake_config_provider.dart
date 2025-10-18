@@ -37,7 +37,8 @@ class FakeConfigProvider implements ConfigProvider {
   bool get autoInitializeNativeSDK => _autoInitializeNativeSDK;
 
   @override
-  List<String> get defaultHttpContentTypeAllowlist => _defaultHttpContentTypeAllowlist;
+  List<String> get defaultHttpContentTypeAllowlist =>
+      _defaultHttpContentTypeAllowlist;
 
   @override
   List<String> get defaultHttpHeadersBlocklist => _defaultHttpHeadersBlocklist;
@@ -67,7 +68,8 @@ class FakeConfigProvider implements ConfigProvider {
   int get maxSpanNameLength => _maxSpanNameLength;
 
   @override
-  double get samplingRateForErrorFreeSessions => _samplingRateForErrorFreeSessions;
+  double get samplingRateForErrorFreeSessions =>
+      _samplingRateForErrorFreeSessions;
 
   @override
   double get traceSamplingRate => _traceSamplingRate;
@@ -109,7 +111,8 @@ class FakeConfigProvider implements ConfigProvider {
   int get maxDiskUsageInMb => _maxDiskUsageInMb;
 
   @override
-  int get maxUserDefinedAttributeValueLength => _maxUserDefinedAttributeValueLength;
+  int get maxUserDefinedAttributeValueLength =>
+      _maxUserDefinedAttributeValueLength;
 
   @override
   int get maxUserDefinedAttributeKeyLength => _maxUserDefinedAttributeKeyLength;
@@ -123,9 +126,11 @@ class FakeConfigProvider implements ConfigProvider {
   // Setters
   set autoInitializeNativeSDK(bool value) => _autoInitializeNativeSDK = value;
 
-  set defaultHttpContentTypeAllowlist(List<String> value) => _defaultHttpContentTypeAllowlist = value;
+  set defaultHttpContentTypeAllowlist(List<String> value) =>
+      _defaultHttpContentTypeAllowlist = value;
 
-  set defaultHttpHeadersBlocklist(List<String> value) => _defaultHttpHeadersBlocklist = value;
+  set defaultHttpHeadersBlocklist(List<String> value) =>
+      _defaultHttpHeadersBlocklist = value;
 
   set enableLogging(bool value) => _enableLogging = value;
 
@@ -146,7 +151,8 @@ class FakeConfigProvider implements ConfigProvider {
 
   set maxSpanNameLength(int value) => _maxSpanNameLength = value;
 
-  set samplingRateForErrorFreeSessions(double value) => _samplingRateForErrorFreeSessions = value;
+  set samplingRateForErrorFreeSessions(double value) =>
+      _samplingRateForErrorFreeSessions = value;
 
   set traceSamplingRate(double value) => _traceSamplingRate = value;
 
@@ -160,15 +166,19 @@ class FakeConfigProvider implements ConfigProvider {
 
   set trackHttpHeaders(bool value) => _trackHttpHeaders = value;
 
-  set trackViewControllerLoadTime(bool value) => _trackViewControllerLoadTime = value;
+  set trackViewControllerLoadTime(bool value) =>
+      _trackViewControllerLoadTime = value;
 
   set autoStart(bool value) => _autoStart = value;
 
-  set maxAttachmentsInBugReport(int value) => _maxAttachmentsInBugReport = value;
+  set maxAttachmentsInBugReport(int value) =>
+      _maxAttachmentsInBugReport = value;
 
-  set maxDescriptionLengthInBugReport(int value) => _maxDescriptionLengthInBugReport = value;
+  set maxDescriptionLengthInBugReport(int value) =>
+      _maxDescriptionLengthInBugReport = value;
 
-  set screenshotCompressionQuality(int value) => _screenshotCompressionQuality = value;
+  set screenshotCompressionQuality(int value) =>
+      _screenshotCompressionQuality = value;
 
   set customEventNameRegex(String value) => _customEventNameRegex = value;
 
@@ -176,13 +186,17 @@ class FakeConfigProvider implements ConfigProvider {
 
   set maxDiskUsageInMb(int value) => _maxDiskUsageInMb = value;
 
-  set maxUserDefinedAttributeValueLength(int value) => _maxUserDefinedAttributeValueLength = value;
+  set maxUserDefinedAttributeValueLength(int value) =>
+      _maxUserDefinedAttributeValueLength = value;
 
-  set maxUserDefinedAttributeKeyLength(int value) => _maxUserDefinedAttributeKeyLength = value;
+  set maxUserDefinedAttributeKeyLength(int value) =>
+      _maxUserDefinedAttributeKeyLength = value;
 
-  set maxUserDefinedAttributesPerEvent(int value) => _maxUserDefinedAttributesPerEvent = value;
+  set maxUserDefinedAttributesPerEvent(int value) =>
+      _maxUserDefinedAttributesPerEvent = value;
 
-  set layoutSnapshotWidgetTypes(Map<Type, String> value) => _layoutSnapshotWidgetTypes = value;
+  set layoutSnapshotWidgetTypes(Map<Type, String> value) =>
+      _layoutSnapshotWidgetTypes = value;
 
   // Methods
   @override
@@ -192,7 +206,8 @@ class FakeConfigProvider implements ConfigProvider {
 
   @override
   bool shouldTrackHttpHeader(String key) {
-    return _trackHttpHeaders && !_httpHeadersBlocklist.contains(key.toLowerCase());
+    return _trackHttpHeaders &&
+        !_httpHeadersBlocklist.contains(key.toLowerCase());
   }
 
   @override

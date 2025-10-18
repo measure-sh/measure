@@ -265,15 +265,21 @@ class MeasureConfig implements IMeasureConfig {
     this.trackActivityLoadTime = DefaultConfig.trackActivityLoadTime,
     this.trackFragmentLoadTime = DefaultConfig.trackFragmentLoadTime,
     this.maxDiskUsageInMb = DefaultConfig.maxDiskUsageInMb,
-    this.trackViewControllerLoadTime = DefaultConfig.trackViewControllerLoadTime,
+    this.trackViewControllerLoadTime =
+        DefaultConfig.trackViewControllerLoadTime,
     this.layoutSnapshotWidgetTypes = DefaultConfig.layoutSnapshotWidgetTypes,
-  })  : assert(samplingRateForErrorFreeSessions >= 0.0 && samplingRateForErrorFreeSessions <= 1.0,
+  })  : assert(
+            samplingRateForErrorFreeSessions >= 0.0 &&
+                samplingRateForErrorFreeSessions <= 1.0,
             'session sampling rate must be between 0.0 and 1.0'),
-        assert(traceSamplingRate >= 0.0 && traceSamplingRate <= 1.0, 'Trace sampling rate must be between 0.0 and 1.0'),
-        assert(maxDiskUsageInMb >= 20 && maxDiskUsageInMb <= 1500, 'maxDiskUsageInMb must be between 20 - 1500');
+        assert(traceSamplingRate >= 0.0 && traceSamplingRate <= 1.0,
+            'Trace sampling rate must be between 0.0 and 1.0'),
+        assert(maxDiskUsageInMb >= 20 && maxDiskUsageInMb <= 1500,
+            'maxDiskUsageInMb must be between 20 - 1500');
 
   /// Creates a new MeasureConfig instance from a JSON map
-  factory MeasureConfig.fromJson(Map<String, dynamic> json) => _$MeasureConfigFromJson(json);
+  factory MeasureConfig.fromJson(Map<String, dynamic> json) =>
+      _$MeasureConfigFromJson(json);
 
   /// Creates a new MeasureConfig instance from a JSON map.
   Map<String, dynamic> toJson() => _$MeasureConfigToJson(this);

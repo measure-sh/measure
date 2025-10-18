@@ -96,7 +96,8 @@ abstract class MeasureApi {
 
   Future<void> trackClick(ClickData clickData, LayoutSnapshot? snapshot);
 
-  Future<void> trackLongClick(LongClickData longClickData, LayoutSnapshot? snapshot);
+  Future<void> trackLongClick(
+      LongClickData longClickData, LayoutSnapshot? snapshot);
 
   Future<void> trackScroll(ScrollData scrollData);
 
