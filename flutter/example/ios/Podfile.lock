@@ -4,12 +4,12 @@ PODS:
     - Flutter
   - integration_test (0.0.1):
     - Flutter
-  - measure-sh (0.5.1):
-    - PLCrashReporter
+  - measure-sh (0.6.0):
+    - PLCrashReporter (= 1.11.2)
   - measure_flutter (0.0.1):
     - Flutter
-    - measure-sh (= 0.5.1)
-  - PLCrashReporter (1.12.0)
+    - measure-sh
+  - PLCrashReporter (1.11.2)
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
@@ -35,13 +35,13 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/measure_flutter/ios"
 
 SPEC CHECKSUMS:
-  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   image_picker_ios: c560581cceedb403a6ff17f2f816d7fea1421fc1
   integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
-  measure-sh: 8df346a46f130cfb93fa2d49f3787d24e3b7c026
-  measure_flutter: 6310bd2cfa3b313c218ebd91811b4146f5854b41
-  PLCrashReporter: db59ef96fa3d25f3650040d02ec2798cffee75f2
+  measure-sh: 1aa3cec697400a05f82f34b3e6ba21cb6dac1ef6
+  measure_flutter: 0c0e3800e6aaa4bd153d13b4cf0b2d15e7a3e3f1
+  PLCrashReporter: 499c53b0104f95c302d94fd723ebb03c56d9bac8
 
-PODFILE CHECKSUM: 3cb20a85f541529366cc657f7ec57a839ce22ff1
+PODFILE CHECKSUM: dffbadd7b7e96b7c7b59224b1d5faba2eedb1358
 
 COCOAPODS: 1.16.2

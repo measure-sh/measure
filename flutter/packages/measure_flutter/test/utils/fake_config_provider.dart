@@ -30,6 +30,7 @@ class FakeConfigProvider implements ConfigProvider {
   int _maxUserDefinedAttributeValueLength = 100;
   int _maxUserDefinedAttributeKeyLength = 256;
   int _maxUserDefinedAttributesPerEvent = 256;
+  Map<Type, String> _layoutSnapshotWidgetTypes = {};
 
   // Getters
   @override
@@ -110,13 +111,17 @@ class FakeConfigProvider implements ConfigProvider {
   int get maxDiskUsageInMb => _maxDiskUsageInMb;
 
   @override
-  int get maxUserDefinedAttributeValueLength => _maxUserDefinedAttributeValueLength;
+  int get maxUserDefinedAttributeValueLength =>
+      _maxUserDefinedAttributeValueLength;
 
   @override
   int get maxUserDefinedAttributeKeyLength => _maxUserDefinedAttributeKeyLength;
 
   @override
   int get maxUserDefinedAttributesPerEvent => _maxUserDefinedAttributesPerEvent;
+
+  @override
+  Map<Type, String> get layoutSnapshotWidgetTypes => _layoutSnapshotWidgetTypes;
 
   // Setters
   set autoInitializeNativeSDK(bool value) => _autoInitializeNativeSDK = value;
@@ -181,11 +186,17 @@ class FakeConfigProvider implements ConfigProvider {
 
   set maxDiskUsageInMb(int value) => _maxDiskUsageInMb = value;
 
-  set maxUserDefinedAttributeValueLength(int value) => _maxUserDefinedAttributeValueLength = value;
+  set maxUserDefinedAttributeValueLength(int value) =>
+      _maxUserDefinedAttributeValueLength = value;
 
-  set maxUserDefinedAttributeKeyLength(int value) => _maxUserDefinedAttributeKeyLength = value;
+  set maxUserDefinedAttributeKeyLength(int value) =>
+      _maxUserDefinedAttributeKeyLength = value;
 
-  set maxUserDefinedAttributesPerEvent(int value) => _maxUserDefinedAttributesPerEvent = value;
+  set maxUserDefinedAttributesPerEvent(int value) =>
+      _maxUserDefinedAttributesPerEvent = value;
+
+  set layoutSnapshotWidgetTypes(Map<Type, String> value) =>
+      _layoutSnapshotWidgetTypes = value;
 
   // Methods
   @override

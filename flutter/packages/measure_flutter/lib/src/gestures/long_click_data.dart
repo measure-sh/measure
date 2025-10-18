@@ -17,16 +17,15 @@ class LongClickData implements JsonSerialized {
   final int? width;
   final int? height;
 
-  LongClickData({
-    required this.target,
-    this.targetId,
-    required this.x,
-    required this.y,
-    required this.touchDownTime,
-    required this.touchUpTime,
-    this.width,
-    this.height
-  });
+  LongClickData(
+      {required this.target,
+      this.targetId,
+      required this.x,
+      required this.y,
+      required this.touchDownTime,
+      required this.touchUpTime,
+      this.width,
+      this.height});
 
   @override
   Map<String, dynamic> toJson() => _$LongClickDataToJson(this);

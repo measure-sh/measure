@@ -6,20 +6,24 @@ import 'package:measure_flutter_example/src/screen_main.dart';
 
 Future<void> main() async {
   await Measure.instance.init(
-        () => runApp(MeasureWidget(child: MyApp())),
+    () => runApp(MeasureWidget(child: MyApp())),
     config: const MeasureConfig(
-      enableLogging: true,
-      trackScreenshotOnCrash: true,
-      trackHttpHeaders: true,
-      trackHttpBody: true,
-      httpUrlBlocklist: ['http://localhost'],
-      autoStart: true,
-      traceSamplingRate: 1,
-      samplingRateForErrorFreeSessions: 1,
-    ),
+        enableLogging: true,
+        trackScreenshotOnCrash: true,
+        trackHttpHeaders: true,
+        trackHttpBody: true,
+        httpUrlBlocklist: ['http://localhost'],
+        autoStart: true,
+        traceSamplingRate: 1,
+        samplingRateForErrorFreeSessions: 1,
+        layoutSnapshotWidgetTypes: {
+          MyApp: 'MyApp',
+          MainScreen: 'MainScreen',
+        }),
     clientInfo: ClientInfo(
-      apiKey: "msrsh-123",
-      apiUrl: "http://localhost:8080",
+      apiKey:
+          "msrsh_0c89033fc9ca86c29ba0300452d65ee441a60aac5adc7c5ee2d5057ebcbb4133_2d215ff0",
+      apiUrl: "https://staging-ingest.measure.sh",
     ),
   );
 }
