@@ -7,7 +7,6 @@ export function isMeasureHost(): boolean {
         const { host } = new URL(url);
         return host === 'measure.sh' || host === 'staging.measure.sh';
     } catch (error) {
-        console.error('Invalid URL:', error);
         return false;
     }
 }

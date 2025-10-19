@@ -1,17 +1,7 @@
 import { isMeasureHost } from '@/app/utils/url_utils';
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 
 describe('isMeasureHost', () => {
-    let consoleErrorSpy: jest.SpiedFunction<typeof console.error>;
-
-    beforeEach(() => {
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
-    });
-
-    afterEach(() => {
-        consoleErrorSpy.mockRestore();
-    });
-
     it('should return true for measure.sh', () => {
         delete (global as any).window;
         (global as any).window = {
