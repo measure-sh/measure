@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useScrollDirection } from "../utils/scroll_utils";
 import { cn } from "../utils/shadcn_utils";
+import { isMeasureHost } from "../utils/url_utils";
 import { buttonVariants } from "./button";
 
 export default function LandingHeader() {
@@ -36,15 +37,15 @@ export default function LandingHeader() {
           />
         </button>
         <div className="py-2 md:py-0 md:flex md:grow" />
-        <Link href="https://github.com/measure-sh/measure" className={cn(buttonVariants({ variant: "outline" }), "font-display border border-black rounded-md select-none")}>
+        {isMeasureHost() && <Link href="https://github.com/measure-sh/measure" className={cn(buttonVariants({ variant: "outline" }), "font-display border border-black rounded-md select-none")}>
           <Image
             src='/images/github_logo.svg'
             width={16}
             height={16}
             alt={'Github logo'} />
           <p className='mt-1'>Self Host</p>
-        </Link>
-        <div className="px-2" />
+        </Link>}
+        {isMeasureHost() && <div className="px-2" />}
         <Link
           href="/auth/login"
           className={cn(
