@@ -1,6 +1,7 @@
 'use client'
 
 import { measureAuth, MeasureAuthSession } from "@/app/auth/measure_auth"
+import { isMeasureHost } from "@/app/utils/url_utils"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { posthog } from "posthog-js"
@@ -53,7 +54,7 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
       <div className="my-6 place-content-end" style={{ width: "400px" }}>
         {!loading && !session && !error && !message && <GitHubSignIn />}
       </div>
-      <p className="p-2 my-4 text-sm font-display text-gray-500">
+      {isMeasureHost() && <p className="p-2 my-4 text-sm font-display text-gray-500">
         Measure cloud is in limited to alpha users at the moment. Please{" "}
         <Link
           target="_blank"
@@ -63,7 +64,7 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
           contact us
         </Link>{" "}
         if you&apos;d like to be a part of it!
-      </p>
+      </p>}
       <Messages />
     </div>
   )

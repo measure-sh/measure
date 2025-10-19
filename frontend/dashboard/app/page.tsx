@@ -10,6 +10,7 @@ import { buttonVariants } from './components/button'
 import LandingHeader from './components/landing_header'
 import VideoPlayButton from './components/video_play_button'
 import { cn } from './utils/shadcn_utils'
+import { isMeasureHost } from './utils/url_utils'
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
 
@@ -269,15 +270,15 @@ export default function Home() {
         <p className="font-body text-black text-lg leading-relaxed max-w-4xl text-center">Let&apos;s get to the root cause...</p>
         <div className="py-2" />
         <div className='flex flex-row items-center'>
-          <Link href="https://github.com/measure-sh/measure" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "m-4 font-display border border-black rounded-md select-none")}>
+          {isMeasureHost() && <Link href="https://github.com/measure-sh/measure" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "m-4 font-display border border-black rounded-md select-none")}>
             <Image
               src='/images/github_logo.svg'
               width={16}
               height={16}
               alt={'Github logo'} />
             <p className='mt-1'>Self Host</p>
-          </Link>
-          <div className="px-2" />
+          </Link>}
+          {isMeasureHost() && <div className="px-2" />}
           <Link
             href="/auth/login"
             className={cn(
