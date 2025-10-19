@@ -1,0 +1,6 @@
+targets:
+  $default:
+    builders:
+      msr_build:widget_analyzer:
+        options:
+          widgets_output_path: lib/src/msr/msr_widgets.g.dart

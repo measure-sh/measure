@@ -45,6 +45,9 @@ class LayoutSnapshotCapture {
   /// If [detectionPosition] and [detectionMode] are provided, the element at that position
   /// will be detected and returned in the result. The detected element will also be marked
   /// as highlighted (if clickable) in the tree.
+  ///
+  /// If [providedWidgetsTypes] is provided and not empty, ONLY those widget types will be included
+  /// in the snapshot (framework widgets are excluded). If null or empty, framework widgets are used.
   static LayoutSnapshotCaptureResult? captureTree(
     Element? rootElement, {
     Rect? screenBounds,
@@ -160,8 +163,11 @@ class LayoutSnapshotCapture {
     // Check if this element should be included in the snapshot (for tree inclusion)
     if (renderObject is RenderBox && renderObject.hasSize) {
       // Check if this is the detected element or if it matches the filter
-      final widgetType = _getFrameworkWidget(widget) ??
-          _getUserProvidedWidget(widget, providedWidgetsTypes);
+      // If providedWidgetsTypes is provided and not empty, use it exclusively.
+      // Otherwise, fall back to framework widgets.
+      final widgetType = (providedWidgetsTypes != null && providedWidgetsTypes.isNotEmpty)
+          ? _getUserProvidedWidget(widget, providedWidgetsTypes)
+          : _getFrameworkWidget(widget);
       final isDetectedElement = (context?.detectedElement == element);
 
       // Include if it matches filter OR if it's the detected element

@@ -428,6 +428,154 @@ void main() {
       expect(result!.snapshot.widgetName, equals('CupertinoPageScaffold'));
       expect(result.snapshot.id, equals('topmost-scaffold'));
     });
+
+    testWidgets('uses framework widgets when providedWidgetsTypes is null',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                ElevatedButton(
+                  onPressed: () {},
+                  child: const Text('Button'),
+                ),
+                const Text('Text content'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final element = tester.element(find.byType(MaterialApp));
+      final result = LayoutSnapshotCapture.captureTree(
+        element,
+        providedWidgetsTypes: null,
+      );
+
+      expect(result, isNotNull);
+      // Framework widgets should be included
+      expect(_containsWidgetType(result!.snapshot, 'ElevatedButton'), isTrue);
+      expect(_containsWidgetType(result.snapshot, 'Text'), isTrue);
+      expect(_containsWidgetType(result.snapshot, 'Column'), isTrue);
+    });
+
+    testWidgets('uses framework widgets when providedWidgetsTypes is empty',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                ElevatedButton(
+                  onPressed: () {},
+                  child: const Text('Button'),
+                ),
+                const Text('Text content'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final element = tester.element(find.byType(MaterialApp));
+      final result = LayoutSnapshotCapture.captureTree(
+        element,
+        providedWidgetsTypes: {},
+      );
+
+      expect(result, isNotNull);
+      // Framework widgets should be included
+      expect(_containsWidgetType(result!.snapshot, 'ElevatedButton'), isTrue);
+      expect(_containsWidgetType(result.snapshot, 'Text'), isTrue);
+      expect(_containsWidgetType(result.snapshot, 'Column'), isTrue);
+    });
+
+    testWidgets(
+        'uses only providedWidgetsTypes when provided (excludes framework widgets)',
+        (WidgetTester tester) async {
+      // Create a custom widget
+      final customWidget = _CustomWidget(key: const ValueKey('custom-widget'));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                ElevatedButton(
+                  onPressed: () {},
+                  child: const Text('Button'),
+                ),
+                const Text('Text content'),
+                customWidget,
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final element = tester.element(find.byType(MaterialApp));
+      final result = LayoutSnapshotCapture.captureTree(
+        element,
+        providedWidgetsTypes: {
+          _CustomWidget: 'CustomWidget',
+        },
+      );
+
+      expect(result, isNotNull);
+      // Only custom widget should be included
+      expect(_containsWidgetType(result!.snapshot, 'CustomWidget'), isTrue);
+
+      // Framework widgets should be excluded
+      expect(_containsWidgetType(result.snapshot, 'ElevatedButton'), isFalse);
+      expect(_containsWidgetType(result.snapshot, 'Text'), isFalse);
+      expect(_containsWidgetType(result.snapshot, 'Column'), isFalse);
+    });
+
+    testWidgets(
+        'includes multiple custom widgets when providedWidgetsTypes has multiple entries',
+        (WidgetTester tester) async {
+      final customWidget1 =
+          _CustomWidget(key: const ValueKey('custom-widget-1'));
+      final customWidget2 =
+          _AnotherCustomWidget(key: const ValueKey('custom-widget-2'));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                ElevatedButton(
+                  onPressed: () {},
+                  child: const Text('Button'),
+                ),
+                customWidget1,
+                customWidget2,
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final element = tester.element(find.byType(MaterialApp));
+      final result = LayoutSnapshotCapture.captureTree(
+        element,
+        providedWidgetsTypes: {
+          _CustomWidget: 'CustomWidget',
+          _AnotherCustomWidget: 'AnotherCustomWidget',
+        },
+      );
+
+      expect(result, isNotNull);
+      // Both custom widgets should be included
+      expect(_containsWidgetType(result!.snapshot, 'CustomWidget'), isTrue);
+      expect(
+          _containsWidgetType(result.snapshot, 'AnotherCustomWidget'), isTrue);
+
+      // Framework widgets should be excluded
+      expect(_containsWidgetType(result.snapshot, 'ElevatedButton'), isFalse);
+      expect(_containsWidgetType(result.snapshot, 'Column'), isFalse);
+    });
   });
 
   group('LayoutSnapshot', () {
@@ -539,4 +687,31 @@ LayoutSnapshot? _findWidgetById(LayoutSnapshot snapshot, String id) {
     }
   }
   return null;
+}
+
+// Custom test widgets for testing providedWidgetsTypes
+class _CustomWidget extends StatelessWidget {
+  const _CustomWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 100,
+      height: 100,
+      color: Colors.blue,
+    );
+  }
+}
+
+class _AnotherCustomWidget extends StatelessWidget {
+  const _AnotherCustomWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 100,
+      height: 100,
+      color: Colors.red,
+    );
+  }
 }
