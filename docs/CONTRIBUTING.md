@@ -21,7 +21,7 @@
 - Docker Compose >= 2.27.3
 - Node LTS
 
-After cloning the repostiory, run the following commands for the best contribution experience. All core maintainers **MUST** follow these steps.
+After cloning the repository, run the following commands for the best contribution experience. All core maintainers **MUST** follow these steps.
 
 > [!NOTE]
 >
@@ -51,7 +51,7 @@ Next, run `./config.sh`
 ./config.sh
 ```
 
-This will start the configuration wizard and prepre all the environment variable files tuned for local development.
+This will start the configuration wizard and prepare all the environment variable files tuned for local development.
 
 ### Start services
 
@@ -65,7 +65,7 @@ docker compose --profile migrate up
 >
 > #### About Compose Profiles
 >
-> The `migrate` profiles are idempotent in nature. You can use it everytime, though for subsequent runs you may choose to skip them.
+> The `migrate` profiles are idempotent in nature. You can use it every time, though for subsequent runs you may choose to skip them.
 
 Alternatively, you could build and up the containers in separate steps, like this.
 
@@ -196,7 +196,31 @@ When contributing to databases, please strictly follow the following guidelines.
 
 - Ensure every migration is backward compatible.
 - Optimize queries for performance and scalability.
-- Make sure all database migrations are in ALWAYS order.
+- Make sure all database migrations are **ALWAYS** in sequence.
+
+### Connecting to Postgres
+
+To connect to locally running Postgres instance, use the following command from the `self-host` directory:
+
+```sh
+# when postgres service is running
+docker compose exec postgres psql -U postgres -d measure
+
+# when postgres service is _not_ running
+docker compose run --rm postgres psql -U postgres -d measure
+```
+
+### Connecting to ClickHouse
+
+To connect to locally running ClickHouse instance, use the following command from the `self-host` directory:
+
+```sh
+# when clickhouse service is running
+docker compose exec clickhouse clickhouse-client -u app_admin -d measure
+
+# when clickhouse service is _not_ running
+docker compose run --rm clickhouse clickhouse-client -u app_admin -d measure
+```
 
 ## Migrating codebase from <= v0.8.x
 
@@ -255,6 +279,6 @@ set VERSION $(git cliff --bumped-version) && git tag -s $VERSION -m $VERSION && 
 ```
 
 ## Documentation
-- Public facing docs should be in [docs](../README.md) folder - API requests & responses, self host guide, sdk guides and so on
+- Public facing docs should be in [docs](../README.md) folder - API requests & responses, self host guide, SDK guides and so on
 - Main folder of subproject should link to main guide. ex: [frontend README](../../frontend/README.md) has link to self hosting and local dev guide
 - Non public facing docs can stay in sub folder. ex: [backend benchmarking README](../../backend/benchmarking/README.md) which describes its purpose
