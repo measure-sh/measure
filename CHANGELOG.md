@@ -75,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**backend**): Update contribution guide (#2763) by @detj in #2763
 - (**backend**): Fix typo and format slack guide (#2736) by @detj in #2736
 - (**backend**): Update slack docs by @anupcowkur in #2647
 - (**backend**): Update sessionator example config (#2615) by @detj in #2615
