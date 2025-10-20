@@ -83,8 +83,12 @@ type MetricData struct {
 }
 
 const crashOrAnrSpikeTimePeriod = time.Hour
-const minCrashOrAnrCountThreshold = 100
-const crashOrAnrSpikeThreshold = 0.5               // percent
+
+// const minCrashOrAnrCountThreshold = 100
+const minCrashOrAnrCountThreshold = 1
+
+// const crashOrAnrSpikeThreshold = 0.5               // percent
+const crashOrAnrSpikeThreshold = 0.005             // percent
 const cooldownPeriodForEntity = 7 * 24 * time.Hour // 1 week
 
 func CreateCrashAndAnrAlerts(ctx context.Context) {
