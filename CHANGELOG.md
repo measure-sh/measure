@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Expose posthog environment variables so they become accessible (#2766) by @detj in #2766
 - (**backend**): Add smtp related env vars for upgrading users (#2765) by @detj in #2765
 - (**backend**): Add newly added slack & posthog env vars (#2761) by @detj in #2761
 - (**backend**): Improve clickhouse settings for ingestion (#2749) by @detj in #2749
