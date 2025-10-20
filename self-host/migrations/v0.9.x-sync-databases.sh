@@ -40,7 +40,7 @@ set_docker_compose() {
 # Shutdown if measure compose services are up
 shutdown_measure_services() {
   local running_services
-  running_services=$("$DOCKER_COMPOSE" ps -a -q | wc -l)
+  running_services=$($DOCKER_COMPOSE ps -a -q | wc -l)
   if [[ "$running_services" -gt 0 ]]; then
     echo "Shutting down measure services..."
     $DOCKER_COMPOSE \
@@ -88,18 +88,20 @@ shutdown_clickhouse_service() {
 #
 # - Creates the 'measure' database if it doesn't exist
 # - Moves all tables from the 'public' schema to the 'measure' schema
+# - Drops and recreates the 'public' schema for 'postgres' database
 # - Creates 'operator' and 'reader' roles if they do not exist
 # - Grants appropriate privileges to the 'operator' and 'reader' roles
 migrate_postgres_database() {
   echo "Migrating postgres database..."
   start_postgres_service
-  if ! $DOCKER_COMPOSE exec -T postgres psql -q -v ON_ERROR_STOP=1 -U postgres -d postgres <<-EOF
-  create database measure with template postgres;
-EOF
-  then
-    echo "Error: Failed to create 'measure' database." >&2
-    shutdown_postgres_service
-    return 1
+
+  # create the database if it doesn't exist
+  if ! $DOCKER_COMPOSE exec -T postgres psql -q -U postgres -d postgres -t -c "select 1 from pg_database where datname = 'measure'" | grep -q 1; then
+    if ! $DOCKER_COMPOSE exec -T postgres psql -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c "create database measure with template postgres;"; then
+      echo "Error: Failed to create 'measure' database." >&2
+      shutdown_postgres_service
+      return 1
+    fi
   fi
 
   if ! $DOCKER_COMPOSE exec -T postgres psql -q -v ON_ERROR_STOP=1 -U postgres -d measure <<-EOF
@@ -151,6 +153,18 @@ EOF
 EOF
   then
     echo "Failed to grant privileges in postgres"
+    shutdown_postgres_service
+    return 1
+  fi
+
+  if ! $DOCKER_COMPOSE exec -T postgres psql -q -v ON_ERROR_STOP=1 -U postgres -d postgres <<-EOF
+  drop schema public cascade;
+  create schema public;
+  grant all on schema public to postgres;
+  grant all on schema public to public;
+EOF
+  then
+    echo "Error: Failed to recreate 'public' schema." >&2
     shutdown_postgres_service
     return 1
   fi
