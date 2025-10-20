@@ -733,6 +733,22 @@ ensure() {
     add_env_variable "SYMBOLOADER_ORIGIN" "$symboloader_origin" "API_BASE_URL"
   fi
 
+  if ! check_env_variable "SMTP_HOST"; then
+    add_env_variable "SMTP_HOST" ""
+  fi
+
+  if ! check_env_variable "SMTP_PORT"; then
+    add_env_variable "SMTP_PORT" ""
+  fi
+
+  if ! check_env_variable "SMTP_USER"; then
+    add_env_variable "SMTP_USER" ""
+  fi
+
+  if ! check_env_variable "SMTP_PASSWORD"; then
+    add_env_variable "SMTP_PASSWORD" ""
+  fi
+
   if ! check_env_variable "EMAIL_DOMAIN"; then
     add_env_variable "EMAIL_DOMAIN" "" "SMTP_PASSWORD"
   fi
