@@ -50,7 +50,7 @@ measure.sh is designed from the ground up for easy self-hosting. Follow along to
 
 ## System Requirements
 
-- x86-64/amd64 Linux Virutal Machine
+- x86-64/amd64 Linux Virtual Machine
 - Any one of the following supported Linux distributions
   - Ubuntu 24.04 LTS
   - Debian 12 (Bookworm)
@@ -147,13 +147,13 @@ For the next few prompts, you'll need to obtain a Google & GitHub OAuth Applicat
 
 Once you have created the above apps, copy the key and secrets and enter in the relevant prompts.
 
-Next, you'll need to set up an SMTP email provider. This is used to send emails for team invites, alerts and so on. Follow the below link to obtain SMTP credentials:
+Next, you'll need to set up an SMTP email provider. This is used to send emails for team invites, alerts & so on. Follow the below link to obtain SMTP credentials:
 
 - [Set up SMTP email provider](./smtp-email.md)
 
 Once your provider is set up, copy the values and enter in the relevant prompts.
 
-Optionally, you can set up a Slack app if you want to recieve alert notications in your Slack workspace. Follow the below link to create and configure a Slack app:
+Optionally, you can set up a Slack app if you want to receive alert notifications in your Slack workspace. Follow the below link to create and configure a Slack app:
 
 - [Set up Slack Integration](./slack.md)
 
@@ -168,7 +168,7 @@ Once completed, the install script will attempt to start all the Measure docker 
 At this point, all the services should be up, but they are not reachable from the internet. To make sure these services can serve traffic, let's setup:
 
 - A reverse proxy using [caddy](https://caddyserver.com/)
-- Setup DNS A recods on your domain
+- Setup DNS A records on your domain
 
 ### 5. Setup a reverse proxy server
 
@@ -222,14 +222,14 @@ caddy reload
 
 For this last step, we'll setup 2 DNS A records and put those subdomains to work. First, obtain your VM's external IP address. Let's say, the external IP is `101.102.103.104`.
 
-Go to your domain hosting provider and add A recrods for the following subdomains.
+Go to your domain hosting provider and add A records for the following subdomains.
 
 ```
 measure.yourcompany.com         IN A        101.102.103.104
 measure-api.yourcompany.com     IN A        101.102.103.104
 ```
 
-Depending on your domain provider, it might take a few mins to couple of hours for the above DNS records to take effect.
+Depending on your domain provider, it might take a few minutes to couple of hours for the above DNS records to take effect.
 
 ### 7. Access your measure.sh dashboard
 
@@ -348,7 +348,7 @@ To continue, you'll need to obtain a Google & GitHub OAuth Application's credent
 
 Once you have created the above apps, copy the key and secrets and enter them in the relevant prompts.
 
-Next, you'll need to set up an SMTP email provider. This is used to send emails for team invites, alerts and so on. Follow the below link to obtain SMTP credentials:
+Next, you'll need to set up an SMTP email provider. This is used to send emails for team invites, alerts & so on. Follow the below link to obtain SMTP credentials:
 
 - [Set up SMTP email provider](./smtp-email.md)
 
@@ -391,7 +391,7 @@ If you want to start over the installation from a clean slate, do the following.
 1. **Run the following from the `self-host` directory**
 
     ```sh
-    sudo docker compose down --rmi --remove-orphans --volumes
+    sudo docker compose down --rmi all --remove-orphans --volumes
     ```
 
 2. **Remove the cloned `measure` directory**
@@ -466,7 +466,7 @@ http {
 
 There are 2 dotenv files that define all environment variables.
 
-- **`self-host/.env`** Contains all backend service envionment variables
+- **`self-host/.env`** Contains all backend service environment variables
 - **`frontend/dashboard/.env.local`** Contains nextjs environment variables
 
 You would need to shutdown existing compose services and then start them again for the updated environment variables to take effect.
@@ -475,7 +475,6 @@ To do that, run from inside the `self-host` directory.
 
 ```sh
 sudo docker compose -f compose.yml -f compose.prod.yml \
-  --profile init \
   --profile migrate \
   down
 ```
@@ -494,7 +493,7 @@ Several factors contribute to this behavior.
 
 1. **Query Execution and Parallelism**: ClickHouse executes queries using multiple threads to enhance performance. By default, it utilizes a number of threads equal to the number of available CPU cores.
 
-2. **Background Merges and Mutations**: ClickHouse continously merges data parts in the background to optimize storage and query performance. These merge operations and data mutations can lead to increased resource consumption.
+2. **Background Merges and Mutations**: ClickHouse continuously merges data parts in the background to optimize storage and query performance. These merge operations and data mutations can lead to increased resource consumption.
 
 3. **Compression and Decompression**: ClickHouse employs compression algorithms to minimize storage space. Compressing and decompressing data during ingestion and queries are CPU-intensive operations.
 
