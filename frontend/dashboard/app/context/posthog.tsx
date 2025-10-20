@@ -17,9 +17,6 @@ const createNoopPostHog = () => {
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
     const apiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY
-    const host = process.env.NEXT_PUBLIC_POSTHOG_HOST
-    console.log("posthog api key:", apiKey)
-    console.log("posthog host:", host)
     const shouldInit = apiKey
 
     useEffect(() => {
