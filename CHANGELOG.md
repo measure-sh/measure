@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add newly added slack & posthog env vars (#2761) by @detj in #2761
 - (**backend**): Improve clickhouse settings for ingestion (#2749) by @detj in #2749
 - (**backend**): Only deploy on staging on backend changes (#2748) by @detj in #2748
 - (**backend**): Return attachment URLs for already seen requests (#2746) by @abhaysood in #2746
