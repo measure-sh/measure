@@ -259,6 +259,13 @@ SLACK_CLIENT_ID=$SLACK_CLIENT_ID
 SLACK_CLIENT_SECRET=$SLACK_CLIENT_SECRET
 SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
 
+###########
+# PostHog #
+###########
+
+POSTHOG_HOST=
+POSTHOG_API_KEY=
+
 ########
 # OTEL #
 ########
@@ -396,6 +403,13 @@ EMAIL_DOMAIN=$EMAIL_DOMAIN
 SLACK_CLIENT_ID=$SLACK_CLIENT_ID
 SLACK_CLIENT_SECRET=$SLACK_CLIENT_SECRET
 SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
+
+###########
+# PostHog #
+###########
+
+POSTHOG_HOST=
+POSTHOG_API_KEY=
 
 ########
 # OTEL #
@@ -735,6 +749,26 @@ ensure() {
 
   if ! check_env_variable "EMAIL_DOMAIN"; then
     add_env_variable "EMAIL_DOMAIN" "" "SMTP_PASSWORD"
+  fi
+
+  if ! check_env_variable "SLACK_CLIENT_ID"; then
+    add_env_variable "SLACK_CLIENT_ID" ""
+  fi
+
+  if ! check_env_variable "SLACK_CLIENT_SECRET"; then
+    add_env_variable "SLACK_CLIENT_SECRET" ""
+  fi
+
+  if ! check_env_variable "SLACK_OAUTH_STATE_SALT"; then
+    add_env_variable "SLACK_OAUTH_STATE_SALT" ""
+  fi
+
+  if ! check_env_variable "POSTHOG_HOST"; then
+    add_env_variable "POSTHOG_HOST" ""
+  fi
+
+  if ! check_env_variable "POSTHOG_API_KEY"; then
+    add_env_variable "POSTHOG_API_KEY" ""
   fi
 }
 
