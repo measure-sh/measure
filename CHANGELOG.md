@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add smtp related env vars for upgrading users (#2765) by @detj in #2765
 - (**backend**): Add newly added slack & posthog env vars (#2761) by @detj in #2761
 - (**backend**): Improve clickhouse settings for ingestion (#2749) by @detj in #2749
 - (**backend**): Only deploy on staging on backend changes (#2748) by @detj in #2748
