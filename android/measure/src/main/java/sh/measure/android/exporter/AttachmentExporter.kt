@@ -65,7 +65,6 @@ internal class DefaultAttachmentExporter(
         if (isRegistered.compareAndSet(true, false)) {
             logger.log(LogLevel.Debug, "Attachment export: unregistered")
         }
-        cancelExport()
     }
 
     override fun onNewAttachmentsAvailable() {
@@ -216,10 +215,5 @@ internal class DefaultAttachmentExporter(
                 false
             }
         }
-    }
-
-    private fun cancelExport() {
-        exportFuture?.cancel(true)
-        exportFuture = null
     }
 }
