@@ -36,7 +36,7 @@ jobs:
         uses: subosito/flutter-action@f2c4f6686ca8e8d6e6d0f28410eeef506ed66aff
         with:
           channel: stable
-          flutter-version: 3.32.7
+          flutter-version: 3.35.6
 
       - name: Install Melos
         run: dart pub global activate melos 5.3.0
