@@ -44,6 +44,9 @@ export async function POST(req: NextRequest) {
 
     const state = createTimeBasedState({ userId: userId, teamId: teamId, redirectUrl: redirectUrl })
 
+    console.log("generated state:", state)
+    console.log("slack client id:", process.env.SLACK_CLIENT_ID)
+    console.log("redirect uri:", redirectUrl)
 
     const slackUrl = new URL('https://slack.com/oauth/v2/authorize')
     slackUrl.searchParams.set('client_id', process.env.SLACK_CLIENT_ID!)
