@@ -38,14 +38,20 @@ func main() {
 	// close clickhouse connection pool at shutdown
 	defer func() {
 		if err := server.Server.ChPool.Close(); err != nil {
-			log.Fatalf("Unable to close clickhouse connection: %v", err)
+			fmt.Printf("Unable to close clickhouse operator connection: %v\n", err)
+		}
+	}()
+
+	defer func() {
+		if err := server.Server.RchPool.Close(); err != nil {
+			fmt.Printf("Unable to close clickhouse reader connection: %v\n", err)
 		}
 	}()
 
 	// close otel tracer at shutdown
 	defer func() {
 		if err := meteringTracer(context.Background()); err != nil {
-			log.Fatalf("Unable to close otel tracer: %v", err)
+			fmt.Printf("Unable to close otel tracer: %v\n", err)
 		}
 	}()
 
