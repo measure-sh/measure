@@ -50,9 +50,10 @@ jobs:
           sed -i "s/MEASURE_PLUGIN_VERSION_NAME=.*/MEASURE_PLUGIN_VERSION_NAME=${{ inputs.version }}/" measure-android-gradle/gradle.properties
 
       - name: Generate changelog
-        run: |
-          cd ..
-          git cliff --output android/measure-android-gradle/CHANGELOG.md --tag android-gradle-plugin-v${{ inputs.version }}
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: measure-android-gradle/cliff.toml
+          args: --output measure-android-gradle/CHANGELOG.md --tag android-gradle-plugin-v${{ inputs.version }}
 
       - name: Update version in README
         run: |
