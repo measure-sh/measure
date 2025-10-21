@@ -56,7 +56,7 @@ jobs:
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
         with:
-          config: cliff.toml
+          config: android/cliff.toml
           args: --output CHANGELOG.md --tag android-v${{ inputs.version }}
 
       - name: Update version in README

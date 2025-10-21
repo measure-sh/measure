@@ -52,7 +52,7 @@ jobs:
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
         with:
-          config: measure-android-gradle/cliff.toml
+          config: android/measure-android-gradle/cliff.toml
           args: --output measure-android-gradle/CHANGELOG.md --tag android-gradle-plugin-v${{ inputs.version }}
 
       - name: Update version in README
