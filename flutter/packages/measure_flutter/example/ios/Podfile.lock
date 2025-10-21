@@ -12,7 +12,7 @@ PODS:
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
-  - measure-sh (from `../../../../../`)
+  - measure-sh (from `../../`)
   - measure_flutter (from `.symlinks/plugins/measure_flutter/ios`)
 
 SPEC REPOS:
@@ -25,7 +25,7 @@ EXTERNAL SOURCES:
   integration_test:
     :path: ".symlinks/plugins/integration_test/ios"
   measure-sh:
-    :path: "../../../../../"
+    :path: "../../../"
   measure_flutter:
     :path: ".symlinks/plugins/measure_flutter/ios"
 
