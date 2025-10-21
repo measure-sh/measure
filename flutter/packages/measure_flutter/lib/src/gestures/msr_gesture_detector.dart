@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:measure_flutter/src/gestures/click_data.dart';
 import 'package:measure_flutter/src/gestures/scroll_data.dart';

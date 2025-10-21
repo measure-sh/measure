@@ -28,17 +28,38 @@ class LayoutSnapshotCaptureResult {
   });
 }
 
-/// Context for tracking detected elements during tree capture
-class _CaptureContext {
+/// State for tracking information during tree capture
+class _CaptureState {
+  final Rect? screenBounds;
+  final Offset? detectionPosition;
+  final DetectionMode? detectionMode;
+  final Element rootElement;
+  final Map<Type, String>? providedWidgetsTypes;
+
+  // Results accumulated during traversal
   Element? detectedElement;
   String? detectedElementType;
+
+  _CaptureState({
+    required this.rootElement,
+    this.screenBounds,
+    this.detectionPosition,
+    this.detectionMode,
+    this.providedWidgetsTypes,
+  });
 }
 
-/// Captures the layout snapshot starting from a given element
+/// Captures the layout snapshot starting from a given element.
 class LayoutSnapshotCapture {
-  /// Automatically finds the topmost Scaffold and uses it as the root node to ensure
-  /// only the active route is captured (not background routes in the Navigator stack).
-  /// The Scaffold (or root element if no Scaffold found) is always included as the top-level node.
+  /// Captures the layout snapshot starting from a given element.
+  ///
+  /// Algorithm overview (single-pass traversal):
+  /// 1. Find the topmost Scaffold to avoid capturing background routes
+  /// 2. Create traversal state with all parameters
+  /// 3. Collect descendant nodes (detection happens during this pass)
+  /// 4. Build scaffold/root node with collected children
+  /// 5. Wrap with filtered ancestor nodes (if scaffold was found)
+  /// 6. Return result with tree and detected element info
   ///
   /// If [screenBounds] is provided, only widgets visible within these bounds are included.
   ///
@@ -56,194 +77,246 @@ class LayoutSnapshotCapture {
     Map<Type, String>? providedWidgetsTypes,
   }) {
     return developer.Timeline.timeSync('captureTree', () {
+      // Step 1: Validate root element
       if (rootElement == null) return null;
 
-      // Find the topmost Scaffold to start capture from
+      // Step 2: Find starting point (scaffold or root)
       final scaffoldElement =
           developer.Timeline.timeSync('findTopmostScaffold', () {
         return _findTopmostScaffold(rootElement);
       });
       final startElement = scaffoldElement ?? rootElement;
 
-      // Get the starting element's render object and bounds
-      final renderObject = startElement.renderObject;
-      if (renderObject == null ||
-          renderObject is! RenderBox ||
-          !renderObject.hasSize) {
-        return null;
-      }
+      // Step 3: Validate starting element
+      if (!_hasValidRenderBox(startElement)) return null;
 
-      final bounds = _getBounds(renderObject);
-      final widgetName = startElement.widget.runtimeType.toString();
-      final id = _extractKeyAsId(startElement);
-
-      // Create context for tracking detected elements (if detection is enabled)
-      final context = (detectionPosition != null && detectionMode != null)
-          ? _CaptureContext()
-          : null;
-
-      // Collect filtered children (start from children to avoid duplicating the root)
-      final children = <LayoutSnapshot>[];
-      developer.Timeline.timeSync('collectNodes', () {
-        startElement.visitChildElements((childElement) {
-          _collectNodesHierarchical(
-            childElement,
-            children,
-            screenBounds,
-            detectionPosition,
-            detectionMode,
-            rootElement,
-            context,
-            providedWidgetsTypes,
-          );
-        });
-      });
-
-      // Create the tree node
-      final tree = LayoutSnapshot(
-        widgetName: widgetName,
-        x: bounds.left,
-        y: bounds.top,
-        width: bounds.width,
-        height: bounds.height,
-        id: id,
-        children: children,
+      // Step 4: Create traversal state
+      final state = _CaptureState(
+        rootElement: rootElement,
+        screenBounds: screenBounds,
+        detectionPosition: detectionPosition,
+        detectionMode: detectionMode,
+        providedWidgetsTypes: providedWidgetsTypes,
       );
 
-      // Return the result with tree and optional detected element
+      // Step 5: Collect descendant nodes (single-pass, detection happens here)
+      final children = <LayoutSnapshot>[];
+      developer.Timeline.timeSync('collectNodes', () {
+        _traverseChildren(startElement, children, state);
+      });
+
+      // Step 6: Build scaffold/root node
+      var tree = _buildLayoutSnapshot(startElement, children, state);
+
+      // Step 7: Wrap with ancestor nodes (if scaffold was found)
+      if (scaffoldElement != null) {
+        tree = _wrapWithAncestors(scaffoldElement, tree, state);
+      }
+
+      // Step 8: Return result
       return LayoutSnapshotCaptureResult(
         snapshot: tree,
-        detectedElement: context?.detectedElement,
-        detectedElementType: context?.detectedElementType,
+        detectedElement: state.detectedElement,
+        detectedElementType: state.detectedElementType,
       );
     });
   }
 
-  static void _collectNodesHierarchical(
-    Element element,
-    List<LayoutSnapshot> parentChildren,
-    Rect? screenBounds,
-    Offset? detectionPosition,
-    DetectionMode? detectionMode,
-    Element? rootElement,
-    _CaptureContext? context,
-    Map<Type, String>? providedWidgetsTypes,
-  ) {
-    // Skip Offstage widgets that are not visible (offstage: true)
-    // This filters out inactive routes in Navigator
+  /// Checks if an element has a valid RenderBox with size
+  static bool _hasValidRenderBox(Element element) {
+    final renderObject = element.renderObject;
+    return renderObject != null &&
+        renderObject is RenderBox &&
+        renderObject.hasSize;
+  }
+
+  /// Checks if an element should be skipped during traversal
+  static bool _shouldSkipElement(Element element) {
     final widget = element.widget;
-    if (widget is Offstage && widget.offstage) {
+    return widget is Offstage && widget.offstage;
+  }
+
+  /// Gets the node type for a widget based on the capture state
+  static String? _getNodeType(Widget widget, _CaptureState state) {
+    if (state.providedWidgetsTypes != null &&
+        state.providedWidgetsTypes!.isNotEmpty) {
+      return _getUserProvidedWidget(widget, state.providedWidgetsTypes);
+    }
+    return _getFrameworkWidget(widget);
+  }
+
+  /// Checks if a render box is within screen bounds
+  static bool _isInScreenBounds(RenderBox renderBox, Rect? screenBounds) {
+    if (screenBounds == null) return true;
+    final bounds = _getBounds(renderBox);
+    return screenBounds.overlaps(bounds);
+  }
+
+  /// Determines if an element should be included as a node in the tree
+  static bool _shouldIncludeInTree(Element element, _CaptureState state) {
+    final renderObject = element.renderObject;
+
+    // Must have valid render box
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return false;
+    }
+
+    // Must be in screen bounds
+    if (!_isInScreenBounds(renderObject, state.screenBounds)) {
+      return false;
+    }
+
+    // Must match widget type filter OR be the detected element
+    final hasMatchingType = _getNodeType(element.widget, state) != null;
+    final isDetected = (state.detectedElement == element);
+
+    return hasMatchingType || isDetected;
+  }
+
+  /// Tries to detect an element at the detection position
+  /// Updates the state if a matching element is found
+  static void _tryDetectElement(Element element, _CaptureState state) {
+    // Skip if already detected or detection not enabled
+    if (state.detectedElement != null ||
+        state.detectionPosition == null ||
+        state.detectionMode == null) {
       return;
     }
 
     final renderObject = element.renderObject;
-
-    // Check for detection on this element (before checking if it should be in the tree)
-    if (context != null &&
-        context.detectedElement == null &&
-        detectionPosition != null &&
-        detectionMode != null &&
-        renderObject is RenderBox &&
-        renderObject.hasSize) {
-      // Determine which type to check based on detection mode
-      String? detectedType;
-      if (detectionMode == DetectionMode.click) {
-        detectedType = _getClickableWidgetType(widget);
-      } else if (detectionMode == DetectionMode.scroll) {
-        detectedType = _getScrollableWidgetType(widget);
-      }
-
-      if (detectedType != null &&
-          _hitTest(element, detectionPosition, rootElement)) {
-        context.detectedElement = element;
-        context.detectedElementType = detectedType;
-      }
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return;
     }
 
-    // Check if this element should be included in the snapshot (for tree inclusion)
-    if (renderObject is RenderBox && renderObject.hasSize) {
-      // Check if this is the detected element or if it matches the filter
-      // If providedWidgetsTypes is provided and not empty, use it exclusively.
-      // Otherwise, fall back to framework widgets.
-      final widgetType = (providedWidgetsTypes != null && providedWidgetsTypes.isNotEmpty)
-          ? _getUserProvidedWidget(widget, providedWidgetsTypes)
-          : _getFrameworkWidget(widget);
-      final isDetectedElement = (context?.detectedElement == element);
-
-      // Include if it matches filter OR if it's the detected element
-      if (widgetType != null || isDetectedElement) {
-        final bounds = _getBounds(renderObject);
-
-        // Only include if within screen bounds (if bounds are provided)
-        if (screenBounds == null || screenBounds.overlaps(bounds)) {
-          // Use the detected type if this is the detected element, otherwise use filter type
-          final nodeType = isDetectedElement && widgetType == null
-              ? context?.detectedElementType
-              : widgetType;
-          final children = <LayoutSnapshot>[];
-
-          // Recursively collect children for this matched node
-          element.visitChildElements((childElement) {
-            _collectNodesHierarchical(
-              childElement,
-              children,
-              screenBounds,
-              detectionPosition,
-              detectionMode,
-              rootElement,
-              context,
-              providedWidgetsTypes,
-            );
-          });
-
-          // Extract key as ID if available
-          final id = _extractKeyAsId(element);
-
-          // Check if this element is highlighted (clicked)
-          bool isHighlighted = false;
-          if (detectionMode == DetectionMode.click &&
-              context?.detectedElement == element) {
-            isHighlighted = true;
-          }
-
-          // Check if this element is scrollable
-          bool isScrollable = false;
-          final scrollableType = _getScrollableWidgetType(widget);
-          if (scrollableType != null) {
-            isScrollable = true;
-          }
-
-          parentChildren.add(LayoutSnapshot(
-            widgetName: nodeType ?? 'Unknown',
-            x: bounds.left,
-            y: bounds.top,
-            width: bounds.width,
-            height: bounds.height,
-            id: id,
-            highlighted: isHighlighted,
-            scrollable: isScrollable,
-            children: children,
-          ));
-
-          // Since we matched and handled this node and its subtree, return
-          return;
-        }
-      }
+    // Check if this element is the right type for detection
+    String? detectedType;
+    if (state.detectionMode == DetectionMode.click) {
+      detectedType = _getClickableWidgetType(element.widget);
+    } else if (state.detectionMode == DetectionMode.scroll) {
+      detectedType = _getScrollableWidgetType(element.widget);
     }
 
-    // Node didn't match or wasn't within bounds - collapse it and continue with children
-    element.visitChildElements((childElement) {
-      _collectNodesHierarchical(
-        childElement,
-        parentChildren,
-        screenBounds,
-        detectionPosition,
-        detectionMode,
-        rootElement,
-        context,
-        providedWidgetsTypes,
-      );
+    // If it matches and is at the position, record it
+    if (detectedType != null &&
+        _hitTest(element, state.detectionPosition!, state.rootElement)) {
+      state.detectedElement = element;
+      state.detectedElementType = detectedType;
+    }
+  }
+
+  /// Builds a LayoutSnapshot node from an element
+  static LayoutSnapshot _buildLayoutSnapshot(
+    Element element,
+    List<LayoutSnapshot> children,
+    _CaptureState state,
+  ) {
+    final renderObject = element.renderObject as RenderBox;
+    final bounds = _getBounds(renderObject);
+    final widget = element.widget;
+
+    // Determine the node type
+    final nodeType = _getNodeType(widget, state);
+    final isDetected = (state.detectedElement == element);
+    final effectiveNodeType = isDetected && nodeType == null
+        ? state.detectedElementType
+        : nodeType;
+
+    // Determine highlighting (for click detection)
+    final isHighlighted = state.detectionMode == DetectionMode.click && isDetected;
+
+    // Determine scroll-ability
+    final isScrollable = _getScrollableWidgetType(widget) != null;
+
+    // Extract ID from key
+    final id = _extractKeyAsId(element);
+
+    return LayoutSnapshot(
+      widgetName: effectiveNodeType ?? 'Unknown',
+      x: bounds.left,
+      y: bounds.top,
+      width: bounds.width,
+      height: bounds.height,
+      id: id,
+      highlighted: isHighlighted,
+      scrollable: isScrollable,
+      children: children,
+    );
+  }
+
+  /// Collects nodes from element tree in a single pass
+  static void _collectNodes(
+    Element element,
+    List<LayoutSnapshot> output,
+    _CaptureState state,
+  ) {
+    // Early exit for offstage widgets
+    if (_shouldSkipElement(element)) return;
+
+    // Try to detect this element (updates state if found)
+    _tryDetectElement(element, state);
+
+    // Decide if this element should be a tree node
+    if (_shouldIncludeInTree(element, state)) {
+      _createNodeWithChildren(element, output, state);
+    } else {
+      // Not included, but still traverse children
+      _traverseChildren(element, output, state);
+    }
+  }
+
+  /// Creates a node for the element and traverses its children
+  static void _createNodeWithChildren(
+    Element element,
+    List<LayoutSnapshot> output,
+    _CaptureState state,
+  ) {
+    final children = <LayoutSnapshot>[];
+
+    // Collect children into the node
+    element.visitChildElements((child) {
+      _collectNodes(child, children, state);
     });
+
+    // Build the node with its children
+    final node = _buildLayoutSnapshot(element, children, state);
+    output.add(node);
+  }
+
+  /// Traverses children without creating a node for this element
+  static void _traverseChildren(
+    Element element,
+    List<LayoutSnapshot> output,
+    _CaptureState state,
+  ) {
+    element.visitChildElements((child) {
+      _collectNodes(child, output, state);
+    });
+  }
+
+  /// Wraps a scaffold node with filtered ancestor nodes
+  /// Returns the topmost ancestor node, or the original node if no ancestors match
+  static LayoutSnapshot _wrapWithAncestors(
+    Element scaffoldElement,
+    LayoutSnapshot scaffoldNode,
+    _CaptureState state,
+  ) {
+    final ancestors = <Element>[];
+
+    // Walk up the parent chain to collect ancestors
+    scaffoldElement.visitAncestorElements((ancestor) {
+      ancestors.add(ancestor);
+      return ancestor != state.rootElement; // continue until root
+    });
+
+    // Filter and wrap from top-down (reverse order)
+    LayoutSnapshot result = scaffoldNode;
+    for (final ancestor in ancestors.reversed) {
+      if (_shouldIncludeInTree(ancestor, state)) {
+        result = _buildLayoutSnapshot(ancestor, [result], state);
+      }
+    }
+
+    return result;
   }
 
   static Rect _getBounds(RenderBox renderBox) {
@@ -252,7 +325,6 @@ class LayoutSnapshotCapture {
     }
 
     try {
-      // Get position relative to root
       final offset = renderBox.localToGlobal(Offset.zero);
       final size = renderBox.size;
       return Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height);
@@ -265,8 +337,6 @@ class LayoutSnapshotCapture {
   static String? _extractKeyAsId(Element element) {
     final key = element.widget.key;
     if (key == null) return null;
-
-    // Handle ValueKey<String>
     if (key is ValueKey<String>) {
       return key.value;
     }
@@ -279,29 +349,25 @@ class LayoutSnapshotCapture {
   static Element? _findTopmostScaffold(Element rootElement) {
     Element? topmostScaffold;
 
-    void findScaffolds(Element element) {
+    void findScaffoldsRecursively(Element element) {
       // Skip Offstage widgets
       final widget = element.widget;
       if (widget is Offstage && widget.offstage) {
         return;
       }
 
-      // Check if this is a Scaffold or CupertinoPageScaffold
       if (widget.runtimeType == Scaffold ||
           widget.runtimeType == CupertinoPageScaffold) {
-        // Keep updating to get the last (topmost) Scaffold
         topmostScaffold = element;
       }
 
-      // Continue traversing children
-      element.visitChildElements(findScaffolds);
+      element.visitChildElements(findScaffoldsRecursively);
     }
 
-    findScaffolds(rootElement);
+    findScaffoldsRecursively(rootElement);
     return topmostScaffold;
   }
 
-  /// Checks if an element is hit-testable at the given position
   static bool _hitTest(Element element, Offset position, Element? rootElement) {
     if (rootElement == null) return false;
 
@@ -326,10 +392,6 @@ class LayoutSnapshotCapture {
     return paintBounds.contains(position);
   }
 
-  /// Returns the widget type if it should be included in the layout snapshot. This
-  /// filters widgets that are "interesting" enough to include in the snapshot/
-  ///
-  /// Returns the widget type name if it should be included, null otherwise.
   static String? _getFrameworkWidget(Widget widget) {
     final type = switch (widget) {
       FilledButton _ => 'FilledButton',
@@ -366,7 +428,6 @@ class LayoutSnapshotCapture {
     return type;
   }
 
-  /// Returns the widget type if it should be included in the layout snapshot.
   static String? _getUserProvidedWidget(
       Widget widget, Map<Type, String>? providedWidgets) {
     final type = widget.runtimeType;
@@ -376,7 +437,6 @@ class LayoutSnapshotCapture {
     return null;
   }
 
-  /// Returns the widget type if it's clickable
   static String? _getClickableWidgetType(Widget widget) {
     return switch (widget) {
       FilledButton w when w.enabled => 'FilledButton',
@@ -425,7 +485,6 @@ class LayoutSnapshotCapture {
     };
   }
 
-  /// Returns the widget type if it's scrollable
   static String? _getScrollableWidgetType(Widget widget) {
     return switch (widget) {
       ListView _ => 'ListView',

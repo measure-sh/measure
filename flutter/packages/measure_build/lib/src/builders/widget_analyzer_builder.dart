@@ -8,6 +8,40 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:glob/glob.dart';
 
+const String kDefaultOutputPath = 'lib/msr_widgets.g.dart';
+const List<String> kDefaultScanDirectories = ['lib'];
+const String kLibPrefix = 'lib/';
+const int kLibPrefixLength = 4; // Length of 'lib/'
+
+const String _kSyntheticInputSuffix = r'lib/$lib$';
+const String _kGeneratedFilePattern = '.g.dart';
+const String _kDartFileGlob = '/**.dart';
+
+const Set<String> _kExcludedWidgets = {
+  'Widget',
+  'StatelessWidget',
+  'StatefulWidget',
+};
+
+const Set<String> _kFlutterBaseWidgetTypes = {
+  'Widget',
+  'StatelessWidget',
+  'StatefulWidget',
+  'InheritedWidget',
+  'RenderObjectWidget',
+  'ProxyWidget',
+};
+
+const String _kGeneratedMapName = 'msrWidgetsForLayoutSnapshot';
+const String _kGeneratedFileHeader = '// GENERATED CODE - DO NOT MODIFY BY HAND';
+const String _kGeneratedFileIgnoreDirective = '// ignore_for_file: unused_import, implementation_imports';
+
+const String _kPackageUriPrefix = 'package:';
+const String _kDartUriPrefix = 'dart:';
+const String _kFileUriPrefix = 'file:';
+const String _kLibPathSeparator = '/lib/';
+const String _kFlutterLibraryIdentifier = 'flutter';
+
 /// Finds all Flutter widgets used in a project and writes them
 /// to a dart file as a map of widget name to class name.
 ///
@@ -53,14 +87,14 @@ class WidgetAnalyzerBuilder extends Builder {
 
   WidgetAnalyzerBuilder({
     required this.buildExtensions,
-    this.outputPath = 'lib/msr_widgets.g.dart',
-    this.scanDirectories = const ['lib'],
+    this.outputPath = kDefaultOutputPath,
+    this.scanDirectories = kDefaultScanDirectories,
   });
 
   @override
   FutureOr<void> build(BuildStep buildStep) async {
     // Only run on lib/$lib$ synthetic input
-    if (!buildStep.inputId.path.endsWith(r'lib/$lib$')) {
+    if (!buildStep.inputId.path.endsWith(_kSyntheticInputSuffix)) {
       return;
     }
 
@@ -68,33 +102,32 @@ class WidgetAnalyzerBuilder extends Builder {
 
     // Scan all configured directories
     for (final directory in scanDirectories) {
-      final dartFiles = Glob('$directory/**.dart');
+      final dartFiles = Glob('$directory$_kDartFileGlob');
       await for (final input in buildStep.findAssets(dartFiles)) {
-        if (input.path.contains('.g.dart') || input.path == outputPath) {
+        if (input.path.contains(_kGeneratedFilePattern) || input.path == outputPath) {
           continue;
         }
-      try {
-        final resolver = buildStep.resolver;
-        if (!await resolver.isLibrary(input)) {
-          continue;
-        }
-        final library = await resolver.libraryFor(input);
-        for (final classElement in library.classes) {
-          if (_isWidgetClass(classElement)) {
-            final name = classElement.name;
-            if (name != null) {
-              allWidgets[name] = classElement;
+        try {
+          final resolver = buildStep.resolver;
+          if (!await resolver.isLibrary(input)) {
+            continue;
+          }
+          final library = await resolver.libraryFor(input);
+          for (final classElement in library.classes) {
+            if (_isWidgetClass(classElement)) {
+              final name = classElement.name;
+              if (name != null && !_isPrivateWidget(name)) {
+                allWidgets[name] = classElement;
+              }
             }
           }
+          await _scanLibraryForWidgets(library, allWidgets);
+        } catch (e) {
+          log.warning('Error processing ${input.path}: $e');
         }
-        await _scanLibraryForWidgets(library, allWidgets);
-      } catch (e) {
-        log.warning('Error processing ${input.path}: $e');
       }
     }
-    }
-    allWidgets
-        .removeWhere((name, element) => name == 'Widget' || name == 'StatelessWidget' || name == 'StatefulWidget');
+    allWidgets.removeWhere((name, element) => _kExcludedWidgets.contains(name));
     final outputId = AssetId(buildStep.inputId.package, outputPath);
     final dartCode = _generateDartFile(allWidgets, buildStep.inputId.package);
     await buildStep.writeAsString(outputId, dartCode);
@@ -155,7 +188,7 @@ class WidgetAnalyzerBuilder extends Builder {
     if (element is InterfaceElement) {
       if (_checkExtendsWidgetRecursively(element, <InterfaceElement>{})) {
         final name = element.name;
-        if (name != null) {
+        if (name != null && !_isPrivateWidget(name)) {
           widgets[name] = element;
         }
       }
@@ -176,17 +209,17 @@ class WidgetAnalyzerBuilder extends Builder {
     for (final element in widgets.values) {
       final libraryUri = element.library.firstFragment.source.uri.toString();
 
-      if (libraryUri.startsWith('package:') || libraryUri.startsWith('dart:')) {
+      if (libraryUri.startsWith(_kPackageUriPrefix) || libraryUri.startsWith(_kDartUriPrefix)) {
         imports.add("import '$libraryUri';");
-      } else if (libraryUri.startsWith('file:') && libraryUri.contains('/lib/')) {
-        final libPath = libraryUri.split('/lib/').last;
-        imports.add("import 'package:$packageName/$libPath';");
+      } else if (libraryUri.startsWith(_kFileUriPrefix) && libraryUri.contains(_kLibPathSeparator)) {
+        final libPath = libraryUri.split(_kLibPathSeparator).last;
+        imports.add("import '$_kPackageUriPrefix$packageName/$libPath';");
       }
     }
 
     // Write header comment
-    buffer.writeln('// GENERATED CODE - DO NOT MODIFY BY HAND');
-    buffer.writeln('// ignore_for_file: unused_import, implementation_imports');
+    buffer.writeln(_kGeneratedFileHeader);
+    buffer.writeln(_kGeneratedFileIgnoreDirective);
     buffer.writeln();
 
     // Write imports
@@ -197,7 +230,7 @@ class WidgetAnalyzerBuilder extends Builder {
     buffer.writeln();
 
     // Write the map
-    buffer.writeln('const Map<Type, String> msrWidgetsForLayoutSnapshot = {');
+    buffer.writeln('const Map<Type, String> $_kGeneratedMapName = {');
 
     final sortedWidgets = widgets.keys.toList()..sort();
     for (final widgetName in sortedWidgets) {
@@ -217,7 +250,7 @@ class WidgetAnalyzerBuilder extends Builder {
     final libraryElement = element.library;
     final library = libraryElement.firstFragment.source.uri.toString();
 
-    if (element.name == 'Widget' && library.contains('flutter')) {
+    if (element.name == 'Widget' && library.contains(_kFlutterLibraryIdentifier)) {
       return true;
     }
 
@@ -238,6 +271,10 @@ class WidgetAnalyzerBuilder extends Builder {
 
     return false;
   }
+
+  bool _isPrivateWidget(String name) {
+    return name.startsWith('_');
+  }
 }
 
 /// AST visitor for method bodies to find widget instantiations
@@ -251,7 +288,7 @@ class _MethodBodyVisitor extends RecursiveAstVisitor<void> {
       final element = type.element;
       if (element is InterfaceElement) {
         final name = element.name;
-        if (name != null) {
+        if (name != null && !name.startsWith('_')) {
           widgets[name] = element;
         }
       }
@@ -276,16 +313,11 @@ class _MethodBodyVisitor extends RecursiveAstVisitor<void> {
     final libraryElement = element.library;
     final library = libraryElement.firstFragment.source.uri.toString();
 
-    if (element.name == 'Widget' && library.contains('flutter')) {
+    if (element.name == 'Widget' && library.contains(_kFlutterLibraryIdentifier)) {
       return true;
     }
 
-    if ((element.name == 'StatelessWidget' ||
-            element.name == 'StatefulWidget' ||
-            element.name == 'InheritedWidget' ||
-            element.name == 'RenderObjectWidget' ||
-            element.name == 'ProxyWidget') &&
-        library.contains('flutter')) {
+    if (_kFlutterBaseWidgetTypes.contains(element.name) && library.contains(_kFlutterLibraryIdentifier)) {
       return true;
     }
 

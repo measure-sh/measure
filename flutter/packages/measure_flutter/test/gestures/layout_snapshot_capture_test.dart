@@ -37,12 +37,15 @@ void main() {
       final result = LayoutSnapshotCapture.captureTree(element);
 
       expect(result, isNotNull);
-      expect(result!.snapshot.widgetName, equals('Scaffold'));
+      // With ancestor support, MaterialApp is now the root with Scaffold nested inside
+      expect(result!.snapshot.widgetName, equals('MaterialApp'));
       expect(result.snapshot.children, isNotEmpty);
 
-      // Should contain the included widgets
+      // Should contain the Scaffold and the included widgets
+      final hasScaffold = _containsWidgetType(result.snapshot, 'Scaffold');
       final hasButton = _containsWidgetType(result.snapshot, 'ElevatedButton');
       final hasIconButton = _containsWidgetType(result.snapshot, 'IconButton');
+      expect(hasScaffold, isTrue);
       expect(hasButton, isTrue);
       expect(hasIconButton, isTrue);
     });
@@ -206,11 +209,12 @@ void main() {
       final result = LayoutSnapshotCapture.captureTree(element);
 
       expect(result, isNotNull);
-      // Should have nested structure: Scaffold -> Column -> Container -> Row -> Buttons
-      expect(result!.snapshot.widgetName, equals('Scaffold'));
+      // With ancestor support, MaterialApp is the root with nested structure inside
+      expect(result!.snapshot.widgetName, equals('MaterialApp'));
       expect(result.snapshot.children, isNotEmpty);
 
-      // Verify nested widgets are captured
+      // Verify nested widgets are captured: MaterialApp -> Scaffold -> Column -> Row -> Buttons
+      expect(_containsWidgetType(result.snapshot, 'Scaffold'), isTrue);
       expect(_containsWidgetType(result.snapshot, 'Column'), isTrue);
       expect(_containsWidgetType(result.snapshot, 'Row'), isTrue);
       expect(_containsWidgetType(result.snapshot, 'ElevatedButton'), isTrue);
@@ -329,9 +333,15 @@ void main() {
       final result = LayoutSnapshotCapture.captureTree(element);
 
       expect(result, isNotNull);
-      // Should start from the topmost scaffold
-      expect(result!.snapshot.widgetName, equals('Scaffold'));
-      expect(result.snapshot.id, equals('topmost-scaffold'));
+      // With ancestor support, MaterialApp is the root
+      expect(result!.snapshot.widgetName, equals('MaterialApp'));
+      // Should contain the topmost scaffold (not the background one)
+      final topmostScaffold = _findWidgetById(result.snapshot, 'topmost-scaffold');
+      expect(topmostScaffold, isNotNull);
+      expect(topmostScaffold!.widgetName, equals('Scaffold'));
+      // Should NOT contain the background scaffold
+      final backgroundScaffold = _findWidgetById(result.snapshot, 'background-scaffold');
+      expect(backgroundScaffold, isNull);
     });
 
     testWidgets('captures bounds correctly', (WidgetTester tester) async {
@@ -388,8 +398,9 @@ void main() {
       final result = LayoutSnapshotCapture.captureTree(element);
 
       expect(result, isNotNull);
-      // Should start from CupertinoPageScaffold
-      expect(result!.snapshot.widgetName, equals('CupertinoPageScaffold'));
+      // With ancestor support, CupertinoApp is now the root with CupertinoPageScaffold nested inside
+      expect(result!.snapshot.widgetName, equals('CupertinoApp'));
+      expect(_containsWidgetType(result.snapshot, 'CupertinoPageScaffold'), isTrue);
       expect(_containsWidgetType(result.snapshot, 'CupertinoButton'), isTrue);
     });
 
@@ -424,9 +435,15 @@ void main() {
       final result = LayoutSnapshotCapture.captureTree(element);
 
       expect(result, isNotNull);
-      // Should start from the topmost CupertinoPageScaffold
-      expect(result!.snapshot.widgetName, equals('CupertinoPageScaffold'));
-      expect(result.snapshot.id, equals('topmost-scaffold'));
+      // With ancestor support, CupertinoApp is the root
+      expect(result!.snapshot.widgetName, equals('CupertinoApp'));
+      // Should contain the topmost scaffold (not the background one)
+      final topmostScaffold = _findWidgetById(result.snapshot, 'topmost-scaffold');
+      expect(topmostScaffold, isNotNull);
+      expect(topmostScaffold!.widgetName, equals('CupertinoPageScaffold'));
+      // Should NOT contain the background scaffold
+      final backgroundScaffold = _findWidgetById(result.snapshot, 'background-scaffold');
+      expect(backgroundScaffold, isNull);
     });
 
     testWidgets('uses framework widgets when providedWidgetsTypes is null',
