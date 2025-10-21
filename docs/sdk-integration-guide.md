@@ -344,24 +344,31 @@ dependencies:
 
 To initialize the SDK, you need to call the `Measure.instance.init` method in your `main` function.
 
-> ![IMPORTANT]
-> The `MeasureWidget` is a widget that wraps your app and allows the Measure SDK to inject instrumentation into your
-> app. Not using the `MeasureWidget` can result in certain features like screenshots to not work as expected.
+- Run app inside the callback passed to the `init` method. This ensures that the Measure SDK can set up error handlers to
+  track uncaught exceptions.
+- Wrap your app with the `MeasureWidget`, this is required for gesture tracking and screenshots.
+- Set the `sessionSamplingRate` and `samplingRateForErrorFreeSessions` in the `MeasureConfig` as per your requirements.
+  Ideally, set to `1` for debug.
+- Provide different API Keys for iOS and Android by creating two separate apps on the dashboard.
+
+> [!IMPORTANT]
+> To detect early native crashes and to ensure accurate launch time metrics, initialize the Android SDK in
+> `Application` class as described in the [Android](#initialize-the-sdk) section and the iOS SDK in `AppDelegate` as described in 
+> the [iOS](#initialize-the-sdk-1) section. It is highly recommended to initialize both native SDKs even when using the Flutter SDK.
 
 ```dart
 Future<void> main() async {
   await Measure.instance.init(
         () =>
         runApp(
-          MeasureWidget(child: MyApp()),
+          MeasureWidget(child: MyApp()), // wrap your app with MeasureWidget
         ),
-    config: const MeasureConfig(
-      enableLogging: true,
+    config: const MeasureConfig( // SDK configuration
       traceSamplingRate: 1,
       samplingRateForErrorFreeSessions: 1,
     ),
-    clientInfo: ClientInfo(
-      apiKey: "YOUR_API_KEY",
+    clientInfo: ClientInfo( // API Key & URL
+      apiKey: Platform.isAndroid ? "ANDROID_API_KEY" : "IOS_API_KEY",
       apiUrl: "YOUR_API_URL",
     ),
   );
