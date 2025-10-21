@@ -10,6 +10,7 @@ import (
 	"cloud.google.com/go/cloudsqlconn"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leporo/sqlf"
 )
@@ -99,6 +100,9 @@ func Init(config *ServerConfig) {
 	if err != nil {
 		log.Printf("Unable to parse postgres connection string: %v\n", err)
 	}
+
+	// See https://pkg.go.dev/github.com/jackc/pgx/v5#QueryExecMode
+	oConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 
 	if config.IsCloud() {
 		d, err := cloudsqlconn.NewDialer(ctx,
