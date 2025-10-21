@@ -26,6 +26,8 @@ function createTimeBasedState(userData: any): string {
 export async function POST(req: NextRequest) {
   let err = ""
   try {
+    const textRes = await req.text()
+    console.log("text res:", textRes)
     const { userId, teamId, redirectUrl } = await req.json()
 
     if (!userId || !teamId || !redirectUrl) {
