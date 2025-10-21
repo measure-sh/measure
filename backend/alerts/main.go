@@ -82,7 +82,7 @@ func initCron(ctx context.Context) *cron.Cron {
 	// For some reason, Google Cloud Run, doesn't like the "0 0 * * * *" cron
 	// syntax and doesn't trigger the method call.
 	// So, for now, we'll just rely on "@every 1h" because that seems to work.
-	cron.AddFunc("@every 1h", func() { alerts.CreateCrashAndAnrAlerts(ctx) })
+	cron.AddFunc("@every 10m", func() { alerts.CreateCrashAndAnrAlerts(ctx) })
 	cron.AddFunc("@daily", func() { alerts.CreateDailySummary(ctx) })
 	cron.AddFunc("@every 5m", func() { email.SendPendingAlertEmails(ctx) })
 	cron.AddFunc("@every 5m", func() { slack.SendPendingAlertSlackMessages(ctx) })

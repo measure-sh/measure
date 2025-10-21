@@ -88,8 +88,9 @@ const crashOrAnrSpikeTimePeriod = time.Hour
 const minCrashOrAnrCountThreshold = 1
 
 // const crashOrAnrSpikeThreshold = 0.5               // percent
-const crashOrAnrSpikeThreshold = 0.005             // percent
-const cooldownPeriodForEntity = 7 * 24 * time.Hour // 1 week
+const crashOrAnrSpikeThreshold = 0.005 // percent
+// const cooldownPeriodForEntity = 7 * 24 * time.Hour // 1 week
+const cooldownPeriodForEntity = 1 * time.Second // 1 week
 
 func CreateCrashAndAnrAlerts(ctx context.Context) {
 	fmt.Println("Checking for Crash and ANR alerts...")
