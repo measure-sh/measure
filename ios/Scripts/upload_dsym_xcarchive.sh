@@ -176,6 +176,7 @@ fi
 echo ""
 echo "Uploading dSYM files..."
 UPLOAD_SUCCESS=true
+MAX_ATTEMPTS=3
 
 echo "$HTTP_RESPONSE_BODY" | jq -c '.mappings[]' | \
 while IFS= read -r URL_OBJECT; do
@@ -216,9 +217,8 @@ while IFS= read -r URL_OBJECT; do
         continue
     fi
     
-    echo "Uploading $EXPECTED_FILENAME..."
-
-    # Construct the file upload PUT request command
+    # --- Retry Logic ---
+    UPLOAD_ATTEMPT_SUCCESS=false
     FILE_UPLOAD_COMMAND="curl --request PUT \
         --url \"$SIGNED_URL\" \
         --header 'Content-Type: application/octet-stream' \
@@ -227,14 +227,28 @@ while IFS= read -r URL_OBJECT; do
         --silent \
         --output /dev/null \
         --data-binary \"@$DSYM_TGZ_PATH\""
-    
-    # Execute the file upload command
-    FILE_UPLOAD_STATUS=$(eval "$FILE_UPLOAD_COMMAND")
-    
-    if [[ "$FILE_UPLOAD_STATUS" -ge 200 && "$FILE_UPLOAD_STATUS" -le 299 ]]; then
-        echo "  [SUCCESS]: $EXPECTED_FILENAME uploaded."
-    else
-        echo "  [ERROR]: $EXPECTED_FILENAME upload failed."
+
+    for ATTEMPT in $(seq 1 $MAX_ATTEMPTS); do
+        echo "  Attempt $ATTEMPT/$MAX_ATTEMPTS: Uploading $EXPECTED_FILENAME..."
+        
+        FILE_UPLOAD_STATUS=$(eval "$FILE_UPLOAD_COMMAND")
+        
+        if [[ "$FILE_UPLOAD_STATUS" -ge 200 && "$FILE_UPLOAD_STATUS" -le 299 ]]; then
+            echo "  [SUCCESS]: $EXPECTED_FILENAME uploaded on attempt $ATTEMPT. Status: $FILE_UPLOAD_STATUS"
+            UPLOAD_ATTEMPT_SUCCESS=true
+            break # Success, move to the next file
+        else
+            if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
+                echo "  [WARNING]: $EXPECTED_FILENAME upload failed (Status: $FILE_UPLOAD_STATUS). Retrying in 5 seconds..."
+                sleep 5
+            else
+                echo "  [ERROR]: $EXPECTED_FILENAME upload failed after $MAX_ATTEMPTS attempts. Final Status: $FILE_UPLOAD_STATUS"
+            fi
+        fi
+    done
+    # --- End Retry Logic ---
+
+    if ! $UPLOAD_ATTEMPT_SUCCESS; then
         UPLOAD_SUCCESS=false # Mark overall upload as failed
     fi
 
