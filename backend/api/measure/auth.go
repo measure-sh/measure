@@ -538,10 +538,15 @@ func SigninGoogle(c *gin.Context) {
 	}
 
 	googUser := authsession.GoogleUser{
-		ID:      payload.Subject,
-		Name:    payload.Claims["name"].(string),
-		Email:   payload.Claims["email"].(string),
-		Picture: payload.Claims["picture"].(string),
+		ID:    payload.Subject,
+		Name:  payload.Claims["name"].(string),
+		Email: payload.Claims["email"].(string),
+	}
+
+	// Google may not return the picture claim for some
+	// users.
+	if _, ok := payload.Claims["picture"]; ok {
+		googUser.Picture = payload.Claims["picture"].(string)
 	}
 
 	// TODO: Remove allowlist filter when appropriate
