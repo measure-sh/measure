@@ -92,7 +92,7 @@ final class BaseAttachmentStore: AttachmentStore {
             guard let self else { completion([]); return }
 
             let fetchRequest: NSFetchRequest<AttachmentOb> = AttachmentOb.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "uploadUrl != nil")
+            fetchRequest.predicate = NSPredicate(format: "uploadUrl != nil AND uploadUrl != ''")
             fetchRequest.fetchLimit = batchSize
 
             do {
