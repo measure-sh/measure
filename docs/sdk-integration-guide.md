@@ -46,11 +46,11 @@ in later steps.
 <details>
     <summary>Self-host Compatibility</summary>
 
-| SDK Version       | Minimum Required Self-host Version |
-|-------------------|------------------------------------|
-| `0.10.0`          | `0.6.0`                            |
-| `0.9.0`           | `0.5.0`                            |
-| `0.1.0` - `0.8.2` | `0.1.1`                            |
+| SDK Version         | Minimum Required Self-host Version |
+|---------------------|------------------------------------|
+| `0.13.0`            | `0.9.0`                            |
+| `0.10.0` - `0.12.0` | `0.6.0`                            |
+| `0.9.0`             | `0.5.0`                            |
 
 </details>
 
@@ -181,13 +181,13 @@ measure {
 Add the following to your app's `build.gradle.kts` file.
 
 ```kotlin
-implementation("sh.measure:measure-android:0.12.0")
+implementation("sh.measure:measure-android:0.13.0")
 ```
 
 or, add the following to your app's `build.gradle` file.
 
 ```groovy
-implementation 'sh.measure:measure-android:0.12.0'
+implementation 'sh.measure:measure-android:0.13.0'
 ```
 
 ### Initialize the SDK

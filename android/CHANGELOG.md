@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [android-v0.13.0] - 2025-10-21
+
+### :sparkles: New features
+
+- (**android**): Expose API to track http events (#2692) by @abhaysood in #2692
+- (**android**): Track session start event (#2576) by @abhaysood in #2576
+
+### :bug: Bug fixes
+
+- (**android**): Collect screenshots with ANRs (#2728) by @abhaysood in #2728
+- (**android**): Prevent OOM in HTTP body reading with 256KB limit (#2677) by @abhaysood in #2677
+
+### :hammer: Misc
+
+- (**android**): Prepare sdk release 0.13.0
+- (**android**): Continue existing attachment export on unregister (#2767) by @abhaysood in #2767
+- (**android**): Json events request & separate attachment upload (#2706) by @abhaysood in #2706
+- (**android**): Support latest okhttp and navigation for auto collection (#2679) by @abhaysood in #2679
+- (**android**): Update session configs (#2671) by @abhaysood in #2671
+- (**android**): Add jitter to each export pulse (#2674) by @abhaysood in #2674
+- (**android**): Use snapshot version for android sdk (#2630) by @abhaysood in #2630
+
 ## [android-v0.12.0] - 2025-08-15
 
 ### :sparkles: New features
@@ -24,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
-- (**android**): Prepare sdk release 0.12.0
+- (**android**): Prepare sdk release 0.12.0 (#2553) by @abhaysood in #2553
 - (**android**): Discard spans with empty name (#2541) by @abhaysood in #2541
 - (**android**): Centralize user defined attributes validation (#2520) by @abhaysood in #2520
 - (**android**): Add event logging (#2487) by @abhaysood in #2487
@@ -63,10 +85,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :recycle: Refactor
 
 - (**android**): Decouple activity ttid from launch tracking (#2391) by @abhaysood in #2391
-
-### :books: Documentation
-
-- Improve SDK documentation (#2256) by @abhaysood in #2256
 
 ## [android-v0.10.0] - 2025-03-28
 
@@ -268,10 +286,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Update references to path measure-android to android by @abhaysood in #988
 - (**android**): Rename measure-android directory to android by @abhaysood
 
-### :books: Documentation
-
-- Move android docs by @abhaysood
-
+[android-v0.13.0]: https://github.com/measure-sh/measure/compare/android-v0.12.0..android-v0.13.0
 [android-v0.12.0]: https://github.com/measure-sh/measure/compare/android-v0.11.0..android-v0.12.0
 [android-v0.11.0]: https://github.com/measure-sh/measure/compare/android-v0.10.0..android-v0.11.0
 [android-v0.10.0]: https://github.com/measure-sh/measure/compare/android-v0.9.0..android-v0.10.0
