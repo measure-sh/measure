@@ -545,8 +545,10 @@ func SigninGoogle(c *gin.Context) {
 
 	// Google may not return the picture claim for some
 	// users.
-	if _, ok := payload.Claims["picture"]; ok {
-		googUser.Picture = payload.Claims["picture"].(string)
+	if picture, ok := payload.Claims["picture"]; ok && picture != nil {
+		if pictureStr, ok := picture.(string); ok {
+			googUser.Picture = pictureStr
+		}
 	}
 
 	// TODO: Remove allowlist filter when appropriate
