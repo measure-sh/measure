@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UIKit
 
 protocol AttachmentExporter {
     func enable()
@@ -13,7 +14,7 @@ protocol AttachmentExporter {
     func onNewAttachmentsAvailable()
 }
 
-internal class BaseAttachmentExporter: AttachmentExporter {
+class BaseAttachmentExporter: AttachmentExporter {
     private let logger: Logger
     private let attachmentStore: AttachmentStore
     private let httpClient: HttpClient
@@ -23,6 +24,7 @@ internal class BaseAttachmentExporter: AttachmentExporter {
     private let configProvider: ConfigProvider
     private let baseOffset: Double = 0.5
     private let maxJitterTime: Double = 0.5
+    private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     
     init(logger: Logger, attachmentStore: AttachmentStore, httpClient: HttpClient, exportQueue: DispatchQueue, configProvider: ConfigProvider) {
         self.logger = logger
@@ -53,6 +55,24 @@ internal class BaseAttachmentExporter: AttachmentExporter {
         }
     }
 
+    private func startBackgroundTask() {
+        guard self.backgroundTask == .invalid else { return }
+
+        self.backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "AttachmentExport") {
+            self.logger.log(level: .warning, message: "Background task for AttachmentExport expired.", error: nil, data: nil)
+            self.endBackgroundTask()
+        }
+        self.logger.internalLog(level: .debug, message: "Started background task \(self.backgroundTask.rawValue).", error: nil, data: nil)
+    }
+
+    private func endBackgroundTask() {
+        guard self.backgroundTask != .invalid else { return }
+        
+        self.logger.internalLog(level: .debug, message: "Ending background task \(self.backgroundTask.rawValue).", error: nil, data: nil)
+        UIApplication.shared.endBackgroundTask(self.backgroundTask)
+        self.backgroundTask = .invalid
+    }
+
     private func startExport() {
         guard self.isEnabled.get(), !self.isExportInProgress else {
             return
@@ -61,22 +81,18 @@ internal class BaseAttachmentExporter: AttachmentExporter {
         self.isExportInProgress = true
         self.logger.internalLog(level: .debug, message: "Attachment export: starting export", error: nil, data: nil)
 
+        self.startBackgroundTask()
         self.runUploadLoop()
     }
     
     private func runUploadLoop() {
-        guard self.isEnabled.get() else {
-            self.isExportInProgress = false
-            self.logger.internalLog(level: .debug, message: "Attachment export: exiting upload loop (unregistered)", error: nil, data: nil)
-            return
-        }
-
         attachmentStore.getAttachmentsForUpload(batchSize: configProvider.maxAttachmentsInBatch) { [weak self] attachments in
             guard let self = self else { return }
             
             guard !attachments.isEmpty else {
                 self.isExportInProgress = false
                 self.logger.internalLog(level: .debug, message: "Attachment export: no attachments to upload, exiting", error: nil, data: nil)
+                self.endBackgroundTask()
                 return
             }
 
@@ -85,8 +101,14 @@ internal class BaseAttachmentExporter: AttachmentExporter {
     }
 
     private func processAttachments(attachments: [MsrUploadAttachment], index: Int) {
-        guard self.isEnabled.get(), index < attachments.count else {
-            self.runUploadLoop()
+        guard index < attachments.count else {
+            if self.isEnabled.get() {
+                self.runUploadLoop()
+            } else {
+                self.isExportInProgress = false
+                self.logger.internalLog(level: .debug, message: "Attachment export: current batch finished, but disabled, so stopping.", error: nil, data: nil)
+                self.endBackgroundTask()
+            }
             return
         }
         
@@ -98,11 +120,12 @@ internal class BaseAttachmentExporter: AttachmentExporter {
 
             if !success {
                 self.isExportInProgress = false
+                self.endBackgroundTask()
                 return
             }
 
-            let jitterMs = Double.random(in: 0...maxJitterTime)
-            self.exportQueue.asyncAfter(deadline: .now() + baseOffset + jitterMs) {
+            let jitterMs = Double.random(in: 0...self.maxJitterTime)
+            self.exportQueue.asyncAfter(deadline: .now() + self.baseOffset + jitterMs) {
                 self.processAttachments(attachments: attachments, index: index + 1)
             }
         }
