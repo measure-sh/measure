@@ -122,18 +122,18 @@ To symbolicate stack traces for iOS, you need to upload the dSYM files to map th
 
 ##### Using Shell Script
 
-Run the [`upload_dsyms.sh`](../../ios/Scripts/upload_dsyms.sh) script to manually upload DSYM files after building your app.
+Run the [`upload_dsym_manual.sh`](../../ios/Scripts/upload_dsym_manual.sh) script to manually upload dSYM files after building your app.
 
 ```sh
-sh upload_dsyms.sh <path_to_ipa> <path_to_dsym_folder> <api_url> <api_key>
+./upload_dsym_manual.sh <path_to_dsym_folder> <api_url> <api_key> <version_name> <version_code> <app_unique_id> <build_size> [custom_headers]
 ```
 
-##### Using Build Phases
+##### Using XCArchive
 
-Add the [`upload_dsym_build_phases.sh`](../../ios/Scripts/upload_dsym_build_phases.sh) script as a **New Run Script Phase** in Xcode to upload DSYM files automatically.
+Run the [`upload_dsym_xcarchive.sh`](../../ios/Scripts/upload_dsym_xcarchive.sh) script to automatically upload dSYMs using `xcarchive` file. This script automatically extracts all necessary build metadata (version, build size, dSYM paths, etc.) directly from the generated .xcarchive. the `ipa` file is necessary to generate the build size info. If the ipa_path is not provided, the script uses the application binary to generate build size.
 
 ```sh
-sh "${SRCROOT}/path/to/upload_dsym_build_phases.sh" <api_url> <api_key>
+./upload_dsym_xcarchive.sh <path_to_xcarchive> <api_url> <api_key> [custom_headers] [ipa_path]
 ```
 
 > [!CAUTION]  

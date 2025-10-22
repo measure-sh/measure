@@ -4,6 +4,7 @@
 #   ./upload_dsym.sh <path_to_xcarchive> <api_url> <api_key> [custom_headers] [ipa_path]
 # Example:
 #   ./upload_dsym.sh MyApp.xcarchive https://api.example.com abc123 'X-Custom-1: val1|X-Custom-2: val2' ./MyApp.ipa
+# Checkout the documentation for more details https://github.com/measure-sh/measure/blob/main/docs/features/feature-crash-reporting.md#ios-1.
 
 if [ "$#" -lt 3 ]; then
   echo "Usage: $0 <path_to_xcarchive> <api_url> <api_key> [custom_headers] [ipa_path]"
@@ -19,6 +20,28 @@ IPA_PATH="$5"
 BUILD_TYPE="ipa"
 OS_NAME="ios"
 SCRIPT_DIR=$(pwd)
+TEMP_FILES=()
+
+check_dependencies() {
+  if ! command -v jq &> /dev/null; then
+    echo "Error: jq is required for JSON processing but is not installed."
+    echo "Please install jq ('brew install jq' or 'sudo apt-get install jq')."
+    exit 1
+  fi
+}
+
+cleanup() {
+  echo "Cleaning up temporary files..."
+  for temp_file in "${TEMP_FILES[@]}"; do
+    if [ -f "$temp_file" ]; then
+      rm -f "$temp_file"
+      # echo "Removed $temp_file"
+    fi
+  done
+}
+trap cleanup EXIT
+
+check_dependencies
 
 # Validate xcarchive
 if [ ! -d "$ARCHIVE_PATH" ]; then
@@ -68,14 +91,28 @@ if [ ! -d "$DSYM_FOLDER" ]; then
   exit 1
 fi
 
-# Create .tgz archives for all dSYMs
 DSYM_TGZ_FILES=()
+DSYM_TGZ_BASENAMES=()
+DSYM_JSON_MAPPINGS="["
+
+INDEX=0
 for DSYM_DIR in "$DSYM_FOLDER"/*.dSYM; do
   if [ -d "$DSYM_DIR" ]; then
-    DSYM_TGZ="$SCRIPT_DIR/$(basename "$DSYM_DIR").tgz"
+    TGZ_BASENAME="$(basename "$DSYM_DIR").tgz"
+    DSYM_TGZ="$SCRIPT_DIR/$TGZ_BASENAME"
     tar -czf "$DSYM_TGZ" -C "$DSYM_FOLDER" "$(basename "$DSYM_DIR")"
+    
     DSYM_TGZ_FILES+=("$DSYM_TGZ")
-    echo "Created dSYM archive at $DSYM_TGZ"
+    DSYM_TGZ_BASENAMES+=("$TGZ_BASENAME")
+    TEMP_FILES+=("$DSYM_TGZ")
+
+    if [ "$INDEX" -gt 0 ]; then
+      DSYM_JSON_MAPPINGS="$DSYM_JSON_MAPPINGS,"
+    fi
+    
+    DSYM_JSON_MAPPINGS="$DSYM_JSON_MAPPINGS {\"type\": \"dsym\", \"filename\": \"$TGZ_BASENAME\"}"
+    
+    INDEX=$((INDEX+1))
   fi
 done
 
@@ -84,58 +121,159 @@ if [ "${#DSYM_TGZ_FILES[@]}" -eq 0 ]; then
   exit 1
 fi
 
-# Start building curl command
-CURL_COMMAND="curl --request PUT \
+DSYM_JSON_MAPPINGS="$DSYM_JSON_MAPPINGS ]" # Close JSON array
+
+METADATA_FILE=$(mktemp)
+TEMP_FILES+=("$METADATA_FILE")
+
+# Construct the complete JSON payload
+JSON_PAYLOAD=$(cat <<-END_JSON
+{
+  "version_name": "$VERSION_NAME",
+  "version_code": "$VERSION_CODE",
+  "build_size": $BUILD_SIZE,
+  "build_type": "$BUILD_TYPE",
+  "app_unique_id": "$APP_UNIQUE_ID",
+  "os_name": "$OS_NAME",
+  "mappings": $DSYM_JSON_MAPPINGS
+}
+END_JSON
+)
+
+# Save the JSON payload to the temporary file
+echo "$JSON_PAYLOAD" > "$METADATA_FILE"
+
+CURL_COMMAND_META="curl --request PUT \
   --url $API_URL/builds \
-  --header 'Authorization: Bearer $API_KEY'"
+  --header 'Authorization: Bearer $API_KEY' \
+  --header 'Content-Type: application/json'"
 
 # Append custom headers if provided
 IFS='|' read -r -a CUSTOM_HEADERS <<< "$RAW_CUSTOM_HEADERS"
 for HEADER in "${CUSTOM_HEADERS[@]}"; do
   if [ -n "$HEADER" ]; then
-    CURL_COMMAND="$CURL_COMMAND --header '$HEADER'"
+    CURL_COMMAND_META="$CURL_COMMAND_META --header '$HEADER'"
   fi
 done
 
-# Add base form fields
-CURL_COMMAND="$CURL_COMMAND \
-  --form version_name=$VERSION_NAME \
-  --form version_code=$VERSION_CODE \
-  --form build_size=$BUILD_SIZE \
-  --form build_type=$BUILD_TYPE \
-  --form app_unique_id=$APP_UNIQUE_ID \
-  --form os_name=$OS_NAME"
+CURL_COMMAND_META="$CURL_COMMAND_META --data @$METADATA_FILE"
 
-# Add dSYM files
-INDEX=0
-for DSYM_TGZ in "${DSYM_TGZ_FILES[@]}"; do
-  CURL_COMMAND="$CURL_COMMAND \
-    --form mappings[$INDEX].type=dsym \
-    --form mappings[$INDEX].filename=@$DSYM_TGZ"
-  INDEX=$((INDEX+1))
-done
+# Execute Step 1: Get Pre-Signed URLs
+echo ""
+echo "Uploading Build Metadata..."
+RESPONSE_BODY_FILE=$(mktemp)
+TEMP_FILES+=("$RESPONSE_BODY_FILE")
 
-# Execute the curl command
-echo "Executing curl command..."
-HTTP_RESPONSE=$(eval "$CURL_COMMAND --write-out '%{http_code}' --silent --output /dev/null")
+# Execute curl command
+HTTP_STATUS_CODE=$(eval "$CURL_COMMAND_META --write-out '%{http_code}' --silent --output $RESPONSE_BODY_FILE")
+HTTP_RESPONSE_BODY=$(cat "$RESPONSE_BODY_FILE")
 
-# Handle response
-case "$HTTP_RESPONSE" in
+case "$HTTP_STATUS_CODE" in
+  200|201)
+    ;;
   401)
-    echo "[ERROR]: Failed to upload mapping file to Measure, please check API key."
+    echo "Failed to upload build info, please check the api-key. Stack traces will not be symbolicated."
+    exit 1
     ;;
   413)
-    echo "[ERROR]: Failed to upload mapping file to Measure, mapping file too large."
+    echo "Failed to upload build info, build size exceeded the maximum allowed limit. Stack traces will not be symbolicated."
+    exit 1
     ;;
   500)
-    echo "[ERROR]: Server error, try again later."
+    echo "Failed to upload build info, the server encountered an error, try again later. Stack traces will not be symbolicated."
+    exit 1
     ;;
   *)
-    echo "Upload completed!"
+    echo "Metadata upload failed with unexpected status code $HTTP_STATUS_CODE."
+    exit 1
     ;;
 esac
 
-# Cleanup
-for DSYM_TGZ in "${DSYM_TGZ_FILES[@]}"; do
-  rm -f "$DSYM_TGZ"
+# --- Step 2: Upload files to Pre-Signed URLs ---
+echo ""
+echo "Uploading dSYM files..."
+UPLOAD_SUCCESS=true
+MAX_ATTEMPTS=3
+
+echo "$HTTP_RESPONSE_BODY" | jq -c '.mappings[]' | \
+while IFS= read -r URL_OBJECT; do
+    
+    # 1. Extract SIGNED_URL and EXPECTED_FILENAME
+    SIGNED_URL=$(echo "$URL_OBJECT" | jq -r '.upload_url')
+    EXPECTED_FILENAME=$(echo "$URL_OBJECT" | jq -r '.filename')
+    
+    # 2. Extract and format required file upload headers from the 'headers' object
+    UPLOAD_HEADERS_CURL=""
+    HEADER_LINES=$(echo "$URL_OBJECT" | jq -r '.headers | to_entries[] | "\(.key): \(.value)"')
+
+    # Loop through the extracted header lines and format them for curl
+    while IFS= read -r HEADER_LINE; do
+        if [ -n "$HEADER_LINE" ]; then
+            UPLOAD_HEADERS_CURL+=" --header \"$HEADER_LINE\""
+        fi
+    done <<< "$HEADER_LINES"
+    
+    # Simple validation check
+    if [ -z "$SIGNED_URL" ] || [ -z "$EXPECTED_FILENAME" ]; then
+        echo "[ERROR]: Failed to read response from server. Stack traces will not be symbolicated."
+        UPLOAD_SUCCESS=false
+        break
+    fi
+    
+    # Find the local path of the file corresponding to the expected filename
+    DSYM_TGZ_PATH=""
+    for (( j=0; j<${#DSYM_TGZ_BASENAMES[@]}; j++ )); do
+        if [ "${DSYM_TGZ_BASENAMES[$j]}" == "$EXPECTED_FILENAME" ]; then
+            DSYM_TGZ_PATH="${DSYM_TGZ_FILES[$j]}"
+            break
+        fi
+    done
+
+    if [ -z "$DSYM_TGZ_PATH" ]; then
+        echo "[ERROR]: Failed to upload dSYM files, no file found with name: $EXPECTED_FILENAME, Stack traces will not be symbolicated."
+        continue
+    fi
+    
+    # --- Retry Logic ---
+    UPLOAD_ATTEMPT_SUCCESS=false
+    FILE_UPLOAD_COMMAND="curl --request PUT \
+        --url \"$SIGNED_URL\" \
+        --header 'Content-Type: application/octet-stream' \
+        $UPLOAD_HEADERS_CURL \
+        --write-out '%{http_code}' \
+        --silent \
+        --output /dev/null \
+        --data-binary \"@$DSYM_TGZ_PATH\""
+
+    for ATTEMPT in $(seq 1 $MAX_ATTEMPTS); do
+        echo "  Attempt $ATTEMPT/$MAX_ATTEMPTS: Uploading $EXPECTED_FILENAME..."
+        
+        FILE_UPLOAD_STATUS=$(eval "$FILE_UPLOAD_COMMAND")
+        
+        if [[ "$FILE_UPLOAD_STATUS" -ge 200 && "$FILE_UPLOAD_STATUS" -le 299 ]]; then
+            echo "  [SUCCESS]: $EXPECTED_FILENAME uploaded on attempt $ATTEMPT. Status: $FILE_UPLOAD_STATUS"
+            UPLOAD_ATTEMPT_SUCCESS=true
+            break
+        else
+            if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
+                sleep 1
+            else
+                echo "[ERROR]: Failed to upload ($EXPECTED_FILENAME) after $MAX_ATTEMPTS attempts with status code: $FILE_UPLOAD_STATUS. Stack traces will not be symbolicated."
+            fi
+        fi
+    done
+
+    if ! $UPLOAD_ATTEMPT_SUCCESS; then
+        UPLOAD_SUCCESS=false
+    fi
+
 done
+
+if $UPLOAD_SUCCESS; then
+    echo ""
+    echo "✅ Successfully uploaded dSYM files to Measure."
+else
+    echo ""
+    echo "❌ Failed to upload one or more files. Stack traces will not be symbolicated."
+    exit 1
+fi
