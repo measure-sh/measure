@@ -338,7 +338,7 @@ Add the following dependency to your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  measure_flutter: ^0.1.2
+  measure_flutter: ^0.2.0
 ```
 
 ### Initialize the SDK
