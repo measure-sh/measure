@@ -62,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Implement alerts by @anupcowkur in #2418
 - (**deps**): Bump form-data from 4.0.2 to 4.0.4 in /frontend/dashboard (#2636) by @dependabot[bot] in #2636
 - (**deps**): Bump github.com/ulikunitz/xz in /self-host/sessionator (#2635) by @dependabot[bot] in #2635
+- (**frontend**): Update measure logos in website and email by @anupcowkur in #2794
 - (**frontend**): Remove console error log by @anupcowkur in #2760
 - (**frontend**): Hide cloud actions + messaging in self host by @anupcowkur in #2759
 - (**frontend**): Add posthog for analytics and error tracking by @anupcowkur in #2743
