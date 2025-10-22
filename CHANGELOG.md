@@ -79,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**backend**): Improve slack integration guide (#2791) by @detj in #2791
 - (**backend**): Update self host guide (#2764) by @detj in #2764
 - (**backend**): Update contribution guide (#2763) by @detj in #2763
 - (**backend**): Fix typo and format slack guide (#2736) by @detj in #2736
