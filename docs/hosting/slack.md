@@ -21,15 +21,15 @@ groups:read
 
 ```
 Command: /subscribe-alerts
-Request URL: yourdomain.com/slack/events
+Request URL: measure-api.yourcompany.com/slack/events
 Short Description: Registers current channel to receive alert notifications
 
 Command: /stop-alerts
-Request URL: yourdomain.com/slack/events
+Request URL: measure-api.yourcompany.com/slack/events
 Short Description: Stops current channel from receiving alert notifications
 
 Command: /list-alert-channels
-Request URL: yourdomain.com/slack/events
+Request URL: measure-api.yourcompany.com/slack/events
 Short Description: Lists channels currently registered to receive alert notifications
 ```
 
