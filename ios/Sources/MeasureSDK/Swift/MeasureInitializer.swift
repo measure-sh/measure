@@ -396,7 +396,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                                            timeProvider: timeProvider,
                                                                            logger: logger,
                                                                            exceptionGenerator: exceptionGenerator,
-                                                                           attributeValueValidator: attributeValueValidator)
+                                                                           attributeValueValidator: attributeValueValidator,
+                                                                           configProvider: configProvider)
         self.dataCleanupService = BaseDataCleanupService(eventStore: eventStore,
                                                          spanStore: spanStore,
                                                          sessionStore: sessionStore,

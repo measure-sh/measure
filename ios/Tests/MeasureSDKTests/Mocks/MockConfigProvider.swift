@@ -57,6 +57,8 @@ final class MockConfigProvider: ConfigProvider {
     var maxDiskUsageInMb: Int
     var estimatedEventSizeInKb: Int
     var maxExportJitterInterval: Int
+    var combinedHttpHeadersBlocklist: [String]
+    var combinedHttpUrlBlocklist: [String]
 
     init(enableLogging: Bool = false,  // swiftlint:disable:this function_body_length
          trackScreenshotOnCrash: Bool = true,
@@ -180,7 +182,50 @@ final class MockConfigProvider: ConfigProvider {
         self.estimatedEventSizeInKb = estimatedEventSizeInKb
         self.maxExportJitterInterval = maxExportJitterInterval
         self.maxAttachmentsInBatch = maxAttachmentsInBatch
+        self.combinedHttpHeadersBlocklist = self.defaultHttpHeadersBlocklist + self.httpHeadersBlocklist
+        self.combinedHttpUrlBlocklist = self.httpUrlBlocklist
     }
 
     func loadNetworkConfig() {}
+
+    func shouldTrackHttpBody(url: String, contentType: String?) -> Bool {
+        if !trackHttpBody {
+            return false
+        }
+
+        if contentType?.isEmpty ?? true {
+            return false
+        }
+
+        if !shouldTrackHttpUrl(url: url) {
+            return false
+        }
+
+        let nonNilContentType = contentType!
+        return httpContentTypeAllowlist.contains { allowlistEntry in
+            return nonNilContentType.lowercased().hasPrefix(allowlistEntry.lowercased())
+        }
+    }
+    
+    func shouldTrackHttpUrl(url: String) -> Bool {
+        if !httpUrlAllowlist.isEmpty {
+            return httpUrlAllowlist.contains { allowlistEntry in
+                return url.range(of: allowlistEntry, options: .caseInsensitive) != nil
+            }
+        }
+
+        return !combinedHttpUrlBlocklist.contains { blocklistEntry in
+            return url.range(of: blocklistEntry, options: .caseInsensitive) != nil
+        }
+    }
+    
+    func shouldTrackHttpHeader(key: String) -> Bool {
+        return !combinedHttpHeadersBlocklist.contains { blocklistEntry in
+            return key.range(of: blocklistEntry, options: .caseInsensitive) != nil
+        }
+    }
+
+    func setMeasureUrl(url: String) {
+        combinedHttpUrlBlocklist.append(url)
+    }
 }

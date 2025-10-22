@@ -303,7 +303,8 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                                                                           timeProvider: self.timeProvider,
                                                                                                           logger: self.logger,
                                                                                                           exceptionGenerator: self.exceptionGenerator,
-                                                                                                          attributeValueValidator: self.attributeValueValidator)
+                                                                                                          attributeValueValidator: self.attributeValueValidator,
+                                                                                                          configProvider: self.configProvider)
         self.dataCleanupService = dataCleanupService ?? BaseDataCleanupService(eventStore: self.eventStore,
                                                                                spanStore: self.spanStore,
                                                                                sessionStore: self.sessionStore,
