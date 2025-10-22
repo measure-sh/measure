@@ -10,6 +10,7 @@ import (
 	"cloud.google.com/go/cloudsqlconn"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leporo/sqlf"
 )
@@ -59,12 +60,17 @@ func NewConfig() *ServerConfig {
 
 	postgresDSN := os.Getenv("POSTGRES_DSN")
 	if postgresDSN == "" {
-		log.Fatal("POSTGRES_DSN env var is not set, cannot start server")
+		log.Println("POSTGRES_DSN env var is not set, cannot start server")
 	}
 
 	clickhouseDSN := os.Getenv("CLICKHOUSE_DSN")
 	if clickhouseDSN == "" {
-		log.Fatal("CLICKHOUSE_DSN env var is not set, cannot start server")
+		log.Println("CLICKHOUSE_DSN env var is not set, cannot start server")
+	}
+
+	clickhouseReaderDSN := os.Getenv("CLICKHOUSE_READER_DSN")
+	if clickhouseReaderDSN == "" {
+		log.Println("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
 	}
 
 	otelServiceName := os.Getenv("OTEL_SERVICE_NAME")
@@ -77,7 +83,8 @@ func NewConfig() *ServerConfig {
 			DSN: postgresDSN,
 		},
 		CH: ClickhouseConfig{
-			DSN: clickhouseDSN,
+			DSN:       clickhouseDSN,
+			ReaderDSN: clickhouseReaderDSN,
 		},
 		OtelServiceName: otelServiceName,
 		CloudEnv:        cloudEnv,
@@ -91,8 +98,11 @@ func Init(config *ServerConfig) {
 	// read/write pool
 	oConfig, err := pgxpool.ParseConfig(config.PG.DSN)
 	if err != nil {
-		log.Fatalf("Unable to parse postgres connection string: %v\n", err)
+		log.Printf("Unable to parse postgres connection string: %v\n", err)
 	}
+
+	// See https://pkg.go.dev/github.com/jackc/pgx/v5#QueryExecMode
+	oConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 
 	if config.IsCloud() {
 		d, err := cloudsqlconn.NewDialer(ctx,
@@ -120,13 +130,12 @@ func Init(config *ServerConfig) {
 
 	pool, err := pgxpool.NewWithConfig(ctx, oConfig)
 	if err != nil {
-		log.Fatalf("Unable to create PG connection pool: %v\n", err)
+		log.Printf("Unable to create PG connection pool: %v\n", err)
 	}
 	pgPool = pool
 
 	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
 	if err != nil {
-		// log.Fatalf("Unable to parse CH connection string: %v\n", err)
 		log.Printf("Unable to parse CH connection string: %v\n", err)
 	}
 
@@ -137,7 +146,6 @@ func Init(config *ServerConfig) {
 
 	chPool, err := clickhouse.Open(chOpts)
 	if err != nil {
-		// log.Fatalf("Unable to create CH connection pool: %v", err)
 		log.Printf("Unable to create CH connection pool: %v\n", err)
 	}
 

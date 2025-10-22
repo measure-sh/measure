@@ -12,6 +12,7 @@ import (
 	"cloud.google.com/go/cloudsqlconn"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leporo/sqlf"
 	"github.com/wneessen/go-mail"
@@ -70,22 +71,21 @@ func NewConfig() *ServerConfig {
 
 	siteOrigin := os.Getenv("SITE_ORIGIN")
 	if siteOrigin == "" {
-		log.Fatal("SITE_ORIGIN env var not set. Need for Cross Origin Resource Sharing (CORS) to work.")
+		log.Println("SITE_ORIGIN env var not set. Need for Cross Origin Resource Sharing (CORS) to work.")
 	}
 
 	postgresDSN := os.Getenv("POSTGRES_DSN")
 	if postgresDSN == "" {
-		log.Fatal("POSTGRES_DSN env var is not set, cannot start server")
+		log.Println("POSTGRES_DSN env var is not set, cannot start server")
 	}
 
 	clickhouseDSN := os.Getenv("CLICKHOUSE_DSN")
 	if clickhouseDSN == "" {
-		log.Fatal("CLICKHOUSE_DSN env var is not set, cannot start server")
+		log.Println("CLICKHOUSE_DSN env var is not set, cannot start server")
 	}
 
 	clickhouseReaderDSN := os.Getenv("CLICKHOUSE_READER_DSN")
 	if clickhouseReaderDSN == "" {
-		// log.Fatal("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
 		log.Println("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
 	}
 
@@ -120,7 +120,7 @@ func NewConfig() *ServerConfig {
 	} else {
 		parsedSiteOrigin, err := url.Parse(siteOrigin)
 		if err != nil {
-			log.Fatalf("Error parsing SITE_ORIGIN: %v\n", err)
+			log.Printf("Error parsing SITE_ORIGIN: %v\n", err)
 		}
 		txEmailAddress = "noreply@" + parsedSiteOrigin.Hostname()
 	}
@@ -157,8 +157,11 @@ func Init(config *ServerConfig) {
 	// read/write pool
 	oConfig, err := pgxpool.ParseConfig(config.PG.DSN)
 	if err != nil {
-		log.Fatalf("Unable to parse postgres connection string: %v\n", err)
+		log.Printf("Unable to parse postgres connection string: %v\n", err)
 	}
+
+	// See https://pkg.go.dev/github.com/jackc/pgx/v5#QueryExecMode
+	oConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 
 	if config.IsCloud() {
 		d, err := cloudsqlconn.NewDialer(ctx,
@@ -186,13 +189,12 @@ func Init(config *ServerConfig) {
 
 	pool, err := pgxpool.NewWithConfig(ctx, oConfig)
 	if err != nil {
-		log.Fatalf("Unable to create PG connection pool: %v\n", err)
+		log.Printf("Unable to create PG connection pool: %v\n", err)
 	}
 	pgPool = pool
 
 	chOpts, err := clickhouse.ParseDSN(config.CH.DSN)
 	if err != nil {
-		// log.Fatalf("Unable to parse CH connection string: %v\n", err)
 		log.Printf("Unable to parse CH connection string: %v\n", err)
 	}
 
@@ -203,7 +205,6 @@ func Init(config *ServerConfig) {
 
 	chPool, err := clickhouse.Open(chOpts)
 	if err != nil {
-		// log.Fatalf("Unable to create CH connection pool: %v", err)
 		log.Printf("Unable to create CH connection pool: %v\n", err)
 	}
 
@@ -219,13 +220,13 @@ func Init(config *ServerConfig) {
 	if config.SmtpHost != "" || config.SmtpPort != "" || config.SmtpUser != "" || config.SmtpPassword != "" {
 		smtpConfigPort, err := strconv.Atoi(config.SmtpPort)
 		if err != nil {
-			log.Printf("Invalid smtp port: %s", err)
+			log.Printf("Invalid smtp port: %v\n", err)
 		}
 
 		mailClient, err = mail.NewClient(config.SmtpHost, mail.WithPort(smtpConfigPort), mail.WithSMTPAuth(mail.SMTPAuthPlain),
 			mail.WithUsername(config.SmtpUser), mail.WithPassword(config.SmtpPassword))
 		if err != nil {
-			log.Printf("failed to create email client: %s", err)
+			log.Printf("failed to create email client: %v\n", err)
 		}
 	}
 

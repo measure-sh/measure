@@ -144,7 +144,7 @@ func SendPendingAlertSlackMessages(ctx context.Context) error {
 func SendSlackMessage(ctx context.Context, msgID uuid.UUID, teamID uuid.UUID, slackMsgData SlackMessageData) error {
 	url := "https://slack.com/api/chat.postMessage"
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"channel": slackMsgData.Channel,
 		"text":    slackMsgData.Text,
 	}
