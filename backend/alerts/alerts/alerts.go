@@ -556,7 +556,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 			Set("team_id", alert.TeamID).
 			Set("app_id", alert.AppID).
 			Set("channel", "email").
-			Set("data", dataJson).
+			SetExpr("data", "?::jsonb", string(dataJson)).
 			Set("created_at", time.Now()).
 			Set("updated_at", time.Now())
 		_, err = server.Server.PgPool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
@@ -620,7 +620,7 @@ func scheduleSlackAlertsForTeamChannels(ctx context.Context, alert Alert, messag
 			Set("team_id", alert.TeamID).
 			Set("app_id", alert.AppID).
 			Set("channel", "slack").
-			Set("data", dataJson).
+			SetExpr("data", "?::jsonb", string(dataJson)).
 			Set("created_at", time.Now()).
 			Set("updated_at", time.Now())
 
@@ -685,7 +685,7 @@ func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UU
 			Set("team_id", teamId).
 			Set("app_id", appId).
 			Set("channel", "email").
-			Set("data", dataJson).
+			SetExpr("data", "?::jsonb", string(dataJson)).
 			Set("created_at", time.Now()).
 			Set("updated_at", time.Now())
 		_, err = server.Server.PgPool.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
@@ -742,7 +742,7 @@ func scheduleDailySummarySlackMessageForTeamChannels(ctx context.Context, teamId
 			Set("team_id", teamId).
 			Set("app_id", appId).
 			Set("channel", "slack").
-			Set("data", dataJson).
+			SetExpr("data", "?::jsonb", string(dataJson)).
 			Set("created_at", time.Now()).
 			Set("updated_at", time.Now())
 
