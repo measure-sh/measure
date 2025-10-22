@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Checkout the documentation for more details https://github.com/measure-sh/measure/blob/main/docs/features/feature-crash-reporting.md#ios-1.
+
 if [ "$#" -lt 7 ]; then
   echo "Usage: $0 <path_to_dsym_folder> <api_url> <api_key> <version_name> <version_code> <app_unique_id> <build_size> [custom_headers]"
   echo "Example: $0 dsym/ https://api.example.com abc123 1.0.0 42 com.example.app 123456 'X-Custom-1: val1|X-Custom-2: val2'"
@@ -116,10 +118,26 @@ TEMP_FILES+=("$RESPONSE_BODY_FILE")
 HTTP_STATUS_CODE=$(eval "$CURL_COMMAND_META --write-out '%{http_code}' --silent --output $RESPONSE_BODY_FILE")
 HTTP_RESPONSE_BODY=$(cat "$RESPONSE_BODY_FILE")
 
-if [[ "$HTTP_STATUS_CODE" -ne 200 && "$HTTP_STATUS_CODE" -ne 201 ]]; then
-    echo "[ERROR]: Metadata upload failed with status code $HTTP_STATUS_CODE."
+case "$HTTP_STATUS_CODE" in
+  200|201)
+    ;;
+  401)
+    echo "Failed to upload build info, please check the api-key. Stack traces will not be symbolicated."
     exit 1
-fi
+    ;;
+  413)
+    echo "Failed to upload build info, build size exceeded the maximum allowed limit. Stack traces will not be symbolicated."
+    exit 1
+    ;;
+  500)
+    echo "Failed to upload build info, the server encountered an error, try again later. Stack traces will not be symbolicated."
+    exit 1
+    ;;
+  *)
+    echo "Metadata upload failed with unexpected status code $HTTP_STATUS_CODE."
+    exit 1
+    ;;
+esac
 
 echo ""
 echo "Uploading dSYM files..."
@@ -142,7 +160,7 @@ while IFS= read -r URL_OBJECT; do
     done <<< "$HEADER_LINES"
     
     if [ -z "$SIGNED_URL" ] || [ -z "$EXPECTED_FILENAME" ]; then
-        echo "[ERROR]: Failed to extract SIGNED_URL or FILENAME from JSON object. Aborting remaining uploads."
+        echo "[ERROR]: Failed to read response from server. Stack traces will not be symbolicated."
         UPLOAD_SUCCESS=false
         break
     fi
@@ -156,7 +174,7 @@ while IFS= read -r URL_OBJECT; do
     done
 
     if [ -z "$DSYM_TGZ_PATH" ]; then
-        echo "[WARNING]: Local dSYM file not found for filename $EXPECTED_FILENAME. Skipping upload."
+        echo "[ERROR]: Failed to upload dSYM files, no file found with name: $EXPECTED_FILENAME, Stack traces will not be symbolicated."
         continue
     fi
     
@@ -181,10 +199,9 @@ while IFS= read -r URL_OBJECT; do
             break # Success, move to the next file
         else
             if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
-                echo "  [WARNING]: $EXPECTED_FILENAME upload failed (Status: $FILE_UPLOAD_STATUS). Retrying in 5 seconds..."
-                sleep 5
+                sleep 1
             else
-                echo "  [ERROR]: $EXPECTED_FILENAME upload failed after $MAX_ATTEMPTS attempts. Final Status: $FILE_UPLOAD_STATUS"
+                echo "[ERROR]: Failed to upload ($EXPECTED_FILENAME) after $MAX_ATTEMPTS attempts with status code: $FILE_UPLOAD_STATUS. Stack traces will not be symbolicated."
             fi
         fi
     done
@@ -197,9 +214,9 @@ done
 
 if $UPLOAD_SUCCESS; then
     echo ""
-    echo "✅ SUCCESS: All build metadata and dSYM files uploaded."
+    echo "✅ Successfully uploaded dSYM files to Measure."
 else
     echo ""
-    echo "❌ FAILURE: One or more file uploads failed."
+    echo "❌ Failed to upload one or more files. Stack traces will not be symbolicated."
     exit 1
 fi

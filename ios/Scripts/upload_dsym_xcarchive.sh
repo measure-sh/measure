@@ -4,6 +4,7 @@
 #   ./upload_dsym.sh <path_to_xcarchive> <api_url> <api_key> [custom_headers] [ipa_path]
 # Example:
 #   ./upload_dsym.sh MyApp.xcarchive https://api.example.com abc123 'X-Custom-1: val1|X-Custom-2: val2' ./MyApp.ipa
+# Checkout the documentation for more details https://github.com/measure-sh/measure/blob/main/docs/features/feature-crash-reporting.md#ios-1.
 
 if [ "$#" -lt 3 ]; then
   echo "Usage: $0 <path_to_xcarchive> <api_url> <api_key> [custom_headers] [ipa_path]"
@@ -24,7 +25,7 @@ TEMP_FILES=()
 check_dependencies() {
   if ! command -v jq &> /dev/null; then
     echo "Error: jq is required for JSON processing but is not installed."
-    echo "Please install jq (e.g., 'brew install jq' or 'sudo apt-get install jq')."
+    echo "Please install jq ('brew install jq' or 'sudo apt-get install jq')."
     exit 1
   fi
 }
@@ -167,10 +168,26 @@ TEMP_FILES+=("$RESPONSE_BODY_FILE")
 HTTP_STATUS_CODE=$(eval "$CURL_COMMAND_META --write-out '%{http_code}' --silent --output $RESPONSE_BODY_FILE")
 HTTP_RESPONSE_BODY=$(cat "$RESPONSE_BODY_FILE")
 
-if [[ "$HTTP_STATUS_CODE" -ne 200 && "$HTTP_STATUS_CODE" -ne 201 ]]; then
-    echo "[ERROR]: Metadata upload failed with status code $HTTP_STATUS_CODE."
+case "$HTTP_STATUS_CODE" in
+  200|201)
+    ;;
+  401)
+    echo "Failed to upload build info, please check the api-key. Stack traces will not be symbolicated."
     exit 1
-fi
+    ;;
+  413)
+    echo "Failed to upload build info, build size exceeded the maximum allowed limit. Stack traces will not be symbolicated."
+    exit 1
+    ;;
+  500)
+    echo "Failed to upload build info, the server encountered an error, try again later. Stack traces will not be symbolicated."
+    exit 1
+    ;;
+  *)
+    echo "Metadata upload failed with unexpected status code $HTTP_STATUS_CODE."
+    exit 1
+    ;;
+esac
 
 # --- Step 2: Upload files to Pre-Signed URLs ---
 echo ""
@@ -198,7 +215,7 @@ while IFS= read -r URL_OBJECT; do
     
     # Simple validation check
     if [ -z "$SIGNED_URL" ] || [ -z "$EXPECTED_FILENAME" ]; then
-        echo "[ERROR]: Failed to extract SIGNED_URL or FILENAME from JSON object: $URL_OBJECT. Aborting remaining uploads."
+        echo "[ERROR]: Failed to read response from server. Stack traces will not be symbolicated."
         UPLOAD_SUCCESS=false
         break
     fi
@@ -213,7 +230,7 @@ while IFS= read -r URL_OBJECT; do
     done
 
     if [ -z "$DSYM_TGZ_PATH" ]; then
-        echo "[WARNING]: Local dSYM file not found for filename $EXPECTED_FILENAME. Skipping upload."
+        echo "[ERROR]: Failed to upload dSYM files, no file found with name: $EXPECTED_FILENAME, Stack traces will not be symbolicated."
         continue
     fi
     
@@ -236,30 +253,27 @@ while IFS= read -r URL_OBJECT; do
         if [[ "$FILE_UPLOAD_STATUS" -ge 200 && "$FILE_UPLOAD_STATUS" -le 299 ]]; then
             echo "  [SUCCESS]: $EXPECTED_FILENAME uploaded on attempt $ATTEMPT. Status: $FILE_UPLOAD_STATUS"
             UPLOAD_ATTEMPT_SUCCESS=true
-            break # Success, move to the next file
+            break
         else
             if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
-                echo "  [WARNING]: $EXPECTED_FILENAME upload failed (Status: $FILE_UPLOAD_STATUS). Retrying in 5 seconds..."
-                sleep 5
+                sleep 1
             else
-                echo "  [ERROR]: $EXPECTED_FILENAME upload failed after $MAX_ATTEMPTS attempts. Final Status: $FILE_UPLOAD_STATUS"
+                echo "[ERROR]: Failed to upload ($EXPECTED_FILENAME) after $MAX_ATTEMPTS attempts with status code: $FILE_UPLOAD_STATUS. Stack traces will not be symbolicated."
             fi
         fi
     done
-    # --- End Retry Logic ---
 
     if ! $UPLOAD_ATTEMPT_SUCCESS; then
-        UPLOAD_SUCCESS=false # Mark overall upload as failed
+        UPLOAD_SUCCESS=false
     fi
 
-done # End of while loop processing signed URLs
+done
 
-# Final Summary
 if $UPLOAD_SUCCESS; then
     echo ""
-    echo "✅ SUCCESS: All build metadata and dSYM files uploaded."
+    echo "✅ Successfully uploaded dSYM files to Measure."
 else
     echo ""
-    echo "❌ FAILURE: One or more file uploads failed."
+    echo "❌ Failed to upload one or more files. Stack traces will not be symbolicated."
     exit 1
 fi
