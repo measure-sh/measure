@@ -1063,18 +1063,16 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun deleteAttachment(attachmentId: String): Boolean {
-        return try {
-            val rowsDeleted = writableDatabase.delete(
-                AttachmentV1Table.TABLE_NAME,
-                "${AttachmentV1Table.COL_ID} = ?",
-                arrayOf(attachmentId),
-            )
-            rowsDeleted > 0
-        } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Failed to delete attachment $attachmentId", e)
-            false
-        }
+     override fun deleteAttachment(attachmentId: String): Boolean = try {
+        val rowsDeleted = writableDatabase.delete(
+            AttachmentV1Table.TABLE_NAME,
+            "${AttachmentV1Table.COL_ID} = ?",
+            arrayOf(attachmentId),
+        )
+        rowsDeleted > 0
+    } catch (e: Exception) {
+        logger.log(LogLevel.Error, "Failed to delete attachment $attachmentId", e)
+        false
     }
 
     override fun deleteAttachments(attachmentIds: List<String>) {
