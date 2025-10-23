@@ -156,6 +156,8 @@ class MeasurePluginTest {
         @JvmStatic
         fun versions(): Stream<Arguments> {
             return Stream.of(
+                Arguments.of(SemVer(8, 0, 2), GradleVersion.version("8.0")),
+                Arguments.of(SemVer(8, 4, 2), GradleVersion.version("8.6")),
                 Arguments.of(SemVer(8, 6, 0), GradleVersion.version("8.7")),
                 Arguments.of(SemVer(8, 7, 3), GradleVersion.version("8.9")),
                 Arguments.of(SemVer(8, 8, 0), GradleVersion.version("8.10.2")),

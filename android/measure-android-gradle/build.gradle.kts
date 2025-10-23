@@ -112,7 +112,7 @@ fun configureSpotlessKotlin(spotlessExtension: SpotlessExtension) {
 }
 
 dependencies {
-    compileOnly(libs.agp860)
+    compileOnly(libs.agp802)
     compileOnly(libs.asm.util)
     compileOnly(libs.asm.commons)
 
@@ -131,7 +131,7 @@ dependencies {
     testImplementation(libs.squareup.okhttp.mockwebserver)
     testImplementation(libs.asm.util)
     testImplementation(libs.asm.commons)
-    testImplementation(libs.agp860)
+    testImplementation(libs.agp802)
     testImplementation(libs.mockitokotlin2.mockito.kotlin)
     testImplementationAar(libs.measure.android)
 

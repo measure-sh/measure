@@ -2,7 +2,7 @@
 agp = "8.13.0"
 # This is the lowest version of AGP supported by the measure gradle plugin
 #noinspection AndroidGradlePluginVersion
-agp860 = "8.6.0"
+agp802 = "8.0.2"
 bundletool = "1.18.2"
 # android-tools is used for calculating app size and aab size by the gradle plugin.
 # The version should remain compatible with lower versions of android gradle plugin. New versions
@@ -86,7 +86,7 @@ androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling
 androidx-compose-runtime-android = { module = "androidx.compose.runtime:runtime-android", version.ref = "androidx-runtime-android" }
 androidx-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "androidx-uiautomator" }
 androidx-orchestrator = { module = "androidx.test:orchestrator", version.ref = "orchestrator" }
-agp860 = { module = "com.android.tools.build:gradle", version.ref = "agp860" }
+agp802 = { module = "com.android.tools.build:gradle", version.ref = "agp802" }
 asm-commons = { module = "org.ow2.asm:asm-commons", version.ref = "asm-util" }
 asm-util = { module = "org.ow2.asm:asm-util", version.ref = "asm-util" }
 android-tools-bundletool = { module = "com.android.tools.build:bundletool", version.ref = "bundletool" }
