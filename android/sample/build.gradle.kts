@@ -25,7 +25,7 @@ android {
     val measureSdkVersion = libs.versions.measure.android.get()
     defaultConfig {
         applicationId = "sh.measure.sample"
-        minSdk = 21
+        minSdk = 23
         targetSdk = 36
         versionCode = computeVersionCode()
         versionName = measureSdkVersion
