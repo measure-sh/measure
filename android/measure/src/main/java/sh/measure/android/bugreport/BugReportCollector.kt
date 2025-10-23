@@ -140,9 +140,7 @@ internal class BugReportCollectorImpl internal constructor(
         }
     }
 
-    override fun validateBugReport(attachments: Int, descriptionLength: Int): Boolean {
-        return attachments > 0 || descriptionLength > 0
-    }
+    override fun validateBugReport(attachments: Int, descriptionLength: Int): Boolean = attachments > 0 || descriptionLength > 0
 
     private fun captureScreenshot(
         activity: Activity,
@@ -192,60 +190,56 @@ internal class BugReportCollectorImpl internal constructor(
         )
     }
 
-    private fun List<ParcelableAttachment>.toEventAttachments(): List<EventAttachment> {
-        return mapNotNull { attachment: ParcelableAttachment ->
-            val file = File(attachment.path)
-            if (file.exists()) {
-                val bytes = file.readBytes()
-                EventAttachment(
-                    name = attachment.name,
-                    type = AttachmentType.SCREENSHOT,
-                    bytes = bytes,
-                )
-            } else {
-                null
-            }
+    private fun List<ParcelableAttachment>.toEventAttachments(): List<EventAttachment> = mapNotNull { attachment: ParcelableAttachment ->
+        val file = File(attachment.path)
+        if (file.exists()) {
+            val bytes = file.readBytes()
+            EventAttachment(
+                name = attachment.name,
+                type = AttachmentType.SCREENSHOT,
+                bytes = bytes,
+            )
+        } else {
+            null
         }
     }
 
-    private fun List<Uri>.toEventAttachments(context: Context): List<EventAttachment> {
-        return mapNotNull { uri ->
-            try {
-                val contentResolver = context.contentResolver
-                val options = BitmapFactory.Options().apply {
-                    inJustDecodeBounds = true
-                }
-                contentResolver.openInputStream(uri)?.use {
-                    BitmapFactory.decodeStream(it, null, options)
-                }
-                val sampleSize = if (options.outWidth > MAX_OUTPUT_IMAGE_WIDTH) {
-                    (options.outWidth.toFloat() / MAX_OUTPUT_IMAGE_WIDTH.toFloat()).roundToInt()
-                } else {
-                    1
-                }
-                options.apply {
-                    inJustDecodeBounds = false
-                    inSampleSize = sampleSize
-                }
-                contentResolver.openInputStream(uri)?.use {
-                    BitmapFactory.decodeStream(it, null, options)
-                }?.let { bitmap ->
-                    BitmapHelper.compressBitmap(
-                        bitmap,
-                        configProvider.screenshotCompressionQuality,
-                        logger,
-                    )?.let { (extension, bytes) ->
-                        EventAttachment(
-                            name = "screenshot.$extension",
-                            bytes = bytes,
-                            type = AttachmentType.SCREENSHOT,
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                logger.log(LogLevel.Error, "Failed to read image from URI: $uri", e)
-                null
+    private fun List<Uri>.toEventAttachments(context: Context): List<EventAttachment> = mapNotNull { uri ->
+        try {
+            val contentResolver = context.contentResolver
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
             }
+            contentResolver.openInputStream(uri)?.use {
+                BitmapFactory.decodeStream(it, null, options)
+            }
+            val sampleSize = if (options.outWidth > MAX_OUTPUT_IMAGE_WIDTH) {
+                (options.outWidth.toFloat() / MAX_OUTPUT_IMAGE_WIDTH.toFloat()).roundToInt()
+            } else {
+                1
+            }
+            options.apply {
+                inJustDecodeBounds = false
+                inSampleSize = sampleSize
+            }
+            contentResolver.openInputStream(uri)?.use {
+                BitmapFactory.decodeStream(it, null, options)
+            }?.let { bitmap ->
+                BitmapHelper.compressBitmap(
+                    bitmap,
+                    configProvider.screenshotCompressionQuality,
+                    logger,
+                )?.let { (extension, bytes) ->
+                    EventAttachment(
+                        name = "screenshot.$extension",
+                        bytes = bytes,
+                        type = AttachmentType.SCREENSHOT,
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Failed to read image from URI: $uri", e)
+            null
         }
     }
 }

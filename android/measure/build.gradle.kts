@@ -130,7 +130,7 @@ extensions.configure<SpotlessExtension>("spotless") {
             "docs/**/*.md",
             "src/**/*.properties",
         )
-        indentWithSpaces()
+        leadingTabsToSpaces()
         trimTrailingWhitespace()
         endWithNewline()
     }

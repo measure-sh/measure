@@ -11,17 +11,11 @@ internal class FakeConfigProvider : ConfigProvider {
         // no-op
     }
 
-    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean {
-        return false
-    }
+    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean = false
 
-    override fun shouldTrackHttpUrl(url: String): Boolean {
-        return false
-    }
+    override fun shouldTrackHttpUrl(url: String): Boolean = false
 
-    override fun shouldTrackHttpHeader(key: String): Boolean {
-        return false
-    }
+    override fun shouldTrackHttpHeader(key: String): Boolean = false
 
     override fun setMeasureUrl(url: String) {
         // No-op

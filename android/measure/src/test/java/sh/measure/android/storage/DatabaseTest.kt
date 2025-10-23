@@ -1383,29 +1383,25 @@ class DatabaseTest {
         assertEquals(1, remaining.size)
     }
 
-    private fun queryAllEvents(db: SQLiteDatabase): Cursor {
-        return db.query(
-            EventTable.TABLE_NAME,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-        )
-    }
+    private fun queryAllEvents(db: SQLiteDatabase): Cursor = db.query(
+        EventTable.TABLE_NAME,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+    )
 
-    private fun queryAllSpans(db: SQLiteDatabase): Cursor {
-        return db.query(
-            SpansTable.TABLE_NAME,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-        )
-    }
+    private fun queryAllSpans(db: SQLiteDatabase): Cursor = db.query(
+        SpansTable.TABLE_NAME,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+    )
 
     private fun queryAllBatches(): Cursor {
         val db = database.writableDatabase
@@ -1446,17 +1442,15 @@ class DatabaseTest {
         )
     }
 
-    private fun queryAttachmentsForEvent(db: SQLiteDatabase, eventId: String): Cursor {
-        return db.query(
-            AttachmentV1Table.TABLE_NAME,
-            null,
-            "${AttachmentV1Table.COL_EVENT_ID} = ?",
-            arrayOf(eventId),
-            null,
-            null,
-            null,
-        )
-    }
+    private fun queryAttachmentsForEvent(db: SQLiteDatabase, eventId: String): Cursor = db.query(
+        AttachmentV1Table.TABLE_NAME,
+        null,
+        "${AttachmentV1Table.COL_EVENT_ID} = ?",
+        arrayOf(eventId),
+        null,
+        null,
+        null,
+    )
 
     /**
      * Asserts that the event in the cursor matches the expected event.

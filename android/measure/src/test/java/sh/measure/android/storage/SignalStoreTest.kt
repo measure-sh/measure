@@ -482,7 +482,5 @@ internal class SignalStoreTest {
         assertEquals(1, spansCaptor.firstValue.size)
     }
 
-    private fun getAttachmentContent(): String {
-        return "lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
-    }
+    private fun getAttachmentContent(): String = "lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
 }

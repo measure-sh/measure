@@ -227,36 +227,34 @@ internal class LaunchTracker(
         LaunchState.lastAppVisibleElapsedRealtime = timeProvider.elapsedRealtime
     }
 
-    private fun computeLaunchType(onCreateRecord: OnCreateRecord): String {
-        return when {
-            coldLaunchComplete -> {
-                if (onCreateRecord.sameMessage) {
-                    "Warm"
-                } else {
-                    "Hot"
-                }
+    private fun computeLaunchType(onCreateRecord: OnCreateRecord): String = when {
+        coldLaunchComplete -> {
+            if (onCreateRecord.sameMessage) {
+                "Warm"
+            } else {
+                "Hot"
             }
-
-            // This could have been a cold launch, but the activity was created with a saved state.
-            // Which reflects that the app was previously alive but the system evicted it from
-            // memory, but still kept the saved state. This is a "lukewarm" launch as the activity
-            // will still be created from scratch. It's not a cold launch as the system can benefit
-            // from the saved state.
-            LaunchState.processImportanceOnInit == IMPORTANCE_FOREGROUND && onCreateRecord.hasSavedState -> "Lukewarm"
-
-            // This is clearly a cold launch as the process was started with a foreground importance
-            // and does not have a saved state.
-            LaunchState.processImportanceOnInit == IMPORTANCE_FOREGROUND -> "Cold"
-
-            // This is a case where activity was created and resumed, but the app was
-            // not launched with a foreground importance. The system started the app without
-            // foreground importance but decided to change it's mind later. We track this as a
-            // lukewarm launch as the system got a chance to warm up before deciding to bring the
-            // activity to the foreground. Sadly we do not know when the system changed it's mind, so
-            // we just use the same launch time as a cold launch. We cannot rely on
-            // lastAppVisibleElapsedRealtime as it won't be set in this case.
-            else -> "Lukewarm"
         }
+
+        // This could have been a cold launch, but the activity was created with a saved state.
+        // Which reflects that the app was previously alive but the system evicted it from
+        // memory, but still kept the saved state. This is a "lukewarm" launch as the activity
+        // will still be created from scratch. It's not a cold launch as the system can benefit
+        // from the saved state.
+        LaunchState.processImportanceOnInit == IMPORTANCE_FOREGROUND && onCreateRecord.hasSavedState -> "Lukewarm"
+
+        // This is clearly a cold launch as the process was started with a foreground importance
+        // and does not have a saved state.
+        LaunchState.processImportanceOnInit == IMPORTANCE_FOREGROUND -> "Cold"
+
+        // This is a case where activity was created and resumed, but the app was
+        // not launched with a foreground importance. The system started the app without
+        // foreground importance but decided to change it's mind later. We track this as a
+        // lukewarm launch as the system got a chance to warm up before deciding to bring the
+        // activity to the foreground. Sadly we do not know when the system changed it's mind, so
+        // we just use the same launch time as a cold launch. We cannot rely on
+        // lastAppVisibleElapsedRealtime as it won't be set in this case.
+        else -> "Lukewarm"
     }
 
     private fun getIntentData(intentData: String?): String? {

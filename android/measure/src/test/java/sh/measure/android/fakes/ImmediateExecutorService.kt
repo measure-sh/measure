@@ -10,8 +10,7 @@ import java.util.concurrent.TimeUnit
 /**
  * A [MeasureExecutorService] which executes all tasks immediately for tests.
  */
-internal class ImmediateExecutorService(private val resolvableFuture: ResolvableFuture<Any?>) :
-    MeasureExecutorService {
+internal class ImmediateExecutorService(private val resolvableFuture: ResolvableFuture<Any?>) : MeasureExecutorService {
 
     @Suppress("UNCHECKED_CAST")
     override fun <T> submit(callable: Callable<T>): Future<T> {

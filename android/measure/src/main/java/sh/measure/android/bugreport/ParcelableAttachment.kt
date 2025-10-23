@@ -16,15 +16,11 @@ internal data class ParcelableAttachment(
     override fun describeContents(): Int = 0
 
     internal companion object CREATOR : Parcelable.Creator<ParcelableAttachment> {
-        override fun createFromParcel(parcel: Parcel): ParcelableAttachment {
-            return ParcelableAttachment(
-                parcel.readString()!!,
-                parcel.readString()!!,
-            )
-        }
+        override fun createFromParcel(parcel: Parcel): ParcelableAttachment = ParcelableAttachment(
+            parcel.readString()!!,
+            parcel.readString()!!,
+        )
 
-        override fun newArray(size: Int): Array<ParcelableAttachment?> {
-            return arrayOfNulls(size)
-        }
+        override fun newArray(size: Int): Array<ParcelableAttachment?> = arrayOfNulls(size)
     }
 }

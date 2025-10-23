@@ -8,7 +8,6 @@ bundletool = "1.18.2"
 # The version should remain compatible with lower versions of android gradle plugin. New versions
 # are not backwords compatible.
 android-tools = "31.13.0"
-junit-platform-launcher = "1.10.2"
 kotlin = "1.9.21"
 # Use the latest snapshot (local maven) version of measure-android for
 # gradle plugin functional tests
@@ -48,9 +47,10 @@ squareup-okio = "3.7.0"
 squareup-leakcanary = "2.14"
 robolectric = "4.14.1"
 kolinx-binary-compatibility-validator = "0.13.2"
-diffplug-spotless = "6.24.0"
+diffplug-spotless = "8.0.0"
 compose-plugin = "1.5.11"
 gradle-plugin-publish = "1.2.0"
+junit-platform-launcher = "1.10.2"
 autonomousapps-testkit = "0.12"
 mavenPublish = "0.34.0"
 

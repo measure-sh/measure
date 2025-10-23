@@ -13,13 +13,9 @@ internal class SpanCollector(private val tracer: Tracer) {
         isEnabled.set(false)
     }
 
-    fun getTraceParentHeaderValue(span: Span): String {
-        return tracer.getTraceParentHeaderValue(span)
-    }
+    fun getTraceParentHeaderValue(span: Span): String = tracer.getTraceParentHeaderValue(span)
 
-    fun getTraceParentHeaderKey(): String {
-        return tracer.getTraceParentHeaderKey()
-    }
+    fun getTraceParentHeaderKey(): String = tracer.getTraceParentHeaderKey()
 
     fun createSpan(name: String): SpanBuilder? {
         if (!isEnabled.get()) {

@@ -27,9 +27,7 @@ internal class ProcessInfoProviderImpl : ProcessInfoProvider {
         return processInfo.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
     }
 
-    override fun getPid(): Int {
-        return Process.myPid()
-    }
+    override fun getPid(): Int = Process.myPid()
 
     override fun getProcessImportance(): Int {
         val processInfo = ActivityManager.RunningAppProcessInfo()

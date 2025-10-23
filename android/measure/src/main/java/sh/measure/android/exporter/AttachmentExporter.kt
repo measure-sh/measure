@@ -42,8 +42,7 @@ internal class DefaultAttachmentExporter(
     private val fileStorage: FileStorage,
     private val httpClient: HttpClient,
     private val sleeper: Sleeper = DefaultSleeper(),
-) :
-    AttachmentExporter {
+) : AttachmentExporter {
     private val isRegistered = AtomicBoolean(false)
     private val isExportInProgress = AtomicBoolean(false)
     private var exportFuture: Future<*>? = null
@@ -168,52 +167,50 @@ internal class DefaultAttachmentExporter(
     private fun handleResponse(
         response: HttpResponse,
         attachment: AttachmentPacket,
-    ): Boolean {
-        return when (response) {
-            is HttpResponse.Success -> {
-                logger.log(
-                    LogLevel.Debug,
-                    "Attachment export: successfully uploaded and deleted ${attachment.id}",
-                )
-                fileStorage.deleteFilePaths(listOf(attachment.path))
-                database.deleteAttachment(attachment.id)
-                true
-            }
+    ): Boolean = when (response) {
+        is HttpResponse.Success -> {
+            logger.log(
+                LogLevel.Debug,
+                "Attachment export: successfully uploaded and deleted ${attachment.id}",
+            )
+            fileStorage.deleteFilePaths(listOf(attachment.path))
+            database.deleteAttachment(attachment.id)
+            true
+        }
 
-            is HttpResponse.Error.ClientError -> {
-                logger.log(
-                    LogLevel.Error,
-                    "Attachment export: upload failed for (${attachment.id}), status code: ${response.code}, deleting attachment",
-                )
-                fileStorage.deleteFilePaths(listOf(attachment.path))
-                database.deleteAttachment(attachment.id)
-                false
-            }
+        is HttpResponse.Error.ClientError -> {
+            logger.log(
+                LogLevel.Error,
+                "Attachment export: upload failed for (${attachment.id}), status code: ${response.code}, deleting attachment",
+            )
+            fileStorage.deleteFilePaths(listOf(attachment.path))
+            database.deleteAttachment(attachment.id)
+            false
+        }
 
-            is HttpResponse.Error.ServerError -> {
-                logger.log(
-                    LogLevel.Debug,
-                    "Attachment export: upload failed for (${attachment.id}, status code: ${response.code})",
-                )
-                false
-            }
+        is HttpResponse.Error.ServerError -> {
+            logger.log(
+                LogLevel.Debug,
+                "Attachment export: upload failed for (${attachment.id}, status code: ${response.code})",
+            )
+            false
+        }
 
-            is HttpResponse.Error.UnknownError -> {
-                logger.log(
-                    LogLevel.Debug,
-                    "Attachment export: upload failed for (${attachment.id})",
-                    response.exception,
-                )
-                false
-            }
+        is HttpResponse.Error.UnknownError -> {
+            logger.log(
+                LogLevel.Debug,
+                "Attachment export: upload failed for (${attachment.id})",
+                response.exception,
+            )
+            false
+        }
 
-            else -> {
-                logger.log(
-                    LogLevel.Debug,
-                    "Attachment export: upload failed for (${attachment.id})",
-                )
-                false
-            }
+        else -> {
+            logger.log(
+                LogLevel.Debug,
+                "Attachment export: upload failed for (${attachment.id})",
+            )
+            false
         }
     }
 }

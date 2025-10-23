@@ -568,20 +568,18 @@ class InternalSignalCollectorTest {
         return destination
     }
 
-    private fun parseJsonElement(element: JsonElement): Any? {
-        return when (element) {
-            is JsonObject -> jsonToMap(element)
-            is JsonArray -> element.map { parseJsonElement(it) }
-            is JsonPrimitive -> when {
-                element.isString -> element.content
-                element.booleanOrNull != null -> element.boolean
-                element.intOrNull != null -> element.int
-                element.longOrNull != null -> element.long
-                element.doubleOrNull != null -> element.double
-                else -> null
-            }
-
-            JsonNull -> null
+    private fun parseJsonElement(element: JsonElement): Any? = when (element) {
+        is JsonObject -> jsonToMap(element)
+        is JsonArray -> element.map { parseJsonElement(it) }
+        is JsonPrimitive -> when {
+            element.isString -> element.content
+            element.booleanOrNull != null -> element.boolean
+            element.intOrNull != null -> element.int
+            element.longOrNull != null -> element.long
+            element.doubleOrNull != null -> element.double
+            else -> null
         }
+
+        JsonNull -> null
     }
 }

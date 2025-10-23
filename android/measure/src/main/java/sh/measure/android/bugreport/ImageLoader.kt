@@ -114,11 +114,9 @@ internal object ImageLoader {
      * Efficiently determines the dimensions of a bitmap without loading it into memory.
      * BitmapFactory.Options allows us to decode just the bounds without the pixel data.
      */
-    private fun getBitmapBounds(decoder: (BitmapFactory.Options) -> Unit): BitmapFactory.Options {
-        return BitmapFactory.Options().apply {
-            inJustDecodeBounds = true
-            decoder(this)
-        }
+    private fun getBitmapBounds(decoder: (BitmapFactory.Options) -> Unit): BitmapFactory.Options = BitmapFactory.Options().apply {
+        inJustDecodeBounds = true
+        decoder(this)
     }
 
     /**
@@ -139,17 +137,13 @@ internal object ImageLoader {
         imageHeight: Int,
         availableWidth: Int,
         availableHeight: Int,
-    ): Int {
-        return maxOf(1, minOf(imageWidth / availableWidth, imageHeight / availableHeight, 4))
-    }
+    ): Int = maxOf(1, minOf(imageWidth / availableWidth, imageHeight / availableHeight, 4))
 
     /**
      * Loads a bitmap with the calculated scaling factor applied.
      */
-    private fun loadScaledBitmap(filePath: String, scalingFactor: Int): Bitmap? {
-        return BitmapFactory.Options().run {
-            inSampleSize = scalingFactor
-            BitmapFactory.decodeFile(filePath, this)
-        }
+    private fun loadScaledBitmap(filePath: String, scalingFactor: Int): Bitmap? = BitmapFactory.Options().run {
+        inSampleSize = scalingFactor
+        BitmapFactory.decodeFile(filePath, this)
     }
 }

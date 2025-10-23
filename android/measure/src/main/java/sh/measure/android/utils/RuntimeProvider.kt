@@ -7,15 +7,9 @@ internal interface RuntimeProvider {
 }
 
 internal class DefaultRuntimeProvider : RuntimeProvider {
-    override fun maxMemory(): Long {
-        return Runtime.getRuntime().maxMemory()
-    }
+    override fun maxMemory(): Long = Runtime.getRuntime().maxMemory()
 
-    override fun totalMemory(): Long {
-        return Runtime.getRuntime().totalMemory()
-    }
+    override fun totalMemory(): Long = Runtime.getRuntime().totalMemory()
 
-    override fun freeMemory(): Long {
-        return Runtime.getRuntime().freeMemory()
-    }
+    override fun freeMemory(): Long = Runtime.getRuntime().freeMemory()
 }

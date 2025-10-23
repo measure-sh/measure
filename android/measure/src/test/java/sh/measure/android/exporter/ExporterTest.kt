@@ -340,17 +340,15 @@ internal class ExporterTest {
         Assert.assertEquals(0, database.getEvents(eventIds).size)
     }
 
-    private fun queryAllSpans(): Cursor {
-        return database.writableDatabase.query(
-            SpansTable.TABLE_NAME,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-        )
-    }
+    private fun queryAllSpans(): Cursor = database.writableDatabase.query(
+        SpansTable.TABLE_NAME,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+    )
 
     private fun insertEventInDb(
         sessionId: String,
