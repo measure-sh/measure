@@ -7,6 +7,7 @@ Bug reports enable users to report issues directly from the app. Measure SDK pro
     * [I18n](#i18n)
 * [Custom Experience](#custom-experience)
     * [Attachments](#attachments)
+    * [Limits](#limits)
 * [Add Attributes](#add-attributes)
 * [Shake to Report Bug](#shake-to-report-bug)
   * [Enabled/Disable shake detection](#enabledisable-shake-detection)]  
@@ -117,6 +118,11 @@ Measure.trackBugReport(
     attachments = [screenshot]
 )
 ```
+
+### Limits
+
+- Each bug report can have a maximum of `5` attachments.
+- The bug report description can have a maximum length of `4000` characters.
 
 ## Add Attributes
 
