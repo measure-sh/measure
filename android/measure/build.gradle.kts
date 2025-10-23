@@ -56,11 +56,11 @@ mavenPublishing {
 
 android {
     namespace = "sh.measure.android"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 21
-        testOptions.targetSdk = 35
+        testOptions.targetSdk = 36
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
         consumerProguardFiles("consumer-rules.pro")

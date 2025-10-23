@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace = "sh.measure.test.benchmark"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "sh.measure.test.benchmark"
         minSdk = 21
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
