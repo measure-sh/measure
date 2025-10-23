@@ -3,7 +3,6 @@ package sh.measure.android.utils
 import android.app.Activity
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
@@ -15,6 +14,8 @@ import android.view.PixelCopy
 import android.view.View
 import android.view.Window
 import androidx.annotation.RequiresApi
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.toColorInt
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import java.io.ByteArrayOutputStream
@@ -71,11 +72,11 @@ internal object BitmapHelper {
         }
 
         val rectsToMask = screenshotMaskConfig?.let { config ->
-            maskPaint.color = Color.parseColor(config.maskHexColor)
+            maskPaint.color = config.maskHexColor.toColorInt()
             config.getMaskRects(view)
         } ?: emptyList()
 
-        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(view.width, view.height)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             captureBitmapUsingPixelCopy(window, bitmap, rectsToMask, logger)
         } else {

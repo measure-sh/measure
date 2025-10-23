@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
+import androidx.core.database.sqlite.transaction
 import kotlinx.serialization.encodeToString
 import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.events.EventType
@@ -266,66 +267,64 @@ internal class DatabaseImpl(
     }
 
     override fun insertEvent(event: EventEntity): Boolean {
-        writableDatabase.beginTransaction()
-        try {
-            val values = ContentValues().apply {
-                put(EventTable.COL_ID, event.id)
-                put(EventTable.COL_TYPE, event.type.value)
-                put(EventTable.COL_TIMESTAMP, event.timestamp)
-                put(EventTable.COL_SESSION_ID, event.sessionId)
-                put(EventTable.COL_USER_TRIGGERED, event.userTriggered)
-                if (event.filePath != null) {
-                    put(EventTable.COL_DATA_FILE_PATH, event.filePath)
-                } else if (event.serializedData != null) {
-                    put(EventTable.COL_DATA_SERIALIZED, event.serializedData)
+        writableDatabase.transaction {
+            try {
+                val values = ContentValues().apply {
+                    put(EventTable.COL_ID, event.id)
+                    put(EventTable.COL_TYPE, event.type.value)
+                    put(EventTable.COL_TIMESTAMP, event.timestamp)
+                    put(EventTable.COL_SESSION_ID, event.sessionId)
+                    put(EventTable.COL_USER_TRIGGERED, event.userTriggered)
+                    if (event.filePath != null) {
+                        put(EventTable.COL_DATA_FILE_PATH, event.filePath)
+                    } else if (event.serializedData != null) {
+                        put(EventTable.COL_DATA_SERIALIZED, event.serializedData)
+                    }
+                    put(EventTable.COL_ATTRIBUTES, event.serializedAttributes)
+                    put(EventTable.COL_USER_DEFINED_ATTRIBUTES, event.serializedUserDefAttributes)
+                    put(EventTable.COL_ATTACHMENT_SIZE, event.attachmentsSize)
+                    put(EventTable.COL_ATTACHMENTS, event.serializedAttachments)
                 }
-                put(EventTable.COL_ATTRIBUTES, event.serializedAttributes)
-                put(EventTable.COL_USER_DEFINED_ATTRIBUTES, event.serializedUserDefAttributes)
-                put(EventTable.COL_ATTACHMENT_SIZE, event.attachmentsSize)
-                put(EventTable.COL_ATTACHMENTS, event.serializedAttachments)
-            }
 
-            val result = writableDatabase.insert(EventTable.TABLE_NAME, null, values)
-            if (result == -1L) {
-                logger.log(LogLevel.Debug, "Failed to insert event ${event.type}")
-                return false // Rollback the transaction if event insertion fails
-            }
+                val result = insert(EventTable.TABLE_NAME, null, values)
+                if (result == -1L) {
+                    logger.log(LogLevel.Debug, "Failed to insert event ${event.type}")
+                    return false // Rollback the transaction if event insertion fails
+                }
 
-            event.attachmentEntities?.forEach { attachment ->
-                val attachmentValues = ContentValues().apply {
-                    put(AttachmentV1Table.COL_ID, attachment.id)
-                    put(AttachmentV1Table.COL_EVENT_ID, event.id)
-                    put(AttachmentV1Table.COL_TYPE, attachment.type)
-                    put(AttachmentV1Table.COL_TIMESTAMP, event.timestamp)
-                    put(AttachmentV1Table.COL_SESSION_ID, event.sessionId)
-                    put(AttachmentV1Table.COL_FILE_PATH, attachment.path)
-                    put(AttachmentV1Table.COL_NAME, attachment.name)
+                event.attachmentEntities?.forEach { attachment ->
+                    val attachmentValues = ContentValues().apply {
+                        put(AttachmentV1Table.COL_ID, attachment.id)
+                        put(AttachmentV1Table.COL_EVENT_ID, event.id)
+                        put(AttachmentV1Table.COL_TYPE, attachment.type)
+                        put(AttachmentV1Table.COL_TIMESTAMP, event.timestamp)
+                        put(AttachmentV1Table.COL_SESSION_ID, event.sessionId)
+                        put(AttachmentV1Table.COL_FILE_PATH, attachment.path)
+                        put(AttachmentV1Table.COL_NAME, attachment.name)
+                    }
+                    val attachmentResult =
+                        insert(AttachmentV1Table.TABLE_NAME, null, attachmentValues)
+                    if (attachmentResult == -1L) {
+                        logger.log(
+                            LogLevel.Debug,
+                            "Failed to insert attachment(${attachment.type}) for event(${event.type})",
+                        )
+                        return false // Rollback the transaction if attachment insertion fails
+                    }
                 }
-                val attachmentResult =
-                    writableDatabase.insert(AttachmentV1Table.TABLE_NAME, null, attachmentValues)
-                if (attachmentResult == -1L) {
-                    logger.log(
-                        LogLevel.Debug,
-                        "Failed to insert attachment(${attachment.type}) for event(${event.type})",
-                    )
-                    return false // Rollback the transaction if attachment insertion fails
-                }
+                return true
+            } catch (e: SQLiteConstraintException) {
+                // We expect this to happen if for any reason the session could not be inserted to
+                // the database before an event was triggered.
+                // This can happen for exceptions/ANRs as they are written to the db on main thread,
+                // while session insertion happens in background.
+                logger.log(
+                    LogLevel.Debug,
+                    "Failed to insert event(${event.type}) for session(${event.sessionId})",
+                    e,
+                )
+                return false
             }
-            writableDatabase.setTransactionSuccessful()
-            return true
-        } catch (e: SQLiteConstraintException) {
-            // We expect this to happen if for any reason the session could not be inserted to
-            // the database before an event was triggered.
-            // This can happen for exceptions/ANRs as they are written to the db on main thread,
-            // while session insertion happens in background.
-            logger.log(
-                LogLevel.Debug,
-                "Failed to insert event(${event.type}) for session(${event.sessionId})",
-                e,
-            )
-            return false
-        } finally {
-            writableDatabase.endTransaction()
         }
     }
 
@@ -371,51 +370,52 @@ internal class DatabaseImpl(
     }
 
     override fun insertBatch(batchEntity: BatchEntity): Boolean {
-        writableDatabase.beginTransaction()
-        try {
-            val batches = ContentValues().apply {
-                put(BatchesTable.COL_BATCH_ID, batchEntity.batchId)
-                put(BatchesTable.COL_CREATED_AT, batchEntity.createdAt)
-            }
+        writableDatabase.transaction {
+            try {
+                val batches = ContentValues().apply {
+                    put(BatchesTable.COL_BATCH_ID, batchEntity.batchId)
+                    put(BatchesTable.COL_CREATED_AT, batchEntity.createdAt)
+                }
 
-            val batchesInsertResult = writableDatabase.insert(
-                BatchesTable.TABLE_NAME,
-                null,
-                batches,
-            )
-            if (batchesInsertResult == -1L) {
-                logger.log(LogLevel.Debug, "Failed to insert batch(${batchEntity.batchId})")
+                val batchesInsertResult = insert(
+                    BatchesTable.TABLE_NAME,
+                    null,
+                    batches,
+                )
+                if (batchesInsertResult == -1L) {
+                    logger.log(LogLevel.Debug, "Failed to insert batch(${batchEntity.batchId})")
+                    return false
+                }
+                batchEntity.spanIds.forEach { spanId ->
+                    val spanBatches = ContentValues().apply {
+                        put(SpansBatchTable.COL_SPAN_ID, spanId)
+                        put(SpansBatchTable.COL_BATCH_ID, batchEntity.batchId)
+                        put(SpansBatchTable.COL_CREATED_AT, batchEntity.createdAt)
+                    }
+                    val result = insert(SpansBatchTable.TABLE_NAME, null, spanBatches)
+                    if (result == -1L) {
+                        logger.log(LogLevel.Debug, "Failed to insert span($spanId)")
+                        return false
+                    }
+                }
+                batchEntity.eventIds.forEach { eventId ->
+                    val eventBatches = ContentValues().apply {
+                        put(EventsBatchTable.COL_EVENT_ID, eventId)
+                        put(EventsBatchTable.COL_BATCH_ID, batchEntity.batchId)
+                        put(EventsBatchTable.COL_CREATED_AT, batchEntity.createdAt)
+                    }
+                    val result =
+                        insert(EventsBatchTable.TABLE_NAME, null, eventBatches)
+                    if (result == -1L) {
+                        logger.log(LogLevel.Debug, "Failed to insert event($eventId)")
+                        return false
+                    }
+                }
+                return true
+            } catch (e: Exception) {
+                logger.log(LogLevel.Error, "Failed to insert batch(${batchEntity.batchId})", e)
                 return false
             }
-            batchEntity.spanIds.forEach { spanId ->
-                val spanBatches = ContentValues().apply {
-                    put(SpansBatchTable.COL_SPAN_ID, spanId)
-                    put(SpansBatchTable.COL_BATCH_ID, batchEntity.batchId)
-                    put(SpansBatchTable.COL_CREATED_AT, batchEntity.createdAt)
-                }
-                val result = writableDatabase.insert(SpansBatchTable.TABLE_NAME, null, spanBatches)
-                if (result == -1L) {
-                    logger.log(LogLevel.Debug, "Failed to insert span($spanId)")
-                    return false
-                }
-            }
-            batchEntity.eventIds.forEach { eventId ->
-                val eventBatches = ContentValues().apply {
-                    put(EventsBatchTable.COL_EVENT_ID, eventId)
-                    put(EventsBatchTable.COL_BATCH_ID, batchEntity.batchId)
-                    put(EventsBatchTable.COL_CREATED_AT, batchEntity.createdAt)
-                }
-                val result =
-                    writableDatabase.insert(EventsBatchTable.TABLE_NAME, null, eventBatches)
-                if (result == -1L) {
-                    logger.log(LogLevel.Debug, "Failed to insert event($eventId)")
-                    return false
-                }
-            }
-            writableDatabase.setTransactionSuccessful()
-            return true
-        } finally {
-            writableDatabase.endTransaction()
         }
     }
 
@@ -529,139 +529,138 @@ internal class DatabaseImpl(
     }
 
     override fun deleteBatch(batchId: String, eventIds: List<String>, spanIds: List<String>) {
-        writableDatabase.beginTransaction()
-        try {
-            val batchesDeleteResult = writableDatabase.delete(
-                BatchesTable.TABLE_NAME,
-                "${BatchesTable.COL_BATCH_ID} = ?",
-                arrayOf(batchId),
-            )
-
-            var eventsDeleteResult: Int? = null
-            if (eventIds.isNotEmpty()) {
-                eventsDeleteResult = writableDatabase.delete(
-                    EventTable.TABLE_NAME,
-                    "${EventTable.COL_ID} IN (${eventIds.joinToString { "?" }})",
-                    eventIds.toTypedArray(),
+        writableDatabase.transaction {
+            try {
+                val batchesDeleteResult = delete(
+                    BatchesTable.TABLE_NAME,
+                    "${BatchesTable.COL_BATCH_ID} = ?",
+                    arrayOf(batchId),
                 )
-            }
 
-            var spansDeleteResult: Int? = null
-            if (spanIds.isNotEmpty()) {
-                spansDeleteResult = writableDatabase.delete(
-                    SpansTable.TABLE_NAME,
-                    "${SpansTable.COL_SPAN_ID} IN (${spanIds.joinToString { "?" }})",
-                    spanIds.toTypedArray(),
-                )
-            }
+                var eventsDeleteResult: Int? = null
+                if (eventIds.isNotEmpty()) {
+                    eventsDeleteResult = delete(
+                        EventTable.TABLE_NAME,
+                        "${EventTable.COL_ID} IN (${eventIds.joinToString { "?" }})",
+                        eventIds.toTypedArray(),
+                    )
+                }
 
-            if (batchesDeleteResult == 0 || eventsDeleteResult == 0 || spansDeleteResult == 0) {
-                logger.log(LogLevel.Debug, "Failed to delete batch($batchId)")
-                return
+                var spansDeleteResult: Int? = null
+                if (spanIds.isNotEmpty()) {
+                    spansDeleteResult = delete(
+                        SpansTable.TABLE_NAME,
+                        "${SpansTable.COL_SPAN_ID} IN (${spanIds.joinToString { "?" }})",
+                        spanIds.toTypedArray(),
+                    )
+                }
+
+                if (batchesDeleteResult == 0 || eventsDeleteResult == 0 || spansDeleteResult == 0) {
+                    logger.log(LogLevel.Debug, "Failed to delete batch($batchId)")
+                    return
+                }
+            } catch (e: Exception) {
+                logger.log(LogLevel.Debug, "Failed to delete batch($batchId)", e)
             }
-            writableDatabase.setTransactionSuccessful()
-        } finally {
-            writableDatabase.endTransaction()
         }
     }
 
     override fun getBatches(maxBatches: Int): List<Batch> {
-        readableDatabase.beginTransaction()
-        val batches = mutableListOf<Batch>()
-        val batchIds = mutableListOf<String>()
+        readableDatabase.transaction {
+            val batches = mutableListOf<Batch>()
+            val batchIds = mutableListOf<String>()
 
-        try {
-            readableDatabase.rawQuery(Sql.getBatches(maxBatches), null).use {
-                while (it.moveToNext()) {
-                    val batchIdIndex = it.getColumnIndex(BatchesTable.COL_BATCH_ID)
-                    val batchId = it.getString(batchIdIndex)
-                    batchIds.add(batchId)
+            try {
+                rawQuery(Sql.getBatches(maxBatches), null).use {
+                    while (it.moveToNext()) {
+                        val batchIdIndex = it.getColumnIndex(BatchesTable.COL_BATCH_ID)
+                        val batchId = it.getString(batchIdIndex)
+                        batchIds.add(batchId)
+                    }
+                    if (batchIds.isEmpty()) {
+                        return emptyList()
+                    }
                 }
-                if (batchIds.isEmpty()) {
-                    return emptyList()
+
+                val batchToEventIds = mutableMapOf<String, MutableList<String>>()
+                rawQuery(Sql.getBatchedEventIds(batchIds), null).use {
+                    while (it.moveToNext()) {
+                        val eventIdIndex = it.getColumnIndex(EventsBatchTable.COL_EVENT_ID)
+                        val batchIdIndex = it.getColumnIndex(EventsBatchTable.COL_BATCH_ID)
+                        val eventId = it.getString(eventIdIndex)
+                        val batchId = it.getString(batchIdIndex)
+                        batchToEventIds.getOrPut(batchId) { mutableListOf() }.add(eventId)
+                    }
                 }
-            }
 
-            val batchToEventIds = mutableMapOf<String, MutableList<String>>()
-            readableDatabase.rawQuery(Sql.getBatchedEventIds(batchIds), null).use {
-                while (it.moveToNext()) {
-                    val eventIdIndex = it.getColumnIndex(EventsBatchTable.COL_EVENT_ID)
-                    val batchIdIndex = it.getColumnIndex(EventsBatchTable.COL_BATCH_ID)
-                    val eventId = it.getString(eventIdIndex)
-                    val batchId = it.getString(batchIdIndex)
-                    batchToEventIds.getOrPut(batchId) { mutableListOf() }.add(eventId)
+                val batchToSpanIds = mutableMapOf<String, MutableList<String>>()
+                rawQuery(Sql.getBatchedSpanIds(batchIds), null).use {
+                    while (it.moveToNext()) {
+                        val spanIdIndex = it.getColumnIndex(SpansBatchTable.COL_SPAN_ID)
+                        val batchIdIndex = it.getColumnIndex(SpansBatchTable.COL_BATCH_ID)
+                        val spanId = it.getString(spanIdIndex)
+                        val batchId = it.getString(batchIdIndex)
+                        batchToSpanIds.getOrPut(batchId) { mutableListOf() }.add(spanId)
+                    }
                 }
-            }
 
-            val batchToSpanIds = mutableMapOf<String, MutableList<String>>()
-            readableDatabase.rawQuery(Sql.getBatchedSpanIds(batchIds), null).use {
-                while (it.moveToNext()) {
-                    val spanIdIndex = it.getColumnIndex(SpansBatchTable.COL_SPAN_ID)
-                    val batchIdIndex = it.getColumnIndex(SpansBatchTable.COL_BATCH_ID)
-                    val spanId = it.getString(spanIdIndex)
-                    val batchId = it.getString(batchIdIndex)
-                    batchToSpanIds.getOrPut(batchId) { mutableListOf() }.add(spanId)
+                for (batchId in batchIds) {
+                    batches.add(
+                        Batch(
+                            batchId = batchId,
+                            eventIds = batchToEventIds[batchId] ?: emptyList(),
+                            spanIds = batchToSpanIds[batchId] ?: emptyList(),
+                        ),
+                    )
                 }
-            }
 
-            for (batchId in batchIds) {
-                batches.add(
-                    Batch(
-                        batchId = batchId,
-                        eventIds = batchToEventIds[batchId] ?: emptyList(),
-                        spanIds = batchToSpanIds[batchId] ?: emptyList(),
-                    ),
-                )
+                return batches
+            } catch (e: Exception) {
+                logger.log(LogLevel.Debug, "Failed to get batches", e)
+                return emptyList()
             }
-
-            readableDatabase.setTransactionSuccessful()
-            return batches
-        } finally {
-            readableDatabase.endTransaction()
         }
     }
 
     override fun insertSession(session: SessionEntity): Boolean {
-        writableDatabase.beginTransaction()
-        try {
-            val sessionValues = ContentValues().apply {
-                put(SessionsTable.COL_SESSION_ID, session.sessionId)
-                put(SessionsTable.COL_PID, session.pid)
-                put(SessionsTable.COL_CREATED_AT, session.createdAt)
-                put(SessionsTable.COL_NEEDS_REPORTING, session.needsReporting)
-                put(SessionsTable.COL_CRASHED, session.crashed)
-            }
-            val appExitResult = if (session.supportsAppExit) {
-                val appExitValues = ContentValues().apply {
-                    put(AppExitTable.COL_SESSION_ID, session.sessionId)
-                    put(AppExitTable.COL_PID, session.pid)
-                    put(AppExitTable.COL_CREATED_AT, session.createdAt)
-                    put(AppExitTable.COL_APP_VERSION, session.appVersion)
-                    put(AppExitTable.COL_APP_BUILD, session.appBuild)
+        writableDatabase.transaction {
+            try {
+                val sessionValues = ContentValues().apply {
+                    put(SessionsTable.COL_SESSION_ID, session.sessionId)
+                    put(SessionsTable.COL_PID, session.pid)
+                    put(SessionsTable.COL_CREATED_AT, session.createdAt)
+                    put(SessionsTable.COL_NEEDS_REPORTING, session.needsReporting)
+                    put(SessionsTable.COL_CRASHED, session.crashed)
                 }
-                writableDatabase.insertWithOnConflict(
-                    AppExitTable.TABLE_NAME,
-                    null,
-                    appExitValues,
-                    SQLiteDatabase.CONFLICT_IGNORE,
-                )
-            } else {
-                0
-            }
+                val appExitResult = if (session.supportsAppExit) {
+                    val appExitValues = ContentValues().apply {
+                        put(AppExitTable.COL_SESSION_ID, session.sessionId)
+                        put(AppExitTable.COL_PID, session.pid)
+                        put(AppExitTable.COL_CREATED_AT, session.createdAt)
+                        put(AppExitTable.COL_APP_VERSION, session.appVersion)
+                        put(AppExitTable.COL_APP_BUILD, session.appBuild)
+                    }
+                    insertWithOnConflict(
+                        AppExitTable.TABLE_NAME,
+                        null,
+                        appExitValues,
+                        SQLiteDatabase.CONFLICT_IGNORE,
+                    )
+                } else {
+                    0
+                }
 
-            val sessionsResult =
-                writableDatabase.insert(SessionsTable.TABLE_NAME, null, sessionValues)
-            if (sessionsResult == -1L || appExitResult == -1L) {
-                logger.log(LogLevel.Debug, "Failed to insert session(${session.sessionId})")
+                val sessionsResult =
+                    insert(SessionsTable.TABLE_NAME, null, sessionValues)
+                if (sessionsResult == -1L || appExitResult == -1L) {
+                    logger.log(LogLevel.Debug, "Failed to insert session(${session.sessionId})")
+                    return false
+                }
+                return true
+            } catch (e: Exception) {
+                logger.log(LogLevel.Debug, "Failed to insert session(${session.sessionId})", e)
                 return false
             }
-            writableDatabase.setTransactionSuccessful()
-            return true
-        } catch (e: Exception) {
-            logger.log(LogLevel.Debug, "Failed to insert session(${session.sessionId})", e)
-            return false
-        } finally {
-            writableDatabase.endTransaction()
         }
     }
 
@@ -671,46 +670,41 @@ internal class DatabaseImpl(
         createdAt: Long,
         supportsAppExit: Boolean,
     ): Boolean {
-        writableDatabase.beginTransaction()
-
-        try {
-            val sessionValues = ContentValues().apply {
-                put(SessionsTable.COL_PID, pid)
-            }
-            val sessionResult = writableDatabase.updateWithOnConflict(
-                SessionsTable.TABLE_NAME,
-                sessionValues,
-                "${SessionsTable.COL_SESSION_ID} = ?",
-                arrayOf(sessionId),
-                SQLiteDatabase.CONFLICT_IGNORE,
-            )
-            val appExitResult = if (supportsAppExit) {
-                val appExitValues = ContentValues().apply {
-                    put(AppExitTable.COL_SESSION_ID, sessionId)
-                    put(AppExitTable.COL_PID, pid)
-                    put(AppExitTable.COL_CREATED_AT, createdAt)
+        writableDatabase.transaction {
+            try {
+                val sessionValues = ContentValues().apply {
+                    put(SessionsTable.COL_PID, pid)
                 }
-                writableDatabase.insertWithOnConflict(
-                    AppExitTable.TABLE_NAME,
-                    null,
-                    appExitValues,
+                val sessionResult = updateWithOnConflict(
+                    SessionsTable.TABLE_NAME,
+                    sessionValues,
+                    "${SessionsTable.COL_SESSION_ID} = ?",
+                    arrayOf(sessionId),
                     SQLiteDatabase.CONFLICT_IGNORE,
                 )
-            } else {
-                0
-            }
+                if (supportsAppExit) {
+                    val appExitValues = ContentValues().apply {
+                        put(AppExitTable.COL_SESSION_ID, sessionId)
+                        put(AppExitTable.COL_PID, pid)
+                        put(AppExitTable.COL_CREATED_AT, createdAt)
+                    }
+                    insertWithOnConflict(
+                        AppExitTable.TABLE_NAME,
+                        null,
+                        appExitValues,
+                        SQLiteDatabase.CONFLICT_IGNORE,
+                    )
+                }
 
-            if (sessionResult <= 0) {
-                logger.log(LogLevel.Debug, "Failed to update session($sessionId)")
+                if (sessionResult <= 0) {
+                    logger.log(LogLevel.Debug, "Failed to update session($sessionId)")
+                    return false
+                }
+                return true
+            } catch (e: Exception) {
+                logger.log(LogLevel.Debug, "Failed to update session($sessionId)", e)
                 return false
             }
-            writableDatabase.setTransactionSuccessful()
-            return true
-        } catch (e: Exception) {
-            logger.log(LogLevel.Debug, "Failed to update session($sessionId)", e)
-            return false
-        } finally {
-            writableDatabase.endTransaction()
         }
     }
 
@@ -887,87 +881,88 @@ internal class DatabaseImpl(
         eventEntities: List<EventEntity>,
         spanEntities: List<SpanEntity>,
     ): Boolean {
-        writableDatabase.beginTransaction()
-        try {
-            // Batch insert events
-            eventEntities.forEach { event ->
-                val values = ContentValues(11).apply {
-                    put(EventTable.COL_ID, event.id)
-                    put(EventTable.COL_TYPE, event.type.value)
-                    put(EventTable.COL_TIMESTAMP, event.timestamp)
-                    put(EventTable.COL_SESSION_ID, event.sessionId)
-                    put(EventTable.COL_USER_TRIGGERED, event.userTriggered)
-                    if (event.filePath != null) {
-                        put(EventTable.COL_DATA_FILE_PATH, event.filePath)
-                    } else if (event.serializedData != null) {
-                        put(EventTable.COL_DATA_SERIALIZED, event.serializedData)
-                    }
-                    put(EventTable.COL_ATTRIBUTES, event.serializedAttributes)
-                    put(EventTable.COL_USER_DEFINED_ATTRIBUTES, event.serializedUserDefAttributes)
-                    put(EventTable.COL_ATTACHMENT_SIZE, event.attachmentsSize)
-                    put(EventTable.COL_ATTACHMENTS, event.serializedAttachments)
-                }
-
-                if (writableDatabase.insert(EventTable.TABLE_NAME, null, values) == -1L) {
-                    return false
-                }
-
-                // Batch insert attachments for this event
-                event.attachmentEntities?.forEach { attachment ->
-                    val attachmentValues = ContentValues(7).apply {
-                        put(AttachmentV1Table.COL_ID, attachment.id)
-                        put(AttachmentV1Table.COL_EVENT_ID, event.id)
-                        put(AttachmentV1Table.COL_TYPE, attachment.type)
-                        put(AttachmentV1Table.COL_TIMESTAMP, event.timestamp)
-                        put(AttachmentV1Table.COL_SESSION_ID, event.sessionId)
-                        put(AttachmentV1Table.COL_FILE_PATH, attachment.path)
-                        put(AttachmentV1Table.COL_NAME, attachment.name)
+        writableDatabase.transaction {
+            try {
+                // Batch insert events
+                eventEntities.forEach { event ->
+                    val values = ContentValues(11).apply {
+                        put(EventTable.COL_ID, event.id)
+                        put(EventTable.COL_TYPE, event.type.value)
+                        put(EventTable.COL_TIMESTAMP, event.timestamp)
+                        put(EventTable.COL_SESSION_ID, event.sessionId)
+                        put(EventTable.COL_USER_TRIGGERED, event.userTriggered)
+                        if (event.filePath != null) {
+                            put(EventTable.COL_DATA_FILE_PATH, event.filePath)
+                        } else if (event.serializedData != null) {
+                            put(EventTable.COL_DATA_SERIALIZED, event.serializedData)
+                        }
+                        put(EventTable.COL_ATTRIBUTES, event.serializedAttributes)
+                        put(
+                            EventTable.COL_USER_DEFINED_ATTRIBUTES,
+                            event.serializedUserDefAttributes
+                        )
+                        put(EventTable.COL_ATTACHMENT_SIZE, event.attachmentsSize)
+                        put(EventTable.COL_ATTACHMENTS, event.serializedAttachments)
                     }
 
-                    if (writableDatabase.insert(
-                            AttachmentV1Table.TABLE_NAME,
-                            null,
-                            attachmentValues,
-                        ) == -1L
-                    ) {
+                    if (insert(EventTable.TABLE_NAME, null, values) == -1L) {
+                        return false
+                    }
+
+                    // Batch insert attachments for this event
+                    event.attachmentEntities?.forEach { attachment ->
+                        val attachmentValues = ContentValues(7).apply {
+                            put(AttachmentV1Table.COL_ID, attachment.id)
+                            put(AttachmentV1Table.COL_EVENT_ID, event.id)
+                            put(AttachmentV1Table.COL_TYPE, attachment.type)
+                            put(AttachmentV1Table.COL_TIMESTAMP, event.timestamp)
+                            put(AttachmentV1Table.COL_SESSION_ID, event.sessionId)
+                            put(AttachmentV1Table.COL_FILE_PATH, attachment.path)
+                            put(AttachmentV1Table.COL_NAME, attachment.name)
+                        }
+
+                        if (insert(
+                                AttachmentV1Table.TABLE_NAME,
+                                null,
+                                attachmentValues,
+                            ) == -1L
+                        ) {
+                            return false
+                        }
+                    }
+                }
+
+                // Batch insert spans
+                spanEntities.forEach { span ->
+                    val values = ContentValues(12).apply {
+                        put(SpansTable.COL_NAME, span.name)
+                        put(SpansTable.COL_SESSION_ID, span.sessionId)
+                        put(SpansTable.COL_SPAN_ID, span.spanId)
+                        put(SpansTable.COL_TRACE_ID, span.traceId)
+                        put(SpansTable.COL_PARENT_ID, span.parentId)
+                        put(SpansTable.COL_START_TIME, span.startTime)
+                        put(SpansTable.COL_END_TIME, span.endTime)
+                        put(SpansTable.COL_DURATION, span.duration)
+                        put(SpansTable.COL_SERIALIZED_ATTRS, span.serializedAttributes)
+                        put(
+                            SpansTable.COL_SERIALIZED_USER_DEFINED_ATTRS,
+                            span.serializedUserDefinedAttrs,
+                        )
+                        put(SpansTable.COL_SERIALIZED_SPAN_EVENTS, span.serializedCheckpoints)
+                        put(SpansTable.COL_SAMPLED, span.sampled)
+                        put(SpansTable.COL_STATUS, span.status.value)
+                    }
+
+                    if (insert(SpansTable.TABLE_NAME, null, values) == -1L) {
                         return false
                     }
                 }
+
+                return true
+            } catch (e: SQLiteException) {
+                logger.log(LogLevel.Debug, "Failed to insert signals", e)
+                return false
             }
-
-            // Batch insert spans
-            spanEntities.forEach { span ->
-                val values = ContentValues(12).apply {
-                    put(SpansTable.COL_NAME, span.name)
-                    put(SpansTable.COL_SESSION_ID, span.sessionId)
-                    put(SpansTable.COL_SPAN_ID, span.spanId)
-                    put(SpansTable.COL_TRACE_ID, span.traceId)
-                    put(SpansTable.COL_PARENT_ID, span.parentId)
-                    put(SpansTable.COL_START_TIME, span.startTime)
-                    put(SpansTable.COL_END_TIME, span.endTime)
-                    put(SpansTable.COL_DURATION, span.duration)
-                    put(SpansTable.COL_SERIALIZED_ATTRS, span.serializedAttributes)
-                    put(
-                        SpansTable.COL_SERIALIZED_USER_DEFINED_ATTRS,
-                        span.serializedUserDefinedAttrs,
-                    )
-                    put(SpansTable.COL_SERIALIZED_SPAN_EVENTS, span.serializedCheckpoints)
-                    put(SpansTable.COL_SAMPLED, span.sampled)
-                    put(SpansTable.COL_STATUS, span.status.value)
-                }
-
-                if (writableDatabase.insert(SpansTable.TABLE_NAME, null, values) == -1L) {
-                    return false
-                }
-            }
-
-            writableDatabase.setTransactionSuccessful()
-            return true
-        } catch (e: SQLiteException) {
-            logger.log(LogLevel.Debug, "Failed to insert signals", e)
-            return false
-        } finally {
-            writableDatabase.endTransaction()
         }
     }
 
@@ -980,33 +975,35 @@ internal class DatabaseImpl(
             return true
         }
 
-        writableDatabase.beginTransaction()
-        try {
-            signedAttachments.forEach { attachment ->
-                val values = ContentValues().apply {
-                    put(AttachmentV1Table.COL_UPLOAD_URL, attachment.uploadUrl)
-                    put(AttachmentV1Table.COL_URL_EXPIRES_AT, attachment.expiresAt)
-                    put(
-                        AttachmentV1Table.COL_URL_HEADERS,
-                        jsonSerializer.encodeToString(attachment.headers),
+        writableDatabase.transaction {
+            try {
+                signedAttachments.forEach { attachment ->
+                    val values = ContentValues().apply {
+                        put(AttachmentV1Table.COL_UPLOAD_URL, attachment.uploadUrl)
+                        put(AttachmentV1Table.COL_URL_EXPIRES_AT, attachment.expiresAt)
+                        put(
+                            AttachmentV1Table.COL_URL_HEADERS,
+                            jsonSerializer.encodeToString(attachment.headers),
+                        )
+                    }
+
+                    val result = update(
+                        AttachmentV1Table.TABLE_NAME,
+                        values,
+                        "${AttachmentV1Table.COL_ID} = ?",
+                        arrayOf(attachment.id),
                     )
-                }
 
-                val result = writableDatabase.update(
-                    AttachmentV1Table.TABLE_NAME,
-                    values,
-                    "${AttachmentV1Table.COL_ID} = ?",
-                    arrayOf(attachment.id),
-                )
-
-                if (result == 0) {
-                    return false
+                    if (result == 0) {
+                        return false
+                    }
                 }
+                return true
+            } catch (e: Exception) {
+                logger.log(LogLevel.Error, "Failed to update attachment urls", e)
+                return false
+            } finally {
             }
-            writableDatabase.setTransactionSuccessful()
-            return true
-        } finally {
-            writableDatabase.endTransaction()
         }
     }
 

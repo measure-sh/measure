@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import sh.measure.android.RecentSession
 import sh.measure.android.attributes.Attribute
+import androidx.core.content.edit
 
 internal interface PrefsStorage {
     fun getInstallationId(): String?
@@ -36,35 +37,37 @@ internal class PrefsStorageImpl(private val context: Context) : PrefsStorage {
     override fun getInstallationId(): String? = sharedPreferences.getString(Attribute.INSTALLATION_ID_KEY, null)
 
     override fun setInstallationId(installationId: String) {
-        sharedPreferences.edit().putString(Attribute.INSTALLATION_ID_KEY, installationId).apply()
+        sharedPreferences.edit { putString(Attribute.INSTALLATION_ID_KEY, installationId) }
     }
 
     override fun getUserId(): String? = sharedPreferences.getString(USER_ID_KEY, null)
 
     override fun setUserId(userId: String?) {
         if (userId == null) {
-            sharedPreferences.edit().remove(USER_ID_KEY).apply()
+            sharedPreferences.edit { remove(USER_ID_KEY) }
         } else {
-            sharedPreferences.edit().putString(USER_ID_KEY, userId).apply()
+            sharedPreferences.edit { putString(USER_ID_KEY, userId) }
         }
     }
 
     override fun setRecentSession(recentSession: RecentSession) {
-        sharedPreferences.edit().putString(RECENT_SESSION_ID, recentSession.id)
-            .putLong(RECENT_SESSION_EVENT_TIME, recentSession.lastEventTime)
-            .putLong(RECENT_SESSION_CREATED_AT, recentSession.createdAt)
-            .putBoolean(RECENT_SESSION_CRASHED, recentSession.crashed)
-            .putString(RECENT_SESSION_VERSION_CODE, recentSession.versionCode).apply()
+        sharedPreferences.edit {
+            putString(RECENT_SESSION_ID, recentSession.id)
+                .putLong(RECENT_SESSION_EVENT_TIME, recentSession.lastEventTime)
+                .putLong(RECENT_SESSION_CREATED_AT, recentSession.createdAt)
+                .putBoolean(RECENT_SESSION_CRASHED, recentSession.crashed)
+                .putString(RECENT_SESSION_VERSION_CODE, recentSession.versionCode)
+        }
     }
 
     @SuppressLint("ApplySharedPref")
     override fun setRecentSessionCrashed() {
         // The app is crashing, using commit to have a better chance for the write to succeed.
-        sharedPreferences.edit().putBoolean(RECENT_SESSION_CRASHED, true).commit()
+        sharedPreferences.edit(commit = true) { putBoolean(RECENT_SESSION_CRASHED, true) }
     }
 
     override fun setRecentSessionEventTime(timestamp: Long) {
-        sharedPreferences.edit().putLong(RECENT_SESSION_EVENT_TIME, timestamp).apply()
+        sharedPreferences.edit { putLong(RECENT_SESSION_EVENT_TIME, timestamp) }
     }
 
     override fun getRecentSession(): RecentSession? {
