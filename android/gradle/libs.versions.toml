@@ -7,7 +7,7 @@ bundletool = "1.18.2"
 # android-tools is used for calculating app size and aab size by the gradle plugin.
 # The version should remain compatible with lower versions of android gradle plugin. New versions
 # are not backwords compatible.
-android-tools = "30.4.1"
+android-tools = "31.13.0"
 junit-platform-launcher = "1.10.2"
 kotlin = "1.9.21"
 # Use the latest snapshot (local maven) version of measure-android for
