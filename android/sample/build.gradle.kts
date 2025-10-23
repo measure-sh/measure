@@ -21,12 +21,12 @@ measure {
 
 android {
     namespace = "sh.measure.sample"
-    compileSdk = 35
+    compileSdk = 36
     val measureSdkVersion = libs.versions.measure.android.get()
     defaultConfig {
         applicationId = "sh.measure.sample"
-        minSdk = 21
-        targetSdk = 35
+        minSdk = 23
+        targetSdk = 36
         versionCode = computeVersionCode()
         versionName = measureSdkVersion
 

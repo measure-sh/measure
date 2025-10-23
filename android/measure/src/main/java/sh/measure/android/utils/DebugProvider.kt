@@ -9,13 +9,9 @@ internal interface DebugProvider {
 }
 
 internal class DefaultDebugProvider : DebugProvider {
-    override fun getNativeHeapSize(): Long {
-        return Debug.getNativeHeapSize()
-    }
+    override fun getNativeHeapSize(): Long = Debug.getNativeHeapSize()
 
-    override fun getNativeHeapFreeSize(): Long {
-        return Debug.getNativeHeapFreeSize()
-    }
+    override fun getNativeHeapFreeSize(): Long = Debug.getNativeHeapFreeSize()
 
     override fun populateMemoryInfo(memoryInfo: Debug.MemoryInfo) {
         Debug.getMemoryInfo(memoryInfo)

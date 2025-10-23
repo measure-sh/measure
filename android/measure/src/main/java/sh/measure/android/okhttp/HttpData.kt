@@ -96,14 +96,11 @@ internal data class HttpData(
 
         fun failureReason(failureReason: String?) = apply { this.failureReason = failureReason }
 
-        fun failureDescription(failureDescription: String?) =
-            apply { this.failureDescription = failureDescription }
+        fun failureDescription(failureDescription: String?) = apply { this.failureDescription = failureDescription }
 
-        fun requestHeaders(requestHeaders: Map<String, String>) =
-            apply { this.requestHeaders = requestHeaders }
+        fun requestHeaders(requestHeaders: Map<String, String>) = apply { this.requestHeaders = requestHeaders }
 
-        fun responseHeaders(responseHeaders: Map<String, String>) =
-            apply { this.responseHeaders = responseHeaders }
+        fun responseHeaders(responseHeaders: Map<String, String>) = apply { this.responseHeaders = responseHeaders }
 
         fun requestBody(requestBody: String?) = apply { this.requestBody = requestBody }
 
@@ -111,21 +108,19 @@ internal data class HttpData(
 
         fun client(client: String) = apply { this.client = client }
 
-        fun build(): HttpData {
-            return HttpData(
-                url = url,
-                method = method,
-                status_code = statusCode,
-                start_time = startTime,
-                end_time = endTime,
-                failure_reason = failureReason,
-                failure_description = failureDescription,
-                request_headers = requestHeaders,
-                response_headers = responseHeaders,
-                request_body = requestBody,
-                response_body = responseBody,
-                client = client,
-            )
-        }
+        fun build(): HttpData = HttpData(
+            url = url,
+            method = method,
+            status_code = statusCode,
+            start_time = startTime,
+            end_time = endTime,
+            failure_reason = failureReason,
+            failure_description = failureDescription,
+            request_headers = requestHeaders,
+            response_headers = responseHeaders,
+            request_body = requestBody,
+            response_body = responseBody,
+            client = client,
+        )
     }
 }

@@ -4,9 +4,7 @@ import sh.measure.android.bugreport.ShakeDetector
 
 internal class FakeShakeDetector : ShakeDetector {
     private var listener: ShakeDetector.Listener? = null
-    override fun start(): Boolean {
-        return true
-    }
+    override fun start(): Boolean = true
 
     override fun stop() {
         // No-op
@@ -16,7 +14,5 @@ internal class FakeShakeDetector : ShakeDetector {
         this.listener = listener
     }
 
-    override fun getShakeListener(): ShakeDetector.Listener? {
-        return listener
-    }
+    override fun getShakeListener(): ShakeDetector.Listener? = listener
 }

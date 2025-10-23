@@ -11,13 +11,9 @@ internal class FakeSessionManager : SessionManager {
     var onEventTracked = false
     var markedSessionWithBugReport = false
 
-    override fun init(): SessionInitResult {
-        return SessionInitResult.NewSessionCreated(session)
-    }
+    override fun init(): SessionInitResult = SessionInitResult.NewSessionCreated(session)
 
-    override fun getSessionId(): String {
-        return session
-    }
+    override fun getSessionId(): String = session
 
     override fun markCrashedSession(sessionId: String) {
         crashedSession = sessionId

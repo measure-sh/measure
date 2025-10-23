@@ -21,18 +21,16 @@ internal class MsrSpanBuilder(
         return this
     }
 
-    override fun startSpan(): Span {
-        return MsrSpan.startSpan(
-            name = name,
-            logger = logger,
-            timeProvider = timeProvider,
-            spanProcessor = spanProcessor,
-            sessionManager = sessionManager,
-            idProvider = idProvider,
-            parentSpan = parentSpan,
-            traceSampler = traceSampler,
-        )
-    }
+    override fun startSpan(): Span = MsrSpan.startSpan(
+        name = name,
+        logger = logger,
+        timeProvider = timeProvider,
+        spanProcessor = spanProcessor,
+        sessionManager = sessionManager,
+        idProvider = idProvider,
+        parentSpan = parentSpan,
+        traceSampler = traceSampler,
+    )
 
     override fun startSpan(timeMs: Long): Span {
         val span = MsrSpan.startSpan(

@@ -55,89 +55,83 @@ internal object TestData {
         handled: Boolean = true,
         thread: Thread = Thread.currentThread(),
         foreground: Boolean = true,
-    ): ExceptionData {
-        return ExceptionFactory.createMeasureException(
-            exception,
-            handled,
-            thread,
-            foreground,
-        )
-    }
+    ): ExceptionData = ExceptionFactory.createMeasureException(
+        exception,
+        handled,
+        thread,
+        foreground,
+    )
 
     fun getUnObfuscatedFlutterExceptionData(
         handled: Boolean = false,
         foreground: Boolean = true,
-    ): ExceptionData {
-        return ExceptionData(
-            exceptions = listOf(
-                ExceptionUnit(
-                    type = null,
-                    message = null,
-                    frames = listOf(
-                        Frame(
-                            class_name = "_MyAppState",
-                            method_name = "_throwException",
-                            file_name = "main.dart",
-                            line_num = 84,
-                            col_num = 5,
-                            module_name = "package:measure_flutter_example/",
-                            frame_index = 0,
-                        ),
-                        Frame(
-                            class_name = "_InkResponseState",
-                            method_name = "handleTap",
-                            file_name = "ink_well.dart",
-                            line_num = 1176,
-                            col_num = 21,
-                            module_name = "package:flutter/src/material/",
-                            frame_index = 1,
-                        ),
-                        Frame(
-                            class_name = null,
-                            method_name = "_invoke1",
-                            file_name = "hooks.dart",
-                            line_num = 330,
-                            col_num = 10,
-                            module_name = "dart:ui/",
-                            frame_index = 2,
-                        ),
+    ): ExceptionData = ExceptionData(
+        exceptions = listOf(
+            ExceptionUnit(
+                type = null,
+                message = null,
+                frames = listOf(
+                    Frame(
+                        class_name = "_MyAppState",
+                        method_name = "_throwException",
+                        file_name = "main.dart",
+                        line_num = 84,
+                        col_num = 5,
+                        module_name = "package:measure_flutter_example/",
+                        frame_index = 0,
+                    ),
+                    Frame(
+                        class_name = "_InkResponseState",
+                        method_name = "handleTap",
+                        file_name = "ink_well.dart",
+                        line_num = 1176,
+                        col_num = 21,
+                        module_name = "package:flutter/src/material/",
+                        frame_index = 1,
+                    ),
+                    Frame(
+                        class_name = null,
+                        method_name = "_invoke1",
+                        file_name = "hooks.dart",
+                        line_num = 330,
+                        col_num = 10,
+                        module_name = "dart:ui/",
+                        frame_index = 2,
                     ),
                 ),
             ),
-            handled = handled,
-            threads = listOf(),
-            foreground = foreground,
-        )
-    }
+        ),
+        handled = handled,
+        threads = listOf(),
+        foreground = foreground,
+    )
 
     fun getObfuscatedFlutterExceptionData(
         handled: Boolean = false,
         foreground: Boolean = true,
-    ): ExceptionData {
-        return ExceptionData(
-            exceptions = listOf(
-                ExceptionUnit(
-                    type = null,
-                    message = null,
-                    frames = listOf(
-                        Frame(
-                            frame_index = 0,
-                            binary_address = "0x7af7026000",
-                            instruction_address = "0x7af71c4903",
-                        ),
-                        Frame(
-                            frame_index = 1,
-                            binary_address = "0x7af7026000",
-                            instruction_address = "0x7af71c48cf",
-                        ),
+    ): ExceptionData = ExceptionData(
+        exceptions = listOf(
+            ExceptionUnit(
+                type = null,
+                message = null,
+                frames = listOf(
+                    Frame(
+                        frame_index = 0,
+                        binary_address = "0x7af7026000",
+                        instruction_address = "0x7af71c4903",
+                    ),
+                    Frame(
+                        frame_index = 1,
+                        binary_address = "0x7af7026000",
+                        instruction_address = "0x7af71c48cf",
                     ),
                 ),
             ),
-            handled = handled,
-            threads = listOf(),
-            foreground = foreground,
-        )
-    }
+        ),
+        handled = handled,
+        threads = listOf(),
+        foreground = foreground,
+    )
 
     fun getClickData(
         target: String = "target",
@@ -148,9 +142,7 @@ internal object TestData {
         y: Float = 50F,
         touchDownTime: Long = 987549876L,
         touchUpTime: Long = 234567609L,
-    ): ClickData {
-        return ClickData(target, targetId, width, height, x, y, touchDownTime, touchUpTime)
-    }
+    ): ClickData = ClickData(target, targetId, width, height, x, y, touchDownTime, touchUpTime)
 
     fun <T> T.toEvent(
         id: String = "event-id",
@@ -161,19 +153,17 @@ internal object TestData {
         attributes: MutableMap<String, Any?> = mutableMapOf(),
         userTriggered: Boolean = false,
         userDefinedAttributes: Map<String, AttributeValue> = emptyMap(),
-    ): Event<T> {
-        return Event(
-            id = id,
-            timestamp = timestamp,
-            data = this,
-            type = type,
-            sessionId = sessionId,
-            attachments = attachments,
-            attributes = attributes,
-            userTriggered = userTriggered,
-            userDefinedAttributes = userDefinedAttributes,
-        )
-    }
+    ): Event<T> = Event(
+        id = id,
+        timestamp = timestamp,
+        data = this,
+        type = type,
+        sessionId = sessionId,
+        attachments = attachments,
+        attributes = attributes,
+        userTriggered = userTriggered,
+        userDefinedAttributes = userDefinedAttributes,
+    )
 
     fun getLongClickData(
         target: String = "target",
@@ -184,9 +174,7 @@ internal object TestData {
         y: Float = 50F,
         touchDownTime: Long = 987549876L,
         touchUpTime: Long = 234567609L,
-    ): LongClickData {
-        return LongClickData(target, targetId, width, height, x, y, touchDownTime, touchUpTime)
-    }
+    ): LongClickData = LongClickData(target, targetId, width, height, x, y, touchDownTime, touchUpTime)
 
     fun getScrollData(
         target: String = "target",
@@ -198,33 +186,25 @@ internal object TestData {
         direction: String = "left",
         touchDownTime: Long = 987549876L,
         touchUpTime: Long = 234567609L,
-    ): ScrollData {
-        return ScrollData(
-            target, targetId, x, y, endX, endY, direction, touchDownTime, touchUpTime,
-        )
-    }
+    ): ScrollData = ScrollData(
+        target, targetId, x, y, endX, endY, direction, touchDownTime, touchUpTime,
+    )
 
     fun getActivityLifecycleData(
         type: String = ActivityLifecycleType.CREATED,
         className: String = "Activity",
         intent: String? = null,
         savedInstanceState: Boolean = false,
-    ): ActivityLifecycleData {
-        return ActivityLifecycleData(type, className, intent, savedInstanceState)
-    }
+    ): ActivityLifecycleData = ActivityLifecycleData(type, className, intent, savedInstanceState)
 
     fun getFragmentLifecycleData(
         type: String = FragmentLifecycleType.ATTACHED,
         className: String = "Fragment",
         parentActivity: String = "Activity",
         tag: String? = null,
-    ): FragmentLifecycleData {
-        return FragmentLifecycleData(type, className, parentActivity, tag)
-    }
+    ): FragmentLifecycleData = FragmentLifecycleData(type, className, parentActivity, tag)
 
-    fun getApplicationLifecycleData(type: String = AppLifecycleType.FOREGROUND): ApplicationLifecycleData {
-        return ApplicationLifecycleData(type)
-    }
+    fun getApplicationLifecycleData(type: String = AppLifecycleType.FOREGROUND): ApplicationLifecycleData = ApplicationLifecycleData(type)
 
     fun getColdLaunchData(
         processStartUptime: Long = 100,
@@ -234,17 +214,15 @@ internal object TestData {
         launchedActivity: String = "launched_activity",
         hasSavedState: Boolean = true,
         intentData: String = "intent_data",
-    ): ColdLaunchData {
-        return ColdLaunchData(
-            processStartUptime,
-            processStartRequestedUptime,
-            contentProviderAttachUptime,
-            onNextDrawUptime,
-            launchedActivity,
-            hasSavedState,
-            intentData,
-        )
-    }
+    ): ColdLaunchData = ColdLaunchData(
+        processStartUptime,
+        processStartRequestedUptime,
+        contentProviderAttachUptime,
+        onNextDrawUptime,
+        launchedActivity,
+        hasSavedState,
+        intentData,
+    )
 
     fun getWarmLaunchData(
         processStartUptime: Long = 100,
@@ -256,19 +234,17 @@ internal object TestData {
         hasSavedState: Boolean = true,
         intentData: String = "intent_data",
         isLukewarm: Boolean = false,
-    ): WarmLaunchData {
-        return WarmLaunchData(
-            processStartUptime,
-            processStartRequestedUptime,
-            contentProviderAttachUptime,
-            appVisibleUptime,
-            onNextDrawUptime,
-            launchedActivity,
-            hasSavedState,
-            intentData,
-            isLukewarm,
-        )
-    }
+    ): WarmLaunchData = WarmLaunchData(
+        processStartUptime,
+        processStartRequestedUptime,
+        contentProviderAttachUptime,
+        appVisibleUptime,
+        onNextDrawUptime,
+        launchedActivity,
+        hasSavedState,
+        intentData,
+        isLukewarm,
+    )
 
     fun getHotLaunchData(
         appVisibleUptime: Long = 100,
@@ -276,15 +252,13 @@ internal object TestData {
         launchedActivity: String = "launched_activity",
         hasSavedState: Boolean = true,
         intentData: String = "intent_data",
-    ): HotLaunchData {
-        return HotLaunchData(
-            appVisibleUptime,
-            onNextDrawUptime,
-            launchedActivity,
-            hasSavedState,
-            intentData,
-        )
-    }
+    ): HotLaunchData = HotLaunchData(
+        appVisibleUptime,
+        onNextDrawUptime,
+        launchedActivity,
+        hasSavedState,
+        intentData,
+    )
 
     fun getNetworkChangeData(
         previousNetworkType: String = "cellular",
@@ -292,15 +266,13 @@ internal object TestData {
         previousNetworkGeneration: String = "2g",
         networkGeneration: String = NetworkGeneration.UNKNOWN,
         networkProvider: String = "t-mobile",
-    ): NetworkChangeData {
-        return NetworkChangeData(
-            previousNetworkType,
-            networkType,
-            previousNetworkGeneration,
-            networkGeneration,
-            networkProvider,
-        )
-    }
+    ): NetworkChangeData = NetworkChangeData(
+        previousNetworkType,
+        networkType,
+        previousNetworkGeneration,
+        networkGeneration,
+        networkProvider,
+    )
 
     fun getHttpData(
         url: String = "url",
@@ -315,22 +287,20 @@ internal object TestData {
         requestBody: String? = "request-body",
         responseBody: String? = "response-body",
         client: String = "client",
-    ): HttpData {
-        return HttpData(
-            url,
-            method,
-            statusCode,
-            startTime,
-            endTime,
-            failureReason,
-            failureDescription,
-            requestHeaders,
-            responseHeaders,
-            requestBody,
-            responseBody,
-            client,
-        )
-    }
+    ): HttpData = HttpData(
+        url,
+        method,
+        statusCode,
+        startTime,
+        endTime,
+        failureReason,
+        failureDescription,
+        requestHeaders,
+        responseHeaders,
+        requestBody,
+        responseBody,
+        client,
+    )
 
     fun getMemoryUsageData(
         javaMaxHeap: Long = 100,
@@ -341,24 +311,20 @@ internal object TestData {
         nativeTotalHeap: Long = 600,
         nativeFreeHeap: Long = 700,
         interval: Long = 800,
-    ): MemoryUsageData {
-        return MemoryUsageData(
-            javaMaxHeap,
-            javaTotalHeap,
-            javaFreeHeap,
-            totalPss,
-            rss,
-            nativeTotalHeap,
-            nativeFreeHeap,
-            interval,
-        )
-    }
+    ): MemoryUsageData = MemoryUsageData(
+        javaMaxHeap,
+        javaTotalHeap,
+        javaFreeHeap,
+        totalPss,
+        rss,
+        nativeTotalHeap,
+        nativeFreeHeap,
+        interval,
+    )
 
     fun getTrimMemoryData(
         level: String = "TRIM_MEMORY_UI_HIDDEN",
-    ): TrimMemoryData {
-        return TrimMemoryData(level)
-    }
+    ): TrimMemoryData = TrimMemoryData(level)
 
     fun getCpuUsageData(
         numCores: Int = 4,
@@ -371,61 +337,53 @@ internal object TestData {
         stime: Long = 9876L,
         interval: Long = 1000,
         percentageUsage: Double = 0.0,
-    ): CpuUsageData {
-        return CpuUsageData(
-            numCores,
-            clockSpeed,
-            startTime,
-            uptime,
-            utime,
-            cutime,
-            cstime,
-            stime,
-            interval,
-            percentageUsage,
-        )
-    }
+    ): CpuUsageData = CpuUsageData(
+        numCores,
+        clockSpeed,
+        startTime,
+        uptime,
+        utime,
+        cutime,
+        cstime,
+        stime,
+        interval,
+        percentageUsage,
+    )
 
-    fun getEventPacket(eventEntity: EventEntity): EventPacket {
-        return EventPacket(
-            eventId = eventEntity.id,
-            type = eventEntity.type,
-            timestamp = eventEntity.timestamp,
-            sessionId = eventEntity.sessionId,
-            userTriggered = eventEntity.userTriggered,
-            serializedData = eventEntity.serializedData,
-            serializedAttributes = eventEntity.serializedAttributes ?: "",
-            serializedAttachments = eventEntity.serializedAttachments,
-            serializedDataFilePath = eventEntity.filePath,
-            serializedUserDefinedAttributes = eventEntity.serializedUserDefAttributes,
-        )
-    }
+    fun getEventPacket(eventEntity: EventEntity): EventPacket = EventPacket(
+        eventId = eventEntity.id,
+        type = eventEntity.type,
+        timestamp = eventEntity.timestamp,
+        sessionId = eventEntity.sessionId,
+        userTriggered = eventEntity.userTriggered,
+        serializedData = eventEntity.serializedData,
+        serializedAttributes = eventEntity.serializedAttributes ?: "",
+        serializedAttachments = eventEntity.serializedAttachments,
+        serializedDataFilePath = eventEntity.filePath,
+        serializedUserDefinedAttributes = eventEntity.serializedUserDefAttributes,
+    )
 
     fun getAttachment(
         type: String = "type",
         name: String = "name",
         path: String? = "path",
         bytes: ByteArray? = null,
-    ): Attachment {
-        return Attachment(
-            type = type,
-            name = name,
-            path = path,
-            bytes = bytes,
-        )
-    }
+    ): Attachment = Attachment(
+        type = type,
+        name = name,
+        path = path,
+        bytes = bytes,
+    )
 
     fun getAttachmentEntity(
         id: String = "attachment-id",
         type: String = "type",
         name: String = "name",
-    ): AttachmentEntity {
-        return AttachmentEntity(
-            id = id,
-            type = type,
-            name = name,
-        )
-    }
+    ): AttachmentEntity = AttachmentEntity(
+        id = id,
+        type = type,
+        name = name,
+    )
 
     fun getEventEntity(
         eventId: String = "event-id",
@@ -440,22 +398,20 @@ internal object TestData {
         filePath: String? = null,
         attachmentEntities: List<AttachmentEntity> = emptyList(),
         serializedUserDefAttributes: String? = null,
-    ): EventEntity {
-        return EventEntity(
-            id = eventId,
-            type = type,
-            timestamp = timestamp,
-            sessionId = sessionId,
-            userTriggered = userTriggered,
-            attachmentsSize = attachmentSize,
-            serializedData = serializedData,
-            serializedAttributes = serializedAttributes,
-            serializedAttachments = serializedAttachments,
-            attachmentEntities = attachmentEntities,
-            filePath = filePath,
-            serializedUserDefAttributes = serializedUserDefAttributes,
-        )
-    }
+    ): EventEntity = EventEntity(
+        id = eventId,
+        type = type,
+        timestamp = timestamp,
+        sessionId = sessionId,
+        userTriggered = userTriggered,
+        attachmentsSize = attachmentSize,
+        serializedData = serializedData,
+        serializedAttributes = serializedAttributes,
+        serializedAttachments = serializedAttachments,
+        attachmentEntities = attachmentEntities,
+        filePath = filePath,
+        serializedUserDefAttributes = serializedUserDefAttributes,
+    )
 
     fun getSessionEntity(
         id: String = "session-id",
@@ -466,32 +422,28 @@ internal object TestData {
         supportsAppExit: Boolean = false,
         appVersion: String? = "1.0.0",
         appBuild: String? = "100",
-    ): SessionEntity {
-        return SessionEntity(
-            sessionId = id,
-            pid = pid,
-            createdAt = createdAt,
-            needsReporting = needsReporting,
-            crashed = crashed,
-            supportsAppExit = supportsAppExit,
-            appVersion = appVersion,
-            appBuild = appBuild,
-        )
-    }
+    ): SessionEntity = SessionEntity(
+        sessionId = id,
+        pid = pid,
+        createdAt = createdAt,
+        needsReporting = needsReporting,
+        crashed = crashed,
+        supportsAppExit = supportsAppExit,
+        appVersion = appVersion,
+        appBuild = appBuild,
+    )
 
     fun getEventBatchEntity(
         batchId: String = "batch-id",
         eventIds: List<String> = emptyList(),
         spanIds: List<String> = emptyList(),
         createdAt: Long = 987654321L,
-    ): BatchEntity {
-        return BatchEntity(
-            batchId = batchId,
-            eventIds = eventIds,
-            spanIds = spanIds,
-            createdAt = createdAt,
-        )
-    }
+    ): BatchEntity = BatchEntity(
+        batchId = batchId,
+        eventIds = eventIds,
+        spanIds = spanIds,
+        createdAt = createdAt,
+    )
 
     fun getAppExit(
         reasonId: Int = 1,
@@ -501,21 +453,17 @@ internal object TestData {
         processName: String = "process-name",
         appExitTimeMs: Long = 987654321L,
         pid: String = "123",
-    ): AppExit {
-        return AppExit(
-            reasonId = reasonId,
-            reason = reason,
-            importance = importance,
-            trace = trace,
-            process_name = processName,
-            app_exit_time_ms = appExitTimeMs,
-            pid = pid,
-        )
-    }
+    ): AppExit = AppExit(
+        reasonId = reasonId,
+        reason = reason,
+        importance = importance,
+        trace = trace,
+        process_name = processName,
+        app_exit_time_ms = appExitTimeMs,
+        pid = pid,
+    )
 
-    fun getScreenViewData(): ScreenViewData {
-        return ScreenViewData(name = "screen-name")
-    }
+    fun getScreenViewData(): ScreenViewData = ScreenViewData(name = "screen-name")
 
     fun getSpanData(
         name: String = "span-name",
@@ -532,24 +480,22 @@ internal object TestData {
         userDefinedAttrs: Map<String, Any?> = emptyMap(),
         checkpoints: MutableList<Checkpoint> = mutableListOf(),
         isSampled: Boolean = true,
-    ): SpanData {
-        return SpanData(
-            name = name,
-            traceId = traceId,
-            spanId = spanId,
-            parentId = parentId,
-            sessionId = sessionId,
-            startTime = startTime,
-            endTime = endTime,
-            duration = duration,
-            status = status,
-            hasEnded = hasEnded,
-            attributes = attributes,
-            userDefinedAttrs = userDefinedAttrs,
-            checkpoints = checkpoints,
-            isSampled = isSampled,
-        )
-    }
+    ): SpanData = SpanData(
+        name = name,
+        traceId = traceId,
+        spanId = spanId,
+        parentId = parentId,
+        sessionId = sessionId,
+        startTime = startTime,
+        endTime = endTime,
+        duration = duration,
+        status = status,
+        hasEnded = hasEnded,
+        attributes = attributes,
+        userDefinedAttrs = userDefinedAttrs,
+        checkpoints = checkpoints,
+        isSampled = isSampled,
+    )
 
     fun getSpan(
         logger: Logger,
@@ -562,20 +508,18 @@ internal object TestData {
         sessionId: String = "session-id",
         startTime: Long = 987654321L,
         isSampled: Boolean = true,
-    ): MsrSpan {
-        return MsrSpan(
-            logger,
-            timeProvider,
-            spanProcessor,
-            isSampled,
-            name,
-            spanId,
-            traceId,
-            parentId,
-            sessionId,
-            startTime,
-        )
-    }
+    ): MsrSpan = MsrSpan(
+        logger,
+        timeProvider,
+        spanProcessor,
+        isSampled,
+        name,
+        spanId,
+        traceId,
+        parentId,
+        sessionId,
+        startTime,
+    )
 
     fun getSpanEntity(
         name: String = "span-name",
@@ -591,57 +535,47 @@ internal object TestData {
         attributes: Map<String, Any?> = emptyMap(),
         userDefinedAttrs: Map<String, Any?> = emptyMap(),
         checkpoints: MutableList<Checkpoint> = mutableListOf(),
-    ): SpanEntity {
-        return getSpanData(
-            name = name,
-            traceId = traceId,
-            spanId = spanId,
-            parentId = parentId,
-            sessionId = sessionId,
-            startTime = startTime,
-            endTime = endTime,
-            duration = duration,
-            status = status,
-            hasEnded = hasEnded,
-            attributes = attributes,
-            userDefinedAttrs = userDefinedAttrs,
-            checkpoints = checkpoints,
-        ).toSpanEntity()
-    }
+    ): SpanEntity = getSpanData(
+        name = name,
+        traceId = traceId,
+        spanId = spanId,
+        parentId = parentId,
+        sessionId = sessionId,
+        startTime = startTime,
+        endTime = endTime,
+        duration = duration,
+        status = status,
+        hasEnded = hasEnded,
+        attributes = attributes,
+        userDefinedAttrs = userDefinedAttrs,
+        checkpoints = checkpoints,
+    ).toSpanEntity()
 
-    fun getSpanPacket(spanEntity: SpanEntity): SpanPacket {
-        return SpanPacket(
-            name = spanEntity.name,
-            traceId = spanEntity.traceId,
-            spanId = spanEntity.spanId,
-            parentId = spanEntity.parentId,
-            sessionId = spanEntity.sessionId,
-            startTime = spanEntity.startTime.iso8601Timestamp(),
-            endTime = spanEntity.endTime.iso8601Timestamp(),
-            duration = spanEntity.duration,
-            status = spanEntity.status.value,
-            serializedAttributes = spanEntity.serializedAttributes,
-            serializedCheckpoints = spanEntity.serializedCheckpoints,
-            serializedUserDefAttrs = spanEntity.serializedUserDefinedAttrs,
-        )
-    }
+    fun getSpanPacket(spanEntity: SpanEntity): SpanPacket = SpanPacket(
+        name = spanEntity.name,
+        traceId = spanEntity.traceId,
+        spanId = spanEntity.spanId,
+        parentId = spanEntity.parentId,
+        sessionId = spanEntity.sessionId,
+        startTime = spanEntity.startTime.iso8601Timestamp(),
+        endTime = spanEntity.endTime.iso8601Timestamp(),
+        duration = spanEntity.duration,
+        status = spanEntity.status.value,
+        serializedAttributes = spanEntity.serializedAttributes,
+        serializedCheckpoints = spanEntity.serializedCheckpoints,
+        serializedUserDefAttrs = spanEntity.serializedUserDefinedAttrs,
+    )
 
-    fun getCheckpoint(): Checkpoint {
-        return Checkpoint(
-            name = "name",
-            timestamp = 98765432L,
-        )
-    }
+    fun getCheckpoint(): Checkpoint = Checkpoint(
+        name = "name",
+        timestamp = 98765432L,
+    )
 
-    fun getBugReportData(): BugReportData {
-        return BugReportData("Bug report description")
-    }
+    fun getBugReportData(): BugReportData = BugReportData("Bug report description")
 
     fun getMsrAttachment(
         name: String = "attachment",
         content: ByteArray = "content".toByteArray(),
         type: String = AttachmentType.SCREENSHOT,
-    ): MsrAttachment {
-        return MsrAttachment(name, bytes = content, type = type)
-    }
+    ): MsrAttachment = MsrAttachment(name, bytes = content, type = type)
 }

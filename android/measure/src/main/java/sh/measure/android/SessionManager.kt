@@ -262,11 +262,7 @@ internal class SessionManagerImpl(
         return randomizer.random() < configProvider.samplingRateForErrorFreeSessions
     }
 
-    private fun <T> Event<T>.isUnhandledException(): Boolean {
-        return type == EventType.EXCEPTION && data is ExceptionData && !data.handled
-    }
+    private fun <T> Event<T>.isUnhandledException(): Boolean = type == EventType.EXCEPTION && data is ExceptionData && !data.handled
 
-    private fun <T> Event<T>.isAnr(): Boolean {
-        return type == EventType.ANR
-    }
+    private fun <T> Event<T>.isAnr(): Boolean = type == EventType.ANR
 }

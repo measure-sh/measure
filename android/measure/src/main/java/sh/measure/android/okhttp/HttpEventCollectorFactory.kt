@@ -16,11 +16,9 @@ internal class HttpEventCollectorFactory(
     private val timeProvider: TimeProvider,
     private val configProvider: ConfigProvider,
 ) {
-    fun create(): HttpEventCollector {
-        return if (isClassAvailable("okhttp3.OkHttpClient")) {
-            OkHttpEventCollectorImpl(logger, signalProcessor, timeProvider, configProvider)
-        } else {
-            NoOpHttpEventCollector()
-        }
+    fun create(): HttpEventCollector = if (isClassAvailable("okhttp3.OkHttpClient")) {
+        OkHttpEventCollectorImpl(logger, signalProcessor, timeProvider, configProvider)
+    } else {
+        NoOpHttpEventCollector()
     }
 }

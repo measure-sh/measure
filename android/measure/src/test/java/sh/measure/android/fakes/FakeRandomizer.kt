@@ -13,15 +13,9 @@ internal class FakeRandomizer : Randomizer {
 
     var randomInt: Int = 10
 
-    override fun random(): Double {
-        return randomDouble
-    }
+    override fun random(): Double = randomDouble
 
-    override fun nextLong(): Long {
-        return randomLong
-    }
+    override fun nextLong(): Long = randomLong
 
-    override fun nextInt(bound: Int): Int {
-        return randomInt
-    }
+    override fun nextInt(bound: Int): Int = randomInt
 }

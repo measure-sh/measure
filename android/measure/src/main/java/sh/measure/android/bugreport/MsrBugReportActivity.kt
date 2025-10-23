@@ -183,13 +183,11 @@ internal class MsrBugReportActivity : ComponentActivity() {
         addAttachmentView(screenshot)
     }
 
-    private fun getInitialScreenshot(): ParcelableAttachment? {
-        return IntentCompat.getParcelableExtra(
-            intent,
-            INITIAL_SCREENSHOT_EXTRA,
-            ParcelableAttachment::class.java,
-        )
-    }
+    private fun getInitialScreenshot(): ParcelableAttachment? = IntentCompat.getParcelableExtra(
+        intent,
+        INITIAL_SCREENSHOT_EXTRA,
+        ParcelableAttachment::class.java,
+    )
 
     private fun restoreState(savedInstanceState: Bundle) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

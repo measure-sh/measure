@@ -14,9 +14,7 @@ import sh.measure.android.applaunch.LaunchState
  * start time.
  */
 internal class MeasureInitProvider : ContentProvider() {
-    override fun onCreate(): Boolean {
-        return true
-    }
+    override fun onCreate(): Boolean = true
 
     override fun attachInfo(context: Context?, info: ProviderInfo) {
         // applicationId is expected to be prepended. Content providers need to have a unique
@@ -35,32 +33,22 @@ internal class MeasureInitProvider : ContentProvider() {
         selection: String?,
         selectionArgs: Array<String?>?,
         sortOrder: String?,
-    ): Cursor? {
-        throw IllegalStateException("Not allowed.")
-    }
+    ): Cursor? = throw IllegalStateException("Not allowed.")
 
-    override fun getType(uri: Uri): String? {
-        throw IllegalStateException("Not allowed.")
-    }
+    override fun getType(uri: Uri): String? = throw IllegalStateException("Not allowed.")
 
-    override fun insert(uri: Uri, values: ContentValues?): Uri? {
-        throw IllegalStateException("Not allowed.")
-    }
+    override fun insert(uri: Uri, values: ContentValues?): Uri? = throw IllegalStateException("Not allowed.")
 
     override fun delete(
         uri: Uri,
         selection: String?,
         selectionArgs: Array<String?>?,
-    ): Int {
-        throw IllegalStateException("Not allowed.")
-    }
+    ): Int = throw IllegalStateException("Not allowed.")
 
     override fun update(
         uri: Uri,
         values: ContentValues?,
         selection: String?,
         selectionArgs: Array<String?>?,
-    ): Int {
-        throw IllegalStateException("Not allowed.")
-    }
+    ): Int = throw IllegalStateException("Not allowed.")
 }

@@ -1,5 +1,6 @@
 package sh.measure.android.storage
 
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteConstraintException
@@ -265,6 +266,7 @@ internal class DatabaseImpl(
         db.setForeignKeyConstraintsEnabled(true)
     }
 
+    @SuppressLint("UseKtx")
     override fun insertEvent(event: EventEntity): Boolean {
         writableDatabase.beginTransaction()
         try {
@@ -370,6 +372,7 @@ internal class DatabaseImpl(
         return spanIds
     }
 
+    @SuppressLint("UseKtx")
     override fun insertBatch(batchEntity: BatchEntity): Boolean {
         writableDatabase.beginTransaction()
         try {
@@ -528,6 +531,7 @@ internal class DatabaseImpl(
         }
     }
 
+    @SuppressLint("UseKtx")
     override fun deleteBatch(batchId: String, eventIds: List<String>, spanIds: List<String>) {
         writableDatabase.beginTransaction()
         try {
@@ -565,6 +569,7 @@ internal class DatabaseImpl(
         }
     }
 
+    @SuppressLint("UseKtx")
     override fun getBatches(maxBatches: Int): List<Batch> {
         readableDatabase.beginTransaction()
         val batches = mutableListOf<Batch>()
@@ -621,6 +626,7 @@ internal class DatabaseImpl(
         }
     }
 
+    @SuppressLint("UseKtx")
     override fun insertSession(session: SessionEntity): Boolean {
         writableDatabase.beginTransaction()
         try {
@@ -665,6 +671,7 @@ internal class DatabaseImpl(
         }
     }
 
+    @SuppressLint("UseKtx")
     override fun updateSessionPid(
         sessionId: String,
         pid: Int,
@@ -684,7 +691,7 @@ internal class DatabaseImpl(
                 arrayOf(sessionId),
                 SQLiteDatabase.CONFLICT_IGNORE,
             )
-            val appExitResult = if (supportsAppExit) {
+            if (supportsAppExit) {
                 val appExitValues = ContentValues().apply {
                     put(AppExitTable.COL_SESSION_ID, sessionId)
                     put(AppExitTable.COL_PID, pid)
@@ -696,8 +703,6 @@ internal class DatabaseImpl(
                     appExitValues,
                     SQLiteDatabase.CONFLICT_IGNORE,
                 )
-            } else {
-                0
             }
 
             if (sessionResult <= 0) {
@@ -883,6 +888,7 @@ internal class DatabaseImpl(
         return count
     }
 
+    @SuppressLint("UseKtx")
     override fun insertSignals(
         eventEntities: List<EventEntity>,
         spanEntities: List<SpanEntity>,
@@ -975,6 +981,7 @@ internal class DatabaseImpl(
         writableDatabase.execSQL(Sql.markSessionWithBugReport(sessionId))
     }
 
+    @SuppressLint("UseKtx")
     override fun updateAttachmentUrls(signedAttachments: List<SignedAttachment>): Boolean {
         if (signedAttachments.isEmpty()) {
             return true
@@ -1056,18 +1063,16 @@ internal class DatabaseImpl(
         }
     }
 
-    override fun deleteAttachment(attachmentId: String): Boolean {
-        return try {
-            val rowsDeleted = writableDatabase.delete(
-                AttachmentV1Table.TABLE_NAME,
-                "${AttachmentV1Table.COL_ID} = ?",
-                arrayOf(attachmentId),
-            )
-            rowsDeleted > 0
-        } catch (e: Exception) {
-            logger.log(LogLevel.Error, "Failed to delete attachment $attachmentId", e)
-            false
-        }
+    override fun deleteAttachment(attachmentId: String): Boolean = try {
+        val rowsDeleted = writableDatabase.delete(
+            AttachmentV1Table.TABLE_NAME,
+            "${AttachmentV1Table.COL_ID} = ?",
+            arrayOf(attachmentId),
+        )
+        rowsDeleted > 0
+    } catch (e: Exception) {
+        logger.log(LogLevel.Error, "Failed to delete attachment $attachmentId", e)
+        false
     }
 
     override fun deleteAttachments(attachmentIds: List<String>) {

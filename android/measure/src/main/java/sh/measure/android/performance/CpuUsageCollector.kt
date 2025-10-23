@@ -98,11 +98,9 @@ internal class CpuUsageCollector(
         prevCpuUsageData = cpuUsageData
     }
 
-    private fun getInterval(uptime: Long): Long {
-        return prevCpuUsageData?.let {
-            (uptime - it.uptime).coerceAtLeast(0)
-        } ?: 0
-    }
+    private fun getInterval(uptime: Long): Long = prevCpuUsageData?.let {
+        (uptime - it.uptime).coerceAtLeast(0)
+    } ?: 0
 
     private fun getPercentageCpuUsage(
         utime: Long,

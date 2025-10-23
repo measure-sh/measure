@@ -5,15 +5,9 @@ import sh.measure.android.networkchange.NetworkGeneration
 import sh.measure.android.networkchange.NetworkType
 
 internal class FakeNetworkInfoProvider : InitialNetworkStateProvider {
-    override fun getNetworkGeneration(networkType: String?): String {
-        return NetworkGeneration.FIFTH_GEN
-    }
+    override fun getNetworkGeneration(networkType: String?): String = NetworkGeneration.FIFTH_GEN
 
-    override fun getNetworkType(): String {
-        return NetworkType.CELLULAR
-    }
+    override fun getNetworkType(): String = NetworkType.CELLULAR
 
-    override fun getNetworkProvider(networkType: String?): String {
-        return "Android"
-    }
+    override fun getNetworkProvider(networkType: String?): String = "Android"
 }

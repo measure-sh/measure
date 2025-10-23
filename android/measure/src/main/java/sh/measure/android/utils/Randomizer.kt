@@ -22,15 +22,9 @@ internal interface Randomizer {
 internal class RandomizerImpl : Randomizer {
     private val random: Random by lazy(LazyThreadSafetyMode.SYNCHRONIZED) { Random() }
 
-    override fun random(): Double {
-        return Math.random()
-    }
+    override fun random(): Double = Math.random()
 
-    override fun nextLong(): Long {
-        return random.nextLong()
-    }
+    override fun nextLong(): Long = random.nextLong()
 
-    override fun nextInt(bound: Int): Int {
-        return random.nextInt(bound)
-    }
+    override fun nextInt(bound: Int): Int = random.nextInt(bound)
 }

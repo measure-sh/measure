@@ -16,9 +16,7 @@ internal class HeartbeatTest {
     private val testExecutor = object : MeasureExecutorService {
         var capturedCallable: Callable<*>? = null
 
-        override fun <T> submit(callable: Callable<T>): Future<T> {
-            throw UnsupportedOperationException()
-        }
+        override fun <T> submit(callable: Callable<T>): Future<T> = throw UnsupportedOperationException()
 
         override fun <T> schedule(callable: Callable<T>, delayMillis: Long): Future<T> {
             capturedCallable = callable
@@ -36,9 +34,7 @@ internal class HeartbeatTest {
             initialDelay: Long,
             delayMillis: Long,
             delayUnit: TimeUnit,
-        ): Future<*> {
-            throw UnsupportedOperationException()
-        }
+        ): Future<*> = throw UnsupportedOperationException()
 
         override fun shutdown() {}
     }

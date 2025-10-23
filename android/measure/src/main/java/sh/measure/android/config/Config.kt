@@ -21,7 +21,8 @@ internal data class Config(
     override val disallowedCustomHeaders: List<String> = DefaultConfig.DISALLOWED_CUSTOM_HEADERS,
     override val maxDiskUsageInMb: Int = DefaultConfig.MAX_ESTIMATED_DISK_USAGE_IN_MB,
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null,
-) : InternalConfig, IMeasureConfig {
+) : InternalConfig,
+    IMeasureConfig {
     override val screenshotMaskHexColor: String = "#222222"
     override val screenshotCompressionQuality: Int = 25
     override val maxAttachmentSizeInEventsBatchInBytes: Int = 3_000_000 // 3 MB

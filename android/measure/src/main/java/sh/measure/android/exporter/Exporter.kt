@@ -68,13 +68,9 @@ internal class ExporterImpl(
         }
     }
 
-    override fun createBatch(sessionId: String?): Batch? {
-        return batchCreator.create(sessionId)
-    }
+    override fun createBatch(sessionId: String?): Batch? = batchCreator.create(sessionId)
 
-    override fun getExistingBatches(): List<Batch> {
-        return database.getBatches(MAX_EXISTING_BATCHES_TO_EXPORT)
-    }
+    override fun getExistingBatches(): List<Batch> = database.getBatches(MAX_EXISTING_BATCHES_TO_EXPORT)
 
     private fun handleBatchProcessingResult(
         response: HttpResponse,

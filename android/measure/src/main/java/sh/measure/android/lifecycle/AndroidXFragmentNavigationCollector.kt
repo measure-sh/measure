@@ -19,7 +19,8 @@ import sh.measure.android.utils.isClassAvailable
 internal class AndroidXFragmentNavigationCollector(
     private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
-) : FragmentLifecycleAdapter(), NavController.OnDestinationChangedListener {
+) : FragmentLifecycleAdapter(),
+    NavController.OnDestinationChangedListener {
 
     override fun onFragmentViewCreated(
         fm: FragmentManager,
@@ -67,18 +68,15 @@ internal class AndroidXFragmentNavigationCollector(
         }
     }
 
-    private fun getDisplayName(context: Context, id: Int): String {
-        return if (id <= 0x00FFFFFF) {
+    private fun getDisplayName(context: Context, id: Int): String = if (id <= 0x00FFFFFF) {
+        id.toString()
+    } else {
+        try {
+            context.resources.getResourceName(id)
+        } catch (e: Resources.NotFoundException) {
             id.toString()
-        } else {
-            try {
-                context.resources.getResourceName(id)
-            } catch (e: Resources.NotFoundException) {
-                id.toString()
-            }
         }
     }
 
-    private fun hasAndroidxFragmentNavigation() =
-        isClassAvailable("androidx.navigation.fragment.NavHostFragment")
+    private fun hasAndroidxFragmentNavigation() = isClassAvailable("androidx.navigation.fragment.NavHostFragment")
 }

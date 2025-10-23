@@ -46,9 +46,7 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
         method: String,
         headers: Map<String, String>,
         jsonWriter: (BufferedSink) -> Unit,
-    ): HttpResponse {
-        return sendJsonRequestWithRedirects(url, method, headers, jsonWriter, 0)
-    }
+    ): HttpResponse = sendJsonRequestWithRedirects(url, method, headers, jsonWriter, 0)
 
     private fun sendJsonRequestWithRedirects(
         url: String,
@@ -133,16 +131,14 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
         url: String,
         method: String,
         headers: Map<String, String>,
-    ): HttpURLConnection {
-        return (URL(url).openConnection() as HttpURLConnection).apply {
-            requestMethod = method
-            doOutput = true
-            setChunkedStreamingMode(0)
-            connectTimeout = connectionTimeoutMs
-            readTimeout = readTimeoutMs
-            setRequestProperty("Content-Type", "application/json")
-            headers.forEach { (key, value) -> setRequestProperty(key, value) }
-        }
+    ): HttpURLConnection = (URL(url).openConnection() as HttpURLConnection).apply {
+        requestMethod = method
+        doOutput = true
+        setChunkedStreamingMode(0)
+        connectTimeout = connectionTimeoutMs
+        readTimeout = readTimeoutMs
+        setRequestProperty("Content-Type", "application/json")
+        headers.forEach { (key, value) -> setRequestProperty(key, value) }
     }
 
     private fun createFileUploadConnection(
@@ -150,47 +146,41 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
         contentType: String,
         headers: Map<String, String>,
         fileSize: Long,
-    ): HttpURLConnection {
-        return (URL(url).openConnection() as HttpURLConnection).apply {
-            requestMethod = "PUT"
-            doOutput = true
-            useCaches = false
-            if (fileSize > 0) {
-                setFixedLengthStreamingMode(fileSize)
-            } else {
-                setChunkedStreamingMode(0)
-            }
-            setRequestProperty("Content-Type", contentType)
-            headers.forEach { (key, value) ->
-                setRequestProperty(key, value)
-            }
-            connectTimeout = connectionTimeoutMs
-            readTimeout = connectionTimeoutMs
-        }
-    }
-
-    private fun getOutputStream(connection: HttpURLConnection): BufferedSink {
-        return if (logger.enabled) {
-            LoggingOutputStream(connection.outputStream, logger).sink().buffer()
+    ): HttpURLConnection = (URL(url).openConnection() as HttpURLConnection).apply {
+        requestMethod = "PUT"
+        doOutput = true
+        useCaches = false
+        if (fileSize > 0) {
+            setFixedLengthStreamingMode(fileSize)
         } else {
-            connection.outputStream.sink().buffer()
+            setChunkedStreamingMode(0)
         }
+        setRequestProperty("Content-Type", contentType)
+        headers.forEach { (key, value) ->
+            setRequestProperty(key, value)
+        }
+        connectTimeout = connectionTimeoutMs
+        readTimeout = connectionTimeoutMs
     }
 
-    private fun getResponseBody(connection: HttpURLConnection): String? {
-        return try {
-            when (connection.responseCode) {
-                in 200..299 -> {
-                    connection.inputStream.source().buffer().readString(Charsets.UTF_8)
-                }
+    private fun getOutputStream(connection: HttpURLConnection): BufferedSink = if (logger.enabled) {
+        LoggingOutputStream(connection.outputStream, logger).sink().buffer()
+    } else {
+        connection.outputStream.sink().buffer()
+    }
 
-                else -> {
-                    connection.errorStream?.source()?.buffer()?.readString(Charsets.UTF_8)
-                }
+    private fun getResponseBody(connection: HttpURLConnection): String? = try {
+        when (connection.responseCode) {
+            in 200..299 -> {
+                connection.inputStream.source().buffer().readString(Charsets.UTF_8)
             }
-        } catch (_: IOException) {
-            null
+
+            else -> {
+                connection.errorStream?.source()?.buffer()?.readString(Charsets.UTF_8)
+            }
         }
+    } catch (_: IOException) {
+        null
     }
 
     private fun processResponse(connection: HttpURLConnection): HttpResponse {

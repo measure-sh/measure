@@ -133,7 +133,5 @@ internal class FragmentLifecycleCollector(
         }
     }
 
-    private fun getIdentityHash(fragment: Fragment): String {
-        return Integer.toHexString(System.identityHashCode(fragment))
-    }
+    private fun getIdentityHash(fragment: Fragment): String = Integer.toHexString(System.identityHashCode(fragment))
 }

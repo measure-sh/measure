@@ -429,7 +429,6 @@ internal class MeasureInitializerImpl(
         launchTracker = launchTracker,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
-        logger = logger,
         context = application,
         signalProcessor = signalProcessor,
         systemServiceProvider = systemServiceProvider,
