@@ -1,8 +1,9 @@
 [versions]
 agp = "8.13.0"
 # This is the lowest version of AGP supported by the measure gradle plugin
+#noinspection AndroidGradlePluginVersion
 agp860 = "8.6.0"
-bundletool = "1.18.1"
+bundletool = "1.18.2"
 # android-tools is used for calculating app size and aab size by the gradle plugin.
 # The version should remain compatible with lower versions of android gradle plugin. New versions
 # are not backwords compatible.
