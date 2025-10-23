@@ -56,7 +56,7 @@ class MeasurePluginFixture(
             compileSdkVersion = computeCompileSdkVersion(agpVersion),
             defaultConfig = DefaultConfig(
                 applicationId = "com.example",
-                minSdkVersion = 21,
+                minSdkVersion = 23,
                 targetSdkVersion = 35,
                 versionCode = 1,
                 versionName = "1.0",
