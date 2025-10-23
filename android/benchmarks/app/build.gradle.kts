@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.compose)
     id("sh.measure.android.gradle")
 }
 
@@ -75,6 +74,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.material.icons.core)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

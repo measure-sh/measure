@@ -24,6 +24,7 @@ androidx-compose-material3 = "1.4.0"
 androidx-runtime-android = "1.9.4"
 kotlinx-serialization-json = "1.6.2"
 google-material = "1.13.0"
+material_icons_core = "1.7.8"
 asm-util = "9.6"
 squareup-curtains = "1.2.5"
 squareup-okhttp = "4.12.0"
@@ -59,6 +60,7 @@ androidx-annotation = { module = "androidx.annotation:annotation", version.ref =
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }
 androidx-benchmark-junit4 = { module = "androidx.benchmark:benchmark-junit4", version.ref = "androidx-benchmark-macro-junit4" }
 androidx-benchmark-macro-junit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark-macro-junit4" }
+androidx-compose-material-icons-core = { module = "androidx.compose.material:material-icons-core", version.ref = "material_icons_core" }
 androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "androidx-constraintlayout" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core-ktx" }
 androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-espresso" }
