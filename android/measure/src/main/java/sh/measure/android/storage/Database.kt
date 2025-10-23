@@ -1063,7 +1063,7 @@ internal class DatabaseImpl(
         }
     }
 
-     override fun deleteAttachment(attachmentId: String): Boolean = try {
+    override fun deleteAttachment(attachmentId: String): Boolean = try {
         val rowsDeleted = writableDatabase.delete(
             AttachmentV1Table.TABLE_NAME,
             "${AttachmentV1Table.COL_ID} = ?",
