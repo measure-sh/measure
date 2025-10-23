@@ -899,7 +899,7 @@ internal class DatabaseImpl(
                         put(EventTable.COL_ATTRIBUTES, event.serializedAttributes)
                         put(
                             EventTable.COL_USER_DEFINED_ATTRIBUTES,
-                            event.serializedUserDefAttributes
+                            event.serializedUserDefAttributes,
                         )
                         put(EventTable.COL_ATTACHMENT_SIZE, event.attachmentsSize)
                         put(EventTable.COL_ATTACHMENTS, event.serializedAttachments)

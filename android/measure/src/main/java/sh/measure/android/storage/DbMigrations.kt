@@ -1,9 +1,9 @@
 package sh.measure.android.storage
 
 import android.database.sqlite.SQLiteDatabase
+import androidx.core.database.sqlite.transaction
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import androidx.core.database.sqlite.transaction
 
 internal object DbMigrations {
     fun apply(logger: Logger, db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {

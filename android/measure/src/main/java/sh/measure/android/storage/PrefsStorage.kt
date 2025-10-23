@@ -3,9 +3,9 @@ package sh.measure.android.storage
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import sh.measure.android.RecentSession
 import sh.measure.android.attributes.Attribute
-import androidx.core.content.edit
 
 internal interface PrefsStorage {
     fun getInstallationId(): String?
