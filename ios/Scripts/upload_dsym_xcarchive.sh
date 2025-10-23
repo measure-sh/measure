@@ -35,7 +35,6 @@ cleanup() {
   for temp_file in "${TEMP_FILES[@]}"; do
     if [ -f "$temp_file" ]; then
       rm -f "$temp_file"
-      # echo "Removed $temp_file"
     fi
   done
 }
@@ -190,9 +189,12 @@ case "$HTTP_STATUS_CODE" in
 esac
 
 # --- Step 2: Upload files to Pre-Signed URLs ---
+UPLOAD_SUCCESS_FLAG=$(mktemp)
+TEMP_FILES+=("$UPLOAD_SUCCESS_FLAG")
+echo "success" > "$UPLOAD_SUCCESS_FLAG"
+
 echo ""
 echo "Uploading dSYM files..."
-UPLOAD_SUCCESS=true
 MAX_ATTEMPTS=3
 
 echo "$HTTP_RESPONSE_BODY" | jq -c '.mappings[]' | \
@@ -216,7 +218,7 @@ while IFS= read -r URL_OBJECT; do
     # Simple validation check
     if [ -z "$SIGNED_URL" ] || [ -z "$EXPECTED_FILENAME" ]; then
         echo "[ERROR]: Failed to read response from server. Stack traces will not be symbolicated."
-        UPLOAD_SUCCESS=false
+        echo "failure" > "$UPLOAD_SUCCESS_FLAG"
         break
     fi
     
@@ -231,6 +233,7 @@ while IFS= read -r URL_OBJECT; do
 
     if [ -z "$DSYM_TGZ_PATH" ]; then
         echo "[ERROR]: Failed to upload dSYM files, no file found with name: $EXPECTED_FILENAME, Stack traces will not be symbolicated."
+        echo "failure" > "$UPLOAD_SUCCESS_FLAG"
         continue
     fi
     
@@ -238,7 +241,6 @@ while IFS= read -r URL_OBJECT; do
     UPLOAD_ATTEMPT_SUCCESS=false
     FILE_UPLOAD_COMMAND="curl --request PUT \
         --url \"$SIGNED_URL\" \
-        --header 'Content-Type: application/octet-stream' \
         $UPLOAD_HEADERS_CURL \
         --write-out '%{http_code}' \
         --silent \
@@ -264,12 +266,14 @@ while IFS= read -r URL_OBJECT; do
     done
 
     if ! $UPLOAD_ATTEMPT_SUCCESS; then
-        UPLOAD_SUCCESS=false
+        echo "failure" > "$UPLOAD_SUCCESS_FLAG"
     fi
 
 done
 
-if $UPLOAD_SUCCESS; then
+FINAL_STATUS=$(cat "$UPLOAD_SUCCESS_FLAG")
+
+if [ "$FINAL_STATUS" == "success" ]; then
     echo ""
     echo "✅ Successfully uploaded dSYM files to Measure."
 else
