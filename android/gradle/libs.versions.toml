@@ -1,5 +1,5 @@
 [versions]
-agp = "8.9.3"
+agp = "8.13.0"
 # This is the lowest version of AGP supported by the measure gradle plugin
 agp741 = "7.4.1"
 bundletool = "1.17.0"
