@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**frontend**): Make "cloud" -> "Cloud" in alpha disclaimer by @anupcowkur in #2797
 
+### :books: Documentation
+
+- (**backend**): Improve slack integration guide (#2809) by @detj in #2809
+
 ## [0.9.0] - 2025-10-22
 
 ### :sparkles: New features
