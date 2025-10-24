@@ -9,7 +9,7 @@
 
 ## Local environment setup
 
-> [!WARNING]
+> [!TIP]
 >
 > Not interested in contributing? If you just want to try out measure, follow our [self hosting guide](./hosting/README.md).
 >
@@ -221,6 +221,71 @@ docker compose exec clickhouse clickhouse-client -u app_admin -d measure
 # when clickhouse service is _not_ running
 docker compose run --rm clickhouse clickhouse-client -u app_admin -d measure
 ```
+
+### Managing Dashboard Environment Variables
+
+Typically, there are 2 kinds of environment variables in the dashboard nextjs application. Public & Private.
+
+1. **Public**. Variables prefixed with `NEXT_PUBLIC_...`
+
+    - Public variables **MUST** only contain non-sensitive data.
+    - Public variables are baked into the deployable artifact at build time.
+    - Public variables are exposed to browsers which is a vulnerable environment.
+    - Example: OAuth client identifiers, analytics service identifers & so on.
+
+    To manage public variables:
+
+    1. Define them in the `dashboard/compose.prod.yml` file under `dashboard.build.args` section.
+    2. Define them in the `dashboard/dockerfile.prod` file as `ARG` & pass them as environment variables in the `RUN` directive.
+    3. Make sure to keep the variables in sync in both step **1** & **2**.
+
+    Example for `dashboard/compose.prod.yml`
+
+    ```yaml
+    dashboard:
+      build:
+        dockerfile: dockerfile.prod
+        args:
+          - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+          - NEXT_PUBLIC_YOUR_VARIABLE=${NEXT_PUBLIC_YOUR_VARIABLE}
+    ```
+
+    Example for `dashboard/dockerfile.prod`
+
+    ```dockerfile
+    ARG NEXT_PUBLIC_SITE_URL
+    ARG NEXT_PUBLIC_YOUR_VARIABLE
+
+    RUN NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
+        NEXT_PUBLIC_YOUR_VARIABLE=${NEXT_PUBLIC_YOUR_VARIABLE} \
+        npm run build
+    ```
+
+2. **Private**. Variables without the `NEXT_PUBLIC_...` prefix
+
+    - Private variables may contain sensitive & non-sensitive data.
+    - Private variables are not baked into the deployable artifact.
+    - Private variables are not exposed to browsers, they are safely & securely passed to the nextjs server at runtime.
+    - Exmaple: OAuth client secrets, LLM provider API keys & other non-sensitive data.
+
+    To manage private variables:
+
+    1. Define them in the `self-host/.env`.
+    2. Use them in the `self-host/compose.yml` under `services.dashboard.environment`.
+
+
+    Example for `self-host/compose.yml`
+
+    ```yaml
+    serivces:
+      dashboard:
+        environment:
+          - YOUR_VARIABLE=${YOUR_VARIABLE}
+    ```
+
+> [!CAUTION]
+>
+> **NEVER commit the `self-host/.env` file.**
 
 ## Migrating codebase from <= v0.8.x
 
