@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**backend**): Improve messaging (#2819) by @detj in #2819
 - (**backend**): Update contribution guide (#2813) by @detj in #2813
 - (**backend**): Improve slack integration guide (#2809) by @detj in #2809
 
