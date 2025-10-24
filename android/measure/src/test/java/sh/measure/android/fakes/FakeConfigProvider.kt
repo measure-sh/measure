@@ -56,9 +56,9 @@ internal class FakeConfigProvider : ConfigProvider {
     override val estimatedEventSizeInKb: Int = 15
     override val maxDiskUsageInMb: Int = 50
 
-    var shouldTrackHttpBody = true
+    var shouldTrackHttpBodyResult = true
 
-    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean = shouldTrackHttpBody
+    override fun shouldTrackHttpBody(url: String, contentType: String?): Boolean = shouldTrackHttpBodyResult
 
     var shouldTrackHttpUrl = true
 

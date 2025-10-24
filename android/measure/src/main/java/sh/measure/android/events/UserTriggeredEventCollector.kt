@@ -133,10 +133,26 @@ internal class UserTriggeredEventCollectorImpl(
             return
         }
 
-        if (!configProvider.shouldTrackHttpBody(url, null) && !requestBody.isNullOrEmpty()) {
+        // discard event if it contains http request body but the configuration is not
+        // enabled for body tracking
+        val shouldTrackRequestHttpBody =
+            configProvider.shouldTrackHttpBody(url, getContentType(requestHeaders))
+        if (!shouldTrackRequestHttpBody && !requestBody.isNullOrEmpty()) {
             logger.log(
                 LogLevel.Debug,
-                "Discarding HTTP event, request or response body was present but not configured for tracking in Measure.init",
+                "Discarding HTTP event, request body was present but not configured for tracking in Measure.init",
+            )
+            return
+        }
+
+        // discard event if it contains http response body but the configuration is not
+        // enabled for body tracking
+        val shouldTrackResponseHttpBody =
+            configProvider.shouldTrackHttpBody(url, getContentType(responseHeaders))
+        if (!shouldTrackResponseHttpBody && !responseBody.isNullOrEmpty()) {
+            logger.log(
+                LogLevel.Debug,
+                "Discarding HTTP event, response body was present but not configured for tracking in Measure.init",
             )
             return
         }
@@ -215,4 +231,6 @@ internal class UserTriggeredEventCollectorImpl(
         )
         logger.log(LogLevel.Debug, "Screen view event received")
     }
+
+    private fun getContentType(headers: MutableMap<String, String>?): String? = headers?.get("Content-Type") ?: headers?.get("content-type")
 }

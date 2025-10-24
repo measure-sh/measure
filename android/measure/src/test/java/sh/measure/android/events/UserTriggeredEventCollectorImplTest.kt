@@ -447,4 +447,291 @@ class UserTriggeredEventCollectorImplTest {
             userTriggered = any(),
         )
     }
+
+    @Test
+    fun `does not track http event with request body when body tracking is disabled`() {
+        val configProvider = FakeConfigProvider()
+        configProvider.shouldTrackHttpBodyResult = false
+        val collector = UserTriggeredEventCollectorImpl(
+            logger,
+            signalProcessor,
+            timeProvider,
+            processInfoProvider,
+            configProvider,
+        )
+
+        collector.register()
+        collector.trackHttp(
+            url = "https://api.example.com/users",
+            method = "post",
+            startTime = 1000L,
+            endTime = 2000L,
+            client = "okhttp",
+            statusCode = 201,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = mutableMapOf("Content-Type" to "application/json"),
+            responseHeaders = null,
+            requestBody = "{\"name\":\"test\"}",
+            responseBody = null,
+        )
+
+        verify(signalProcessor, never()).track(
+            any<HttpData>(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+        )
+    }
+
+    @Test
+    fun `does not track http event with response body when body tracking is disabled`() {
+        val configProvider = FakeConfigProvider()
+        configProvider.shouldTrackHttpBodyResult = false
+        val collector = UserTriggeredEventCollectorImpl(
+            logger,
+            signalProcessor,
+            timeProvider,
+            processInfoProvider,
+            configProvider,
+        )
+
+        collector.register()
+        collector.trackHttp(
+            url = "https://api.example.com/users",
+            method = "get",
+            startTime = 1000L,
+            endTime = 2000L,
+            client = "okhttp",
+            statusCode = 200,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = null,
+            responseHeaders = null,
+            requestBody = null,
+            responseBody = "{\"id\":1,\"name\":\"test\"}",
+        )
+
+        verify(signalProcessor, never()).track(
+            any<HttpData>(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+        )
+    }
+
+    @Test
+    fun `tracks http event with request body when body tracking is enabled`() {
+        val configProvider = FakeConfigProvider()
+        configProvider.shouldTrackHttpBodyResult = true
+        val collector = UserTriggeredEventCollectorImpl(
+            logger,
+            signalProcessor,
+            timeProvider,
+            processInfoProvider,
+            configProvider,
+        )
+
+        collector.register()
+        collector.trackHttp(
+            url = "https://api.example.com/users",
+            method = "post",
+            startTime = 1000L,
+            endTime = 2000L,
+            client = "okhttp",
+            statusCode = 201,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = mutableMapOf("Content-Type" to "application/json"),
+            responseHeaders = null,
+            requestBody = "{\"name\":\"test\"}",
+            responseBody = null,
+        )
+
+        verify(signalProcessor).track(
+            data = any<HttpData>(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.HTTP),
+            attributes = any(),
+            userDefinedAttributes = any(),
+            attachments = any(),
+            threadName = anyOrNull(),
+            sessionId = anyOrNull(),
+            userTriggered = eq(true),
+        )
+    }
+
+    @Test
+    fun `tracks http event without request body even when body tracking is disabled`() {
+        val configProvider = FakeConfigProvider()
+        configProvider.shouldTrackHttpBodyResult = false
+        val collector = UserTriggeredEventCollectorImpl(
+            logger,
+            signalProcessor,
+            timeProvider,
+            processInfoProvider,
+            configProvider,
+        )
+
+        collector.register()
+        collector.trackHttp(
+            url = "https://api.example.com/users",
+            method = "get",
+            startTime = 1000L,
+            endTime = 2000L,
+            client = "okhttp",
+            statusCode = 200,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = null,
+            responseHeaders = null,
+            requestBody = null,
+            responseBody = null,
+        )
+
+        verify(signalProcessor).track(
+            data = any<HttpData>(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.HTTP),
+            attributes = any(),
+            userDefinedAttributes = any(),
+            attachments = any(),
+            threadName = anyOrNull(),
+            sessionId = anyOrNull(),
+            userTriggered = eq(true),
+        )
+    }
+
+    @Test
+    fun `tracks http event without request body when body tracking is enabled`() {
+        val configProvider = FakeConfigProvider()
+        configProvider.shouldTrackHttpBodyResult = true
+        val collector = UserTriggeredEventCollectorImpl(
+            logger,
+            signalProcessor,
+            timeProvider,
+            processInfoProvider,
+            configProvider,
+        )
+
+        collector.register()
+        collector.trackHttp(
+            url = "https://api.example.com/users",
+            method = "get",
+            startTime = 1000L,
+            endTime = 2000L,
+            client = "okhttp",
+            statusCode = 200,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = null,
+            responseHeaders = null,
+            requestBody = null,
+            responseBody = null,
+        )
+
+        verify(signalProcessor).track(
+            data = any<HttpData>(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.HTTP),
+            attributes = any(),
+            userDefinedAttributes = any(),
+            attachments = any(),
+            threadName = anyOrNull(),
+            sessionId = anyOrNull(),
+            userTriggered = eq(true),
+        )
+    }
+
+    @Test
+    fun `tracks http event with capitalized Content-Type header`() {
+        val configProvider = FakeConfigProvider()
+        configProvider.shouldTrackHttpBodyResult = true
+        val collector = UserTriggeredEventCollectorImpl(
+            logger,
+            signalProcessor,
+            timeProvider,
+            processInfoProvider,
+            configProvider,
+        )
+
+        collector.register()
+        collector.trackHttp(
+            url = "https://api.example.com/users",
+            method = "post",
+            startTime = 1000L,
+            endTime = 2000L,
+            client = "okhttp",
+            statusCode = 201,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = mutableMapOf("Content-Type" to "application/json; charset=utf-8"),
+            responseHeaders = null,
+            requestBody = "{\"name\":\"test\"}",
+            responseBody = null,
+        )
+
+        verify(signalProcessor).track(
+            data = any<HttpData>(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.HTTP),
+            attributes = any(),
+            userDefinedAttributes = any(),
+            attachments = any(),
+            threadName = anyOrNull(),
+            sessionId = anyOrNull(),
+            userTriggered = eq(true),
+        )
+    }
+
+    @Test
+    fun `tracks http event with lowercase content-type header`() {
+        val configProvider = FakeConfigProvider()
+        configProvider.shouldTrackHttpBodyResult = true
+        val collector = UserTriggeredEventCollectorImpl(
+            logger,
+            signalProcessor,
+            timeProvider,
+            processInfoProvider,
+            configProvider,
+        )
+
+        collector.register()
+        collector.trackHttp(
+            url = "https://api.example.com/users",
+            method = "post",
+            startTime = 1000L,
+            endTime = 2000L,
+            client = "okhttp",
+            statusCode = 201,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = mutableMapOf("content-type" to "application/json"),
+            responseHeaders = null,
+            requestBody = "{\"name\":\"test\"}",
+            responseBody = null,
+        )
+
+        verify(signalProcessor).track(
+            data = any<HttpData>(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.HTTP),
+            attributes = any(),
+            userDefinedAttributes = any(),
+            attachments = any(),
+            threadName = anyOrNull(),
+            sessionId = anyOrNull(),
+            userTriggered = eq(true),
+        )
+    }
 }
