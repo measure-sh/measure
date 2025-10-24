@@ -45,7 +45,7 @@ export default function LandingHeader() {
             alt={'Github logo'} />
           <p className='mt-1'>Self Host</p>
         </Link>}
-        {isMeasureHost() && <div className="px-2" />}
+        {isMeasureHost() && <div className="px-0 md:px-2 py-2 md:py-0" />}
         <Link
           href="/auth/login"
           className={cn(
