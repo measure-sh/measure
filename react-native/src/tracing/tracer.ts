@@ -1,3 +1,4 @@
+import type { Span } from "./span";
 import type { SpanBuilder } from "./spanBuilder";
 
 /**
