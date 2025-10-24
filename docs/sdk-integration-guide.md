@@ -35,11 +35,11 @@ in later steps.
 <details>
   <summary>Minimum Requirements</summary>
 
-| Name                  | Version            |
-|-----------------------|--------------------|
-| Android Gradle Plugin | `8.0.2`            |
-| Min SDK               | `23` (Marshmallow) |
-| Target SDK            | `35`               |
+| Name                  | Version         |
+|-----------------------|-----------------|
+| Android Gradle Plugin | `8.0.2`         |
+| Min SDK               | `21` (Lollipop) |
+| Target SDK            | `35`            |
 
 </details>
 
