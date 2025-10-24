@@ -570,7 +570,7 @@ class OkHttpEventCollectorTest {
         val captor = argumentCaptor<HttpData>()
         val timestampCaptor = argumentCaptor<Long>()
         val typeCaptor = argumentCaptor<EventType>()
-        configProvider.shouldTrackHttpBody = false
+        configProvider.shouldTrackHttpBodyResult = false
         okHttpEventCollector.register()
 
         // When
