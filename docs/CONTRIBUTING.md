@@ -11,7 +11,7 @@
 
 > [!TIP]
 >
-> Not interested in contributing? If you just want to try out measure, follow our [self hosting guide](./hosting/README.md).
+> If you just looking to try out measure, follow our [self hosting guide](./hosting/README.md).
 >
 > **The self hosting guide is the official and recommended way to try out measure.**
 
