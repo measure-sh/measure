@@ -1,3 +1,5 @@
+import type { Span } from "./span";
+
 /**
  * Protocol for configuring and creating a new Span.
  */
