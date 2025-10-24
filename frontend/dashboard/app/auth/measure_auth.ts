@@ -67,6 +67,9 @@ export class MeasureAuth {
   }
 
   private redirectToLogin(): void {
+    // Reset posthog
+    posthog.reset()
+
     if (!this.router) {
       throw new Error("Router is not initialized. Call `init` method first.")
     }
@@ -196,9 +199,6 @@ export class MeasureAuth {
       method: "DELETE",
       credentials: "include",
     })
-
-    // Reset posthog
-    posthog.reset()
 
     // Redirect to login page after successful logout
     this.redirectToLogin()
