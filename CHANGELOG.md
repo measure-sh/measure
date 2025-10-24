@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**frontend**): Fix landing header button spacing for mobile by @anupcowkur in #2818
 - (**frontend**): Reset posthog on redirect to login by @anupcowkur in #2817
 - (**frontend**): Make "cloud" -> "Cloud" in alpha disclaimer by @anupcowkur in #2797
 
