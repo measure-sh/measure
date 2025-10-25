@@ -20,7 +20,8 @@ void main() {
     logger = NoopLogger();
     channel = TestMethodChannel();
     configProvider = FakeConfigProvider();
-    signalProcessor = DefaultSignalProcessor(logger: logger, channel: channel, configProvider: configProvider);
+    signalProcessor = DefaultSignalProcessor(
+        logger: logger, channel: channel, configProvider: configProvider);
   });
 
   group('trackEvent', () {

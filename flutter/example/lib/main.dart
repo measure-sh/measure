@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:measure_flutter/measure_flutter.dart';
+import 'package:measure_flutter_example/src/msr/msr_widgets.g.dart';
 import 'package:measure_flutter_example/src/screen_main.dart';
+
 
 Future<void> main() async {
   await Measure.instance.init(
-        () => runApp(MeasureWidget(child: MyApp())),
+    () => runApp(MeasureWidget(child: MyApp())),
     config: const MeasureConfig(
       enableLogging: true,
       trackScreenshotOnCrash: true,
@@ -16,10 +18,11 @@ Future<void> main() async {
       autoStart: true,
       traceSamplingRate: 1,
       samplingRateForErrorFreeSessions: 1,
+      layoutSnapshotWidgetTypes: msrWidgetsForLayoutSnapshot,
     ),
     clientInfo: ClientInfo(
-      apiKey: "msrsh-123",
-      apiUrl: "http://localhost:8080",
+      apiKey: "msrsh_0c89033fc9ca86c29ba0300452d65ee441a60aac5adc7c5ee2d5057ebcbb4133_2d215ff0",
+      apiUrl: "https://staging-ingest.measure.sh",
     ),
   );
 }
