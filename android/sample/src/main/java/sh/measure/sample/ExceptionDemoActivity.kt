@@ -183,6 +183,11 @@ class ExceptionDemoActivity : AppCompatActivity(), MsrShakeListener {
 
 
         span.setStatus(SpanStatus.Ok).end()
+
+        Measure.trackScreenView("Screen A")
+        Measure.trackScreenView("Screen B")
+        Measure.trackScreenView("Screen C")
+        Measure.trackScreenView("Screen D")
     }
 
     private fun infiniteLoop() {
