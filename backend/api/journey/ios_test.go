@@ -88,16 +88,27 @@ func TestNewJourneyiOSWithScreenViews(t *testing.T) {
 		}
 	}
 
-	expectedGraphString := "4 [(0 1) (0 2) (0 3)]"
+	expectedGraphString := "4 [(0 1) (1 2) (2 3)]"
 	gotGraphString := journey.Graph.String()
 
 	if expectedGraphString != gotGraphString {
 		t.Errorf("Expected graph %q, got %q", expectedGraphString, gotGraphString)
 	}
 
-	for screenName, screenVertex := range screenViewNodes {
-		if !journey.Graph.Edge(viewControllerVertex, screenVertex) {
-			t.Errorf("Expected edge from ControlsViewController to %s screen view", screenName)
-		}
+	// Verify sequential edges
+	homeVertex := screenViewNodes["home"]
+	orderVertex := screenViewNodes["order"]
+	checkoutVertex := screenViewNodes["checkout"]
+
+	if !journey.Graph.Edge(viewControllerVertex, homeVertex) {
+		t.Errorf("Expected edge from ControlsViewController to home screen view")
+	}
+
+	if !journey.Graph.Edge(homeVertex, orderVertex) {
+		t.Errorf("Expected edge from home to order screen view (sequential)")
+	}
+
+	if !journey.Graph.Edge(orderVertex, checkoutVertex) {
+		t.Errorf("Expected edge from order to checkout screen view (sequential)")
 	}
 }
