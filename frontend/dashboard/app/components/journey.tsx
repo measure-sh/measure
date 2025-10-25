@@ -4,6 +4,7 @@ import { ResponsiveSankey } from '@nivo/sankey'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 import { JourneyApiStatus, emptyJourney, fetchJourneyFromServer } from '../api/api_calls'
+import { useAIChatContext } from '../context/ai_chat_context'
 import { numberToKMB } from '../utils/number_utils'
 import { Filters } from './filters'
 import LoadingSpinner from './loading_spinner'
@@ -192,7 +193,7 @@ function transformData(journeyType: JourneyType, input: InputJourneyData): Journ
 }
 
 const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, exceptionsGroupId, filters, searchText = '' }) => {
-
+  const { setPageContext } = useAIChatContext()
   const [journeyApiStatus, setJourneyApiStatus] = useState(JourneyApiStatus.Loading)
   const [journey, setJourney] = useState<JourneyData>(transformData(journeyType, emptyJourney))
 
@@ -207,11 +208,26 @@ const Journey: React.FC<JourneyProps> = ({ teamId, bidirectional, journeyType, e
     switch (result.status) {
       case JourneyApiStatus.Error:
         setJourneyApiStatus(JourneyApiStatus.Error)
+        setPageContext({
+          appId: filters.app!.id,
+          enable: false,
+          fileName: "",
+          action: "",
+          content: ""
+        })
         break
       case JourneyApiStatus.Success:
         setJourneyApiStatus(JourneyApiStatus.Success)
 
         let journey = transformData(journeyType, result.data)
+
+        setPageContext({
+          appId: filters.app!.id,
+          enable: true,
+          fileName: 'journey',
+          action: `Attach Journey Details`,
+          content: "journey:" + JSON.stringify(journey)
+        })
 
         if (journey.nodes.length === 0) {
           setJourneyApiStatus(JourneyApiStatus.NoData)

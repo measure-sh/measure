@@ -883,21 +883,34 @@ export const emptyAppSettings = {
   retention_period: 30,
 }
 
-export const emptyUsage = [
-  {
-    app_id: "",
-    app_name: "",
-    monthly_app_usage: [
-      {
-        month_year: "",
-        event_count: 0,
-        session_count: 0,
-        trace_count: 0,
-        span_count: 0,
-      },
-    ],
-  },
-]
+export const emptyUsage = {
+  "ai_usage": [
+    {
+      team_id: "",
+      monthly_ai_usage: [
+        {
+          month_year: "",
+          total_token_count: 0
+        },
+      ],
+    },
+  ],
+  "app_usage": [
+    {
+      app_id: "",
+      app_name: "",
+      monthly_app_usage: [
+        {
+          month_year: "",
+          event_count: 0,
+          session_count: 0,
+          trace_count: 0,
+          span_count: 0,
+        },
+      ],
+    },
+  ]
+}
 
 export const emptyBugReportsOverviewResponse = {
   meta: {

@@ -3,6 +3,7 @@
 import { FetchUsageApiStatus, emptyUsage, fetchUsageFromServer } from '@/app/api/api_calls'
 import DropdownSelect, { DropdownSelectType } from '@/app/components/dropdown_select'
 import LoadingSpinner from '@/app/components/loading_spinner'
+import { numberToKMB } from '@/app/utils/number_utils'
 import { ResponsivePie } from '@nivo/pie'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -17,16 +18,23 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     spans: number
   }
 
+  type AiMonthlyUsage = {
+    id: string
+    label: string
+    tokens: number
+  }
+
   const [fetchUsageApiStatus, setFetchUsageApiStatus] = useState(FetchUsageApiStatus.Loading)
   const [usage, setUsage] = useState(emptyUsage)
   const [months, setMonths] = useState<string[]>()
   const [selectedMonth, setSelectedMonth] = useState<string>()
-  const [selectedMonthUsage, setSelectedMonthUsage] = useState<AppMonthlyUsage[]>()
+  const [selectedMonthAppUsage, setSelectedMonthAppUsage] = useState<AppMonthlyUsage[]>()
+  const [selectedMonthAiUsage, setSelectedMonthAiUsage] = useState<AiMonthlyUsage[]>()
 
   function parseMonths(data: typeof emptyUsage): string[] {
     const monthYearSet: Set<string> = new Set()
 
-    data.forEach(app => {
+    data.app_usage.forEach(app => {
       app.monthly_app_usage.forEach(u => {
         monthYearSet.add(u.month_year)
       })
@@ -35,13 +43,26 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     return Array.from(monthYearSet)
   }
 
-  function parseUsageForMonth(usage: typeof emptyUsage, month: string): AppMonthlyUsage[] {
+  function parseAppUsageForMonth(usage: typeof emptyUsage, month: string): AppMonthlyUsage[] {
     const selectedMonthUsages: AppMonthlyUsage[] = []
 
-    usage.forEach(app => {
+    usage.app_usage.forEach(app => {
       app.monthly_app_usage.forEach(u => {
         if (u.month_year === month) {
           selectedMonthUsages.push({ id: app.app_id, label: app.app_name, value: u.session_count, events: u.event_count, traces: u.trace_count, spans: u.span_count })
+        }
+      })
+    })
+    return selectedMonthUsages
+  }
+
+  function parseAiUsageForMonth(usage: typeof emptyUsage, month: string): AiMonthlyUsage[] {
+    const selectedMonthUsages: AiMonthlyUsage[] = []
+
+    usage.ai_usage.forEach(ai => {
+      ai.monthly_ai_usage.forEach(u => {
+        if (u.month_year === month) {
+          selectedMonthUsages.push({ id: ai.team_id, label: ai.team_id, tokens: u.total_token_count })
         }
       })
     })
@@ -67,7 +88,8 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         let initialMonth = months[months.length - 1] // set month to last index (latest)
         setMonths(months)
         setSelectedMonth(initialMonth)
-        setSelectedMonthUsage(parseUsageForMonth(result.data, initialMonth))
+        setSelectedMonthAppUsage(parseAppUsageForMonth(result.data, initialMonth))
+        setSelectedMonthAiUsage(parseAiUsageForMonth(result.data, initialMonth))
         break
     }
   }
@@ -77,7 +99,8 @@ export default function Overview({ params }: { params: { teamId: string } }) {
   }, [])
 
   useEffect(() => {
-    setSelectedMonthUsage(parseUsageForMonth(usage, selectedMonth!))
+    setSelectedMonthAppUsage(parseAppUsageForMonth(usage, selectedMonth!))
+    setSelectedMonthAiUsage(parseAiUsageForMonth(usage, selectedMonth!))
   }, [selectedMonth])
 
   // @ts-ignore
@@ -86,11 +109,15 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     let totalEvents = 0
     let totalTraces = 0
     let totalSpans = 0
-    selectedMonthUsage!.forEach(appMonthlyUsage => {
+    let totalTokens = 0
+    selectedMonthAppUsage!.forEach(appMonthlyUsage => {
       totalSessions += appMonthlyUsage.value
       totalEvents += appMonthlyUsage.events
       totalTraces += appMonthlyUsage.traces
       totalSpans += appMonthlyUsage.spans
+    })
+    selectedMonthAiUsage!.forEach(aiMonthlyUsage => {
+      totalTokens += aiMonthlyUsage.tokens
     })
 
     return (
@@ -101,10 +128,11 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         dominantBaseline="central"
         className='font-display font-semibold'
       >
-        <tspan className='text-2xl' x={centerX} dy="-0.7em">{totalSessions} Sessions</tspan>
-        <tspan className='text-lg' x={centerX} dy="1.4em">{totalEvents} Events</tspan>
-        <tspan className='text-lg' x={centerX} dy="1.4em">{totalTraces} Traces</tspan>
-        <tspan className='text-lg' x={centerX} dy="1.4em">{totalSpans} Spans</tspan>
+        <tspan className='text-2xl' x={centerX} dy="-1.4em">{numberToKMB(totalSessions)} Sessions</tspan>
+        <tspan x={centerX} dy="1.8em">{numberToKMB(totalEvents)} Events</tspan>
+        <tspan x={centerX} dy="1.5em">{numberToKMB(totalTraces)} Traces</tspan>
+        <tspan x={centerX} dy="1.5em">{numberToKMB(totalSpans)} Spans</tspan>
+        <tspan fill="oklch(0.552 0.016 285.938)" x={centerX} dy="1.5em">{numberToKMB(totalTokens)} AI Tokens</tspan>
       </text>
     )
   }
@@ -127,7 +155,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
           <div className="py-4" />
           <div className='w-full h-[36rem]'>
             <ResponsivePie
-              data={selectedMonthUsage!}
+              data={selectedMonthAppUsage!}
               animate
               margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
               innerRadius={0.7}
@@ -146,9 +174,9 @@ export default function Overview({ params }: { params: { teamId: string } }) {
                     <p className='text-sm font-semibold' style={{ color: color }}>{label}</p>
                     <div className='py-0.5' />
                     <p className='text-xs'>Sessions: {value}</p>
-                    <p className='text-xs'>Events: {selectedMonthUsage?.find((i) => i.id === id)!.events}</p>
-                    <p className='text-xs'>Traces: {selectedMonthUsage?.find((i) => i.id === id)!.traces}</p>
-                    <p className='text-xs'>Spans: {selectedMonthUsage?.find((i) => i.id === id)!.spans}</p>
+                    <p className='text-xs'>Events: {selectedMonthAppUsage?.find((i) => i.id === id)!.events}</p>
+                    <p className='text-xs'>Traces: {selectedMonthAppUsage?.find((i) => i.id === id)!.traces}</p>
+                    <p className='text-xs'>Spans: {selectedMonthAppUsage?.find((i) => i.id === id)!.spans}</p>
                   </div>
                 )
               }}
@@ -157,6 +185,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
             />
           </div>
         </div>}
+      <div className="py-4" />
     </div>
   )
 }

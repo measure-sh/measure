@@ -13,6 +13,20 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }))
 
+// Mock AIChatContext
+jest.mock('@/app/context/ai_chat_context', () => ({
+    useAIChatContext: jest.fn(() => ({
+        pageContext: {
+            enable: false,
+            action: "",
+            content: "",
+            fileName: "",
+        },
+        setPageContext: jest.fn(),
+    })),
+    AIChatProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+
 // Mock API calls and constants
 jest.mock('@/app/api/api_calls', () => ({
     __esModule: true,
