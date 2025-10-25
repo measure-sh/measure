@@ -449,7 +449,7 @@ class UserTriggeredEventCollectorImplTest {
     }
 
     @Test
-    fun `does not track http event with request body when body tracking is disabled`() {
+    fun `tracks http event but discards request body when body tracking is disabled`() {
         val configProvider = FakeConfigProvider()
         configProvider.shouldTrackHttpBodyResult = false
         val collector = UserTriggeredEventCollectorImpl(
@@ -476,21 +476,23 @@ class UserTriggeredEventCollectorImplTest {
             responseBody = null,
         )
 
-        verify(signalProcessor, never()).track(
-            any<HttpData>(),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-            anyOrNull(),
-            anyOrNull(),
-            any(),
+        val httpDataCaptor = argumentCaptor<HttpData>()
+        verify(signalProcessor).track(
+            data = httpDataCaptor.capture(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.HTTP),
+            attributes = any(),
+            userDefinedAttributes = any(),
+            attachments = any(),
+            threadName = anyOrNull(),
+            sessionId = anyOrNull(),
+            userTriggered = eq(true),
         )
+        Assert.assertNull("Request body should be null when tracking is disabled", httpDataCaptor.firstValue.request_body)
     }
 
     @Test
-    fun `does not track http event with response body when body tracking is disabled`() {
+    fun `tracks http event but discards response body when body tracking is disabled`() {
         val configProvider = FakeConfigProvider()
         configProvider.shouldTrackHttpBodyResult = false
         val collector = UserTriggeredEventCollectorImpl(
@@ -517,17 +519,19 @@ class UserTriggeredEventCollectorImplTest {
             responseBody = "{\"id\":1,\"name\":\"test\"}",
         )
 
-        verify(signalProcessor, never()).track(
-            any<HttpData>(),
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-            anyOrNull(),
-            anyOrNull(),
-            any(),
+        val httpDataCaptor = argumentCaptor<HttpData>()
+        verify(signalProcessor).track(
+            data = httpDataCaptor.capture(),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.HTTP),
+            attributes = any(),
+            userDefinedAttributes = any(),
+            attachments = any(),
+            threadName = anyOrNull(),
+            sessionId = anyOrNull(),
+            userTriggered = eq(true),
         )
+        Assert.assertNull("Response body should be null when tracking is disabled", httpDataCaptor.firstValue.response_body)
     }
 
     @Test
@@ -542,6 +546,7 @@ class UserTriggeredEventCollectorImplTest {
             configProvider,
         )
 
+        val requestBody = "{\"name\":\"test\"}"
         collector.register()
         collector.trackHttp(
             url = "https://api.example.com/users",
@@ -554,12 +559,13 @@ class UserTriggeredEventCollectorImplTest {
             failureDescription = null,
             requestHeaders = mutableMapOf("Content-Type" to "application/json"),
             responseHeaders = null,
-            requestBody = "{\"name\":\"test\"}",
+            requestBody = requestBody,
             responseBody = null,
         )
 
+        val httpDataCaptor = argumentCaptor<HttpData>()
         verify(signalProcessor).track(
-            data = any<HttpData>(),
+            data = httpDataCaptor.capture(),
             timestamp = eq(timeProvider.now()),
             type = eq(EventType.HTTP),
             attributes = any(),
@@ -569,51 +575,11 @@ class UserTriggeredEventCollectorImplTest {
             sessionId = anyOrNull(),
             userTriggered = eq(true),
         )
+        Assert.assertEquals("Request body should be included when tracking is enabled", requestBody, httpDataCaptor.firstValue.request_body)
     }
 
     @Test
-    fun `tracks http event without request body even when body tracking is disabled`() {
-        val configProvider = FakeConfigProvider()
-        configProvider.shouldTrackHttpBodyResult = false
-        val collector = UserTriggeredEventCollectorImpl(
-            logger,
-            signalProcessor,
-            timeProvider,
-            processInfoProvider,
-            configProvider,
-        )
-
-        collector.register()
-        collector.trackHttp(
-            url = "https://api.example.com/users",
-            method = "get",
-            startTime = 1000L,
-            endTime = 2000L,
-            client = "okhttp",
-            statusCode = 200,
-            failureReason = null,
-            failureDescription = null,
-            requestHeaders = null,
-            responseHeaders = null,
-            requestBody = null,
-            responseBody = null,
-        )
-
-        verify(signalProcessor).track(
-            data = any<HttpData>(),
-            timestamp = eq(timeProvider.now()),
-            type = eq(EventType.HTTP),
-            attributes = any(),
-            userDefinedAttributes = any(),
-            attachments = any(),
-            threadName = anyOrNull(),
-            sessionId = anyOrNull(),
-            userTriggered = eq(true),
-        )
-    }
-
-    @Test
-    fun `tracks http event without request body when body tracking is enabled`() {
+    fun `tracks http event with response body when body tracking is enabled`() {
         val configProvider = FakeConfigProvider()
         configProvider.shouldTrackHttpBodyResult = true
         val collector = UserTriggeredEventCollectorImpl(
@@ -624,6 +590,7 @@ class UserTriggeredEventCollectorImplTest {
             configProvider,
         )
 
+        val responseBody = "{\"id\":1,\"name\":\"test\"}"
         collector.register()
         collector.trackHttp(
             url = "https://api.example.com/users",
@@ -635,13 +602,14 @@ class UserTriggeredEventCollectorImplTest {
             failureReason = null,
             failureDescription = null,
             requestHeaders = null,
-            responseHeaders = null,
+            responseHeaders = mutableMapOf("Content-Type" to "application/json"),
             requestBody = null,
-            responseBody = null,
+            responseBody = responseBody,
         )
 
+        val httpDataCaptor = argumentCaptor<HttpData>()
         verify(signalProcessor).track(
-            data = any<HttpData>(),
+            data = httpDataCaptor.capture(),
             timestamp = eq(timeProvider.now()),
             type = eq(EventType.HTTP),
             attributes = any(),
@@ -651,6 +619,7 @@ class UserTriggeredEventCollectorImplTest {
             sessionId = anyOrNull(),
             userTriggered = eq(true),
         )
+        Assert.assertEquals("Response body should be included when tracking is enabled", responseBody, httpDataCaptor.firstValue.response_body)
     }
 
     @Test

@@ -133,30 +133,6 @@ internal class UserTriggeredEventCollectorImpl(
             return
         }
 
-        // discard event if it contains http request body but the configuration is not
-        // enabled for body tracking
-        val shouldTrackRequestHttpBody =
-            configProvider.shouldTrackHttpBody(url, getContentType(requestHeaders))
-        if (!shouldTrackRequestHttpBody && !requestBody.isNullOrEmpty()) {
-            logger.log(
-                LogLevel.Debug,
-                "Discarding HTTP event, request body was present but not configured for tracking in Measure.init",
-            )
-            return
-        }
-
-        // discard event if it contains http response body but the configuration is not
-        // enabled for body tracking
-        val shouldTrackResponseHttpBody =
-            configProvider.shouldTrackHttpBody(url, getContentType(responseHeaders))
-        if (!shouldTrackResponseHttpBody && !responseBody.isNullOrEmpty()) {
-            logger.log(
-                LogLevel.Debug,
-                "Discarding HTTP event, response body was present but not configured for tracking in Measure.init",
-            )
-            return
-        }
-
         // apply headers config
         if (!configProvider.trackHttpHeaders && (!responseHeaders.isNullOrEmpty() || !requestHeaders.isNullOrEmpty())) {
             logger.log(
@@ -172,6 +148,11 @@ internal class UserTriggeredEventCollectorImpl(
             responseHeaders?.entries?.removeAll { !configProvider.shouldTrackHttpHeader(it.key) }
         }
 
+        val shouldTrackRequestHttpBody =
+            configProvider.shouldTrackHttpBody(url, getContentType(requestHeaders))
+        val shouldTrackResponseHttpBody =
+            configProvider.shouldTrackHttpBody(url, getContentType(responseHeaders))
+
         val data = HttpData(
             url = url,
             method = method,
@@ -181,8 +162,8 @@ internal class UserTriggeredEventCollectorImpl(
             client = client,
             request_headers = requestHeaders,
             response_headers = responseHeaders,
-            request_body = requestBody,
-            response_body = responseBody,
+            request_body = if (shouldTrackRequestHttpBody) requestBody else null,
+            response_body = if (shouldTrackResponseHttpBody) responseBody else null,
             failure_reason = failureReason,
             failure_description = failureDescription,
         )
