@@ -30,9 +30,10 @@ interface DropdownSelectProps {
   items: string[] | AppVersion[] | OsVersion[]
   initialSelected: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]
   onChangeSelected?: (item: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]) => void
+  buttonClassName?: string
 }
 
-const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, initialSelected, onChangeSelected }) => {
+const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, initialSelected, onChangeSelected, buttonClassName }) => {
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState(initialSelected)
   const [searchValue, setSearchValue] = useState("")
@@ -222,7 +223,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="flex justify-between font-display border border-black w-fit min-w-[150px] select-none"
+          className={buttonClassName || "flex justify-between font-display border border-black w-fit min-w-[150px] select-none"}
         >
           <span className="truncate">{getDisplayText()}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
