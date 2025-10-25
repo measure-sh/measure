@@ -164,6 +164,25 @@ func (j *JourneyiOS) buildGraph() {
 			lastParent = i
 		}
 
+		// ScreenView nodes should also update lastParent to enable
+		// sequential chaining (ScreenView1 -> ScreenView2 -> ScreenView3)
+		if currNode.IsScreenView {
+			lastParent = i
+
+			// if going from screen view to view controller/swiftui, we find the
+			// last view controller and set that as the next node's parent
+			if nextNode.IsViewController || nextNode.IsSwiftUI {
+				parentNode := j.GetLastViewController(&currNode)
+				if parentNode != nil {
+					lastParent = parentNode.ID
+				} else {
+					// did not find a parent view controller
+					// will not create an edge
+					continue
+				}
+			}
+		}
+
 		vkey := j.Nodes[lastParent].Name
 		wkey := nextNode.Name
 		v := j.nodelut[vkey]
@@ -347,6 +366,26 @@ func (j JourneyiOS) GetLastView(node *NodeiOS) (parent *NodeiOS) {
 		}
 
 		if j.Nodes[c].IsViewController || j.Nodes[c].IsSwiftUI || j.Nodes[c].IsScreenView {
+			return &j.Nodes[c]
+		}
+	}
+
+	return
+}
+
+// GetLastViewController finds the last ViewController or SwiftUI
+// node by traversing towards start direction, excluding ScreenViews.
+func (j JourneyiOS) GetLastViewController(node *NodeiOS) (parent *NodeiOS) {
+	c := node.ID
+
+	for {
+		c--
+
+		if c < 0 {
+			break
+		}
+
+		if j.Nodes[c].IsViewController || j.Nodes[c].IsSwiftUI {
 			return &j.Nodes[c]
 		}
 	}
