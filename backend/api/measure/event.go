@@ -147,6 +147,14 @@ func (s status) String() string {
 // uploadAttachments prepares and uploads each attachment.
 func (e *eventreq) uploadAttachments() error {
 	for id, attachment := range e.attachments {
+		if attachment == nil {
+			return fmt.Errorf("attachment[%s]: nil blob", id)
+		}
+
+		if attachment.header == nil {
+			return fmt.Errorf("attachment[%s] (%s): header is nil", id, attachment.name)
+		}
+
 		ext := filepath.Ext(attachment.name)
 		key := attachment.id.String() + ext
 
