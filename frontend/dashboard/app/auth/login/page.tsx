@@ -55,7 +55,7 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
         {!loading && !session && !error && !message && <GitHubSignIn />}
       </div>
       {isMeasureHost() && <p className="p-2 my-4 text-sm font-display text-gray-500">
-        Measure Cloud is in limited to alpha users at the moment. Please{" "}
+        Measure Cloud is limited to alpha users at the moment. Please{" "}
         <Link
           target="_blank"
           className="underline decoration-2 underline-offset-2 decoration-yellow-200 hover:decoration-yellow-500"
