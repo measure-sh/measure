@@ -136,7 +136,7 @@ describe('LayoutSnapshot', () => {
             } as Partial<Response> as Response)
     }
 
-    it('shows loading state while fetching', async () => {
+    it('shows nothing while fetching', async () => {
         mockFetch(mockElement)
 
         const { container } = render(
@@ -147,11 +147,9 @@ describe('LayoutSnapshot', () => {
             />
         )
 
-        // Should show loading state (pulsing gray div)
+        // Should show nothing
         await waitFor(() => {
-            const loadingDiv = container.querySelector('.animate-pulse')
-            expect(loadingDiv).toBeInTheDocument()
-            expect(loadingDiv).toHaveClass('bg-gray-600')
+            expect(container.firstChild).toBeNull()
         })
     })
 
@@ -204,8 +202,8 @@ describe('LayoutSnapshot', () => {
             expect(consoleErrorSpy).toHaveBeenCalled()
         })
 
-        // Should still show loading state on error
-        expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
+        // Should show nothing on error
+        expect(container.firstChild).toBeNull()
 
         consoleErrorSpy.mockRestore()
     })
@@ -602,7 +600,8 @@ describe('LayoutSnapshot', () => {
             expect(consoleErrorSpy).toHaveBeenCalled()
         })
 
-        expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
+        // Should show nothing on non-ok response
+        expect(container.firstChild).toBeNull()
 
         consoleErrorSpy.mockRestore()
     })

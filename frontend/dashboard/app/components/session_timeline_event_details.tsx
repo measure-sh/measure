@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { ReactNode } from 'react'
+import { ReactNode, useState } from 'react'
 import { cn } from '../utils/shadcn_utils'
 import { formatDateToHumanReadableDateTime, formatMillisToHumanReadable } from '../utils/time_utils'
 import { buttonVariants } from './button'
@@ -21,6 +21,11 @@ export default function SessionTimelineEventDetails({
   eventType,
   eventDetails
 }: SessionTimelineEventDetailsProps) {
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
+
+  const handleImageError = (key: string) => {
+    setImageErrors(prev => new Set(prev).add(key))
+  }
 
   function getBodyFromEventDetails(): ReactNode {
     // Remove user defined attrs. In case of http event, remove start_time and end_time as well since they represent uptime in ms and not timestamps.
@@ -116,7 +121,8 @@ export default function SessionTimelineEventDetails({
                   key={attachment.key}
                   width={350}
                   height={350}
-                  layoutUrl={attachment.location} />
+                  layoutUrl={attachment.location}
+                />
               ))}
           </div>
         )
@@ -129,9 +135,10 @@ export default function SessionTimelineEventDetails({
       if ((eventType === "exception" && eventDetails.user_triggered === false) || eventType === 'anr' || eventType === 'gesture_click' || eventType === 'gesture_long_click' || eventType === 'gesture_scroll' || eventType === 'bug_report') {
         return (
           <div className='flex flex-wrap gap-8 p-4 items-center'>
-            {eventDetails.attachments.filter((attachment: {
-              key: string, location: string, type: string
-            }) => attachment.type === 'layout_snapshot')
+            {eventDetails.attachments
+              .filter((attachment: {
+                key: string, location: string, type: string
+              }) => attachment.type === 'layout_snapshot' && !imageErrors.has(attachment.key))
               .map((attachment: {
                 key: string, location: string
               }, index: number) => (
@@ -143,6 +150,7 @@ export default function SessionTimelineEventDetails({
                   height={150}
                   unoptimized={true}
                   alt={`Screenshot ${index}`}
+                  onError={() => handleImageError(attachment.key)}
                 />
               ))}
           </div>)

@@ -54,9 +54,14 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
   }
 
   const [pageState, setPageState] = useState<PageState>(initialState)
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
 
   const updatePageState = (newState: Partial<PageState>) => {
     setPageState(prevState => ({ ...prevState, ...newState }))
+  }
+
+  const handleImageError = (key: string) => {
+    setImageErrors(prev => new Set(prev).add(key))
   }
 
   const getExceptionsDetails = async () => {
@@ -204,17 +209,20 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                   <p className="font-body"> Network type: {pageState.exceptionsDetails.results[0].attribute.network_type}</p>
                   {pageState.exceptionsDetails.results[0].attachments?.length > 0 &&
                     <div className='flex mt-8 flex-wrap gap-8 items-center'>
-                      {pageState.exceptionsDetails.results[0].attachments.map((attachment, index) => (
-                        <Image
-                          key={attachment.key}
-                          className='border border-black'
-                          src={attachment.location}
-                          width={200}
-                          height={200}
-                          unoptimized={true}
-                          alt={`Screenshot ${index}`}
-                        />
-                      ))}
+                      {pageState.exceptionsDetails.results[0].attachments
+                        .filter(attachment => !imageErrors.has(attachment.key))
+                        .map((attachment, index) => (
+                          <Image
+                            key={attachment.key}
+                            className='border border-black'
+                            src={attachment.location}
+                            width={200}
+                            height={200}
+                            unoptimized={true}
+                            alt={`Screenshot ${index}`}
+                            onError={() => handleImageError(attachment.key)}
+                          />
+                        ))}
                     </div>}
                   <div className="py-4" />
                   <div className='flex flex-row items-center'>
