@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Update invite validity to 7 days & show it in email by @anupcowkur in #2840
 - (**backend**): Deploy to staging cloud on frontend changes (#2834) by @detj in #2834
+- (**frontend**): Fallback to initials on user avatar load failure by @anupcowkur in #2842
 - (**frontend**): Remove "Account" title from user avatar menu by @anupcowkur in #2841
 - (**frontend**): Fix alpha disclaimer typo by @anupcowkur in #2832
 - (**frontend**): Fix landing header button spacing for mobile by @anupcowkur in #2818
