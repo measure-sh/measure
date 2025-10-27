@@ -1,5 +1,6 @@
 'use client'
 
+import { ValidateInviteApiStatus, validateInvitesFromServer } from "@/app/api/api_calls"
 import { measureAuth, MeasureAuthSession } from "@/app/auth/measure_auth"
 import { isMeasureHost } from "@/app/utils/url_utils"
 import Link from "next/link"
@@ -13,10 +14,29 @@ import Messages from "./messages"
 export default function Login({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   const error = searchParams["error"]
   const message = searchParams["message"]
+  const inviteId = searchParams["inviteId"]
   const [session, setSession] = useState<MeasureAuthSession | null>(null)
   const [home, setHome] = useState("")
   const [loading, setLoading] = useState(true)
+  const [inviteInvalid, setInviteInvalid] = useState(false)
   const router = useRouter()
+
+  const validateInvite = async () => {
+    const result = await validateInvitesFromServer(inviteId as string)
+
+    switch (result.status) {
+      case ValidateInviteApiStatus.Error:
+        setInviteInvalid(true)
+        break
+      case ValidateInviteApiStatus.Success:
+        setInviteInvalid(false)
+        break
+    }
+  }
+
+  useEffect(() => {
+    validateInvite()
+  }, [inviteId])
 
   const getSession = async () => {
     const { session } = await measureAuth.getSession()
@@ -54,6 +74,9 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
       <div className="my-6 place-content-end" style={{ width: "400px" }}>
         {!loading && !session && !error && !message && <GitHubSignIn />}
       </div>
+      {inviteInvalid && (
+        <p className="font-display text-center text-sm p-2 my-4 text-red-600">Invalid or expired invite link. You can still sign in to your own team.</p>
+      )}
       {isMeasureHost() && <p className="p-2 my-4 text-sm font-display text-gray-500">
         Measure Cloud is limited to alpha users at the moment. Please{" "}
         <Link

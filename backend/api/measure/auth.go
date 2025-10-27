@@ -673,6 +673,76 @@ func SigninGoogle(c *gin.Context) {
 	})
 }
 
+// ValidateInvite checks if the invite is valid.
+func ValidateInvite(c *gin.Context) {
+	var payload struct {
+		InviteId string `json:"invite_id" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		msg := "inviteId is required"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	inviteId, err := uuid.Parse(payload.InviteId)
+	if err != nil {
+		msg := "inviteId is invalid"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	// Query the invite from the database
+	stmt := sqlf.PostgreSQL.From("invites").
+		Select("created_at").
+		Where("id = ?", inviteId)
+	defer stmt.Close()
+
+	var createdAt time.Time
+
+	err = server.Server.PgPool.QueryRow(c.Request.Context(), stmt.String(), stmt.Args()...).
+		Scan(&createdAt)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			msg := "invite not found"
+			fmt.Println(msg)
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": msg,
+			})
+			return
+		}
+		msg := "failed to query invite"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	// Check if invite has expired
+	expiryTime := createdAt.Add(teamInviteValidity)
+	if time.Now().After(expiryTime) {
+		msg := "invite has expired"
+		fmt.Println(msg)
+		c.JSON(http.StatusGone, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	// Invite is valid
+	c.JSON(http.StatusOK, gin.H{
+		"valid": true,
+	})
+}
+
 func ConnectSlackApp(c *gin.Context) {
 	ctx := c.Request.Context()
 

@@ -72,13 +72,13 @@ func main() {
 	{
 		auth.POST("github", measure.SigninGitHub)
 		auth.POST("google", measure.SigninGoogle)
+		auth.POST("validateInvite", measure.ValidateInvite)
 		auth.POST("refresh", measure.ValidateRefreshToken(), measure.RefreshToken)
 		auth.GET("session", measure.ValidateAccessToken(), measure.GetAuthSession)
 		auth.DELETE("signout", measure.ValidateRefreshToken(), measure.Signout)
 	}
 
 	// Dashboard routes
-
 	apps := r.Group("/apps", measure.ValidateAccessToken())
 	{
 		apps.GET(":id/journey", measure.GetAppJourney)
