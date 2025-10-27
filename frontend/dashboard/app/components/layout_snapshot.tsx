@@ -120,12 +120,7 @@ export default function LayoutSnapshot({ layoutUrl, width, height }: LayoutSnaps
     }, [layoutUrl])
 
     if (!layout) {
-        return (
-            <div
-                className="relative overflow-hidden animate-pulse bg-gray-600"
-                style={{ width, height }}
-            />
-        )
+        return null
     }
 
     // Determine base dimensions based on orientation

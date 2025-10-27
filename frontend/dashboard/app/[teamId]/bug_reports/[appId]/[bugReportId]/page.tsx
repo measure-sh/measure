@@ -14,6 +14,7 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
   const [bugReport, setBugReport] = useState(emptyBugReport)
   const [bugReportApiStatus, setBugReportApiStatus] = useState(BugReportApiStatus.Loading)
   const [updateBugReportStatusApiStatus, setUpdateBugReportStatusApiStatus] = useState(UpdateBugReportStatusApiStatus.Init)
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
 
   const getBugReport = async () => {
     setBugReportApiStatus(BugReportApiStatus.Loading)
@@ -35,6 +36,9 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
     getBugReport()
   }, [])
 
+  const handleImageError = (key: string) => {
+    setImageErrors(prev => new Set(prev).add(key))
+  }
 
   const updateBugReportStatus: FormEventHandler = async (event) => {
     event.preventDefault()
@@ -101,15 +105,19 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
           {bugReport.attachments !== undefined && bugReport.attachments !== null && bugReport.attachments.length > 0 &&
             <div className='flex flex-wrap gap-8 items-center'>
               {bugReport.attachments.map((attachment, index) => (
-                <Image
-                  key={attachment.key}
-                  className='border border-black'
-                  src={attachment.location}
-                  width={200}
-                  height={200}
-                  unoptimized={true}
-                  alt={`Screenshot ${index}`}
-                />
+                !imageErrors.has(attachment.key) && (
+                  <div key={attachment.key} className="relative">
+                    <Image
+                      className='border border-black'
+                      src={attachment.location}
+                      width={200}
+                      height={200}
+                      unoptimized={true}
+                      alt={`Screenshot ${index}`}
+                      onError={() => handleImageError(attachment.key)}
+                    />
+                  </div>
+                )
               ))}
             </div>}
         </div>}
