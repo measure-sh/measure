@@ -121,7 +121,7 @@ func deleteStaleShortenedFilters(ctx context.Context) {
 // deleteStaleInvites deletes stale invites that
 // have passed the expiry threshold
 func deleteStaleInvites(ctx context.Context) {
-	threshold := time.Now().Add(-48 * time.Hour) // 48 hour expiry
+	threshold := time.Now().Add(-7 * 24 * time.Hour) // 7 day expiry
 	stmt := sqlf.PostgreSQL.DeleteFrom("invites").
 		Where("updated_at < ?", threshold)
 

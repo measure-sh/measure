@@ -66,7 +66,7 @@ type MemberWithAuthz struct {
 	MemberAuthz `json:"authz"`
 }
 
-const teamInviteValidity = 48 * time.Hour
+const teamInviteValidity = 7 * 24 * time.Hour // 7 days
 
 func (t *Team) getApps(ctx context.Context) ([]App, error) {
 	var apps []App
@@ -964,7 +964,12 @@ func InviteMembers(c *gin.Context) {
 		// Send emails to new invitees
 		for _, invitee := range newInvitees {
 			title := "Invitation to join Measure"
-			msg := fmt.Sprintf("You have been invited by <b>%s</b> as <b>%s</b> in team <b>%s</b>!", *user.Email, invitee.Role, *team.Name)
+			days := int(teamInviteValidity.Hours() / 24)
+			dayStr := "day"
+			if days != 1 {
+				dayStr = "days"
+			}
+			msg := fmt.Sprintf("You have been invited by <b>%s</b> as <b>%s</b> in team <b>%s</b>! <br/><br/>This invite is valid for <b>%d %s</b>.", *user.Email, invitee.Role, *team.Name, days, dayStr)
 			url := server.Server.Config.SiteOrigin + "/auth/login"
 			body := formatTeamEmailBody(title, msg, url, "Join Team")
 			emailInfo := &email.EmailInfo{
