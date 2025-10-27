@@ -6,6 +6,14 @@ import {
   getTimeZoneForServer,
 } from "../utils/time_utils"
 
+export enum ValidateInviteApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum TeamsApiStatus {
   Loading,
   Success,
@@ -1207,6 +1215,26 @@ async function applyGenericFiltersToUrl(
   u.search = searchParams.toString()
 
   return u.toString()
+}
+
+export const validateInvitesFromServer = async (inviteId: string) => {
+  try {
+    const res = await measureAuth.fetchMeasure(`/api/auth/validateInvite`, {
+      method: "POST",
+      body: JSON.stringify({ invite_id: inviteId }),
+    })
+
+    if (!res.ok) {
+      console.log("Validate invite failed with status:", res.status)
+      return { status: ValidateInviteApiStatus.Error }
+    }
+
+    console.log("Validate invite succeeded")
+    return { status: ValidateInviteApiStatus.Success }
+  } catch {
+    console.log("Validate invite cancelled due to exception")
+    return { status: ValidateInviteApiStatus.Cancelled }
+  }
 }
 
 export const fetchTeamsFromServer = async () => {
