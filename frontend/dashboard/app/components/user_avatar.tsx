@@ -4,7 +4,7 @@ import Image from 'next/image'
 import React, { useEffect, useState } from 'react'
 import { measureAuth, MeasureAuthSession } from '../auth/measure_auth'
 import { Button } from './button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './dropdown_menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './dropdown_menu'
 
 interface UserAvatarProps {
   onLogoutClick?: () => void
@@ -68,8 +68,6 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ onLogoutClick }) => {
         className='select-none'
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
-        <DropdownMenuLabel className='font-display'>Account</DropdownMenuLabel>
-        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogoutClick} className='font-body'>
           Logout
         </DropdownMenuItem>
