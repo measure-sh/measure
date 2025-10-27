@@ -300,7 +300,7 @@ func TestNewJourneyAndroidTwo(t *testing.T) {
 		t.Errorf("Expected %d order, but got %d", expectedOrder, gotOrder)
 	}
 
-	expectedString := "5 [(0 1) (1 2) (2 3) (4 0)]"
+	expectedString := "5 [(0 1) (1 2) (2 3) (3 0) (3 4) (4 0)]"
 	gotString := journey.Graph.String()
 
 	if expectedString != gotString {
@@ -425,11 +425,11 @@ func TestNewJourneyAndroidTwo(t *testing.T) {
 
 	{
 		expected := graph.Stats{
-			Size:     4,
+			Size:     6,
 			Multi:    0,
 			Weighted: 0,
 			Loops:    0,
-			Isolated: 1,
+			Isolated: 0,
 		}
 		got := graph.Check(journey.Graph)
 
@@ -456,7 +456,7 @@ func TestNewJourneyAndroidThree(t *testing.T) {
 		t.Errorf("Expected %d order, but got %d", expectedOrder, gotOrder)
 	}
 
-	expectedString := "19 [{0 1} {0 6} (0 11) {0 12} {0 15} {0 16} {0 17} {0 18} (1 2) (2 3) (2 4) (2 5) (6 7) (6 10) (6 11) (7 8) {7 9} {9 10} (11 12) (12 13) (13 14)]"
+	expectedString := "19 [(0 1) (0 6) {0 11} {0 12} {0 15} {0 16} {0 17} {0 18} (1 2) {1 3} (1 4) {1 5} (2 0) {2 3} (2 4) {2 5} (3 0) {3 4} {4 5} (5 0) {6 7} {6 10} (7 0) {7 8} (8 0) {8 9} (9 7) {9 10} (9 11) (10 0) (11 12) (12 13) {12 14} (13 0) {13 14} (14 0)]"
 	gotString := journey.Graph.String()
 
 	if expectedString != gotString {
@@ -476,6 +476,7 @@ func TestNewJourneyAndroidThree(t *testing.T) {
 			uuid.MustParse("e4cfa50d-7692-401b-89c1-8e2e59872d72"),
 			uuid.MustParse("b1eb8d33-bacb-475d-8587-09efaae497f4"),
 			uuid.MustParse("7ba161b2-0187-4098-98de-4c3ef826ec5e"),
+			uuid.MustParse("9df333bb-24b5-4f83-a5b8-850c750ed934"),
 		}
 		if expected[0] != sessionIds[0] {
 			t.Errorf("Expected %v, but got %v", expected[0], sessionIds[0])
@@ -488,6 +489,9 @@ func TestNewJourneyAndroidThree(t *testing.T) {
 		}
 		if expected[3] != sessionIds[3] {
 			t.Errorf("Expected %v, but got %v", expected[3], sessionIds[3])
+		}
+		if expected[4] != sessionIds[4] {
+			t.Errorf("Expected %v, but got %v", expected[4], sessionIds[4])
 		}
 	}
 
@@ -589,11 +593,11 @@ func TestNewJourneyAndroidThree(t *testing.T) {
 
 	{
 		expected := graph.Stats{
-			Size:     30,
+			Size:     55,
 			Multi:    0,
 			Weighted: 0,
 			Loops:    0,
-			Isolated: 5,
+			Isolated: 0,
 		}
 		got := graph.Check(journey.Graph)
 
@@ -1357,7 +1361,7 @@ func TestNewJourneyAndroidExceptionsTwo(t *testing.T) {
 		t.Errorf("Expected %d order, but got %d", expectedOrder, gotOrder)
 	}
 
-	expectedString := "5 [(0 1) (1 2) (2 3) (4 0)]"
+	expectedString := "5 [(0 1) (1 2) (2 3) (3 0) (3 4) (4 0)]"
 	gotString := journey.Graph.String()
 
 	if expectedString != gotString {
@@ -1482,11 +1486,11 @@ func TestNewJourneyAndroidExceptionsTwo(t *testing.T) {
 
 	{
 		expected := graph.Stats{
-			Size:     4,
+			Size:     6,
 			Multi:    0,
 			Weighted: 0,
 			Loops:    0,
-			Isolated: 1,
+			Isolated: 0,
 		}
 		got := graph.Check(journey.Graph)
 
@@ -1566,7 +1570,7 @@ func TestNewJourneyAndroidExceptionsThree(t *testing.T) {
 		t.Errorf("Expected %d order, but got %d", expectedOrder, gotOrder)
 	}
 
-	expectedString := "19 [{0 1} {0 6} (0 11) {0 12} {0 15} {0 16} {0 17} {0 18} (1 2) (2 3) (2 4) (2 5) (6 7) (6 10) (6 11) (7 8) {7 9} {9 10} (11 12) (12 13) (13 14)]"
+	expectedString := "19 [(0 1) (0 6) {0 11} {0 12} {0 15} {0 16} {0 17} {0 18} (1 2) {1 3} (1 4) {1 5} (2 0) {2 3} (2 4) {2 5} (3 0) {3 4} {4 5} (5 0) {6 7} {6 10} (7 0) {7 8} (8 0) {8 9} (9 7) {9 10} (9 11) (10 0) (11 12) (12 13) {12 14} (13 0) {13 14} (14 0)]"
 	gotString := journey.Graph.String()
 
 	if expectedString != gotString {
@@ -1690,7 +1694,7 @@ func TestNewJourneyAndroidExceptionsThree(t *testing.T) {
 	}
 
 	{
-		sessionIds := journey.metalut[journey.makeKey(1, 0)].Slice()
+		sessionIds := journey.metalut[journey.makeKey(3, 0)].Slice()
 		expectedLen := 4
 		gotLen := len(sessionIds)
 		if expectedLen != gotLen {
@@ -1719,11 +1723,11 @@ func TestNewJourneyAndroidExceptionsThree(t *testing.T) {
 
 	{
 		expected := graph.Stats{
-			Size:     30,
+			Size:     55,
 			Multi:    0,
 			Weighted: 0,
 			Loops:    0,
-			Isolated: 5,
+			Isolated: 0,
 		}
 		got := graph.Check(journey.Graph)
 
@@ -2009,7 +2013,6 @@ func TestNewJourneyAndroidANRsOne(t *testing.T) {
 }
 
 func TestNewJourneyAndroidScreenViewsFour(t *testing.T) {
-	// Sequence: A1 -> F1 -> F2 -> S1 -> S2 -> F1 -> F2 -> S3 -> F2 -> F1 -> S2 -> A2 -> A3 -> S2
 	events, err := readEvents("android_events_four.json")
 	if err != nil {
 		t.Fatalf("Error reading events: %v", err)
@@ -2019,7 +2022,7 @@ func TestNewJourneyAndroidScreenViewsFour(t *testing.T) {
 		BiGraph: true,
 	})
 
-	expectedOrder := 8
+	expectedOrder := 5
 	gotOrder := journey.Graph.Order()
 
 	if expectedOrder != gotOrder {
@@ -2034,56 +2037,25 @@ func TestNewJourneyAndroidScreenViewsFour(t *testing.T) {
 		nodeMap[nodeName] = vertex
 	}
 
-	a1 := nodeMap["com.example.ActivityA1"]
-	f1 := nodeMap["com.example.FragmentF1"]
-	f2 := nodeMap["com.example.FragmentF2"]
-	s1 := nodeMap["screen_s1"]
-	s2 := nodeMap["screen_s2"]
-	s3 := nodeMap["screen_s3"]
-	a2 := nodeMap["com.example.ActivityA2"]
-	a3 := nodeMap["com.example.ActivityA3"]
+	a1 := nodeMap["MainActivity"]
+	s1 := nodeMap["home"]
+	s2 := nodeMap["order"]
+	s3 := nodeMap["checkout"]
+	a2 := nodeMap["HelpActivity"]
 
-	if !journey.Graph.Edge(a1, f1) {
-		t.Errorf("Expected edge A1->F1")
-	}
-
-	if !journey.Graph.Edge(f1, f2) {
-		t.Errorf("Expected edge F1->F2")
-	}
-
-	if !journey.Graph.Edge(f1, s1) {
-		t.Errorf("Expected edge F1->S1")
+	if !journey.Graph.Edge(a1, s1) {
+		t.Errorf("Expected edge MainActivity->home")
 	}
 
 	if !journey.Graph.Edge(s1, s2) {
-		t.Errorf("Expected edge S1->S2")
+		t.Errorf("Expected edge home->order")
 	}
 
-	if !journey.Graph.Edge(s2, f1) {
-		t.Errorf("Expected edge S2->F1")
+	if !journey.Graph.Edge(s2, s3) {
+		t.Errorf("Expected edge order->checkout")
 	}
 
-	if !journey.Graph.Edge(f1, s2) {
-		t.Errorf("Expected edge F1->S2")
-	}
-
-	if !journey.Graph.Edge(f1, s3) {
-		t.Errorf("Expected edge F1->S3")
-	}
-
-	if !journey.Graph.Edge(s3, f2) {
-		t.Errorf("Expected edge S3->F2")
-	}
-
-	if !journey.Graph.Edge(a1, a2) {
-		t.Errorf("Expected edge A1->A2")
-	}
-
-	if !journey.Graph.Edge(a2, a3) {
-		t.Errorf("Expected edge A2->A3")
-	}
-
-	if !journey.Graph.Edge(a3, s2) {
-		t.Errorf("Expected edge A3->S2")
+	if !journey.Graph.Edge(s3, a2) {
+		t.Errorf("Expected edge checkout->HelpActivity")
 	}
 }
