@@ -1,53 +1,161 @@
 [
   {
-    "id": "da1fd321-fdd7-4dc5-983d-fb148d10b545",
-    "session_id": "1d72df05-44ea-4d6f-8306-7b9b5a5b600e",
-    "timestamp": "2024-09-18T16:15:25.422Z",
-    "type": "lifecycle_activity",
-    "lifecycle_activity": {
-      "type": "created",
-      "class_name": "sh.measure.sample.ComposeNavigationActivity",
-      "intent": "",
-      "saved_instance_state": false
-    }
-  },
-  {
-    "id": "c23260a4-e767-4153-b242-020da4f3bbf4",
-    "session_id": "1d72df05-44ea-4d6f-8306-7b9b5a5b600e",
-    "timestamp": "2024-09-18T16:15:25.437Z",
+    "id": "00000000-0000-0000-0000-000000000001",
+    "session_id": "10000000-0000-0000-0000-000000000001",
+    "timestamp": "2024-09-18T16:15:25.400Z",
     "type": "lifecycle_activity",
     "lifecycle_activity": {
       "type": "resumed",
-      "class_name": "sh.measure.sample.ComposeNavigationActivity",
+      "class_name": "com.example.ActivityA1",
       "intent": "",
       "saved_instance_state": false
     }
   },
   {
-    "id": "084d900a-41fb-43ac-b74a-8053853cae6b",
-    "session_id": "1d72df05-44ea-4d6f-8306-7b9b5a5b600e",
-    "timestamp": "2024-09-18T16:15:25.452Z",
-    "type": "screen_view",
-    "screen_view": {
-      "name": "home"
+    "id": "00000000-0000-0000-0000-000000000002",
+    "session_id": "10000000-0000-0000-0000-000000000001",
+    "timestamp": "2024-09-18T16:15:25.410Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "com.example.FragmentF1",
+      "parent_activity": "com.example.ActivityA1",
+      "parent_fragment": "",
+      "tag": ""
     }
   },
   {
-    "id": "084d900a-41fb-43ac-b74a-8053853cae6c",
-    "session_id": "1d72df05-44ea-4d6f-8306-7b9b5a5b600e",
-    "timestamp": "2024-09-18T16:15:25.457Z",
-    "type": "screen_view",
-    "screen_view": {
-      "name": "order"
+    "id": "00000000-0000-0000-0000-000000000003",
+    "session_id": "10000000-0000-0000-0000-000000000001",
+    "timestamp": "2024-09-18T16:15:25.420Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "com.example.FragmentF2",
+      "parent_activity": "com.example.ActivityA1",
+      "parent_fragment": "com.example.FragmentF1",
+      "tag": ""
     }
   },
   {
-    "id": "084d900a-41fb-43ac-b74a-8053853cae6d",
-    "session_id": "1d72df05-44ea-4d6f-8306-7b9b5a5b600e",
-    "timestamp": "2024-09-18T16:15:25.462Z",
+    "id": "00000000-0000-0000-0000-000000000004",
+    "session_id": "10000000-0000-0000-0000-000000000001",
+    "timestamp": "2024-09-18T16:15:25.430Z",
     "type": "screen_view",
     "screen_view": {
-      "name": "checkout"
+      "name": "screen_s1"
+    }
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000005",
+    "session_id": "10000000-0000-0000-0000-000000000001",
+    "timestamp": "2024-09-18T16:15:25.440Z",
+    "type": "screen_view",
+    "screen_view": {
+      "name": "screen_s2"
+    }
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000006",
+    "session_id": "10000000-0000-0000-0000-000000000001",
+    "timestamp": "2024-09-18T16:15:25.450Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "com.example.FragmentF1",
+      "parent_activity": "com.example.ActivityA1",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000007",
+    "session_id": "10000000-0000-0000-0000-000000000001",
+    "timestamp": "2024-09-18T16:15:25.460Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "com.example.FragmentF2",
+      "parent_activity": "com.example.ActivityA1",
+      "parent_fragment": "com.example.FragmentF1",
+      "tag": ""
+    }
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000008",
+    "session_id": "10000000-0000-0000-0000-000000000001",
+    "timestamp": "2024-09-18T16:15:25.470Z",
+    "type": "screen_view",
+    "screen_view": {
+      "name": "screen_s3"
+    }
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000009",
+    "session_id": "10000000-0000-0000-0000-000000000001",
+    "timestamp": "2024-09-18T16:15:25.480Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "com.example.FragmentF2",
+      "parent_activity": "com.example.ActivityA1",
+      "parent_fragment": "com.example.FragmentF1",
+      "tag": ""
+    }
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000010",
+    "session_id": "10000000-0000-0000-0000-000000000001",
+    "timestamp": "2024-09-18T16:15:25.490Z",
+    "type": "lifecycle_fragment",
+    "lifecycle_fragment": {
+      "type": "resumed",
+      "class_name": "com.example.FragmentF1",
+      "parent_activity": "com.example.ActivityA1",
+      "parent_fragment": "",
+      "tag": ""
+    }
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000011",
+    "session_id": "10000000-0000-0000-0000-000000000001",
+    "timestamp": "2024-09-18T16:15:25.500Z",
+    "type": "screen_view",
+    "screen_view": {
+      "name": "screen_s2"
+    }
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000012",
+    "session_id": "10000000-0000-0000-0000-000000000001",
+    "timestamp": "2024-09-18T16:15:25.510Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "com.example.ActivityA2",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000013",
+    "session_id": "10000000-0000-0000-0000-000000000001",
+    "timestamp": "2024-09-18T16:15:25.520Z",
+    "type": "lifecycle_activity",
+    "lifecycle_activity": {
+      "type": "resumed",
+      "class_name": "com.example.ActivityA3",
+      "intent": "",
+      "saved_instance_state": false
+    }
+  },
+  {
+    "id": "00000000-0000-0000-0000-000000000014",
+    "session_id": "10000000-0000-0000-0000-000000000001",
+    "timestamp": "2024-09-18T16:15:25.530Z",
+    "type": "screen_view",
+    "screen_view": {
+      "name": "screen_s2"
     }
   }
 ]

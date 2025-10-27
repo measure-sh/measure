@@ -217,6 +217,26 @@ func (j *JourneyAndroid) buildGraph() {
 			}
 		}
 
+		// ScreenView nodes should also update lastParent to enable
+		// sequential chaining (ScreenView1 -> ScreenView2 -> ScreenView3)
+		if currNode.IsScreenView {
+			lastParent = i
+
+			// if going from screen view to activity, we find the
+			// last activity and set that as the next activity's
+			// parent node.
+			if nextNode.IsActivity {
+				parentNode := j.GetLastActivity(&currNode)
+				if parentNode != nil {
+					lastParent = parentNode.ID
+				} else {
+					// did not find a parent activity
+					// will not create an edge
+					continue
+				}
+			}
+		}
+
 		vkey := j.Nodes[lastParent].Name
 		wkey := nextNode.Name
 		v := j.nodelut[vkey]
@@ -553,6 +573,7 @@ func NewJourneyAndroid(events []event.EventField, opts *Options) (journey *Journ
 			c := i
 			for {
 				c--
+				
 
 				// reached the end, we're done
 				if c < 0 {

@@ -2009,17 +2009,17 @@ func TestNewJourneyAndroidANRsOne(t *testing.T) {
 }
 
 func TestNewJourneyAndroidScreenViewsFour(t *testing.T) {
+	// Sequence: A1 -> F1 -> F2 -> S1 -> S2 -> F1 -> F2 -> S3 -> F2 -> F1 -> S2 -> A2 -> A3 -> S2
 	events, err := readEvents("android_events_four.json")
 	if err != nil {
-		panic(err)
+		t.Fatalf("Error reading events: %v", err)
 	}
 
 	journey := NewJourneyAndroid(events, &Options{
 		BiGraph: true,
 	})
 
-	// Verify correct number of nodes (1 activity + 3 screen views = 4 nodes)
-	expectedOrder := 4
+	expectedOrder := 8
 	gotOrder := journey.Graph.Order()
 
 	if expectedOrder != gotOrder {
@@ -2027,31 +2027,63 @@ func TestNewJourneyAndroidScreenViewsFour(t *testing.T) {
 	}
 
 	vertices := journey.GetNodeVertices()
-	screenViewNodes := make(map[string]int)
-	var activityVertex int
+	nodeMap := make(map[string]int)
 
 	for _, vertex := range vertices {
 		nodeName := journey.GetNodeName(vertex)
-		switch nodeName {
-		case "home", "order", "checkout":
-			screenViewNodes[nodeName] = vertex
-		case "sh.measure.sample.ComposeNavigationActivity":
-			activityVertex = vertex
-		}
+		nodeMap[nodeName] = vertex
 	}
 
-	// Verify graph structure: activity should have edges to all screen view nodes
-	expectedGraphString := "4 [(0 1) (0 2) (0 3)]"
-	gotGraphString := journey.Graph.String()
+	a1 := nodeMap["com.example.ActivityA1"]
+	f1 := nodeMap["com.example.FragmentF1"]
+	f2 := nodeMap["com.example.FragmentF2"]
+	s1 := nodeMap["screen_s1"]
+	s2 := nodeMap["screen_s2"]
+	s3 := nodeMap["screen_s3"]
+	a2 := nodeMap["com.example.ActivityA2"]
+	a3 := nodeMap["com.example.ActivityA3"]
 
-	if expectedGraphString != gotGraphString {
-		t.Errorf("Expected graph %q, got %q", expectedGraphString, gotGraphString)
+	if !journey.Graph.Edge(a1, f1) {
+		t.Errorf("Expected edge A1->F1")
 	}
 
-	// Verify edges from activity to each screen view
-	for screenName, screenVertex := range screenViewNodes {
-		if !journey.Graph.Edge(activityVertex, screenVertex) {
-			t.Errorf("Expected edge from ComposeNavigationActivity to %s screen view", screenName)
-		}
+	if !journey.Graph.Edge(f1, f2) {
+		t.Errorf("Expected edge F1->F2")
+	}
+
+	if !journey.Graph.Edge(f1, s1) {
+		t.Errorf("Expected edge F1->S1")
+	}
+
+	if !journey.Graph.Edge(s1, s2) {
+		t.Errorf("Expected edge S1->S2")
+	}
+
+	if !journey.Graph.Edge(s2, f1) {
+		t.Errorf("Expected edge S2->F1")
+	}
+
+	if !journey.Graph.Edge(f1, s2) {
+		t.Errorf("Expected edge F1->S2")
+	}
+
+	if !journey.Graph.Edge(f1, s3) {
+		t.Errorf("Expected edge F1->S3")
+	}
+
+	if !journey.Graph.Edge(s3, f2) {
+		t.Errorf("Expected edge S3->F2")
+	}
+
+	if !journey.Graph.Edge(a1, a2) {
+		t.Errorf("Expected edge A1->A2")
+	}
+
+	if !journey.Graph.Edge(a2, a3) {
+		t.Errorf("Expected edge A2->A3")
+	}
+
+	if !journey.Graph.Edge(a3, s2) {
+		t.Errorf("Expected edge A3->S2")
 	}
 }
