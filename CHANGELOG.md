@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Remove hierarchical logic from journey (#2835) by @abhaysood in #2835
 - (**backend**): Update invite validity to 7 days & show it in email by @anupcowkur in #2840
 - (**backend**): Deploy to staging cloud on frontend changes (#2834) by @detj in #2834
 - (**frontend**): Fallback to initials on user avatar load failure by @anupcowkur in #2842
