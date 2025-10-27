@@ -13,6 +13,10 @@ on:
       - "backend/**/*.sum"
       - ".github/workflows/publish.yml"
 
+      # run on frontend changes
+      - "frontend/**"
+      - ".github/workflows/dashboard.yml"
+
       # don't run on markdown changes
       - "!**/*.md"
 
