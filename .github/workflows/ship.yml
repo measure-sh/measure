@@ -1,0 +1,30 @@
+name: Ship
+
+on:
+  workflow_dispatch:
+  # push:
+  #   tags:
+  #     - "v*"
+
+jobs:
+  changelog:
+    name: Generate changelog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get bumped version
+        id: bumped-version
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --bumped-version
+        env:
+          OUTPUT: CHANGELOG.md
+
+      - name: Print bumped version
+        run: |
+          echo "Bumped version: ${{ steps.bumped-version.outputs.version }}"
