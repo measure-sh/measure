@@ -584,6 +584,10 @@ func (u *UDAttribute) Parameterize() (attr map[string]string) {
 			// but let's handle it just in case
 			val = strconv.FormatInt(v, 10)
 		case string:
+			// escape any single quote, if any
+			// if not escaped, ClickHouse insert will
+			// throw errors.
+			v = strings.ReplaceAll(v, "'", "\\'")
 			val = v
 		}
 
@@ -610,6 +614,10 @@ func (u *UDAttribute) Scan(attrMap map[string][]any) {
 			u.keyTypes[key] = AttrBool
 		case AttrString.String():
 			u.keyTypes[key] = AttrString
+			if value, ok := tuple[1].(string); ok {
+				// unescape single quotes if any
+				tuple[1] = strings.ReplaceAll(value, "\\'", "'")
+			}
 		case AttrInt64.String():
 			u.keyTypes[key] = AttrInt64
 		case AttrFloat64.String():
