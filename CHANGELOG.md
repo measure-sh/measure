@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Escape & unescape single quote in user def attr strings (#2843) by @detj in #2843
 - (**backend**): Avoid panic when uploading some attachments (#2830) by @detj in #2830
 - (**backend**): Enable ScreenView sequential chaining in journey (#2826) by @abhaysood in #2826
 - (**backend**): Update measure logo url in email template by @anupcowkur in #2803
