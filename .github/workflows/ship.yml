@@ -2,6 +2,7 @@ name: Ship
 
 on:
   workflow_dispatch:
+  push:
   # push:
   #   tags:
   #     - "v*"
