@@ -35,7 +35,9 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
   }
 
   useEffect(() => {
-    validateInvite()
+    if (inviteId) {
+      validateInvite()
+    }
   }, [inviteId])
 
   const getSession = async () => {
