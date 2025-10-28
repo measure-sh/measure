@@ -5,6 +5,9 @@ import {
   type MeasureInitializer,
 } from './measureInitializer';
 import { MeasureInternal } from './measureInternal';
+import { InvalidSpan } from './tracing/invalidSpan';
+import type { Span } from './tracing/span';
+import type { SpanBuilder } from './tracing/spanBuilder';
 import type { ValidAttributeValue } from './utils/attributeValueValidator';
 
 let _initializationPromise: Promise<void> | null = null;
@@ -174,5 +177,82 @@ export const Measure = {
     }
 
     return _measureInternal.trackScreenView(screenName, attributes);
+  },
+
+  /**
+   * Returns the current time in milliseconds since epoch (Int64 equivalent).
+   *
+   * @returns The current time in milliseconds since epoch.
+   */
+  getCurrentTime(): number {
+    if (!_measureInternal) {
+      console.warn('Measure is not initialized. Returning standard Date.now().');
+      return Date.now();
+    }
+    return _measureInternal.getCurrentTime();
+  },
+
+  /**
+   * Starts a new performance tracing span with the specified name.
+   *
+   * @param name - The name to identify this span.
+   * @returns A new Span instance if the SDK is initialized, or an invalid no-op span if not initialized.
+   */
+  startSpan(name: string): Span {
+    if (!_measureInternal) {
+      return new InvalidSpan();
+    }
+    return _measureInternal.startSpan(name);
+  },
+
+  /**
+   * Starts a new performance tracing span with the specified name and start timestamp.
+   *
+   * @param name - The name to identify this span.
+   * @param timestampMs - The milliseconds since epoch when the span started.
+   * @returns A new Span instance if the SDK is initialized, or an invalid no-op span if not initialized.
+   */
+  startSpanWithTimestamp(name: string, timestampMs: number): Span {
+    if (!_measureInternal) {
+      return new InvalidSpan();
+    }
+    // Assuming MeasureInternal has a method to call the Tracer/Collector with a timestamp
+    return _measureInternal.startSpan(name, timestampMs);
+  },
+
+  /**
+   * Creates a configurable span builder for deferred span creation.
+   *
+   * @param name - The name to identify this span.
+   * @returns A SpanBuilder instance to configure the span if the SDK is initialized, or undefined if not.
+   */
+  createSpanBuilder(name: string): SpanBuilder | undefined {
+    if (!_measureInternal) {
+      return undefined;
+    }
+    return _measureInternal.createSpan(name);
+  },
+
+  /**
+   * Returns the W3C traceparent header value for the given span.
+   *
+   * @param span - The span to extract the traceparent header value from.
+   * @returns A W3C trace context compliant header value (e.g., '00-traceId-spanId-01').
+   */
+  getTraceParentHeaderValue(span: Span): string {
+    if (!_measureInternal) {
+      console.warn('Measure is not initialized. Returning empty traceparent value.');
+      return '';
+    }
+    return _measureInternal.getTraceParentHeaderValue(span);
+  },
+
+  /**
+   * Returns the W3C traceparent header key/name.
+   *
+   * @returns The standardized header key 'traceparent'.
+   */
+  getTraceParentHeaderKey(): string {
+    return _measureInternal.getTraceParentHeaderKey();
   },
 };

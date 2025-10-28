@@ -8,7 +8,6 @@ export interface SpanData {
     traceId: string;
     spanId: string;
     parentId?: string;
-    sessionId: string;
     startTime: number;
     endTime: number;
     duration: number;
@@ -25,7 +24,6 @@ export interface SpanDataCodable {
     trace_id: string;
     span_id: string;
     parent_id?: string;
-    session_id: string;
     start_time: string;
     end_time: string;
     duration: number;

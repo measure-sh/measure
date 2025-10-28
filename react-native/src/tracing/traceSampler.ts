@@ -1,12 +1,10 @@
-// TraceSampler.ts
-
 import type { ConfigProvider } from "../config/configProvider";
 import type { Randomizer } from "../utils/randomizer";
 
 /**
  * Protocol for determining if a span should be sampled.
  */
-export interface TraceSampler {
+export interface ITraceSampler {
     /**
      * Determines if a span should be sampled.
      * @returns true if the span should be sampled, false otherwise.
@@ -17,7 +15,7 @@ export interface TraceSampler {
 /**
  * A simple trace sampler that uses a fixed sampling rate.
  */
-export class BaseTraceSampler implements TraceSampler {
+export class TraceSampler implements ITraceSampler {
     // The properties are marked as 'private' and 'readonly' to mirror the Swift 'let' behavior
     // and encapsulation.
     private readonly configProvider: ConfigProvider;

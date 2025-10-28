@@ -14,25 +14,25 @@ export interface Span {
      * Gets the unique identifier for the trace this span belongs to.
      * @returns A unique string identifier generated when the root span of this trace was created.
      */
-    readonly traceId: string;
+    traceId: string;
 
     /**
      * Gets the unique identifier for this span.
      * @returns A unique string identifier generated when this span was created.
      */
-    readonly spanId: string;
+    spanId: string;
 
     /**
      * Gets the span ID of this span's parent, if one exists.
      * @returns The unique identifier of the parent span, or undefined/null if this is a root span.
      */
-    readonly parentId: string | undefined;
+    parentId: string | undefined;
 
     /**
      * Indicates whether this span has been selected for collection and export.
      * @returns true if this span will be sent to the server for analysis, false if it will be dropped.
      */
-    readonly isSampled: boolean;
+    isSampled: boolean;
 
     /**
      * Updates the status of this span.

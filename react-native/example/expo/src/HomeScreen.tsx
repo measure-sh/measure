@@ -67,6 +67,10 @@ export default function HomeScreen() {
     navigation.navigate('ComponentScreen');
   };
 
+  const navigateToTracesScreen = () => {
+    navigation.navigate('TracesScreen'); 
+  };
+
   const sections = [
     {
       title: 'Session & Init',
@@ -115,8 +119,13 @@ export default function HomeScreen() {
       data: [
         {
           id: 'navigate',
-          title: 'Navigate to Component Screen',
+          title: 'Component Screen',
           onPress: navigateToComponentScreen,
+        },
+        {
+          id: 'navigate-traces',
+          title: 'Traces Screen',
+          onPress: navigateToTracesScreen,
         },
       ],
     },

@@ -3,11 +3,9 @@ import { DefaultConfig } from './config/defaultConfig';
 import { MeasureConfig } from './config/measureConfig';
 import * as MeasureErrorHandlers from './exception/measureErrorHandlers';
 import type { MeasureInitializer } from './measureInitializer';
-import {
-  initializeNativeSDK,
-  start,
-  stop,
-} from './native/measureBridge';
+import { initializeNativeSDK, start, stop } from './native/measureBridge';
+import type { Span } from './tracing/span';
+import type { SpanBuilder } from './tracing/spanBuilder';
 import type { ValidAttributeValue } from './utils/attributeValueValidator';
 
 export class MeasureInternal {
@@ -74,23 +72,47 @@ export class MeasureInternal {
     );
   };
 
+  getCurrentTime(): number {
+    return this.measureInitializer.timeProvider.now();
+  }
+
   trackScreenView = (
     screenName: string,
     attributes?: Record<string, ValidAttributeValue>
   ): Promise<void> => {
     return this.measureInitializer.userTriggeredEventCollector.trackScreenView(
       screenName,
-      attributes ?? {},
+      attributes ?? {}
     );
   };
 
   registerCollectors(): void {
     this.measureInitializer.customEventCollector.register();
     this.measureInitializer.userTriggeredEventCollector.register();
+    this.measureInitializer.spanCollector.register();
   }
 
   unregisterCollectors(): void {
     this.measureInitializer.customEventCollector.unregister();
     this.measureInitializer.userTriggeredEventCollector.unregister();
+    this.measureInitializer.spanCollector.unregister();
+  }
+
+  createSpan(name: string): SpanBuilder | undefined {
+    return this.measureInitializer.spanCollector.createSpan(name);
+  }
+
+  startSpan(name: string, timestampMs?: number): Span {
+    return this.measureInitializer.spanCollector.startSpan(name, timestampMs);
+  }
+
+  getTraceParentHeaderValue(span: Span): string {
+    return this.measureInitializer.spanCollector.getTraceParentHeaderValue(
+      span
+    );
+  }
+
+  getTraceParentHeaderKey(): string {
+    return this.measureInitializer.spanCollector.getTraceParentHeaderKey();
   }
 }

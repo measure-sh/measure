@@ -9,29 +9,23 @@ export interface InternalSpan extends Span {
     /**
      * Gets the name identifying this span.
      */
-    readonly name: string;
-
-    /**
-     * Gets the session identifier associated with this span. A v4-UUID string.
-     */
-    readonly sessionId: string;
+    name: string;
 
     /**
      * Gets the timestamp when this span was started.
-     * Note: Swift's 'Number' is mapped to 'number' in TypeScript.
      */
-    readonly startTime: number;
+    startTime: number;
 
     /**
      * Gets the list of time-based checkpoints added to this span.
      */
-    readonly checkpoints: Checkpoint[];
+    checkpoints: Checkpoint[];
 
     /**
      * Gets the map of all attributes attached to this span (including internal ones).
      * Returns null if no attributes are set.
      */
-    readonly attributes: Attributes | null;
+    attributes: Attributes | undefined;
 
     /**
      * Gets the current status of this span, indicating its outcome or error state.
@@ -49,7 +43,7 @@ export interface InternalSpan extends Span {
      * Adds an attribute intended for internal SDK use to this span.
      * @param attribute The attribute to set (often used for merging internal data).
      */
-    setInternalAttribute(attribute: Attributes): void; // Note: Typically setters don't return Span for chaining unless public API
+    setInternalAttribute(attribute: Attributes): void;
 
     /**
      * Converts the span to a data class for further processing and export.
