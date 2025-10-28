@@ -29,8 +29,8 @@ jobs:
         id: bumped-version
         run: |
           echo "Bumped version: $(cat next-version.txt)"
-          cat next-version.txt >> "$GITHUB_OUTPUT"
+          echo "bumped_version=$(cat next-version.txt)" >> "$GITHUB_OUTPUT"
 
       - name: Print bumped version
         run: |
-          echo "Bumped version: ${{ steps.bumped-version.outputs.version }}"
+          echo "Bumped version: ${{ steps.bumped-version.outputs.bumped_version }}"
