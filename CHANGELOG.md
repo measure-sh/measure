@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.9.1] - 2025-10-28
 
 ### :bug: Bug fixes
 
@@ -2219,7 +2219,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Replace team/:id/invite docs with /auth/invite docs by @anupcowkur in #367
 - (**webapp**): Add API docs for crash & ANR groups APIs by @anupcowkur in #350
 
-[unreleased]: https://github.com/measure-sh/measure/compare/v0.9.0..HEAD
+[0.9.1]: https://github.com/measure-sh/measure/compare/v0.9.0..v0.9.1
 [0.9.0]: https://github.com/measure-sh/measure/compare/v0.8.2..v0.9.0
 [0.8.2]: https://github.com/measure-sh/measure/compare/v0.8.1..v0.8.2
 [0.8.1]: https://github.com/measure-sh/measure/compare/v0.8.0..v0.8.1
