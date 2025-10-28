@@ -18,7 +18,6 @@ jobs:
           fetch-depth: 0
 
       - name: Get bumped version
-        id: bumped-version
         uses: orhun/git-cliff-action@v4
         with:
           config: cliff.toml
@@ -26,6 +25,12 @@ jobs:
         env:
           OUTPUT: next-version.txt
 
-      - name: Print bumped version
+      - name: Save bumped version
+        id: bumped-version
         run: |
           echo "Bumped version: $(cat next-version.txt)"
+          cat next-version.txt >> "$GITHUB_OUTPUT"
+
+      - name: Print bumped version
+        run: |
+          echo "Bumped version: ${{ steps.bumped-version.outputs.version }}"
