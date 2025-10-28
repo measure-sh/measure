@@ -113,8 +113,8 @@ final class URLSessionTaskInterceptor {
                 failureDescription: failureDescription,
                 requestHeaders: configProvider.trackHttpHeaders ? requestHeaders.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
                 responseHeaders: configProvider.trackHttpHeaders ? responseHeaders.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
-                requestBody: configProvider.trackHttpBody ? requestBody?.sanitizeRequestBody() : nil,
-                responseBody: configProvider.trackHttpBody ? responseBody?.sanitizeRequestBody() : nil,
+                requestBody: configProvider.trackHttpBody ? httpEventValidator.validateAndTrimBody(requestBody?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
+                responseBody: configProvider.trackHttpBody ? httpEventValidator.validateAndTrimBody(responseBody?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
                 client: client)
 
             taskStartTimes.removeValue(forKey: task)

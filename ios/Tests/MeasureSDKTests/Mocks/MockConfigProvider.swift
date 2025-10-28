@@ -9,6 +9,7 @@ import Foundation
 @testable import Measure
 
 final class MockConfigProvider: ConfigProvider {
+    var maxBodySizeBytes: Int
     var maxAttachmentsInBatch: Int
     var lifecycleViewControllerExcludeList: [String]
     var cpuTrackingIntervalMs: UnsignedNumber
@@ -116,7 +117,8 @@ final class MockConfigProvider: ConfigProvider {
          maxDiskUsageInMb: Int = 50,
          estimatedEventSizeInKb: Int = 10,
          maxExportJitterInterval: Int = 20,
-         maxAttachmentsInBatch: Int = 10) {
+         maxAttachmentsInBatch: Int = 10,
+         maxBodySizeBytes: Int = 256 * 1024) {
         self.enableLogging = enableLogging
         self.trackScreenshotOnCrash = trackScreenshotOnCrash
         self.samplingRateForErrorFreeSessions = samplingRateForErrorFreeSessions
@@ -184,6 +186,7 @@ final class MockConfigProvider: ConfigProvider {
         self.maxAttachmentsInBatch = maxAttachmentsInBatch
         self.combinedHttpHeadersBlocklist = self.defaultHttpHeadersBlocklist + self.httpHeadersBlocklist
         self.combinedHttpUrlBlocklist = self.httpUrlBlocklist
+        self.maxBodySizeBytes = maxBodySizeBytes
     }
 
     func loadNetworkConfig() {}

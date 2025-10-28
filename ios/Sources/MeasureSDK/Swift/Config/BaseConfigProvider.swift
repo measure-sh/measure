@@ -49,6 +49,10 @@ final class BaseConfigProvider: ConfigProvider {
         return self.httpUrlBlocklist
     }()
 
+    var maxBodySizeBytes: Int {
+        return getMergedConfig(\.maxBodySizeBytes)
+    }
+
     var maxAttachmentsInBatch: Int {
         return getMergedConfig(\.maxAttachmentsInBatch)
     }
