@@ -107,4 +107,7 @@ protocol InternalConfig {
 
     /// The maximum number of attachment to export in API. Defaults to 10.
     var maxAttachmentsInBatch: Int { get }
+
+    /// The maximum size of response or request body in `HttpData`. Defaults to 256 x 1024 bytes
+    var maxBodySizeBytes: Int { get }
 }

@@ -159,8 +159,8 @@ extension NetworkInterceptorProtocol: URLSessionDataDelegate {
                 failureDescription: error?.localizedDescription,
                 requestHeaders: configProvider.trackHttpHeaders ? request.allHTTPHeaderFields?.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
                 responseHeaders: configProvider.trackHttpHeaders ? extractHeaders(from: httpResponse)?.filter { !defaultHttpHeadersBlocklist.contains($0.key) } : nil,
-                requestBody: configProvider.trackHttpBody ? requestBody?.sanitizeRequestBody() : nil,
-                responseBody: configProvider.trackHttpBody ? responseString?.sanitizeRequestBody() : nil,
+                requestBody: configProvider.trackHttpBody ? httpEventValidator.validateAndTrimBody(requestBody?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
+                responseBody: configProvider.trackHttpBody ? httpEventValidator.validateAndTrimBody(responseString?.sanitizeRequestBody(), maxBodySizeBytes: configProvider.maxBodySizeBytes) : nil,
                 client: "URLSession")
 
             httpInterceptorCallbacks.onHttpCompletion(data: httpData)
