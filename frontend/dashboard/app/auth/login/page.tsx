@@ -77,7 +77,7 @@ export default function Login({ searchParams }: { searchParams: { [key: string]:
         {!loading && !session && !error && !message && <GitHubSignIn />}
       </div>
       {inviteInvalid && (
-        <p className="font-display text-center text-sm p-2 my-4 text-red-600">Invalid or expired invite link. You can still sign in to your own team.</p>
+        <p className="font-display text-center text-sm p-2 my-4 text-red-600">Invalid or expired invite link.</p>
       )}
       {isMeasureHost() && <p className="p-2 my-4 text-sm font-display text-gray-500">
         Measure Cloud is limited to alpha users at the moment. Please{" "}
