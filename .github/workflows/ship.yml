@@ -54,7 +54,7 @@ jobs:
         with:
           args: --latest --strip header footer
         env:
-          OUTPUT: release-notes-${{ steps.bumped-version.outputs.bumped_version }}.md
+          OUTPUT: CHANGES.md
           GITHUB_REPO: ${{ github.repository }}
 
       - name: Print release notes
