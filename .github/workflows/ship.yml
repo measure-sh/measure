@@ -34,3 +34,25 @@ jobs:
       - name: Print bumped version
         run: |
           echo "Bumped version: ${{ steps.bumped-version.outputs.bumped_version }}"
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --verbose
+        env:
+          OUTPUT: CHANGELOG.md
+
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        id: release-notes
+        with:
+          args: --verbose --current --strip header footer
+        env:
+          OUTPUT: release-notes-${{ steps.bumped-version.outputs.bumped_version }}.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Print release notes
+        run: |
+          echo "Release notes:"
+          cat release-notes-${{ steps.release-notes.outputs.content }}
