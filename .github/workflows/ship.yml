@@ -39,15 +39,20 @@ jobs:
         uses: orhun/git-cliff-action@v4
         with:
           config: cliff.toml
-          args: --verbose
+          args: --bump
         env:
           OUTPUT: CHANGELOG.md
+
+      - name: Print changelog
+        run: |
+          echo "Changelog:"
+          cat CHANGELOG.md
 
       - name: Generate release notes
         uses: orhun/git-cliff-action@v4
         id: release-notes
         with:
-          args: --verbose --latest --strip header footer
+          args: --latest --strip header footer
         env:
           OUTPUT: release-notes-${{ steps.bumped-version.outputs.bumped_version }}.md
           GITHUB_REPO: ${{ github.repository }}
