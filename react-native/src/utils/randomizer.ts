@@ -1,7 +1,7 @@
 /**
  * Protocol for generating random numbers.
  */
-export interface Randomizer {
+export interface IRandomizer {
     /**
      * Returns a random number (float) between 0.0 (inclusive) and 1.0 (exclusive).
      */
@@ -18,7 +18,7 @@ export interface Randomizer {
 /**
  * A simple randomizer that uses the system's random number generator.
  */
-export class BaseRandomizer implements Randomizer {
+export class Randomizer implements IRandomizer {
 
     /**
      * Returns a random number between 0.0 (inclusive) and 1.0 (exclusive).
