@@ -24,8 +24,8 @@ jobs:
           config: cliff.toml
           args: --bumped-version
         env:
-          OUTPUT: CHANGELOG.md
+          OUTPUT: next-version.txt
 
       - name: Print bumped version
         run: |
-          echo "Bumped version: ${{ steps.bumped-version.outputs.version }}"
+          echo "Bumped version: $(cat next-version.txt)"
