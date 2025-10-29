@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Add missing values in daily summary metrics query by @anupcowkur in #2869
 - (**backend**): Update daily summary email by @anupcowkur in #2866
 - (**backend**): Run cleanup job at the strike of each hour (#2859) by @detj in #2859
 - (**backend**): Scheduling of daily & hourly alert jobs (#2854) by @detj in #2854
