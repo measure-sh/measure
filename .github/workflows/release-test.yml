@@ -1,0 +1,123 @@
+name: Release Test
+
+on:
+  workflow_dispatch:
+  push:
+  # push:
+  #   tags:
+  #     - "v*"
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+
+      - name: 🗝️ Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+
+      - name: Configure Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Bump version
+        id: bump
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --bumped-version
+
+      - name: Create Release Branch
+        run: |
+          BRANCH="release/${{ steps.bump.outputs.content }}"
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+          git checkout -b "$BRANCH"
+
+      - name: Generate Unreleased Changelog
+        id: unreleased
+        uses: orhun/git-cliff-action@v4
+        with:
+          args: --unreleased
+
+      - name: Update Changelog
+        id: full
+        uses: orhun/git-cliff-action@v4
+        env:
+          OUTPUT: CHANGELOG.md
+
+      - name: Commit Changelog
+        run: |
+          set +e
+          git add CHANGELOG.md
+          git diff --staged --quiet || git commit -m "chore: update changelog"
+          git push origin "$BRANCH"
+
+      - name: Create Release PR
+        env:
+          GH_TOKEN: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+        run: |
+          cat > pr-body.md << EOF
+          ## Changelog for **${{ steps.bump.outputs.content }}**
+
+          \`\`\`markdown
+          ${{ steps.unreleased.outputs.content }}
+          \`\`\`
+
+          ---
+
+          **🚢 Review & Merge to Ship!**
+          EOF
+          gh pr create \
+          --title "chore: release ${{ steps.bump.outputs.content }}" \
+          --body-file pr-body.md \
+          --head "${{ env.BRANCH }}" \
+          --base "main"
+
+      # - name: Save bumped version
+      #   run: |
+      #     echo "Bumped version: $(cat next-version.txt)"
+      #     echo "bumped_version=$(cat next-version.txt)" >> "$GITHUB_OUTPUT"
+
+      # - name: Print bumped version
+      #   run: |
+      #     echo "Bumped version (content): ${{ steps.bumped-version.outputs.content }}"
+      #     echo "Bumped version (version): ${{ steps.bumped-version.outputs.version }}"
+
+      # - name: Generate changelog
+      #   uses: orhun/git-cliff-action@v4
+      #   id: generate-changelog
+      #   with:
+      #     config: cliff.toml
+      #     args: --bump
+      #   env:
+      #     OUTPUT: CHANGELOG.md
+
+      # - name: Print changelog
+      #   run: |
+      #     # echo "Changelog:"
+      #     # echo ${{ steps.generate-changelog.outputs.changelog }}
+
+      # - name: Generate release notes
+      #   uses: orhun/git-cliff-action@v4
+      #   id: release-notes
+      #   with:
+      #     args: --latest --strip header footer
+      #   env:
+      #     OUTPUT: CHANGES.md
+      #     GITHUB_REPO: ${{ github.repository }}
+
+      # - name: Print release notes
+      #   run: |
+      #     echo "Release notes:"
+      #     cat CHANGES.md
