@@ -60,4 +60,4 @@ jobs:
       - name: Print release notes
         run: |
           echo "Release notes:"
-          echo ${{ steps.release-notes.outputs.content }}
+          cat CHANGES.md
