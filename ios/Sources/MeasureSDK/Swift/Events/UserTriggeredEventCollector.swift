@@ -123,14 +123,6 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
             return
         }
 
-        let isRequestBodyPresent = requestBody != nil && !requestBody!.isEmpty
-        let isResponseBodyPresent = responseBody != nil && !responseBody!.isEmpty
-        
-        if !configProvider.shouldTrackHttpBody(url: url, contentType: nil) && (isRequestBodyPresent || isResponseBodyPresent) {
-            logger.log(level: .debug, message: "Discarding HTTP event, request or response body was present but not configured for tracking in Measure.init", error: nil, data: nil)
-            return
-        }
-
         let isRequestHeadersPresent = requestHeaders != nil && !requestHeaders!.isEmpty
         let isResponseHeadersPresent = responseHeaders != nil && !responseHeaders!.isEmpty
         
@@ -141,7 +133,7 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
 
         var safeRequestHeaders = requestHeaders
         var safeResponseHeaders = responseHeaders
-        
+
         if configProvider.trackHttpHeaders {
             safeRequestHeaders = safeRequestHeaders?.filter { key, _ in
                 configProvider.shouldTrackHttpHeader(key: key)
@@ -150,7 +142,10 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                 configProvider.shouldTrackHttpHeader(key: key)
             }
         }
-        
+
+        let shouldTrackRequestHttpBody = configProvider.shouldTrackHttpBody(url: url, contentType: getContentType(headers: requestHeaders))
+        let shouldTrackResponseHttpBody = configProvider.shouldTrackHttpBody(url: url, contentType: getContentType(headers: responseHeaders))
+
         let data = HttpData(url: url,
                             method: method,
                             statusCode: statusCode,
@@ -160,8 +155,8 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                             failureDescription: error?.localizedDescription,
                             requestHeaders: safeRequestHeaders,
                             responseHeaders: safeResponseHeaders,
-                            requestBody: requestBody,
-                            responseBody: responseBody,
+                            requestBody: shouldTrackRequestHttpBody ? requestBody : nil,
+                            responseBody: shouldTrackResponseHttpBody ? responseBody : nil,
                             client: client)
 
         self.track(data, type: .http)
@@ -176,5 +171,21 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                                            attachments: nil,
                                            userDefinedAttributes: userDefinedAttributes,
                                            threadName: nil)
+    }
+
+    private func getContentType(headers: [String: String]?) -> String? {
+        guard let headers = headers else { return nil }
+
+        if let contentType = headers["Content-Type"] {
+            return contentType
+        }
+
+        if let contentType = headers["content-type"] {
+            return contentType
+        }
+
+        return headers.first { key, _ in
+            key.caseInsensitiveCompare("Content-Type") == .orderedSame
+        }?.value
     }
 }

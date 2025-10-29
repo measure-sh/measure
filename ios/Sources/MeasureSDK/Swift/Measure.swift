@@ -772,6 +772,8 @@ extension Measure {
     /// - Use a time source that provides monotonic time (like `CFAbsoluteTimeGetCurrent()` or a custom one based on `mach_absolute_time()`) for start and end time to avoid clock skew issues.
     /// - Use `requestHeaders`, `responseHeaders`, `requestBody` and `responseBody` only when
     /// required as they can increase the amount of data to be stored and sent considerably.
+    /// - Request body is only tracked if the request headers contain the `Content-Type` header set to `application/json`.
+    /// Similarly, response body is only tracked if the response headers contain the `Content-Type` header set to `application/json`.
     ///
     /// - Parameters:
     ///   - url: The URL to which the request was made
