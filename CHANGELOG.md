@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 - (**backend**): Improve error handling & logging (#2861) by @detj in #2861
+- (**deps**): Bump github.com/wneessen/go-mail in /backend/alerts (#2865) by @dependabot[bot] in #2865
 
 ## [0.9.1] - 2025-10-28
 
