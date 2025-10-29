@@ -60,7 +60,7 @@ jobs:
         run: |
           set +e
           git add CHANGELOG.md
-          git diff --staged --quiet || git commit -m "chore: update changelog"
+          git diff --staged --quiet || git commit -m "chore: update changelog" -m "[skip ci]"
           git push origin "$BRANCH"
 
       - name: Create Release PR
