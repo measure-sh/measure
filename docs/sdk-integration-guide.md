@@ -48,7 +48,7 @@ in later steps.
 
 | SDK Version         | Minimum Required Self-host Version |
 |---------------------|------------------------------------|
-| `0.13.0`            | `0.9.0`                            |
+| >=`0.13.0`          | `0.9.0`                            |
 | `0.10.0` - `0.12.0` | `0.6.0`                            |
 | `0.9.0`             | `0.5.0`                            |
 
@@ -181,13 +181,13 @@ measure {
 Add the following to your app's `build.gradle.kts` file.
 
 ```kotlin
-implementation("sh.measure:measure-android:0.13.0")
+implementation("sh.measure:measure-android:0.14.0")
 ```
 
 or, add the following to your app's `build.gradle` file.
 
 ```groovy
-implementation 'sh.measure:measure-android:0.13.0'
+implementation 'sh.measure:measure-android:0.14.0'
 ```
 
 ### Initialize the SDK
@@ -255,7 +255,7 @@ Add Measure as a dependency by adding `dependencies` value to your `Package.swif
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.7.0")
+    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.7.1")
 ]
 ```
 
@@ -338,7 +338,7 @@ Add the following dependency to your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  measure_flutter: ^0.2.0
+  measure_flutter: ^0.2.1
 ```
 
 ### Initialize the SDK

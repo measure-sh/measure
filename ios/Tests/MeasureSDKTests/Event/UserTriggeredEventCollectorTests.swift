@@ -148,17 +148,19 @@ final class UserTriggeredEventCollectorTests: XCTestCase {
         XCTAssertTrue(logger.logs.contains(where: { $0.contains("URL is not allowed for tracking") }))
     }
     
-    func test_trackHttpEvent_discardsBodyWhenNotConfigured() {
+    func test_trackHttpEvent_discardsBodyWhenNotConfigured() throws {
         configProvider.trackHttpBody = false
         
         collector.trackHttpEvent(
             url: "https://example.com/data",
             method: "POST",
-            startTime: 1000, endTime: 2000, client: "test", statusCode: 200, error: nil, requestHeaders: nil, responseHeaders: nil, requestBody: "body_data", responseBody: nil
+            startTime: 1000, endTime: 2000, client: "test", statusCode: 200, error: nil, requestHeaders: nil, responseHeaders: nil, requestBody: "body_data", responseBody: "body_data"
         )
         
-        XCTAssertNil(signalProcessor.data, "Event must be blocked because body is present but tracking is off")
-        XCTAssertTrue(logger.logs.contains(where: { $0.contains("body was present but not configured") }))
+        let httpData = try XCTUnwrap(signalProcessor.data as? HttpData)
+
+        XCTAssertNil(httpData.requestBody, "Ignore requestBody if trackHttpBody is false")
+        XCTAssertNil(httpData.responseBody, "Ignore responseBody if trackHttpBody is false")
     }
     
     func test_trackHttpEvent_sanitizesHeaders() throws {

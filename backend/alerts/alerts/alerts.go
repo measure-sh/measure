@@ -173,7 +173,7 @@ func CreateDailySummary(ctx context.Context) {
 			}
 
 			dailySummaryEmailBody := formatDailySummaryEmailBody(appName, dashboardURL, date, metrics)
-			scheduleDailySummaryEmailForteamMembers(ctx, team.ID, app.ID, dailySummaryEmailBody, dashboardURL, appName)
+			scheduleDailySummaryEmailForteamMembers(ctx, team.ID, app.ID, dailySummaryEmailBody, appName)
 			scheduleDailySummarySlackMessageForTeamChannels(ctx, team.ID, app.ID, dashboardURL, appName, date, metrics)
 		}
 	}
@@ -342,8 +342,8 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, appID uuid.UUID
                 WHEN cd.cold_launch_p95_ms > pd.cold_launch_p95_ms THEN concat(toString(round(cd.cold_launch_p95_ms / pd.cold_launch_p95_ms, 2)), 'x worse than yesterday')
                 ELSE 'No change from yesterday'
             END AS cold_launch_subtitle,
-            (isNaN(cd.cold_launch_p95_ms) = 0 AND cd.cold_launch_p95_ms > 2000 AND cd.cold_launch_p95_ms > 0) AS cold_launch_has_warning,
-            (isNaN(cd.cold_launch_p95_ms) = 0 AND cd.cold_launch_p95_ms > 3000 AND cd.cold_launch_p95_ms > 0) AS cold_launch_has_error,
+            0 AS cold_launch_has_warning,
+            0 AS cold_launch_has_error,
 
             -- Warm Launch
             CASE
@@ -357,8 +357,8 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, appID uuid.UUID
                 WHEN cd.warm_launch_p95_ms > pd.warm_launch_p95_ms THEN concat(toString(round(cd.warm_launch_p95_ms / pd.warm_launch_p95_ms, 2)), 'x worse than yesterday')
                 ELSE 'No change from yesterday'
             END AS warm_launch_subtitle,
-            (isNaN(cd.warm_launch_p95_ms) = 0 AND cd.warm_launch_p95_ms > 1000 AND cd.warm_launch_p95_ms > 0) AS warm_launch_has_warning,
-            (isNaN(cd.warm_launch_p95_ms) = 0 AND cd.warm_launch_p95_ms > 1500 AND cd.warm_launch_p95_ms > 0) AS warm_launch_has_error,
+            0 AS warm_launch_has_warning,
+            0 AS warm_launch_has_error,
 
             -- Hot Launch
             CASE
@@ -372,8 +372,8 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, appID uuid.UUID
                 WHEN cd.hot_launch_p95_ms > pd.hot_launch_p95_ms THEN concat(toString(round(cd.hot_launch_p95_ms / pd.hot_launch_p95_ms, 2)), 'x worse than yesterday')
                 ELSE 'No change from yesterday'
             END AS hot_launch_subtitle,
-            (isNaN(cd.hot_launch_p95_ms) = 0 AND cd.hot_launch_p95_ms > 800 AND cd.hot_launch_p95_ms > 0) AS hot_launch_has_warning,
-            (isNaN(cd.hot_launch_p95_ms) = 0 AND cd.hot_launch_p95_ms > 1200 AND cd.hot_launch_p95_ms > 0) AS hot_launch_has_error
+            0 AS hot_launch_has_warning,
+            0 AS hot_launch_has_error
 
 
         FROM current_day cd
@@ -629,7 +629,7 @@ func scheduleSlackAlertsForTeamChannels(ctx context.Context, alert Alert, messag
 	}
 }
 
-func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UUID, appId uuid.UUID, emailBody, url, appName string) {
+func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UUID, appId uuid.UUID, emailBody, appName string) {
 	memberStmt := sqlf.PostgreSQL.
 		Select("user_id").
 		From("team_membership").
@@ -858,13 +858,21 @@ func formatDailySummaryEmailBody(appName, dashboardURL string, date time.Time, m
 	for _, metric := range metrics {
 		icon := ""
 		if metric.HasError {
-			icon = `<div style="position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; background-color: #e7000b; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-				<span style="color: white; font-size: 12px; font-weight: bold;">!</span>
-			</div>`
+			icon = `<div style="position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; background-color: #e7000b; border-radius: 50%;">
+   						<table style="width: 100%; height: 100%; margin: 0; padding: 0; border: 0;" cellpadding="0" cellspacing="0">
+        					<tr>
+            					<td style="text-align: center; vertical-align: middle; color: #ffffff; font-size: 12px; font-weight: bold;">!</td>
+        					</tr>
+    					</table>
+					</div>`
 		} else if metric.HasWarning {
-			icon = `<div style="position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; background-color: #d08700; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-				<span style="color: white; font-size: 12px; font-weight: bold;">!</span>
-			</div>`
+			icon = `<div style="position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; background-color: #d08700; border-radius: 50%;">
+   						<table style="width: 100%; height: 100%; margin: 0; padding: 0; border: 0;" cellpadding="0" cellspacing="0">
+        					<tr>
+            					<td style="text-align: center; vertical-align: middle; color: #ffffff; font-size: 12px; font-weight: bold;">!</td>
+        					</tr>
+    					</table>
+					</div>`
 		}
 
 		metricsHTML += fmt.Sprintf(`

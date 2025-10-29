@@ -9,6 +9,7 @@ import Foundation
 
 protocol HttpEventValidator {
     func shouldTrackHttpEvent(_ httpContentTypeAllowlist: [String]?, contentType: String, requestUrl: String, allowedDomains: [String]?, ignoredDomains: [String]?) -> Bool
+    func validateAndTrimBody(_ body: String?, maxBodySizeBytes: Int) -> String?
 }
 
 final class BaseHttpEventValidator: HttpEventValidator {
@@ -28,5 +29,41 @@ final class BaseHttpEventValidator: HttpEventValidator {
         }
 
         return true
+    }
+
+    func validateAndTrimBody(_ body: String?, maxBodySizeBytes: Int) -> String? {
+        guard let body = body, !body.isEmpty else {
+            return nil
+        }
+
+        guard let data = body.data(using: .utf8) else {
+            return nil
+        }
+
+        guard data.count > maxBodySizeBytes else {
+            return body
+        }
+
+        var trimmedData = data.prefix(maxBodySizeBytes)
+
+        var trimmedString: String? = String(data: trimmedData, encoding: .utf8)
+        if trimmedString == nil {
+            for i in (0..<min(4, trimmedData.count)).reversed() {
+                let validData = trimmedData.prefix(trimmedData.count - i)
+                if let str = String(data: validData, encoding: .utf8) {
+                    trimmedString = str
+                    break
+                }
+            }
+        }
+
+        guard var result = trimmedString else {
+            return nil
+        }
+
+        let truncationNotice = "\n... [Body truncated - exceeded 256KB limit]"
+        result.append(truncationNotice)
+
+        return result
     }
 }

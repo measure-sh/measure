@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Add missing values in daily summary metrics query by @anupcowkur in #2869
+- (**backend**): Update daily summary email by @anupcowkur in #2866
+- (**backend**): Run cleanup job at the strike of each hour (#2859) by @detj in #2859
+- (**backend**): Scheduling of daily & hourly alert jobs (#2854) by @detj in #2854
+
+### :hammer: Misc
+
+- (**backend**): Correct a code comment (#2872) by @detj in #2872
+- (**backend**): Update go dependencies (#2871) by @detj in #2871
+- (**backend**): Improve error handling & logging (#2861) by @detj in #2861
+- (**deps**): Bump github.com/wneessen/go-mail in /backend/api (#2868) by @dependabot[bot] in #2868
+- (**deps**): Bump github.com/wneessen/go-mail in /self-host/sessionator (#2867) by @dependabot[bot] in #2867
+- (**deps**): Bump github.com/wneessen/go-mail in /backend/alerts (#2865) by @dependabot[bot] in #2865
+
+## [0.9.1] - 2025-10-28
+
+### :bug: Bug fixes
+
 - (**backend**): Escape & unescape single quote in user def attr strings (#2843) by @detj in #2843
 - (**backend**): Avoid panic when uploading some attachments (#2830) by @detj in #2830
 - (**backend**): Enable ScreenView sequential chaining in journey (#2826) by @abhaysood in #2826
@@ -19,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Remove hierarchical logic from journey (#2835) by @abhaysood in #2835
 - (**backend**): Update invite validity to 7 days & show it in email by @anupcowkur in #2840
 - (**backend**): Deploy to staging cloud on frontend changes (#2834) by @detj in #2834
+- (**frontend**): Update invalid invite copy by @anupcowkur in #2847
 - (**frontend**): Only validate invite id if provided by @anupcowkur in #2846
 - (**frontend**): Validate invites on login page by @anupcowkur in #2845
 - (**frontend**): Hide attachments on fetch failure by @anupcowkur in #2844
@@ -2218,7 +2237,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Replace team/:id/invite docs with /auth/invite docs by @anupcowkur in #367
 - (**webapp**): Add API docs for crash & ANR groups APIs by @anupcowkur in #350
 
-[unreleased]: https://github.com/measure-sh/measure/compare/v0.9.0..HEAD
+[unreleased]: https://github.com/measure-sh/measure/compare/v0.9.1..HEAD
+[0.9.1]: https://github.com/measure-sh/measure/compare/v0.9.0..v0.9.1
 [0.9.0]: https://github.com/measure-sh/measure/compare/v0.8.2..v0.9.0
 [0.8.2]: https://github.com/measure-sh/measure/compare/v0.8.1..v0.8.2
 [0.8.1]: https://github.com/measure-sh/measure/compare/v0.8.0..v0.8.1
