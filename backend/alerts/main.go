@@ -29,8 +29,9 @@ import (
 func main() {
 	config := server.NewConfig()
 	server.Init(config)
+	ctx := context.Background()
 
-	cron := initCron(context.Background())
+	cron := initCron(ctx)
 
 	alertsTracer := initTracer(config.OtelServiceName)
 
@@ -79,13 +80,34 @@ func main() {
 
 func initCron(ctx context.Context) *cron.Cron {
 	cron := cron.New()
-	// Google Cloud Run, doesn't like the "0 0 * * * *" cron
-	// syntax and doesn't trigger the method call.
-	// So, for now, we'll just rely on "@every 1h" because that seems to work.
-	cron.AddFunc("@every 1h", func() { alerts.CreateCrashAndAnrAlerts(ctx) })
-	cron.AddFunc("@daily", func() { alerts.CreateDailySummary(ctx) })
-	cron.AddFunc("@every 5m", func() { email.SendPendingAlertEmails(ctx) })
-	cron.AddFunc("@every 5m", func() { slack.SendPendingAlertSlackMessages(ctx) })
+
+	// run at 6 PM every 24h
+	if _, err := cron.AddFunc("0 6 * * *", func() { alerts.CreateDailySummary(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule daily summary job: %v\n", err)
+	}
+
+	fmt.Println("Scheduled daily summary job")
+
+	// run every hour
+	if _, err := cron.AddFunc("0 * * * *", func() { alerts.CreateCrashAndAnrAlerts(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule hourly crash and ANR alert job: %v\n", err)
+	}
+
+	fmt.Println("Scheduled crash & ANR job")
+
+	// run every 5m
+	if _, err := cron.AddFunc("@every 5m", func() { email.SendPendingAlertEmails(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule email alert job: %v\n", err)
+	}
+
+	fmt.Println("Scheduled email alert job")
+
+	// run every 5m
+	if _, err := cron.AddFunc("@every 5m", func() { slack.SendPendingAlertSlackMessages(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule Slack alert job: %v\n", err)
+	}
+
+	fmt.Println("Scheduled Slack alert job")
 
 	cron.Start()
 	return cron
