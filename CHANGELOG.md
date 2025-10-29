@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Run cleanup job at the strike of each hour (#2859) by @detj in #2859
 - (**backend**): Scheduling of daily & hourly alert jobs (#2854) by @detj in #2854
 
+### :hammer: Misc
+
+- (**backend**): Improve error handling & logging (#2861) by @detj in #2861
+
 ## [0.9.1] - 2025-10-28
 
 ### :bug: Bug fixes
