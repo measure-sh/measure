@@ -17,31 +17,30 @@ export interface ISpanCollector {
  * span creation based on an internal enabled flag.
  */
 export class SpanCollector implements ISpanCollector {
-    private readonly tracer: Tracer;
-    // Replaced AtomicBool with a standard boolean, relying on JS single-threading.
-    private isEnabled: boolean = false;
+    tracer: Tracer;
+    isEnabled: boolean = false;
 
     constructor(tracer: Tracer) {
         this.tracer = tracer;
     }
 
-    public register(): void {
+    register(): void {
         this.isEnabled = true;
     }
 
-    public unregister(): void {
+    unregister(): void {
         this.isEnabled = false;
     }
 
-    public getTraceParentHeaderValue(span: Span): string {
+    getTraceParentHeaderValue(span: Span): string {
         return this.tracer.getTraceParentHeaderValue(span);
     }
 
-    public getTraceParentHeaderKey(): string {
+    getTraceParentHeaderKey(): string {
         return this.tracer.getTraceParentHeaderKey();
     }
 
-    public createSpan(name: string): SpanBuilder | undefined {
+    createSpan(name: string): SpanBuilder | undefined {
         // Equivalent to guard isEnabled.get() else { return nil }
         if (!this.isEnabled) {
             return undefined;
@@ -49,16 +48,13 @@ export class SpanCollector implements ISpanCollector {
         return this.tracer.spanBuilder(name);
     }
 
-    public startSpan(name: string, timestampMs?: number): Span {
-        // Equivalent to guard isEnabled.get() else { return InvalidSpan() }
+    startSpan(name: string, timestampMs?: number): Span {
         if (!this.isEnabled) {
             return new InvalidSpan();
         }
 
         const spanBuilder = this.tracer.spanBuilder(name);
 
-        // Swift Int64? -> TypeScript number | undefined
-        // The logic for handling optional timestamp is condensed using an optional parameter.
         if (timestampMs !== undefined) {
             return spanBuilder.startSpan(timestampMs);
         }

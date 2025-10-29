@@ -16,10 +16,8 @@ export interface ITraceSampler {
  * A simple trace sampler that uses a fixed sampling rate.
  */
 export class TraceSampler implements ITraceSampler {
-    // The properties are marked as 'private' and 'readonly' to mirror the Swift 'let' behavior
-    // and encapsulation.
-    private readonly configProvider: ConfigProvider;
-    private readonly randomizer: Randomizer;
+    configProvider: ConfigProvider;
+    randomizer: Randomizer;
 
     /**
      * Initializes the BaseTraceSampler.

@@ -12,14 +12,14 @@ import type { ITraceSampler } from "./traceSampler";
  * It holds the necessary dependencies and configuration to create a new MsrSpan.
  */
 export class MsrSpanBuilder implements SpanBuilder {
-    private readonly name: string;
-    private readonly idProvider: IIdProvider;
-    private readonly timeProvider: TimeProvider;
-    private readonly spanProcessor: ISpanProcessor;
-    private readonly traceSampler: ITraceSampler;
-    private readonly logger: Logger;
+    name: string;
+    idProvider: IIdProvider;
+    timeProvider: TimeProvider;
+    spanProcessor: ISpanProcessor;
+    traceSampler: ITraceSampler;
+    logger: Logger;
     
-    private parentSpan?: Span;
+    parentSpan?: Span;
 
     constructor(
         name: string,
@@ -42,7 +42,7 @@ export class MsrSpanBuilder implements SpanBuilder {
      * @param span The span to set as parent
      * @returns The builder instance for method chaining
      */
-    public setParent(span: Span): SpanBuilder {
+    setParent(span: Span): SpanBuilder {
         this.parentSpan = span;
         return this;
     }
@@ -51,22 +51,21 @@ export class MsrSpanBuilder implements SpanBuilder {
      * Creates and starts a new span with the current time.
      * @returns A new Span instance
      */
-    public startSpan(): Span;
+    startSpan(): Span;
 
     /**
      * Creates and starts a new span with the specified start time.
      * @param timestampMs The start time in milliseconds since epoch
      * @returns A new Span instance
      */
-    public startSpan(timestampMs: number): Span;
+    startSpan(timestampMs: number): Span;
 
     /**
      * Implementation for startSpan overloads.
      */
-    public startSpan(timestampMs?: number): Span {
+    startSpan(timestampMs?: number): Span {
         return MsrSpan.startSpan({
             name: this.name,
-            logger: this.logger,
             timeProvider: this.timeProvider,
             idProvider: this.idProvider,
             traceSampler: this.traceSampler,

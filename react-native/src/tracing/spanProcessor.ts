@@ -1,6 +1,5 @@
-import { Attributes } from "../attributes/attributes";
 import type { ConfigProvider } from "../config/configProvider";
-import type { ISignalProcessor, SignalProcessor } from "../events/signalProcessor";
+import type { ISignalProcessor } from "../events/signalProcessor";
 import type { Logger } from "../utils/logger";
 import type { InternalSpan } from "./internalSpan";
 import type { SpanData } from "./spanData";
@@ -25,16 +24,10 @@ export interface ISpanProcessor {
     onEnded(span: InternalSpan): void;
 }
 
-// --- Concrete Class Conversion ---
-
-/**
- * A concrete implementation of SpanProcessor that processes spans at different stages of their lifecycle.
- */
 export class SpanProcessor implements ISpanProcessor {
-    // Properties are marked as private and readonly to mirror Swift's 'private let'.
-    private readonly logger: Logger;
-    private readonly signalProcessor: ISignalProcessor;
-    private readonly configProvider: ConfigProvider;
+    logger: Logger;
+    signalProcessor: ISignalProcessor;
+    configProvider: ConfigProvider;
 
     constructor(
         logger: Logger,
@@ -46,20 +39,20 @@ export class SpanProcessor implements ISpanProcessor {
         this.configProvider = configProvider;
     }
 
-    public onStart(span: InternalSpan): void {
+    onStart(span: InternalSpan): void {
         this.logger.log('debug', `Span started: ${span.name}`, null, { step: 'onStart' });
 
-        const attributes = new Attributes({});
+        // const attributes = new Attributes({});
         // TODO: Process attributes
 
-        span.setInternalAttribute(attributes);
+        // span.setInternalAttribute(attributes);
     }
 
-    public onEnding(_span: InternalSpan): void {
+    onEnding(_span: InternalSpan): void {
         // No-op in current implementation
     }
 
-    public onEnded(span: InternalSpan): void {
+    onEnded(span: InternalSpan): void {
         this.logger.log('debug', `Span ending: ${span.name}`, null, { step: 'onEnded' });
 
         const spanData = span.toSpanData();
