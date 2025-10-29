@@ -82,7 +82,10 @@ func initCron(ctx context.Context) *cron.Cron {
 	cron := cron.New()
 
 	// run at 6 PM every 24h
-	if _, err := cron.AddFunc("0 6 * * *", func() { alerts.CreateDailySummary(ctx) }); err != nil {
+	// if _, err := cron.AddFunc("0 6 * * *", func() { alerts.CreateDailySummary(ctx) }); err != nil {
+	// 	fmt.Printf("Failed to schedule daily summary job: %v\n", err)
+	// }
+	if _, err := cron.AddFunc("@every 10m", func() { alerts.CreateDailySummary(ctx) }); err != nil {
 		fmt.Printf("Failed to schedule daily summary job: %v\n", err)
 	}
 
