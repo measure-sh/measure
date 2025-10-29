@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Update go dependencies (#2871) by @detj in #2871
 - (**backend**): Improve error handling & logging (#2861) by @detj in #2861
 - (**deps**): Bump github.com/wneessen/go-mail in /backend/api (#2868) by @dependabot[bot] in #2868
 - (**deps**): Bump github.com/wneessen/go-mail in /self-host/sessionator (#2867) by @dependabot[bot] in #2867
