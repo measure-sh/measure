@@ -18,6 +18,7 @@ jobs:
           fetch-depth: 0
 
       - name: Get bumped version
+        id: bumped-version
         uses: orhun/git-cliff-action@v4
         with:
           config: cliff.toml
@@ -26,7 +27,6 @@ jobs:
           OUTPUT: next-version.txt
 
       - name: Save bumped version
-        id: bumped-version
         run: |
           echo "Bumped version: $(cat next-version.txt)"
           echo "bumped_version=$(cat next-version.txt)" >> "$GITHUB_OUTPUT"
@@ -34,9 +34,12 @@ jobs:
       - name: Print bumped version
         run: |
           echo "Bumped version: ${{ steps.bumped-version.outputs.bumped_version }}"
+          echo "Bumped version: ${{ steps.bumped-version.outputs.content }}"
+          echo "Bumped version: ${{ steps.bumped-version.outputs.version }}"
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
+        id: generate-changelog
         with:
           config: cliff.toml
           args: --bump
@@ -45,19 +48,19 @@ jobs:
 
       - name: Print changelog
         run: |
-          echo "Changelog:"
-          cat CHANGELOG.md
+          # echo "Changelog:"
+          # echo ${{ steps.generate-changelog.outputs.changelog }}
 
-      - name: Generate release notes
-        uses: orhun/git-cliff-action@v4
-        id: release-notes
-        with:
-          args: --current --strip header footer
-        env:
-          OUTPUT: CHANGES.md
-          GITHUB_REPO: ${{ github.repository }}
+      # - name: Generate release notes
+      #   uses: orhun/git-cliff-action@v4
+      #   id: release-notes
+      #   with:
+      #     args: --latest --strip header footer
+      #   env:
+      #     OUTPUT: CHANGES.md
+      #     GITHUB_REPO: ${{ github.repository }}
 
-      - name: Print release notes
-        run: |
-          echo "Release notes:"
-          cat CHANGES.md
+      # - name: Print release notes
+      #   run: |
+      #     echo "Release notes:"
+      #     cat CHANGES.md
