@@ -105,7 +105,7 @@ require (
 	github.com/ugorji/go/codec v1.3.0 // indirect
 	github.com/ulikunitz/xz v0.5.14 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/wneessen/go-mail v0.6.2 // indirect
+	github.com/wneessen/go-mail v0.7.1 // indirect
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zeebo/errs v1.4.0 // indirect
