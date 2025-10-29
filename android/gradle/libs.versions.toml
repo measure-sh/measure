@@ -11,7 +11,7 @@ android-tools = "31.13.0"
 kotlin = "1.9.21"
 # Use the latest snapshot (local maven) version of measure-android for
 # gradle plugin functional tests
-measure-android = "0.14.0-SNAPSHOT"
+measure-android = "0.14.0"
 androidx-navigation = "2.9.5"
 androidx-activity = "1.10.1"
 androidx-fragment-ktx = "1.8.9"
