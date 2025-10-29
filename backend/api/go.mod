@@ -16,7 +16,7 @@ require (
 	github.com/klauspost/compress v1.18.0
 	github.com/leporo/sqlf v1.4.0
 	github.com/oschwald/maxminddb-golang v1.13.1
-	github.com/wneessen/go-mail v0.6.2
+	github.com/wneessen/go-mail v0.7.1
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.62.0
 	go.opentelemetry.io/otel v1.38.0
