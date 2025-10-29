@@ -173,7 +173,7 @@ func CreateDailySummary(ctx context.Context) {
 			}
 
 			dailySummaryEmailBody := formatDailySummaryEmailBody(appName, dashboardURL, date, metrics)
-			scheduleDailySummaryEmailForteamMembers(ctx, team.ID, app.ID, dailySummaryEmailBody, dashboardURL, appName)
+			scheduleDailySummaryEmailForteamMembers(ctx, team.ID, app.ID, dailySummaryEmailBody, appName)
 			scheduleDailySummarySlackMessageForTeamChannels(ctx, team.ID, app.ID, dashboardURL, appName, date, metrics)
 		}
 	}
@@ -342,6 +342,8 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, appID uuid.UUID
                 WHEN cd.cold_launch_p95_ms > pd.cold_launch_p95_ms THEN concat(toString(round(cd.cold_launch_p95_ms / pd.cold_launch_p95_ms, 2)), 'x worse than yesterday')
                 ELSE 'No change from yesterday'
             END AS cold_launch_subtitle,
+            0 AS cold_launch_has_warning,
+            0 AS cold_launch_has_error,
 
             -- Warm Launch
             CASE
@@ -355,6 +357,8 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, appID uuid.UUID
                 WHEN cd.warm_launch_p95_ms > pd.warm_launch_p95_ms THEN concat(toString(round(cd.warm_launch_p95_ms / pd.warm_launch_p95_ms, 2)), 'x worse than yesterday')
                 ELSE 'No change from yesterday'
             END AS warm_launch_subtitle,
+            0 AS warm_launch_has_warning,
+            0 AS warm_launch_has_error,
 
             -- Hot Launch
             CASE
@@ -367,7 +371,9 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, appID uuid.UUID
                 WHEN cd.hot_launch_p95_ms < pd.hot_launch_p95_ms THEN concat(toString(round(cd.hot_launch_p95_ms / pd.hot_launch_p95_ms, 2)), 'x better than yesterday')
                 WHEN cd.hot_launch_p95_ms > pd.hot_launch_p95_ms THEN concat(toString(round(cd.hot_launch_p95_ms / pd.hot_launch_p95_ms, 2)), 'x worse than yesterday')
                 ELSE 'No change from yesterday'
-            END AS hot_launch_subtitle
+            END AS hot_launch_subtitle,
+            0 AS hot_launch_has_warning,
+            0 AS hot_launch_has_error
 
 
         FROM current_day cd
@@ -623,7 +629,7 @@ func scheduleSlackAlertsForTeamChannels(ctx context.Context, alert Alert, messag
 	}
 }
 
-func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UUID, appId uuid.UUID, emailBody, url, appName string) {
+func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UUID, appId uuid.UUID, emailBody, appName string) {
 	memberStmt := sqlf.PostgreSQL.
 		Select("user_id").
 		From("team_membership").
