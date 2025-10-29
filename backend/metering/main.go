@@ -79,8 +79,14 @@ func main() {
 
 func initCron(ctx context.Context) *cron.Cron {
 	cron := cron.New()
+
 	// Run metering job at 11:59 PM every day to calculate usage for the day
-	cron.AddFunc("59 23 * * *", func() { metering.CalculateUsage(ctx) })
+	if _, err := cron.AddFunc("59 23 * * *", func() { metering.CalculateUsage(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule metering job: %v\n", err)
+	}
+
+	fmt.Println("Scheduled metering job")
+
 	cron.Start()
 	return cron
 }
