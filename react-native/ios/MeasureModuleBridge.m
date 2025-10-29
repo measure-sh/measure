@@ -22,5 +22,20 @@ RCT_EXTERN_METHOD(trackEvent:(NSDictionary *)data
                   attachments:(NSArray *)attachments
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(trackSpan:(NSString *)name
+                  traceId:(NSString *)traceId
+                  spanId:(NSString *)spanId
+                  parentId:(NSString * _Nullable)parentId
+                  startTime:(nonnull NSNumber *)startTime
+                  endTime:(nonnull NSNumber *)endTime
+                  duration:(nonnull NSNumber *)duration
+                  status:(nonnull NSNumber *)status
+                  attributes:(NSDictionary *)attributes
+                  userDefinedAttrs:(NSDictionary *)userDefinedAttrs
+                  checkpoints:(NSDictionary *)checkpoints
+                  hasEnded:(BOOL)hasEnded
+                  isSampled:(BOOL)isSampled
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
 
 @end

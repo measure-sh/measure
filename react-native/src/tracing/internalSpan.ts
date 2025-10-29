@@ -1,4 +1,3 @@
-import type { Attributes } from "../attributes/attributes";
 import type { ValidAttributeValue } from "../utils/attributeValueValidator";
 import type { Checkpoint } from "./checkpoint";
 import type { Span } from "./span";
@@ -25,7 +24,7 @@ export interface InternalSpan extends Span {
      * Gets the map of all attributes attached to this span (including internal ones).
      * Returns null if no attributes are set.
      */
-    attributes: Attributes | undefined;
+    attributes: {[key: string]: any} | undefined;
 
     /**
      * Gets the current status of this span, indicating its outcome or error state.
@@ -43,7 +42,7 @@ export interface InternalSpan extends Span {
      * Adds an attribute intended for internal SDK use to this span.
      * @param attribute The attribute to set (often used for merging internal data).
      */
-    setInternalAttribute(attribute: Attributes): void;
+    setInternalAttribute(attribute: {[key: string]: any}): void;
 
     /**
      * Converts the span to a data class for further processing and export.

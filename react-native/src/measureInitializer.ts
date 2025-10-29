@@ -99,6 +99,7 @@ export class BaseMeasureInitializer implements MeasureInitializer {
     );
     this.signalProcessor = new SignalProcessor(
       this.logger,
+      this.timeProvider,
     );
     this.spanProcessor = new SpanProcessor(
       this.logger,

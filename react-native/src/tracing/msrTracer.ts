@@ -29,9 +29,7 @@ export class MsrTracer implements Tracer {
         this.traceSampler = traceSampler;
     }
 
-    public spanBuilder(name: string): SpanBuilder {
-        // We delegate the creation of the SpanBuilder, passing all necessary dependencies.
-        // NOTE: MsrSpanBuilder must be imported or defined elsewhere.
+    spanBuilder(name: string): SpanBuilder {
         return new MsrSpanBuilder(
             name,
             this.idProvider,
@@ -42,7 +40,7 @@ export class MsrTracer implements Tracer {
         );
     }
 
-    public getTraceParentHeaderValue(span: Span): string {
+    getTraceParentHeaderValue(span: Span): string {
         // Implementation follows the W3C Trace Context format:
         // {version}-{traceId}-{spanId}-{traceFlags}
         const version = "00";
@@ -51,11 +49,10 @@ export class MsrTracer implements Tracer {
         // traceFlags: '01' if sampled, '00' otherwise.
         const sampledFlag = span.isSampled ? "01" : "00";
 
-        // Template literal (backticks) replaces Swift's string interpolation
         return `${version}-${traceId}-${spanId}-${sampledFlag}`;
     }
 
-    public getTraceParentHeaderKey(): string {
+    getTraceParentHeaderKey(): string {
         return "traceparent";
     }
 }

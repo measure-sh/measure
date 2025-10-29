@@ -1,20 +1,17 @@
-import type { Attributes } from "../attributes/attributes";
 import type { ValidAttributeValue } from "../utils/attributeValueValidator";
 import type { IIdProvider } from "../utils/idProvider";
-import type { Logger } from "../utils/logger";
 import type { TimeProvider } from "../utils/timeProvider";
 import type { Checkpoint } from "./checkpoint";
 import type { InternalSpan } from "./internalSpan";
 import type { Span } from "./span";
 import type { SpanData } from "./spanData";
-import type { ISpanProcessor, SpanProcessor } from "./spanProcessor";
+import type { ISpanProcessor } from "./spanProcessor";
 import { EndState, SpanStatus } from "./spanStatus";
 import type { ITraceSampler } from "./traceSampler";
 
 export class MsrSpan implements InternalSpan {
-    private readonly logger: Logger;
-    private readonly timeProvider: TimeProvider;
-    private readonly spanProcessor: ISpanProcessor;
+    timeProvider: TimeProvider;
+    spanProcessor: ISpanProcessor;
 
     isSampled: boolean;
     name: string;
@@ -27,11 +24,10 @@ export class MsrSpan implements InternalSpan {
     endTime: number = 0;
     hasEndedState: EndState = EndState.NotEnded;
     checkpoints: Checkpoint[] = [];
-    attributes: Attributes | undefined;
+    attributes: {[key: string]: any} | undefined;
     userDefinedAttrs: Record<string, ValidAttributeValue> = {};
 
     constructor(
-        logger: Logger,
         timeProvider: TimeProvider,
         isSampled: boolean,
         name: string,
@@ -41,7 +37,6 @@ export class MsrSpan implements InternalSpan {
         startTime: number,
         spanProcessor: ISpanProcessor
     ) {
-        this.logger = logger;
         this.timeProvider = timeProvider;
         this.isSampled = isSampled;
         this.name = name;
@@ -54,7 +49,6 @@ export class MsrSpan implements InternalSpan {
 
     static startSpan({
         name,
-        logger,
         timeProvider,
         idProvider,
         traceSampler,
@@ -63,7 +57,6 @@ export class MsrSpan implements InternalSpan {
         timestamp = timeProvider.now(),
     }: {
         name: string;
-        logger: Logger;
         timeProvider: TimeProvider;
         idProvider: IIdProvider;
         traceSampler: ITraceSampler;
@@ -77,7 +70,6 @@ export class MsrSpan implements InternalSpan {
         const isSampled = parentSpan?.isSampled ?? traceSampler.shouldSample();
 
         const span = new MsrSpan(
-            logger,
             timeProvider,
             isSampled,
             name,
@@ -92,26 +84,26 @@ export class MsrSpan implements InternalSpan {
         return span;
     }
 
-    public getStatus(): SpanStatus {
+    getStatus(): SpanStatus {
         return this.status;
     }
 
-    public getUserDefinedAttrs(): Record<string, ValidAttributeValue> {
+    getUserDefinedAttrs(): Record<string, ValidAttributeValue> {
         return this.userDefinedAttrs;
     }
 
-    public setInternalAttribute(attribute: Attributes): void {
+    setInternalAttribute(attribute: {[key: string]: any}): void {
         this.attributes = attribute;
     }
 
-    public setStatus(status: SpanStatus): Span {
+    setStatus(status: SpanStatus): Span {
         if (this.hasEndedState === EndState.NotEnded) {
             this.status = status;
         }
         return this;
     }
 
-    public setParent(parentSpan: Span): Span {
+    setParent(parentSpan: Span): Span {
         if (this.hasEndedState === EndState.NotEnded) {
             this.parentId = parentSpan.spanId;
             this.traceId = parentSpan.traceId;
@@ -119,7 +111,7 @@ export class MsrSpan implements InternalSpan {
         return this;
     }
 
-    public setCheckpoint(name: string): Span {
+    setCheckpoint(name: string): Span {
         if (this.hasEndedState === EndState.NotEnded) {
             const timestamp = this.timeProvider.iso8601Timestamp(this.timeProvider.now());
             const checkpoint: Checkpoint = { name, timestamp };
@@ -128,17 +120,16 @@ export class MsrSpan implements InternalSpan {
         return this;
     }
 
-    public setName(name: string): Span {
+    setName(name: string): Span {
         if (this.hasEndedState === EndState.NotEnded) {
             this.name = name;
         }
         return this;
     }
 
-    public setAttribute(key: string, value: ValidAttributeValue): Span {
+    setAttribute(key: string, value: ValidAttributeValue): Span {
         if (this.hasEndedState === EndState.NotEnded) {
             let attrValue: ValidAttributeValue;
-            // Simplified type-to-AttributeValue mapping
             if (typeof value === 'string') attrValue = { type: 'string', value } as unknown as ValidAttributeValue;
             else if (typeof value === 'number') attrValue = { type: 'double', value } as unknown as ValidAttributeValue;
             else if (typeof value === 'boolean') attrValue = { type: 'boolean', value } as unknown as ValidAttributeValue;
@@ -149,21 +140,21 @@ export class MsrSpan implements InternalSpan {
         return this;
     }
 
-    public setAttributes(attributes: Record<string, ValidAttributeValue>): Span {
+    setAttributes(attributes: Record<string, ValidAttributeValue>): Span {
         if (this.hasEndedState === EndState.NotEnded) {
             Object.assign(this.userDefinedAttrs, attributes);
         }
         return this;
     }
 
-    public removeAttribute(key: string): Span {
+    removeAttribute(key: string): Span {
         if (this.hasEndedState === EndState.NotEnded) {
             delete this.userDefinedAttrs[key];
         }
         return this;
     }
 
-    public end(timestamp?: number): Span {
+    end(timestamp?: number): Span {
         if (this.hasEndedState !== EndState.NotEnded) {
             return this;
         }
@@ -177,15 +168,15 @@ export class MsrSpan implements InternalSpan {
         return this;
     }
 
-    public hasEnded(): boolean {
+    hasEnded(): boolean {
         return this.hasEndedState === EndState.Ended;
     }
 
-    public getDuration(): number {
+    getDuration(): number {
         return this.calculateDuration();
     }
 
-    public toSpanData(): SpanData {
+    toSpanData(): SpanData {
         return {
             name: this.name,
             traceId: this.traceId,

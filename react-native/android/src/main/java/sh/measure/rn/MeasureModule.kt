@@ -92,4 +92,68 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
             promise.reject(ErrorCode.TRACK_EVENT_ERROR, "Failed to track event", e)
         }
     }
+
+    @ReactMethod
+    fun trackSpan(
+        name: String,
+        traceId: String,
+        spanId: String,
+        parentId: String?,
+        startTime: Double,
+        endTime: Double,
+        duration: Double,
+        status: Int,
+        attributes: ReadableMap?,
+        userDefinedAttrs: ReadableMap?,
+        checkpoints: ReadableMap?,
+        hasEnded: Boolean,
+        isSampled: Boolean,
+        promise: Promise
+    ) {
+        try {
+            val attributesMap =
+                if (attributes != null) MapUtils.toMutableMap(attributes) else mutableMapOf<String, Any?>()
+
+            val userAttrs =
+                userDefinedAttrs?.let { MapUtils.toAttributeValueMap(it) } ?: mutableMapOf<String, Any>()
+
+            // val checkpointsMap =
+            //     checkpoints?.let { MapUtils.toAttributeValueMap(it) } ?: mutableMapOf<String, Any>()
+
+            val checkpointsMap = mutableMapOf<String, Long>()
+
+            checkpoints?.let { nonNullCheckpoints ->
+                val raw = MapUtils.toMap(nonNullCheckpoints)
+                raw.forEach { (key, value) ->
+                    val ts = when (value) {
+                        is Double -> value.toLong()
+                        is Int -> value.toLong()
+                        is Long -> value
+                        else -> System.currentTimeMillis()
+                    }
+                    checkpointsMap[key] = ts
+                }
+            }
+
+            Measure.internalTrackSpan(
+                name = name,
+                traceId = traceId,
+                spanId = spanId,
+                parentId = parentId,
+                startTime = startTime.toLong(),
+                endTime = endTime.toLong(),
+                duration = duration.toLong(),
+                status = status,
+                attributes = attributesMap,
+                userDefinedAttrs = userAttrs,
+                checkpoints = checkpointsMap,
+                hasEnded = hasEnded,
+                isSampled = isSampled
+            )
+
+            promise.resolve("Span tracked successfully")
+        } catch (e: Exception) {
+            promise.reject(ErrorCode.TRACK_EVENT_ERROR, "Failed to track span", e)
+        }
+    }
 }
