@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -65,7 +66,14 @@ func main() {
 
 func initCron(ctx context.Context) *cron.Cron {
 	cron := cron.New()
-	cron.AddFunc("@hourly", func() { cleanup.DeleteStaleData(ctx) })
+
+	// run every hour
+	if _, err := cron.AddFunc("0 * * * *", func() { cleanup.DeleteStaleData(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule stale data cleanup job: %v\n", err)
+	}
+
+	fmt.Println("Scheduled stale data cleanup job")
+
 	cron.Start()
 	return cron
 }
