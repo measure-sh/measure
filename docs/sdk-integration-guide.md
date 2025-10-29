@@ -48,7 +48,7 @@ in later steps.
 
 | SDK Version         | Minimum Required Self-host Version |
 |---------------------|------------------------------------|
-| `0.13.0`            | `0.9.0`                            |
+| >=`0.13.0`          | `0.9.0`                            |
 | `0.10.0` - `0.12.0` | `0.6.0`                            |
 | `0.9.0`             | `0.5.0`                            |
 
@@ -338,7 +338,7 @@ Add the following dependency to your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  measure_flutter: ^0.2.0
+  measure_flutter: ^0.2.1
 ```
 
 ### Initialize the SDK

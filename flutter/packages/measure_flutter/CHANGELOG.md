@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [measure_flutter-v0.2.1] - 2025-10-29
+
+### :hammer: Misc
+
+- (**flutter**): Expose measure-android SDK as api dependency (#2828)
+
 ## [measure_flutter-v0.2.0] - 2025-10-22
 
 ### :sparkles: New features
@@ -15,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**flutter**): Prepare measure_flutter-v0.2.0 (#2792)
 - (**flutter**): Upgrade pinned flutter version to latest (#2776)
 - (**flutter**): Update native SDK dependencies (#2769)
 - (**flutter**): Fix changelog and prepare new release (#2438)
