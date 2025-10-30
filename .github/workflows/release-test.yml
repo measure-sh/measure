@@ -108,7 +108,6 @@ jobs:
           --body-file pr-body.md \
           --head "${{ env.BRANCH }}" \
           --label "chore,docs,frontend,backend"
-          --base "main"
           --assignee detj
 
       # - name: Save bumped version
