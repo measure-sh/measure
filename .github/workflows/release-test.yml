@@ -68,7 +68,7 @@ jobs:
         run: |
           VERSION="${{ steps.bump.outputs.content }}"
           VERSION="${VERSION#v}"
-          npm --prefix frontend/dashboard "$VERSION" --no-git-tag-version
+          npm --prefix frontend/dashboard version "$VERSION" --no-git-tag-version
 
       - name: Commit Changes
         run: |
