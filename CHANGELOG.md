@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Fix github release create (#2879) by @detj in #2879
 - (**backend**): Fix release workflow (#2878) by @detj in #2878
 - (**backend**): Correct a code comment (#2872) by @detj in #2872
 - (**backend**): Update go dependencies (#2871) by @detj in #2871
