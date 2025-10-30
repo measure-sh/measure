@@ -22,9 +22,9 @@ export default function App() {
   const initializeMeasure = async () => {
     try {
       const clientInfo = new ClientInfo(
-        'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
-        'msrsh_38514d61493cf70ce99a11abcb461e9e6d823e2068c7124a0902b745598f7ffb_65ea2c1c',
-        'https://api.measure.sh'
+        'msrsh_3533778aec068f99683daae218d0b94a55bbd999070bef1a541ad7bf7629f195_a07c74cb',
+        'msrsh_78e21553fc5ddaf2a30439bb4989efa05e59fefa19213e19d380066b882e5f4d_c1d7387e',
+        'https://staging-ingest.measure.sh'
       );
 
       
