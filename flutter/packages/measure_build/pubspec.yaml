@@ -1,0 +1,7 @@
+name: msr_build
+environment:
+  sdk: ^3.6.0
+dependencies:
+  build: ^4.0.0
+  analyzer: ^8.4.0
+  glob: ^2.1.0

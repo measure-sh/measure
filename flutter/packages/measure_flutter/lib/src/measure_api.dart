@@ -43,7 +43,7 @@ abstract class MeasureApi {
 
   bool shouldTrackHttpHeader(String key);
 
-  void trackBugReport({
+  Future<void> trackBugReport({
     required String description,
     required List<MsrAttachment> attachments,
     required Map<String, AttributeValue> attributes,
@@ -94,9 +94,14 @@ abstract class MeasureApi {
 
   void setShakeListener(Function? onShake);
 
-  void trackClick(ClickData clickData);
+  Future<void> trackClick(ClickData clickData, SnapshotNode? snapshot);
 
-  void trackLongClick(LongClickData longClickData);
+  Future<void> trackLongClick(
+      LongClickData longClickData, SnapshotNode? snapshot);
 
-  void trackScroll(ScrollData scrollData);
+  Future<void> trackScroll(ScrollData scrollData);
+
+  Map<Type, String> getLayoutSnapshotWidgetFilter();
+
+  Logger? getLogger();
 }

@@ -25,10 +25,10 @@
 
         <meta-data
             android:name="sh.measure.android.API_KEY"
-            android:value="msrsh_" />
+            android:value="msrsh_8456989a9cd452c7a4864d37a1f3cf9b4f8a45395203c19cb5b6d8252c6970fd_95a8744f" />
 
         <meta-data android:name="sh.measure.android.API_URL"
-            android:value="http://localhost:8080" />
+            android:value="https://staging-ingest.measure.sh" />
 
         <meta-data
             android:name="flutterEmbedding"

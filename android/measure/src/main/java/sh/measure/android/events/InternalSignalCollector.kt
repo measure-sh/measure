@@ -117,6 +117,7 @@ internal class InternalSignalCollector(
                         type = eventType,
                         attributes = attributes,
                         userDefinedAttributes = userDefinedAttrs,
+                        attachments = eventAttachments,
                         userTriggered = userTriggered,
                     )
                 }
@@ -129,6 +130,7 @@ internal class InternalSignalCollector(
                         type = eventType,
                         attributes = attributes,
                         userDefinedAttributes = userDefinedAttrs,
+                        attachments = eventAttachments,
                         userTriggered = userTriggered,
                     )
                 }
