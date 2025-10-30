@@ -42,10 +42,7 @@ export class SpanProcessor implements ISpanProcessor {
     onStart(span: InternalSpan): void {
         this.logger.log('debug', `Span started: ${span.name}`, null, { step: 'onStart' });
 
-        // const attributes = new Attributes({});
-        // TODO: Process attributes
-
-        // span.setInternalAttribute(attributes);
+        span.setInternalAttribute({"thread_name": "rn_main"});
     }
 
     onEnding(_span: InternalSpan): void {
