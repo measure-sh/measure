@@ -15,6 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: "main"
           fetch-depth: 0
           token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
 
@@ -41,7 +42,7 @@ jobs:
         id: git-cliff
         with:
           config: cliff.toml
-          args: --current --strip header
+          args: --latest --strip header
         env:
           OUTPUT: CHANGES.md
           GITHUB_REPO: ${{ github.repository }}
