@@ -1,0 +1,126 @@
+name: Ship
+
+on:
+  push:
+    tags:
+      - "v*"
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+jobs:
+  ship-prepare:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+
+      - name: Show PR Info
+        run: |
+          echo "PR #${{ github.event.pull_request.number }} merged."
+          echo "Source branch: ${{ github.event.pull_request.head.ref }}"
+          echo "Target branch: ${{ github.event.pull_request.base.ref }}"
+          echo "Merge commit SHA: ${{ github.event.pul_request.merge_commit_sha }}"
+
+      - name: Extract version from branch (remove 'release/v')
+        id: extract_pr_version
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          VERSION="${HEAD_REF#release/v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "branch=${HEAD_REF}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: 🗝️ Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          # passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          git_user_signingkey: true
+          git_tag_gpgsign: true
+          git_push_gpgsign: true
+
+      - name: Create and push tag v<version> (if missing)
+        env:
+          TAG_VERSION: ${{ steps.extract_pr_version.outputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${TAG_VERSION}"
+          echo "Target tag: ${TAG}"
+
+          if git ls-remote --tags origin "refs/tags/${TAG}" | grep -q "refs/tags/${TAG}"; then
+            echo "Tag ${TAG} already exists on origin. Skipping tag creation."
+            exit 0
+          fi
+
+          git tag -s "${TAG}" -m "${VERSION}"
+          git push origin --tags
+          echo "Tag ${TAG} created and pushed."
+
+  ship-release:
+    name: Ship Release
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+
+      # - name: Generate changelog
+      #   uses: orhun/git-cliff-action@v4
+      #   with:
+      #     config: cliff.toml
+      #     args: --verbose --bump
+      #   env:
+      #     OUTPUT: CHANGELOG.md
+      #     GITHUB_REPO: ${{ github.repository }}
+
+      # - name: Commit changelog
+      #   run: |
+      #     git config user.name 'github-actions[bot]'
+      #     git config user.email 'github-actions[bot]@users.noreply.github.com'
+      #     set +e
+      #     git add CHANGELOG.md
+      #     git commit -m "ci: update changelog"
+      #     git push
+
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        id: git-cliff
+        with:
+          config: cliff.toml
+          args: --current --strip header
+        env:
+          OUTPUT: CHANGES.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ github.ref_name }} \
+            --title "${{ github.ref_name }}" \
+            ${{ contains(github.ref_name, '-') && '--prerelease' || ''}} \
+            --notes "${{ steps.git-cliff.outputs.content }}" \
+            --verify-tag

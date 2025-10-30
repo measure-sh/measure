@@ -10,6 +10,9 @@ on:
 jobs:
   release:
     name: Release
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -31,6 +34,9 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
 
+      - name: Setup node
+        uses: actions/setup-node@v6
+
       - name: Bump version
         id: bump
         uses: orhun/git-cliff-action@v4
@@ -48,19 +54,32 @@ jobs:
         id: unreleased
         uses: orhun/git-cliff-action@v4
         with:
-          args: --unreleased
+          args: --bump --unreleased --strip header
 
       - name: Update Changelog
         id: full
         uses: orhun/git-cliff-action@v4
+        with:
+          args: --bump
         env:
           OUTPUT: CHANGELOG.md
 
-      - name: Commit Changelog
+      - name: Bump Dashboard
+        run: |
+          VERSION="${{ steps.bump.outputs.content }}"
+          VERSION="${VERSION#v}"
+          npm --prefix frontend/dashboard "$VERSION" --no-git-tag-version
+
+      - name: Commit Changes
         run: |
           set +e
           git add CHANGELOG.md
-          git diff --staged --quiet || git commit -m "chore: update changelog" -m "[skip ci]"
+          git add frontend/dashboard/package*.json
+          git commit \
+            -S \
+            -m "chore: release ${{ steps.bump.outputs.content }}" \
+            -m "- update changelog" \
+            -m "- update dashboard version" \
           git push origin "$BRANCH"
 
       - name: Create Release PR
@@ -68,21 +87,29 @@ jobs:
           GH_TOKEN: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
         run: |
           cat > pr-body.md << EOF
-          ## Changelog for **${{ steps.bump.outputs.content }}**
+          ## Release ${{ steps.bump.outputs.content }}
 
-          \`\`\`markdown
+          This PR contains a release notes preview for ${{ steps.bump.outputs.content }} & version bumps.
+
+          <details><summary>Preview Release Notes</summary>
+          <p>
+
           ${{ steps.unreleased.outputs.content }}
-          \`\`\`
+          </p>
+          </details>
 
-          ---
+          ## Next Steps ➡️
 
-          **🚢 Review & Merge to Ship!**
+          - 🔍 **Review all the changes**
+          - 🚢 **Merge to Ship!**
           EOF
           gh pr create \
           --title "chore: release ${{ steps.bump.outputs.content }}" \
           --body-file pr-body.md \
           --head "${{ env.BRANCH }}" \
+          --label "chore,docs,frontend,backend"
           --base "main"
+          --assignee: detj
 
       # - name: Save bumped version
       #   run: |
