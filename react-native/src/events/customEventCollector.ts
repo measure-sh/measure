@@ -1,5 +1,4 @@
 import type { Logger } from '../utils/logger';
-import { trackEvent as nativeTrackEvent } from '../native/measureBridge';
 import type { TimeProvider } from '../utils/timeProvider';
 import type { ConfigProvider } from '../config/configProvider';
 import { EventType } from './eventType';
@@ -7,6 +6,7 @@ import {
   validateAttributes,
   type ValidAttributeValue,
 } from '../utils/attributeValueValidator';
+import type { ISignalProcessor } from './signalProcessor';
 
 export interface ICustomEventCollector {
   /** Enables the collector. */
@@ -35,15 +35,18 @@ export class CustomEventCollector implements ICustomEventCollector {
   private timeProvider: TimeProvider;
   private configProvider: ConfigProvider;
   private enabled = false;
+  private signalProcessor: ISignalProcessor;
 
   constructor(opts: {
     logger: Logger;
     timeProvider: TimeProvider;
     configProvider: ConfigProvider;
+    signalProcessor: ISignalProcessor;
   }) {
     this.logger = opts.logger;
     this.timeProvider = opts.timeProvider;
     this.configProvider = opts.configProvider;
+    this.signalProcessor = opts.signalProcessor;
   }
 
   register(): void {
@@ -92,7 +95,7 @@ export class CustomEventCollector implements ICustomEventCollector {
     }
 
     try {
-      await nativeTrackEvent(
+      await this.signalProcessor.trackEvent(
         { name },
         EventType.Custom,
         timestamp ?? this.timeProvider.now(),
