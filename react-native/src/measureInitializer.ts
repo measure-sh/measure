@@ -82,24 +82,26 @@ export class BaseMeasureInitializer implements MeasureInitializer {
       this.configLoader
     );
     this.timeProvider = new MeasureTimeProvider();
+    this.signalProcessor = new SignalProcessor(
+      this.logger,
+      this.timeProvider,
+    );
     this.customEventCollector = new CustomEventCollector({
       logger: this.logger,
       timeProvider: this.timeProvider,
       configProvider: this.configProvider,
+      signalProcessor: this.signalProcessor,
     });
     this.userTriggeredEventCollector = new UserTriggeredEventCollector({
       logger: this.logger,
       timeProvider: this.timeProvider,
+      signalProcessor: this.signalProcessor,
     });
     this.uuidGenerator = new UuidGenerator();
     this.randormizer = new Randomizer();
     this.idProvider = new IdProvider(
       this.randormizer,
       this.uuidGenerator,
-    );
-    this.signalProcessor = new SignalProcessor(
-      this.logger,
-      this.timeProvider,
     );
     this.spanProcessor = new SpanProcessor(
       this.logger,
