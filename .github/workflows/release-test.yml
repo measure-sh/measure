@@ -79,7 +79,7 @@ jobs:
             -S \
             -m "chore: release ${{ steps.bump.outputs.content }}" \
             -m "- update changelog" \
-            -m "- update dashboard version" \
+            -m "- update dashboard version"
           git push origin "$BRANCH"
 
       - name: Create Release PR
