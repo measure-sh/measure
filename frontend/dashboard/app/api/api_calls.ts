@@ -353,6 +353,39 @@ export enum AlertsOverviewApiStatus {
   Cancelled,
 }
 
+export enum CreateMcpKeyApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum RevokeMcpKeyApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum FetchMcpKeysApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoKeys,
+  Cancelled,
+}
+
+export type McpKey = {
+  id: string
+  name: string
+  key: string
+  revoked: boolean
+  created_at: string
+  last_seen: string
+}
+
 export enum SessionType {
   All = "All Sessions",
   Crashes = "Crash Sessions",
@@ -891,21 +924,34 @@ export const emptyAppSettings = {
   retention_period: 30,
 }
 
-export const emptyUsage = [
-  {
-    app_id: "",
-    app_name: "",
-    monthly_app_usage: [
-      {
-        month_year: "",
-        event_count: 0,
-        session_count: 0,
-        trace_count: 0,
-        span_count: 0,
-      },
-    ],
-  },
-]
+export const emptyUsage = {
+  "ai_usage": [
+    {
+      team_id: "",
+      monthly_ai_usage: [
+        {
+          month_year: "",
+          total_token_count: 0
+        },
+      ],
+    },
+  ],
+  "app_usage": [
+    {
+      app_id: "",
+      app_name: "",
+      monthly_app_usage: [
+        {
+          month_year: "",
+          event_count: 0,
+          session_count: 0,
+          trace_count: 0,
+          span_count: 0,
+        },
+      ],
+    },
+  ]
+}
 
 export const emptyBugReportsOverviewResponse = {
   meta: {
@@ -2356,3 +2402,66 @@ export const fetchAlertsOverviewFromServer = async (
     return { status: AlertsOverviewApiStatus.Cancelled, data: null }
   }
 }
+
+export const fetchMcpKeysFromServer = async (teamId: string) => {
+  try {
+    const res = await measureAuth.fetchMeasure(`/api/mcp/teams/${teamId}/keys`)
+
+    if (!res.ok) {
+      return { status: FetchMcpKeysApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (!data) {
+      return { status: FetchMcpKeysApiStatus.NoKeys, data: [] }
+    }
+
+    return { status: FetchMcpKeysApiStatus.Success, data: data }
+  } catch {
+    return { status: FetchMcpKeysApiStatus.Cancelled, data: null }
+  }
+}
+
+export const revokeMcpKeyFromServer = async (teamId: string, mcpKeyId: string) => {
+  try {
+    const res = await measureAuth.fetchMeasure(`/api/mcp/teams/${teamId}/keys/${mcpKeyId}/revoke`, {
+      method: "PATCH",
+    })
+
+    if (!res.ok) {
+      return { status: RevokeMcpKeyApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    return { status: RevokeMcpKeyApiStatus.Success, data: data }
+  } catch {
+    return { status: RevokeMcpKeyApiStatus.Cancelled, data: null }
+  }
+}
+
+export const createMcpKeyFromServer = async (teamId: string, keyName: string) => {
+  const opts = {
+    method: "POST",
+    body: JSON.stringify({ name: keyName }),
+  }
+
+  try {
+    const res = await measureAuth.fetchMeasure(
+      `/api/mcp/teams/${teamId}/keys`,
+      opts,
+    )
+    const data = await res.json()
+
+    if (!res.ok) {
+      return { status: CreateMcpKeyApiStatus.Error, error: data.error }
+    }
+
+    return { status: CreateMcpKeyApiStatus.Success, data: data }
+  } catch {
+    return { status: CreateMcpKeyApiStatus.Cancelled }
+  }
+}
+
+

@@ -285,12 +285,29 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-49)
     - [Response Body](#response-body-52)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-52)
+- [MCP](#mcp)
+  - [POST `/mcp/teams/:id/keys`](#post-mcpteamsidkeys)
+    - [Usage Notes](#usage-notes-52)
+    - [Request Body](#request-body-14)
+    - [Authorization \& Content Type](#authorization--content-type-50)
+    - [Response Body](#response-body-53)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-53)
+  - [GET `/mcp/teams/:id/keys`](#get-mcpteamsidkeys)
+    - [Usage Notes](#usage-notes-53)
+    - [Authorization \& Content Type](#authorization--content-type-51)
+    - [Response Body](#response-body-54)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-54)
+  - [PATCH `/mcp/teams/:id/keys/:id/revoke`](#patch-mcpteamsidkeysidrevoke)
+    - [Usage Notes](#usage-notes-54)
+    - [Authorization \& Content Type](#authorization--content-type-52)
+    - [Response Body](#response-body-55)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-55)
 
 ## Auth
 
 - [**POST `/auth/github`**](#post-authgithub) - Sign in with Github.
 - [**POST `/auth/google`**](#post-authgoogle) - Sign in with Google.
-- [**POST `/auth/validateInvite`**](#post-validateInvite) - Validate invite.
+- [**POST `/auth/validateInvite`**](#post-validateinvite) - Validate invite.
 - [**POST `/auth/refresh`**](#post-authrefresh) - Refresh session.
 - [**GET `/auth/session`**](#get-authsession) - Fetch session.
 - [**DELETE `/auth/signout`**](#delete-authsignout) - Sign out.
@@ -6813,6 +6830,248 @@ The required headers must be present in each request.
   ```json
   {
     "ok" : "done"
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+## MCP
+
+- [**POST `/mcp/teams/:id/keys`**](#post-mcpteamsidkeys) - Create MCP key for current user and given team.
+- [**GET `/mcp/teams/:id/keys`**](#get-mcpteamsidkeys) - Fetch MCP keys for current user and given team.
+- [**PATCH `/mcp/teams/:id/keys/:id/revoke`**](#patch-mcpteamsidkeysidrevoke) - Revoke MCP key defind by key id for current user and given team.
+
+
+### POST `/mcp/teams/:id/keys`
+
+Create MCP key for current user and given team.
+
+#### Usage Notes
+
+- Team ID must be passed in the URI as the first ID
+
+#### Request body
+
+```json
+{
+  "name": "sample key"
+}
+```
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "created_at": "2025-10-26T14:15:01.425Z",
+    "id": "67968cfc-b0a7-4278-9ce4-2f2d5a19kjsd3",
+    "key": "msrsh_mcp_6775a3ee3f960b19eb6030046a68f10f955a8f1f4e46728eb0279d2aa8993ac0_6abcdefg",
+    "last_seen": null,
+    "name": "sample key",
+    "revoked": false
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/mcp/teams/:id/keys`
+
+Fetch MCP keys for current user and given team.
+
+#### Usage Notes
+
+- Team ID must be passed in the URI as the first ID
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+    [
+      {
+          "created_at": "2025-10-25T16:16:40.014Z",
+          "id": "67968cfc-b0a7-4278-9ce4-2f2d5a19657d",
+          "key": "msrsh_mcp_c0f2cf10453edb152782b8b2f961e02dd5ee36aa467fdd82b15baf925151ab3e_abcdefgh",
+          "last_seen": null,
+          "name": "sample key 1",
+          "revoked": false
+      },
+      {
+          "created_at": "2025-10-25T16:16:07.343Z",
+          "id": "ccc97123-288a-4cfc-8850-33584592e464",
+          "key": "msrsh_mcp_2c15f59ced926f9f3906731857704faa129ceb0b900ecb9bdebdc67b4dd68b68_ijklmnop",
+          "last_seen": null,
+          "name": "sample key 2",
+          "revoked": false
+      },
+      {
+          "created_at": "2025-10-26T14:15:01.425Z",
+          "id": "59e3b97f-0167-41c9-948b-a52ef637b18e",
+          "key": "msrsh_mcp_6775a3ee3f960b19eb6030046a68f10f955a8f1f4e46728eb0279d2aa8993ac0_qrstuvwx",
+          "last_seen": null,
+          "name": "sample key 3",
+          "revoked": false
+      }
+  ]
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### PATCH `/mcp/teams/:id/keys/:id/revoke`
+
+Revoke MCP key defind by key id for current user and given team.
+
+#### Usage Notes
+
+- Team ID must be passed in the URI as the first ID
+- Key ID must be passed in the URI as the second ID
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "ok": "done",
   }
   ```
 

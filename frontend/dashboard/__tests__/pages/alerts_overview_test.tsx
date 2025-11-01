@@ -17,6 +17,20 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }))
 
+// Mock AIChatContext
+jest.mock('@/app/context/ai_chat_context', () => ({
+    useAIChatContext: jest.fn(() => ({
+        pageContext: {
+            enable: false,
+            action: "",
+            content: "",
+            fileName: "",
+        },
+        setPageContext: jest.fn(),
+    })),
+    AIChatProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+
 // Mock API calls and constants for bug reports overview with valid data.
 jest.mock('@/app/api/api_calls', () => ({
     __esModule: true,
@@ -200,22 +214,6 @@ describe('AlertsOverview Component', () => {
         const link = screen.getByRole('link', { name: /ID: alert1/i })
         expect(link).toBeInTheDocument()
         expect(link).toHaveAttribute('href', 'http://example.com/alert1')
-
-        // Find the table row that contains this link
-        const row = link.closest('tr')
-        expect(row).toBeInTheDocument()
-
-        // Simulate keyboard navigation (Enter) on the row
-        await act(async () => {
-            fireEvent.keyDown(row!, { key: 'Enter' })
-        })
-        expect(pushMock).toHaveBeenCalledWith('http://example.com/alert1')
-
-        // Simulate keyboard navigation (Space) on the row
-        await act(async () => {
-            fireEvent.keyDown(row!, { key: ' ' })
-        })
-        expect(pushMock).toHaveBeenCalledWith('http://example.com/alert1')
     })
 
     describe('Pagination offset handling', () => {

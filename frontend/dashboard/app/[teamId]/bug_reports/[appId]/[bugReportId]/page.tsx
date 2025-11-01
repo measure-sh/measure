@@ -1,8 +1,9 @@
 "use client"
 
-import { BugReportApiStatus, emptyBugReport, fetchBugReportFromServer, UpdateBugReportStatusApiStatus, updateBugReportStatusFromServer } from "@/app/api/api_calls"
+import { BugReportApiStatus, emptyBugReport, fetchBugReportFromServer, fetchSessionTimelineFromServer, SessionTimelineApiStatus, UpdateBugReportStatusApiStatus, updateBugReportStatusFromServer } from "@/app/api/api_calls"
 import { Button, buttonVariants } from "@/app/components/button"
 import LoadingSpinner from "@/app/components/loading_spinner"
+import { useAIChatContext } from "@/app/context/ai_chat_context"
 import { cn } from "@/app/utils/shadcn_utils"
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils"
 import { toastNegative, toastPositive } from "@/app/utils/use_toast"
@@ -11,6 +12,8 @@ import Link from "next/link"
 import { FormEventHandler, useEffect, useState } from "react"
 
 export default function BugReport({ params }: { params: { teamId: string, appId: string, bugReportId: string } }) {
+  const { setPageContext } = useAIChatContext()
+
   const [bugReport, setBugReport] = useState(emptyBugReport)
   const [bugReportApiStatus, setBugReportApiStatus] = useState(BugReportApiStatus.Loading)
   const [updateBugReportStatusApiStatus, setUpdateBugReportStatusApiStatus] = useState(UpdateBugReportStatusApiStatus.Init)
@@ -24,10 +27,43 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
     switch (result.status) {
       case BugReportApiStatus.Error:
         setBugReportApiStatus(BugReportApiStatus.Error)
+        setPageContext({
+          appId: params.appId,
+          enable: false,
+          fileName: "",
+          action: "",
+          content: ""
+        })
         break
       case BugReportApiStatus.Success:
         setBugReportApiStatus(BugReportApiStatus.Success)
         setBugReport(result.data)
+        getSessionTimelineAndSetPageContext(params.appId, result.data.session_id, result.data)
+        break
+    }
+  }
+
+  const getSessionTimelineAndSetPageContext = async (appId: string, sessionId: string, bugReport: any) => {
+    const result = await fetchSessionTimelineFromServer(appId, sessionId)
+
+    switch (result.status) {
+      case SessionTimelineApiStatus.Error:
+        setPageContext({
+          appId: appId,
+          enable: true,
+          fileName: 'bug_details',
+          action: `Attach Bug Details`,
+          content: JSON.stringify(bugReport)
+        })
+        break
+      case SessionTimelineApiStatus.Success:
+        setPageContext({
+          appId: appId,
+          enable: true,
+          fileName: 'bug_details',
+          action: `Attach Bug Details`,
+          content: "bugReport:" + JSON.stringify(bugReport) + "\nsessionTimeline:" + JSON.stringify(result.data)
+        })
         break
     }
   }
@@ -54,8 +90,10 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
         break
       case UpdateBugReportStatusApiStatus.Success:
         setUpdateBugReportStatusApiStatus(UpdateBugReportStatusApiStatus.Success)
-        setBugReport({ ...bugReport, status: bugReport.status === 0 ? 1 : 0 }) // Toggle status
+        const newBugReport = { ...bugReport, status: bugReport.status === 0 ? 1 : 0 }
+        setBugReport(newBugReport) // Toggle status
         toastPositive(bugReport.status === 0 ? "Bug report closed" : "Bug report re-opened")
+        getSessionTimelineAndSetPageContext(params.appId, newBugReport.session_id, newBugReport)
         break
     }
   }
@@ -120,6 +158,7 @@ export default function BugReport({ params }: { params: { teamId: string, appId:
                 )
               ))}
             </div>}
+          <div className="py-4" />
         </div>}
     </div>
   )
