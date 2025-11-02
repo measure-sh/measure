@@ -1,7 +1,5 @@
 import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/config/config_provider.dart';
-import 'package:measure_flutter/src/logger/log_level.dart';
-import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/serialization/json_serializable.dart';
 import 'package:measure_flutter/src/tracing/span_data.dart';
@@ -25,7 +23,10 @@ final class DefaultSignalProcessor extends SignalProcessor {
   final MsrMethodChannel channel;
   final ConfigProvider configProvider;
 
-  DefaultSignalProcessor({required this.logger, required this.channel, required this.configProvider});
+  DefaultSignalProcessor(
+      {required this.logger,
+      required this.channel,
+      required this.configProvider});
 
   @override
   Future<void> trackEvent<T extends JsonSerialized>({
@@ -43,13 +44,13 @@ final class DefaultSignalProcessor extends SignalProcessor {
     var json = data.toJson();
     logger.log(LogLevel.debug, "$type: $json");
     return channel.trackEvent(
-        data: json,
-        type: type,
-        timestamp: timestamp,
-        userDefinedAttrs: userDefinedAttrs,
-        userTriggered: userTriggered,
-        threadName: threadName,
-        attachments: attachments,
+      data: json,
+      type: type,
+      timestamp: timestamp,
+      userDefinedAttrs: userDefinedAttrs,
+      userTriggered: userTriggered,
+      threadName: threadName,
+      attachments: attachments,
     );
   }
 
@@ -59,8 +60,10 @@ final class DefaultSignalProcessor extends SignalProcessor {
     return channel.trackSpan(spanData);
   }
 
-  bool validateUserDefinedAttrs(String event, Map<String, AttributeValue> userDefinedAttrs) {
-    if (userDefinedAttrs.length > configProvider.maxUserDefinedAttributesPerEvent) {
+  bool validateUserDefinedAttrs(
+      String event, Map<String, AttributeValue> userDefinedAttrs) {
+    if (userDefinedAttrs.length >
+        configProvider.maxUserDefinedAttributesPerEvent) {
       logger.log(
         LogLevel.error,
         'Invalid event($event): exceeds maximum of ${configProvider.maxUserDefinedAttributesPerEvent} attributes',

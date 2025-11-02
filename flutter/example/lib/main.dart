@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter_example/src/screen_main.dart';
 
+import 'msr_widgets.g.dart';
+
 Future<void> main() async {
   await Measure.instance.init(
-        () => runApp(MeasureWidget(child: MyApp())),
+    () => runApp(MeasureWidget(child: MyApp())),
     config: const MeasureConfig(
       enableLogging: true,
       trackScreenshotOnCrash: true,
@@ -16,10 +18,11 @@ Future<void> main() async {
       autoStart: true,
       traceSamplingRate: 1,
       samplingRateForErrorFreeSessions: 1,
+      widgetFilter: widgetFilter,
     ),
     clientInfo: ClientInfo(
-      apiKey: "msrsh-123",
-      apiUrl: "http://localhost:8080",
+      apiKey: "msrsh_8456989a9cd452c7a4864d37a1f3cf9b4f8a45395203c19cb5b6d8252c6970fd_95a8744f",
+      apiUrl: "https://staging-ingest.measure.sh",
     ),
   );
 }

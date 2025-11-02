@@ -411,6 +411,10 @@ navigation events.
 
 See [Network Monitoring](features/feature-network-monitoring.md) for instructions on how to track HTTP requests.
 
+### Layout snapshots
+
+Layout snapshots are collected by default along with cli
+
 
 ## 3. Verify Installation
 

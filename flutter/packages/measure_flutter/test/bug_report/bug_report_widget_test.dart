@@ -6,7 +6,6 @@ import 'package:measure_flutter/src/bug_report/ui/add_image_button.dart';
 import 'package:measure_flutter/src/bug_report/ui/bug_report.dart';
 import 'package:measure_flutter/src/bug_report/ui/bug_report_input.dart';
 import 'package:measure_flutter/src/bug_report/ui/screenshot_list_item.dart';
-import 'package:measure_flutter/src/logger/logger.dart';
 
 import '../utils/fake_config_provider.dart';
 import '../utils/fake_id_provider.dart';
@@ -14,19 +13,16 @@ import '../utils/fake_image_picker_wrapper.dart';
 import '../utils/fake_measure.dart';
 import '../utils/fake_shake_detector.dart';
 import '../utils/noop_logger.dart';
-import '../utils/test_method_channel.dart';
 
 void main() {
   group('BugReport Widget Tests', () {
     final Logger logger = NoopLogger();
     late FakeMeasure fakeMeasure;
     late FakeConfigProvider configProvider;
-    late TestMethodChannel testMethodChannel;
 
     setUp(() {
       fakeMeasure = FakeMeasure();
       configProvider = FakeConfigProvider();
-      testMethodChannel = TestMethodChannel();
     });
 
     tearDown(() {
@@ -177,15 +173,6 @@ void main() {
     });
 
     testWidgets('closes screen after sending bug report', (tester) async {
-      final measure = Measure.withMethodChannel(testMethodChannel);
-      await measure.init(
-        () {},
-        clientInfo: ClientInfo(
-          apiKey: "msrsh-123",
-          apiUrl: "https://example.com",
-        ),
-      );
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -219,7 +206,8 @@ void main() {
       await tester.pump();
 
       await tester.tap(find.widgetWithText(TextButton, 'Send'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('Report a Bug'), findsNothing);
       expect(find.text('Open Bug Report'), findsOneWidget);
