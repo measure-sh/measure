@@ -466,7 +466,7 @@ class InternalSignalCollectorTest {
             threadName = null,
         )
 
-        verify(signalProcessor).track(
+        verify(signalProcessor).trackBugReport(
             data = BugReportData(
                 description = "test bug report without attachments",
             ),
@@ -509,7 +509,7 @@ class InternalSignalCollectorTest {
             threadName = null,
         )
 
-        verify(signalProcessor).track(
+        verify(signalProcessor).trackBugReport(
             data = BugReportData(
                 description = "",
             ),

@@ -2,10 +2,12 @@ import 'package:measure_flutter/measure_flutter.dart';
 
 import 'default_config.dart';
 
-
 abstract class IMeasureConfig {
   bool get enableLogging;
+
   bool get autoStart;
+
+  Map<Type, String> get widgetFilter;
 }
 
 class MeasureConfig implements IMeasureConfig {
@@ -21,9 +23,13 @@ class MeasureConfig implements IMeasureConfig {
   @override
   final bool autoStart;
 
+  @override
+  final Map<Type, String> widgetFilter;
+
   /// Creates a new MeasureConfig instance
   const MeasureConfig({
     this.enableLogging = DefaultConfig.enableLogging,
     this.autoStart = DefaultConfig.autoStart,
+    this.widgetFilter = DefaultConfig.widgetFilter,
   });
 }

@@ -23,6 +23,7 @@ internal interface HttpClient {
     fun uploadFile(
         url: String,
         contentType: String,
+        contentEncoding: String?,
         headers: Map<String, String>,
         fileSize: Long,
         fileWriter: (BufferedSink) -> Unit,
@@ -92,13 +93,15 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
     override fun uploadFile(
         url: String,
         contentType: String,
+        contentEncoding: String?,
         headers: Map<String, String>,
         fileSize: Long,
         fileWriter: (BufferedSink) -> Unit,
     ): HttpResponse {
         var connection: HttpURLConnection? = null
         return try {
-            connection = createFileUploadConnection(url, contentType, headers, fileSize)
+            connection =
+                createFileUploadConnection(url, contentType, contentEncoding, headers, fileSize)
             logger.log(LogLevel.Debug, "Uploading file to: $url")
             connection.outputStream.sink().buffer().use { sink ->
                 fileWriter(sink)
@@ -209,6 +212,7 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
     private fun createFileUploadConnection(
         url: String,
         contentType: String,
+        contentEncoding: String?,
         headers: Map<String, String>,
         fileSize: Long,
     ): HttpURLConnection = (URL(url).openConnection() as HttpURLConnection).apply {
@@ -221,6 +225,7 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
             setChunkedStreamingMode(0)
         }
         setRequestProperty("Content-Type", contentType)
+        contentEncoding?.let { setRequestProperty("Content-Encoding", contentEncoding) }
         headers.forEach { (key, value) ->
             setRequestProperty(key, value)
         }

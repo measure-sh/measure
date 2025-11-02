@@ -17,16 +17,15 @@ class ClickData implements JsonSerialized {
   final int? width;
   final int? height;
 
-  ClickData({
-    required this.target,
-    this.targetId,
-    required this.x,
-    required this.y,
-    required this.touchDownTime,
-    required this.touchUpTime,
-    this.width,
-    this.height
-  });
+  ClickData(
+      {required this.target,
+      this.targetId,
+      required this.x,
+      required this.y,
+      required this.touchDownTime,
+      required this.touchUpTime,
+      this.width,
+      this.height});
 
   @override
   Map<String, dynamic> toJson() => _$ClickDataToJson(this);

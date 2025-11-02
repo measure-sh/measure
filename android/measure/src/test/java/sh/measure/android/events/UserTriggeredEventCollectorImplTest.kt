@@ -112,6 +112,7 @@ class UserTriggeredEventCollectorImplTest {
             attachments = attachmentsCaptor.capture(),
             userDefinedAttributes = any(),
             userTriggered = eq(true),
+            attributes = any(),
         )
         Assert.assertEquals(1, attachmentsCaptor.firstValue.size)
     }
@@ -133,6 +134,7 @@ class UserTriggeredEventCollectorImplTest {
             attachments = mutableListOf(),
             userDefinedAttributes = mutableMapOf(),
             userTriggered = true,
+            attributes = mutableMapOf(),
         )
     }
 

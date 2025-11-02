@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter_example/src/screen_main.dart';
 
+import 'msr_widgets.g.dart';
+
 Future<void> main() async {
   await Measure.instance.init(
-        () => runApp(MeasureWidget(child: MyApp())),
+    () => runApp(MeasureWidget(child: MyApp())),
     config: const MeasureConfig(
       enableLogging: true,
       autoStart: true,
+      widgetFilter: widgetFilter,
     ),
   );
 }
@@ -24,9 +27,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   void initState() {
-    Measure.instance.startSpan("AppLaunch")
-        .setAttributeString("key", "value")
-        .end();
+    Measure.instance.startSpan("AppLaunch").setAttributeString("key", "value").end();
     super.initState();
   }
 

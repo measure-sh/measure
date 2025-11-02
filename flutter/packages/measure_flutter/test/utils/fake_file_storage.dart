@@ -6,6 +6,7 @@ import 'package:measure_flutter/src/storage/file_storage.dart';
 class FakeFileStorage implements FileStorage {
   final Map<String, Uint8List> _storedFiles = {};
   bool shouldFailWrite = false;
+  bool shouldReturnNullPath = false;
   int? shouldFailWriteAfterCount;
   int _writeCount = 0;
 
@@ -40,6 +41,9 @@ class FakeFileStorage implements FileStorage {
 
   @override
   Future<String?> getRootPath() async {
+    if (shouldReturnNullPath) {
+      return null;
+    }
     return _rootPath;
   }
 

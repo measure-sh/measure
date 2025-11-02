@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/config/config_provider.dart';
-import 'package:measure_flutter/src/logger/log_level.dart';
-import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
 
 /// A global key used by a [RepaintBoundary] in [MeasureWidget] to allow
@@ -15,7 +13,6 @@ final GlobalKey screenshotKey = GlobalKey();
 abstract class ScreenshotCollector {
   Future<MsrAttachment?> capture();
 }
-
 
 /// Captures screenshots of Flutter widget, stores it as a File and returns
 /// a [MsrAttachment]. Must be used along with [MeasureWidget].

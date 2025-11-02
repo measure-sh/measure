@@ -1,5 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:measure_flutter/src/gestures/scroll_direction.dart';
+import 'package:measure_flutter/src/gestures/msr_scroll_direction.dart';
 import 'package:measure_flutter/src/serialization/json_serializable.dart';
 
 part 'scroll_data.g.dart';

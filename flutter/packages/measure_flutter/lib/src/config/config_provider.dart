@@ -134,6 +134,9 @@ class ConfigProviderImpl implements ConfigProvider {
   int get maxUserDefinedAttributesPerEvent => _defaultConfig.maxUserDefinedAttributesPerEvent;
 
   @override
+  Map<Type, String> get widgetFilter => _defaultConfig.widgetFilter;
+
+  @override
   double get traceSamplingRate => _dynamicConfig.traceSamplingRate;
 
   @override
@@ -204,12 +207,8 @@ class ConfigProviderImpl implements ConfigProvider {
         dynamicConfig.httpDisableEventForUrls,
         currentMeasureUrl,
       ),
-      trackRequestPatterns: dynamicConfig.httpTrackRequestForUrls
-          .map((pattern) => _compilePattern(pattern))
-          .toList(),
-      trackResponsePatterns: dynamicConfig.httpTrackResponseForUrls
-          .map((pattern) => _compilePattern(pattern))
-          .toList(),
+      trackRequestPatterns: dynamicConfig.httpTrackRequestForUrls.map((pattern) => _compilePattern(pattern)).toList(),
+      trackResponsePatterns: dynamicConfig.httpTrackResponseForUrls.map((pattern) => _compilePattern(pattern)).toList(),
       blockedHeaders: List.unmodifiable(dynamicConfig.httpBlockedHeaders),
       measureUrl: currentMeasureUrl,
     );
@@ -229,10 +228,7 @@ class ConfigProviderImpl implements ConfigProvider {
   RegExp _compilePattern(String pattern) {
     final String regexPattern;
     if (pattern.contains('*')) {
-      regexPattern = pattern
-          .split('*')
-          .map((part) => RegExp.escape(part))
-          .join('.*');
+      regexPattern = pattern.split('*').map((part) => RegExp.escape(part)).join('.*');
     } else {
       regexPattern = RegExp.escape(pattern);
     }
