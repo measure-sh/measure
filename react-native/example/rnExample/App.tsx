@@ -56,13 +56,17 @@ const App = (): React.JSX.Element => {
   const startMeasure = () => {
     Measure.start()
       .then(() => console.log('Measure SDK started successfully'))
-      .catch((error: any) => console.error('Failed to start Measure SDK:', error));
+      .catch((error: any) =>
+        console.error('Failed to start Measure SDK:', error),
+      );
   };
 
   const stopMeasure = () => {
     Measure.stop()
       .then(() => console.log('Measure SDK stopped successfully'))
-      .catch((error: any) => console.error('Failed to stop Measure SDK:', error));
+      .catch((error: any) =>
+        console.error('Failed to stop Measure SDK:', error),
+      );
   };
 
   const trackCustomEvent = () => {
@@ -73,7 +77,59 @@ const App = (): React.JSX.Element => {
     });
   };
 
-  /** === Simulation Helpers === */
+  const callFetchGet = async () => {
+    try {
+      console.log('Calling GET API (fetch)...');
+      const response = await fetch('https://api.agify.io?name=aparna');
+      const json = await response.json();
+      console.log('GET API (fetch) response:', json);
+    } catch (error) {
+      console.error('GET API (fetch) error:', error);
+    }
+  };
+
+  const callFetchPost = async () => {
+    try {
+      console.log('Calling POST API (fetch)...');
+      const response = await fetch('https://httpbin.org/post', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({hello: 'world', ts: Date.now()}),
+      });
+      const json = await response.json();
+      console.log('POST API (fetch) response:', json);
+    } catch (error) {
+      console.error('POST API (fetch) error:', error);
+    }
+  };
+
+  const callXhrGet = () => {
+    console.log('Calling GET API (XHR)...');
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://api.agify.io?name=adwin');
+    xhr.onload = () => {
+      console.log('GET API (XHR) response:', xhr.responseText);
+    };
+    xhr.onerror = e => {
+      console.error('GET API (XHR) error:', e);
+    };
+    xhr.send();
+  };
+
+  const callXhrPost = () => {
+    console.log('Calling POST API (XHR)...');
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', 'https://httpbin.org/post');
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onload = () => {
+      console.log('POST API (XHR) response:', xhr.responseText);
+    };
+    xhr.onerror = e => {
+      console.error('POST API (XHR) error:', e);
+    };
+    xhr.send(JSON.stringify({message: 'Hello from XHR', ts: Date.now()}));
+  };
+
   const simulateJSException = () => {
     throw new Error('Simulated JavaScript exception');
   };
@@ -103,25 +159,45 @@ const App = (): React.JSX.Element => {
     {
       title: 'User Actions',
       data: [
+        {id: 'event', title: 'Track Custom Event', onPress: trackCustomEvent},
+      ],
+    },
+    {
+      title: 'HTTP Requests',
+      data: [
+        {id: 'fetch-get', title: 'Call GET API (fetch)', onPress: callFetchGet},
         {
-          id: 'event',
-          title: 'Track Custom Event',
-          onPress: () => trackCustomEvent(),
+          id: 'fetch-post',
+          title: 'Call POST API (fetch)',
+          onPress: callFetchPost,
         },
-        {
-          id: 'crash',
-          title: 'Simulate Crash',
-          onPress: () => console.log('Simulate crash'),
-        },
+        {id: 'xhr-get', title: 'Call GET API (XHR)', onPress: callXhrGet},
+        {id: 'xhr-post', title: 'Call POST API (XHR)', onPress: callXhrPost},
       ],
     },
     {
       title: 'Crash & Exception Simulation',
       data: [
-        {id: 'js-exception', title: 'Throw JS Exception', onPress: simulateJSException},
-        {id: 'unhandled-rejection', title: 'Unhandled Promise Rejection', onPress: simulateUnhandledPromiseRejection},
-        {id: 'native-crash', title: 'Trigger Native Crash', onPress: simulateNativeCrash},
-        {id: 'infinite-loop', title: 'UI Freeze (Infinite Loop)', onPress: simulateInfiniteLoop},
+        {
+          id: 'js-exception',
+          title: 'Throw JS Exception',
+          onPress: simulateJSException,
+        },
+        {
+          id: 'unhandled-rejection',
+          title: 'Unhandled Promise Rejection',
+          onPress: simulateUnhandledPromiseRejection,
+        },
+        {
+          id: 'native-crash',
+          title: 'Trigger Native Crash',
+          onPress: simulateNativeCrash,
+        },
+        {
+          id: 'infinite-loop',
+          title: 'UI Freeze (Infinite Loop)',
+          onPress: simulateInfiniteLoop,
+        },
       ],
     },
   ];
@@ -156,12 +232,8 @@ const App = (): React.JSX.Element => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-  },
+  container: {flex: 1},
+  content: {padding: 16},
   title: {
     fontSize: 24,
     fontWeight: '600',
@@ -180,11 +252,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     marginBottom: 12,
   },
-  itemText: {
-    color: '#1e1e1e',
-    fontSize: 16,
-    textAlign: 'left',
-  },
+  itemText: {color: '#1e1e1e', fontSize: 16, textAlign: 'left'},
 });
 
 export default App;
