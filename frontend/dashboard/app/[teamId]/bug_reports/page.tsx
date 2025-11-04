@@ -6,8 +6,9 @@ import Filters, { AppVersionsInitialSelectionType, defaultFilters } from '@/app/
 import LoadingBar from '@/app/components/loading_bar'
 import Paginator from '@/app/components/paginator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
-
+import { useAIChatContext } from '@/app/context/ai_chat_context'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -24,6 +25,7 @@ const paginationOffsetUrlKey = "po"
 export default function BugReportsOverview({ params }: { params: { teamId: string } }) {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { setPageContext } = useAIChatContext()
 
     const initialState: PageState = {
         bugReportsOverviewApiStatus: BugReportsOverviewApiStatus.Loading,
@@ -66,6 +68,16 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                 filters: updatedFilters,
                 // Reset pagination on filters change if previous filters were not default filters
                 paginationOffset: pageState.filters.serialisedFilters && searchParams.get(paginationOffsetUrlKey) ? 0 : pageState.paginationOffset
+            })
+        }
+
+        if (updatedFilters.app?.id) {
+            setPageContext({
+                appId: updatedFilters.app!.id,
+                enable: false,
+                fileName: "",
+                action: "",
+                content: ""
             })
         }
     }
@@ -157,22 +169,13 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                                 return (
                                     <TableRow
                                         key={`${idx}-${event_id}`}
-                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
-                                        tabIndex={0}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault()
-                                                router.push(bugReportHref)
-                                            }
-                                        }}
+                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none cursor-pointer"
                                     >
                                         <TableCell className="w-[60%] relative p-0">
-                                            <a
+                                            <Link
                                                 href={bugReportHref}
-                                                className="absolute inset-0 z-10 cursor-pointer"
-                                                tabIndex={-1}
+                                                className="absolute inset-0 z-10"
                                                 aria-label={`ID: ${event_id}`}
-                                                style={{ display: 'block' }}
                                             />
                                             <div className="pointer-events-none p-4">
                                                 <p className="truncate text-xs text-gray-500 select-none">ID: {event_id}</p>
@@ -184,12 +187,10 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[20%] text-center relative p-0">
-                                            <a
+                                            <Link
                                                 href={bugReportHref}
-                                                className="absolute inset-0 z-10 cursor-pointer"
-                                                tabIndex={-1}
-                                                aria-hidden="true"
-                                                style={{ display: 'block' }}
+                                                className="absolute inset-0 z-10"
+                                                aria-label={`Time: ${formatDateToHumanReadableDate(timestamp)} ${formatDateToHumanReadableTime(timestamp)}`}
                                             />
                                             <div className="pointer-events-none p-4">
                                                 <p className='truncate select-none'>{formatDateToHumanReadableDate(timestamp)}</p>
@@ -198,12 +199,10 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[20%] text-center relative p-0">
-                                            <a
+                                            <Link
                                                 href={bugReportHref}
-                                                className="absolute inset-0 z-10 cursor-pointer"
-                                                tabIndex={-1}
-                                                aria-hidden="true"
-                                                style={{ display: 'block' }}
+                                                className="absolute inset-0 z-10"
+                                                aria-label={`Status: ${status === 0 ? 'Open' : 'Closed'}`}
                                             />
                                             <div className="pointer-events-none p-4 items-center flex justify-center">
                                                 <p className={`w-20 px-2 py-1 rounded-full border text-sm font-body select-none ${status === 0 ? 'border-green-600 text-green-600 bg-green-50' : 'border-indigo-600 text-indigo-600 bg-indigo-50'}`}>{status === 0 ? 'Open' : 'Closed'}</p>
@@ -214,6 +213,7 @@ export default function BugReportsOverview({ params }: { params: { teamId: strin
                             })}
                         </TableBody>
                     </Table>
+                    <div className="py-4" />
                 </div>}
         </div>
     )

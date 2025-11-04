@@ -379,21 +379,9 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		stmt.SubQuery("session_id in (", ")", subQuery)
 	}
 
-	applyGroupBy := af.Crash ||
-		af.ANR ||
-		af.HasCountries() ||
-		af.HasNetworkProviders() ||
-		af.HasNetworkTypes() ||
-		af.HasNetworkGenerations() ||
-		af.HasDeviceLocales() ||
-		af.HasDeviceManufacturers() ||
-		af.HasDeviceNames()
-
-	if applyGroupBy {
-		stmt.GroupBy("session_id")
-		stmt.GroupBy("first_event_timestamp")
-		stmt.GroupBy("last_event_timestamp")
-	}
+	stmt.GroupBy("session_id")
+	stmt.GroupBy("first_event_timestamp")
+	stmt.GroupBy("last_event_timestamp")
 
 	defer stmt.Close()
 
@@ -499,6 +487,7 @@ func GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (sessions 
 		// set matched free text results
 		sess.MatchedFreeText = session.ExtractMatches(af.FreeText, sess.Attribute.UserID, sess.SessionID.String(), uniqueTypes, uniqueStrings, uniqueViewClassnames, uniqueSubviewClassnames, uniqueExceptions, uniqueANRs, uniqueClickTargets, uniqueLongclickTargets, uniqueScrollTargets)
 
+		fmt.Println("Matched Free Text:", sess.MatchedFreeText)
 		sessions = append(sessions, sess)
 	}
 

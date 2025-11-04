@@ -6,7 +6,9 @@ import LoadingBar from '@/app/components/loading_bar'
 import Paginator from '@/app/components/paginator'
 import SessionsOverviewPlot from '@/app/components/sessions_overview_plot'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
+import { useAIChatContext } from '@/app/context/ai_chat_context'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime, formatMillisToHumanReadable } from '@/app/utils/time_utils'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -23,6 +25,7 @@ const paginationOffsetUrlKey = "po"
 export default function SessionsOverview({ params }: { params: { teamId: string } }) {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { setPageContext } = useAIChatContext()
 
     const initialState: PageState = {
         sessionsOverviewApiStatus: SessionsOverviewApiStatus.Loading,
@@ -66,6 +69,16 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                 filters: updatedFilters,
                 // Reset pagination on filters change if previous filters were not default filters
                 paginationOffset: pageState.filters.serialisedFilters && searchParams.get(paginationOffsetUrlKey) ? 0 : pageState.paginationOffset
+            })
+        }
+
+        if (updatedFilters.app?.id) {
+            setPageContext({
+                appId: updatedFilters.app!.id,
+                enable: false,
+                fileName: "",
+                action: "",
+                content: ""
             })
         }
     }
@@ -156,22 +169,13 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                                 return (
                                     <TableRow
                                         key={`${idx}-${session_id}`}
-                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
-                                        tabIndex={0}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault()
-                                                router.push(sessionHref)
-                                            }
-                                        }}
+                                        className="font-body hover:bg-yellow-200 focus-visible:border-yellow-200 select-none cursor-pointer"
                                     >
                                         <TableCell className="w-[60%] relative p-0">
-                                            <a
+                                            <Link
                                                 href={sessionHref}
-                                                className="absolute inset-0 z-10 cursor-pointer"
-                                                tabIndex={-1}
+                                                className="absolute inset-0 z-10"
                                                 aria-label={`ID: ${session_id}`}
-                                                style={{ display: 'block' }}
                                             />
                                             <div className="pointer-events-none p-4">
                                                 <p className='truncate select-none'>ID: {session_id}</p>
@@ -181,12 +185,10 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[20%] text-center relative p-0">
-                                            <a
+                                            <Link
                                                 href={sessionHref}
-                                                className="absolute inset-0 z-10 cursor-pointer"
-                                                tabIndex={-1}
-                                                aria-hidden="true"
-                                                style={{ display: 'block' }}
+                                                className="absolute inset-0 z-10"
+                                                aria-label={`Start Time: ${formatDateToHumanReadableDate(first_event_time)} ${formatDateToHumanReadableTime(first_event_time)}`}
                                             />
                                             <div className="pointer-events-none p-4">
                                                 <p className='truncate select-none'>{formatDateToHumanReadableDate(first_event_time)}</p>
@@ -195,12 +197,10 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                                             </div>
                                         </TableCell>
                                         <TableCell className="w-[20%] text-center truncate select-none relative p-0">
-                                            <a
+                                            <Link
                                                 href={sessionHref}
-                                                className="absolute inset-0 z-10 cursor-pointer"
-                                                tabIndex={-1}
-                                                aria-hidden="true"
-                                                style={{ display: 'block' }}
+                                                className="absolute inset-0 z-10"
+                                                aria-label={`Duration: ${(duration as unknown as number) === 0 ? 'N/A' : formatMillisToHumanReadable(duration as unknown as number)}`}
                                             />
                                             <div className="pointer-events-none p-4">
                                                 {(duration as unknown as number) === 0 ? 'N/A' : formatMillisToHumanReadable(duration as unknown as number)}
@@ -211,6 +211,7 @@ export default function SessionsOverview({ params }: { params: { teamId: string 
                             })}
                         </TableBody>
                     </Table>
+                    <div className="py-4" />
                 </div>}
         </div>
     )

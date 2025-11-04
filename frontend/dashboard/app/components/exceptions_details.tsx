@@ -1,11 +1,13 @@
 "use client"
 
-import { emptyAnrExceptionsDetailsResponse, emptyCrashExceptionsDetailsResponse, ExceptionsDetailsApiStatus, ExceptionsType, fetchExceptionsDetailsFromServer, FilterSource } from '@/app/api/api_calls'
+import { emptyAnrExceptionsDetailsResponse, emptyCrashExceptionsDetailsResponse, ExceptionsDetailsApiStatus, ExceptionsType, fetchExceptionsDetailsFromServer, fetchSessionTimelineFromServer, FilterSource, SessionTimelineApiStatus } from '@/app/api/api_calls'
 import Paginator from '@/app/components/paginator'
+import { LucideView } from 'lucide-react'
 import Image from 'next/image'
 import Link from "next/link"
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
+import { useAIChatContext } from '../context/ai_chat_context'
 import { cn } from '../utils/shadcn_utils'
 import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './accordion'
@@ -38,6 +40,7 @@ const stackTraceAccordionContentStyle = 'whitespace-pre-wrap font-body leading-5
 export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptionsType, teamId, appId, exceptionsGroupId, exceptionsGroupName }) => {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { setPageContext } = useAIChatContext()
 
   const keyIdUrlKey = "kId"
   const keyTimestampUrlKey = "kTs"
@@ -72,11 +75,46 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
     switch (result.status) {
       case ExceptionsDetailsApiStatus.Error:
         updatePageState({ exceptionsDetailsApiStatus: ExceptionsDetailsApiStatus.Error })
+        setPageContext({
+          appId: appId,
+          enable: false,
+          fileName: "",
+          action: "",
+          content: ""
+        })
         break
       case ExceptionsDetailsApiStatus.Success:
         updatePageState({
           exceptionsDetailsApiStatus: ExceptionsDetailsApiStatus.Success,
           exceptionsDetails: result.data
+        })
+        if (result.data.results?.length > 0) {
+          getSessionTimelineAndSetPageContext(appId, result.data.results[0].session_id, result.data.results[0])
+        }
+        break
+    }
+  }
+
+  const getSessionTimelineAndSetPageContext = async (appId: string, sessionId: string, stacktrace: any) => {
+    const result = await fetchSessionTimelineFromServer(appId, sessionId)
+
+    switch (result.status) {
+      case SessionTimelineApiStatus.Error:
+        setPageContext({
+          appId: appId,
+          enable: true,
+          fileName: `${exceptionsType === ExceptionsType.Crash ? "crash" : "anr"}_details`,
+          action: `Attach ${exceptionsType === ExceptionsType.Crash ? "Crash" : "ANR"} Details`,
+          content: JSON.stringify(stacktrace)
+        })
+        break
+      case SessionTimelineApiStatus.Success:
+        setPageContext({
+          appId: appId,
+          enable: true,
+          fileName: `${exceptionsType === ExceptionsType.Crash ? "crash" : "anr"}_details`,
+          action: `Attach ${exceptionsType === ExceptionsType.Crash ? "Crash" : "ANR"} Details`,
+          content: "stackTrace:" + JSON.stringify(stacktrace) + "\nsessionTimeline:" + JSON.stringify(result.data)
         })
         break
     }
@@ -132,6 +170,19 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
 
     getExceptionsDetails()
   }, [pageState.filters, pageState.keyId, pageState.keyTimestamp, pageState.limit])
+
+  // Reset page context on unmount
+  useEffect(() => {
+    return () => {
+      setPageContext({
+        enable: false,
+        appId: '',
+        fileName: '',
+        action: '',
+        content: ''
+      })
+    }
+  }, [])
 
   return (
     <div className="flex flex-col selection:bg-yellow-200/75 items-start">
@@ -224,21 +275,24 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                           />
                         ))}
                     </div>}
-                  <div className="py-4" />
-                  <div className='flex flex-row items-center'>
+
+                  <div className="py-2" />
+                  <div className='flex flex-row items-center gap-2'>
                     <Link
                       key={pageState.exceptionsDetails.results[0].id}
                       href={`/${teamId}/sessions/${appId}/${pageState.exceptionsDetails.results[0].session_id}`}
                       className={cn(buttonVariants({ variant: "outline" }), "justify-center w-fit font-display border border-black rounded-md select-none")}>
-                      View Session
+                      <div className='flex flex-row gap-2'><LucideView /> View Session</div>
                     </Link>
-                    <div className='px-2' />
+
                     <CopyAiContext
                       appName={pageState.filters.app!.name}
                       exceptionsType={exceptionsType}
                       exceptionsDetails={pageState.exceptionsDetails} />
+
                   </div>
                   <div className="py-4" />
+
                   <Accordion type="single" collapsible defaultValue={
                     exceptionsType === ExceptionsType.Crash
                       ? 'Thread: ' + pageState.exceptionsDetails.results[0].attribute.thread_name
@@ -274,6 +328,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({ exceptions
                 </div>}
             </div>}
         </div>}
+      <div className="py-4" />
     </div>
   )
 }

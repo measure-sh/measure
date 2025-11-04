@@ -1,0 +1,60 @@
+"use client";
+
+import { cn } from "@/app/utils/shadcn_utils";
+import type { ComponentProps } from "react";
+import { Button } from "../button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../tooltip";
+
+export type ActionsProps = ComponentProps<"div">;
+
+export const Actions = ({ className, children, ...props }: ActionsProps) => (
+  <div className={cn("flex items-center gap-1", className)} {...props}>
+    {children}
+  </div>
+);
+
+export type ActionProps = ComponentProps<typeof Button> & {
+  tooltip?: string;
+  label?: string;
+};
+
+export const Action = ({
+  tooltip,
+  children,
+  label,
+  className,
+  variant = "ghost",
+  size = "sm",
+  ...props
+}: ActionProps) => {
+  const button = (
+    <Button
+      className={cn(
+        "relative size-9 p-1.5 text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-50",
+        className
+      )}
+      size={size}
+      type="button"
+      variant={variant}
+      {...props}
+    >
+      {children}
+      <span className="sr-only">{label || tooltip}</span>
+    </Button>
+  );
+
+  if (tooltip) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>{button}</TooltipTrigger>
+          <TooltipContent>
+            <p>{tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return button;
+};

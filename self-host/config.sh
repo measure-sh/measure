@@ -266,6 +266,12 @@ SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
 POSTHOG_HOST=
 POSTHOG_API_KEY=
 
+######
+# AI #
+######
+
+AI_GATEWAY_API_KEY=$AI_GATEWAY_API_KEY
+
 ########
 # OTEL #
 ########
@@ -410,6 +416,12 @@ SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
 
 POSTHOG_HOST=
 POSTHOG_API_KEY=
+
+######
+# AI #
+######
+
+AI_GATEWAY_API_KEY=$AI_GATEWAY_API_KEY
 
 ########
 # OTEL #
@@ -598,6 +610,10 @@ END
     SLACK_CLIENT_SECRET=$(prompt_optional_value_manual "Enter Slack client secret: ")
     echo -e "Generated secure Slack OAuth State Salt"
     SLACK_OAUTH_STATE_SALT=$(generate_password 44)
+
+    echo -e "\nSet AI credentials"
+    echo -e "Set up Vercel AI Gateway to get API credentials. See https://github.com/measure-sh/measure/blob/main/docs/hosting/ai.md for more details. If you wish to ignore this, enter empty value."
+    AI_GATEWAY_API_KEY=$(prompt_optional_value_manual "Enter AI Gateway API key: ")
 
     write_prod_env
     write_web_prod_env

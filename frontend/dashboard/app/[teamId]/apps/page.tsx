@@ -284,6 +284,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
           </div>
         </div>
       }
+      <div className="py-4" />
     </div>
   )
 }

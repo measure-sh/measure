@@ -159,6 +159,12 @@ Optionally, you can set up a Slack app if you want to receive alert notification
 
 Once your slack integration is set up, copy the values and enter in the relevant prompts. If you wish to ignore it, enter empty values and proceed.
 
+Additionally, you can set up AI integration if you want to use the AI assistant features. Follow the below link to set it up:
+
+- [Set up AI Assistant Integration](./ai.md)
+
+Once your AI integration is set up, copy the values and enter in the relevant prompts. If you wish to ignore it, enter empty values and proceed.
+
 Once completed, the install script will attempt to start all the Measure docker compose services. You should see a similar output.
 
 <p align="center">
