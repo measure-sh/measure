@@ -12,22 +12,14 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 
 const stopMeasure = () => {
   Measure.stop()
-    .then(() => {
-      console.log('Measure SDK stopped successfully');
-    })
-    .catch((error) => {
-      console.error('Failed to stop Measure SDK:', error);
-    });
+    .then(() => console.log('Measure SDK stopped successfully'))
+    .catch((error) => console.error('Failed to stop Measure SDK:', error));
 };
 
 const startMeasure = () => {
   Measure.start()
-    .then(() => {
-      console.log('Measure SDK started successfully');
-    })
-    .catch((error) => {
-      console.error('Failed to start Measure SDK:', error);
-    });
+    .then(() => console.log('Measure SDK started successfully'))
+    .catch((error) => console.error('Failed to start Measure SDK:', error));
 };
 
 const simulateJSException = () => {
@@ -39,8 +31,6 @@ const simulateUnhandledPromiseRejection = () => {
 };
 
 const simulateNativeCrash = () => {
-  // Intentionally call something invalid to crash native bridge
-  // (you’ll only see this on device/emulator, not in web preview)
   // @ts-ignore
   Measure.triggerNativeCrash();
 };
@@ -58,6 +48,64 @@ const trackCustomEvent = () => {
   console.log('Custom event tracked: button_click');
 };
 
+const callGetApi = async () => {
+  try {
+    console.log('Calling GET API (fetch)...');
+    const response = await fetch('https://api.agify.io?name=adwin');
+    const json = await response.json();
+    console.log('GET API response:', json);
+  } catch (error) {
+    console.error('GET API error:', error);
+  }
+};
+
+const callPostApi = async () => {
+  try {
+    console.log('Calling POST API (fetch)...');
+    const response = await fetch('https://httpbin.org/post', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hello: 'world', timestamp: Date.now() }),
+    });
+    const json = await response.json();
+    console.log('POST API response:', json);
+  } catch (error) {
+    console.error('POST API error:', error);
+  }
+};
+
+const callGetApiXHR = () => {
+  console.log('Calling GET API (XHR)...');
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', 'https://api.agify.io?name=aparna');
+  xhr.onreadystatechange = () => {
+    if (xhr.readyState === 4) {
+      console.log('GET XHR response:', xhr.responseText);
+    }
+  };
+  xhr.onerror = (error) => {
+    console.error('GET XHR error:', error);
+  };
+  xhr.send();
+};
+
+const callPostApiXHR = () => {
+  console.log('Calling POST API (XHR)...');
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://httpbin.org/post');
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onreadystatechange = () => {
+    if (xhr.readyState === 4) {
+      console.log('POST XHR response:', xhr.responseText);
+    }
+  };
+  xhr.onerror = (error) => {
+    console.error('POST XHR error:', error);
+  };
+  const body = JSON.stringify({ hello: 'world', timestamp: Date.now() });
+  xhr.send(body);
+};
+
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
 
@@ -66,7 +114,7 @@ export default function HomeScreen() {
   };
 
   const navigateToTracesScreen = () => {
-    navigation.navigate('TracesScreen'); 
+    navigation.navigate('TracesScreen');
   };
 
   const sections = [
@@ -80,51 +128,27 @@ export default function HomeScreen() {
     {
       title: 'User Actions',
       data: [
-        {
-          id: 'event',
-          title: 'Track Custom Event',
-          onPress: trackCustomEvent,
-        },
+        { id: 'event', title: 'Track Custom Event', onPress: trackCustomEvent },
+        { id: 'get-api', title: 'Call GET API (fetch)', onPress: callGetApi },
+        { id: 'post-api', title: 'Call POST API (fetch)', onPress: callPostApi },
+        { id: 'get-api-xhr', title: 'Call GET API (XHR)', onPress: callGetApiXHR },
+        { id: 'post-api-xhr', title: 'Call POST API (XHR)', onPress: callPostApiXHR },
       ],
     },
     {
       title: 'Crash & Exception Simulation',
       data: [
-        {
-          id: 'js-exception',
-          title: 'Throw JS Exception',
-          onPress: simulateJSException,
-        },
-        {
-          id: 'unhandled-rejection',
-          title: 'Unhandled Promise Rejection',
-          onPress: simulateUnhandledPromiseRejection,
-        },
-        {
-          id: 'native-crash',
-          title: 'Trigger Native Crash',
-          onPress: simulateNativeCrash,
-        },
-        {
-          id: 'infinite-loop',
-          title: 'UI Freeze (Infinite Loop)',
-          onPress: simulateInfiniteLoop,
-        },
+        { id: 'js-exception', title: 'Throw JS Exception', onPress: simulateJSException },
+        { id: 'unhandled-rejection', title: 'Unhandled Promise Rejection', onPress: simulateUnhandledPromiseRejection },
+        { id: 'native-crash', title: 'Trigger Native Crash', onPress: simulateNativeCrash },
+        { id: 'infinite-loop', title: 'UI Freeze (Infinite Loop)', onPress: simulateInfiniteLoop },
       ],
     },
     {
       title: 'Navigation',
       data: [
-        {
-          id: 'navigate',
-          title: 'Component Screen',
-          onPress: navigateToComponentScreen,
-        },
-        {
-          id: 'navigate-traces',
-          title: 'Traces Screen',
-          onPress: navigateToTracesScreen,
-        },
+        { id: 'navigate', title: 'Component Screen', onPress: navigateToComponentScreen },
+        { id: 'navigate-traces', title: 'Traces Screen', onPress: navigateToTracesScreen },
       ],
     },
   ];

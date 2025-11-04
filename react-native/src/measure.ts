@@ -1,5 +1,7 @@
 import type { Client } from './config/clientInfo';
 import { MeasureConfig } from './config/measureConfig';
+import { FetchHttpTracker } from './http/fetchHttpTracker';
+import { XMLHttpRequestTracker } from './http/xmlHttpRequestTracker';
 import {
   BaseMeasureInitializer,
   type MeasureInitializer,
@@ -70,7 +72,21 @@ export const Measure = {
 
         _measureInternal
           .init(client, config)
-          .then(() => resolve())
+          .then(() => {
+            // ✅ Start tracking HTTP requests only after SDK init completes
+            try {
+              // FetchHttpTracker.install();
+              XMLHttpRequestTracker.install();
+              console.info('[Measure] HTTP tracker installed successfully.');
+            } catch (trackerError) {
+              console.warn(
+                '[Measure] Failed to install HTTP tracker:',
+                trackerError
+              );
+            }
+
+            resolve();
+          })
           .catch((error) => {
             _initializationPromise = null;
             reject(error);
@@ -186,7 +202,9 @@ export const Measure = {
    */
   getCurrentTime(): number {
     if (!_measureInternal) {
-      console.warn('Measure is not initialized. Returning standard Date.now().');
+      console.warn(
+        'Measure is not initialized. Returning standard Date.now().'
+      );
       return Date.now();
     }
     return _measureInternal.getCurrentTime();
@@ -241,7 +259,9 @@ export const Measure = {
    */
   getTraceParentHeaderValue(span: Span): string {
     if (!_measureInternal) {
-      console.warn('Measure is not initialized. Returning empty traceparent value.');
+      console.warn(
+        'Measure is not initialized. Returning empty traceparent value.'
+      );
       return '';
     }
     return _measureInternal.getTraceParentHeaderValue(span);
