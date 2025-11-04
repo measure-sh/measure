@@ -146,7 +146,7 @@ extension NetworkInterceptorProtocol: URLSessionDataDelegate {
             } else if let requestBodyData = request.httpBody, let requestBodyString = String(data: requestBodyData, encoding: .utf8) {
                 requestBody = requestBodyString
             }
-            requestBody = nil
+
             let responseString = responseBody.map { String(data: $0, encoding: .utf8) } ?? nil
 
             let httpData = HttpData(
