@@ -3,6 +3,8 @@
 import { DataFiltersResponse, DataFilterCollectionConfig, DataFilterAttachmentConfig, DataFilterType } from '@/app/api/api_calls'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils'
+import Paginator from '@/app/components/paginator'
+import { useState, useEffect } from 'react'
 
 const getFilterDisplayText = (type: DataFilterType, filter: string): string => {
     switch (type) {
@@ -28,8 +30,8 @@ const getCollectionConfigDisplay = (collectionConfig: DataFilterCollectionConfig
     }
 }
 
-const getAttachmentConfigDisplay = (attachmentConfig: DataFilterAttachmentConfig | null): string => {
-    if (!attachmentConfig || attachmentConfig === 'none') {
+const getAttachmentConfigDisplay = (attachmentConfig: DataFilterAttachmentConfig): string => {
+    if (attachmentConfig === 'none') {
         return ''
     } else if (attachmentConfig === 'layout_snapshot') {
         return 'With layout snapshot'
@@ -46,16 +48,47 @@ interface RulesTableProps {
     onRuleClick: (rule: RuleFilter) => void
 }
 
+const paginationLimit = 5
+
 export default function RulesTable({ rules, onRuleClick }: RulesTableProps) {
+    const [paginationOffset, setPaginationOffset] = useState(0)
+
+    useEffect(() => {
+        setPaginationOffset(0)
+    }, [rules])
+
     if (rules.length === 0) {
         return null
     }
 
+    const handleNextPage = () => {
+        setPaginationOffset(paginationOffset + paginationLimit)
+    }
+
+    const handlePrevPage = () => {
+        setPaginationOffset(Math.max(0, paginationOffset - paginationLimit))
+    }
+
+    const prevEnabled = paginationOffset > 0
+    const nextEnabled = paginationOffset + paginationLimit < rules.length
+    const paginatedRules = rules.slice(paginationOffset, paginationOffset + paginationLimit)
+
     return (
         <>
             <div className="py-6" />
-            <p className="font-display text-gray-500">Overrides</p>
-            <div className="py-2" />
+            <div className="w-full flex items-center justify-between">
+                <p className="font-display text-gray-500">Overrides</p>
+                {rules.length > paginationLimit && (
+                    <Paginator
+                        prevEnabled={prevEnabled}
+                        nextEnabled={nextEnabled}
+                        displayText=""
+                        onNext={handleNextPage}
+                        onPrev={handlePrevPage}
+                    />
+                )}
+            </div>
+            <div className="py-4" />
             <Table className="font-display">
                 <TableHeader>
                     <TableRow>
@@ -65,7 +98,7 @@ export default function RulesTable({ rules, onRuleClick }: RulesTableProps) {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {rules.map((dataFilter, idx) => (
+                    {paginatedRules.map((dataFilter, idx) => (
                         <TableRow
                             key={`${idx}-${dataFilter.id}`}
                             className="font-body cursor-pointer hover:bg-yellow-200 focus-visible:border-yellow-200 select-none"
