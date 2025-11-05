@@ -2,7 +2,6 @@
 
 import { Button } from '@/app/components/button'
 import { Card, CardContent, CardFooter } from '@/app/components/card'
-import RuleBuilderCard from './rule_builder_card'
 
 interface EventTraceRuleBuilderProps {
     type: 'event' | 'trace'

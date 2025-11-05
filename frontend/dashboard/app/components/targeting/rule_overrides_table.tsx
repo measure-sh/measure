@@ -1,20 +1,9 @@
 "use client"
 
-import { EventTargetingRule, TraceTargetingRule, EventTargetingCollectionConfig, EventTargetingAttachmentConfig, EventTargetingRuleType } from '@/app/api/api_calls'
+import { EventTargetingRule, TraceTargetingRule, EventTargetingCollectionConfig, EventTargetingAttachmentConfig } from '@/app/api/api_calls'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/table'
 import { formatDateToHumanReadableDate, formatDateToHumanReadableTime } from '@/app/utils/time_utils'
 import Paginator from '@/app/components/paginator'
-
-const getFilterDisplayText = (type: EventTargetingRuleType, filter: string): string => {
-    switch (type) {
-        case 'all_events':
-            return 'All Events'
-        case 'all_traces':
-            return 'All Traces'
-        default:
-            return filter
-    }
-}
 
 const getCollectionConfigDisplay = (collectionConfig: EventTargetingCollectionConfig): string => {
     switch (collectionConfig.mode) {
@@ -40,11 +29,11 @@ const getAttachmentConfigDisplay = (attachmentConfig?: EventTargetingAttachmentC
     return attachmentConfig
 }
 
-type Rule = EventTargetingRule | TraceTargetingRule
+type RuleFilter = EventTargetingRule | TraceTargetingRule
 
 interface RulesTableProps {
-    rules: Rule[]
-    onRuleClick: (rule: Rule) => void
+    rules: RuleFilter[]
+    onRuleClick: (rule: RuleFilter) => void
     prevEnabled: boolean
     nextEnabled: boolean
     onNext: () => void
@@ -52,7 +41,7 @@ interface RulesTableProps {
     showPaginator: boolean
 }
 
-export default function RulesOverridesTable({ rules, onRuleClick, prevEnabled, nextEnabled, onNext, onPrev, showPaginator }: RulesTableProps) {
+export default function RulesTable({ rules, onRuleClick, prevEnabled, nextEnabled, onNext, onPrev, showPaginator }: RulesTableProps) {
     if (rules.length === 0) {
         return null
     }
@@ -89,7 +78,7 @@ export default function RulesOverridesTable({ rules, onRuleClick, prevEnabled, n
                             onClick={() => onRuleClick(dataFilter)}
                         >
                             <TableCell className="w-[60%] p-4">
-                                <p className='truncate select-none font-mono text-sm'>{getFilterDisplayText(dataFilter.type, dataFilter.rule)}</p>
+                                <p className='truncate select-none font-mono text-sm'>{dataFilter.rule}</p>
                                 <div className='py-1' />
                                 <p className='text-xs truncate text-gray-500 select-none'>{getCollectionConfigDisplay(dataFilter.collection_config)}</p>
                                 <p className='text-xs truncate text-gray-500 select-none'>{getAttachmentConfigDisplay('attachment_config' in dataFilter ? dataFilter.attachment_config : undefined)}</p>
