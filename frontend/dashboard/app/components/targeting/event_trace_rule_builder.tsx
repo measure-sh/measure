@@ -9,7 +9,9 @@ import {
     EventTargetingRule,
     TraceTargetingRule,
     fetchEventTargetingRuleFromServer,
-    fetchTraceTargetingRuleFromServer
+    fetchTraceTargetingRuleFromServer,
+    emptyEventTargetingRule,
+    emptyTraceTargetingRule
 } from '@/app/api/api_calls'
 import LoadingBar from '@/app/components/loading_bar'
 
@@ -50,14 +52,16 @@ export default function EventTraceRuleBuilder({
 
         setApiStatus(EventTargetingRuleApiStatus.Loading)
 
-        const result = await fetchEventTargetingRuleFromServer(appId, ruleId)
+        // TEMPORARY: Using dummy response instead of actual API call
+        // const result = await fetchEventTargetingRuleFromServer(appId, ruleId)
+        // if (result.status === EventTargetingRuleApiStatus.Error) {
+        //     setApiStatus(EventTargetingRuleApiStatus.Error)
+        //     return
+        // }
+        // setRuleData(result.data)
 
-        if (result.status === EventTargetingRuleApiStatus.Error) {
-            setApiStatus(EventTargetingRuleApiStatus.Error)
-            return
-        }
-
-        setRuleData(result.data)
+        // Using dummy data temporarily
+        setRuleData(emptyEventTargetingRule)
         setApiStatus(EventTargetingRuleApiStatus.Success)
     }
 
@@ -66,14 +70,16 @@ export default function EventTraceRuleBuilder({
 
         setApiStatus(TraceTargetingRuleApiStatus.Loading)
 
-        const result = await fetchTraceTargetingRuleFromServer(appId, ruleId)
+        // TEMPORARY: Using dummy response instead of actual API call
+        // const result = await fetchTraceTargetingRuleFromServer(appId, ruleId)
+        // if (result.status === TraceTargetingRuleApiStatus.Error) {
+        //     setApiStatus(TraceTargetingRuleApiStatus.Error)
+        //     return
+        // }
+        // setRuleData(result.data)
 
-        if (result.status === TraceTargetingRuleApiStatus.Error) {
-            setApiStatus(TraceTargetingRuleApiStatus.Error)
-            return
-        }
-
-        setRuleData(result.data)
+        // Using dummy data temporarily
+        setRuleData(emptyTraceTargetingRule)
         setApiStatus(TraceTargetingRuleApiStatus.Success)
     }
 
@@ -118,7 +124,7 @@ export default function EventTraceRuleBuilder({
             {hasError && (
                 <div className="w-full flex flex-col items-center">
                     <p className="text-normal font-body">
-                        Error loading rule data. Please try again or go back.
+                        Error loading rule. Please try again or go back.
                     </p>
                     <div className="py-4" />
                     <Button

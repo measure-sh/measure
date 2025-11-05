@@ -1217,6 +1217,23 @@ export const emptySessionTargetingResponse: SessionTargetingResponse = {
   ]
 }
 
+export const emptyEventTargetingRule: EventTargetingRule = {
+  id: "df-events-001",
+  rule: 'event.event_type == "crash"',
+  collection_config: { mode: 'sample_rate', sample_rate: 5 },
+  attachment_config: 'screenshot',
+  updated_at: "2024-01-01T00:00:00Z",
+  updated_by: "system@example.com",
+}
+
+export const emptyTraceTargetingRule: TraceTargetingRule = {
+  id: "df-traces-001",
+  rule: 'trace.trace_name == "root"',
+  collection_config: { mode: 'sample_rate', sample_rate: 10 },
+  updated_at: "2024-01-01T00:00:00Z",
+  updated_by: "system@example.com",
+}
+
 export class AppVersion {
   name: string
   code: string
